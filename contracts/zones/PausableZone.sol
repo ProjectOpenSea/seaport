@@ -133,70 +133,6 @@ contract PausableZone is
     }
 
     /**
-     * @notice Check if a given order is currently valid.
-     *
-     * @dev This function is called by Seaport whenever extraData is not
-     *      provided by the caller.
-     *
-     * @param orderHash The hash of the order.
-     * @param caller    The caller in question.
-     * @param offerer   The offerer in question.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     *
-     * @return validOrderMagicValue A magic value indicating if the order is
-     *                              currently valid.
-     */
-    function isValidOrder(
-        bytes32 orderHash,
-        address caller,
-        address offerer,
-        bytes32 zoneHash
-    ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        offerer;
-        zoneHash;
-
-        // Return the selector of isValidOrder as the magic value.
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
-    }
-
-    /**
-     * @notice Check if a given order including extraData is currently valid.
-     *
-     * @dev This function is called by Seaport whenever any extraData is
-     *      provided by the caller.
-     *
-     * @param orderHash         The hash of the order.
-     * @param caller            The caller in question.
-     * @param order             The order in question.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
-     *                          the current order as part of a "match" variety
-     *                          of order fulfillment.
-     * @param criteriaResolvers The criteria resolvers corresponding to
-     *                          the order.
-     *
-     * @return validOrderMagicValue A magic value indicating if the order is
-     *                              currently valid.
-     */
-    function isValidOrderIncludingExtraData(
-        bytes32 orderHash,
-        address caller,
-        AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes,
-        CriteriaResolver[] calldata criteriaResolvers
-    ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        order;
-        priorOrderHashes;
-        criteriaResolvers;
-
-        // Return the selector of isValidOrder as the magic value.
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
-    }
-
-    /**
      * @notice Execute an arbitrary number of matched orders, each with
      *         an arbitrary number of items for offer and consideration
      *         along with a set of fulfillments allocating offer components
@@ -269,5 +205,69 @@ contract PausableZone is
             criteriaResolvers,
             fulfillments
         );
+    }
+
+    /**
+     * @notice Check if a given order is currently valid.
+     *
+     * @dev This function is called by Seaport whenever extraData is not
+     *      provided by the caller.
+     *
+     * @param orderHash The hash of the order.
+     * @param caller    The caller in question.
+     * @param offerer   The offerer in question.
+     * @param zoneHash  The hash to provide upon calling the zone.
+     *
+     * @return validOrderMagicValue A magic value indicating if the order is
+     *                              currently valid.
+     */
+    function isValidOrder(
+        bytes32 orderHash,
+        address caller,
+        address offerer,
+        bytes32 zoneHash
+    ) external pure override returns (bytes4 validOrderMagicValue) {
+        orderHash;
+        caller;
+        offerer;
+        zoneHash;
+
+        // Return the selector of isValidOrder as the magic value.
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+    }
+
+    /**
+     * @notice Check if a given order including extraData is currently valid.
+     *
+     * @dev This function is called by Seaport whenever any extraData is
+     *      provided by the caller.
+     *
+     * @param orderHash         The hash of the order.
+     * @param caller            The caller in question.
+     * @param order             The order in question.
+     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     *                          the current order as part of a "match" variety
+     *                          of order fulfillment.
+     * @param criteriaResolvers The criteria resolvers corresponding to
+     *                          the order.
+     *
+     * @return validOrderMagicValue A magic value indicating if the order is
+     *                              currently valid.
+     */
+    function isValidOrderIncludingExtraData(
+        bytes32 orderHash,
+        address caller,
+        AdvancedOrder calldata order,
+        bytes32[] calldata priorOrderHashes,
+        CriteriaResolver[] calldata criteriaResolvers
+    ) external pure override returns (bytes4 validOrderMagicValue) {
+        orderHash;
+        caller;
+        order;
+        priorOrderHashes;
+        criteriaResolvers;
+
+        // Return the selector of isValidOrder as the magic value.
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 }
