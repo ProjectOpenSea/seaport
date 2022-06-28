@@ -10547,6 +10547,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts on nonexistent conduit", async () => {
       // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Deploy ERC20 Contract
+      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       const transferHelperItems = [
         {
@@ -10563,13 +10565,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 10,
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 20,
         },
@@ -10588,6 +10590,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts on error in ERC721 receiver", async () => {
       // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Deploy ERC20 Contract
+      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Deploy mock ERC721 receiver
       const mockERC721ReceiverFactory = await ethers.getContractFactory(
@@ -10613,13 +10617,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 10,
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 20,
         },
@@ -10638,6 +10642,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts with custom error in conduit", async () => {
       // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Deploy ERC20 Contract
+      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       const transferHelperItems = [
         // Invalid item type
@@ -10655,13 +10661,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 10,
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 20,
         },
@@ -10677,6 +10683,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts with bubbled up string error from call to conduit", async () => {
       // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Deploy ERC20 Contract
+      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Call will revert since ERC721 tokens have not been minted
       const transferHelperItems = [
@@ -10694,13 +10702,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 10,
         },
         {
           itemType: 1,
-          token: ethers.constants.AddressZero,
+          token: tempERC20Contract.address,
           identifier: 0,
           amount: 20,
         },
@@ -10711,81 +10719,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .connect(sender)
           .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
       ).to.be.revertedWith('ConduitErrorString("WRONG_FROM")');
-    });
-
-    it("Reverts with error without message from call to conduit", async () => {
-      // Deploy mock ERC721 receiver
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
-      mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
-        0xabcd0000,
-        2
-      );
-
-      const erc20Transfers = [3];
-      const erc721Transfers = [3];
-      const erc1155Transfers = [3];
-
-      // Create 3 ERC20 objects
-      for (let i = 0; i < 3; i++) {
-        // Deploy Contract
-        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-        // Create/Approve ERC20
-        const erc20Transfer = await createTransferWithApproval(
-          tempERC20Contract,
-          sender,
-          1,
-          tempTransferHelper.address
-        );
-        erc20Transfers[i] = erc20Transfer;
-      }
-
-      // Create 3 ERC721 objects
-      for (let i = 0; i < 3; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve ERC721
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempTransferHelper.address
-        );
-        erc721Transfers[i] = erc721Transfer;
-      }
-
-      // Create 3 ERC1155 objects
-      for (let i = 0; i < 3; i++) {
-        // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
-        // Create/Approve ERC1155
-        const erc1155Transfer = await createTransferWithApproval(
-          tempERC1155Contract,
-          sender,
-          3,
-          tempTransferHelper.address
-        );
-        erc1155Transfers[i] = erc1155Transfer;
-      }
-
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
-
-      console.log("Transfers length:", transfers.length);
-
-      console.log("Transfers:", transfers);
-
-      // Send the bulk transfers
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transfers, recipient.address, tempConduitKey)
-      ).to.be.revertedWith("InvalidConduit");
     });
 
     it("Reverts with bubbled up panic error from call to conduit", async () => {
@@ -10814,9 +10747,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith(
-        "panic code 0x12 (Division or modulo division by zero)"
-      );
+      ).to.be.revertedWith("ConduitErrorPanic(18)");
     });
   });
 
