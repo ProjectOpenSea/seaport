@@ -39,7 +39,7 @@ Seaport and the ConduitController can be deployed to the same address on all EVM
 
 ## Setting up Factory on a New Chain
 
-If there is no `IMMUTABLE_CREATE2_FACTORY_ADDRESS` on the chain, you must deploy this first.
+If there is no `IMMUTABLE_CREATE2_FACTORY_ADDRESS` on the chain, deploy this first.
 
 1. Send 0.01 Ether to the `KEYLESS_CREATE2_DEPLOYER_ADDRESS`
 2. Create the `KEYLESS_CREATE2_ADDRESS` by submitting this pre-signed transaction:
@@ -62,7 +62,7 @@ seth send 0xcfa3a7637547094ff06246817a35b8333c315196 0x64e0308700000000000000000
 
 ## Deploying Seaport and ConduitController
 
-Once the `IMMUTABLE_CREATE2_FACTORY_ADDRESS` exists, you can began to deploy the contracts:
+Once the `IMMUTABLE_CREATE2_FACTORY_ADDRESS` exists, begin to deploy the contracts:
 
 1. Deploy the `ConduitController` contract by submitting:
 
@@ -79,7 +79,7 @@ seth send 0x0000000000ffe8b47b3e2130213b802212439497 0x64e0308700000000000000000
 3. Validate deployments were successful by checking that `Seaport` is returned by `seth --to-ascii $(seth call 0x00000000006c3852cbEf3e08E8dF289169EdE581 'name()')`
 
 ## Verifying Seaport and ConduitController
-After `Seaport` and `ConduitController` are deployed, you should verify them.
+After `Seaport` and `ConduitController` are deployed, they are verified as follows:
 
 1. Ensure that `EXPLORER_API_KEY` and `NETWORK_RPC` are set in `.env` appropriatly.
 2. Verify `ConduitController` by calling:
