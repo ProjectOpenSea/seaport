@@ -49,13 +49,18 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Polygon</td></tr>
 <tr><td>Mumbai</td></tr>
 <tr><td>Optimism</td></tr>
-<tr><td>Optimistic Kovan</td></tr>
-<tr><td>Arbitrum</td></tr>
-<tr><td>Arbitrum Rinkeby</td></tr>
-<tr><td>Gnosis Chain</td></tr>
-<tr><td>Klaytn</td></tr>
-<tr><td>Baobab</td></tr>
 </table>
+
+To be deployed on other EVM chains, such as:
+
+- Optimistic Kovan
+- Arbitrum
+- Arbitrum Rinkeby
+- Gnosis Chain
+- Klaytn
+- Baobab
+
+Feel free to pick one of these up and deploy using the [steps outlined here](docs/Deployment.md).
 
 ## Diagram
 
