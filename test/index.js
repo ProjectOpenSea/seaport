@@ -10739,7 +10739,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith("ConduitErrorPanic(18)");
+      ).to.be.revertedWith(
+        "panic code 0x12 (Division or modulo division by zero)"
+      );
     });
   });
 

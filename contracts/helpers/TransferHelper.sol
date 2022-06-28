@@ -257,9 +257,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 // Revert if the error provides a reason string.
             } catch Error(string memory reason) {
                 revert ConduitErrorString(reason);
-                // Revert if the error was caused by a panic.
-            } catch Panic(uint256 errorCode) {
-                revert ConduitErrorPanic(errorCode);
             }
         }
 
