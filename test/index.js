@@ -10743,11 +10743,27 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         },
       ];
 
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith("ConduitErrorPanic(18)");
+      if (!process.env.REFERENCE) {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransfer(
+              transferHelperItems,
+              recipient.address,
+              tempConduitKey
+            )
+        ).to.be.revertedWith("ConduitErrorPanic(18)");
+      } else {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransfer(
+              transferHelperItems,
+              recipient.address,
+              tempConduitKey
+            )
+        ).to.be.reverted;
+      }
     });
   });
 
