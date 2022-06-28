@@ -9,3 +9,10 @@ struct TransferHelperItem {
     uint256 identifier;
     uint256 amount;
 }
+
+enum Error {
+    None,
+    RevertWithMessage,
+    RevertWithoutMessage,
+    Panic
+}

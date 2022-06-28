@@ -23,6 +23,8 @@ import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransfer
 
 import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelperInterface.sol";
 
+import { ERC721ReceiverMock } from "../../contracts/test/ERC721ReceiverMock.sol";
+
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
@@ -777,6 +779,84 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             true,
             abi.encodePacked(TransferHelperInterface.InvalidConduit.selector)
+        );
+    }
+
+    function testRevertInvalidERC721Receiver(FuzzInputsCommon memory inputs)
+        public
+    {
+        // Deploy invalid mock ERC721 receiver
+        ERC721ReceiverMock mockReceiver = new ERC721ReceiverMock(
+            0xabcd0000,
+            ERC721ReceiverMock.Error.RevertWithMessage
+        );
+
+        TransferHelperItem memory item = _getFuzzedTransferItem(
+            ConduitItemType.ERC721,
+            1,
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        _performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            address(mockReceiver),
+            false,
+            abi.encodePacked("ERC721ReceiverMock: reverting")
+        );
+    }
+
+    function testRevertInvalidItemWithConduit(
+        FuzzInputsCommon memory inputs,
+        bytes32 fuzzConduitKey
+    ) public {
+        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
+        vm.assume(
+            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
+        );
+        TransferHelperItem memory invalidItem = _getFuzzedTransferItem(
+            ConduitItemType.NATIVE,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        _performSingleItemTransferAndCheckBalances(
+            invalidItem,
+            alice,
+            bob,
+            true,
+            abi.encodePacked(TransferHelperInterface.InvalidItemType.selector)
+        );
+    }
+
+    function testRevertStringErrorWithConduit(
+        FuzzInputsCommon memory inputs,
+        bytes32 fuzzConduitKey
+    ) public {
+        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
+        vm.assume(
+            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
+        );
+
+        // Deploy invalid mock ERC721 receiver
+        ERC721ReceiverMock mockReceiver = new ERC721ReceiverMock(
+            0xabcd0000,
+            ERC721ReceiverMock.Error.RevertWithMessage
+        );
+
+        TransferHelperItem memory item = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(erc721s[0]),
+            5,
+            1
+        );
+
+        _performSingleItemTransferAndCheckBalances(
+            item,
+            bob,
+            address(mockReceiver),
+            true,
+            abi.encodePacked('ConduitErrorString("WRONG_FROM")')
         );
     }
 }
