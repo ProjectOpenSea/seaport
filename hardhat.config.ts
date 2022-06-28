@@ -6,6 +6,7 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "dotenv/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
+import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
@@ -64,10 +65,16 @@ const config: HardhatUserConfig = {
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
     },
+    verificationNetwork: {
+      url: process.env.NETWORK_RPC ?? "",
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+  },
+  etherscan: {
+    apiKey: process.env.EXPLORER_API_KEY,
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   paths: { cache: "hh-cache" },
