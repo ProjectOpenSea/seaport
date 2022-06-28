@@ -1,16 +1,20 @@
 import { expect } from "chai";
-import { BigNumber, constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
-import {
+
+import { merkleTree } from "../utils/criteria";
+import { buildResolver, toBN, toKey } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
+import { seaportFixture } from "../utils/fixtures";
+
+import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
-import { buildResolver, toBN, toKey } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder } from "../utils/types";
-const { merkleTree } = require("../utils/criteria");
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder } from "../utils/types";
+import type { BigNumber, Wallet } from "ethers";
 
 const IS_FIXED = true;
 
@@ -18,16 +22,20 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
+
   let order: AdvancedOrder;
+
+  let marketplaceContract: ConsiderationInterface;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
-  let marketplaceContract: ConsiderationInterface;
-  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
-  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+
+  let createOrder: SeaportFixtures["createOrder"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
-  let createOrder: SeaportFixtures["createOrder"];
   let mint721s: SeaportFixtures["mint721s"];
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
+
   let tokenIds: BigNumber[];
   let root: string;
 
@@ -44,20 +52,23 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();
+
     ({
-      mintAndApproveERC20,
-      marketplaceContract,
+      createOrder,
       getTestItem20,
       getTestItem721WithCriteria,
+      marketplaceContract,
+      mint721s,
+      mintAndApproveERC20,
       set721ApprovalForAll,
-      createOrder,
       testERC20,
       testERC721,
-      mint721s,
     } = await seaportFixture(await getWalletWithEther()));
+
     await mintAndApproveERC20(alice, marketplaceContract.address, 1000);
     await set721ApprovalForAll(bob, marketplaceContract.address);
     await set721ApprovalForAll(carol, marketplaceContract.address);
+
     tokenIds = await mint721s(bob, 10);
     ({ root } = merkleTree(tokenIds));
   });
@@ -98,7 +109,7 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
           .fulfillAdvancedOrder(
             order,
             [criteriaResolver],
-            toKey(false),
+            toKey(0),
             carol.address
           );
       });
@@ -120,7 +131,7 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
             .fulfillAdvancedOrder(
               order,
               [criteriaResolver],
-              toKey(false),
+              toKey(0),
               carol.address
             )
         ).to.be.revertedWith("InvalidProof");

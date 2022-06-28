@@ -1,18 +1,18 @@
 import { randomBytes as nodeRandomBytes } from "crypto";
-import { utils, BigNumber, constants, ContractTransaction } from "ethers";
+import { BigNumber, constants, utils } from "ethers";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
-import {
+
+import type {
   BasicOrderParameters,
-  BigNumberish,
   ConsiderationItem,
   CriteriaResolver,
+  Fulfillment,
   FulfillmentComponent,
   OfferItem,
   Order,
   OrderComponents,
 } from "./types";
-
-export { BigNumberish };
+import type { BigNumberish, ContractTransaction } from "ethers";
 
 const SeededRNG = require("./seeded-rng");
 
@@ -26,8 +26,6 @@ if (GAS_REPORT_MODE) {
   randomBytes = (n: number) => nodeRandomBytes(n).toString("hex");
 }
 
-// const randomBytes
-
 export const randomHex = (bytes = 32) => `0x${randomBytes(bytes)}`;
 
 export const random128 = () => toBN(randomHex(16));
@@ -40,8 +38,8 @@ export const toHex = (n: BigNumberish, numBytes: number = 0) => {
     : typeof n === "string"
     ? hexRegex.test(n)
       ? n.replace(/0x/, "")
-      : (+n).toString(16)
-    : (+n).toString(16);
+      : Number(n).toString(16)
+    : Number(n).toString(16);
   return `0x${asHexString.padStart(numBytes * 2, "0")}`;
 };
 
@@ -80,8 +78,8 @@ export const convertSignatureToEIP2098 = (signature: string) => {
 export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
-  fulfillerConduitKey = false,
-  tips = []
+  fulfillerConduitKey: string | boolean = false,
+  tips: { amount: BigNumber; recipient: string }[] = []
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,
@@ -102,7 +100,9 @@ export const getBasicOrderParameters = (
   ),
   signature: order.signature,
   offererConduitKey: order.parameters.conduitKey,
-  fulfillerConduitKey: toKey(fulfillerConduitKey),
+  fulfillerConduitKey: toKey(
+    typeof fulfillerConduitKey === "string" ? fulfillerConduitKey : 0
+  ),
   additionalRecipients: [
     ...order.parameters.consideration
       .slice(1)
@@ -189,10 +189,7 @@ export const toFulfillmentComponents = (
 export const toFulfillment = (
   offerArr: number[][],
   considerationsArr: number[][]
-): {
-  offerComponents: FulfillmentComponent[];
-  considerationComponents: FulfillmentComponent[];
-} => ({
+): Fulfillment => ({
   offerComponents: toFulfillmentComponents(offerArr),
   considerationComponents: toFulfillmentComponents(considerationsArr),
 });
@@ -322,8 +319,8 @@ export const getBasicOrderExecutions = (
         amount: offerItem.endAmount,
         recipient: fulfiller,
       },
-      offerer: offerer,
-      conduitKey: conduitKey,
+      offerer,
+      conduitKey,
     },
     {
       item: {

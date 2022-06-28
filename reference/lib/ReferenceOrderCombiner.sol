@@ -27,6 +27,8 @@ import { ReferenceFulfillmentApplier } from "./ReferenceFulfillmentApplier.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
+import { SeaportInterface } from "contracts/interfaces/SeaportInterface.sol";
+
 /**
  * @title OrderCombiner
  * @author 0age
@@ -195,7 +197,9 @@ contract ReferenceOrderCombiner is
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
         // Check if we are in a match function
-        bool nonMatchFn = msg.sig != 0x55944a42 && msg.sig != 0xa8174404;
+        bool nonMatchFn = msg.sig !=
+            SeaportInterface.matchAdvancedOrders.selector &&
+            msg.sig != SeaportInterface.matchOrders.selector;
         bool anyNativeOfferItems;
 
         // Iterate over each order.
@@ -244,11 +248,8 @@ contract ReferenceOrderCombiner is
             // Otherwise, track the order hash in question.
             orderHashes[i] = orderHash;
 
-            // Skip underflow check as maximumFulfilled is nonzero.
-            unchecked {
-                // Decrement the number of fulfilled orders.
-                maximumFulfilled--;
-            }
+            // Decrement the number of fulfilled orders.
+            maximumFulfilled--;
 
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
@@ -493,11 +494,8 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // Executions start at 0, infeasible to increment > 2^256.
-                unchecked {
-                    // Increment total filtered executions.
-                    ++totalFilteredExecutions;
-                }
+                // Increment total filtered executions.
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
@@ -522,11 +520,8 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // Executions start at 0, infeasible to increment > 2^256.
-                unchecked {
-                    // Increment total filtered executions.
-                    ++totalFilteredExecutions;
-                }
+                // Increment total filtered executions.
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[
@@ -782,11 +777,8 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // Executions start at 0, infeasible to increment > 2^256.
-                unchecked {
-                    // Increment total filtered executions.
-                    ++totalFilteredExecutions;
-                }
+                // Increment total filtered executions.
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;

@@ -1,4 +1,4 @@
-import { Contract, ContractTransaction } from "ethers";
+import type { Contract, ContractTransaction } from "ethers";
 
 type DecodedTransactionEvent = {
   eventName: string;

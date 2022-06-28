@@ -1,31 +1,38 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
-import {
+
+import { toFulfillment } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
+import { seaportFixture } from "../utils/fixtures";
+
+import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
-import { toFulfillment } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder, OfferItem } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder, OfferItem } from "../utils/types";
+import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 
 describe("Fulfillment applier allows overflow when a missing item is provided", async () => {
   let alice: Wallet;
   let bob: Wallet;
+
   let order: AdvancedOrder;
   let maliciousOrder: AdvancedOrder;
+
+  let marketplaceContract: ConsiderationInterface;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
-  let marketplaceContract: ConsiderationInterface;
-  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
-  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+
+  let createOrder: SeaportFixtures["createOrder"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
-  let createOrder: SeaportFixtures["createOrder"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
 
   after(async () => {
     await network.provider.request({
@@ -37,20 +44,24 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
     if (process.env.REFERENCE) {
       this.skip();
     }
+
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
+
     ({
-      mintAndApprove721,
-      mintAndApproveERC20,
-      marketplaceContract,
+      createOrder,
       getTestItem20,
       getTestItem721,
-      createOrder,
+      marketplaceContract,
+      mintAndApprove721,
+      mintAndApproveERC20,
       testERC20,
       testERC721,
     } = await seaportFixture(await getWalletWithEther()));
+
     // ERC721 with ID = 1
     await mintAndApprove721(alice, marketplaceContract.address, 1);
+
     // ERC20 with amount = 1100
     await mintAndApproveERC20(bob, marketplaceContract.address, 1);
   });

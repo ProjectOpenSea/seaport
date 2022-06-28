@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.7;
+
 import { PausableZone } from "./PausableZone.sol";
 
 // prettier-ignore
@@ -200,18 +201,21 @@ contract PausableZoneController is
     }
 
     /**
-     * @notice Execute an arbitrary number of matched advanced orders on a given zone.
+     * @notice Execute an arbitrary number of matched advanced orders on a given
+     *         zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the orders to be
+     *                            cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to match.
-     * @param criteriaResolvers   An array where each element contains a reference
-     *                            to a specific order as well as that order's
-     *                            offer or consideration, a token identifier, and
-     *                            a proof that the supplied token identifier is
-     *                            contained in the order's merkle root.
-     * @param fulfillments        An array of elements allocating offer components
-     *                            to consideration components.
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific order as well as that
+     *                            order's offer or consideration, a token
+     *                            identifier, and a proof that the supplied
+     *                            token identifier is contained in the
+     *                            order's merkle root.
+     * @param fulfillments        An array of elements allocating offer
+     *                            components to consideration components.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
@@ -349,7 +353,8 @@ contract PausableZoneController is
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
 
-        // Call assignOperator on the zone by passing in the given operator address.
+        // Call assignOperator on the zone by passing in the given
+        // operator address.
         zone.assignOperator(operatorToAssign);
     }
 
