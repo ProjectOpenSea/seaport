@@ -4,6 +4,11 @@ pragma solidity ^0.8.7;
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 contract TestERC20Panic is ERC20("TestPanic", "PANIC", 18) {
+    function mint(address to, uint256 amount) external returns (bool) {
+        _mint(to, amount);
+        return true;
+    }
+
     function transferFrom(
         address, /* from */
         address, /* to */

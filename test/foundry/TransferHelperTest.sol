@@ -25,6 +25,8 @@ import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelp
 
 import { ERC721ReceiverMock } from "../../contracts/test/ERC721ReceiverMock.sol";
 
+import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
+
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
@@ -838,12 +840,6 @@ contract TransferHelperTest is BaseOrderTest {
             fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
         );
 
-        // Deploy invalid mock ERC721 receiver
-        ERC721ReceiverMock mockReceiver = new ERC721ReceiverMock(
-            0xabcd0000,
-            ERC721ReceiverMock.Error.RevertWithMessage
-        );
-
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(erc721s[0]),
@@ -851,12 +847,50 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
+        // Attempt to transfer ERC721 tokens from bob to alice
+        // Expect revert since alice owns the tokens
         _performSingleItemTransferAndCheckBalances(
             item,
             bob,
-            address(mockReceiver),
+            alice,
             true,
             abi.encodeWithSignature("ConduitErrorString(string)", "WRONG_FROM")
+        );
+    }
+
+    function testRevertPanicErrorWithConduit(
+        FuzzInputsCommon memory inputs,
+        bytes32 fuzzConduitKey
+    ) public {
+        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
+        vm.assume(
+            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
+        );
+
+        // Create ERC20 token that reverts with a panic when calling transferFrom.
+        TestERC20Panic panicERC20 = new TestERC20Panic();
+
+        // Mint ERC20 tokens to alice.
+        panicERC20.mint(alice, 10);
+
+        // Approve the ERC20 tokens
+        panicERC20.approve(alice, 10);
+
+        TransferHelperItem memory item = TransferHelperItem(
+            ConduitItemType.ERC20,
+            address(panicERC20),
+            0,
+            10
+        );
+
+        // Revert with panic error when calling execute via conduit
+        _performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            true,
+            abi.encodeWithSignature("ConduitErrorPanic(uint256)", 18)
+
         );
     }
 }
