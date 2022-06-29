@@ -856,7 +856,7 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             address(mockReceiver),
             true,
-            abi.encodePacked('ConduitErrorString("WRONG_FROM")')
+            abi.encodeWithSignature("ConduitErrorString(string)", "WRONG_FROM")
         );
     }
 }
