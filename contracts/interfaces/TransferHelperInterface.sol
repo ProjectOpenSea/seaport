@@ -25,7 +25,7 @@ interface TransferHelperInterface {
      * @dev Revert with an error when a call to a conduit returns an invalid
      *      magic value.
      */
-    error InvalidConduit();
+    error InvalidMagicValue();
 
     /**
      * @dev Revert with an error when a call to a conduit reverts with a

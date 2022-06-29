@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
+import { deployMockContract } from "@ethereum-waffle/mock-contract";
 
 import { randomHex } from "./utils/encoding";
 import {
@@ -691,4 +692,46 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       ).to.be.reverted;
     }
   });
+
+  // it("Reverts with invalid magic value returned by call to conduit", async () => {
+  //   // Deploy ERC20 Contract
+  //   const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+
+  //   const mockConduitControllerFactory = await ethers.getContractFactory(
+  //     "ConduitControllerMock"
+  //   );
+  //   const mockConduitController = await mockConduitControllerFactory.deploy();
+
+  //   const mockConduitImplementation = await ethers.getContractFactory(
+  //     "ConduitMock"
+  //   );
+  //   const mockConduitKey = owner.address + randomHex(12).slice(2);
+
+  //   // Deploy the mock conduit through the mock conduit controller
+  //   const mockConduitAddress = await mockConduitController
+  //     .connect(owner)
+  //     .createConduit(mockConduitKey, owner);
+  //   const mockConduit = mockConduitImplementation.attach(mockConduitAddress);
+
+  //   const transferHelperItems = [
+  //     {
+  //       itemType: 1,
+  //       token: tempERC20Contract.address,
+  //       identifier: 0,
+  //       amount: 10,
+  //     },
+  //     {
+  //       itemType: 1,
+  //       token: tempERC20Contract.address,
+  //       identifier: 0,
+  //       amount: 20,
+  //     },
+  //   ];
+
+  //   await expect(
+  //     tempTransferHelper
+  //       .connect(sender)
+  //       .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+  //   ).to.be.revertedWith("InvalidMagicValue");
+  // });
 });
