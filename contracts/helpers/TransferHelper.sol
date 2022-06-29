@@ -37,7 +37,7 @@ interface IERC721Receiver {
 
 /**
  * @title TransferHelper
- * @author stuckinaboot, stephankmin
+ * @author stuckinaboot, stephankmin, ryanio
  * @notice TransferHelper is a utility contract for transferring
  *         ERC20/ERC721/ERC1155 items in bulk to a specific recipient.
  */
@@ -247,16 +247,18 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             try ConduitInterface(conduit).execute(conduitTransfers) {} catch (
                 bytes memory data
             ) {
-                // Bubble up the conduit's revert reason if present.
+                // "Bubble up" the conduit's revert reason if present.
                 if (data.length != 0) {
                     assembly {
                         returndatacopy(0, 0, returndatasize())
                         revert(0, returndatasize())
                     }
                 }
-                // Revert if the error provides a reason string.
+                // Revert with the error reason string if present.
             } catch Error(string memory reason) {
                 revert ConduitErrorString(reason);
+                // Revert with the panic error code if the error was caused
+                // by a panic.
             } catch Panic(uint256 errorCode) {
                 revert ConduitErrorPanic(errorCode);
             }
