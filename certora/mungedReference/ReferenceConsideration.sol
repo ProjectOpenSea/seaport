@@ -148,25 +148,7 @@ contract ReferenceConsideration is
         nonReentrant
         returns (bool fulfilled)
     {
-     //   Order memory order2;
-     //   order2 = order1;
-
-    //     OrderParameters memory params;
-    //     OfferItem memory offer;
-    //     OfferItem[] memory offerItems = new OfferItem[] (1);
-    //     ConsiderationItem memory consideration;
-    //     ConsiderationItem[] memory considerationItems;
-        
-    //     consideration.token = token;
-    //     offer.token = tokenOfferer;
-    //     offerItems[0]=offer;
-    //     params.offer = offerItems;
-    //     params.consideration = considerationItems;
-    //   //  params.offerer = offerer;
-    //     params.zone = zone;
-
-
-    //     order1.parameters = params;
+     
         fulfilled = this.fulfillOrder(order_havoc, fulfillerConduitKey);
     }
 
