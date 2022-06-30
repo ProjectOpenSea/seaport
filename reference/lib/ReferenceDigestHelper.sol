@@ -19,9 +19,9 @@ contract ReferenceDigestHelper {
     // Name should be 'Seaport', but for reference it's 'Consideration'
     bytes32 constant _NAME_HASH =
         0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c;
-    // Version should be '1.1', but in reference it's 'rc.1.1'
+    // Version is normally '1.1', but in reference it's '1.1-reference'
     bytes32 constant _VERSION_HASH =
-        0x07818ab36f449d2a17c3e3c5f9e05f1658eeb540ad3752e0c708d77cabd20dec;
+        0xb6759aa1fb159fcc9380ddea57bb2003d7f8dfca6c4641b175f1a2cc262affa9;
     error BadDomainSeparator();
 
     /**
