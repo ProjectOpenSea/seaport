@@ -1,20 +1,24 @@
-/* eslint-disable camelcase */
-import { JsonRpcSigner } from "@ethersproject/providers";
 import { expect } from "chai";
-import { BigNumber, constants, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { TestERC1155, TestERC20, TestERC721 } from "../../../typechain-types";
+
 import { deployContract } from "../contracts";
 import {
-  randomBN,
-  toBN,
-  BigNumberish,
   getOfferOrConsiderationItem,
   random128,
+  randomBN,
+  toBN,
 } from "../encoding";
 import { whileImpersonating } from "../impersonate";
 
-export const fixtureERC20 = async (signer: JsonRpcSigner) => {
+import type {
+  TestERC1155,
+  TestERC20,
+  TestERC721,
+} from "../../../typechain-types";
+import type { JsonRpcSigner } from "@ethersproject/providers";
+import type { BigNumber, BigNumberish, Contract, Wallet } from "ethers";
+
+export const fixtureERC20 = async (signer: JsonRpcSigner | Wallet) => {
   const testERC20: TestERC20 = await deployContract("TestERC20", signer);
 
   const mintAndApproveERC20 = async (
@@ -47,7 +51,7 @@ export const fixtureERC20 = async (signer: JsonRpcSigner) => {
   };
 };
 
-export const fixtureERC721 = async (signer: JsonRpcSigner) => {
+export const fixtureERC721 = async (signer: JsonRpcSigner | Wallet) => {
   const testERC721: TestERC721 = await deployContract("TestERC721", signer);
 
   const set721ApprovalForAll = (
@@ -61,13 +65,13 @@ export const fixtureERC721 = async (signer: JsonRpcSigner) => {
       .withArgs(signer.address, spender, approved);
   };
 
-  const mint721 = async (signer: Wallet, id?: BigNumberish) => {
+  const mint721 = async (signer: Wallet | Contract, id?: BigNumberish) => {
     const nftId = id ? toBN(id) : randomBN();
     await testERC721.mint(signer.address, nftId);
     return nftId;
   };
 
-  const mint721s = async (signer: Wallet, count: number) => {
+  const mint721s = async (signer: Wallet | Contract, count: number) => {
     const arr = [];
     for (let i = 0; i < count; i++) arr.push(await mint721(signer));
     return arr;
@@ -124,7 +128,7 @@ export const fixtureERC721 = async (signer: JsonRpcSigner) => {
   };
 };
 
-export const fixtureERC1155 = async (signer: JsonRpcSigner) => {
+export const fixtureERC1155 = async (signer: JsonRpcSigner | Wallet) => {
   const testERC1155: TestERC1155 = await deployContract("TestERC1155", signer);
 
   const set1155ApprovalForAll = (
@@ -212,14 +216,14 @@ export const fixtureERC1155 = async (signer: JsonRpcSigner) => {
 
 const minRandom = (min: number) => randomBN(10).add(min);
 
-export const tokensFixture = async (signer: JsonRpcSigner) => {
+export const tokensFixture = async (signer: JsonRpcSigner | Wallet) => {
   const erc20 = await fixtureERC20(signer);
   const erc721 = await fixtureERC721(signer);
   const erc1155 = await fixtureERC1155(signer);
   const { testERC1155: testERC1155Two } = await fixtureERC1155(signer);
   const tokenByType = [
     {
-      address: constants.AddressZero,
+      address: ethers.constants.AddressZero,
     } as any, // ETH
     erc20.testERC20,
     erc721.testERC721,

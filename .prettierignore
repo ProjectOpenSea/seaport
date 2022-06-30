@@ -3,3 +3,4 @@ artifacts
 cache
 coverage*
 gasReporterOutput.json
+lib/murky
