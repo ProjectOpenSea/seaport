@@ -8,9 +8,9 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import { TokenTransferrerErrors } from "contracts/interfaces/TokenTransferrerErrors.sol";
+import { TokenTransferrerErrors } from "../../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 contract ReferenceTokenTransferrer is TokenTransferrerErrors {
     /**

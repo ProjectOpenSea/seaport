@@ -4,7 +4,7 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "contracts/interfaces/ConsiderationInterface.sol";
+} from "../../contracts/interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {
@@ -17,8 +17,10 @@ import {
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
-    Execution
-} from "contracts/lib/ConsiderationStructs.sol";
+    Execution,
+    OfferItem,
+    ConsiderationItem
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
@@ -42,6 +44,9 @@ contract ReferenceConsideration is
     ConsiderationInterface,
     ReferenceOrderCombiner
 {
+
+    Order order_havoc;
+        
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -115,7 +120,8 @@ contract ReferenceConsideration is
      *                   fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
-        external
+    //    external
+        public
         payable
         override
         notEntered
@@ -130,6 +136,38 @@ contract ReferenceConsideration is
             fulfillerConduitKey,
             msg.sender
         );
+    }
+
+
+	//function fulfillOrder_fields(address offerer,address zone, uint8 itemTypeOferrer,address tokenOfferer,uint256 identifierOrCriteriaOffeer,uint256 startAmountOfferer,uint256 endAmountOfferer,uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address payable recipient,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 totalOriginalConsiderationItems,bytes calldata signature,bytes32 fulfillerConduitKey)
+	//function fulfillOrder_fields(address offerer,address zone, uint8 itemTypeOferrer,address tokenOfferer,uint8 itemType,address token,address payable recipient,bytes calldata signature,bytes32 fulfillerConduitKey)
+	function fulfillOrder_fields(bytes32 fulfillerConduitKey)
+        external
+        payable
+        notEntered
+        nonReentrant
+        returns (bool fulfilled)
+    {
+     //   Order memory order2;
+     //   order2 = order1;
+
+    //     OrderParameters memory params;
+    //     OfferItem memory offer;
+    //     OfferItem[] memory offerItems = new OfferItem[] (1);
+    //     ConsiderationItem memory consideration;
+    //     ConsiderationItem[] memory considerationItems;
+        
+    //     consideration.token = token;
+    //     offer.token = tokenOfferer;
+    //     offerItems[0]=offer;
+    //     params.offer = offerItems;
+    //     params.consideration = considerationItems;
+    //   //  params.offerer = offerer;
+    //     params.zone = zone;
+
+
+    //     order1.parameters = params;
+        fulfilled = this.fulfillOrder(order_havoc, fulfillerConduitKey);
     }
 
     /**

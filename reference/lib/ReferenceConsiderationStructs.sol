@@ -7,9 +7,9 @@ import {
     ItemType
 } from "contracts/lib/ConsiderationEnums.sol";
 
-import { SpentItem, ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "../../contracts/lib/ConsiderationStructs.sol";
 
-import { ConduitTransfer } from "contracts/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer } from "../../contracts/conduit/lib/ConduitStructs.sol";
 
 // This file should only be used by the Reference Implementation
 

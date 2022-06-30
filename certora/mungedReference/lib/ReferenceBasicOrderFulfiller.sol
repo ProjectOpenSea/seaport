@@ -7,7 +7,7 @@ import {
     BasicOrderType,
     ItemType,
     BasicOrderRouteType
-} from "contracts/lib/ConsiderationEnums.sol";
+} from "../../../contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -17,7 +17,7 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import {
@@ -28,7 +28,7 @@ import {
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller

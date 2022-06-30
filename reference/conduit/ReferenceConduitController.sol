@@ -6,9 +6,9 @@ import { ReferenceConduit } from "./ReferenceConduit.sol";
 // prettier-ignore
 import {
 	ConduitControllerInterface
-} from "contracts/interfaces/ConduitControllerInterface.sol";
+} from "../../contracts/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "../../contracts/interfaces/ConduitInterface.sol";
 
 /**
  * @title ConduitController

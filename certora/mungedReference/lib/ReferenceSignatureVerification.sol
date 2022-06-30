@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
+import { EIP1271Interface } from "../../../contracts/interfaces/EIP1271Interface.sol";
 
 // prettier-ignore
 import {
     SignatureVerificationErrors
-} from "contracts/interfaces/SignatureVerificationErrors.sol";
+} from "../../../contracts/interfaces/SignatureVerificationErrors.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 

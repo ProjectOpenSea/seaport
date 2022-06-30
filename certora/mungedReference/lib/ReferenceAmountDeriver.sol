@@ -4,7 +4,7 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     AmountDerivationErrors
-} from "contracts/interfaces/AmountDerivationErrors.sol";
+} from "../../../contracts/interfaces/AmountDerivationErrors.sol";
 
 import { FractionData } from "./ReferenceConsiderationStructs.sol";
 
@@ -89,7 +89,8 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
         uint256 numerator,
         uint256 denominator,
         uint256 value
-    ) internal pure returns (uint256 newValue) {
+    ) public pure returns (uint256 newValue) {
+    //) internal pure returns (uint256 newValue) {
         // Return value early in cases where the fraction resolves to 1.
         if (numerator == denominator) {
             return value;

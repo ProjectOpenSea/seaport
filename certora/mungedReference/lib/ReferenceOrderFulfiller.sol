@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -13,7 +13,7 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import { 
