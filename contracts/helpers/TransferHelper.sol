@@ -94,7 +94,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         else {
             _performTransfersWithConduit(items, recipient, conduitKey);
         }
-
         // Return a magic value indicating that the transfers were performed.
         magicValue = this.bulkTransfer.selector;
     }
@@ -249,16 +248,14 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         }
 
+        bytes4 magicValue = 0x0;
+
         // If the external call fails, revert with the conduit's
         // custom error.
         try ConduitInterface(conduit).execute(conduitTransfers) returns (
             bytes4 conduitMagicValue
         ) {
-            if (
-                conduitMagicValue != ConduitInterface(conduit).execute.selector
-            ) {
-                revert InvalidMagicValue();
-            }
+            magicValue = conduitMagicValue;
         } catch (bytes memory data) {
             // "Bubble up" the conduit's revert reason if present.
             if (data.length != 0) {
@@ -266,6 +263,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
                 }
+            } else {
+                revert InvalidConduit();
             }
             // Revert with the error reason string if present.
         } catch Error(string memory reason) {
@@ -275,5 +274,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         } catch Panic(uint256 errorCode) {
             revert ConduitErrorPanic(errorCode);
         }
+        // if (magicValue == 0x0) {
+
+        // }
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+        bytes32 codeHash = account.codehash;
+
+        return (codeHash != accountHash && codeHash != 0x0);
     }
 }

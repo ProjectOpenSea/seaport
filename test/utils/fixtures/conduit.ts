@@ -93,17 +93,15 @@ export const conduitFixture = async (
       assignedConduitKey
     );
 
-    await whileImpersonating(owner.address, ethers.provider, async () => {
-      await expect(
-        conduitController
-          .connect(owner)
-          .createConduit(assignedConduitKey, constants.AddressZero)
-      ).to.be.revertedWith("InvalidInitialOwner");
-
-      await conduitController
+    await expect(
+      conduitController
         .connect(owner)
-        .createConduit(assignedConduitKey, owner.address);
-    });
+        .createConduit(assignedConduitKey, constants.AddressZero)
+    ).to.be.revertedWith("InvalidInitialOwner");
+
+    await conduitController
+      .connect(owner)
+      .createConduit(assignedConduitKey, owner.address);
 
     const tempConduit = conduitImplementation.attach(tempConduitAddress);
     return tempConduit;

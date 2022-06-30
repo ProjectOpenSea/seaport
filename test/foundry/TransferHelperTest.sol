@@ -788,6 +788,9 @@ contract TransferHelperTest is BaseOrderTest {
         );
         vm.label(unknownConduitAddress, "unknown conduit");
 
+        emit log_bytes32(
+            bytes32(ConduitInterface(unknownConduitAddress).execute.selector)
+        );
         vm.expectRevert(
             abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
         );
@@ -911,10 +914,7 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Create the mock conduit by calling the mock conduit controller
         ConduitMock mockConduit = ConduitMock(
-            mockConduitController.createMockConduit(
-                conduitKeyAlice,
-                address(alice)
-            )
+            mockConduitController.createConduit(conduitKeyAlice, address(alice))
         );
         vm.label(address(mockConduit), "mock conduit");
 
