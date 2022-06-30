@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
-import { deployMockContract } from "@ethereum-waffle/mock-contract";
 
 import { randomHex } from "./utils/encoding";
 import {
@@ -702,18 +701,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     );
     const mockConduitController = await mockConduitControllerFactory.deploy();
 
-    const mockConduitImplementation = await ethers.getContractFactory(
-      "ConduitMock"
-    );
     const mockConduitKey = owner.address + randomHex(12).slice(2);
-    const { conduit: mockConduitAddress } =
-      await mockConduitController.getConduit(mockConduitKey);
 
     // Deploy the mock conduit through the mock conduit controller
     await mockConduitController
       .connect(owner)
       .createMockConduit(mockConduitKey, owner.address);
-    const mockConduit = mockConduitImplementation.attach(mockConduitAddress);
 
     const transferHelperItems = [
       {
