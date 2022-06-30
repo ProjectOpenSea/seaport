@@ -17,6 +17,10 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
+import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
+
+import { ConduitControllerMock } from "../../contracts/test/ConduitControllerMock.sol";
+
 import { InvalidERC721Recipient } from "../../contracts/test/InvalidERC721Recipient.sol";
 
 import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
@@ -767,21 +771,28 @@ contract TransferHelperTest is BaseOrderTest {
         vm.assume(
             fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
         );
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = _getFuzzedTransferItem(
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
+
         // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey.
         conduitKeyOne = fuzzConduitKey;
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            true,
-            abi.encodePacked(TransferHelperInterface.InvalidConduit.selector)
+
+        (address unknownConduitAddress, ) = conduitController.getConduit(
+            conduitKeyOne
         );
+        vm.label(unknownConduitAddress, "unknown conduit");
+
+        vm.expectRevert(
+            abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
+        );
+        vm.prank(alice);
+        transferHelper.bulkTransfer(items, bob, conduitKeyOne);
     }
 
     function testRevertInvalidERC721Receiver(FuzzInputsCommon memory inputs)
@@ -808,14 +819,9 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertInvalidItemWithConduit(
-        FuzzInputsCommon memory inputs,
-        bytes32 fuzzConduitKey
-    ) public {
-        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
-        vm.assume(
-            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
-        );
+    function testRevertInvalidItemWithConduit(FuzzInputsCommon memory inputs)
+        public
+    {
         TransferHelperItem memory invalidItem = _getFuzzedTransferItem(
             ConduitItemType.NATIVE,
             inputs.amounts[0],
@@ -831,15 +837,9 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertStringErrorWithConduit(
-        FuzzInputsCommon memory inputs,
-        bytes32 fuzzConduitKey
-    ) public {
-        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
-        vm.assume(
-            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
-        );
-
+    function testRevertStringErrorWithConduit(FuzzInputsCommon memory inputs)
+        public
+    {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(erc721s[0]),
@@ -858,15 +858,9 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertPanicErrorWithConduit(
-        FuzzInputsCommon memory inputs,
-        bytes32 fuzzConduitKey
-    ) public {
-        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
-        vm.assume(
-            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
-        );
-
+    function testRevertPanicErrorWithConduit(FuzzInputsCommon memory inputs)
+        public
+    {
         // Create ERC20 token that reverts with a panic when calling transferFrom.
         TestERC20Panic panicERC20 = new TestERC20Panic();
 
@@ -890,7 +884,60 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             true,
             abi.encodeWithSignature("ConduitErrorPanic(uint256)", 18)
-
         );
+    }
+
+    function testRevertInvalidConduitMagicValue(FuzzInputsCommon memory inputs)
+        public
+    {
+        // Deploy mock conduit controller
+        ConduitControllerMock mockConduitController = new ConduitControllerMock();
+
+        // Create conduit key using alice's address
+        bytes32 conduitKeyAlice = bytes32(
+            uint256(uint160(address(alice))) << 96
+        );
+
+        // Deploy mock transfer helper that takes in the mock conduit controller
+        TransferHelper mockTransferHelper = TransferHelper(
+            deployCode(
+                "optimized-out/TransferHelper.sol/TransferHelper.json",
+                abi.encode(address(mockConduitController))
+            )
+        );
+        vm.label(address(mockTransferHelper), "mock transfer helper");
+
+        vm.startPrank(alice);
+
+        // Create the mock conduit by calling the mock conduit controller
+        ConduitMock mockConduit = ConduitMock(
+            mockConduitController.createMockConduit(
+                conduitKeyAlice,
+                address(alice)
+            )
+        );
+        vm.label(address(mockConduit), "mock conduit");
+
+        // Assert the conduit key derived from the conduit address
+        // matches alice's conduit key
+        bytes32 mockConduitKey = mockConduitController.getKey(
+            address(mockConduit)
+        );
+        assertEq(conduitKeyAlice, mockConduitKey);
+
+        // Create item to transfer
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(erc721s[0]),
+            5,
+            1
+        );
+
+        vm.expectRevert(
+            abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
+        );
+        mockTransferHelper.bulkTransfer(items, bob, mockConduitKey);
+        vm.stopPrank();
     }
 }

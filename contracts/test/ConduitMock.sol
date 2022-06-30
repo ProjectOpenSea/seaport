@@ -13,28 +13,28 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-contract ConduitMock is Conduit {
+contract ConduitMock is ConduitInterface {
+    constructor() {}
+
     function execute(ConduitTransfer[] calldata transfers)
         external
-        override
-        onlyOpenChannel
         returns (bytes4 magicValue)
     {
-        // Retrieve the total number of transfers and place on the stack.
-        uint256 totalStandardTransfers = transfers.length;
-
-        // Iterate over each transfer.
-        for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question and perform the transfer.
-            _transfer(transfers[i]);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Return a magic value indicating that the transfers were performed.
-        magicValue = 0xabc42069;
+        return 0xabc42069;
     }
+
+    function executeBatch1155(
+        ConduitBatch1155Transfer[] calldata batch1155Transfers
+    ) external returns (bytes4 magicValue) {
+        return 0xabc69420;
+    }
+
+    function executeWithBatch1155(
+        ConduitTransfer[] calldata standardTransfers,
+        ConduitBatch1155Transfer[] calldata batch1155Transfers
+    ) external returns (bytes4 magicValue) {
+        return 0x42069420;
+    }
+
+    function updateChannel(address channel, bool isOpen) external {}
 }

@@ -13,20 +13,25 @@ import { ConduitController } from "../conduit/ConduitController.sol";
 import { ConduitMock } from "../test/ConduitMock.sol";
 
 contract ConduitControllerMock is ConduitController {
+    // Set conduit creation code and runtime code hashes as immutable arguments.
+    bytes32 internal immutable _MOCK_CONDUIT_CREATION_CODE_HASH;
+    bytes32 internal immutable _MOCK_CONDUIT_RUNTIME_CODE_HASH;
+
     constructor() {
         // Derive the conduit creation code hash and set it as an immutable.
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(ConduitMock).creationCode);
+        _MOCK_CONDUIT_CREATION_CODE_HASH = keccak256(
+            type(ConduitMock).creationCode
+        );
 
         // Deploy a conduit with the zero hash as the salt.
         ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }();
 
         // Retrieve the conduit runtime code hash and set it as an immutable.
-        _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
+        _MOCK_CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
-    function createConduit(bytes32 conduitKey, address initialOwner)
+    function createMockConduit(bytes32 conduitKey, address initialOwner)
         external
-        override
         returns (address conduit)
     {
         // Ensure that an initial owner has been supplied.
@@ -49,7 +54,7 @@ contract ConduitControllerMock is ConduitController {
                             bytes1(0xff),
                             address(this),
                             conduitKey,
-                            _CONDUIT_CREATION_CODE_HASH
+                            _MOCK_CONDUIT_CREATION_CODE_HASH
                         )
                     )
                 )
@@ -57,7 +62,7 @@ contract ConduitControllerMock is ConduitController {
         );
 
         // If derived conduit exists, as evidenced by comparing runtime code...
-        if (conduit.codehash == _CONDUIT_RUNTIME_CODE_HASH) {
+        if (conduit.codehash == _MOCK_CONDUIT_RUNTIME_CODE_HASH) {
             // Revert with an error indicating that the conduit already exists.
             revert ConduitAlreadyExists(conduit);
         }
