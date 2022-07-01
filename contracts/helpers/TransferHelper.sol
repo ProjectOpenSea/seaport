@@ -253,7 +253,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             if (
                 conduitMagicValue != ConduitInterface(conduit).execute.selector
             ) {
-                revert InvalidMagicValue();
+                revert InvalidMagicValue(conduitKey, conduit);
             }
         } catch (bytes memory data) {
             // "Bubble up" the conduit's revert reason if present.

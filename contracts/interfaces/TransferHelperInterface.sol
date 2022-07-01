@@ -31,7 +31,7 @@ interface TransferHelperInterface {
      * @dev Revert with an error when a call to a conduit returns an invalid
      *      magic value.
      */
-    error InvalidMagicValue();
+    error InvalidMagicValue(bytes32 conduitKey, address conduit);
 
     /**
      * @dev Revert with an error when a call to a conduit reverts with a

@@ -32,5 +32,7 @@ module.exports = {
     "test/TestERC20Revert.sol",
     "test/InvalidERC721Recipient.sol",
     "test/ERC721ReceiverMock.sol",
+    "test/ConduitControllerMock.sol",
+    "test/ConduitMock.sol",
   ],
 };
