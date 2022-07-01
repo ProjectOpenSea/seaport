@@ -106,6 +106,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // Retrieve total number of transfers and place on stack.
         uint256 totalTransfers = items.length;
 
+        // Create a boolean that reflects whether recipient is a contract.
+        bool recipientIsContract = _isContract(recipient);
+
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each transfer.
@@ -133,7 +136,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 } else if (item.itemType == ConduitItemType.ERC721) {
                     // If recipient is a contract, ensure it can receive
                     // ERC721 tokens.
-                    if (_isContract(recipient)) {
+                    if (recipientIsContract) {
                         // Check if recipient can receive ERC721 tokens.
                         try
                             IERC721Receiver(recipient).onERC721Received(
