@@ -94,6 +94,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         else {
             _performTransfersWithConduit(items, recipient, conduitKey);
         }
+
         // Return a magic value indicating that the transfers were performed.
         magicValue = this.bulkTransfer.selector;
     }
@@ -104,14 +105,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     ) internal {
         // Retrieve total number of transfers and place on stack.
         uint256 totalTransfers = items.length;
-
-        // Create a boolean that reflects whether recipient is a contract.
-        bool recipientIsContract;
-
-        // Check if recipient is a contract.
-        if (recipient.code.length != 0) {
-            recipientIsContract = true;
-        }
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
@@ -140,7 +133,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 } else if (item.itemType == ConduitItemType.ERC721) {
                     // If recipient is a contract, ensure it can receive
                     // ERC721 tokens.
-                    if (recipientIsContract) {
+                    if (_isContract(recipient)) {
                         // Check if recipient can receive ERC721 tokens.
                         try
                             IERC721Receiver(recipient).onERC721Received(
@@ -248,14 +241,20 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         }
 
-        bytes4 magicValue = 0x0;
+        if (!_isContract(conduit)) {
+            revert InvalidConduit(conduitKey, conduit);
+        }
 
         // If the external call fails, revert with the conduit's
         // custom error.
         try ConduitInterface(conduit).execute(conduitTransfers) returns (
             bytes4 conduitMagicValue
         ) {
-            magicValue = conduitMagicValue;
+            if (
+                conduitMagicValue != ConduitInterface(conduit).execute.selector
+            ) {
+                revert InvalidMagicValue();
+            }
         } catch (bytes memory data) {
             // "Bubble up" the conduit's revert reason if present.
             if (data.length != 0) {
@@ -264,25 +263,29 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     revert(0, returndatasize())
                 }
             } else {
-                revert InvalidConduit();
+                revert InvalidConduit(conduitKey, conduit);
             }
-            // Revert with the error reason string if present.
         } catch Error(string memory reason) {
-            revert ConduitErrorString(reason);
+            // Revert with the error reason string if present.
+            revert ConduitErrorString(reason, conduitKey, conduit);
+        } catch Panic(uint256 errorCode) {
             // Revert with the panic error code if the error was caused
             // by a panic.
-        } catch Panic(uint256 errorCode) {
-            revert ConduitErrorPanic(errorCode);
+            revert ConduitErrorPanic(errorCode, conduitKey, conduit);
         }
-        // if (magicValue == 0x0) {
-
-        // }
     }
 
-    function isContract(address account) internal view returns (bool) {
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+    function _isContract(address account) internal view returns (bool) {
+        // This is the default codeHash for non-contract addresses.
+        // prettier-ignore
+        bytes32 accountHash =
+            0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+
+        // Get the account codeHash.
         bytes32 codeHash = account.codehash;
 
+        // Account is a contract if codeHash is not equal to accountHash
+        // and is not equal to 0 meaning it does not exist or is empty.
         return (codeHash != accountHash && codeHash != 0x0);
     }
 }

@@ -22,24 +22,36 @@ interface TransferHelperInterface {
     error InvalidERC20Identifier();
 
     /**
+     * @dev Revert with an error when attempting to fill an order referencing an
+     *      invalid conduit (i.e. one that has not been deployed).
+     */
+    error InvalidConduit(bytes32 conduitKey, address conduit);
+
+    /**
      * @dev Revert with an error when a call to a conduit returns an invalid
      *      magic value.
      */
     error InvalidMagicValue();
 
-    error InvalidConduit();
-
     /**
      * @dev Revert with an error when a call to a conduit reverts with a
      *      reason string.
      */
-    error ConduitErrorString(string reason);
+    error ConduitErrorString(
+        string reason,
+        bytes32 conduitKey,
+        address conduit
+    );
 
     /**
      * @dev Revert with an error when a call to a conduit reverts with a
      *      panic error.
      */
-    error ConduitErrorPanic(uint256 errorCode);
+    error ConduitErrorPanic(
+        uint256 errorCode,
+        bytes32 conduitKey,
+        address conduit
+    );
 
     /**
      * @notice Transfer multiple items to a single recipient.

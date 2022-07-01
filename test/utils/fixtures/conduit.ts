@@ -5,7 +5,6 @@ import hre, { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
 import { randomHex } from "../encoding";
-import { whileImpersonating } from "../impersonate";
 
 import type {
   ConduitControllerInterface,

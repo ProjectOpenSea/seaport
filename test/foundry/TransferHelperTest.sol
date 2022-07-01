@@ -788,9 +788,6 @@ contract TransferHelperTest is BaseOrderTest {
         );
         vm.label(unknownConduitAddress, "unknown conduit");
 
-        emit log_bytes32(
-            bytes32(ConduitInterface(unknownConduitAddress).execute.selector)
-        );
         vm.expectRevert(
             abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
         );
