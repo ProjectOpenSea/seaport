@@ -235,7 +235,7 @@ When making a pull request, ensure that:
 [version-link]: https://github.com/ProjectOpenSea/seaport/releases
 [ci-badge]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml/badge.svg
 [ci-link]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml
-[coverage-badge]: https://codecov.io/gh/ProjectOpenSea/seaport/branch/master/graph/badge.svg
+[coverage-badge]: https://codecov.io/gh/ProjectOpenSea/seaport/branch/main/graph/badge.svg
 [coverage-link]: https://codecov.io/gh/ProjectOpenSea/seaport
 [license-badge]: https://img.shields.io/github/license/ProjectOpenSea/seaport
 [license-link]: https://github.com/ProjectOpenSea/seaport/blob/main/LICENSE
