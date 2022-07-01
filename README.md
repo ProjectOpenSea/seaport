@@ -49,16 +49,23 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Polygon</td></tr>
 <tr><td>Mumbai</td></tr>
 <tr><td>Optimism</td></tr>
+<tr><td>Optimistic Kovan</td></tr>
+<tr><td>Avalanche Fuji</td></tr>
+<tr><td>Avalanche C-Chain</td></tr>
+<tr><td>Gnosis Chain</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
 
-- Optimistic Kovan
-- Arbitrum
-- Arbitrum Rinkeby
-- Gnosis Chain
 - Klaytn
 - Baobab
+- Arbitrum
+- Arbitrum Rinkeby
+- Skale
+- Celo
+- BSC
+- Fantom
+- RSK
 
 To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
 
