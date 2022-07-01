@@ -92,11 +92,19 @@ export const conduitFixture = async (
       assignedConduitKey
     );
 
-    await expect(
-      conduitController
-        .connect(owner)
-        .createConduit(assignedConduitKey, constants.AddressZero)
-    ).to.be.revertedWith("InvalidInitialOwner");
+    if (!process.env.REFERENCE) {
+      await expect(
+        conduitController
+          .connect(owner)
+          .createConduit(assignedConduitKey, constants.AddressZero)
+      ).to.be.revertedWith("InvalidInitialOwner");
+    } else {
+      await expect(
+        conduitController
+          .connect(owner)
+          .createConduit(assignedConduitKey, constants.AddressZero)
+      ).to.be.reverted;
+    }
 
     await conduitController
       .connect(owner)
