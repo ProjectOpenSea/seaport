@@ -11,7 +11,7 @@ remappings = [
     '@rari-capital/solmate/=lib/solmate/',
     'murky/=lib/murky/src/',
     'seaport/=contracts/',
-    'seaport-reference/=seaport-reference/',
+    'seaport-reference/=reference/',
     'seaport-test/=test/foundry/'
 ]
 fuzz_runs = 5000
