@@ -1,5 +1,12 @@
 ![Seaport](img/Seaport-banner.png)
 
+[![Version][version-badge]][version-link]
+[![Test CI][ci-badge]][ci-link]
+[![Code Coverage][coverage-badge]][coverage-link]
+[![License][license-badge]][license-link]
+[![Docs][docs-badge]][docs-link]
+[![Discussions][discussions-badge]][discussions-link]
+
 # Seaport
 
 Seaport is a new marketplace protocol for safely and efficiently buying and selling NFTs.
@@ -223,3 +230,16 @@ When making a pull request, ensure that:
 ## License
 
 [MIT](LICENSE) Copyright 2022 Ozone Networks, Inc.
+
+[version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
+[version-link]: https://github.com/ProjectOpenSea/seaport/releases
+[ci-badge]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml/badge.svg
+[ci-link]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml
+[coverage-badge]: https://codecov.io/gh/ProjectOpenSea/seaport/branch/master/graph/badge.svg
+[coverage-link]: https://codecov.io/gh/ProjectOpenSea/seaport
+[license-badge]: https://img.shields.io/github/license/ProjectOpenSea/seaport
+[license-link]: https://github.com/ProjectOpenSea/seaport/blob/main/LICENSE
+[docs-badge]: https://img.shields.io/badge/Seaport-documentation-informational
+[docs-link]: https://github.com/ProjectOpenSea/seaport/tree/main/docs
+[discussions-badge]: https://img.shields.io/badge/Seaport-discussions-blueviolet
+[discussions-link]: https://github.com/ProjectOpenSea/seaport/discussions
