@@ -789,7 +789,11 @@ contract TransferHelperTest is BaseOrderTest {
         vm.label(unknownConduitAddress, "unknown conduit");
 
         vm.expectRevert(
-            abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
+            abi.encodeWithSignature(
+                "InvalidConduit(bytes32,address)",
+                fuzzConduitKey,
+                unknownConduitAddress
+            )
         );
         vm.prank(alice);
         transferHelper.bulkTransfer(items, bob, conduitKeyOne);
@@ -847,6 +851,7 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
+        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
         // Attempt to transfer ERC721 tokens from bob to alice
         // Expect revert since alice owns the tokens
         _performSingleItemTransferAndCheckBalances(
@@ -854,7 +859,12 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             alice,
             true,
-            abi.encodeWithSignature("ConduitErrorString(string)", "WRONG_FROM")
+            abi.encodeWithSignature(
+                "ConduitErrorString(string,bytes32,address)",
+                "WRONG_FROM",
+                conduitKeyOne,
+                conduit
+            )
         );
     }
 
@@ -877,13 +887,19 @@ contract TransferHelperTest is BaseOrderTest {
             10
         );
 
+        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
         // Revert with panic error when calling execute via conduit
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
             bob,
             true,
-            abi.encodeWithSignature("ConduitErrorPanic(uint256)", 18)
+            abi.encodeWithSignature(
+                "ConduitErrorPanic(uint256,bytes32,address)",
+                18,
+                conduitKeyOne,
+                conduit
+            )
         );
     }
 
@@ -931,8 +947,13 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
+        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
         vm.expectRevert(
-            abi.encodePacked(TransferHelperInterface.InvalidMagicValue.selector)
+            abi.encodeWithSignature(
+                "InvalidMagicValue(bytes32,address)",
+                mockConduitKey,
+                mockConduit
+            )
         );
         mockTransferHelper.bulkTransfer(items, bob, mockConduitKey);
         vm.stopPrank();
