@@ -172,9 +172,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                     returndatacopy(0, 0, returndatasize())
                                     revert(0, returndatasize())
                                 }
+                            } else {
                                 // Revert with a generic error if no
                                 // revert reason is given by the recipient.
-                            } else {
                                 revert InvalidERC721Recipient();
                             }
                         }
@@ -292,9 +292,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
                 }
+            } else {
                 // If no revert reason is present, revert with a generic error
                 // with the conduit key and conduit address.
-            } else {
                 revert ConduitErrorGenericRevert(conduitKey, conduit);
             }
             // Catch reverts with a provided reason string.
