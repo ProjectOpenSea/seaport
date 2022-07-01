@@ -91,9 +91,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // If no conduitKey is given, use TokenTransferrer to perform transfers.
         if (conduitKey == bytes32(0)) {
             _performTransfersWithoutConduit(items, recipient);
-        }
-        // Otherwise, a conduitKey was provided.
-        else {
+        } else {
+            // Otherwise, a conduitKey was provided.
             _performTransfersWithConduit(items, recipient, conduitKey);
         }
 
