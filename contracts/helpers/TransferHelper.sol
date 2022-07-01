@@ -125,10 +125,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 TransferHelperItem calldata item = items[i];
 
                 // Perform a transfer based on the transfer's item type.
-                // Revert if item being transferred is a native token.
-                if (item.itemType == ConduitItemType.NATIVE) {
-                    revert InvalidItemType();
-                } else if (item.itemType == ConduitItemType.ERC20) {
+                if (item.itemType == ConduitItemType.ERC20) {
                     // Ensure that the identifier for an ERC20 token is 0.
                     if (item.identifier != 0) {
                         revert InvalidERC20Identifier();
@@ -199,6 +196,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                         item.identifier,
                         item.amount
                     );
+                } else {
+                    // Revert if the item being transferred is a native token.
+                    revert InvalidItemType();
                 }
             }
         }
@@ -283,9 +283,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 // and conduit address.
                 revert InvalidMagicValue(conduitKey, conduit);
             }
-            // Catch reverts from the external call to the conduit.
         } catch (bytes memory data) {
-            // "Bubble up" the conduit's revert reason if present.
+            // Catch reverts from the external call to the conduit and
+            // "bubble up" the conduit's revert reason if present.
             if (data.length != 0) {
                 assembly {
                     returndatacopy(0, 0, returndatasize())
@@ -296,15 +296,13 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 // with the conduit key and conduit address.
                 revert ConduitErrorGenericRevert(conduitKey, conduit);
             }
-            // Catch reverts with a provided reason string.
         } catch Error(string memory reason) {
-            // Revert with the error reason string, conduit key and
-            // conduit address.
+            // Catch reverts with a provided reason string and
+            // revert with the reason, conduit key and conduit address.
             revert ConduitErrorString(reason, conduitKey, conduit);
-            // Catch reverts caused by a panic.
         } catch Panic(uint256 errorCode) {
-            // Revert with the panic error code, conduit key and
-            // conduit address.
+            // Catch reverts caused by a panic and revert with the
+            // panic error code, conduit key and conduit address.
             revert ConduitErrorPanic(errorCode, conduitKey, conduit);
         }
     }

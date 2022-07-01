@@ -14,7 +14,9 @@ import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 import { TransferHelperItem } from "../../contracts/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
+
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
@@ -30,6 +32,15 @@ import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelp
 import { ERC721ReceiverMock } from "../../contracts/test/ERC721ReceiverMock.sol";
 
 import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
+
+interface IERC721Receiver {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external returns (bytes4);
+}
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
@@ -571,6 +582,35 @@ contract TransferHelperTest is BaseOrderTest {
         );
 
         _performSingleItemTransferAndCheckBalances(item, alice, bob, false, "");
+    }
+
+    function testBulkTransferERC721ToContractRecipientNotUsingConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
+        ERC721ReceiverMock erc721Receiver = new ERC721ReceiverMock(
+            IERC721Receiver.onERC721Received.selector,
+            ERC721ReceiverMock.Error.None
+        );
+
+        uint256 numItems = 6;
+        TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
+
+        for (uint256 i = 0; i < numItems; i++) {
+            items[i] = _getFuzzedTransferItem(
+                ConduitItemType.ERC721,
+                1,
+                inputs.tokenIndex[i],
+                i
+            );
+        }
+
+        _performMultiItemTransferAndCheckBalances(
+            items,
+            alice,
+            address(erc721Receiver),
+            false,
+            ""
+        );
     }
 
     function testBulkTransferERC721AndERC20NotUsingConduit(

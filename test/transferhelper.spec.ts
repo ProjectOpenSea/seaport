@@ -245,7 +245,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       erc20Transfers[i] = erc20Transfer;
     }
 
-    // Create numEC721s amount of ERC20 objects
+    // Create numEC721s amount of ERC721 objects
     for (let i = 0; i < numEC721s; i++) {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
@@ -330,6 +330,57 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           );
           break;
       }
+    }
+  });
+
+  it("Executes ERC721 transfers to a contract recipient without a conduit", async () => {
+    // Deploy recipient contract
+    const erc721RecipientFactory = await ethers.getContractFactory(
+      "ERC721ReceiverMock.sol"
+    );
+    const erc721Recipient = await erc721RecipientFactory.deploy(
+      Buffer.from("abcd0000", "hex"),
+      0
+    );
+
+    const erc721Contracts = [];
+    const erc721Transfers = [];
+
+    // Create 5 ERC721 objects
+    for (let i = 0; i < 5; i++) {
+      // Deploy Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Create/Approve numEC721s amount of  ERC721s
+      const erc721Transfer = await createTransferWithApproval(
+        tempERC721Contract,
+        sender,
+        2,
+        tempTransferHelper.address,
+        sender.address,
+        recipient.address
+      );
+      erc721Contracts[i] = tempERC721Contract;
+      erc721Transfers[i] = erc721Transfer;
+    }
+
+    // Send the bulk transfers
+    await tempTransferHelper
+      .connect(sender)
+      .bulkTransfer(
+        erc721Transfers,
+        erc721Recipient.address,
+        ethers.utils.formatBytes32String("")
+      );
+
+    // Loop through all transfer to do ownership/balance checks
+    for (let i = 0; i < 5; i++) {
+      // Get identifier and ERC721 token contract
+      const { identifier } = erc721Transfers[i];
+      const token = erc721Contracts[i];
+
+      expect(
+        await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+      ).to.equal(erc721Recipient.address);
     }
   });
 
