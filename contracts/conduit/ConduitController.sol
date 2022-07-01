@@ -4,9 +4,9 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
 	ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+} from "seaport/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "seaport/interfaces/ConduitInterface.sol";
 
 import { Conduit } from "./Conduit.sol";
 

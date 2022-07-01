@@ -4,16 +4,16 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     ConduitControllerInterface
-} from "contracts/interfaces/ConduitControllerInterface.sol";
+} from "seaport/interfaces/ConduitControllerInterface.sol";
 
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
+import { OrderStatus } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
+import { ReentrancyErrors } from "seaport/interfaces/ReentrancyErrors.sol";
 
 /**
  * @title ConsiderationBase

@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
-import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
-import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
-import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ProxyRegistry } from "seaport-test/interfaces/ProxyRegistry.sol";
+import { OwnableDelegateProxy } from "seaport-test/interfaces/OwnableDelegateProxy.sol";
+import { OneWord } from "seaport/lib/ConsiderationConstants.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
+import { BasicOrderType, OrderType } from "seaport/lib/ConsiderationEnums.sol";
+import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "seaport/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
-import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {

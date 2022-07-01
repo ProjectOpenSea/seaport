@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.13;
 
-import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
-import { Order } from "../../contracts/lib/ConsiderationStructs.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, CriteriaResolver, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, ItemType } from "seaport/lib/ConsiderationEnums.sol";
+import { Order } from "seaport/lib/ConsiderationStructs.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
+import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, CriteriaResolver, FulfillmentComponent } from "seaport/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { stdError } from "forge-std/Test.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";

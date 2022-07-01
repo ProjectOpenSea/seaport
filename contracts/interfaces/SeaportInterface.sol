@@ -12,7 +12,7 @@ import {
     AdvancedOrder,
     OrderStatus,
     CriteriaResolver
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 /**
  * @title SeaportInterface

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
-import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+import { OrderType, BasicOrderType, ItemType, Side } from "seaport/lib/ConsiderationEnums.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
+import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "seaport/lib/ConsiderationStructs.sol";
+import { BaseOrderTest } from "seaport-test/utils/BaseOrderTest.sol";
 import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
 import { OrderParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 

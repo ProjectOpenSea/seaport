@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -13,16 +13,16 @@ import {
     Execution,
     FulfillmentComponent,
     SpentItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
-import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 // prettier-ignore
 import {
     FulfillmentApplicationErrors
-} from "contracts/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport/interfaces/FulfillmentApplicationErrors.sol";
 
 /**
  * @title FulfillmentApplier

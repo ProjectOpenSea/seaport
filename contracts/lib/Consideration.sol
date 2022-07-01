@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "../interfaces/ConsiderationInterface.sol";
+} from "seaport/interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {

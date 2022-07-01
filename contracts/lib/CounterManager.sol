@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "../interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
 
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
 

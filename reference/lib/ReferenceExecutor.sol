@@ -6,25 +6,25 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport/conduit/lib/ConduitEnums.sol";
 
-import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "seaport/interfaces/ConduitInterface.sol";
 
-import { ConduitTransfer, ConduitBatch1155Transfer } from "contracts/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer, ConduitBatch1155Transfer } from "seaport/conduit/lib/ConduitStructs.sol";
 
-import { ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
 
-import { ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
+import { ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
+import { ReferenceVerifiers } from "seaport-reference/lib/ReferenceVerifiers.sol";
 
-import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
+import { ReferenceTokenTransferrer } from "seaport-reference/lib/ReferenceTokenTransferrer.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
-import { AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
+import { AccumulatorStruct } from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title Executor

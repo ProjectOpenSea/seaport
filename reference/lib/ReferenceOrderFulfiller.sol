@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "seaport/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -13,22 +13,22 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import { 
     AccumulatorStruct,
     FractionData, 
     OrderToExecute
-} from "./ReferenceConsiderationStructs.sol";
+} from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
-import { ReferenceBasicOrderFulfiller } from "./ReferenceBasicOrderFulfiller.sol";
+import { ReferenceBasicOrderFulfiller } from "seaport-reference/lib/ReferenceBasicOrderFulfiller.sol";
 
-import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
+import { ReferenceCriteriaResolution } from "seaport-reference/lib/ReferenceCriteriaResolution.sol";
 
-import { ReferenceAmountDeriver } from "./ReferenceAmountDeriver.sol";
+import { ReferenceAmountDeriver } from "seaport-reference/lib/ReferenceAmountDeriver.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title OrderFulfiller

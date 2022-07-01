@@ -19,7 +19,7 @@ import "./ConsiderationConstants.sol";
 // prettier-ignore
 import {
     FulfillmentApplicationErrors
-} from "../interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport/interfaces/FulfillmentApplicationErrors.sol";
 
 /**
  * @title FulfillmentApplier

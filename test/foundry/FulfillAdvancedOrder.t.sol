@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.13;
 
-import { OneWord } from "../../contracts/lib/ConsiderationConstants.sol";
-import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OrderParameters, OrderComponents, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OneWord } from "seaport/lib/ConsiderationConstants.sol";
+import { OrderType, ItemType } from "seaport/lib/ConsiderationEnums.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
+import { AdvancedOrder, OrderParameters, OrderComponents, CriteriaResolver } from "seaport/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
-import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+import { ConsiderationEventsAndErrors } from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillAdvancedOrder is BaseOrderTest {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ConsiderationItem, OfferItem, OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, OrderParameters } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
+import { ReferenceConsiderationBase } from "seaport-reference/lib/ReferenceConsiderationBase.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers

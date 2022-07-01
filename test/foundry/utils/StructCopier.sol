@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-import { BasicOrderParameters, CriteriaResolver, AdvancedOrder, AdditionalRecipient, OfferItem, Order, ConsiderationItem, Fulfillment, FulfillmentComponent, OrderParameters, OrderComponents } from "../../../contracts/lib/ConsiderationStructs.sol";
-import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { BasicOrderParameters, CriteriaResolver, AdvancedOrder, AdditionalRecipient, OfferItem, Order, ConsiderationItem, Fulfillment, FulfillmentComponent, OrderParameters, OrderComponents } from "seaport/lib/ConsiderationStructs.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
 
 contract StructCopier {
     Order _tempOrder;

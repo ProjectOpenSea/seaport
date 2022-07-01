@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
-import { ConduitTransfer, ConduitItemType } from "../../../contracts/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { ConduitTransfer, ConduitItemType } from "seaport/conduit/lib/ConduitStructs.sol";
+import { TestERC1155 } from "seaport/test/TestERC1155.sol";
+import { TestERC20 } from "seaport/test/TestERC20.sol";
+import { TestERC721 } from "seaport/test/TestERC721.sol";
 import { ERC721Recipient } from "../utils/ERC721Recipient.sol";
 import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
-import { Conduit } from "../../../contracts/conduit/Conduit.sol";
+import { Conduit } from "seaport/conduit/Conduit.sol";
 
 contract ConduitExecuteTest is BaseConduitTest {
     struct FuzzInputs {

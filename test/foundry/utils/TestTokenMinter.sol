@@ -1,14 +1,14 @@
-// SPDX-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "seaport/test/TestERC1155.sol";
+import { TestERC20 } from "seaport/test/TestERC20.sol";
+import { TestERC721 } from "seaport/test/TestERC721.sol";
 import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
-import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
-import { ERC721 } from "../token/ERC721.sol";
+import { ERC721 } from "seaport-test/token/ERC721.sol";
 
 contract PreapprovedERC721 is ERC721 {
     mapping(address => bool) public preapprovals;

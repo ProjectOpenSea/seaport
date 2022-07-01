@@ -9,8 +9,10 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
     '@rari-capital/solmate/=lib/solmate/',
-    'contracts/=contracts/',
     'murky/=lib/murky/src/',
+    'seaport/=contracts/',
+    'seaport-reference/=seaport-reference/',
+    'seaport-test/=test/foundry/'
 ]
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000

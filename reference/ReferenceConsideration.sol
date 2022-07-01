@@ -4,7 +4,7 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport/interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {
@@ -15,14 +15,14 @@ import {
     AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
-    Fulfillment,
+    Fulfillment, 
     FulfillmentComponent,
     Execution
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
+import { ReferenceOrderCombiner } from "seaport-reference/lib/ReferenceOrderCombiner.sol";
 
-import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationStructs.sol";
+import { OrderToExecute, AccumulatorStruct } from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration

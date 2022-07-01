@@ -4,9 +4,9 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { ReferenceReentrancyGuard } from "./ReferenceReentrancyGuard.sol";
+import { ReferenceReentrancyGuard } from "seaport-reference/lib/ReferenceReentrancyGuard.sol";
 
 /**
  * @title CounterManager

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { Side } from "../lib/ConsiderationEnums.sol";
+import { Side } from "seaport/lib/ConsiderationEnums.sol";
 
 /**
  * @title FulfillmentApplicationErrors

@@ -4,9 +4,9 @@ pragma solidity ^0.8.7;
 // prettier-ignore
 import {
     AmountDerivationErrors
-} from "contracts/interfaces/AmountDerivationErrors.sol";
+} from "seaport/interfaces/AmountDerivationErrors.sol";
 
-import { FractionData } from "./ReferenceConsiderationStructs.sol";
+import { FractionData } from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceAmountDeriver

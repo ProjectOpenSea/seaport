@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors

@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.13;
 
-import { Conduit } from "../../../contracts/conduit/Conduit.sol";
-import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
+import { Conduit } from "seaport/conduit/Conduit.sol";
+import { ConduitController } from "seaport/conduit/ConduitController.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
-import { ConduitTransfer, ConduitBatch1155Transfer, ConduitItemType } from "../../../contracts/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { ConduitTransfer, ConduitBatch1155Transfer, ConduitItemType } from "seaport/conduit/lib/ConduitStructs.sol";
+import { TestERC1155 } from "seaport/test/TestERC1155.sol";
+import { TestERC20 } from "seaport/test/TestERC20.sol";
+import { TestERC721 } from "seaport/test/TestERC721.sol";
 import { ERC721Recipient } from "../utils/ERC721Recipient.sol";
 import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "seaport/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport/conduit/lib/ConduitEnums.sol";
 
 import { ItemType } from "./ConsiderationEnums.sol";
 

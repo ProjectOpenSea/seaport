@@ -7,7 +7,7 @@ import {
     BasicOrderType,
     ItemType,
     BasicOrderRouteType
-} from "contracts/lib/ConsiderationEnums.sol";
+} from "seaport/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -17,18 +17,18 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import {
     AccumulatorStruct,
     BasicFulfillmentHashes,
     FulfillmentItemTypes
-} from "./ReferenceConsiderationStructs.sol";
+} from "seaport-reference/lib/ReferenceConsiderationStructs.sol";
 
-import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
+import { ReferenceOrderValidator } from "seaport-reference/lib/ReferenceOrderValidator.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller

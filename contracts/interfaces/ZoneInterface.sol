@@ -5,7 +5,7 @@ pragma solidity ^0.8.7;
 import {
     AdvancedOrder,
     CriteriaResolver
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 interface ZoneInterface {
     // Called by Consideration whenever extraData is not provided by the caller.

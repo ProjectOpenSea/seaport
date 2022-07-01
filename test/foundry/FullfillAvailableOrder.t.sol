@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, BasicOrderType, ItemType, Side } from "seaport/lib/ConsiderationEnums.sol";
+import { ConsiderationInterface } from "seaport/interfaces/ConsiderationInterface.sol";
+import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "seaport/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "seaport/test/TestERC721.sol";
+import { TestERC1155 } from "seaport/test/TestERC1155.sol";
+import { TestERC20 } from "seaport/test/TestERC20.sol";
 import { stdError } from "forge-std/Test.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 

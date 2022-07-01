@@ -8,7 +8,7 @@ import { GettersAndDerivers } from "./GettersAndDerivers.sol";
 // prettier-ignore
 import {
     TokenTransferrerErrors
-} from "../interfaces/TokenTransferrerErrors.sol";
+} from "seaport/interfaces/TokenTransferrerErrors.sol";
 
 import { CounterManager } from "./CounterManager.sol";
 

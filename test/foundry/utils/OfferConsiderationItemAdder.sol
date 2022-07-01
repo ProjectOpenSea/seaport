@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ConsiderationItem, OfferItem, ItemType } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, ItemType } from "seaport/lib/ConsiderationStructs.sol";
 import { TestTokenMinter } from "./TestTokenMinter.sol";
 
 contract OfferConsiderationItemAdder is TestTokenMinter {

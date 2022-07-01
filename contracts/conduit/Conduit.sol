@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "seaport/interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
-import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
+import { TokenTransferrer } from "seaport/lib/TokenTransferrer.sol";
 
 // prettier-ignore
 import {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
+import { OrderStatus } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReferenceAssertions } from "./ReferenceAssertions.sol";
+import { ReferenceAssertions } from "seaport-reference/lib/ReferenceAssertions.sol";
 
-import { ReferenceSignatureVerification } from "./ReferenceSignatureVerification.sol";
+import { ReferenceSignatureVerification } from "seaport-reference/lib/ReferenceSignatureVerification.sol";
 
 /**
  * @title Verifiers
