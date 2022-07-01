@@ -4,7 +4,7 @@ certoraRun  certora/mungedReference/Seaport.sol certora/helpers/DummyERC20A.sol 
     --staging Shahar/windows_imports_issue\
     --settings -verboseReachabilityChecks \
     --optimistic_loop \
-    --rule sanity_fulfillOrder\
+    --rule sanity_fulfillOrder_fields\
     --send_only \
     --msg "Seaport check"
 
