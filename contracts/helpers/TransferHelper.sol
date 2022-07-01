@@ -72,7 +72,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Transfer multiple items to a single recipient.
+     * @notice Transfer multiple items to a single recipient by calling one of
+     *         two internal functions, depending on whether a conduit key is
+     *         passed into the function.
      *
      * @param items      The items to transfer.
      * @param recipient  The address the items should be transferred to.
@@ -99,6 +101,13 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         magicValue = this.bulkTransfer.selector;
     }
 
+    /**
+     * @notice Perform multiple transfers to a single recipient via
+     *         TokenTransferrer.
+     *
+     * @param items      The items to transfer.
+     * @param recipient  The address the items should be transferred to.
+     */
     function _performTransfersWithoutConduit(
         TransferHelperItem[] calldata items,
         address recipient
@@ -156,13 +165,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                 revert InvalidERC721Recipient();
                             }
                         } catch (bytes memory data) {
-                            // Bubble up recipient's revert reason
+                            // "Bubble up" recipient's revert reason
                             // if present.
                             if (data.length != 0) {
                                 assembly {
                                     returndatacopy(0, 0, returndatasize())
                                     revert(0, returndatasize())
                                 }
+                                // Revert with a generic error if no
+                                // revert reason is given by the recipient.
                             } else {
                                 revert InvalidERC721Recipient();
                             }
@@ -194,6 +205,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
     }
 
+    /**
+     * @notice Perform multiple transfers to a single recipient via
+     *         the conduit derived from the provided conduit key.
+     *
+     * @param items      The items to transfer.
+     * @param recipient  The address the items should be transferred to.
+     * @param conduitKey The conduit key referring to the conduit through
+     *                   which the bulk transfer should occur.
+     */
     function _performTransfersWithConduit(
         TransferHelperItem[] calldata items,
         address recipient,
@@ -244,20 +264,27 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         }
 
+        // Check if the derived conduit is a contract.
         if (!_isContract(conduit)) {
+            // If conduit is not a contract, revert with the passed in
+            // conduit key and derived conduit address.
             revert InvalidConduit(conduitKey, conduit);
         }
 
-        // If the external call fails, revert with the conduit's
-        // custom error.
+        // Attempt the external call to transfer tokens via the derived conduit.
         try ConduitInterface(conduit).execute(conduitTransfers) returns (
             bytes4 conduitMagicValue
         ) {
+            // Check if the value returned from the external call matches
+            // the conduit `execute` selector.
             if (
                 conduitMagicValue != ConduitInterface(conduit).execute.selector
             ) {
+                // If the external call fails, revert with the conduit key
+                // and conduit address.
                 revert InvalidMagicValue(conduitKey, conduit);
             }
+            // Catch reverts from the external call to the conduit.
         } catch (bytes memory data) {
             // "Bubble up" the conduit's revert reason if present.
             if (data.length != 0) {
@@ -265,19 +292,30 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
                 }
+                // If no revert reason is present, revert with a generic error
+                // with the conduit key and conduit address.
             } else {
                 revert ConduitErrorGenericRevert(conduitKey, conduit);
             }
+            // Catch reverts with a provided reason string.
         } catch Error(string memory reason) {
-            // Revert with the error reason string if present.
+            // Revert with the error reason string, conduit key and
+            // conduit address.
             revert ConduitErrorString(reason, conduitKey, conduit);
+            // Catch reverts caused by a panic.
         } catch Panic(uint256 errorCode) {
-            // Revert with the panic error code if the error was caused
-            // by a panic.
+            // Revert with the panic error code, conduit key and
+            // conduit address.
             revert ConduitErrorPanic(errorCode, conduitKey, conduit);
         }
     }
 
+    /**
+     * @notice Check if the passed-in address refers to a contract by comparing
+     *         its codeHash to the default codeHash for non-contract addresses.
+     *
+     * @param account The account to be checked.
+     */
     function _isContract(address account) internal view returns (bool) {
         // This is the default codeHash for non-contract addresses.
         // prettier-ignore
