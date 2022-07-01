@@ -263,7 +263,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     revert(0, returndatasize())
                 }
             } else {
-                revert InvalidConduit(conduitKey, conduit);
+                revert ConduitErrorGenericRevert(conduitKey, conduit);
             }
         } catch Error(string memory reason) {
             // Revert with the error reason string if present.

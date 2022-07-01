@@ -34,6 +34,12 @@ interface TransferHelperInterface {
     error InvalidMagicValue(bytes32 conduitKey, address conduit);
 
     /**
+     * @dev Revert with a generic error when a call to a conduit reverts with
+     *      no data about the reason.
+     */
+    error ConduitErrorGenericRevert(bytes32 conduitKey, address conduit);
+
+    /**
      * @dev Revert with an error when a call to a conduit reverts with a
      *      reason string.
      */

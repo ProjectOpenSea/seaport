@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
-contract TestERC20Revert is ERC20("TestPanic", "PANIC", 18) {
+contract TestERC20Revert is ERC20("TestRevert", "REVERT", 18) {
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }

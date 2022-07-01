@@ -657,6 +657,56 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     );
   });
 
+  it("Reverts when no revert string is returned from call to conduit", async () => {
+    // Deploy ERC1155 Contract
+    const { testERC1155: tempERC1155Contract } = await fixtureERC1155(owner);
+
+    await tempERC1155Contract.connect(owner).mint(sender.address, 0, 100);
+
+    const mockConduitControllerFactory = await ethers.getContractFactory(
+      "ConduitControllerMock"
+    );
+    const mockConduitController = await mockConduitControllerFactory.deploy();
+
+    const mockTransferHelperFactory = await ethers.getContractFactory(
+      "TransferHelper"
+    );
+    const mockTransferHelper = await mockTransferHelperFactory.deploy(
+      mockConduitController.address
+    );
+    const mockConduitKey = owner.address + randomHex(12).slice(2);
+
+    // Deploy the mock conduit through the mock conduit controller
+    await mockConduitController
+      .connect(owner)
+      .createConduit(mockConduitKey, owner.address);
+
+    const mockConduitAddress = (
+      await mockConduitController.getConduit(mockConduitKey)
+    )[0];
+
+    await tempERC1155Contract
+      .connect(sender)
+      .setApprovalForAll(mockConduitAddress, true);
+
+    // Transfer 11 items to hit the special branch logic in ConduitMock
+    // for empty revert when transfers.length > 10.
+    const transferHelperItems = Array.from(Array(11)).map(() => ({
+      itemType: 3,
+      token: tempERC1155Contract.address,
+      identifier: 0,
+      amount: 10,
+    }));
+
+    await expect(
+      mockTransferHelper
+        .connect(sender)
+        .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+    ).to.be.revertedWith(
+      `ConduitErrorGenericRevert("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+    );
+  });
+
   it("Reverts with bubbled up panic error from call to conduit", async () => {
     // Deploy mock ERC20
     const mockERC20PanicFactory = await ethers.getContractFactory(
