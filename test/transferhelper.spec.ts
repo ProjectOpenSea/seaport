@@ -336,7 +336,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
   it("Executes ERC721 transfers to a contract recipient without a conduit", async () => {
     // Deploy recipient contract
     const erc721RecipientFactory = await ethers.getContractFactory(
-      "ERC721ReceiverMock.sol"
+      "ERC721ReceiverMock"
     );
     const erc721Recipient = await erc721RecipientFactory.deploy(
       Buffer.from("abcd0000", "hex"),
