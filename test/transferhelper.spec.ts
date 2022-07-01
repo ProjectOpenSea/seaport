@@ -339,7 +339,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       "ERC721ReceiverMock"
     );
     const erc721Recipient = await erc721RecipientFactory.deploy(
-      Buffer.from("abcd0000", "hex"),
+      Buffer.from("150b7a02", "hex"),
       0
     );
 
