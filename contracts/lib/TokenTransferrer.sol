@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import "./TokenTransferrerConstants.sol";
 
-// prettier-ignore
 import {
     TokenTransferrerErrors
 } from "../interfaces/TokenTransferrerErrors.sol";

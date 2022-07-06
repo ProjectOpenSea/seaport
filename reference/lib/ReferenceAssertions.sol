@@ -5,7 +5,9 @@ import { OrderParameters } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceGettersAndDerivers } from "./ReferenceGettersAndDerivers.sol";
 
-import { TokenTransferrerErrors } from "contracts/interfaces/TokenTransferrerErrors.sol";
+import {
+    TokenTransferrerErrors
+} from "contracts/interfaces/TokenTransferrerErrors.sol";
 
 import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 

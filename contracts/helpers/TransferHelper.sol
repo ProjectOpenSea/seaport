@@ -12,7 +12,6 @@ import {
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-// prettier-ignore
 import {
     ConduitControllerInterface
 } from "../interfaces/ConduitControllerInterface.sol";
@@ -21,7 +20,6 @@ import { Conduit } from "../conduit/Conduit.sol";
 
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
-// prettier-ignore
 import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";

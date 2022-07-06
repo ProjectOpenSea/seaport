@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-// prettier-ignore
+
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
-import { ConduitInterface } from "../../contracts/interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "../../contracts/interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
-import { TransferHelperItem } from "../../contracts/helpers/TransferHelperStructs.sol";
+import {
+    TransferHelperItem
+} from "../../contracts/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
@@ -21,15 +25,25 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
 
-import { ConduitControllerMock } from "../../contracts/test/ConduitControllerMock.sol";
+import {
+    ConduitControllerMock
+} from "../../contracts/test/ConduitControllerMock.sol";
 
-import { InvalidERC721Recipient } from "../../contracts/test/InvalidERC721Recipient.sol";
+import {
+    InvalidERC721Recipient
+} from "../../contracts/test/InvalidERC721Recipient.sol";
 
-import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
+import {
+    TokenTransferrerErrors
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
-import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelperInterface.sol";
+import {
+    TransferHelperInterface
+} from "../../contracts/interfaces/TransferHelperInterface.sol";
 
-import { ERC721ReceiverMock } from "../../contracts/test/ERC721ReceiverMock.sol";
+import {
+    ERC721ReceiverMock
+} from "../../contracts/test/ERC721ReceiverMock.sol";
 
 import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-// prettier-ignore
 import {
     ConsiderationInterface
 } from "contracts/interfaces/ConsiderationInterface.sol";
 
-// prettier-ignore
 import {
     OrderComponents,
     BasicOrderParameters,
@@ -22,7 +20,10 @@ import {
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
-import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationStructs.sol";
+import {
+    OrderToExecute,
+    AccumulatorStruct
+} from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration
