@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-// prettier-ignore
 import {
     ConsiderationInterface
 } from "../interfaces/ConsiderationInterface.sol";
 
-// prettier-ignore
 import {
     OrderComponents,
     BasicOrderParameters,

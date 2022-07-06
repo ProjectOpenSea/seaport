@@ -2,9 +2,24 @@
 
 pragma solidity ^0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
+import {
+    OrderType,
+    BasicOrderType,
+    ItemType,
+    Side
+} from "../../contracts/lib/ConsiderationEnums.sol";
+import {
+    ConsiderationInterface
+} from "../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    Order,
+    OfferItem,
+    OrderParameters,
+    ConsiderationItem,
+    OrderComponents,
+    BasicOrderParameters,
+    FulfillmentComponent
+} from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";

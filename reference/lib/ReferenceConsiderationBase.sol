@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-// prettier-ignore
 import {
     ConduitControllerInterface
 } from "contracts/interfaces/ConduitControllerInterface.sol";
 
-// prettier-ignore
 import {
     ConsiderationEventsAndErrors
 } from "contracts/interfaces/ConsiderationEventsAndErrors.sol";

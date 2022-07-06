@@ -5,12 +5,10 @@ import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
 
-// prettier-ignore
 import {
     ReferenceTokenTransferrer
 } from "../lib/ReferenceTokenTransferrer.sol";
 
-// prettier-ignore
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer

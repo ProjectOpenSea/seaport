@@ -5,7 +5,9 @@ import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceAssertions } from "./ReferenceAssertions.sol";
 
-import { ReferenceSignatureVerification } from "./ReferenceSignatureVerification.sol";
+import {
+    ReferenceSignatureVerification
+} from "./ReferenceSignatureVerification.sol";
 
 /**
  * @title Verifiers
