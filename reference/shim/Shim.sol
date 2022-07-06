@@ -14,7 +14,6 @@ import { TestERC1155 } from "contracts/test/TestERC1155.sol";
 import { TestZone } from "contracts/test/TestZone.sol";
 import { PausableZoneController } from "contracts/zones/PausableZoneController.sol";
 import { TransferHelper } from "contracts/helpers/TransferHelper.sol";
-// prettier-ignore
 import {
     ImmutableCreate2FactoryInterface
 } from "contracts/interfaces/ImmutableCreate2FactoryInterface.sol";

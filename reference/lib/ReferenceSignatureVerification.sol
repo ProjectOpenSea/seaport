@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
-// prettier-ignore
 import {
     SignatureVerificationErrors
 } from "contracts/interfaces/SignatureVerificationErrors.sol";
@@ -19,8 +18,8 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied signer. Note that in cases where a 32 or 33 byte signature
+     *      is not 64 or 65 bytes or if the recovered signer does not match the
+     *      supplied signer. Note that in cases where a 64 or 65 byte signature
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
      *
