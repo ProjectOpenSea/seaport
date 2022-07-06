@@ -5,7 +5,6 @@ import "./TransferHelperStructs.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
-// prettier-ignore
 import {
     TokenTransferrerErrors
 } from "../interfaces/TokenTransferrerErrors.sol";

@@ -5,7 +5,6 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
-// prettier-ignore
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer

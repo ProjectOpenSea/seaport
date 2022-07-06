@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-// prettier-ignore
 import {
-	ConduitControllerInterface
+    ConduitControllerInterface
 } from "../interfaces/ConduitControllerInterface.sol";
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
