@@ -6,15 +6,23 @@ import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import { OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { Test } from "forge-std/Test.sol";
 
 import { GettersAndDerivers } from "../../contracts/lib/GettersAndDerivers.sol";
-import { ReferenceDigestHelper } from "../../reference/lib/ReferenceDigestHelper.sol";
+import {
+    ReferenceDigestHelper
+} from "../../reference/lib/ReferenceDigestHelper.sol";
 import { DigestHelper } from "../../contracts/helpers/DigestHelper.sol";
-import { ReferenceOrderHashHelper } from "../../reference/lib/ReferenceOrderHashHelper.sol";
+import {
+    ReferenceOrderHashHelper
+} from "../../reference/lib/ReferenceOrderHashHelper.sol";
 import { OrderHashHelper } from "../../contracts/helpers/OrderHashHelper.sol";
-import { ReferenceGettersAndDerivers } from "../../reference/lib/ReferenceGettersAndDerivers.sol";
+import {
+    ReferenceGettersAndDerivers
+} from "../../reference/lib/ReferenceGettersAndDerivers.sol";
 
 interface GetterAndDeriver {
     function deriveOrderHash(

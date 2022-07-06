@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
-import { ConsiderationInterface } from "contracts/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "contracts/interfaces/ConsiderationInterface.sol";
 
 /**
  * @title DigestHelper
