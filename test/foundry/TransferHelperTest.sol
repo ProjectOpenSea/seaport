@@ -1,25 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-// prettier-ignore
+
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
-import { ConduitInterface } from "../../contracts/interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "../../contracts/interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
-import { TransferHelperItem } from "../../contracts/helpers/TransferHelperStructs.sol";
+import {
+    TransferHelperItem
+} from "../../contracts/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
-import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
+import {
+    TokenTransferrerErrors
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
-import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelperInterface.sol";
+import {
+    TransferHelperInterface
+} from "../../contracts/interfaces/TransferHelperInterface.sol";
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;

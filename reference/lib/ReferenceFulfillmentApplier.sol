@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 
-// prettier-ignore
 import {
     OfferItem,
     ConsiderationItem,
@@ -15,11 +14,13 @@ import {
     SpentItem
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+import {
+    ConsiderationItemIndicesAndValidity,
+    OrderToExecute
+} from "./ReferenceConsiderationStructs.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
-// prettier-ignore
 import {
     FulfillmentApplicationErrors
 } from "contracts/interfaces/FulfillmentApplicationErrors.sol";

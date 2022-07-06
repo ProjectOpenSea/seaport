@@ -3,9 +3,8 @@ pragma solidity ^0.8.7;
 
 import { ReferenceConduit } from "./ReferenceConduit.sol";
 
-// prettier-ignore
 import {
-	ConduitControllerInterface
+    ConduitControllerInterface
 } from "contracts/interfaces/ConduitControllerInterface.sol";
 
 import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";

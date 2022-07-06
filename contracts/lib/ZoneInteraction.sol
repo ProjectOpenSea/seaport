@@ -5,15 +5,11 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { OrderType } from "./ConsiderationEnums.sol";
 
-// prettier-ignore
 import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
 
 import "./ConsiderationConstants.sol";
 
-// prettier-ignore
-import {
-    ZoneInteractionErrors
-} from "../interfaces/ZoneInteractionErrors.sol";
+import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 

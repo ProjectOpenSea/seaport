@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-// prettier-ignore
 import {
     AdvancedOrder,
     CriteriaResolver

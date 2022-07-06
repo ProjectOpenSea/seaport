@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import { OrderType } from "./ConsiderationEnums.sol";
 
-// prettier-ignore
 import {
     OrderParameters,
     Order,

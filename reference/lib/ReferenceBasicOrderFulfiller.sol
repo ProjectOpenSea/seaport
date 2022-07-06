@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-// prettier-ignore
 import {
     OrderType,
     BasicOrderType,
@@ -9,7 +8,6 @@ import {
     BasicOrderRouteType
 } from "contracts/lib/ConsiderationEnums.sol";
 
-// prettier-ignore
 import {
     AdditionalRecipient,
     BasicOrderParameters,
@@ -19,7 +17,6 @@ import {
     ReceivedItem
 } from "contracts/lib/ConsiderationStructs.sol";
 
-// prettier-ignore
 import {
     AccumulatorStruct,
     BasicFulfillmentHashes,
