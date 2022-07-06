@@ -4,14 +4,12 @@ pragma solidity ^0.8.7;
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
-// prettier-ignore
 import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
-// prettier-ignore
 import {
     AdvancedOrder,
     CriteriaResolver,

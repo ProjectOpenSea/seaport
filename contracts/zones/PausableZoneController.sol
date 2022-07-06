@@ -3,17 +3,14 @@ pragma solidity ^0.8.7;
 
 import { PausableZone } from "./PausableZone.sol";
 
-// prettier-ignore
 import {
     PausableZoneControllerInterface
 } from "./interfaces/PausableZoneControllerInterface.sol";
 
-// prettier-ignore
 import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
-// prettier-ignore
 import {
     Order,
     Fulfillment,

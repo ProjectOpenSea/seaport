@@ -3,12 +3,8 @@ pragma solidity ^0.8.7;
 
 import { PausableZone } from "../PausableZone.sol";
 
-// prettier-ignore
-import {
-    PausableZoneEventsAndErrors
-} from "./PausableZoneEventsAndErrors.sol";
+import { PausableZoneEventsAndErrors } from "./PausableZoneEventsAndErrors.sol";
 
-// prettier-ignore
 import {
     Order,
     Fulfillment,

@@ -28,7 +28,9 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
-import { PausableZoneController } from "../../contracts/zones/PausableZoneController.sol";
+import {
+    PausableZoneController
+} from "../../contracts/zones/PausableZoneController.sol";
 import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {

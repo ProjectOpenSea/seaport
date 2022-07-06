@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";
 
-// prettier-ignore
 import {
     AdvancedOrder,
     CriteriaResolver,
