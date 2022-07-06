@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
-// prettier-ignore
 import {
     OfferItem,
     ConsiderationItem,
@@ -15,14 +14,15 @@ import {
     CriteriaResolver
 } from "contracts/lib/ConsiderationStructs.sol";
 
-// prettier-ignore
-import { 
+import {
     AccumulatorStruct,
-    FractionData, 
+    FractionData,
     OrderToExecute
 } from "./ReferenceConsiderationStructs.sol";
 
-import { ReferenceBasicOrderFulfiller } from "./ReferenceBasicOrderFulfiller.sol";
+import {
+    ReferenceBasicOrderFulfiller
+} from "./ReferenceBasicOrderFulfiller.sol";
 
 import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
 

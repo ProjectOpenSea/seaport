@@ -1,16 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
-import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
-import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
-import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import {
+    ConduitController
+} from "../../../contracts/conduit/ConduitController.sol";
+import {
+    ConsiderationInterface
+} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    OrderType,
+    BasicOrderType,
+    ItemType,
+    Side
+} from "../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    OfferItem,
+    ConsiderationItem,
+    OrderComponents,
+    BasicOrderParameters
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 import { Test } from "forge-std/Test.sol";
 import { DifferentialTest } from "./DifferentialTest.sol";
 import { StructCopier } from "./StructCopier.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
-import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
+import {
+    ReferenceConduitController
+} from "../../../reference/conduit/ReferenceConduitController.sol";
+import {
+    ReferenceConsideration
+} from "../../../reference/ReferenceConsideration.sol";
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 import { Consideration } from "../../../contracts/lib/Consideration.sol";
 

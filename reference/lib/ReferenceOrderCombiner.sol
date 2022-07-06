@@ -3,7 +3,6 @@ pragma solidity ^0.8.7;
 
 import { Side, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
-// prettier-ignore
 import {
     AdditionalRecipient,
     OfferItem,
@@ -19,7 +18,10 @@ import {
     CriteriaResolver
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { AccumulatorStruct, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+import {
+    AccumulatorStruct,
+    OrderToExecute
+} from "./ReferenceConsiderationStructs.sol";
 
 import { ReferenceOrderFulfiller } from "./ReferenceOrderFulfiller.sol";
 

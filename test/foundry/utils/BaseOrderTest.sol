@@ -6,9 +6,25 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
-import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
-import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
-import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import {
+    ConsiderationInterface
+} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    BasicOrderType,
+    OrderType
+} from "../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    BasicOrderParameters,
+    ConsiderationItem,
+    AdditionalRecipient,
+    OfferItem,
+    Fulfillment,
+    FulfillmentComponent,
+    ItemType,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";

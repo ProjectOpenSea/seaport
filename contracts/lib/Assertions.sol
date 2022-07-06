@@ -5,7 +5,6 @@ import { OrderParameters } from "./ConsiderationStructs.sol";
 
 import { GettersAndDerivers } from "./GettersAndDerivers.sol";
 
-// prettier-ignore
 import {
     TokenTransferrerErrors
 } from "../interfaces/TokenTransferrerErrors.sol";

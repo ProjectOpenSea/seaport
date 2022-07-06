@@ -2,7 +2,10 @@
 pragma solidity ^0.8.13;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
-import { ConduitTransfer, ConduitItemType } from "../../../contracts/conduit/lib/ConduitStructs.sol";
+import {
+    ConduitTransfer,
+    ConduitItemType
+} from "../../../contracts/conduit/lib/ConduitStructs.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
