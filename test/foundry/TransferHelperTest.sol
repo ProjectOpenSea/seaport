@@ -1004,7 +1004,7 @@ contract TransferHelperTest is BaseOrderTest {
         (address conduit, ) = conduitController.getConduit(conduitKeyOne);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "InvalidMagicValue(bytes32,address)",
+                "InvalidConduit(bytes32,address)",
                 mockConduitKey,
                 mockConduit
             )

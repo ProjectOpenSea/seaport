@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
+import { IERC721Receiver } from "../interfaces/IERC721Receiver.sol";
+
 import "./TransferHelperStructs.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
@@ -22,15 +24,6 @@ import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
-
-interface IERC721Receiver {
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external returns (bytes4);
-}
 
 /**
  * @title TransferHelper
@@ -112,7 +105,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         uint256 totalTransfers = items.length;
 
         // Create a boolean that reflects whether recipient is a contract.
-        bool recipientIsContract = _isContract(recipient);
+        bool recipientIsContract = (recipient.code.length != 0);
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
@@ -260,13 +253,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         }
 
-        // Check if the derived conduit is a contract.
-        if (!_isContract(conduit)) {
-            // If conduit is not a contract, revert with the passed in
-            // conduit key and derived conduit address.
-            revert InvalidConduit(conduitKey, conduit);
-        }
-
         // Attempt the external call to transfer tokens via the derived conduit.
         try ConduitInterface(conduit).execute(conduitTransfers) returns (
             bytes4 conduitMagicValue
@@ -278,7 +264,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             ) {
                 // If the external call fails, revert with the conduit key
                 // and conduit address.
-                revert InvalidMagicValue(conduitKey, conduit);
+                revert InvalidConduit(conduitKey, conduit);
             }
         } catch (bytes memory data) {
             // Catch reverts from the external call to the conduit and
@@ -288,6 +274,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
                 }
+            } else if (data.length > 256) {
+                revert InvalidConduit(conduitKey, conduit);
             } else {
                 // If no revert reason is present, revert with a generic error
                 // with the conduit key and conduit address.
@@ -297,30 +285,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
             revert ConduitErrorString(reason, conduitKey, conduit);
-        } catch Panic(uint256 errorCode) {
-            // Catch reverts caused by a panic and revert with the
-            // panic error code, conduit key and conduit address.
-            revert ConduitErrorPanic(errorCode, conduitKey, conduit);
         }
-    }
-
-    /**
-     * @notice Check if the passed-in address refers to a contract by comparing
-     *         its codeHash to the default codeHash for non-contract addresses.
-     *
-     * @param account The account to be checked.
-     */
-    function _isContract(address account) internal view returns (bool) {
-        // This is the default codeHash for non-contract addresses.
-        // prettier-ignore
-        bytes32 accountHash =
-            0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-
-        // Get the account codeHash.
-        bytes32 codeHash = account.codehash;
-
-        // Account is a contract if codeHash is not equal to accountHash
-        // and is not equal to 0 meaning it does not exist or is empty.
-        return (codeHash != accountHash && codeHash != 0x0);
     }
 }
