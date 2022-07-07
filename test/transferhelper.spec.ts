@@ -567,7 +567,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           recipient.address,
           ethers.utils.formatBytes32String("0xabc")
         )
-    ).to.be.revertedWith("InvalidConduit");
+    ).to.be.reverted;
   });
 
   it("Reverts on error in ERC721 receiver", async () => {
@@ -780,23 +780,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       },
     ];
 
-    if (!process.env.REFERENCE) {
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith(
-        `ConduitErrorPanic(18, "${tempConduitKey.toLowerCase()}", "${
-          tempConduit.address
-        }")`
-      );
-    } else {
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.reverted;
-    }
+    await expect(
+      tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+    ).to.be.reverted;
   });
 
   it("Reverts with invalid magic value returned by call to conduit", async () => {
@@ -848,6 +836,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       mockTransferHelper
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
-    ).to.be.revertedWith("InvalidMagicValue");
+    ).to.be.revertedWith(
+      `InvalidConduit("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+    );
   });
 });

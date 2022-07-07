@@ -275,7 +275,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     revert(0, returndatasize())
                 }
             } else if (data.length > 256) {
-                revert InvalidConduit(conduitKey, conduit);
+                revert ConduitErrorGenericRevert(conduitKey, conduit);
             } else {
                 // If no revert reason is present, revert with a generic error
                 // with the conduit key and conduit address.
