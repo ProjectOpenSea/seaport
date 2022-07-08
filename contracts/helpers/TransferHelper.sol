@@ -101,11 +101,16 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         TransferHelperItem[] calldata items,
         address recipient
     ) internal {
+        // Ensure tokens aren't transferred to the zero address.
+        if (recipient == address(0x0)) {
+            revert RecipientCannotBeZero();
+        }
+
         // Retrieve total number of transfers and place on stack.
         uint256 totalTransfers = items.length;
 
         // Create a boolean that reflects whether recipient is a contract.
-        bool recipientIsContract = (recipient.code.length != 0);
+        bool recipientIsContract = recipient.code.length != 0;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
@@ -208,6 +213,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         address recipient,
         bytes32 conduitKey
     ) internal {
+        // Ensure tokens aren't transferred to the zero address.
+        if (recipient == address(0x0)) {
+            revert RecipientCannotBeZero();
+        }
+
         // Retrieve total number of transfers and place on stack.
         uint256 totalTransfers = items.length;
 
@@ -269,16 +279,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         } catch (bytes memory data) {
             // Catch reverts from the external call to the conduit and
             // "bubble up" the conduit's revert reason if present.
-            if (data.length != 0) {
+            if (data.length < 256) {
                 assembly {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
                 }
-            } else if (data.length > 256) {
-                revert ConduitErrorGenericRevert(conduitKey, conduit);
             } else {
-                // If no revert reason is present, revert with a generic error
-                // with the conduit key and conduit address.
+                // If no revert reason is present or data length is too large,
+                // revert with a generic error with the conduit key and
+                // conduit address.
                 revert ConduitErrorGenericRevert(conduitKey, conduit);
             }
         } catch Error(string memory reason) {

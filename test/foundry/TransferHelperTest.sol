@@ -842,13 +842,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
         vm.label(unknownConduitAddress, "unknown conduit");
 
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidConduit(bytes32,address)",
-                fuzzConduitKey,
-                unknownConduitAddress
-            )
-        );
+        vm.expectRevert();
         vm.prank(alice);
         transferHelper.bulkTransfer(items, bob, conduitKeyOne);
     }
@@ -948,12 +942,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            abi.encodeWithSignature(
-                "ConduitErrorPanic(uint256,bytes32,address)",
-                18,
-                conduitKeyOne,
-                conduit
-            )
+            abi.encodePacked("Division or modulo by 0")
         );
     }
 
@@ -985,12 +974,29 @@ contract TransferHelperTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
+        ConduitMock aliceConduit = new ConduitMock{ salt: conduitKeyAlice }(
+            0x4ce34aa2,
+            ConduitMock.Error(0)
+        );
+
+        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        emit log_named_bytes32("conduit code hash", conduitCodeHash);
+
+        bytes32 aliceConduitCodeHash = address(aliceConduit).codehash;
+        emit log_named_bytes32("alice conduit code hash", aliceConduitCodeHash);
+
+        ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }(
+            0x4ce34aa2,
+            ConduitMock.Error(0)
+        );
+        bytes32 zeroConduitCodeHash = address(zeroConduit).codehash;
+        emit log_named_bytes32("zero conduit code hash", zeroConduitCodeHash);
+
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
         bytes32 mockConduitKey = mockConduitController.getKey(
             address(mockConduit)
         );
-        assertEq(conduitKeyAlice, mockConduitKey);
 
         // Create item to transfer
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
@@ -1001,15 +1007,17 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address conduit, bool exists) = mockConduitController.getConduit(
+            conduitKeyAlice
+        );
         vm.expectRevert(
             abi.encodeWithSignature(
                 "InvalidConduit(bytes32,address)",
-                mockConduitKey,
+                conduitKeyAlice,
                 mockConduit
             )
         );
-        mockTransferHelper.bulkTransfer(items, bob, mockConduitKey);
+        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
         vm.stopPrank();
     }
 }

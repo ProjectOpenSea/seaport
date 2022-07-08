@@ -11,34 +11,61 @@ import {
 } from "../conduit/lib/ConduitStructs.sol";
 
 contract ConduitMock is ConduitInterface {
-    constructor() {}
+    enum Error {
+        None,
+        RevertWithNoErrorString,
+        RevertWithDataLengthOver256,
+        InvalidMagicValue
+    }
 
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        pure
-        override
-        returns (bytes4 magicValue)
-    {
-        // To test for more coverage paths, if transfers.length > 10,
-        // then revert with empty reason.
-        if (transfers.length > 10) {
-            revert();
+    bytes4 private immutable _retval;
+    Error private immutable _error;
+
+    constructor(bytes4 retval, Error error) {
+        _retval = retval;
+        _error = error;
+    }
+
+    function execute(
+        ConduitTransfer[] calldata /* transfers */
+    ) external view override returns (bytes4) {
+        if (_error == Error.RevertWithNoErrorString) {
+            revert InvalidController();
+        } else if (_error == Error.RevertWithDataLengthOver256) {
+            revert InvalidController();
+        } else if (_error == Error.InvalidMagicValue) {
+            return 0xabcd0000;
         }
-        // Otherwise, we will return an invalid magic value.
-        return 0xabc42069;
+
+        // Otherwise, we will return the valid magic value.
+        return _retval;
     }
 
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata /*  batch1155Transfers */
-    ) external pure override returns (bytes4 magicValue) {
-        return 0xabc69420;
+    ) external view override returns (bytes4 magicValue) {
+        if (_error == Error.RevertWithNoErrorString) {
+            revert();
+        } else if (_error == Error.RevertWithDataLengthOver256) {
+            revert(
+                "RevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevert"
+            );
+        }
+        return _retval;
     }
 
     function executeWithBatch1155(
         ConduitTransfer[] calldata, /* standardTransfers */
         ConduitBatch1155Transfer[] calldata /*  batch1155Transfers */
-    ) external pure override returns (bytes4 magicValue) {
-        return 0x42069420;
+    ) external view override returns (bytes4 magicValue) {
+        if (_error == Error.RevertWithNoErrorString) {
+            revert();
+        } else if (_error == Error.RevertWithDataLengthOver256) {
+            revert(
+                "RevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevert"
+            );
+        }
+        return _retval;
     }
 
     function updateChannel(address channel, bool isOpen) external override {}

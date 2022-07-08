@@ -28,7 +28,10 @@ contract ConduitControllerMock is ConduitControllerInterface {
         _CONDUIT_CREATION_CODE_HASH = keccak256(type(ConduitMock).creationCode);
 
         // Deploy a conduit with the zero hash as the salt.
-        ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }();
+        ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }(
+            0x4ce34aa2,
+            ConduitMock.Error(0)
+        );
 
         // Retrieve the conduit runtime code hash and set it as an immutable.
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
@@ -87,7 +90,7 @@ contract ConduitControllerMock is ConduitControllerInterface {
         }
 
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
-        new ConduitMock{ salt: conduitKey }();
+        new ConduitMock{ salt: conduitKey }(0x4ce34aa2, ConduitMock.Error(0));
 
         // Initialize storage variable referencing conduit properties.
         ConduitProperties storage conduitProperties = _conduits[conduit];

@@ -17,9 +17,20 @@ interface TransferHelperInterface {
     error InvalidERC721Recipient();
 
     /**
+     * @dev Revert with an error when attempting to execute an ERC1155 transfer
+            to an invalid recipient.
+     */
+    error InvalidERC1155Recipient();
+
+    /**
      * @dev Revert with an error when an ERC20 token has an invalid identifier.
      */
     error InvalidERC20Identifier();
+
+    /**
+     * @dev Revert with an error if the recipient is the zero address.
+     */
+    error RecipientCannotBeZero();
 
     /**
      * @dev Revert with an error when attempting to fill an order referencing an
