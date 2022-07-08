@@ -11,6 +11,18 @@ import { ConduitController } from "../conduit/ConduitController.sol";
 
 import { ConduitMock } from "../test/ConduitMock.sol";
 
+import { ConduitMockInvalidMagic } from "../test/ConduitMockInvalidMagic.sol";
+
+import {
+    ConduitMockRevertDataLengthTooLong
+} from "../test/ConduitMockRevertDataLengthTooLong.sol";
+
+import {
+    ConduitMockRevertNoReason
+} from "../test/ConduitMockRevertNoReason.sol";
+
+import { ConduitMockRevertBytes } from "../test/ConduitMockRevertBytes.sol";
+
 contract ConduitControllerMock is ConduitControllerInterface {
     // Register keys, owners, new potential owners, and channels by conduit.
     mapping(address => ConduitProperties) internal _conduits;
@@ -19,22 +31,57 @@ contract ConduitControllerMock is ConduitControllerInterface {
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
+    uint256 private immutable conduitNum;
+
     /**
      * @dev Initialize contract by deploying a conduit and setting the creation
      *      code and runtime code hashes as immutable arguments.
      */
-    constructor() {
-        // Derive the conduit creation code hash and set it as an immutable.
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(ConduitMock).creationCode);
+    constructor(uint256 _conduitNum) {
+        conduitNum = _conduitNum;
 
-        // Deploy a conduit with the zero hash as the salt.
-        ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }(
-            0x4ce34aa2,
-            ConduitMock.Error(0)
-        );
+        bytes32 creationCodeHash;
+        bytes32 runtimeCodeHash;
 
-        // Retrieve the conduit runtime code hash and set it as an immutable.
-        _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
+        if (conduitNum == 0) {
+            creationCodeHash = keccak256(type(ConduitMock).creationCode);
+            ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }();
+            runtimeCodeHash = address(zeroConduit).codehash;
+        } else if (conduitNum == 1) {
+            creationCodeHash = keccak256(
+                type(ConduitMockRevertNoReason).creationCode
+            );
+            ConduitMockRevertNoReason zeroConduit = new ConduitMockRevertNoReason{
+                    salt: bytes32(0)
+                }();
+            runtimeCodeHash = address(zeroConduit).codehash;
+        } else if (conduitNum == 2) {
+            creationCodeHash = keccak256(
+                type(ConduitMockRevertDataLengthTooLong).creationCode
+            );
+            ConduitMockRevertDataLengthTooLong zeroConduit = new ConduitMockRevertDataLengthTooLong{
+                    salt: bytes32(0)
+                }();
+            runtimeCodeHash = address(zeroConduit).codehash;
+        } else if (conduitNum == 3) {
+            creationCodeHash = keccak256(
+                type(ConduitMockInvalidMagic).creationCode
+            );
+            ConduitMockInvalidMagic zeroConduit = new ConduitMockInvalidMagic{
+                salt: bytes32(0)
+            }();
+            runtimeCodeHash = address(zeroConduit).codehash;
+        } else if (conduitNum == 4) {
+            creationCodeHash = keccak256(
+                type(ConduitMockRevertBytes).creationCode
+            );
+            ConduitMockRevertBytes zeroConduit = new ConduitMockRevertBytes{
+                salt: bytes32(0)
+            }();
+            runtimeCodeHash = address(zeroConduit).codehash;
+        }
+        _CONDUIT_CREATION_CODE_HASH = creationCodeHash;
+        _CONDUIT_RUNTIME_CODE_HASH = runtimeCodeHash;
     }
 
     /**
@@ -90,8 +137,17 @@ contract ConduitControllerMock is ConduitControllerInterface {
         }
 
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
-        new ConduitMock{ salt: conduitKey }(0x4ce34aa2, ConduitMock.Error(0));
-
+        if (conduitNum == 0) {
+            new ConduitMock{ salt: conduitKey }();
+        } else if (conduitNum == 1) {
+            new ConduitMockRevertNoReason{ salt: conduitKey }();
+        } else if (conduitNum == 2) {
+            new ConduitMockRevertDataLengthTooLong{ salt: conduitKey }();
+        } else if (conduitNum == 3) {
+            new ConduitMockInvalidMagic{ salt: conduitKey }();
+        } else if (conduitNum == 4) {
+            new ConduitMockRevertBytes{ salt: conduitKey }();
+        }
         // Initialize storage variable referencing conduit properties.
         ConduitProperties storage conduitProperties = _conduits[conduit];
 

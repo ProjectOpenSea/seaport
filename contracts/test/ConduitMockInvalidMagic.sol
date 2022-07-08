@@ -10,14 +10,13 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-contract ConduitMock is ConduitInterface {
+contract ConduitMockInvalidMagic is ConduitInterface {
     constructor() {}
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
     ) external view override returns (bytes4) {
-        // Return the valid magic value.
-        return 0x4ce34aa2;
+        return 0xabcd0000;
     }
 
     function executeBatch1155(

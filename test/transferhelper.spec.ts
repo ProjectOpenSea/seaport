@@ -21,7 +21,6 @@ import type {
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Wallet } from "ethers";
-import { V4MAPPED } from "dns";
 
 describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
@@ -899,6 +898,66 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
     ).to.be.revertedWith(
       `ConduitErrorGenericRevert("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+    );
+  });
+
+  it("Reverts when data length is greater than 0 and less than 256", async () => {
+    // Deploy ERC20 Contract
+    const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+
+    await tempERC20Contract.connect(owner).mint(sender.address, 100);
+
+    const mockConduitControllerFactory = await ethers.getContractFactory(
+      "ConduitControllerMock"
+    );
+    const mockConduitController = await mockConduitControllerFactory.deploy(
+      toBN(4)
+    );
+
+    const mockTransferHelperFactory = await ethers.getContractFactory(
+      "TransferHelper"
+    );
+    const mockTransferHelper = await mockTransferHelperFactory.deploy(
+      mockConduitController.address
+    );
+    const mockConduitKey = owner.address + randomHex(12).slice(2);
+    console.log("conduit key: ", mockConduitKey);
+
+    // Deploy the mock conduit through the mock conduit controller
+    await mockConduitController
+      .connect(owner)
+      .createConduit(mockConduitKey, owner.address);
+
+    const mockConduitAddress = (
+      await mockConduitController.getConduit(mockConduitKey)
+    )[0];
+    console.log("mock conduit address: ", mockConduitAddress);
+
+    await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
+
+    const transferHelperItems = [
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 10,
+      },
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 20,
+      },
+    ];
+
+    const customErrorSelector = ethers.utils.id("CustomError()").slice(0, 10);
+
+    await expect(
+      mockTransferHelper
+        .connect(sender)
+        .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+    ).to.be.revertedWith(
+      `ConduitErrorRevertBytes("${customErrorSelector}", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
     );
   });
 });

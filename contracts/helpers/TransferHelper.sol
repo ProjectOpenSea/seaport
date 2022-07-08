@@ -25,6 +25,8 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin, ryanio
@@ -279,21 +281,22 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         } catch (bytes memory data) {
             // Catch reverts from the external call to the conduit and
             // "bubble up" the conduit's revert reason if present.
-            if (data.length < 256) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
+            if (data.length != 0 && data.length < 256) {
+                revert ConduitErrorRevertBytes(data, conduitKey, conduit);
             } else {
                 // If no revert reason is present or data length is too large,
                 // revert with a generic error with the conduit key and
                 // conduit address.
-                revert ConduitErrorGenericRevert(conduitKey, conduit);
+                revert ConduitErrorRevertGeneric(conduitKey, conduit);
             }
         } catch Error(string memory reason) {
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
-            revert ConduitErrorString(reason, conduitKey, conduit);
+            if (bytes(reason).length != 0 && bytes(reason).length < 256) {
+                revert ConduitErrorRevertString(reason, conduitKey, conduit);
+            } else {
+                revert ConduitErrorRevertGeneric(conduitKey, conduit);
+            }
         }
     }
 }

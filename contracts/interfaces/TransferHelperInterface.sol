@@ -48,14 +48,20 @@ interface TransferHelperInterface {
      * @dev Revert with a generic error when a call to a conduit reverts with
      *      no data about the reason.
      */
-    error ConduitErrorGenericRevert(bytes32 conduitKey, address conduit);
+    error ConduitErrorRevertGeneric(bytes32 conduitKey, address conduit);
 
     /**
      * @dev Revert with an error when a call to a conduit reverts with a
      *      reason string.
      */
-    error ConduitErrorString(
+    error ConduitErrorRevertString(
         string reason,
+        bytes32 conduitKey,
+        address conduit
+    );
+
+    error ConduitErrorRevertBytes(
+        bytes reason,
         bytes32 conduitKey,
         address conduit
     );
@@ -64,7 +70,7 @@ interface TransferHelperInterface {
      * @dev Revert with an error when a call to a conduit reverts with a
      *      panic error.
      */
-    error ConduitErrorPanic(
+    error ConduitErrorRevertPanic(
         uint256 errorCode,
         bytes32 conduitKey,
         address conduit

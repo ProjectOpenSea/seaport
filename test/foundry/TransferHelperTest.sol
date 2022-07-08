@@ -26,6 +26,17 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
 
 import {
+    ConduitMockInvalidMagic
+} from "../../contracts/test/ConduitMockInvalidMagic.sol";
+
+import {
+    ConduitMockRevertDataLengthTooLong
+} from "../../contracts/test/ConduitMockRevertDataLengthTooLong.sol";
+
+import {
+    ConduitMockRevertNoReason
+} from "../../contracts/test/ConduitMockRevertNoReason.sol";
+import {
     ConduitControllerMock
 } from "../../contracts/test/ConduitControllerMock.sol";
 
@@ -950,7 +961,9 @@ contract TransferHelperTest is BaseOrderTest {
         public
     {
         // Deploy mock conduit controller
-        ConduitControllerMock mockConduitController = new ConduitControllerMock();
+        ConduitControllerMock mockConduitController = new ConduitControllerMock(
+            3
+        );
 
         // Create conduit key using alice's address
         bytes32 conduitKeyAlice = bytes32(
@@ -969,28 +982,13 @@ contract TransferHelperTest is BaseOrderTest {
         vm.startPrank(alice);
 
         // Create the mock conduit by calling the mock conduit controller
-        ConduitMock mockConduit = ConduitMock(
+        ConduitMockInvalidMagic mockConduit = ConduitMockInvalidMagic(
             mockConduitController.createConduit(conduitKeyAlice, address(alice))
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        ConduitMock aliceConduit = new ConduitMock{ salt: conduitKeyAlice }(
-            0x4ce34aa2,
-            ConduitMock.Error(0)
-        );
-
         bytes32 conduitCodeHash = address(mockConduit).codehash;
         emit log_named_bytes32("conduit code hash", conduitCodeHash);
-
-        bytes32 aliceConduitCodeHash = address(aliceConduit).codehash;
-        emit log_named_bytes32("alice conduit code hash", aliceConduitCodeHash);
-
-        ConduitMock zeroConduit = new ConduitMock{ salt: bytes32(0) }(
-            0x4ce34aa2,
-            ConduitMock.Error(0)
-        );
-        bytes32 zeroConduitCodeHash = address(zeroConduit).codehash;
-        emit log_named_bytes32("zero conduit code hash", zeroConduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1017,6 +1015,180 @@ contract TransferHelperTest is BaseOrderTest {
                 mockConduit
             )
         );
+        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        vm.stopPrank();
+    }
+
+    function testRevertNoErrorString() public {
+        // Deploy mock conduit controller
+        ConduitControllerMock mockConduitController = new ConduitControllerMock(
+            1
+        );
+
+        // Create conduit key using alice's address
+        bytes32 conduitKeyAlice = bytes32(
+            uint256(uint160(address(alice))) << 96
+        );
+
+        // Deploy mock transfer helper that takes in the mock conduit controller
+        TransferHelper mockTransferHelper = TransferHelper(
+            deployCode(
+                "optimized-out/TransferHelper.sol/TransferHelper.json",
+                abi.encode(address(mockConduitController))
+            )
+        );
+        vm.label(address(mockTransferHelper), "mock transfer helper");
+
+        vm.startPrank(alice);
+
+        // Create the mock conduit by calling the mock conduit controller
+        ConduitMockInvalidMagic mockConduit = ConduitMockInvalidMagic(
+            mockConduitController.createConduit(conduitKeyAlice, address(alice))
+        );
+        vm.label(address(mockConduit), "mock conduit");
+
+        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        emit log_named_bytes32("conduit code hash", conduitCodeHash);
+
+        // Assert the conduit key derived from the conduit address
+        // matches alice's conduit key
+        bytes32 mockConduitKey = mockConduitController.getKey(
+            address(mockConduit)
+        );
+
+        // Create item to transfer
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(erc721s[0]),
+            5,
+            1
+        );
+
+        (address conduit, bool exists) = mockConduitController.getConduit(
+            conduitKeyAlice
+        );
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ConduitErrorGenericRevert(bytes32,address)",
+                conduitKeyAlice,
+                mockConduit
+            )
+        );
+        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        vm.stopPrank();
+    }
+
+    function testRevertDataLengthTooLong() public {
+        // Deploy mock conduit controller
+        ConduitControllerMock mockConduitController = new ConduitControllerMock(
+            2
+        );
+
+        // Create conduit key using alice's address
+        bytes32 conduitKeyAlice = bytes32(
+            uint256(uint160(address(alice))) << 96
+        );
+
+        // Deploy mock transfer helper that takes in the mock conduit controller
+        TransferHelper mockTransferHelper = TransferHelper(
+            deployCode(
+                "optimized-out/TransferHelper.sol/TransferHelper.json",
+                abi.encode(address(mockConduitController))
+            )
+        );
+        vm.label(address(mockTransferHelper), "mock transfer helper");
+
+        vm.startPrank(alice);
+
+        // Create the mock conduit by calling the mock conduit controller
+        ConduitMockInvalidMagic mockConduit = ConduitMockInvalidMagic(
+            mockConduitController.createConduit(conduitKeyAlice, address(alice))
+        );
+        vm.label(address(mockConduit), "mock conduit");
+
+        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        emit log_named_bytes32("conduit code hash", conduitCodeHash);
+
+        // Assert the conduit key derived from the conduit address
+        // matches alice's conduit key
+        bytes32 mockConduitKey = mockConduitController.getKey(
+            address(mockConduit)
+        );
+
+        // Create item to transfer
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(erc721s[0]),
+            5,
+            1
+        );
+
+        (address conduit, bool exists) = mockConduitController.getConduit(
+            conduitKeyAlice
+        );
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ConduitErrorGenericRevert(bytes32,address)",
+                conduitKeyAlice,
+                mockConduit
+            )
+        );
+        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        vm.stopPrank();
+    }
+
+    function testRevertWithData() public {
+        // Deploy mock conduit controller
+        ConduitControllerMock mockConduitController = new ConduitControllerMock(
+            4
+        );
+
+        // Create conduit key using alice's address
+        bytes32 conduitKeyAlice = bytes32(
+            uint256(uint160(address(alice))) << 96
+        );
+
+        // Deploy mock transfer helper that takes in the mock conduit controller
+        TransferHelper mockTransferHelper = TransferHelper(
+            deployCode(
+                "optimized-out/TransferHelper.sol/TransferHelper.json",
+                abi.encode(address(mockConduitController))
+            )
+        );
+        vm.label(address(mockTransferHelper), "mock transfer helper");
+
+        vm.startPrank(alice);
+
+        // Create the mock conduit by calling the mock conduit controller
+        ConduitMockInvalidMagic mockConduit = ConduitMockInvalidMagic(
+            mockConduitController.createConduit(conduitKeyAlice, address(alice))
+        );
+        vm.label(address(mockConduit), "mock conduit");
+
+        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        emit log_named_bytes32("conduit code hash", conduitCodeHash);
+
+        // Assert the conduit key derived from the conduit address
+        // matches alice's conduit key
+        bytes32 mockConduitKey = mockConduitController.getKey(
+            address(mockConduit)
+        );
+
+        // Create item to transfer
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(erc721s[0]),
+            5,
+            1
+        );
+
+        (address conduit, bool exists) = mockConduitController.getConduit(
+            conduitKeyAlice
+        );
+        vm.expectRevert(abi.encode("CustomError()"));
         mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
         vm.stopPrank();
     }

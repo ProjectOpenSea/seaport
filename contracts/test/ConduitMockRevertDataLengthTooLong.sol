@@ -10,14 +10,21 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-contract ConduitMock is ConduitInterface {
+import { ConduitMockErrors } from "./ConduitMockErrors.sol";
+
+contract ConduitMockRevertDataLengthTooLong is
+    ConduitMockErrors,
+    ConduitInterface
+{
     constructor() {}
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
     ) external view override returns (bytes4) {
-        // Return the valid magic value.
-        return 0x4ce34aa2;
+        // Revert with data length > 256.
+        revert(
+            "RevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevertRevert"
+        );
     }
 
     function executeBatch1155(

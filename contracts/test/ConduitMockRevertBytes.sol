@@ -10,14 +10,33 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-contract ConduitMock is ConduitInterface {
+import "hardhat/console.sol";
+
+contract ConduitMockRevertBytes is ConduitInterface {
     constructor() {}
+
+    error CustomError();
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
     ) external view override returns (bytes4) {
-        // Return the valid magic value.
-        return 0x4ce34aa2;
+        // Revert with data.length != 0 && data.length < 256.
+        // bytes memory revertData = "36e5236fcd4c61044949678014f0d085";
+        // if (revertData.length != 32) {
+        //     revert("Incorrect length");
+        // }
+        // bytes memory revertDataStringBytes = abi.encode(string(revertData));
+        // uint256 stringLength = revertDataStringBytes.length;
+
+        // assembly {
+        //     revert(add(0x20, revertDataStringBytes), stringLength)
+        // }
+        // assembly {
+        //     let pointer := mload(0x40)
+        //     mstore(pointer, "36e5236fcd4c61044949678014f0d085")
+        //     revert(pointer, 32)
+        // }
+        revert CustomError();
     }
 
     function executeBatch1155(

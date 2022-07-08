@@ -10,14 +10,14 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-contract ConduitMock is ConduitInterface {
+contract ConduitMockRevertNoReason is ConduitInterface {
     constructor() {}
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
     ) external view override returns (bytes4) {
-        // Return the valid magic value.
-        return 0x4ce34aa2;
+        // Revert without reason string.
+        revert();
     }
 
     function executeBatch1155(
