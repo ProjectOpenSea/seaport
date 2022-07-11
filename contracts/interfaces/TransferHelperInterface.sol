@@ -17,12 +17,6 @@ interface TransferHelperInterface {
     error InvalidERC721Recipient();
 
     /**
-     * @dev Revert with an error when attempting to execute an ERC1155 transfer
-            to an invalid recipient.
-     */
-    error InvalidERC1155Recipient();
-
-    /**
      * @dev Revert with an error when an ERC20 token has an invalid identifier.
      */
     error InvalidERC20Identifier();
@@ -37,12 +31,6 @@ interface TransferHelperInterface {
      *      invalid conduit (i.e. one that has not been deployed).
      */
     error InvalidConduit(bytes32 conduitKey, address conduit);
-
-    /**
-     * @dev Revert with an error when a call to a conduit returns an invalid
-     *      magic value.
-     */
-    error InvalidMagicValue(bytes32 conduitKey, address conduit);
 
     /**
      * @dev Revert with a generic error when a call to a conduit reverts with

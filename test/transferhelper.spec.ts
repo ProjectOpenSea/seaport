@@ -871,7 +871,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       mockConduitController.address
     );
     const mockConduitKey = owner.address + randomHex(12).slice(2);
-    console.log("conduit key: ", mockConduitKey);
 
     // Deploy the mock conduit through the mock conduit controller
     await mockConduitController
@@ -881,7 +880,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     const mockConduitAddress = (
       await mockConduitController.getConduit(mockConduitKey)
     )[0];
-    console.log("mock conduit address: ", mockConduitAddress);
 
     await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
@@ -929,7 +927,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       mockConduitController.address
     );
     const mockConduitKey = owner.address + randomHex(12).slice(2);
-    console.log("conduit key: ", mockConduitKey);
 
     // Deploy the mock conduit through the mock conduit controller
     await mockConduitController
@@ -939,8 +936,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     const mockConduitAddress = (
       await mockConduitController.getConduit(mockConduitKey)
     )[0];
-    console.log("mock conduit address: ", mockConduitAddress);
-
     await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
     const transferHelperItems = [
