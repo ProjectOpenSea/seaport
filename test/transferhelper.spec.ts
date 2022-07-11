@@ -702,7 +702,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
     ).to.be.revertedWith(
-      `ConduitErrorString("WRONG_FROM", "${tempConduitKey.toLowerCase()}", "${
+      `ConduitErrorRevertString("WRONG_FROM", "${tempConduitKey.toLowerCase()}", "${
         tempConduit.address
       }")`
     );
@@ -754,7 +754,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
     ).to.be.revertedWith(
-      `ConduitErrorGenericRevert("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+      `ConduitErrorRevertGeneric("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
     );
   });
 
@@ -897,7 +897,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
     ).to.be.revertedWith(
-      `ConduitErrorGenericRevert("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+      `ConduitErrorRevertGeneric("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
     );
   });
 

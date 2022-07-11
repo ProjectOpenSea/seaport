@@ -1188,7 +1188,7 @@ contract TransferHelperTest is BaseOrderTest {
         (address conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
-        vm.expectRevert(abi.encode("CustomError()"));
+        vm.expectRevert(abi.encodeWithSignature("CustomError()"));
         mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
         vm.stopPrank();
     }

@@ -25,8 +25,6 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin, ryanio
