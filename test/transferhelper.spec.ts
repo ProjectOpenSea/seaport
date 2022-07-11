@@ -656,11 +656,19 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       },
     ];
 
+    const invalidItemTypeErrorSelector = ethers.utils
+      .id("InvalidItemType()")
+      .slice(0, 10);
+
     await expect(
       tempTransferHelper
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-    ).to.be.revertedWith("InvalidItemType");
+    ).to.be.revertedWith(
+      `ConduitErrorRevertBytes("${invalidItemTypeErrorSelector}", "${tempConduitKey.toLowerCase()}", "${
+        tempConduit.address
+      }")`
+    );
   });
 
   it("Reverts with bubbled up string error from call to conduit", async () => {
