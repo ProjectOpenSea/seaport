@@ -960,4 +960,90 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       `ConduitErrorRevertBytes("${customErrorSelector}", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
     );
   });
+
+  it("Reverts when recipient is the null address (with conduit)", async () => {
+    // Deploy ERC721 Contract
+    const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+    // Deploy ERC20 Contract
+    const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+
+    const transferHelperItems = [
+      {
+        itemType: 2,
+        token: tempERC721Contract.address,
+        identifier: 1,
+        amount: 1,
+      },
+      {
+        itemType: 2,
+        token: tempERC721Contract.address,
+        identifier: 2,
+        amount: 1,
+      },
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 10,
+      },
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 20,
+      },
+    ];
+    await expect(
+      tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(
+          transferHelperItems,
+          ethers.constants.AddressZero,
+          tempConduitKey
+        )
+    ).to.be.revertedWith("RecipientCannotBeZero()");
+  });
+
+  it("Reverts when recipient is the null address (without conduit)", async () => {
+    // Deploy ERC721 Contract
+    const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+    // Deploy ERC20 Contract
+    const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+
+    const transferHelperItems = [
+      {
+        itemType: 2,
+        token: tempERC721Contract.address,
+        identifier: 1,
+        amount: 1,
+      },
+      {
+        itemType: 2,
+        token: tempERC721Contract.address,
+        identifier: 2,
+        amount: 1,
+      },
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 10,
+      },
+      {
+        itemType: 1,
+        token: tempERC20Contract.address,
+        identifier: 0,
+        amount: 20,
+      },
+    ];
+    await expect(
+      tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(
+          transferHelperItems,
+          ethers.constants.AddressZero,
+          ethers.utils.formatBytes32String("")
+        )
+    ).to.be.revertedWith("RecipientCannotBeZero()");
+  });
 });
