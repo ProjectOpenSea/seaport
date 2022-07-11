@@ -10,8 +10,6 @@ import {
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
 
-import "hardhat/console.sol";
-
 contract ConduitMockRevertBytes is ConduitInterface {
     constructor() {}
 
