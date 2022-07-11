@@ -25,6 +25,8 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin, ryanio
@@ -158,7 +160,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                         } catch (bytes memory data) {
                             // "Bubble up" recipient's revert reason
                             // if present.
-                            if (data.length != 0) {
+                            if (data.length != 0 && data.length < 256) {
                                 assembly {
                                     returndatacopy(0, 0, returndatasize())
                                     revert(0, returndatasize())
