@@ -31,7 +31,7 @@ contract ConduitControllerMock is ConduitControllerInterface {
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
-    uint256 private immutable conduitNum;
+    uint256 private conduitNum;
 
     /**
      * @dev Initialize contract by deploying a conduit and setting the creation
