@@ -36,6 +36,11 @@ module.exports = {
     "test/ERC721ReceiverMock.sol",
     "test/ConduitControllerMock.sol",
     "test/ConduitMock.sol",
+    "test/ConduitMockErrors.sol",
+    "test/ConduitMockInvalidMagic.sol",
+    "test/ConduitMockRevertBytes.sol",
+    "test/ConduitMockRevertDataLengthTooLong.sol",
+    "test/ConduitMockRevertNoReason.sol",
   ],
   configureYulOptimizer: true,
   solcOptimizerDetails: {
