@@ -390,7 +390,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         only1155Receiver(inputs.recipient)
     {
         vm.assume(tokenAmount > 0);
-        vm.assume(inputs.recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1);
+        vm.assume(
+            inputs.recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1
+        );
 
         test(
             this.singleAdvanced1155,

@@ -52,7 +52,9 @@ import {
     TransferHelperErrors
 } from "../../contracts/interfaces/TransferHelperErrors.sol";
 
-import { IERC721Receiver } from '../../contracts/interfaces/IERC721Receiver.sol';
+import {
+    IERC721Receiver
+} from "../../contracts/interfaces/IERC721Receiver.sol";
 
 import {
     ERC721ReceiverMock
@@ -451,7 +453,8 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function getSelector(bytes calldata returnData)
-        public pure
+        public
+        pure
         returns (bytes memory)
     {
         return returnData[0x84:0x88];
@@ -1045,9 +1048,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertStringErrorWithConduit()
-        public
-    {
+    function testRevertStringErrorWithConduit() public {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(erc721s[0]),
@@ -1072,9 +1073,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertPanicErrorWithConduit()
-        public
-    {
+    function testRevertPanicErrorWithConduit() public {
         // Create ERC20 token that reverts with a panic when calling transferFrom.
         TestERC20Panic panicERC20 = new TestERC20Panic();
 
@@ -1110,9 +1109,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertInvalidConduitMagicValue()
-        public
-    {
+    function testRevertInvalidConduitMagicValue() public {
         // Deploy mock conduit controller
         ConduitControllerMock mockConduitController = new ConduitControllerMock(
             2 // ConduitMockInvalidMagic
@@ -1303,7 +1300,9 @@ contract TransferHelperTest is BaseOrderTest {
         bytes memory returnedData;
         try
             mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice)
-        returns (bytes4 /* magicValue */) {} catch (bytes memory reason) {
+        returns (
+            bytes4 /* magicValue */
+        ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
         vm.expectRevert(
