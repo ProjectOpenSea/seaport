@@ -102,7 +102,13 @@ contract TransferHelper is
     ) external override returns (bytes4 magicValue) {
         if (conduitKey == bytes32(0)) {
             _performTransfersWithoutConduit(items);
+        } else {
+            // Otherwise, a conduitKey was provided.
+            _performTransfersWithConduit(items, conduitKey);
         }
+
+        // Return a magic value indicating that the transfers were performed.
+        magicValue = this.bulkTransfer.selector;
     }
 
     /**
