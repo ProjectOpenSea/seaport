@@ -14,7 +14,7 @@ import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
 import {
-    TransferHelperItem
+    TransferHelperItemWithRecipient
 } from "../../contracts/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
@@ -62,7 +62,7 @@ import {
 
 import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 
-contract TransferHelperTest is BaseOrderTest {
+contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     TransferHelper transferHelper;
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
     uint256 constant TOTAL_FUNGIBLE_TOKENS = 1e6;
@@ -70,6 +70,9 @@ contract TransferHelperTest is BaseOrderTest {
     uint256 constant TOTAL_TOKEN_IDENTIFERS = 10;
     // Constant bytes used for expecting revert with no message.
     bytes constant REVERT_DATA_NO_MSG = "revert no message";
+    ERC721ReceiverMock validERC721Receiver;
+    ERC721ReceiverMock invalidERC721Receiver;
+    InvalidERC721Recipient invalidRecipient;
 
     struct FromToBalance {
         // Balance of from address.
@@ -81,12 +84,13 @@ contract TransferHelperTest is BaseOrderTest {
     struct FuzzInputsCommon {
         // Indicates if a conduit should be used for the transfer
         bool useConduit;
-        // Amounts that can be used for the amount field on TransferHelperItem
+        // Amounts that can be used for the amount field on TransferHelperItemWithRecipient
         uint256[10] amounts;
-        // Identifiers that can be used for the identifier field on TransferHelperItem
+        // Identifiers that can be used for the identifier field on TransferHelperItemWithRecipient
         uint256[10] identifiers;
         // Indexes that can be used to select tokens from the arrays erc20s/erc721s/erc1155s
         uint256[10] tokenIndex;
+        address[10] recipients;
     }
 
     function setUp() public override {
@@ -124,6 +128,26 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Open a channel for transfer helper on the conduit
         _updateConduitChannel(true);
+
+        validERC721Receiver = new ERC721ReceiverMock(
+            IERC721Receiver.onERC721Received.selector,
+            ERC721ReceiverMock.Error.None
+        );
+        vm.label(address(validERC721Receiver), "valid ERC721 receiver");
+        invalidERC721Receiver = new ERC721ReceiverMock(
+            0xabcd0000,
+            ERC721ReceiverMock.Error.RevertWithMessage
+        );
+        vm.label(
+            address(invalidERC721Receiver),
+            "invalid (error) ERC721 receiver"
+        );
+
+        invalidRecipient = new InvalidERC721Recipient();
+        vm.label(
+            address(invalidRecipient),
+            "invalid ERC721 receiver (bad selector)"
+        );
     }
 
     /**
@@ -154,14 +178,14 @@ contract TransferHelperTest is BaseOrderTest {
             erc721s[i].setApprovalForAll(address(transferHelper), true);
         }
         vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
+        // emit log_named_address(
+        //     "Owner proxy approved for all tokens from",
+        //     _owner
+        // );
+        // emit log_named_address(
+        //     "Consideration approved for all tokens from",
+        //     _owner
+        // );
     }
 
     function _updateConduitChannel(bool open) internal {
@@ -171,7 +195,7 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function _balanceOfTransferItemForAddress(
-        TransferHelperItem memory item,
+        TransferHelperItemWithRecipient memory item,
         address addr
     ) internal view returns (uint256) {
         if (item.itemType == ConduitItemType.ERC20) {
@@ -190,39 +214,36 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function _balanceOfTransferItemForFromTo(
-        TransferHelperItem memory item,
-        address from,
-        address to
+        TransferHelperItemWithRecipient memory item,
+        address from
     ) internal view returns (FromToBalance memory) {
         return
             FromToBalance(
                 _balanceOfTransferItemForAddress(item, from),
-                _balanceOfTransferItemForAddress(item, to)
+                _balanceOfTransferItemForAddress(item, item.recipient)
             );
     }
 
     function _performSingleItemTransferAndCheckBalances(
-        TransferHelperItem memory item,
+        TransferHelperItemWithRecipient memory item,
         address from,
-        address to,
         bool useConduit,
         bytes memory expectRevertData
     ) public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
         items[0] = item;
         _performMultiItemTransferAndCheckBalances(
             items,
             from,
-            to,
             useConduit,
             expectRevertData
         );
     }
 
     function _performMultiItemTransferAndCheckBalances(
-        TransferHelperItem[] memory items,
+        TransferHelperItemWithRecipient[] memory items,
         address from,
-        address to,
         bool useConduit,
         bytes memory expectRevertData
     ) public {
@@ -235,8 +256,7 @@ contract TransferHelperTest is BaseOrderTest {
         for (uint256 i = 0; i < items.length; i++) {
             beforeTransferBalances[i] = _balanceOfTransferItemForFromTo(
                 items[i],
-                from,
-                to
+                from
             );
         }
 
@@ -250,9 +270,8 @@ contract TransferHelperTest is BaseOrderTest {
             vm.expectRevert(expectRevertData);
         }
         // Perform transfer.
-        transferHelper.bulkTransfer(
+        transferHelper.bulkTransferToMultipleRecipients(
             items,
-            to,
             useConduit ? conduitKeyOne : bytes32(0)
         );
 
@@ -263,8 +282,7 @@ contract TransferHelperTest is BaseOrderTest {
         for (uint256 i = 0; i < items.length; i++) {
             afterTransferBalances[i] = _balanceOfTransferItemForFromTo(
                 items[i],
-                from,
-                to
+                from
             );
         }
 
@@ -302,9 +320,8 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function _performMultiItemTransferAndCheckBalances(
-        TransferHelperItem[] memory items,
+        TransferHelperItemWithRecipient[] memory items,
         address from,
-        address to,
         bool useConduit,
         bytes memory expectRevertDataWithConduit,
         bytes memory expectRevertDataWithoutConduit
@@ -318,8 +335,7 @@ contract TransferHelperTest is BaseOrderTest {
         for (uint256 i = 0; i < items.length; i++) {
             beforeTransferBalances[i] = _balanceOfTransferItemForFromTo(
                 items[i],
-                from,
-                to
+                from
             );
         }
 
@@ -340,9 +356,8 @@ contract TransferHelperTest is BaseOrderTest {
             vm.expectRevert(expectRevertDataWithoutConduit);
         }
         // Perform transfer.
-        transferHelper.bulkTransfer(
+        transferHelper.bulkTransferToMultipleRecipients(
             items,
-            to,
             useConduit ? conduitKeyOne : bytes32(0)
         );
 
@@ -353,8 +368,7 @@ contract TransferHelperTest is BaseOrderTest {
         for (uint256 i = 0; i < items.length; i++) {
             afterTransferBalances[i] = _balanceOfTransferItemForFromTo(
                 items[i],
-                from,
-                to
+                from
             );
         }
 
@@ -394,59 +408,127 @@ contract TransferHelperTest is BaseOrderTest {
         vm.stopPrank();
     }
 
+    function _makeSafeRecipient(address from, address fuzzRecipient)
+        internal
+        view
+        returns (address)
+    {
+        return _makeSafeRecipient(from, fuzzRecipient, false);
+    }
+
+    function _makeSafeRecipient(
+        address from,
+        address fuzzRecipient,
+        bool reverting
+    ) internal view returns (address) {
+        if (
+            fuzzRecipient == address(validERC721Receiver) ||
+            (reverting &&
+                (fuzzRecipient == address(invalidERC721Receiver) ||
+                    fuzzRecipient == address(invalidRecipient)))
+        ) {
+            return fuzzRecipient;
+        } else if (
+            fuzzRecipient == address(0) ||
+            fuzzRecipient.code.length > 0 ||
+            from == fuzzRecipient
+        ) {
+            return address(uint160(fuzzRecipient) + 1);
+        }
+        return fuzzRecipient;
+    }
+
     function _getFuzzedTransferItem(
+        address from,
         ConduitItemType itemType,
         uint256 fuzzAmount,
         uint256 fuzzIndex,
-        uint256 fuzzIdentifier
-    ) internal view returns (TransferHelperItem memory) {
+        uint256 fuzzIdentifier,
+        address fuzzRecipient
+    ) internal view returns (TransferHelperItemWithRecipient memory) {
+        return
+            _getFuzzedTransferItem(
+                from,
+                itemType,
+                fuzzAmount,
+                fuzzIndex,
+                fuzzIdentifier,
+                fuzzRecipient,
+                false
+            );
+    }
+
+    function _getFuzzedTransferItem(
+        address from,
+        ConduitItemType itemType,
+        uint256 fuzzAmount,
+        uint256 fuzzIndex,
+        uint256 fuzzIdentifier,
+        address fuzzRecipient,
+        bool reverting
+    ) internal view returns (TransferHelperItemWithRecipient memory) {
         uint256 amount = fuzzAmount % TOTAL_FUNGIBLE_TOKENS;
         uint256 identifier = fuzzIdentifier % TOTAL_TOKEN_IDENTIFERS;
+        address recipient = _makeSafeRecipient(from, fuzzRecipient, reverting);
         if (itemType == ConduitItemType.ERC20) {
             uint256 index = fuzzIndex % erc20s.length;
             TestERC20 erc20 = erc20s[index];
             return
-                TransferHelperItem(
+                TransferHelperItemWithRecipient(
                     itemType,
                     address(erc20),
                     identifier,
-                    amount
+                    amount,
+                    recipient
                 );
         } else if (itemType == ConduitItemType.ERC1155) {
             uint256 index = fuzzIndex % erc1155s.length;
             TestERC1155 erc1155 = erc1155s[index];
             return
-                TransferHelperItem(
+                TransferHelperItemWithRecipient(
                     itemType,
                     address(erc1155),
                     identifier,
-                    amount
+                    amount,
+                    recipient
                 );
         } else if (itemType == ConduitItemType.NATIVE) {
-            return TransferHelperItem(itemType, address(0), identifier, amount);
+            return
+                TransferHelperItemWithRecipient(
+                    itemType,
+                    address(0),
+                    identifier,
+                    amount,
+                    recipient
+                );
         } else if (itemType == ConduitItemType.ERC721) {
             uint256 index = fuzzIndex % erc721s.length;
             return
-                TransferHelperItem(
+                TransferHelperItemWithRecipient(
                     itemType,
                     address(erc721s[index]),
                     identifier,
-                    1
+                    1,
+                    recipient
                 );
         }
         revert();
     }
 
     function _getFuzzedERC721TransferItemWithAmountGreaterThan1(
+        address from,
         uint256 fuzzAmount,
         uint256 fuzzIndex,
-        uint256 fuzzIdentifier
-    ) internal view returns (TransferHelperItem memory) {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        uint256 fuzzIdentifier,
+        address fuzzRecipient
+    ) internal view returns (TransferHelperItemWithRecipient memory) {
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            from,
             ConduitItemType.ERC721,
             fuzzAmount,
             fuzzIndex,
-            fuzzIdentifier
+            fuzzIdentifier,
+            fuzzRecipient
         );
         item.amount = 2 + (fuzzAmount % TOTAL_FUNGIBLE_TOKENS);
         return item;
@@ -463,34 +545,36 @@ contract TransferHelperTest is BaseOrderTest {
     // Test successful transfers
 
     function testBulkTransferERC20(FuzzInputsCommon memory inputs) public {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            0
+            0,
+            inputs.recipients[0]
         );
 
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
     }
 
     function testBulkTransferERC721(FuzzInputsCommon memory inputs) public {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
 
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -499,41 +583,51 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransferERC721toBobThenCal(FuzzInputsCommon memory inputs)
         public
     {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
+        );
+
+        TransferHelperItemWithRecipient memory item2 = _getFuzzedTransferItem(
+            bob,
+            ConduitItemType.ERC721,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0],
+            cal
         );
 
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
         _performSingleItemTransferAndCheckBalances(
-            item,
+            item2,
             bob,
-            cal,
             inputs.useConduit,
             ""
         );
     }
 
     function testBulkTransferERC1155(FuzzInputsCommon memory inputs) public {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC1155,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
 
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -542,24 +636,28 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransferERC1155andERC721(FuzzInputsCommon memory inputs)
         public
     {
-        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](2);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC1155,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[1],
             inputs.tokenIndex[1],
-            inputs.identifiers[1]
+            inputs.identifiers[1],
+            inputs.recipients[1]
         );
 
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -568,30 +666,36 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransferERC1155andERC721andERC20(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](3);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](3);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC1155,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[1],
-            inputs.identifiers[1]
+            inputs.identifiers[1],
+            inputs.recipients[1]
         );
         items[2] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[2],
             inputs.tokenIndex[2],
-            0
+            0,
+            inputs.recipients[2]
         );
 
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -601,23 +705,25 @@ contract TransferHelperTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         uint256 numItems = 3;
-        TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](numItems);
         for (uint256 i = 0; i < numItems; i++) {
             items[i] = _getFuzzedTransferItem(
+                alice,
                 ConduitItemType.ERC721,
                 inputs.amounts[i],
                 // Same token index for all items since this is testing from same contract
                 inputs.tokenIndex[0],
                 // Each item has a different token identifier as alice only owns one ERC721 token
                 // for each identifier for this particular contract
-                i
+                i,
+                inputs.recipients[0]
             );
         }
 
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -626,31 +732,37 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransferMultipleERC721DifferentContracts(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](3);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](3);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[0],
             // Different token index for all items since this is testing from different contracts
             0,
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[1],
             1,
-            inputs.identifiers[1]
+            inputs.identifiers[1],
+            inputs.recipients[1]
         );
         items[2] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             inputs.amounts[2],
             2,
-            inputs.identifiers[2]
+            inputs.identifiers[2],
+            inputs.recipients[2]
         );
 
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -660,25 +772,30 @@ contract TransferHelperTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         uint256 numItems = 6;
-        TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](numItems);
 
         // Fill items such that the first floor(numItems / 2) items are ERC1155 and the remaining
         // items are ERC721
         for (uint256 i = 0; i < numItems; i++) {
             if (i < numItems / 2) {
                 items[i] = _getFuzzedTransferItem(
+                    alice,
                     ConduitItemType.ERC1155,
                     inputs.amounts[i],
                     // Ensure each item is from a different contract
                     i,
-                    inputs.identifiers[i]
+                    inputs.identifiers[i],
+                    inputs.recipients[i]
                 );
             } else {
                 items[i] = _getFuzzedTransferItem(
+                    alice,
                     ConduitItemType.ERC721,
                     inputs.amounts[i],
                     i,
-                    inputs.identifiers[i]
+                    inputs.identifiers[i],
+                    inputs.recipients[i]
                 );
             }
         }
@@ -686,7 +803,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             ""
         );
@@ -695,64 +811,68 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransferERC7211NotUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
 
-        _performSingleItemTransferAndCheckBalances(item, alice, bob, false, "");
+        _performSingleItemTransferAndCheckBalances(item, alice, false, "");
     }
 
     function testBulkTransferERC721ToContractRecipientNotUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
-        ERC721ReceiverMock erc721Receiver = new ERC721ReceiverMock(
-            IERC721Receiver.onERC721Received.selector,
-            ERC721ReceiverMock.Error.None
-        );
+        // ERC721ReceiverMock erc721Receiver = new ERC721ReceiverMock(
+        //     IERC721Receiver.onERC721Received.selector,
+        //     ERC721ReceiverMock.Error.None
+        // );
 
         uint256 numItems = 6;
-        TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](numItems);
 
         for (uint256 i = 0; i < numItems; i++) {
             items[i] = _getFuzzedTransferItem(
+                alice,
                 ConduitItemType.ERC721,
                 1,
                 inputs.tokenIndex[i],
-                i
+                i,
+                address(validERC721Receiver)
             );
         }
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            address(erc721Receiver),
-            false,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, false, "");
     }
 
     function testBulkTransferERC721AndERC20NotUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](2);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            inputs.recipients[0]
         );
 
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[1],
             inputs.tokenIndex[1],
-            0
+            0,
+            inputs.recipients[1]
         );
 
-        _performMultiItemTransferAndCheckBalances(items, alice, bob, false, "");
+        _performMultiItemTransferAndCheckBalances(items, alice, false, "");
     }
 
     // Test reverts
@@ -760,11 +880,13 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferERC20InvalidIdentifier(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            5
+            5,
+            inputs.recipients[0]
         );
         // Ensure ERC20 identifier is at least 1
         item.identifier += 1;
@@ -772,7 +894,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             false,
             abi.encodePacked(
                 TransferHelperErrors.InvalidERC20Identifier.selector
@@ -783,19 +904,19 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferERC721InvalidRecipient(
         FuzzInputsCommon memory inputs
     ) public {
-        InvalidERC721Recipient invalidRecipient = new InvalidERC721Recipient();
-
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            address(invalidRecipient),
+            true
         );
 
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            address(invalidRecipient),
             false,
             abi.encodeWithSignature(
                 "InvalidERC721Recipient(address)",
@@ -807,16 +928,24 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
         public
     {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.NATIVE,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
         );
 
         bytes memory returnedData;
-        try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
+        try
+            transferHelper.bulkTransferToMultipleRecipients(
+                items,
+                conduitKeyOne
+            )
+        returns (
             bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
@@ -825,7 +954,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -840,22 +968,32 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferETHandERC721(FuzzInputsCommon memory inputs)
         public
     {
-        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](2);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.NATIVE,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
         );
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[1],
-            inputs.identifiers[1]
+            inputs.identifiers[1],
+            bob
         );
 
         bytes memory returnedData;
-        try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
+        try
+            transferHelper.bulkTransferToMultipleRecipients(
+                items,
+                conduitKeyOne
+            )
+        returns (
             bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
@@ -864,7 +1002,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             inputs.useConduit,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -882,17 +1019,25 @@ contract TransferHelperTest is BaseOrderTest {
     ) public {
         vm.assume(invalidAmount > 1);
 
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        TransferHelperItem
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
+        TransferHelperItemWithRecipient
             memory item = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
+                alice,
                 invalidAmount,
                 inputs.tokenIndex[0],
-                inputs.identifiers[0]
+                inputs.identifiers[0],
+                bob
             );
 
         items[0] = item;
         bytes memory returnedData;
-        try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
+        try
+            transferHelper.bulkTransferToMultipleRecipients(
+                items,
+                conduitKeyOne
+            )
+        returns (
             bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
@@ -900,7 +1045,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            bob,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -916,22 +1060,32 @@ contract TransferHelperTest is BaseOrderTest {
     ) public {
         vm.assume(inputs.amounts[0] > 0);
 
-        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](2);
         items[0] = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
+            alice,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
         );
 
         items[1] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[1],
             inputs.tokenIndex[1],
-            inputs.identifiers[1]
+            inputs.identifiers[1],
+            bob
         );
 
         bytes memory returnedData;
-        try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
+        try
+            transferHelper.bulkTransferToMultipleRecipients(
+                items,
+                conduitKeyOne
+            )
+        returns (
             bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
@@ -940,7 +1094,6 @@ contract TransferHelperTest is BaseOrderTest {
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -954,30 +1107,27 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferNotOpenConduitChannel(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
         );
 
         _updateConduitChannel(false);
 
-        // try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-        //     bytes4 magicValue
-        // ) {} catch (bytes memory reason) {
-        //     returnedData = this.getSelector(reason);
-        // }
         bytes memory returnedData = abi.encodeWithSelector(
             0x93daadf2,
-            0x6b8E18793B5630b0d439F957f610B01219110940
+            address(transferHelper)
         );
 
         _performSingleItemTransferAndCheckBalances(
             items[0],
             alice,
-            bob,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -997,12 +1147,15 @@ contract TransferHelperTest is BaseOrderTest {
             fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
         );
 
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
         items[0] = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            bob
         );
 
         // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey.
@@ -1015,33 +1168,29 @@ contract TransferHelperTest is BaseOrderTest {
 
         vm.expectRevert();
         vm.prank(alice);
-        transferHelper.bulkTransfer(items, bob, conduitKeyOne);
+        transferHelper.bulkTransferToMultipleRecipients(items, conduitKeyOne);
     }
 
     function testRevertInvalidERC721Receiver(FuzzInputsCommon memory inputs)
         public
     {
-        // Deploy invalid mock ERC721 receiver
-        ERC721ReceiverMock mockReceiver = new ERC721ReceiverMock(
-            0xabcd0000,
-            ERC721ReceiverMock.Error.RevertWithMessage
-        );
-
-        TransferHelperItem memory item = _getFuzzedTransferItem(
+        TransferHelperItemWithRecipient memory item = _getFuzzedTransferItem(
+            alice,
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            address(invalidERC721Receiver),
+            true
         );
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            address(mockReceiver),
             false,
             abi.encodeWithSignature(
                 "ERC721ReceiverErrorRevertString(string,address,address,uint256)",
                 "ERC721ReceiverMock: reverting",
-                mockReceiver,
+                invalidERC721Receiver,
                 alice,
                 item.identifier
             )
@@ -1049,26 +1198,27 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function testRevertStringErrorWithConduit() public {
-        TransferHelperItem memory item = TransferHelperItem(
-            ConduitItemType.ERC721,
-            address(erc721s[0]),
-            5,
-            1
-        );
+        TransferHelperItemWithRecipient
+            memory item = TransferHelperItemWithRecipient(
+                ConduitItemType.ERC721,
+                address(erc721s[0]),
+                5,
+                1,
+                alice
+            );
 
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address _conduit, ) = conduitController.getConduit(conduitKeyOne);
         // Attempt to transfer ERC721 tokens from bob to alice
         // Expect revert since alice owns the tokens
         _performSingleItemTransferAndCheckBalances(
             item,
             bob,
-            alice,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertString(string,bytes32,address)",
                 "WRONG_FROM",
                 conduitKeyOne,
-                conduit
+                _conduit
             )
         );
     }
@@ -1083,28 +1233,29 @@ contract TransferHelperTest is BaseOrderTest {
         // Approve the ERC20 tokens
         panicERC20.approve(alice, 10);
 
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        items[0] = TransferHelperItem(
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
+        items[0] = TransferHelperItemWithRecipient(
             ConduitItemType.ERC20,
             address(panicERC20),
             0,
-            10
+            10,
+            bob
         );
 
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address _conduit, ) = conduitController.getConduit(conduitKeyOne);
         bytes memory panicError = abi.encodeWithSelector(0x4e487b71, 18);
 
         // Revert with panic error when calling execute via conduit
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
-            bob,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 panicError,
                 conduitKeyOne,
-                conduit
+                _conduit
             )
         );
     }
@@ -1149,19 +1300,21 @@ contract TransferHelperTest is BaseOrderTest {
         assertEq(mockConduitKey, conduitKeyAlice);
 
         // Create item to transfer
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        items[0] = TransferHelperItem(
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
+        items[0] = TransferHelperItemWithRecipient(
             ConduitItemType.ERC721,
             address(erc721s[0]),
             5,
-            1
+            1,
+            bob
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
+        (address _conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), _conduit);
         assertEq(exists, true);
 
         vm.expectRevert(
@@ -1171,7 +1324,10 @@ contract TransferHelperTest is BaseOrderTest {
                 mockConduit
             )
         );
-        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        mockTransferHelper.bulkTransferToMultipleRecipients(
+            items,
+            conduitKeyAlice
+        );
         vm.stopPrank();
     }
 
@@ -1215,19 +1371,21 @@ contract TransferHelperTest is BaseOrderTest {
         assertEq(mockConduitKey, conduitKeyAlice);
 
         // Create item to transfer
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        items[0] = TransferHelperItem(
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
+        items[0] = TransferHelperItemWithRecipient(
             ConduitItemType.ERC721,
             address(erc721s[0]),
             5,
-            1
+            1,
+            bob
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
+        (address _conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), _conduit);
         assertEq(exists, true);
 
         vm.expectRevert(
@@ -1238,7 +1396,10 @@ contract TransferHelperTest is BaseOrderTest {
                 mockConduit
             )
         );
-        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        mockTransferHelper.bulkTransferToMultipleRecipients(
+            items,
+            conduitKeyAlice
+        );
         vm.stopPrank();
     }
 
@@ -1282,24 +1443,29 @@ contract TransferHelperTest is BaseOrderTest {
         assertEq(mockConduitKey, conduitKeyAlice);
 
         // Create item to transfer
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        items[0] = TransferHelperItem(
+        TransferHelperItemWithRecipient[]
+            memory items = new TransferHelperItemWithRecipient[](1);
+        items[0] = TransferHelperItemWithRecipient(
             ConduitItemType.ERC721,
             address(erc721s[0]),
             5,
-            1
+            1,
+            bob
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
+        (address _conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), _conduit);
         assertEq(exists, true);
 
         bytes memory returnedData;
         try
-            mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice)
+            mockTransferHelper.bulkTransferToMultipleRecipients(
+                items,
+                conduitKeyAlice
+            )
         returns (
             bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
@@ -1313,7 +1479,10 @@ contract TransferHelperTest is BaseOrderTest {
                 mockConduit
             )
         );
-        mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice);
+        mockTransferHelper.bulkTransferToMultipleRecipients(
+            items,
+            conduitKeyAlice
+        );
         vm.stopPrank();
     }
 }
