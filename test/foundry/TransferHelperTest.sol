@@ -1043,7 +1043,7 @@ contract TransferHelperTest is BaseOrderTest {
                 "ERC721ReceiverMock: reverting",
                 mockReceiver,
                 alice,
-                inputs.identifiers[0]
+                item.identifier
             )
         );
     }
