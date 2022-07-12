@@ -36,7 +36,7 @@ contract TestGetters is BaseConsiderationTest {
         // Length of "Consideration"
         assertEq(length, 13);
         // Check if there are dirty bits
-        assertEq(value, bytes32("Consideration"));
+        assertEq(value, bytes32(abi.encodePacked(name)));
     }
 
     function testGetsCorrectVersion() public {

@@ -52,20 +52,13 @@ import {
     TransferHelperErrors
 } from "../../contracts/interfaces/TransferHelperErrors.sol";
 
+import { IERC721Receiver } from '../../contracts/interfaces/IERC721Receiver.sol';
+
 import {
     ERC721ReceiverMock
 } from "../../contracts/test/ERC721ReceiverMock.sol";
 
 import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
-
-interface IERC721Receiver {
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external returns (bytes4);
-}
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
@@ -458,7 +451,7 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function getSelector(bytes calldata returnData)
-        public
+        public pure
         returns (bytes memory)
     {
         return returnData[0x84:0x88];
@@ -801,8 +794,9 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             address(invalidRecipient),
             false,
-            abi.encodePacked(
-                TransferHelperErrors.InvalidERC721Recipient.selector
+            abi.encodeWithSignature(
+                "InvalidERC721Recipient(address)",
+                invalidRecipient
             )
         );
     }
@@ -820,7 +814,7 @@ contract TransferHelperTest is BaseOrderTest {
 
         bytes memory returnedData;
         try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-            bytes4 magicValue
+            bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
@@ -859,7 +853,7 @@ contract TransferHelperTest is BaseOrderTest {
 
         bytes memory returnedData;
         try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-            bytes4 magicValue
+            bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
@@ -896,7 +890,7 @@ contract TransferHelperTest is BaseOrderTest {
         items[0] = item;
         bytes memory returnedData;
         try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-            bytes4 magicValue
+            bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
@@ -935,7 +929,7 @@ contract TransferHelperTest is BaseOrderTest {
 
         bytes memory returnedData;
         try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-            bytes4 magicValue
+            bytes4 /* magicValue */
         ) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
@@ -1041,11 +1035,17 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             address(mockReceiver),
             false,
-            abi.encodePacked("ERC721ReceiverMock: reverting")
+            abi.encodeWithSignature(
+                "ERC721ReceiverErrorRevertString(string,address,address,uint256)",
+                "ERC721ReceiverMock: reverting",
+                mockReceiver,
+                alice,
+                inputs.identifiers[0]
+            )
         );
     }
 
-    function testRevertStringErrorWithConduit(FuzzInputsCommon memory inputs)
+    function testRevertStringErrorWithConduit()
         public
     {
         TransferHelperItem memory item = TransferHelperItem(
@@ -1072,7 +1072,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertPanicErrorWithConduit(FuzzInputsCommon memory inputs)
+    function testRevertPanicErrorWithConduit()
         public
     {
         // Create ERC20 token that reverts with a panic when calling transferFrom.
@@ -1110,7 +1110,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertInvalidConduitMagicValue(FuzzInputsCommon memory inputs)
+    function testRevertInvalidConduitMagicValue()
         public
     {
         // Deploy mock conduit controller
@@ -1149,6 +1149,8 @@ contract TransferHelperTest is BaseOrderTest {
             address(mockConduit)
         );
 
+        assertEq(mockConduitKey, conduitKeyAlice);
+
         // Create item to transfer
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
@@ -1161,6 +1163,10 @@ contract TransferHelperTest is BaseOrderTest {
         (address conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
+
+        assertEq(address(mockConduit), conduit);
+        assertEq(exists, true);
+
         vm.expectRevert(
             abi.encodeWithSignature(
                 "InvalidConduit(bytes32,address)",
@@ -1195,7 +1201,7 @@ contract TransferHelperTest is BaseOrderTest {
         vm.startPrank(alice);
 
         // Create the mock conduit by calling the mock conduit controller
-        ConduitMockInvalidMagic mockConduit = ConduitMockInvalidMagic(
+        ConduitMockRevertNoReason mockConduit = ConduitMockRevertNoReason(
             mockConduitController.createConduit(conduitKeyAlice, address(alice))
         );
         vm.label(address(mockConduit), "mock conduit");
@@ -1209,6 +1215,8 @@ contract TransferHelperTest is BaseOrderTest {
             address(mockConduit)
         );
 
+        assertEq(mockConduitKey, conduitKeyAlice);
+
         // Create item to transfer
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
@@ -1221,6 +1229,10 @@ contract TransferHelperTest is BaseOrderTest {
         (address conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
+
+        assertEq(address(mockConduit), conduit);
+        assertEq(exists, true);
+
         vm.expectRevert(
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -1270,6 +1282,8 @@ contract TransferHelperTest is BaseOrderTest {
             address(mockConduit)
         );
 
+        assertEq(mockConduitKey, conduitKeyAlice);
+
         // Create item to transfer
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
@@ -1282,10 +1296,14 @@ contract TransferHelperTest is BaseOrderTest {
         (address conduit, bool exists) = mockConduitController.getConduit(
             conduitKeyAlice
         );
+
+        assertEq(address(mockConduit), conduit);
+        assertEq(exists, true);
+
         bytes memory returnedData;
         try
             mockTransferHelper.bulkTransfer(items, bob, conduitKeyAlice)
-        returns (bytes4 magicValue) {} catch (bytes memory reason) {
+        returns (bytes4 /* magicValue */) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
         vm.expectRevert(
