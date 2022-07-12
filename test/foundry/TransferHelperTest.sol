@@ -49,6 +49,10 @@ import {
 } from "../../contracts/interfaces/TransferHelperInterface.sol";
 
 import {
+    TransferHelperErrors
+} from "../../contracts/interfaces/TransferHelperErrors.sol";
+
+import {
     ERC721ReceiverMock
 } from "../../contracts/test/ERC721ReceiverMock.sol";
 
@@ -775,7 +779,7 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             false,
             abi.encodePacked(
-                TransferHelperInterface.InvalidERC20Identifier.selector
+                TransferHelperErrors.InvalidERC20Identifier.selector
             )
         );
     }
@@ -798,7 +802,7 @@ contract TransferHelperTest is BaseOrderTest {
             address(invalidRecipient),
             false,
             abi.encodePacked(
-                TransferHelperInterface.InvalidERC721Recipient.selector
+                TransferHelperErrors.InvalidERC721Recipient.selector
             )
         );
     }
@@ -832,7 +836,7 @@ contract TransferHelperTest is BaseOrderTest {
                 conduitKeyOne,
                 conduit
             ),
-            abi.encodePacked(TransferHelperInterface.InvalidItemType.selector)
+            abi.encodePacked(TransferHelperErrors.InvalidItemType.selector)
         );
     }
 
@@ -871,7 +875,7 @@ contract TransferHelperTest is BaseOrderTest {
                 conduitKeyOne,
                 conduit
             ),
-            abi.encodePacked(TransferHelperInterface.InvalidItemType.selector)
+            abi.encodePacked(TransferHelperErrors.InvalidItemType.selector)
         );
     }
 
