@@ -1233,7 +1233,7 @@ contract TransferHelperTest is BaseOrderTest {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                "0x",
+                "",
                 conduitKeyAlice,
                 mockConduit
             )
