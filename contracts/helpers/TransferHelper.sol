@@ -25,13 +25,19 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
+import { TransferHelperErrors } from "../interfaces/TransferHelperErrors.sol";
+
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin, ryanio
  * @notice TransferHelper is a utility contract for transferring
  *         ERC20/ERC721/ERC1155 items in bulk to a specific recipient.
  */
-contract TransferHelper is TransferHelperInterface, TokenTransferrer {
+contract TransferHelper is
+    TransferHelperInterface,
+    TransferHelperErrors,
+    TokenTransferrer
+{
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
