@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { TransferHelperItem } from "../helpers/TransferHelperStructs.sol";
+import {
+    TransferHelperItem,
+    TransferHelperItemWithRecipient
+} from "../helpers/TransferHelperStructs.sol";
 
 interface TransferHelperInterface {
     /**
@@ -74,6 +77,11 @@ interface TransferHelperInterface {
     function bulkTransfer(
         TransferHelperItem[] calldata items,
         address recipient,
+        bytes32 conduitKey
+    ) external returns (bytes4);
+
+    function bulkTransferToMultipleRecipients(
+        TransferHelperItemWithRecipient[] calldata items,
         bytes32 conduitKey
     ) external returns (bytes4);
 }

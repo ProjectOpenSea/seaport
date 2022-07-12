@@ -10,6 +10,14 @@ struct TransferHelperItem {
     uint256 amount;
 }
 
+struct TransferHelperItemWithRecipient {
+    ConduitItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 amount;
+    address recipient;
+}
+
 enum Error {
     None,
     RevertWithMessage,

@@ -90,6 +90,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         magicValue = this.bulkTransfer.selector;
     }
 
+    function bulkTransferToMultipleRecipients(
+        TransferHelperItemWithRecipient[] calldata items,
+        bytes32 conduitKey
+    ) external override returns (bytes4 magicValue) {
+        if (conduitKey == bytes32(0)) {
+            _performTransfersWithoutConduit(items);
+        }
+    }
+
     /**
      * @notice Perform multiple transfers to a single recipient via
      *         TokenTransferrer.
@@ -200,6 +209,113 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     }
 
     /**
+     * @notice Perform multiple transfers to individually-specified recipients
+     *         via TokenTransferrer.
+     *
+     * @param items The items to transfer.
+     */
+    function _performTransfersWithoutConduit(
+        TransferHelperItemWithRecipient[] calldata items
+    ) internal {
+        // Retrieve total number of transfers and place on stack.
+        uint256 totalTransfers = items.length;
+
+        // Skip overflow checks: all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over each transfer.
+            for (uint256 i = 0; i < totalTransfers; ++i) {
+                // Retrieve the transfer in question.
+                TransferHelperItemWithRecipient calldata item = items[i];
+
+                // Ensure tokens aren't transferred to the zero address.
+                if (item.recipient == address(0x0)) {
+                    revert RecipientCannotBeZero();
+                }
+
+                // Create a boolean that reflects whether recipient is a contract.
+                bool recipientIsContract = item.recipient.code.length != 0;
+
+                // Perform a transfer based on the transfer's item type.
+                if (item.itemType == ConduitItemType.ERC20) {
+                    // Ensure that the identifier for an ERC20 token is 0.
+                    if (item.identifier != 0) {
+                        revert InvalidERC20Identifier();
+                    }
+
+                    // Transfer ERC20 token.
+                    _performERC20Transfer(
+                        item.token,
+                        msg.sender,
+                        item.recipient,
+                        item.amount
+                    );
+                } else if (item.itemType == ConduitItemType.ERC721) {
+                    // If recipient is a contract, ensure it can receive
+                    // ERC721 tokens.
+                    if (recipientIsContract) {
+                        // Check if recipient can receive ERC721 tokens.
+                        try
+                            IERC721Receiver(item.recipient).onERC721Received(
+                                address(this),
+                                msg.sender,
+                                item.identifier,
+                                ""
+                            )
+                        returns (bytes4 selector) {
+                            // Check if onERC721Received selector is valid.
+                            if (
+                                selector !=
+                                IERC721Receiver.onERC721Received.selector
+                            ) {
+                                // Revert if recipient cannot accept
+                                // ERC721 tokens.
+                                revert InvalidERC721Recipient();
+                            }
+                        } catch (bytes memory data) {
+                            // "Bubble up" recipient's revert reason
+                            // if present.
+                            if (data.length != 0 && data.length < 256) {
+                                assembly {
+                                    returndatacopy(0, 0, returndatasize())
+                                    revert(0, returndatasize())
+                                }
+                            } else {
+                                // Revert with a generic error if no
+                                // revert reason is given by the recipient.
+                                revert InvalidERC721Recipient();
+                            }
+                        }
+                    }
+                    // Ensure that the amount for an ERC721 transfer is 1.
+                    if (item.amount != 1) {
+                        revert InvalidERC721TransferAmount();
+                    }
+
+                    // Transfer ERC721 token.
+                    _performERC721Transfer(
+                        item.token,
+                        msg.sender,
+                        item.recipient,
+                        item.identifier
+                    );
+                } else if (item.itemType == ConduitItemType.ERC1155) {
+                    // Transfer ERC1155 token.
+                    _performERC1155Transfer(
+                        item.token,
+                        msg.sender,
+                        item.recipient,
+                        item.identifier,
+                        item.amount
+                    );
+                } else {
+                    // Revert if the item being transferred is a native token.
+                    revert InvalidItemType();
+                }
+            }
+        }
+    }
+
+    /**
      * @notice Perform multiple transfers to a single recipient via
      *         the conduit derived from the provided conduit key.
      *
@@ -257,6 +373,103 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     item.token,
                     msg.sender,
                     recipient,
+                    item.identifier,
+                    item.amount
+                );
+            }
+        }
+
+        // Attempt the external call to transfer tokens via the derived conduit.
+        try ConduitInterface(conduit).execute(conduitTransfers) returns (
+            bytes4 conduitMagicValue
+        ) {
+            // Check if the value returned from the external call matches
+            // the conduit `execute` selector.
+            if (
+                conduitMagicValue != ConduitInterface(conduit).execute.selector
+            ) {
+                // If the external call fails, revert with the conduit key
+                // and conduit address.
+                revert InvalidConduit(conduitKey, conduit);
+            }
+        } catch (bytes memory data) {
+            // Catch reverts from the external call to the conduit and
+            // "bubble up" the conduit's revert reason if present.
+            if (data.length != 0 && data.length < 256) {
+                revert ConduitErrorRevertBytes(data, conduitKey, conduit);
+            } else {
+                // If no revert reason is present or data length is too large,
+                // revert with a generic error with the conduit key and
+                // conduit address.
+                revert ConduitErrorRevertGeneric(conduitKey, conduit);
+            }
+        } catch Error(string memory reason) {
+            // Catch reverts with a provided reason string and
+            // revert with the reason, conduit key and conduit address.
+            if (bytes(reason).length != 0 && bytes(reason).length < 256) {
+                revert ConduitErrorRevertString(reason, conduitKey, conduit);
+            } else {
+                revert ConduitErrorRevertGeneric(conduitKey, conduit);
+            }
+        }
+    }
+
+    /**
+     * @notice Perform multiple transfers to individually-specified recipients
+     *         via the conduit derived from the provided conduit key.
+     *
+     * @param items      The items to transfer.
+     * @param conduitKey The conduit key referring to the conduit through
+     *                   which the bulk transfer should occur.
+     */
+    function _performTransfersWithConduit(
+        TransferHelperItemWithRecipient[] calldata items,
+        bytes32 conduitKey
+    ) internal {
+        // Retrieve total number of transfers and place on stack.
+        uint256 totalTransfers = items.length;
+
+        // Derive the conduit address from the deployer, conduit key
+        // and creation code hash.
+        address conduit = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(_CONDUIT_CONTROLLER),
+                            conduitKey,
+                            _CONDUIT_CREATION_CODE_HASH
+                        )
+                    )
+                )
+            )
+        );
+
+        // Declare a new array to populate with each token transfer.
+        ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
+            totalTransfers
+        );
+
+        // Skip overflow checks: all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over each transfer.
+            for (uint256 i = 0; i < totalTransfers; ++i) {
+                // Retrieve the transfer in question.
+                TransferHelperItemWithRecipient calldata item = items[i];
+
+                // Ensure tokens aren't transferred to the zero address.
+                if (item.recipient == address(0x0)) {
+                    revert RecipientCannotBeZero();
+                }
+
+                // Create a ConduitTransfer corresponding to each
+                // TransferHelperItem.
+                conduitTransfers[i] = ConduitTransfer(
+                    item.itemType,
+                    item.token,
+                    msg.sender,
+                    item.recipient,
                     item.identifier,
                     item.amount
                 );
