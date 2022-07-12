@@ -534,12 +534,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     for (let i = 0; i < numERC20s; i++) {
       // Deploy Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-      // Create/Approve X amount of  ERC20s
+      // Create/Approve X amount of ERC20s
       const erc20Transfer = await createTransferWithApproval(
         tempERC20Contract,
         sender,
         1,
-        tempConduit.address,
+        tempTransferHelper.address,
         sender.address,
         recipients[i % 4]
       );
@@ -547,7 +547,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       erc20Transfers[i] = erc20Transfer;
     }
 
-    // Create numEC721s amount of ERC20 objects
+    // Create numEC721s amount of ERC721 objects
     for (let i = 0; i < numEC721s; i++) {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
@@ -556,7 +556,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempERC721Contract,
         sender,
         2,
-        tempConduit.address,
+        tempTransferHelper.address,
         sender.address,
         recipients[i % 4]
       );
@@ -573,7 +573,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempERC1155Contract,
         sender,
         3,
-        tempConduit.address,
+        tempTransferHelper.address,
         sender.address,
         recipients[i % 4]
       );
@@ -598,6 +598,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     for (let i = 0; i < transfers.length; i++) {
       transfersWithRecipients[i] = createTransferWithRecipient(transfers[i]);
     }
+
     // Send the bulk transfers
     await tempTransferHelper
       .connect(sender)
