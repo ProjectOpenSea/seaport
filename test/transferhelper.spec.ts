@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
 
-import { randomHex, toBN } from "./utils/encoding";
+import { randomHex } from "./utils/encoding";
 import {
   fixtureERC1155,
   fixtureERC20,
@@ -491,7 +491,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           tempERC721Contract.address,
           ethers.utils.formatBytes32String("")
         )
-    ).to.be.revertedWith("InvalidERC721Recipient");
+    ).to.be.revertedWith(
+      `ERC721ReceiverErrorRevertBytes("0x", "${tempERC721Contract.address}", "${sender.address}", 1)`
+    );
   });
 
   it("Reverts on invalid function selector", async () => {
@@ -524,7 +526,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           invalidRecipient.address,
           ethers.utils.formatBytes32String("")
         )
-    ).to.be.revertedWith("InvalidERC721Recipient");
+    ).to.be.revertedWith(
+      `InvalidERC721Recipient("${invalidRecipient.address}")`
+    );
   });
 
   it("Reverts on nonexistent conduit", async () => {
@@ -726,7 +730,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       "ConduitControllerMock"
     );
     const mockConduitController = await mockConduitControllerFactory.deploy(
-      toBN(1)
+      1 // ConduitMockRevertNoReason
     );
 
     const mockTransferHelperFactory = await ethers.getContractFactory(
@@ -762,7 +766,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
     ).to.be.revertedWith(
-      `ConduitErrorRevertGeneric("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
+      `ConduitErrorRevertBytes("0x", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
     );
   });
 
@@ -805,7 +809,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       "ConduitControllerMock"
     );
     const mockConduitController = await mockConduitControllerFactory.deploy(
-      toBN(3)
+      2 // ConduitMockInvalidMagic
     );
 
     const mockTransferHelperFactory = await ethers.getContractFactory(
@@ -851,62 +855,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     );
   });
 
-  it("Reverts with generic revert when revert data length > 256", async () => {
-    // Deploy ERC20 Contract
-    const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-
-    await tempERC20Contract.connect(owner).mint(sender.address, 100);
-
-    const mockConduitControllerFactory = await ethers.getContractFactory(
-      "ConduitControllerMock"
-    );
-    const mockConduitController = await mockConduitControllerFactory.deploy(
-      toBN(2)
-    );
-
-    const mockTransferHelperFactory = await ethers.getContractFactory(
-      "TransferHelper"
-    );
-    const mockTransferHelper = await mockTransferHelperFactory.deploy(
-      mockConduitController.address
-    );
-    const mockConduitKey = owner.address + randomHex(12).slice(2);
-
-    // Deploy the mock conduit through the mock conduit controller
-    await mockConduitController
-      .connect(owner)
-      .createConduit(mockConduitKey, owner.address);
-
-    const mockConduitAddress = (
-      await mockConduitController.getConduit(mockConduitKey)
-    )[0];
-
-    await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
-
-    const transferHelperItems = [
-      {
-        itemType: 1,
-        token: tempERC20Contract.address,
-        identifier: 0,
-        amount: 10,
-      },
-      {
-        itemType: 1,
-        token: tempERC20Contract.address,
-        identifier: 0,
-        amount: 20,
-      },
-    ];
-
-    await expect(
-      mockTransferHelper
-        .connect(sender)
-        .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
-    ).to.be.revertedWith(
-      `ConduitErrorRevertGeneric("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
-    );
-  });
-
   it("Reverts when data length is greater than 0 and less than 256", async () => {
     // Deploy ERC20 Contract
     const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
@@ -917,7 +865,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       "ConduitControllerMock"
     );
     const mockConduitController = await mockConduitControllerFactory.deploy(
-      toBN(4)
+      3 // ConduitMockRevertBytes
     );
 
     const mockTransferHelperFactory = await ethers.getContractFactory(

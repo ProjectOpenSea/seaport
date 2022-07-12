@@ -14,10 +14,6 @@ import { ConduitMock } from "../test/ConduitMock.sol";
 import { ConduitMockInvalidMagic } from "../test/ConduitMockInvalidMagic.sol";
 
 import {
-    ConduitMockRevertDataLengthTooLong
-} from "../test/ConduitMockRevertDataLengthTooLong.sol";
-
-import {
     ConduitMockRevertNoReason
 } from "../test/ConduitMockRevertNoReason.sol";
 
@@ -57,21 +53,13 @@ contract ConduitControllerMock is ConduitControllerInterface {
             runtimeCodeHash = address(zeroConduit).codehash;
         } else if (conduitNum == 2) {
             creationCodeHash = keccak256(
-                type(ConduitMockRevertDataLengthTooLong).creationCode
-            );
-            ConduitMockRevertDataLengthTooLong zeroConduit = new ConduitMockRevertDataLengthTooLong{
-                    salt: bytes32(0)
-                }();
-            runtimeCodeHash = address(zeroConduit).codehash;
-        } else if (conduitNum == 3) {
-            creationCodeHash = keccak256(
                 type(ConduitMockInvalidMagic).creationCode
             );
             ConduitMockInvalidMagic zeroConduit = new ConduitMockInvalidMagic{
                 salt: bytes32(0)
             }();
             runtimeCodeHash = address(zeroConduit).codehash;
-        } else if (conduitNum == 4) {
+        } else if (conduitNum == 3) {
             creationCodeHash = keccak256(
                 type(ConduitMockRevertBytes).creationCode
             );
@@ -142,10 +130,8 @@ contract ConduitControllerMock is ConduitControllerInterface {
         } else if (conduitNum == 1) {
             new ConduitMockRevertNoReason{ salt: conduitKey }();
         } else if (conduitNum == 2) {
-            new ConduitMockRevertDataLengthTooLong{ salt: conduitKey }();
-        } else if (conduitNum == 3) {
             new ConduitMockInvalidMagic{ salt: conduitKey }();
-        } else if (conduitNum == 4) {
+        } else if (conduitNum == 3) {
             new ConduitMockRevertBytes{ salt: conduitKey }();
         }
         // Initialize storage variable referencing conduit properties.

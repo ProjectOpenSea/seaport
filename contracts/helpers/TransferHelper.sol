@@ -162,21 +162,24 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             ) {
                                 // Revert if recipient cannot accept
                                 // ERC721 tokens.
-                                revert InvalidERC721Recipient();
+                                revert InvalidERC721Recipient(recipient);
                             }
                         } catch (bytes memory data) {
-                            // "Bubble up" recipient's revert reason
-                            // if present.
-                            if (data.length != 0 && data.length < 256) {
-                                assembly {
-                                    returndatacopy(0, 0, returndatasize())
-                                    revert(0, returndatasize())
-                                }
-                            } else {
-                                // Revert with a generic error if no
-                                // revert reason is given by the recipient.
-                                revert InvalidERC721Recipient();
-                            }
+                            // "Bubble up" recipient's revert reason.
+                            revert ERC721ReceiverErrorRevertBytes(
+                                data,
+                                recipient,
+                                msg.sender,
+                                item.identifier
+                            );
+                        } catch Error(string memory reason) {
+                            // "Bubble up" recipient's revert reason.
+                            revert ERC721ReceiverErrorRevertString(
+                                reason,
+                                recipient,
+                                msg.sender,
+                                item.identifier
+                            );
                         }
                     }
                     // Ensure that the amount for an ERC721 transfer is 1.
@@ -269,21 +272,24 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             ) {
                                 // Revert if recipient cannot accept
                                 // ERC721 tokens.
-                                revert InvalidERC721Recipient();
+                                revert InvalidERC721Recipient(item.recipient);
                             }
                         } catch (bytes memory data) {
-                            // "Bubble up" recipient's revert reason
-                            // if present.
-                            if (data.length != 0 && data.length < 256) {
-                                assembly {
-                                    returndatacopy(0, 0, returndatasize())
-                                    revert(0, returndatasize())
-                                }
-                            } else {
-                                // Revert with a generic error if no
-                                // revert reason is given by the recipient.
-                                revert InvalidERC721Recipient();
-                            }
+                            // "Bubble up" recipient's revert reason.
+                            revert ERC721ReceiverErrorRevertBytes(
+                                data,
+                                item.recipient,
+                                msg.sender,
+                                item.identifier
+                            );
+                        } catch Error(string memory reason) {
+                            // "Bubble up" recipient's revert reason.
+                            revert ERC721ReceiverErrorRevertString(
+                                reason,
+                                item.recipient,
+                                msg.sender,
+                                item.identifier
+                            );
                         }
                     }
                     // Ensure that the amount for an ERC721 transfer is 1.
@@ -394,23 +400,12 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         } catch (bytes memory data) {
             // Catch reverts from the external call to the conduit and
-            // "bubble up" the conduit's revert reason if present.
-            if (data.length != 0 && data.length < 256) {
-                revert ConduitErrorRevertBytes(data, conduitKey, conduit);
-            } else {
-                // If no revert reason is present or data length is too large,
-                // revert with a generic error with the conduit key and
-                // conduit address.
-                revert ConduitErrorRevertGeneric(conduitKey, conduit);
-            }
+            // "bubble up" the conduit's revert reason.
+            revert ConduitErrorRevertBytes(data, conduitKey, conduit);
         } catch Error(string memory reason) {
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
-            if (bytes(reason).length != 0 && bytes(reason).length < 256) {
-                revert ConduitErrorRevertString(reason, conduitKey, conduit);
-            } else {
-                revert ConduitErrorRevertGeneric(conduitKey, conduit);
-            }
+            revert ConduitErrorRevertString(reason, conduitKey, conduit);
         }
     }
 
@@ -491,23 +486,12 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
         } catch (bytes memory data) {
             // Catch reverts from the external call to the conduit and
-            // "bubble up" the conduit's revert reason if present.
-            if (data.length != 0 && data.length < 256) {
-                revert ConduitErrorRevertBytes(data, conduitKey, conduit);
-            } else {
-                // If no revert reason is present or data length is too large,
-                // revert with a generic error with the conduit key and
-                // conduit address.
-                revert ConduitErrorRevertGeneric(conduitKey, conduit);
-            }
+            // "bubble up" the conduit's revert reason.
+            revert ConduitErrorRevertBytes(data, conduitKey, conduit);
         } catch Error(string memory reason) {
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
-            if (bytes(reason).length != 0 && bytes(reason).length < 256) {
-                revert ConduitErrorRevertString(reason, conduitKey, conduit);
-            } else {
-                revert ConduitErrorRevertGeneric(conduitKey, conduit);
-            }
+            revert ConduitErrorRevertString(reason, conduitKey, conduit);
         }
     }
 }

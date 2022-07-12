@@ -15,7 +15,7 @@ contract ConduitMockInvalidMagic is ConduitInterface {
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
-    ) external view override returns (bytes4) {
+    ) external pure override returns (bytes4) {
         return 0xabcd0000;
     }
 

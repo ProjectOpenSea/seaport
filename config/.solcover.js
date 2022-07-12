@@ -39,7 +39,6 @@ module.exports = {
     "test/ConduitMockErrors.sol",
     "test/ConduitMockInvalidMagic.sol",
     "test/ConduitMockRevertBytes.sol",
-    "test/ConduitMockRevertDataLengthTooLong.sol",
     "test/ConduitMockRevertNoReason.sol",
   ],
   configureYulOptimizer: true,

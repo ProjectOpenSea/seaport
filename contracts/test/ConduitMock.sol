@@ -15,7 +15,7 @@ contract ConduitMock is ConduitInterface {
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
-    ) external view override returns (bytes4) {
+    ) external pure override returns (bytes4) {
         // Return the valid magic value.
         return 0x4ce34aa2;
     }

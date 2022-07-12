@@ -34,5 +34,9 @@ module.exports = {
     "test/ERC721ReceiverMock.sol",
     "test/ConduitControllerMock.sol",
     "test/ConduitMock.sol",
+    "test/ConduitMockErrors.sol",
+    "test/ConduitMockInvalidMagic.sol",
+    "test/ConduitMockRevertBytes.sol",
+    "test/ConduitMockRevertNoReason.sol",
   ],
 };

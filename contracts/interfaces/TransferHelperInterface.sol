@@ -15,9 +15,31 @@ interface TransferHelperInterface {
 
     /**
      * @dev Revert with an error when attempting to execute an ERC721 transfer
-            to an invalid recipient.
+     *      to an invalid recipient.
      */
-    error InvalidERC721Recipient();
+    error InvalidERC721Recipient(address recipient);
+
+    /**
+     * @dev Revert with an error when a call to a ERC721 receiver reverts with
+     *      bytes data.
+     */
+    error ERC721ReceiverErrorRevertBytes(
+        bytes reason,
+        address receiver,
+        address sender,
+        uint256 identifier
+    );
+
+    /**
+     * @dev Revert with an error when a call to a ERC721 receiver reverts with
+     *      string reason.
+     */
+    error ERC721ReceiverErrorRevertString(
+        string reason,
+        address receiver,
+        address sender,
+        uint256 identifier
+    );
 
     /**
      * @dev Revert with an error when an ERC20 token has an invalid identifier.
@@ -36,12 +58,6 @@ interface TransferHelperInterface {
     error InvalidConduit(bytes32 conduitKey, address conduit);
 
     /**
-     * @dev Revert with a generic error when a call to a conduit reverts with
-     *      no data about the reason.
-     */
-    error ConduitErrorRevertGeneric(bytes32 conduitKey, address conduit);
-
-    /**
      * @dev Revert with an error when a call to a conduit reverts with a
      *      reason string.
      */
@@ -51,18 +67,12 @@ interface TransferHelperInterface {
         address conduit
     );
 
+    /**
+     * @dev Revert with an error when a call to a conduit reverts with bytes
+     *      data.
+     */
     error ConduitErrorRevertBytes(
         bytes reason,
-        bytes32 conduitKey,
-        address conduit
-    );
-
-    /**
-     * @dev Revert with an error when a call to a conduit reverts with a
-     *      panic error.
-     */
-    error ConduitErrorRevertPanic(
-        uint256 errorCode,
         bytes32 conduitKey,
         address conduit
     );
@@ -80,6 +90,12 @@ interface TransferHelperInterface {
         bytes32 conduitKey
     ) external returns (bytes4);
 
+    /**
+     * @notice Transfer multiple items to multiple recipients.
+     *
+     * @param items The items to transfer.
+     * @param conduitKey  The key of the conduit performing the bulk transfer.
+     */
     function bulkTransferToMultipleRecipients(
         TransferHelperItemWithRecipient[] calldata items,
         bytes32 conduitKey

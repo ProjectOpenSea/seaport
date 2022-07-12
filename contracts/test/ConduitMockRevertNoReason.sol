@@ -15,7 +15,7 @@ contract ConduitMockRevertNoReason is ConduitInterface {
 
     function execute(
         ConduitTransfer[] calldata /* transfers */
-    ) external view override returns (bytes4) {
+    ) external pure override returns (bytes4) {
         // Revert without reason string.
         revert();
     }
