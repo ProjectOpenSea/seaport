@@ -16,6 +16,7 @@ import {
   toFulfillmentComponents,
   toKey,
 } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import {
   VERSION,
@@ -23,7 +24,6 @@ import {
   simulateAdvancedMatchOrders,
   simulateMatchOrders,
 } from "./utils/helpers";
-import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
   ConduitInterface,
@@ -1088,46 +1088,44 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(4);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchAdvancedOrders(
-            [order, mirrorOrder],
-            criteriaResolvers,
-            fulfillments,
-            {
-              value,
-            }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions,
-          criteriaResolvers
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchAdvancedOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          {
+            value,
+          }
         );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions,
+        criteriaResolvers
+      );
 
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("Criteria-based offer item ERC1155 (match)", async () => {
       // Seller mints nfts
@@ -1187,46 +1185,44 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(4);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchAdvancedOrders(
-            [order, mirrorOrder],
-            criteriaResolvers,
-            fulfillments,
-            {
-              value,
-            }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions,
-          criteriaResolvers
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchAdvancedOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          {
+            value,
+          }
         );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions,
+        criteriaResolvers
+      );
 
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("Criteria-based offer item (match, collection-level)", async () => {
       // Seller mints nfts
@@ -1290,46 +1286,44 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(4);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchAdvancedOrders(
-            [order, mirrorOrder],
-            criteriaResolvers,
-            fulfillments,
-            {
-              value,
-            }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions,
-          criteriaResolvers
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchAdvancedOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          {
+            value,
+          }
         );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions,
+        criteriaResolvers
+      );
 
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("Criteria-based consideration item (standard)", async () => {
       // buyer mints nfts
@@ -2538,47 +2532,45 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(fulfillments.length);
 
-      await whileImpersonating(buyer.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(buyer)
-          .matchAdvancedOrders(
-            [orderOne, orderTwo, orderThree],
-            [],
-            fulfillments,
-            {
-              value: 0,
-            }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order: orderOne,
-              orderHash: orderHashOne,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: orderTwo,
-              orderHash: orderHashTwo,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: orderThree,
-              orderHash: orderHashThree,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions,
+      const tx = marketplaceContract
+        .connect(buyer)
+        .matchAdvancedOrders(
+          [orderOne, orderTwo, orderThree],
           [],
-          true
+          fulfillments,
+          {
+            value: 0,
+          }
         );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: orderTwo,
+            orderHash: orderHashTwo,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: orderThree,
+            orderHash: orderHashThree,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions,
+        [],
+        true
+      );
 
-        // TODO: include balance checks on the duplicate ERC20 transfers
+      // TODO: include balance checks on the duplicate ERC20 transfers
 
-        return receipt;
-      });
+      return receipt;
     });
   });
 
@@ -2636,32 +2628,30 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(5);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("ERC1155 <=> ETH (match, three items)", async () => {
       // Seller mints first nft
@@ -2723,32 +2713,30 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(6);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("ERC1155 <=> ETH (match via conduit)", async () => {
       // Seller mints first nft
@@ -2808,32 +2796,30 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(5);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("ERC1155 <=> ETH (match, single item)", async () => {
       // Seller mints first nft
@@ -2872,32 +2858,30 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(1);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("ERC1155 <=> ETH (match, single 1155)", async () => {
       // Seller mints first nft
@@ -2947,32 +2931,30 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       expect(executions.length).to.equal(4);
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("ERC1155 <=> ETH (match, two different 1155 contracts)", async () => {
       // Seller mints first nft
@@ -3449,50 +3431,48 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ],
       ].map(toFulfillmentComponents);
 
-      await whileImpersonating(buyer.address, provider, async () => {
-        await withBalanceChecks(
-          [orderOne, orderTwo],
-          0,
-          undefined,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillAvailableOrders(
-                [orderOne, orderTwo],
-                offerComponents,
-                considerationComponents,
-                toKey(0),
-                100,
-                {
-                  value: value.mul(2),
-                }
-              );
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(
-              tx,
-              receipt,
-              [
-                {
-                  order: orderOne,
-                  orderHash: orderHashOne,
-                  fulfiller: buyer.address,
-                },
-                {
-                  order: orderTwo,
-                  orderHash: orderHashTwo,
-                  fulfiller: buyer.address,
-                },
-              ],
-              [],
-              [],
-              false,
-              2
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [orderOne, orderTwo],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              {
+                value: value.mul(2),
+              }
             );
-            return receipt;
-          },
-          2
-        );
-      });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
     });
     it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders", async () => {
       // Seller mints nft
@@ -3554,52 +3534,50 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ],
       ].map(toFulfillmentComponents);
 
-      await whileImpersonating(buyer.address, provider, async () => {
-        await withBalanceChecks(
-          [orderOne, orderTwo],
-          0,
-          undefined,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillAvailableAdvancedOrders(
-                [orderOne, orderTwo],
-                [],
-                offerComponents,
-                considerationComponents,
-                toKey(0),
-                ethers.constants.AddressZero,
-                100,
-                {
-                  value: value.mul(2),
-                }
-              );
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(
-              tx,
-              receipt,
-              [
-                {
-                  order: orderOne,
-                  orderHash: orderHashOne,
-                  fulfiller: buyer.address,
-                },
-                {
-                  order: orderTwo,
-                  orderHash: orderHashTwo,
-                  fulfiller: buyer.address,
-                },
-              ],
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [orderOne, orderTwo],
               [],
-              [],
-              false,
-              2
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              100,
+              {
+                value: value.mul(2),
+              }
             );
-            return receipt;
-          },
-          2
-        );
-      });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
     });
     it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableOrders", async () => {
       // Seller mints nft
@@ -3658,55 +3636,53 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ],
       ];
 
-      await whileImpersonating(buyer.address, provider, async () => {
-        await withBalanceChecks(
-          [orderOne],
-          0,
-          undefined,
-          async () => {
-            const { executions } = await marketplaceContract
-              .connect(buyer)
-              .callStatic.fulfillAvailableOrders(
-                [orderOne, orderTwo],
-                offerComponents,
-                considerationComponents,
-                toKey(0),
-                1,
-                {
-                  value: value.mul(2),
-                }
-              );
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillAvailableOrders(
-                [orderOne, orderTwo],
-                offerComponents,
-                considerationComponents,
-                toKey(0),
-                1,
-                {
-                  value: value.mul(2),
-                }
-              );
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(
-              tx,
-              receipt,
-              [
-                {
-                  order: orderOne,
-                  orderHash: orderHashOne,
-                  fulfiller: buyer.address,
-                },
-              ],
-              executions
+      await withBalanceChecks(
+        [orderOne],
+        0,
+        undefined,
+        async () => {
+          const { executions } = await marketplaceContract
+            .connect(buyer)
+            .callStatic.fulfillAvailableOrders(
+              [orderOne, orderTwo],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              1,
+              {
+                value: value.mul(2),
+              }
             );
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [orderOne, orderTwo],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              1,
+              {
+                value: value.mul(2),
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+            ],
+            executions
+          );
 
-            return receipt;
-          },
-          1
-        );
-      });
+          return receipt;
+        },
+        1
+      );
     });
     it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableAdvancedOrders", async () => {
       // Seller mints nft
@@ -3767,48 +3743,46 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ],
       ];
 
-      await whileImpersonating(buyer.address, provider, async () => {
-        await withBalanceChecks(
-          [orderOne],
-          0,
-          undefined,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillAvailableAdvancedOrders(
-                [orderOne, orderTwo],
-                [],
-                offerComponents,
-                considerationComponents,
-                toKey(0),
-                ethers.constants.AddressZero,
-                1,
-                {
-                  value: value.mul(2),
-                }
-              );
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(
-              tx,
-              receipt,
-              [
-                {
-                  order: orderOne,
-                  orderHash: orderHashOne,
-                  fulfiller: buyer.address,
-                },
-              ],
+      await withBalanceChecks(
+        [orderOne],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [orderOne, orderTwo],
               [],
-              [],
-              false,
-              1
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              1,
+              {
+                value: value.mul(2),
+              }
             );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            1
+          );
 
-            return receipt;
-          },
-          1
-        );
-      });
+          return receipt;
+        },
+        1
+      );
     });
     it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders with failing orders", async () => {
       // Seller mints nft

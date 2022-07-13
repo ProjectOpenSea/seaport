@@ -8,7 +8,6 @@ import {
   randomBN,
   toBN,
 } from "../encoding";
-import { whileImpersonating } from "../impersonate";
 
 import type {
   TestERC1155,
@@ -249,19 +248,13 @@ export const tokensFixture = async (signer: JsonRpcSigner | Wallet) => {
         await (contract as TestERC20).mint(receiver.address, amount);
 
         // Receiver approves contract to transfer tokens
-        await whileImpersonating(
-          receiver.address,
-          ethers.provider,
-          async () => {
-            await expect(
-              (contract as TestERC20)
-                .connect(receiver)
-                .approve(approvalAddress, amount)
-            )
-              .to.emit(contract, "Approval")
-              .withArgs(receiver.address, approvalAddress, amount);
-          }
-        );
+        await expect(
+          (contract as TestERC20)
+            .connect(receiver)
+            .approve(approvalAddress, amount)
+        )
+          .to.emit(contract, "Approval")
+          .withArgs(receiver.address, approvalAddress, amount);
         break;
       case 2: // ERC721
       case 4: // ERC721_WITH_CRITERIA

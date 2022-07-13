@@ -12,6 +12,7 @@ import {
   toBN,
   toFulfillment,
 } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import {
   fixtureERC1155,
   fixtureERC20,
@@ -24,7 +25,6 @@ import {
   minRandom,
   simulateMatchOrders,
 } from "./utils/helpers";
-import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
   ConduitControllerInterface,
@@ -129,11 +129,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC1155 with batch)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     const { nftId, amount } = await mint1155(owner, 2);
 
@@ -168,11 +166,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   });
 
   it("Adds a channel, and executes only batch transfers (ERC1155 with batch)", async () => {
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     const { nftId, amount } = await mint1155(owner, 2);
 
@@ -205,11 +201,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC721)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Seller mints nft
     const nftId = randomBN();
@@ -222,13 +216,11 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
     expect(await testERC721.ownerOf(secondNftId)).to.equal(seller.address);
 
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
-      )
-        .to.emit(testERC721, "ApprovalForAll")
-        .withArgs(seller.address, tempConduit.address, true);
-    });
+    await expect(
+      testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+    )
+      .to.emit(testERC721, "ApprovalForAll")
+      .withArgs(seller.address, tempConduit.address, true);
 
     await tempConduit.connect(seller).execute([
       {
@@ -256,11 +248,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC721 + ERC20)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Seller mints nft
     const nftId = randomBN();
@@ -270,13 +260,11 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
 
     // Set approval of nft
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
-      )
-        .to.emit(testERC721, "ApprovalForAll")
-        .withArgs(seller.address, tempConduit.address, true);
-    });
+    await expect(
+      testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+    )
+      .to.emit(testERC721, "ApprovalForAll")
+      .withArgs(seller.address, tempConduit.address, true);
 
     const tokenAmount = minRandom(100);
     await testERC20.mint(seller.address, tokenAmount);
@@ -285,13 +273,11 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
 
     // Seller approves conduit contract to transfer tokens
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
-      )
-        .to.emit(testERC20, "Approval")
-        .withArgs(seller.address, tempConduit.address, tokenAmount);
-    });
+    await expect(
+      testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+    )
+      .to.emit(testERC20, "Approval")
+      .withArgs(seller.address, tempConduit.address, tokenAmount);
 
     // Send an ERC721 and (token amount - 100) ERC20 tokens
     await tempConduit.connect(seller).execute([
@@ -324,11 +310,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC721 + ERC1155)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Seller mints nft
     const nftId = randomBN();
@@ -338,25 +322,21 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
 
     // Set approval of nft
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
-      )
-        .to.emit(testERC721, "ApprovalForAll")
-        .withArgs(seller.address, tempConduit.address, true);
-    });
+    await expect(
+      testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+    )
+      .to.emit(testERC721, "ApprovalForAll")
+      .withArgs(seller.address, tempConduit.address, true);
 
     const secondNftId = random128();
     const amount = random128().add(1);
     await testERC1155.mint(seller.address, secondNftId, amount);
 
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
-      )
-        .to.emit(testERC1155, "ApprovalForAll")
-        .withArgs(seller.address, tempConduit.address, true);
-    });
+    await expect(
+      testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
+    )
+      .to.emit(testERC1155, "ApprovalForAll")
+      .withArgs(seller.address, tempConduit.address, true);
 
     // Check ownership
     expect(await testERC1155.balanceOf(seller.address, secondNftId)).to.equal(
@@ -396,11 +376,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC20 + ERC1155)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Seller mints nft
     const tokenAmount = minRandom(100).div(100);
@@ -410,25 +388,21 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
 
     // Seller approves conduit contract to transfer tokens
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
-      )
-        .to.emit(testERC20, "Approval")
-        .withArgs(seller.address, tempConduit.address, tokenAmount);
-    });
+    await expect(
+      testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+    )
+      .to.emit(testERC20, "Approval")
+      .withArgs(seller.address, tempConduit.address, tokenAmount);
 
     const nftId = random128();
     const erc1155amount = random128().add(1);
     await testERC1155.mint(seller.address, nftId, erc1155amount);
 
-    await whileImpersonating(seller.address, provider, async () => {
-      await expect(
-        testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
-      )
-        .to.emit(testERC1155, "ApprovalForAll")
-        .withArgs(seller.address, tempConduit.address, true);
-    });
+    await expect(
+      testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
+    )
+      .to.emit(testERC1155, "ApprovalForAll")
+      .withArgs(seller.address, tempConduit.address, true);
 
     // Check ownership
     expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(
@@ -468,11 +442,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (ERC20 + ERC721 + ERC1155)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Create/Approve X amount of  ERC20s
     const erc20Transfer = await createTransferWithApproval(
@@ -528,11 +500,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("Adds a channel, and executes transfers (many token types)", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     // Get 3 numbers whose value adds to Item Amount and minimum 1.
     const itemsToCreate = 64;
@@ -650,11 +620,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   });
 
   it("Reverts on calls to batch transfer 1155 items with no contract on a conduit", async () => {
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, owner.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, owner.address, true);
 
     const { nftId, amount } = await mint1155(owner, 2);
 
@@ -682,11 +650,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   });
 
   it("Reverts on calls to only batch transfer 1155 items with no contract on a conduit", async () => {
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, owner.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, owner.address, true);
 
     const { nftId, amount } = await mint1155(owner, 2);
 
@@ -712,11 +678,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
   it("ERC1155 batch transfer reverts with revert data if it has sufficient gas", async () => {
     // Owner updates conduit channel to allow seller access
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, seller.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, seller.address, true);
 
     await expect(
       tempConduit.connect(seller).executeWithBatch1155(
@@ -737,11 +701,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     it("ERC1155 batch transfer sends no data", async () => {
       const receiver = await deployContract("ERC1155BatchRecipient", owner);
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       const { nftId, amount } = await mint1155(owner, 2);
 
@@ -783,11 +745,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     it("ERC1155 batch transfer reverts with generic error if it has insufficient gas to copy revert data", async () => {
       const receiver = await deployContract("ExcessReturnDataRecipient", owner);
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       await expect(
         tempConduit.connect(seller).executeWithBatch1155(

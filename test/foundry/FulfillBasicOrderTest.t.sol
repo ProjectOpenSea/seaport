@@ -23,15 +23,15 @@ import {
     BasicOrderParameters
 } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
-
 import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
+import {
+    PausableZoneController
+} from "../../contracts/zones/PausableZoneController.sol";
+import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
@@ -77,6 +77,20 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(this.basicEthTo721, Context(consideration, inputs, 0));
+        test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
+    }
+
+    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(Context(consideration, inputs, 0))
+    {
+        inputs.zone = address(0);
+
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);

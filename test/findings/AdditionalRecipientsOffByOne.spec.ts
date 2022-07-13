@@ -5,8 +5,8 @@ import { network } from "hardhat";
 import { getScuffedContract } from "scuffed-abi";
 
 import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
 import { seaportFixture } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
 
 import type {
   ConsiderationInterface,

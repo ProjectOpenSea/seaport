@@ -4,8 +4,8 @@ import { network } from "hardhat";
 
 import { merkleTree } from "../utils/criteria";
 import { buildResolver, toBN, toKey } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
 import { seaportFixture } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
 
 import type {
   ConsiderationInterface,

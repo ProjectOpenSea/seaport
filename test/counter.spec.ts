@@ -8,9 +8,9 @@ import {
   randomHex,
   toKey,
 } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION, getCustomRevertSelector } from "./utils/helpers";
-import { faucet } from "./utils/impersonate";
 
 import type { ConsiderationInterface } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";

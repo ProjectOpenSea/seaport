@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 
-import { faucet } from "../impersonate";
+import { faucet } from "../faucet";
 
 import type { ImmutableCreate2FactoryInterface } from "../../../typechain-types";
 import type { Wallet } from "ethers";
