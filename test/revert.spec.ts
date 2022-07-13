@@ -14,6 +14,7 @@ import {
   toFulfillment,
   toKey,
 } from "./utils/encoding";
+import { faucet, getWalletWithEther } from "./utils/faucet";
 import { fixtureERC20, seaportFixture } from "./utils/fixtures";
 import {
   VERSION,
@@ -21,11 +22,6 @@ import {
   minRandom,
   simulateMatchOrders,
 } from "./utils/helpers";
-import {
-  faucet,
-  getWalletWithEther,
-  whileImpersonating,
-} from "./utils/impersonate";
 
 import type {
   ConduitInterface,
@@ -4116,32 +4112,30 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWith("InsufficientEtherSupplied");
 
-      await whileImpersonating(owner.address, provider, async () => {
-        const tx = marketplaceContract
-          .connect(owner)
-          .matchOrders([order, mirrorOrder], fulfillments, {
-            value,
-          });
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-            {
-              order: mirrorOrder,
-              orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
-            },
-          ],
-          executions
-        );
-        return receipt;
-      });
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
     });
     it("Reverts when ether is supplied to a non-payable route (basic)", async () => {
       // Seller mints nft

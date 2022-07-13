@@ -91,7 +91,7 @@ export const conduitFixture = async (
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       assignedConduitKey
     );
-
+    
     if (!process.env.REFERENCE) {
       await expect(
         conduitController

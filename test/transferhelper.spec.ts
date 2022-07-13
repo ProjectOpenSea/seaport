@@ -3,6 +3,7 @@ import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import {
   fixtureERC1155,
   fixtureERC20,
@@ -10,7 +11,6 @@ import {
   seaportFixture,
 } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
-import { faucet } from "./utils/impersonate";
 
 import type {
   ConduitControllerInterface,
