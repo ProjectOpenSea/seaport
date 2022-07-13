@@ -673,7 +673,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             mockERC721Receiver.address,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWith("ERC721ReceiverMock: reverting");
+      ).to.be.revertedWith(
+        `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721Receiver.address}", "${sender.address}", 1`
+      );
     });
 
     it("Reverts with custom error in conduit", async () => {
@@ -842,11 +844,18 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const panicError =
+        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
+
       await expect(
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.reverted;
+      ).to.be.revertedWith(
+        `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
+          tempConduit.address
+        }")`
+      );
     });
 
     it("Reverts with invalid magic value returned by call to conduit", async () => {
@@ -1681,7 +1690,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             transferHelperItems,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWith("ERC721ReceiverMock: reverting");
+      ).to.be.revertedWith(
+        `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721ReceiverOne.address}", "${sender.address}", 1`
+      );
     });
 
     it("Reverts with custom error in conduit", async () => {
@@ -1861,11 +1872,18 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const panicError =
+        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
+
       await expect(
         tempTransferHelper
           .connect(sender)
           .bulkTransferToMultipleRecipients(transferHelperItems, tempConduitKey)
-      ).to.be.reverted;
+      ).to.be.revertedWith(
+        `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
+          tempConduit.address
+        }")`
+      );
     });
 
     it("Reverts with invalid magic value returned by call to conduit", async () => {
