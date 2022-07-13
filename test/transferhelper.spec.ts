@@ -846,16 +846,31 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const panicError =
         "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
-
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith(
-        `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
-          tempConduit.address
-        }")`
-      );
+      if (!process.env.REFERENCE) {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransfer(
+              transferHelperItems,
+              recipient.address,
+              tempConduitKey
+            )
+        ).to.be.revertedWith(
+          `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
+            tempConduit.address
+          }")`
+        );
+      } else {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransfer(
+              transferHelperItems,
+              recipient.address,
+              tempConduitKey
+            )
+        ).to.be.reverted;
+      }
     });
 
     it("Reverts with invalid magic value returned by call to conduit", async () => {
@@ -1875,15 +1890,29 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const panicError =
         "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
 
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, tempConduitKey)
-      ).to.be.revertedWith(
-        `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
-          tempConduit.address
-        }")`
-      );
+      if (!process.env.REFERNCE) {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransferToMultipleRecipients(
+              transferHelperItems,
+              tempConduitKey
+            )
+        ).to.be.revertedWith(
+          `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
+            tempConduit.address
+          }")`
+        );
+      } else {
+        await expect(
+          tempTransferHelper
+            .connect(sender)
+            .bulkTransferToMultipleRecipients(
+              transferHelperItems,
+              tempConduitKey
+            )
+        ).to.be.reverted;
+      }
     });
 
     it("Reverts with invalid magic value returned by call to conduit", async () => {
