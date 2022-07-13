@@ -100,6 +100,7 @@ contract TransferHelper is
         TransferHelperItemWithRecipient[] calldata items,
         bytes32 conduitKey
     ) external override returns (bytes4 magicValue) {
+        // If no conduitKey is given, use TokenTransferrer to perform transfers.
         if (conduitKey == bytes32(0)) {
             _performTransfersWithoutConduit(items);
         } else {
@@ -108,7 +109,7 @@ contract TransferHelper is
         }
 
         // Return a magic value indicating that the transfers were performed.
-        magicValue = this.bulkTransfer.selector;
+        magicValue = this.bulkTransferToMultipleRecipients.selector;
     }
 
     /**
@@ -130,7 +131,7 @@ contract TransferHelper is
         // Retrieve total number of transfers and place on stack.
         uint256 totalTransfers = items.length;
 
-        // Create a boolean that reflects whether recipient is a contract.
+        // Create a boolean indicating whether recipient is a contract.
         bool recipientIsContract = recipient.code.length != 0;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
@@ -247,9 +248,6 @@ contract TransferHelper is
                     revert RecipientCannotBeZero();
                 }
 
-                // Create a boolean that reflects whether recipient is a contract.
-                bool recipientIsContract = item.recipient.code.length != 0;
-
                 // Perform a transfer based on the transfer's item type.
                 if (item.itemType == ConduitItemType.ERC20) {
                     // Ensure that the identifier for an ERC20 token is 0.
@@ -265,6 +263,10 @@ contract TransferHelper is
                         item.amount
                     );
                 } else if (item.itemType == ConduitItemType.ERC721) {
+                    // Create a boolean indicating whether recipient is
+                    // a contract.
+                    bool recipientIsContract = item.recipient.code.length != 0;
+
                     // If recipient is a contract, ensure it can receive
                     // ERC721 tokens.
                     if (recipientIsContract) {
