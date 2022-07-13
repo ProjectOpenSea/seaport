@@ -1890,7 +1890,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const panicError =
         "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
 
-      if (!process.env.REFERNCE) {
+      if (!process.env.REFERENCE) {
         await expect(
           tempTransferHelper
             .connect(sender)
