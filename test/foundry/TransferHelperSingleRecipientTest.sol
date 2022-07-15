@@ -202,6 +202,23 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             );
     }
 
+    function _getTransferHelperWithRecipientsFromTransferHelperItems(
+        TransferHelperItem[] memory items,
+        // TODO stephen: support multiple to (recipients) and move to helper
+        address to
+    ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
+        TransferHelperItemsWithRecipient[]
+            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
+                items.length
+            );
+        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
+            items,
+            to,
+            true
+        );
+        return itemsWithRecipient;
+    }
+
     function _performSingleItemTransferAndCheckBalances(
         TransferHelperItem memory item,
         address from,
@@ -252,14 +269,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                to
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            to,
-            true
-        );
         transferHelper.bulkTransfer(
             itemsWithRecipient,
             useConduit ? conduitKeyOne : bytes32(0)
@@ -350,14 +363,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                to
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            to,
-            true
-        );
         transferHelper.bulkTransfer(
             itemsWithRecipient,
             useConduit ? conduitKeyOne : bytes32(0)
@@ -834,14 +843,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         try
             transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
         returns (
@@ -884,14 +889,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         try
             transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
         returns (
@@ -932,14 +933,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         items[0] = item;
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         try
             transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
         returns (
@@ -982,14 +979,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         try
             transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
         returns (
@@ -1077,14 +1070,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.expectRevert();
         vm.prank(alice);
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
     }
 
@@ -1242,14 +1231,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice);
         vm.stopPrank();
     }
@@ -1318,14 +1303,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice);
         vm.stopPrank();
     }
@@ -1387,14 +1368,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                bob
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            bob,
-            true
-        );
         try
             mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice)
         returns (

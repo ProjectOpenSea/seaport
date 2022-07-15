@@ -228,7 +228,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
     function _getTransferHelperWithRecipientsFromTransferHelperItems(
         TransferHelperItem[] memory items,
-        // TODO stephen: support multiple to (recipients)
+        // TODO stephen: support multiple to (recipients) and move to helper
         address to
     ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
         TransferHelperItemsWithRecipient[]
@@ -293,14 +293,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                to
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            to,
-            true
-        );
 
         transferHelper.bulkTransfer(
             itemsWithRecipient,
@@ -392,14 +388,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                1
+            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+                items,
+                to
             );
-        itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
-            items,
-            to,
-            true
-        );
         transferHelper.bulkTransfer(
             itemsWithRecipient,
             useConduit ? conduitKeyOne : bytes32(0)
