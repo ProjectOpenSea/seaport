@@ -10,17 +10,9 @@ struct TransferHelperItem {
     uint256 amount;
 }
 
-struct TransferHelperItemWithRecipient {
-    ConduitItemType itemType;
-    address token;
-    uint256 identifier;
-    uint256 amount;
+struct TransferHelperItemsWithRecipient {
+    TransferHelperItem[] items;
     address recipient;
-}
-
-enum Error {
-    None,
-    RevertWithMessage,
-    RevertWithoutMessage,
-    Panic
+    /* Pass true to call onERC721Received on a recipient contract. */
+    bool validateERC721Receiver;
 }

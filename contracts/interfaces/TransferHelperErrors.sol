@@ -47,7 +47,7 @@ interface TransferHelperErrors {
     /**
      * @dev Revert with an error if the recipient is the zero address.
      */
-    error RecipientCannotBeZero();
+    error RecipientCannotBeZeroAddress();
 
     /**
      * @dev Revert with an error when attempting to fill an order referencing an
