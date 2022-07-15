@@ -226,7 +226,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             );
     }
 
-    function _getTransferHelperWithRecipientsFromTransferHelperItems(
+    function _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
         TransferHelperItem[] memory items,
         // TODO stephen: support multiple to (recipients) and move to helper
         address to
@@ -293,7 +293,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 to
             );
@@ -388,7 +388,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 to
             );
@@ -1000,7 +1000,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1050,7 +1050,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1096,7 +1096,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         items[0] = item;
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1146,7 +1146,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1236,7 +1236,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         vm.expectRevert();
         vm.prank(alice);
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1394,7 +1394,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1466,7 +1466,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1531,7 +1531,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
                 items,
                 bob
             );
