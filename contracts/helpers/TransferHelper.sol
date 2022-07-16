@@ -216,8 +216,8 @@ contract TransferHelper is
     }
 
     /**
-     * @notice Perform multiple transfers to individually-specified recipients
-     *         via the conduit derived from the provided conduit key.
+     * @notice Perform multiple transfers to specified recipients via the
+     *         conduit derived from the provided conduit key.
      *
      * @param transfers  The items to transfer.
      * @param conduitKey The conduit key referring to the conduit through
@@ -247,7 +247,7 @@ contract TransferHelper is
             )
         );
 
-        // Declare a variable to store the sum of all items across all transfers.
+        // Declare a variable to store the sum of all items across transfers.
         uint256 totalItems;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
