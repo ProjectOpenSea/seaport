@@ -31,7 +31,7 @@ import { TransferHelperErrors } from "../interfaces/TransferHelperErrors.sol";
  * @title TransferHelper
  * @author stephankmin, stuckinaboot, ryanio
  * @notice TransferHelper is a utility contract for transferring
- *         ERC20/ERC721/ERC1155 items in bulk to a specific recipient.
+ *         ERC20/ERC721/ERC1155 items in bulk to specific recipients.
  */
 contract TransferHelper is
     TransferHelperInterface,
@@ -68,9 +68,10 @@ contract TransferHelper is
     }
 
     /**
-     * @notice Transfer multiple items to recipients.
+     * @notice Transfer multiple ERC20/ERC721/ERC1155 items to
+     *         specified recipients.
      *
-     * @param items      The items to transfer with the intended recipient.
+     * @param items      The items to transfer to an intended recipient.
      * @param conduitKey An optional conduit key referring to a conduit through
      *                   which the bulk transfer should occur.
      *
