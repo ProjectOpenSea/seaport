@@ -299,7 +299,7 @@ contract TransferHelper is
                     );
 
                     // Increment the index for storing ConduitTransfers.
-                    itemIndex++;
+                    ++itemIndex;
                 }
             }
         }
