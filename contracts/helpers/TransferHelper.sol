@@ -113,18 +113,17 @@ contract TransferHelper is
                 TransferHelperItemsWithRecipient calldata transfer = transfers[
                     i
                 ];
+
+                // Retrieve the items of the transfer in question.
                 TransferHelperItem[] calldata transferItems = transfer.items;
-                address recipient = transfer.recipient;
 
-                // Ensure tokens aren't transferred to the zero address.
-                if (recipient == address(0x0)) {
-                    revert RecipientCannotBeZeroAddress();
-                }
+                // Ensure recipient is not the zero address.
+                _checkRecipientIsNotZeroAddress(transfer.recipient);
 
-                // Create a boolean indicating whether recipient is
-                // a contract.
+                // Create a boolean indicating whether validateERC721Receiver
+                // is true and recipient is a contract.
                 bool callERC721Receiver = transfer.validateERC721Receiver &&
-                    recipient.code.length != 0;
+                    transfer.recipient.code.length != 0;
 
                 // Retrieve total number of transfers and place on stack.
                 uint256 totalItemTransfers = transferItems.length;
@@ -143,48 +142,19 @@ contract TransferHelper is
                         _performERC20Transfer(
                             item.token,
                             msg.sender,
-                            recipient,
+                            transfer.recipient,
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
-                        // If recipient is a contract, ensure it can receive
-                        // ERC721 tokens.
+                        // If recipient is a contract and validateERC721Receiver
+                        // is true...
                         if (callERC721Receiver) {
-                            // Check if recipient can receive ERC721 tokens.
-                            try
-                                IERC721Receiver(recipient).onERC721Received(
-                                    address(this),
-                                    msg.sender,
-                                    item.identifier,
-                                    ""
-                                )
-                            returns (bytes4 selector) {
-                                // Check if onERC721Received selector is valid.
-                                if (
-                                    selector !=
-                                    IERC721Receiver.onERC721Received.selector
-                                ) {
-                                    // Revert if recipient cannot accept
-                                    // ERC721 tokens.
-                                    revert InvalidERC721Recipient(recipient);
-                                }
-                            } catch (bytes memory data) {
-                                // "Bubble up" recipient's revert reason.
-                                revert ERC721ReceiverErrorRevertBytes(
-                                    data,
-                                    recipient,
-                                    msg.sender,
-                                    item.identifier
-                                );
-                            } catch Error(string memory reason) {
-                                // "Bubble up" recipient's revert reason.
-                                revert ERC721ReceiverErrorRevertString(
-                                    reason,
-                                    recipient,
-                                    msg.sender,
-                                    item.identifier
-                                );
-                            }
+                            // Check if the recipient implements onERC721Received
+                            // for the given tokenId.
+                            _checkERC721Receiver(
+                                transfer.recipient,
+                                item.identifier
+                            );
                         }
                         // Ensure that the amount for an ERC721 transfer is 1.
                         if (item.amount != 1) {
@@ -195,7 +165,7 @@ contract TransferHelper is
                         _performERC721Transfer(
                             item.token,
                             msg.sender,
-                            recipient,
+                            transfer.recipient,
                             item.identifier
                         );
                     } else if (item.itemType == ConduitItemType.ERC1155) {
@@ -203,7 +173,7 @@ contract TransferHelper is
                         _performERC1155Transfer(
                             item.token,
                             msg.sender,
-                            recipient,
+                            transfer.recipient,
                             item.identifier,
                             item.amount
                         );
@@ -255,8 +225,13 @@ contract TransferHelper is
         unchecked {
             // Iterate over each transfer.
             for (uint256 i = 0; i < totalTransfers; ++i) {
+                // Retrieve the transfer in question.
+                TransferHelperItemsWithRecipient calldata transfer = transfers[
+                    i
+                ];
+
                 // Increment totalItems by the number of items in the transfer.
-                totalItems += transfers[i].items.length;
+                totalItems += transfer.items.length;
             }
         }
 
@@ -275,25 +250,45 @@ contract TransferHelper is
                     i
                 ];
                 TransferHelperItem[] calldata transferItems = transfer.items;
-                address recipient = transfer.recipient;
 
-                // Ensure tokens aren't transferred to the zero address.
-                if (recipient == address(0x0)) {
-                    revert RecipientCannotBeZeroAddress();
-                }
+                // Ensure recipient is not the zero address.
+                _checkRecipientIsNotZeroAddress(transfer.recipient);
 
                 // Retrieve total number of transfers and place on stack.
                 uint256 totalItemTransfers = transferItems.length;
 
+                // Iterate over each item in the transfer to create a
+                // corresponding ConduitTransfer.
                 for (uint256 j = 0; j < totalItemTransfers; ++j) {
+                    // Retrieve the item from the transfer.
                     TransferHelperItem calldata item = transferItems[j];
+
+                    // Create a boolean indicating whether validateERC721Receiver
+                    // is true and recipient is a contract.
+                    bool callERC721Receiver = transfer.validateERC721Receiver &&
+                        transfer.recipient.code.length != 0;
+
+                    // If the item is an ERC721 token and
+                    // callERC721Receiver is true...
+                    if (
+                        item.itemType == ConduitItemType.ERC721 &&
+                        callERC721Receiver
+                    ) {
+                        // Check if the recipient implements onERC721Received
+                        // for the given tokenId.
+                        _checkERC721Receiver(
+                            transfer.recipient,
+                            item.identifier
+                        );
+                    }
+
                     // Create a ConduitTransfer corresponding to each
                     // TransferHelperItem.
                     conduitTransfers[j] = ConduitTransfer(
                         item.itemType,
                         item.token,
                         msg.sender,
-                        recipient,
+                        transfer.recipient,
                         item.identifier,
                         item.amount
                     );
@@ -322,6 +317,62 @@ contract TransferHelper is
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
             revert ConduitErrorRevertString(reason, conduitKey, conduit);
+        }
+    }
+
+    /**
+     * @notice An internal function to check if a recipient address implements
+     *         onERC721Received for a given tokenId.
+     *
+     * @param recipient The ERC721 recipient on which to call onERC721Received.
+     * @param tokenId   The ERC721 tokenId of the token being transferred.
+     *
+     */
+    function _checkERC721Receiver(address recipient, uint256 tokenId) internal {
+        // Check if recipient can receive ERC721 tokens.
+        try
+            IERC721Receiver(recipient).onERC721Received(
+                address(this),
+                msg.sender,
+                tokenId,
+                ""
+            )
+        returns (bytes4 selector) {
+            // Check if onERC721Received selector is valid.
+            if (selector != IERC721Receiver.onERC721Received.selector) {
+                // Revert if recipient cannot accept
+                // ERC721 tokens.
+                revert InvalidERC721Recipient(recipient);
+            }
+        } catch (bytes memory data) {
+            // "Bubble up" recipient's revert reason.
+            revert ERC721ReceiverErrorRevertBytes(
+                data,
+                recipient,
+                msg.sender,
+                tokenId
+            );
+        } catch Error(string memory reason) {
+            // "Bubble up" recipient's revert reason.
+            revert ERC721ReceiverErrorRevertString(
+                reason,
+                recipient,
+                msg.sender,
+                tokenId
+            );
+        }
+    }
+
+    /**
+     * @notice An internal function that reverts if the passed-in recipient
+     *         is the zero address.
+     *
+     * @param recipient The recipient on which to perform the check.
+     */
+    function _checkRecipientIsNotZeroAddress(address recipient) internal pure {
+        // Revert if the recipient is the zero address.
+        if (recipient == address(0x0)) {
+            revert RecipientCannotBeZeroAddress();
         }
     }
 }
