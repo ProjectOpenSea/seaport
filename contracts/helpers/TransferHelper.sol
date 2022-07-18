@@ -263,23 +263,23 @@ contract TransferHelper is
                     // Retrieve the item from the transfer.
                     TransferHelperItem calldata item = transferItems[j];
 
-                    // Create a boolean indicating whether validateERC721Receiver
-                    // is true and recipient is a contract.
-                    bool callERC721Receiver = transfer.validateERC721Receiver &&
-                        transfer.recipient.code.length != 0;
-
                     // If the item is an ERC721 token and
                     // callERC721Receiver is true...
-                    if (
-                        item.itemType == ConduitItemType.ERC721 &&
-                        callERC721Receiver
-                    ) {
-                        // Check if the recipient implements onERC721Received
-                        // for the given tokenId.
-                        _checkERC721Receiver(
-                            transfer.recipient,
-                            item.identifier
-                        );
+                    if (item.itemType == ConduitItemType.ERC721) {
+                        // Create a boolean indicating whether validateERC721Receiver
+                        // is true and recipient is a contract.
+                        bool callERC721Receiver = transfer
+                            .validateERC721Receiver &&
+                            transfer.recipient.code.length != 0;
+
+                        if (callERC721Receiver) {
+                            // Check if the recipient implements onERC721Received
+                            // for the given tokenId.
+                            _checkERC721Receiver(
+                                transfer.recipient,
+                                item.identifier
+                            );
+                        }
                     }
 
                     // Create a ConduitTransfer corresponding to each
