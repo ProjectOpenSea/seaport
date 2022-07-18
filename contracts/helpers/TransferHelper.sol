@@ -149,8 +149,8 @@ contract TransferHelper is
                         // If recipient is a contract and validateERC721Receiver
                         // is true...
                         if (callERC721Receiver) {
-                            // Check if the recipient implements onERC721Received
-                            // for the given tokenId.
+                            // Check if the recipient implements
+                            // onERC721Received for the given tokenId.
                             _checkERC721Receiver(
                                 transfer.recipient,
                                 item.identifier
@@ -178,7 +178,8 @@ contract TransferHelper is
                             item.amount
                         );
                     } else {
-                        // Revert if the item being transferred is a native token.
+                        // Revert if the item being transferred is a
+                        // native token.
                         revert InvalidItemType();
                     }
                 }
@@ -266,15 +267,16 @@ contract TransferHelper is
                     // If the item is an ERC721 token and
                     // callERC721Receiver is true...
                     if (item.itemType == ConduitItemType.ERC721) {
-                        // Create a boolean indicating whether validateERC721Receiver
-                        // is true and recipient is a contract.
+                        // Create a boolean indicating whether
+                        // validateERC721Receiver is true and recipient is
+                        // a contract.
                         bool callERC721Receiver = transfer
                             .validateERC721Receiver &&
                             transfer.recipient.code.length != 0;
 
                         if (callERC721Receiver) {
-                            // Check if the recipient implements onERC721Received
-                            // for the given tokenId.
+                            // Check if the recipient implements
+                            // onERC721Received for the given tokenId.
                             _checkERC721Receiver(
                                 transfer.recipient,
                                 item.identifier
