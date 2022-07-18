@@ -242,6 +242,9 @@ contract TransferHelper is
             totalItems
         );
 
+        // Declare an index for storing ConduitTransfers in conduitTransfers.
+        uint256 itemIndex;
+
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each transfer.
@@ -286,7 +289,7 @@ contract TransferHelper is
 
                     // Create a ConduitTransfer corresponding to each
                     // TransferHelperItem.
-                    conduitTransfers[j] = ConduitTransfer(
+                    conduitTransfers[itemIndex] = ConduitTransfer(
                         item.itemType,
                         item.token,
                         msg.sender,
@@ -294,6 +297,9 @@ contract TransferHelper is
                         item.identifier,
                         item.amount
                     );
+
+                    // Increment the index for storing ConduitTransfers.
+                    itemIndex++;
                 }
             }
         }
