@@ -202,14 +202,14 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             );
     }
 
-    function _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+    function _getTransferHelperItemsWithRecipientFromTransferHelperItems(
         TransferHelperItem[] memory items,
         // TODO stephen: support multiple to (recipients) and move to helper
         address to
     ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
         TransferHelperItemsWithRecipient[]
             memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
-                items.length
+                1
             );
         itemsWithRecipient[0] = TransferHelperItemsWithRecipient(
             items,
@@ -269,7 +269,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 to
             );
@@ -363,7 +363,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         }
         // Perform transfer.
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 to
             );
@@ -843,7 +843,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -889,7 +889,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -933,7 +933,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         items[0] = item;
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -979,7 +979,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1070,7 +1070,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.expectRevert();
         vm.prank(alice);
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1115,7 +1115,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             1
         );
 
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address derivedConduit, ) = conduitController.getConduit(
+            conduitKeyOne
+        );
         // Attempt to transfer ERC721 tokens from bob to alice
         // Expect revert since alice owns the tokens
         _performSingleItemTransferAndCheckBalances(
@@ -1127,7 +1129,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
                 "ConduitErrorRevertString(string,bytes32,address)",
                 "WRONG_FROM",
                 conduitKeyOne,
-                conduit
+                derivedConduit
             )
         );
     }
@@ -1150,7 +1152,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             10
         );
 
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address derivedConduit, ) = conduitController.getConduit(
+            conduitKeyOne
+        );
         bytes memory panicError = abi.encodeWithSelector(0x4e487b71, 18);
 
         // Revert with panic error when calling execute via conduit
@@ -1163,7 +1167,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 panicError,
                 conduitKeyOne,
-                conduit
+                derivedConduit
             )
         );
     }
@@ -1216,11 +1220,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             1
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
-            conduitKeyAlice
-        );
+        (address derivedConduit, bool exists) = mockConduitController
+            .getConduit(conduitKeyAlice);
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), derivedConduit);
         assertEq(exists, true);
 
         vm.expectRevert(
@@ -1231,7 +1234,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1287,11 +1290,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             1
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
-            conduitKeyAlice
-        );
+        (address derivedConduit, bool exists) = mockConduitController
+            .getConduit(conduitKeyAlice);
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), derivedConduit);
         assertEq(exists, true);
 
         vm.expectRevert(
@@ -1303,7 +1305,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             )
         );
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
@@ -1359,16 +1361,15 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             1
         );
 
-        (address conduit, bool exists) = mockConduitController.getConduit(
-            conduitKeyAlice
-        );
+        (address derivedConduit, bool exists) = mockConduitController
+            .getConduit(conduitKeyAlice);
 
-        assertEq(address(mockConduit), conduit);
+        assertEq(address(mockConduit), derivedConduit);
         assertEq(exists, true);
 
         bytes memory returnedData;
         TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientsFromTransferHelperItems(
+            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
                 items,
                 bob
             );
