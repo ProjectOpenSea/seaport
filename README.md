@@ -63,6 +63,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Avalanche Fuji</td></tr>
 <tr><td>Avalanche C-Chain</td></tr>
 <tr><td>Gnosis Chain</td></tr>
+<tr><td>BSC</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
@@ -71,7 +72,6 @@ To be deployed on other EVM chains, such as:
 - Baobab
 - Skale
 - Celo
-- BSC
 - Fantom
 - RSK
 
