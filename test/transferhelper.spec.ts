@@ -12,9 +12,10 @@ import {
 } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
-import type {
+import {
   ConduitControllerInterface,
   ConduitInterface,
+  contracts,
   EIP1271Wallet,
   EIP1271Wallet__factory,
   TransferHelper,
@@ -73,23 +74,41 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     amount: BigNumber;
   }
 
-  interface TransferWithRecipient {
+  interface TransferHelperItem {
     itemType: 0 | 1 | 2 | 3 | 4 | 5;
     token: string;
     identifier: BigNumber;
     amount: BigNumber;
-    recipient: string;
   }
 
-  function createTransferWithRecipient(
-    transfer: Transfer
-  ): TransferWithRecipient {
+  interface TransferWithRecipient {
+    items: TransferHelperItem[];
+    recipient: string;
+    validateERC721Receiver: boolean;
+  }
+
+  function createTransferHelperItem(transfer: Transfer): TransferHelperItem {
     return {
       itemType: transfer.itemType,
       token: transfer.token,
       identifier: transfer.identifier,
       amount: transfer.amount,
-      recipient: transfer.to,
+    };
+  }
+
+  function createTransferWithRecipient(
+    transfers: Transfer[],
+    recipient: string,
+    validate: boolean
+  ): TransferWithRecipient {
+    let transferHelperItems = [];
+    for (let i = 0; i < transfers.length; i++) {
+      transferHelperItems[i] = createTransferHelperItem(transfers[i]);
+    }
+    return {
+      items: transferHelperItems,
+      recipient: recipient,
+      validateERC721Receiver: validate,
     };
   }
 
@@ -132,7 +151,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       .updateChannel(tempConduit.address, tempTransferHelper.address, true);
   });
 
-  describe("bulkTransfer tests", async () => {
+  describe("Single recipient tests", async () => {
     it("Executes transfers (many token types) with a conduit", async () => {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
@@ -212,14 +231,24 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         ...erc721Contracts,
         ...erc1155Contracts,
       ];
+
+      const transfersWithRecipients = [];
+
+      transfersWithRecipients[0] = createTransferWithRecipient(
+        transfers,
+        recipient.address,
+        true
+      );
+
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
-        .bulkTransfer(transfers, recipient.address, tempConduitKey);
+        .bulkTransfer(transfersWithRecipients, tempConduitKey);
       // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfers.length; i++) {
+      for (let i = 0; i < transfersWithRecipients[0].items.length; i++) {
         // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
+        const { itemType, amount, identifier } =
+          transfersWithRecipients[0].items[i];
         const token = contracts[i];
 
         switch (itemType) {
@@ -335,12 +364,20 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         ...erc721Contracts,
         ...erc1155Contracts,
       ];
+
+      const transfersWithRecipients = [];
+
+      transfersWithRecipients[0] = createTransferWithRecipient(
+        transfers,
+        recipient.address,
+        true
+      );
+
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
         .bulkTransfer(
-          transfers,
-          recipient.address,
+          transfersWithRecipients,
           ethers.utils.formatBytes32String("")
         );
       // Loop through all transfer to do ownership/balance checks
@@ -413,12 +450,19 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         erc721Transfers[i] = erc721Transfer;
       }
 
+      const transfersWithRecipients = [];
+
+      transfersWithRecipients[0] = createTransferWithRecipient(
+        erc721Transfers,
+        erc721Recipient.address,
+        true
+      );
+
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
         .bulkTransfer(
-          erc721Transfers,
-          erc721Recipient.address,
+          transfersWithRecipients,
           ethers.utils.formatBytes32String("")
         );
 
@@ -435,54 +479,59 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     });
 
     it("Reverts on native token transfers", async () => {
-      const ethTransferHelperItems = [
+      const ethTransfers = [
         {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            ethTransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(ethTransfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith("InvalidItemType");
     });
 
     it("Reverts on invalid ERC20 identifier", async () => {
-      const erc20TransferHelperItems = [
+      const erc20Transfers = [
         {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 5,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 4,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 5,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 4,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc20TransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc20Transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith("InvalidERC20Identifier");
     });
 
@@ -490,28 +539,30 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
+      const erc721Transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 10,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 10,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith("InvalidERC721TransferAmount");
     });
 
@@ -519,28 +570,30 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
+      const erc721Transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
+          recipient: tempERC721Contract.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            tempERC721Contract.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertBytes("0x", "${tempERC721Contract.address}", "${sender.address}", 1)`
       );
@@ -554,28 +607,30 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
+      const erc721Transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
+          recipient: invalidRecipient.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            invalidRecipient.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith(
         `InvalidERC721Recipient("${invalidRecipient.address}")`
       );
@@ -587,40 +642,42 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("0xabc")
-          )
+          .bulkTransfer(transfers, ethers.utils.formatBytes32String("0xabc"))
       ).to.be.reverted;
     });
 
@@ -639,40 +696,42 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         1
       );
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: mockERC721Receiver.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            mockERC721Receiver.address,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721Receiver.address}", "${sender.address}", 1`
       );
@@ -684,31 +743,36 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
-        // Invalid item type
+      const transfers = [
         {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 0,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -719,7 +783,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+          .bulkTransfer(transfers, tempConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("${invalidItemTypeErrorSelector}", "${tempConduitKey.toLowerCase()}", "${
           tempConduit.address
@@ -734,37 +798,43 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Call will revert since ERC721 tokens have not been minted
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
 
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+          .bulkTransfer(transfers, tempConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertString("WRONG_FROM", "${tempConduitKey.toLowerCase()}", "${
           tempConduit.address
@@ -806,17 +876,43 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .setApprovalForAll(mockConduitAddress, true);
 
-      const transferHelperItems = Array.from(Array(11)).map(() => ({
-        itemType: 3,
-        token: tempERC1155Contract.address,
-        identifier: 0,
-        amount: 10,
-      }));
+      const transfers = [
+        {
+          items: [
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
+        },
+      ];
 
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("0x", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -829,18 +925,24 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       );
       const mockERC20Panic = await mockERC20PanicFactory.deploy();
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -850,11 +952,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         await expect(
           tempTransferHelper
             .connect(sender)
-            .bulkTransfer(
-              transferHelperItems,
-              recipient.address,
-              tempConduitKey
-            )
+            .bulkTransfer(transfers, tempConduitKey)
         ).to.be.revertedWith(
           `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
             tempConduit.address
@@ -864,11 +962,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         await expect(
           tempTransferHelper
             .connect(sender)
-            .bulkTransfer(
-              transferHelperItems,
-              recipient.address,
-              tempConduitKey
-            )
+            .bulkTransfer(transfers, recipient.address)
         ).to.be.reverted;
       }
     });
@@ -905,25 +999,31 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
 
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `InvalidConduit("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -960,18 +1060,24 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       )[0];
       await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -980,7 +1086,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("${customErrorSelector}", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -992,41 +1098,44 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            ethers.constants.AddressZero,
-            tempConduitKey
-          )
-      ).to.be.revertedWith("RecipientCannotBeZero()");
+          .bulkTransfer(transfers, tempConduitKey)
+      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
 
     it("Reverts when recipient is the null address (without conduit)", async () => {
@@ -1035,46 +1144,49 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            ethers.constants.AddressZero,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("RecipientCannotBeZero()");
+          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
+      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
   });
-
-  describe("bulkTransferToMultipleRecipients tests", async () => {
+  describe("Multi-recipient tests", async () => {
     it("Executes transfers with multiple recipients (many token types) with a conduit", async () => {
+      const numTransfers = 4;
+
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
@@ -1097,127 +1209,144 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         cal.address,
       ];
 
-      // Create numERC20s amount of ERC20 objects
-      for (let i = 0; i < numERC20s; i++) {
-        // Deploy Contract
-        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-        // Create/Approve X amount of  ERC20s
-        const erc20Transfer = await createTransferWithApproval(
-          tempERC20Contract,
-          sender,
-          1,
-          tempConduit.address,
-          sender.address,
-          recipients[i % 4]
-        );
-        erc20Contracts[i] = tempERC20Contract;
-        erc20Transfers[i] = erc20Transfer;
-      }
-
-      // Create numEC721s amount of ERC20 objects
-      for (let i = 0; i < numEC721s; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempConduit.address,
-          sender.address,
-          recipients[i % 4]
-        );
-        erc721Contracts[i] = tempERC721Contract;
-        erc721Transfers[i] = erc721Transfer;
-      }
-
-      // Create numERC1155s amount of ERC1155 objects
-      for (let i = 0; i < numERC1155s; i++) {
-        // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
-        // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferWithApproval(
-          tempERC1155Contract,
-          sender,
-          3,
-          tempConduit.address,
-          sender.address,
-          recipients[i % 4]
-        );
-
-        erc1155Contracts[i] = tempERC1155Contract;
-        erc1155Transfers[i] = erc1155Transfer;
-      }
-
-      const transfers = [
-        ...erc20Transfers,
-        ...erc721Transfers,
-        ...erc1155Transfers,
-      ];
-      const contracts = [
-        ...erc20Contracts,
-        ...erc721Contracts,
-        ...erc1155Contracts,
-      ];
-
       const transfersWithRecipients = [];
+      const allContracts = [];
+      const allTransfers = [];
 
-      for (let i = 0; i < transfers.length; i++) {
-        transfersWithRecipients[i] = createTransferWithRecipient(transfers[i]);
+      // Create numTransfers amount of TransferHelperItemsWithRecipient
+      for (let j = 0; j < numTransfers; j++) {
+        const transferRecipient = recipients[j];
+
+        // Create numERC20s amount of ERC20 objects
+        for (let i = 0; i < numERC20s; i++) {
+          // Deploy Contract
+          const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+          // Create/Approve X amount of  ERC20s
+          const erc20Transfer = await createTransferWithApproval(
+            tempERC20Contract,
+            sender,
+            1,
+            tempConduit.address,
+            sender.address,
+            transferRecipient
+          );
+          erc20Contracts[i] = tempERC20Contract;
+          erc20Transfers[i] = erc20Transfer;
+        }
+
+        // Create numEC721s amount of ERC721 objects
+        for (let i = 0; i < numEC721s; i++) {
+          // Deploy Contract
+          const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+          // Create/Approve numEC721s amount of  ERC721s
+          const erc721Transfer = await createTransferWithApproval(
+            tempERC721Contract,
+            sender,
+            2,
+            tempConduit.address,
+            sender.address,
+            transferRecipient
+          );
+          erc721Contracts[i] = tempERC721Contract;
+          erc721Transfers[i] = erc721Transfer;
+        }
+
+        // Create numERC1155s amount of ERC1155 objects
+        for (let i = 0; i < numERC1155s; i++) {
+          // Deploy Contract
+          const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+            owner
+          );
+          // Create/Approve numERC1155s amount of ERC1155s
+          const erc1155Transfer = await createTransferWithApproval(
+            tempERC1155Contract,
+            sender,
+            3,
+            tempConduit.address,
+            sender.address,
+            transferRecipient
+          );
+
+          erc1155Contracts[i] = tempERC1155Contract;
+          erc1155Transfers[i] = erc1155Transfer;
+        }
+
+        const transfers = [
+          ...erc20Transfers,
+          ...erc721Transfers,
+          ...erc1155Transfers,
+        ];
+
+        allContracts.push(
+          ...erc20Contracts,
+          ...erc721Contracts,
+          ...erc1155Contracts
+        );
+
+        transfersWithRecipients[j] = createTransferWithRecipient(
+          transfers,
+          transferRecipient,
+          true
+        );
       }
+
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
-        .bulkTransferToMultipleRecipients(
-          transfersWithRecipients,
-          tempConduitKey
-        );
+        .bulkTransfer(transfersWithRecipients, tempConduitKey);
+
+      let contractsStartingIndex = 0;
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfersWithRecipients.length; i++) {
-        // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
-        const token = contracts[i];
+        const items = transfersWithRecipients[i].items;
 
-        switch (itemType) {
-          case 1: // ERC20
-            // Check balance
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                sender.address
-              )
-            ).to.equal(0);
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                transfersWithRecipients[i].recipient
-              )
-            ).to.equal(amount);
-            break;
-          case 2: // ERC721
-          case 4: // ERC721_WITH_CRITERIA
-            expect(
-              await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-            ).to.equal(transfersWithRecipients[i].recipient);
-            break;
-          case 3: // ERC1155
-          case 5: // ERC1155_WITH_CRITERIA
-            // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(
-              0
-            );
-            expect(
-              await token.balanceOf(
-                transfersWithRecipients[i].recipient,
-                identifier
-              )
-            ).to.equal(amount);
-            break;
+        for (let j = 0; j < items.length; j++) {
+          // Get Itemtype, token, amount, identifier
+          const { itemType, amount, identifier } = items[j];
+          const token = allContracts[contractsStartingIndex];
+
+          switch (itemType) {
+            case 1: // ERC20
+              // Check balance
+              expect(
+                await (token as typeof erc20Contracts[0]).balanceOf(
+                  sender.address
+                )
+              ).to.equal(0);
+              expect(
+                await (token as typeof erc20Contracts[0]).balanceOf(
+                  transfersWithRecipients[i].recipient
+                )
+              ).to.equal(amount);
+              break;
+            case 2: // ERC721
+            case 4: // ERC721_WITH_CRITERIA
+              expect(
+                await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+              ).to.equal(transfersWithRecipients[i].recipient);
+              break;
+            case 3: // ERC1155
+            case 5: // ERC1155_WITH_CRITERIA
+              // Check balance
+              expect(
+                await token.balanceOf(sender.address, identifier)
+              ).to.equal(0);
+              expect(
+                await token.balanceOf(
+                  transfersWithRecipients[i].recipient,
+                  identifier
+                )
+              ).to.equal(amount);
+              break;
+          }
+          contractsStartingIndex++;
         }
       }
     });
 
     it("Executes transfers with multiple recipients (many token types) without a conduit", async () => {
+      const numTransfers = 4;
+
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
@@ -1240,123 +1369,139 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         cal.address,
       ];
 
-      // Create numERC20s amount of ERC20 objects
-      for (let i = 0; i < numERC20s; i++) {
-        // Deploy Contract
-        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-        // Create/Approve X amount of ERC20s
-        const erc20Transfer = await createTransferWithApproval(
-          tempERC20Contract,
-          sender,
-          1,
-          tempTransferHelper.address,
-          sender.address,
-          recipients[i % 4]
+      const transfersWithRecipientsNoConduit = [];
+      const allContracts = [];
+
+      // Create numTransfers amount of TransferHelperItemsWithRecipient
+      for (let j = 0; j < numTransfers; j++) {
+        const transferRecipient = recipients[j];
+
+        // Create numERC20s amount of ERC20 objects
+        for (let i = 0; i < numERC20s; i++) {
+          // Deploy Contract
+          const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+          // Create/Approve X amount of ERC20s
+          const erc20Transfer = await createTransferWithApproval(
+            tempERC20Contract,
+            sender,
+            1,
+            tempTransferHelper.address,
+            sender.address,
+            transferRecipient
+          );
+          erc20Contracts[i] = tempERC20Contract;
+          erc20Transfers[i] = erc20Transfer;
+        }
+
+        // Create numEC721s amount of ERC721 objects
+        for (let i = 0; i < numEC721s; i++) {
+          // Deploy Contract
+          const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+          // Create/Approve numEC721s amount of  ERC721s
+          const erc721Transfer = await createTransferWithApproval(
+            tempERC721Contract,
+            sender,
+            2,
+            tempTransferHelper.address,
+            sender.address,
+            transferRecipient
+          );
+          erc721Contracts[i] = tempERC721Contract;
+          erc721Transfers[i] = erc721Transfer;
+        }
+
+        // Create numERC1155s amount of ERC1155 objects
+        for (let i = 0; i < numERC1155s; i++) {
+          // Deploy Contract
+          const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+            owner
+          );
+          // Create/Approve numERC1155s amount of ERC1155s
+          const erc1155Transfer = await createTransferWithApproval(
+            tempERC1155Contract,
+            sender,
+            3,
+            tempTransferHelper.address,
+            sender.address,
+            transferRecipient
+          );
+
+          erc1155Contracts[i] = tempERC1155Contract;
+          erc1155Transfers[i] = erc1155Transfer;
+        }
+
+        const transfers = [
+          ...erc20Transfers,
+          ...erc721Transfers,
+          ...erc1155Transfers,
+        ];
+
+        allContracts.push(
+          ...erc20Contracts,
+          ...erc721Contracts,
+          ...erc1155Contracts
         );
-        erc20Contracts[i] = tempERC20Contract;
-        erc20Transfers[i] = erc20Transfer;
-      }
 
-      // Create numEC721s amount of ERC721 objects
-      for (let i = 0; i < numEC721s; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempTransferHelper.address,
-          sender.address,
-          recipients[i % 4]
+        transfersWithRecipientsNoConduit[j] = createTransferWithRecipient(
+          transfers,
+          transferRecipient,
+          true
         );
-        erc721Contracts[i] = tempERC721Contract;
-        erc721Transfers[i] = erc721Transfer;
-      }
-
-      // Create numERC1155s amount of ERC1155 objects
-      for (let i = 0; i < numERC1155s; i++) {
-        // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
-        // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferWithApproval(
-          tempERC1155Contract,
-          sender,
-          3,
-          tempTransferHelper.address,
-          sender.address,
-          recipients[i % 4]
-        );
-
-        erc1155Contracts[i] = tempERC1155Contract;
-        erc1155Transfers[i] = erc1155Transfer;
-      }
-
-      const transfers = [
-        ...erc20Transfers,
-        ...erc721Transfers,
-        ...erc1155Transfers,
-      ];
-      const contracts = [
-        ...erc20Contracts,
-        ...erc721Contracts,
-        ...erc1155Contracts,
-      ];
-
-      const transfersWithRecipients = [];
-
-      for (let i = 0; i < transfers.length; i++) {
-        transfersWithRecipients[i] = createTransferWithRecipient(transfers[i]);
       }
 
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
-        .bulkTransferToMultipleRecipients(
-          transfersWithRecipients,
+        .bulkTransfer(
+          transfersWithRecipientsNoConduit,
           ethers.utils.formatBytes32String("")
         );
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfersWithRecipients.length; i++) {
-        // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
-        const token = contracts[i];
 
-        switch (itemType) {
-          case 1: // ERC20
-            // Check balance
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                sender.address
-              )
-            ).to.equal(0);
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                transfersWithRecipients[i].recipient
-              )
-            ).to.equal(amount);
-            break;
-          case 2: // ERC721
-          case 4: // ERC721_WITH_CRITERIA
-            expect(
-              await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-            ).to.equal(transfersWithRecipients[i].recipient);
-            break;
-          case 3: // ERC1155
-          case 5: // ERC1155_WITH_CRITERIA
-            // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(
-              0
-            );
-            expect(
-              await token.balanceOf(
-                transfersWithRecipients[i].recipient,
-                identifier
-              )
-            ).to.equal(amount);
-            break;
+      let contractsStartingIndex = 0;
+      // Loop through all transfer to do ownership/balance checks
+      for (let i = 0; i < transfersWithRecipientsNoConduit.length; i++) {
+        const items = transfersWithRecipientsNoConduit[i].items;
+
+        for (let j = 0; j < items.length; j++) {
+          // Get Itemtype, token, amount, identifier
+          const { itemType, amount, identifier } = items[j];
+          const token = allContracts[contractsStartingIndex];
+
+          switch (itemType) {
+            case 1: // ERC20
+              // Check balance
+              expect(
+                await (token as typeof erc20Contracts[0]).balanceOf(
+                  sender.address
+                )
+              ).to.equal(0);
+              expect(
+                await (token as typeof erc20Contracts[0]).balanceOf(
+                  transfersWithRecipientsNoConduit[i].recipient
+                )
+              ).to.equal(amount);
+              break;
+            case 2: // ERC721
+            case 4: // ERC721_WITH_CRITERIA
+              expect(
+                await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+              ).to.equal(transfersWithRecipientsNoConduit[i].recipient);
+              break;
+            case 3: // ERC1155
+            case 5: // ERC1155_WITH_CRITERIA
+              // Check balance
+              expect(
+                await token.balanceOf(sender.address, identifier)
+              ).to.equal(0);
+              expect(
+                await token.balanceOf(
+                  transfersWithRecipientsNoConduit[i].recipient,
+                  identifier
+                )
+              ).to.equal(amount);
+              break;
+          }
+          contractsStartingIndex++;
         }
       }
     });
@@ -1391,9 +1536,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         0
       );
 
-      const erc721Contracts = [];
-      const erc721Transfers = [];
-
       const erc721Recipients = [
         erc721RecipientOne,
         erc721RecipientTwo,
@@ -1402,66 +1544,98 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         erc721RecipientFive,
       ];
 
-      // Create 5 ERC721 objects
-      for (let i = 0; i < 5; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempTransferHelper.address,
-          sender.address,
-          erc721Recipients[i].address
+      const numTransfers = 5;
+      const transfersWithRecipients = [];
+
+      const allContracts = [];
+
+      for (let i = 0; i < numTransfers; i++) {
+        const erc721Items = [];
+        const erc721Contracts = [];
+
+        // Create 5 ERC721 items
+        for (let j = 0; j < 5; j++) {
+          // Deploy Contract
+          const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+          // Create/Approve numEC721s amount of  ERC721s
+          const erc721Transfer = await createTransferWithApproval(
+            tempERC721Contract,
+            sender,
+            2,
+            tempTransferHelper.address,
+            sender.address,
+            erc721Recipients[j].address
+          );
+
+          erc721Contracts[j] = tempERC721Contract;
+          erc721Items[j] = erc721Transfer;
+        }
+        transfersWithRecipients[i] = createTransferWithRecipient(
+          erc721Items,
+          erc721Recipients[i].address,
+          true
         );
 
-        erc721Contracts[i] = tempERC721Contract;
-        erc721Transfers[i] = createTransferWithRecipient(erc721Transfer);
+        allContracts.push(...erc721Contracts);
       }
 
       // Send the bulk transfers
       await tempTransferHelper
         .connect(sender)
-        .bulkTransferToMultipleRecipients(
-          erc721Transfers,
+        .bulkTransfer(
+          transfersWithRecipients,
           ethers.utils.formatBytes32String("")
         );
 
+      let contractsIndex = 0;
       // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < 5; i++) {
-        // Get identifier and ERC721 token contract
-        const { identifier } = erc721Transfers[i];
-        const { recipient } = erc721Transfers[i];
-        const token = erc721Contracts[i];
+      for (let i = 0; i < numTransfers; i++) {
+        for (let j = 0; j < 5; j++) {
+          // Get identifier and ERC721 token contract
+          const identifier = transfersWithRecipients[i].items[j].identifier;
+          const recipient = transfersWithRecipients[i].recipient;
+          const token = allContracts[contractsIndex];
 
-        expect(
-          await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-        ).to.equal(recipient);
+          expect(
+            await (token as typeof allContracts[0]).ownerOf(identifier)
+          ).to.equal(recipient);
+
+          contractsIndex++;
+        }
       }
     });
 
     it("Reverts on native token transfers", async () => {
       const ethTransferHelperItems = [
         {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             ethTransferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1471,24 +1645,35 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     it("Reverts on invalid ERC20 identifier", async () => {
       const erc20TransferHelperItems = [
         {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 5,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 5,
+              amount: 10,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: false,
         },
         {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 4,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 4,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: false,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             erc20TransferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1501,24 +1686,35 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const erc721TransferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 10,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 10,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: false,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 20,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: false,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             erc721TransferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1532,24 +1728,35 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const erc721TransferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: tempERC721Contract.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-          recipient: tempERC721ContractTwo.address,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721ContractTwo.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
+          recipient: tempERC721Contract.address,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             erc721TransferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1569,24 +1776,35 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const erc721TransferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: invalidRecipient.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
           recipient: invalidRecipientTwo.address,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             erc721TransferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1603,38 +1821,59 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const transferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: false,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: false,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
           recipient: cal.address,
+          validateERC721Receiver: false,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: false,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             transferHelperItems,
             ethers.utils.formatBytes32String("0xabc")
           )
@@ -1670,38 +1909,59 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const transferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: mockERC721ReceiverOne.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
           recipient: mockERC721ReceiverTwo.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
           recipient: mockERC721ReceiverThree.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: mockERC721ReceiverFour.address,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
+          .bulkTransfer(
             transferHelperItems,
             ethers.utils.formatBytes32String("")
           )
@@ -1719,32 +1979,52 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const transferHelperItems = [
         // Invalid item type
         {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 1,
+          items: [
+            {
+              itemType: 0,
+              token: ethers.constants.AddressZero,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
           recipient: cal.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -1755,7 +2035,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, tempConduitKey)
+          .bulkTransfer(transferHelperItems, tempConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("${invalidItemTypeErrorSelector}", "${tempConduitKey.toLowerCase()}", "${
           tempConduit.address
@@ -1772,39 +2052,59 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Call will revert since ERC721 tokens have not been minted
       const transferHelperItems = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
           recipient: cal.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
       ];
 
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, tempConduitKey)
+          .bulkTransfer(transferHelperItems, tempConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertString("WRONG_FROM", "${tempConduitKey.toLowerCase()}", "${
           tempConduit.address
@@ -1846,18 +2146,73 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         .connect(sender)
         .setApprovalForAll(mockConduitAddress, true);
 
-      const transferHelperItems = Array.from(Array(11)).map(() => ({
-        itemType: 3,
-        token: tempERC1155Contract.address,
-        identifier: 0,
-        amount: 10,
-        recipient: alice.address,
-      }));
+      const transfers = [
+        {
+          items: [
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
+        },
+        {
+          items: [
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 3,
+              token: tempERC1155Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+          ],
+          recipient: alice.address,
+          validateERC721Receiver: true,
+        },
+      ];
 
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("0x", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -1870,20 +2225,42 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       );
       const mockERC20Panic = await mockERC20PanicFactory.deploy();
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: mockERC20Panic.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -1894,10 +2271,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         await expect(
           tempTransferHelper
             .connect(sender)
-            .bulkTransferToMultipleRecipients(
-              transferHelperItems,
-              tempConduitKey
-            )
+            .bulkTransfer(transfers, tempConduitKey)
         ).to.be.revertedWith(
           `ConduitErrorRevertBytes("${panicError}", "${tempConduitKey.toLowerCase()}", "${
             tempConduit.address
@@ -1907,10 +2281,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         await expect(
           tempTransferHelper
             .connect(sender)
-            .bulkTransferToMultipleRecipients(
-              transferHelperItems,
-              tempConduitKey
-            )
+            .bulkTransfer(transfers, tempConduitKey)
         ).to.be.reverted;
       }
     });
@@ -1947,27 +2318,49 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
         },
       ];
 
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `InvalidConduit("${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -2004,20 +2397,60 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       )[0];
       await tempERC20Contract.connect(sender).approve(mockConduitAddress, 100);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: alice.address,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: bob.address,
+          validateERC721Receiver: true,
+        },
+        {
+          items: [
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: cal.address,
+          validateERC721Receiver: true,
         },
       ];
 
@@ -2026,7 +2459,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         mockTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, mockConduitKey)
+          .bulkTransfer(transfers, mockConduitKey)
       ).to.be.revertedWith(
         `ConduitErrorRevertBytes("${customErrorSelector}", "${mockConduitKey.toLowerCase()}", "${mockConduitAddress}")`
       );
@@ -2038,41 +2471,73 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-          recipient: alice.address,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-          recipient: cal.address,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
-          recipient: alice.address,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
       ];
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(transferHelperItems, tempConduitKey)
-      ).to.be.revertedWith("RecipientCannotBeZero()");
+          .bulkTransfer(transfers, tempConduitKey)
+      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
 
     it("Reverts when recipient is the null address (without conduit)", async () => {
@@ -2081,44 +2546,74 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Deploy ERC20 Contract
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
-      const transferHelperItems = [
+      const transfers = [
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
           recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
         {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-          recipient: bob.address,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 10,
-          recipient: cal.address,
-        },
-        {
-          itemType: 1,
-          token: tempERC20Contract.address,
-          identifier: 0,
-          amount: 20,
-          recipient: alice.address,
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: ethers.constants.AddressZero,
+          validateERC721Receiver: true,
         },
       ];
+
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransferToMultipleRecipients(
-            transferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("RecipientCannotBeZero()");
+          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
+      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
   });
 });
