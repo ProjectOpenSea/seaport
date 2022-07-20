@@ -14,7 +14,8 @@ contract StubERC1155 {
         address from,
         address to,
         uint256 tokenId,
-        uint256 amount
+        uint256 amount,
+        bytes memory
     ) public {
         emit TransferSingle(msg.sender, from, to, tokenId, amount);
     }
