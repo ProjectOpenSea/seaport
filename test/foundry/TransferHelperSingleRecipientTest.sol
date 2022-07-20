@@ -204,7 +204,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
 
     function _getTransferHelperItemsWithRecipientFromTransferHelperItems(
         TransferHelperItem[] memory items,
-        // TODO stephen: support multiple to (recipients) and move to helper
         address to
     ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
         TransferHelperItemsWithRecipient[]
