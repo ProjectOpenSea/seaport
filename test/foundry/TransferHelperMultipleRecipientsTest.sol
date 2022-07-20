@@ -227,11 +227,12 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             );
     }
 
-    function _ensureFuzzAssumptions(FuzzInputsCommon memory inputs) internal {
+    modifier _ensureFuzzAssumptions(FuzzInputsCommon memory inputs) {
         for (uint256 i = 0; i < inputs.amounts.length; i++) {
-            inputs.amounts[i] = bound(inputs.amounts[i], 1, 2**128);
+            vm.assume(inputs.amounts[i] > 0);
             vm.assume(inputs.recipients[i] != address(0));
         }
+        _;
     }
 
     function _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
@@ -565,7 +566,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         address fuzzRecipient,
         bool reverting
     ) internal view returns (TransferHelperItem memory) {
-        uint256 amount = fuzzAmount % TOTAL_FUNGIBLE_TOKENS;
+        uint256 amount = fuzzAmount % (TOTAL_FUNGIBLE_TOKENS / 10);
         uint256 identifier = fuzzIdentifier % TOTAL_TOKEN_IDENTIFERS;
         address recipient = _makeSafeRecipient(from, fuzzRecipient, reverting);
         if (itemType == ConduitItemType.ERC20) {
@@ -667,9 +668,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC721(FuzzInputsCommon memory inputs) public {
-        _ensureFuzzAssumptions(inputs);
-
+    function testBulkTransferERC721(FuzzInputsCommon memory inputs)
+        public
+        _ensureFuzzAssumptions(inputs)
+    {
         uint256 numItems = inputs.amounts.length;
 
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
@@ -746,9 +748,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     //     );
     // }
 
-    function testBulkTransferERC1155(FuzzInputsCommon memory inputs) public {
-        _ensureFuzzAssumptions(inputs);
-
+    function testBulkTransferERC1155(FuzzInputsCommon memory inputs)
+        public
+        _ensureFuzzAssumptions(inputs)
+    {
         uint256 numItems = inputs.amounts.length;
 
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
