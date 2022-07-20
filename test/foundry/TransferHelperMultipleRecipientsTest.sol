@@ -1218,8 +1218,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             ConduitItemType.ERC721,
             address(erc721s[0]),
             5,
-            1,
-            false
+            1
         );
 
         (address _conduit, ) = conduitController.getConduit(conduitKeyOne);
