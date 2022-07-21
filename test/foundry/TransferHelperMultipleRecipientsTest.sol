@@ -65,7 +65,7 @@ import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 import { StubERC20 } from "./token/StubERC20.sol";
 import { StubERC721 } from "./token/StubERC721.sol";
 import { StubERC1155 } from "./token/StubERC1155.sol";
-import { Strings } from "openzeppelin-contracts/utils/Strings.sol";
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     using Strings for uint256;
@@ -280,11 +280,31 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         return itemsWithRecipient;
     }
 
+    function _unsafeGetTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
+        TransferHelperItem[] memory items,
+        address[10] memory recipients
+    ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
+        TransferHelperItemsWithRecipient[]
+            memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
+                recipients.length
+            );
+        for (uint256 i = 0; i < recipients.length; i++) {
+            itemsWithRecipient[i] = TransferHelperItemsWithRecipient(
+                items,
+                recipients[i],
+                true
+            );
+        }
+
+        return itemsWithRecipient;
+    }
+
     function _performSingleItemTransferAndCheckBalances(
         TransferHelperItem memory item,
         address from,
         address[10] memory recipients,
         bool useConduit,
+        bool makeSafeRecipient,
         bytes memory expectRevertData
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
@@ -295,6 +315,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             from,
             recipients,
             useConduit,
+            makeSafeRecipient,
             expectRevertData
         );
     }
@@ -304,14 +325,24 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         address from,
         address[10] memory recipients,
         bool useConduit,
+        bool makeSafeRecipient,
         bytes memory expectRevertData
     ) public {
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient;
+
+        if (makeSafeRecipient) {
+            itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
                 from,
                 items,
                 recipients
             );
+        } else {
+            itemsWithRecipient = _unsafeGetTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
+                items,
+                recipients
+            );
+        }
+
         // Register expected revert if present.
         if (
             // Compare hashes as we cannot directly compare bytes memory with bytes storage.
@@ -599,6 +630,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -620,6 +652,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -646,6 +679,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -680,6 +714,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -712,6 +747,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -738,6 +774,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -771,6 +808,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -807,6 +845,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             inputs.useConduit,
+            true,
             ""
         );
     }
@@ -832,6 +871,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             false,
+            true,
             ""
         );
     }
@@ -861,6 +901,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             false,
+            true,
             ""
         );
     }
@@ -888,6 +929,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             false,
+            true,
             ""
         );
     }
@@ -911,6 +953,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             false,
+            true,
             abi.encodePacked(
                 TransferHelperErrors.InvalidERC20Identifier.selector
             )
@@ -920,6 +963,14 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     function testRevertBulkTransferERC721InvalidRecipient(
         FuzzInputsCommon memory inputs
     ) public {
+        address[10] memory invalidRecipients;
+
+        for (uint256 i = 0; i < invalidRecipients.length; i++) {
+            InvalidERC721Recipient invalid = new InvalidERC721Recipient();
+            invalidRecipients[i] = address(invalid);
+            emit log_named_address("recipient: ", invalidRecipients[i]);
+        }
+
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
             1,
@@ -931,11 +982,12 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            inputs.recipients,
+            invalidRecipients,
+            false,
             false,
             abi.encodeWithSignature(
                 "InvalidERC721Recipient(address)",
-                invalidRecipient
+                invalidRecipients[0]
             )
         );
     }
@@ -1064,6 +1116,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             true,
+            true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 returnedData,
@@ -1115,6 +1168,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             inputs.recipients,
             true,
+            true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 returnedData,
@@ -1147,6 +1201,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             items,
             alice,
             inputs.recipients,
+            true,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
@@ -1219,10 +1274,11 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             alice,
             invalidReceivers,
             false,
+            false,
             abi.encodeWithSignature(
                 "ERC721ReceiverErrorRevertString(string,address,address,uint256)",
                 "ERC721ReceiverMock: reverting",
-                invalidERC721Receiver,
+                invalidReceivers[0],
                 alice,
                 item.identifier
             )
@@ -1246,6 +1302,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             item,
             bob,
             inputs.recipients,
+            true,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertString(string,bytes32,address)",
@@ -1284,6 +1341,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             items,
             alice,
             inputs.recipients,
+            true,
             true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
