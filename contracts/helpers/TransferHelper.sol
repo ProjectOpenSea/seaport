@@ -133,7 +133,7 @@ contract TransferHelper is
 
                     // Perform a transfer based on the transfer's item type.
                     if (item.itemType == ConduitItemType.ERC20) {
-                        // Ensure that the identifier for an ERC20 token is 0.
+                        // Ensure that the identifier of an ERC20 token is 0.
                         if (item.identifier != 0) {
                             revert InvalidERC20Identifier();
                         }
@@ -146,6 +146,11 @@ contract TransferHelper is
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
+                        // Ensure that the amount of an ERC721 token is 1.
+                        if (item.amount != 1) {
+                            revert InvalidERC721TransferAmount();
+                        }
+
                         // If recipient is a contract and validateERC721Receiver
                         // is true...
                         if (callERC721Receiver) {
@@ -155,10 +160,6 @@ contract TransferHelper is
                                 transfer.recipient,
                                 item.identifier
                             );
-                        }
-                        // Ensure that the amount for an ERC721 transfer is 1.
-                        if (item.amount != 1) {
-                            revert InvalidERC721TransferAmount();
                         }
 
                         // Transfer ERC721 token.
@@ -267,6 +268,18 @@ contract TransferHelper is
                     // Retrieve the item from the transfer.
                     TransferHelperItem calldata item = transferItems[j];
 
+                    if (item.itemType == ConduitItemType.ERC20) {
+                        // Ensure that the identifier of an ERC20 token is 0.
+                        if (item.identifier != 0) {
+                            revert InvalidERC20Identifier();
+                        }
+                    } else if (item.itemType == ConduitItemType.ERC721) {
+                        // Ensure that the amount of an ERC721 token is 1.
+                        if (item.amount != 1) {
+                            revert InvalidERC721TransferAmount();
+                        }
+                    }
+
                     // If the item is an ERC721 token and
                     // callERC721Receiver is true...
                     if (item.itemType == ConduitItemType.ERC721) {
@@ -334,7 +347,6 @@ contract TransferHelper is
      *
      * @param recipient The ERC721 recipient on which to call onERC721Received.
      * @param tokenId   The ERC721 tokenId of the token being transferred.
-     *
      */
     function _checkERC721Receiver(address recipient, uint256 tokenId) internal {
         // Check if recipient can receive ERC721 tokens.
