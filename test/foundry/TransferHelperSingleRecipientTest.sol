@@ -936,23 +936,14 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
                 items,
                 bob
             );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
+
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
             bob,
             true,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
         );
     }
@@ -982,24 +973,14 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
                 items,
                 bob
             );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
 
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
             bob,
             true,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
         );
     }
@@ -1012,16 +993,11 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            0
         );
 
         _updateConduitChannel(false);
 
-        // try transferHelper.bulkTransfer(items, bob, conduitKeyOne) returns (
-        //     bytes4 magicValue
-        // ) {} catch (bytes memory reason) {
-        //     returnedData = this.getSelector(reason);
-        // }
         bytes memory returnedData = abi.encodeWithSelector(
             0x93daadf2,
             address(transferHelper)
@@ -1055,7 +1031,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            0
         );
 
         // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey.

@@ -1104,24 +1104,15 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                 items,
                 inputs.recipients
             );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
+
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
             inputs.recipients,
             true,
             true,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
         );
     }
@@ -1155,13 +1146,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                 items,
                 inputs.recipients
             );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
 
         _performMultiItemTransferAndCheckBalances(
             items,
@@ -1169,11 +1153,8 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             inputs.recipients,
             true,
             true,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
         );
     }
@@ -1186,7 +1167,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0],
+            0,
             false
         );
 
@@ -1226,7 +1207,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0],
+            0,
             false
         );
 
