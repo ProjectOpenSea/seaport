@@ -534,6 +534,34 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       ).to.be.revertedWith("InvalidERC20Identifier");
     });
 
+    it("Reverts on invalid ERC20 identifier via conduit", async () => {
+      const erc20Transfers = [
+        {
+          items: [
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 5,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: ethers.constants.AddressZero,
+              identifier: 4,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(erc20Transfers, tempConduitKey)
+      ).to.be.revertedWith("InvalidERC20Identifier");
+    });
+
     it("Reverts on invalid ERC721 transfer amount", async () => {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
@@ -562,6 +590,37 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
+      ).to.be.revertedWith("InvalidERC721TransferAmount");
+    });
+
+    it("Reverts on invalid ERC721 transfer amount via conduit", async () => {
+      // Deploy Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const erc721Transfers = [
+        {
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 10,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 20,
+            },
+          ],
+          recipient: recipient.address,
+          validateERC721Receiver: true,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(erc721Transfers, tempConduitKey)
       ).to.be.revertedWith("InvalidERC721TransferAmount");
     });
 
@@ -731,6 +790,62 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
+      ).to.be.revertedWith(
+        `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721Receiver.address}", "${sender.address}", 1`
+      );
+    });
+
+    it("Reverts on error in ERC721 receiver via conduit", async () => {
+      // Deploy ERC721 Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+      // Deploy ERC20 Contract
+      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+
+      // Deploy mock ERC721 receiver
+      const mockERC721ReceiverFactory = await ethers.getContractFactory(
+        "ERC721ReceiverMock"
+      );
+      const mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
+        Buffer.from("abcd0000", "hex"),
+        1
+      );
+
+      const transfers = [
+        {
+          items: [
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 1,
+              amount: 1,
+            },
+            {
+              itemType: 2,
+              token: tempERC721Contract.address,
+              identifier: 2,
+              amount: 1,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 10,
+            },
+            {
+              itemType: 1,
+              token: tempERC20Contract.address,
+              identifier: 0,
+              amount: 20,
+            },
+          ],
+          recipient: mockERC721Receiver.address,
+          validateERC721Receiver: true,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(transfers, tempConduitKey)
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721Receiver.address}", "${sender.address}", 1`
       );
