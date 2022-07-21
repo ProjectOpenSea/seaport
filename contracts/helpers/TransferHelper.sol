@@ -221,7 +221,7 @@ contract TransferHelper is
         );
 
         // Declare a variable to store the sum of all items across transfers.
-        uint256 sumOfItemsAcrossTransfers;
+        uint256 sumOfItemsAcrossAllTransfers;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
