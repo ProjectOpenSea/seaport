@@ -76,7 +76,7 @@ contract TestTokenMinter is
         vm.assume(
             recipient != address(0) &&
                 recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
-                recipient != 0x4e59b44847b379578588920ca78fbf26c0b4956c
+                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
         );
         if (recipient.code.length > 0) {
             try
