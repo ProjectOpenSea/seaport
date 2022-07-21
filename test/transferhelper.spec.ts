@@ -2,7 +2,6 @@ import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
 
-import { randomHex } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
 import {
   fixtureERC1155,
@@ -15,11 +14,11 @@ import { VERSION } from "./utils/helpers";
 import {
   ConduitControllerInterface,
   ConduitInterface,
-  contracts,
   EIP1271Wallet,
   EIP1271Wallet__factory,
   TransferHelper,
 } from "../typechain-types";
+import { randomHex } from "./utils/encoding";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { BigNumber, Wallet } from "ethers";
 
@@ -101,7 +100,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     recipient: string,
     validate: boolean
   ): TransferWithRecipient {
-    let transferHelperItems = [];
+    const transferHelperItems = [];
     for (let i = 0; i < transfers.length; i++) {
       transferHelperItems[i] = createTransferHelperItem(transfers[i]);
     }
@@ -1211,7 +1210,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
       const transfersWithRecipients = [];
       const allContracts = [];
-      const allTransfers = [];
 
       // Create numTransfers amount of TransferHelperItemsWithRecipient
       for (let j = 0; j < numTransfers; j++) {
