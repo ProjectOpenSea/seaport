@@ -2,12 +2,15 @@ import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
 
+import { randomHex } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import {
   fixtureERC1155,
   fixtureERC20,
   fixtureERC721,
   seaportFixture,
 } from "./utils/fixtures";
+import type { SeaportFixtures } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
 import type {
@@ -18,9 +21,6 @@ import type {
   TransferHelper,
 } from "../typechain-types";
 
-import { randomHex } from "./utils/encoding";
-import { faucet } from "./utils/faucet";
-import type { SeaportFixtures } from "./utils/fixtures";
 import type { BigNumber, Wallet } from "ethers";
 
 describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
