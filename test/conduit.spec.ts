@@ -1235,6 +1235,38 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
     );
     expect(isOpen).to.be.false;
 
+    // Test a specific branch in ConduitController.updateChannel
+    // when !isOpen && !channelPreviouslyOpen
+    await faucet(conduitController.address, provider);
+
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [conduitController.address],
+    });
+
+    const conduitControllerSigner = await ethers.getSigner(
+      conduitController.address
+    );
+
+    await conduitOne
+      .connect(conduitControllerSigner)
+      .updateChannel(marketplaceContract.address, true);
+
+    await network.provider.request({
+      method: "hardhat_stopImpersonatingAccount",
+      params: [conduitController.address],
+    });
+
+    await conduitController
+      .connect(owner)
+      .updateChannel(conduitOne.address, marketplaceContract.address, false);
+
+    isOpen = await conduitController.getChannelStatus(
+      conduitOne.address,
+      marketplaceContract.address
+    );
+    expect(isOpen).to.be.false;
+
     // Get number of open channels
     totalChannels = await conduitController.getTotalChannels(
       conduitOne.address
