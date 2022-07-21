@@ -65,8 +65,10 @@ import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 import { StubERC20 } from "./token/StubERC20.sol";
 import { StubERC721 } from "./token/StubERC721.sol";
 import { StubERC1155 } from "./token/StubERC1155.sol";
+import { Strings } from "openzeppelin-contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
+    using Strings for uint256;
     TransferHelper transferHelper;
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
     uint256 constant TOTAL_FUNGIBLE_TOKENS = 1e6;
@@ -104,9 +106,24 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
     function _deployStubTokens() internal {
         for (uint256 i; i < 3; i++) {
-            stubERC20s.push(new StubERC20());
-            stubERC721s.push(new StubERC721());
-            stubERC1155s.push(new StubERC1155());
+            StubERC20 stub20 = new StubERC20();
+            StubERC721 stub721 = new StubERC721();
+            StubERC1155 stub1155 = new StubERC1155();
+            vm.label(
+                address(stub20),
+                string.concat("StubERC20 #", i.toString())
+            );
+            vm.label(
+                address(stub1155),
+                string.concat("StubERC1155 #", i.toString())
+            );
+            vm.label(
+                address(stub721),
+                string.concat("StubERC721 #", i.toString())
+            );
+            stubERC20s.push(stub20);
+            stubERC721s.push(stub721);
+            stubERC1155s.push(stub1155);
         }
     }
 
@@ -289,8 +306,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         bool useConduit,
         bytes memory expectRevertData
     ) public {
-        vm.startPrank(from);
-
         TransferHelperItemsWithRecipient[]
             memory itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
                 from,
@@ -314,35 +329,36 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
 
             for (uint256 i; i < itemsWithRecipient.length; i++) {
                 TransferHelperItemsWithRecipient
-                    memory singleItemsWithRecipient = itemsWithRecipient[i];
-                for (
-                    uint256 j;
-                    j < singleItemsWithRecipient.items.length;
-                    j++
-                ) {
-                    TransferHelperItem memory item = singleItemsWithRecipient
+                    memory firstRecipientTransfer = itemsWithRecipient[i];
+                for (uint256 j; j < firstRecipientTransfer.items.length; j++) {
+                    TransferHelperItem memory item = firstRecipientTransfer
                         .items[j];
                     // expect all 3 indexed topics plus data since Transfer event has same signature for ERC20/ERC721,
                     // but tokenId is indexed for 721 and not for ERC20 (so amount is data)
                     // ERC1155 has three indexed topics plus data.
-                    vm.expectEmit(true, true, true, true, item.token);
+
                     if (item.itemType == ConduitItemType.ERC20) {
+                        vm.expectEmit(true, true, true, true, item.token);
+
                         emit Transfer(
                             from,
-                            singleItemsWithRecipient.recipient,
+                            firstRecipientTransfer.recipient,
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
+                        vm.expectEmit(true, true, true, true, item.token);
                         emit Transfer(
                             from,
-                            singleItemsWithRecipient.recipient,
+                            firstRecipientTransfer.recipient,
                             item.identifier
                         );
                     } else {
+                        vm.expectEmit(true, true, true, true, item.token);
+
                         emit TransferSingle(
                             operator,
                             from,
-                            singleItemsWithRecipient.recipient,
+                            firstRecipientTransfer.recipient,
                             item.identifier,
                             item.amount
                         );
@@ -350,14 +366,15 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                 }
             }
         }
-        // Perform transfer.
 
+        // Perform transfer.
+        vm.prank(from);
         transferHelper.bulkTransfer(
             itemsWithRecipient,
             useConduit ? conduitKeyOne : bytes32(0)
         );
 
-        vm.stopPrank();
+        // vm.stopPrank();
     }
 
     function _performMultiItemTransferAndCheckBalances(
@@ -368,7 +385,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         bytes memory expectRevertDataWithConduit,
         bytes memory expectRevertDataWithoutConduit
     ) public {
-        vm.startPrank(from);
         TransferHelperItemsWithRecipient[]
             memory itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
                 from,
@@ -410,20 +426,23 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                     // expect all 3 indexed topics plus data since Transfer event has same signature for ERC20/ERC721,
                     // but tokenId is indexed for 721 and not for ERC20 (so amount is data)
                     // ERC1155 has three indexed topics plus data.
-                    vm.expectEmit(true, true, true, true, item.token);
                     if (item.itemType == ConduitItemType.ERC20) {
+                        vm.expectEmit(true, true, true, true, item.token);
+
                         emit Transfer(
                             from,
                             singleItemsWithRecipient.recipient,
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
+                        vm.expectEmit(true, true, true, true, item.token);
                         emit Transfer(
                             from,
                             singleItemsWithRecipient.recipient,
                             item.identifier
                         );
                     } else {
+                        vm.expectEmit(true, true, true, true, item.token);
                         emit TransferSingle(
                             operator,
                             from,
@@ -436,13 +455,11 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             }
         }
         // Perform transfer.
-
+        vm.prank(from);
         transferHelper.bulkTransfer(
             itemsWithRecipient,
             useConduit ? conduitKeyOne : bytes32(0)
         );
-
-        vm.stopPrank();
     }
 
     function _makeSafeRecipient(address from, address fuzzRecipient)
@@ -907,7 +924,8 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             ConduitItemType.ERC721,
             1,
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            inputs.identifiers[0],
+            false
         );
 
         _performSingleItemTransferAndCheckBalances(

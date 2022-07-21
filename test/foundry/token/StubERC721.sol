@@ -2,11 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract StubERC721 {
-    event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed tokenId
-    );
+    event Transfer(address indexed from, address indexed to, uint256 tokenId);
 
     function transferFrom(
         address from,
