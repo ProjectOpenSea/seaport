@@ -17,5 +17,14 @@ import {
 } from "contracts/zones/PausableZoneController.sol";
 import { TransferHelper } from "contracts/helpers/TransferHelper.sol";
 import {
+    InvalidERC721Recipient
+} from "contracts/test/InvalidERC721Recipient.sol";
+import { ERC721ReceiverMock } from "contracts/test/ERC721ReceiverMock.sol";
+import { TestERC20Panic } from "contracts/test/TestERC20Panic.sol";
+import {
+    ConduitControllerMock
+} from "contracts/test/ConduitControllerMock.sol";
+import { ConduitMock } from "contracts/test/ConduitMock.sol";
+import {
     ImmutableCreate2FactoryInterface
 } from "contracts/interfaces/ImmutableCreate2FactoryInterface.sol";

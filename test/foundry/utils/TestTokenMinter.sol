@@ -73,7 +73,11 @@ contract TestTokenMinter is
     address[] preapprovals;
 
     modifier only1155Receiver(address recipient) {
-        vm.assume(recipient != address(0));
+        vm.assume(
+            recipient != address(0) &&
+                recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
+                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
+        );
         if (recipient.code.length > 0) {
             try
                 ERC1155Recipient(recipient).onERC1155Received(
