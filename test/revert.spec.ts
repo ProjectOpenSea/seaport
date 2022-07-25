@@ -3233,7 +3233,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchAdvancedOrders(
             [order, order2],
             [],
-            [toFulfillment([[3, 0]], [[0, 0]])],
+            [toFulfillment([[3, 0]], [[0, 0]])]
           )
       ).to.be.revertedWith("InvalidFulfillmentComponentData");
     });
