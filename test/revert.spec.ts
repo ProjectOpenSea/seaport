@@ -2079,6 +2079,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             value,
           })
       ).to.be.revertedWith("InvalidFulfillmentComponentData");
+
+      // Reverts on out-of-bounds fulfillment orderIndex
+      await expect(
+        marketplaceContract.connect(owner).matchOrders([order], fulfillments, {
+          value,
+        })
+      ).to.be.revertedWith("InvalidFulfillmentComponentData");
     });
     it("Reverts on unmet consideration items", async () => {
       // Seller mints nft
@@ -3218,6 +3225,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       ).to.be.revertedWith(
         "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
       );
+
+      // Reverts on out-of-bounds fulfillment orderIndex
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [order, order2],
+            [],
+            [toFulfillment([[3, 0]], [[0, 0]])]
+          )
+      ).to.be.revertedWith("InvalidFulfillmentComponentData");
     });
 
     it("Reverts on consideration amount overflow", async () => {
