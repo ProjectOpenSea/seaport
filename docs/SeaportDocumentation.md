@@ -149,7 +149,7 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 8. Scan each consideration item and ensure that none still have a nonzero amount remaining
 9. Perform transfers as part of each execution
    - Use either conduit or Seaport directly to source approvals, depending on the original order type
-   - Ignore each execution where `to == from` or `amount == 0` _(NOTE: the current implementation does not perform this last optimization)_
+   - Ignore each execution where `to == from`
 
 ## Known Limitations and Workarounds
 
