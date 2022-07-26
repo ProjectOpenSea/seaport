@@ -38,5 +38,6 @@ module.exports = {
     "test/ConduitMockInvalidMagic.sol",
     "test/ConduitMockRevertBytes.sol",
     "test/ConduitMockRevertNoReason.sol",
+    "../reference/shim/Shim.sol",
   ],
 };
