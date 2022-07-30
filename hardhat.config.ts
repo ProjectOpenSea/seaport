@@ -94,7 +94,15 @@ const config: any = {
     },
     cronosTestnet: {
       chainId: 338,
-      url: `https://cro-croeseid.g.alchemy.com/${process.env.ALCHEMY_KEY_CRONOS}/cosmos-rest/`,
+      // url: `https://cro-croeseid.g.alchemy.com/${process.env.ALCHEMY_KEY_CRONOS}/cosmos-rest/`,
+      url: 'https://evm-t3.cronos.org',
+      accounts: process.env.MNEMONIC
+        ? { mnemonic: process.env.MNEMONIC }
+        : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),
+    },
+    bobaTestnet: {
+      chainId: 28,
+      url: 'https://rinkeby.boba.network',
       accounts: process.env.MNEMONIC
         ? { mnemonic: process.env.MNEMONIC }
         : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),

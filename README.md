@@ -29,6 +29,13 @@ Polygon Mumbai
 - ConduitController: https://mumbai.polygonscan.com/address/0xB94Ad2559dCC53Da3a51B9f62eB9254fd0fB389D
 - Seaport: https://mumbai.polygonscan.com/address/0x5d603b86fA18de1e6a95a2f890cE1aEf2f641839
 
+Cronos Testnet
+- ConduitController: 0x6C7FAE2e9cBED1987Bec2DFF08afc48A92604307
+- Seaport: 0x00680f08FAB20e9513eDC8551D20F98E450B86C7
+
+Boba Testnet
+- Insufficient gas limit
+
 ## Table of Contents
 
 - [Seaport](#seaport)

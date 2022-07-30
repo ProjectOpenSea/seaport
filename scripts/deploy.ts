@@ -11,17 +11,17 @@ async function main(): Promise<void> {
   // to make sure everything is compiled
   // await run("compile");
   // We get the contract to deploy
-  const ConduitController: ContractFactory = await ethers.getContractFactory(
-    'ConduitController',
-  );
-  const conduitControllerContract: Contract = await ConduitController.deploy();
-  await conduitControllerContract.deployed();
-  console.log('ConduitController deployed to: ', conduitControllerContract.address);
+  // const ConduitController: ContractFactory = await ethers.getContractFactory(
+  //   'ConduitController',
+  // );
+  // const conduitControllerContract: Contract = await ConduitController.deploy();
+  // await conduitControllerContract.deployed();
+  // console.log('ConduitController deployed to: ', conduitControllerContract.address);
 
   const Seaport: ContractFactory = await ethers.getContractFactory(
     'Seaport',
   );
-  const seaportContract: Contract = await Seaport.deploy(conduitControllerContract.address);
+  const seaportContract: Contract = await Seaport.deploy('0x6C7FAE2e9cBED1987Bec2DFF08afc48A92604307', { gasLimit: 11000000 });
   await seaportContract.deployed();
   console.log('Seaport deployed to: ', seaportContract.address);
 }

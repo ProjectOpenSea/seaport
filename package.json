@@ -18,6 +18,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@opensea/seaport-js": "^1.0.2",
     "@rari-capital/solmate": "^6.2.0",
     "@typechain/ethers-v5": "^10.0.0",
     "@typechain/hardhat": "^6.0.0",
@@ -36,6 +37,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "ethereum-waffle": "^3.4.0",
+    "ethereumjs-tx": "^2.1.2",
     "hardhat-gas-reporter": "^1.0.7",
     "husky": ">=6",
     "lint-staged": ">=10",
@@ -73,6 +75,8 @@
     "deploy:hardhat": "npx hardhat run scripts/deploy.ts --network hardhat",
     "deploy:optimism-kovan": "npx hardhat run scripts/deploy.ts --network optimism_kovan",
     "deploy:polygonMumbai": "npx hardhat run scripts/deploy.ts --network polygonMumbai",
+    "deploy:cronosTestnet": "npx hardhat run scripts/deploy.ts --network cronosTestnet",
+    "deploy:bobaTestnet": "npx hardhat run scripts/deploy.ts --network bobaTestnet",
     "verify:rinkeby": "npx hardhat run scripts/verify.ts --network rinkeby"
   },
   "lint-staged": {
