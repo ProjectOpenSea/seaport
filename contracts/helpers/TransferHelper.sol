@@ -5,12 +5,6 @@ import { IERC721Receiver } from "../interfaces/IERC721Receiver.sol";
 
 import "./TransferHelperStructs.sol";
 
-import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
-
-import {
-    TokenTransferrerErrors
-} from "../interfaces/TokenTransferrerErrors.sol";
-
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import {
@@ -33,11 +27,7 @@ import { TransferHelperErrors } from "../interfaces/TransferHelperErrors.sol";
  * @notice TransferHelper is a utility contract for transferring
  *         ERC20/ERC721/ERC1155 items in bulk to specific recipients.
  */
-contract TransferHelper is
-    TransferHelperInterface,
-    TransferHelperErrors,
-    TokenTransferrer
-{
+contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
@@ -81,111 +71,16 @@ contract TransferHelper is
         TransferHelperItemsWithRecipient[] calldata items,
         bytes32 conduitKey
     ) external override returns (bytes4 magicValue) {
-        // If no conduitKey is given, use TokenTransferrer to perform transfers.
+        // Ensure that a conduit key has been supplied.
         if (conduitKey == bytes32(0)) {
-            _performTransfersWithoutConduit(items);
-        } else {
-            // Otherwise, a conduitKey was provided.
-            _performTransfersWithConduit(items, conduitKey);
+            revert InvalidConduit(conduitKey, address(0));
         }
+
+        // Use conduit derived from supplied conduit key to perform transfers.
+        _performTransfersWithConduit(items, conduitKey);
 
         // Return a magic value indicating that the transfers were performed.
         magicValue = this.bulkTransfer.selector;
-    }
-
-    /**
-     * @notice Perform multiple transfers to individually-specified recipients
-     *         via TokenTransferrer.
-     *
-     * @param transfers The transfers to perform.
-     */
-    function _performTransfersWithoutConduit(
-        TransferHelperItemsWithRecipient[] calldata transfers
-    ) internal {
-        // Retrieve total number of transfers and place on stack.
-        uint256 numTransfers = transfers.length;
-
-        // Skip overflow checks: all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each transfer.
-            for (uint256 i = 0; i < numTransfers; ++i) {
-                // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
-
-                // Retrieve the items of the transfer in question.
-                TransferHelperItem[] calldata transferItems = transfer.items;
-
-                // Ensure recipient is not the zero address.
-                _checkRecipientIsNotZeroAddress(transfer.recipient);
-
-                // Create a boolean indicating whether validateERC721Receiver
-                // is true and recipient is a contract.
-                bool callERC721Receiver = transfer.validateERC721Receiver &&
-                    transfer.recipient.code.length != 0;
-
-                // Retrieve total number of transfers and place on stack.
-                uint256 totalItemTransfers = transferItems.length;
-
-                for (uint256 j = 0; j < totalItemTransfers; ++j) {
-                    TransferHelperItem calldata item = transferItems[j];
-
-                    // Perform a transfer based on the transfer's item type.
-                    if (item.itemType == ConduitItemType.ERC20) {
-                        // Ensure that the identifier of an ERC20 token is 0.
-                        if (item.identifier != 0) {
-                            revert InvalidERC20Identifier();
-                        }
-
-                        // Transfer ERC20 token.
-                        _performERC20Transfer(
-                            item.token,
-                            msg.sender,
-                            transfer.recipient,
-                            item.amount
-                        );
-                    } else if (item.itemType == ConduitItemType.ERC721) {
-                        // Ensure that the amount of an ERC721 token is 1.
-                        if (item.amount != 1) {
-                            revert InvalidERC721TransferAmount();
-                        }
-
-                        // If recipient is a contract and validateERC721Receiver
-                        // is true...
-                        if (callERC721Receiver) {
-                            // Check if the recipient implements
-                            // onERC721Received for the given tokenId.
-                            _checkERC721Receiver(
-                                transfer.recipient,
-                                item.identifier
-                            );
-                        }
-
-                        // Transfer ERC721 token.
-                        _performERC721Transfer(
-                            item.token,
-                            msg.sender,
-                            transfer.recipient,
-                            item.identifier
-                        );
-                    } else if (item.itemType == ConduitItemType.ERC1155) {
-                        // Transfer ERC1155 token.
-                        _performERC1155Transfer(
-                            item.token,
-                            msg.sender,
-                            transfer.recipient,
-                            item.identifier,
-                            item.amount
-                        );
-                    } else {
-                        // Revert if the item being transferred is a
-                        // native token.
-                        revert InvalidItemType();
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -281,11 +176,6 @@ contract TransferHelper is
                         if (item.identifier != 0) {
                             revert InvalidERC20Identifier();
                         }
-                    } else if (item.itemType == ConduitItemType.ERC721) {
-                        // Ensure that the amount of an ERC721 token is 1.
-                        if (item.amount != 1) {
-                            revert InvalidERC721TransferAmount();
-                        }
                     }
 
                     // If the item is an ERC721 token and
@@ -295,6 +185,7 @@ contract TransferHelper is
                             // Check if the recipient implements
                             // onERC721Received for the given tokenId.
                             _checkERC721Receiver(
+                                conduit,
                                 transfer.recipient,
                                 item.identifier
                             );
@@ -324,36 +215,79 @@ contract TransferHelper is
         ) {
             // Check if the value returned from the external call matches
             // the conduit `execute` selector.
-            if (
-                conduitMagicValue != ConduitInterface(conduit).execute.selector
-            ) {
+            if (conduitMagicValue != ConduitInterface.execute.selector) {
                 // If the external call fails, revert with the conduit key
                 // and conduit address.
                 revert InvalidConduit(conduitKey, conduit);
             }
-        } catch (bytes memory data) {
-            // Catch reverts from the external call to the conduit and
-            // "bubble up" the conduit's revert reason.
-            revert ConduitErrorRevertBytes(data, conduitKey, conduit);
         } catch Error(string memory reason) {
             // Catch reverts with a provided reason string and
             // revert with the reason, conduit key and conduit address.
             revert ConduitErrorRevertString(reason, conduitKey, conduit);
+        } catch (bytes memory data) {
+            // Conduits will throw a custom error when attempting to transfer
+            // native token item types or an ERC721 item amount other than 1.
+            // Bubble up these custom errors when encountered. Note that the
+            // conduit itself will bubble up revert reasons from transfers as
+            // well, meaning that these errors are not necessarily indicative of
+            // an issue with the item type or amount in cases where the same
+            // custom error signature is encountered during a conduit transfer.
+
+            // Set initial value of first four bytes of revert data to the mask.
+            bytes4 customErrorSelector = bytes4(0xffffffff);
+
+            // Utilize assembly to read first four bytes (if present) directly.
+            assembly {
+                // Combine original mask with first four bytes of revert data.
+                customErrorSelector := and(
+                    mload(add(data, 0x20)), // Data begins after length offset.
+                    customErrorSelector
+                )
+            }
+
+            // Pass through the custom error in question if the revert data is
+            // the correct length and matches an expected custom error selector.
+            if (
+                data.length == 4 &&
+                (customErrorSelector == InvalidItemType.selector ||
+                    customErrorSelector == InvalidERC721TransferAmount.selector)
+            ) {
+                // "Bubble up" the revert reason.
+                assembly {
+                    revert(add(data, 0x20), 0x04)
+                }
+            }
+
+            // Catch all other reverts from the external call to the conduit and
+            // include the conduit's raw revert reason as a data argument to a
+            // new custom error.
+            revert ConduitErrorRevertBytes(data, conduitKey, conduit);
         }
     }
 
     /**
      * @notice An internal function to check if a recipient address implements
-     *         onERC721Received for a given tokenId.
+     *         onERC721Received for a given tokenId. Note that this check does
+     *         not adhere to the safe transfer specification and is only meant
+     *         to provide an additional layer of assurance that the recipient
+     *         can receive the tokens — any hooks or post-transfer checks will
+     *         fail and the caller will be the transfer helper rather than the
+     *         ERC721 contract.
      *
+     * @param conduit   The conduit to provide as the operator when calling
+     *                  onERC721Received.
      * @param recipient The ERC721 recipient on which to call onERC721Received.
      * @param tokenId   The ERC721 tokenId of the token being transferred.
      */
-    function _checkERC721Receiver(address recipient, uint256 tokenId) internal {
+    function _checkERC721Receiver(
+        address conduit,
+        address recipient,
+        uint256 tokenId
+    ) internal {
         // Check if recipient can receive ERC721 tokens.
         try
             IERC721Receiver(recipient).onERC721Received(
-                address(this),
+                conduit,
                 msg.sender,
                 tokenId,
                 ""

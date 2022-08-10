@@ -243,6 +243,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await tempTransferHelper
         .connect(sender)
         .bulkTransfer(transfersWithRecipients, tempConduitKey);
+
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfersWithRecipients[0].items.length; i++) {
         // Get Itemtype, token, amount, identifier
@@ -284,7 +285,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       }
     });
 
-    it("Executes transfers (many token types) without a conduit", async () => {
+    it("Cannot execute transfers (many token types) without a conduit", async () => {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
@@ -358,11 +359,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         ...erc721Transfers,
         ...erc1155Transfers,
       ];
-      const contracts = [
-        ...erc20Contracts,
-        ...erc721Contracts,
-        ...erc1155Contracts,
-      ];
 
       const transfersWithRecipients = [];
 
@@ -372,54 +368,20 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         true
       );
 
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(
-          transfersWithRecipients,
-          ethers.utils.formatBytes32String("")
-        );
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfers.length; i++) {
-        // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
-        const token = contracts[i];
-
-        switch (itemType) {
-          case 1: // ERC20
-            // Check balance
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                sender.address
-              )
-            ).to.equal(0);
-            expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
-                recipient.address
-              )
-            ).to.equal(amount);
-            break;
-          case 2: // ERC721
-          case 4: // ERC721_WITH_CRITERIA
-            expect(
-              await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-            ).to.equal(recipient.address);
-            break;
-          case 3: // ERC1155
-          case 5: // ERC1155_WITH_CRITERIA
-            // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(
-              0
-            );
-            expect(
-              await token.balanceOf(recipient.address, identifier)
-            ).to.equal(amount);
-            break;
-        }
-      }
+      // Sending the bulk transfers with no conduit reverts
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transfersWithRecipients,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith(
+        `InvalidConduit("${ethers.constants.HashZero}", "${ethers.constants.AddressZero}")`
+      );
     });
 
-    it("Executes ERC721 transfers to a contract recipient without a conduit", async () => {
+    it("Cannot execute ERC721 transfers to a contract recipient without a conduit", async () => {
       // Deploy recipient contract
       const erc721RecipientFactory = await ethers.getContractFactory(
         "ERC721ReceiverMock"
@@ -457,24 +419,17 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         true
       );
 
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(
-          transfersWithRecipients,
-          ethers.utils.formatBytes32String("")
-        );
-
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < 5; i++) {
-        // Get identifier and ERC721 token contract
-        const { identifier } = erc721Transfers[i];
-        const token = erc721Contracts[i];
-
-        expect(
-          await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-        ).to.equal(erc721Recipient.address);
-      }
+      // Sending the bulk transfers with no conduit reverts
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transfersWithRecipients,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith(
+        `InvalidConduit("${ethers.constants.HashZero}", "${ethers.constants.AddressZero}")`
+      );
     });
 
     it("Reverts on native token transfers", async () => {
@@ -502,36 +457,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(ethTransfers, ethers.utils.formatBytes32String(""))
+          .bulkTransfer(ethTransfers, tempConduitKey)
       ).to.be.revertedWith("InvalidItemType");
-    });
-
-    it("Reverts on invalid ERC20 identifier", async () => {
-      const erc20Transfers = [
-        {
-          items: [
-            {
-              itemType: 1,
-              token: ethers.constants.AddressZero,
-              identifier: 5,
-              amount: 10,
-            },
-            {
-              itemType: 1,
-              token: ethers.constants.AddressZero,
-              identifier: 4,
-              amount: 20,
-            },
-          ],
-          recipient: recipient.address,
-          validateERC721Receiver: true,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(erc20Transfers, ethers.utils.formatBytes32String(""))
-      ).to.be.revertedWith("InvalidERC20Identifier");
     });
 
     it("Reverts on invalid ERC20 identifier via conduit", async () => {
@@ -560,37 +487,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           .connect(sender)
           .bulkTransfer(erc20Transfers, tempConduitKey)
       ).to.be.revertedWith("InvalidERC20Identifier");
-    });
-
-    it("Reverts on invalid ERC721 transfer amount", async () => {
-      // Deploy Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-
-      const erc721Transfers = [
-        {
-          items: [
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 1,
-              amount: 10,
-            },
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 2,
-              amount: 20,
-            },
-          ],
-          recipient: recipient.address,
-          validateERC721Receiver: true,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
-      ).to.be.revertedWith("InvalidERC721TransferAmount");
     });
 
     it("Reverts on invalid ERC721 transfer amount via conduit", async () => {
@@ -651,7 +547,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
+          .bulkTransfer(erc721Transfers, tempConduitKey)
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertBytes("0x", "${tempERC721Contract.address}", "${sender.address}", 1)`
       );
@@ -688,7 +584,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(erc721Transfers, ethers.utils.formatBytes32String(""))
+          .bulkTransfer(erc721Transfers, tempConduitKey)
       ).to.be.revertedWith(
         `InvalidERC721Recipient("${invalidRecipient.address}")`
       );
@@ -789,7 +685,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
+          .bulkTransfer(transfers, tempConduitKey)
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721Receiver.address}", "${sender.address}", 1`
       );
@@ -890,19 +786,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
-      const invalidItemTypeErrorSelector = ethers.utils
-        .id("InvalidItemType()")
-        .slice(0, 10);
-
       await expect(
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, tempConduitKey)
-      ).to.be.revertedWith(
-        `ConduitErrorRevertBytes("${invalidItemTypeErrorSelector}", "${tempConduitKey.toLowerCase()}", "${
-          tempConduit.address
-        }")`
-      );
+      ).to.be.revertedWith("InvalidItemType");
     });
 
     it("Reverts with bubbled up string error from call to conduit", async () => {
@@ -1251,51 +1139,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           .bulkTransfer(transfers, tempConduitKey)
       ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
-
-    it("Reverts when recipient is the null address (without conduit)", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-      // Deploy ERC20 Contract
-      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-
-      const transfers = [
-        {
-          items: [
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 1,
-              amount: 1,
-            },
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 2,
-              amount: 1,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 10,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 20,
-            },
-          ],
-          recipient: ethers.constants.AddressZero,
-          validateERC721Receiver: true,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
-      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
-    });
   });
   describe("Multi-recipient tests", async () => {
     it("Executes transfers with multiple recipients (many token types) with a conduit", async () => {
@@ -1457,7 +1300,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       }
     });
 
-    it("Executes transfers with multiple recipients (many token types) without a conduit", async () => {
+    it("Cannot execute transfers with multiple recipients (many token types) without a conduit", async () => {
       const numTransfers = 4;
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
@@ -1562,64 +1405,20 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         );
       }
 
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(
-          transfersWithRecipientsNoConduit,
-          ethers.utils.formatBytes32String("")
-        );
-
-      let contractsStartingIndex = 0;
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfersWithRecipientsNoConduit.length; i++) {
-        const items = transfersWithRecipientsNoConduit[i].items;
-
-        for (let j = 0; j < items.length; j++) {
-          // Get Itemtype, token, amount, identifier
-          const { itemType, amount, identifier } = items[j];
-          const token = allContracts[contractsStartingIndex];
-
-          switch (itemType) {
-            case 1: // ERC20
-              // Check balance
-              expect(
-                await (token as typeof erc20Contracts[0]).balanceOf(
-                  sender.address
-                )
-              ).to.equal(0);
-              expect(
-                await (token as typeof erc20Contracts[0]).balanceOf(
-                  transfersWithRecipientsNoConduit[i].recipient
-                )
-              ).to.equal(amount);
-              break;
-            case 2: // ERC721
-            case 4: // ERC721_WITH_CRITERIA
-              expect(
-                await (token as typeof erc721Contracts[0]).ownerOf(identifier)
-              ).to.equal(transfersWithRecipientsNoConduit[i].recipient);
-              break;
-            case 3: // ERC1155
-            case 5: // ERC1155_WITH_CRITERIA
-              // Check balance
-              expect(
-                await token.balanceOf(sender.address, identifier)
-              ).to.equal(0);
-              expect(
-                await token.balanceOf(
-                  transfersWithRecipientsNoConduit[i].recipient,
-                  identifier
-                )
-              ).to.equal(amount);
-              break;
-          }
-          contractsStartingIndex++;
-        }
-      }
+      // Sending the bulk transfers with no conduit reverts
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transfersWithRecipientsNoConduit,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith(
+        `InvalidConduit("${ethers.constants.HashZero}", "${ethers.constants.AddressZero}")`
+      );
     });
 
-    it("Executes ERC721 transfers to multiple contract recipients without a conduit", async () => {
+    it("Cannot execute ERC721 transfers to multiple contract recipients without a conduit", async () => {
       // Deploy recipient contract
       const erc721RecipientFactory = await ethers.getContractFactory(
         "ERC721ReceiverMock"
@@ -1692,30 +1491,17 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         allContracts.push(...erc721Contracts);
       }
 
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(
-          transfersWithRecipients,
-          ethers.utils.formatBytes32String("")
-        );
-
-      let contractsIndex = 0;
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < numTransfers; i++) {
-        for (let j = 0; j < 5; j++) {
-          // Get identifier and ERC721 token contract
-          const identifier = transfersWithRecipients[i].items[j].identifier;
-          const recipient = transfersWithRecipients[i].recipient;
-          const token = allContracts[contractsIndex];
-
-          expect(
-            await (token as typeof allContracts[0]).ownerOf(identifier)
-          ).to.equal(recipient);
-
-          contractsIndex++;
-        }
-      }
+      // Sending the bulk transfers with no conduit reverts
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transfersWithRecipients,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith(
+        `InvalidConduit("${ethers.constants.HashZero}", "${ethers.constants.AddressZero}")`
+      );
     });
 
     it("Reverts on native token transfers", async () => {
@@ -1748,10 +1534,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            ethTransferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(ethTransferHelperItems, tempConduitKey)
       ).to.be.revertedWith("InvalidItemType");
     });
 
@@ -1786,10 +1569,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc20TransferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc20TransferHelperItems, tempConduitKey)
       ).to.be.revertedWith("InvalidERC20Identifier");
     });
 
@@ -1827,10 +1607,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
       ).to.be.revertedWith("InvalidERC721TransferAmount");
     });
 
@@ -1869,10 +1646,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertBytes("0x", "${tempERC721Contract.address}", "${sender.address}", 1)`
       );
@@ -1917,10 +1691,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
       ).to.be.revertedWith(
         `InvalidERC721Recipient("${invalidRecipient.address}")`
       );
@@ -2074,10 +1845,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       await expect(
         tempTransferHelper
           .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            ethers.utils.formatBytes32String("")
-          )
+          .bulkTransfer(transferHelperItems, tempConduitKey)
       ).to.be.revertedWith(
         `ERC721ReceiverErrorRevertString("ERC721ReceiverMock: reverting", "${mockERC721ReceiverOne.address}", "${sender.address}", 1`
       );
@@ -2140,20 +1908,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           validateERC721Receiver: true,
         },
       ];
-
-      const invalidItemTypeErrorSelector = ethers.utils
-        .id("InvalidItemType()")
-        .slice(0, 10);
-
       await expect(
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, tempConduitKey)
-      ).to.be.revertedWith(
-        `ConduitErrorRevertBytes("${invalidItemTypeErrorSelector}", "${tempConduitKey.toLowerCase()}", "${
-          tempConduit.address
-        }")`
-      );
+      ).to.be.revertedWith("InvalidItemType");
     });
 
     it("Reverts with bubbled up string error from call to conduit", async () => {
@@ -2650,82 +2409,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, tempConduitKey)
-      ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
-    });
-
-    it("Reverts when recipient is the null address (without conduit)", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-      // Deploy ERC20 Contract
-      const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-
-      const transfers = [
-        {
-          items: [
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 1,
-              amount: 1,
-            },
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 2,
-              amount: 1,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 10,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 20,
-            },
-          ],
-          recipient: ethers.constants.AddressZero,
-          validateERC721Receiver: true,
-        },
-        {
-          items: [
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 1,
-              amount: 1,
-            },
-            {
-              itemType: 2,
-              token: tempERC721Contract.address,
-              identifier: 2,
-              amount: 1,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 10,
-            },
-            {
-              itemType: 1,
-              token: tempERC20Contract.address,
-              identifier: 0,
-              amount: 20,
-            },
-          ],
-          recipient: ethers.constants.AddressZero,
-          validateERC721Receiver: true,
-        },
-      ];
-
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transfers, ethers.utils.formatBytes32String(""))
       ).to.be.revertedWith("RecipientCannotBeZeroAddress()");
     });
   });
