@@ -12,7 +12,6 @@ contract TransferHelperDeployer is Script {
     function setUp() public {}
 
     function run() public {
-        address deployer = 0x43Eb2499553a4cb062cfeD09407F6c94C1494F86;
         vm.broadcast();
         ImmutableCreate2Factory factory = ImmutableCreate2Factory(
             0x0000000000FFe8B47B3e2130213B802212439497

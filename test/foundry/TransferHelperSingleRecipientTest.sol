@@ -80,8 +80,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
     }
 
     struct FuzzInputsCommon {
-        // Indicates if a conduit should be used for the transfer
-        bool useConduit;
         // Amounts that can be used for the amount field on TransferHelperItem
         uint256[10] amounts;
         // Identifiers that can be used for the identifier field on TransferHelperItem
@@ -222,7 +220,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         TransferHelperItem memory item,
         address from,
         address to,
-        bool useConduit,
         bytes memory expectRevertData
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
@@ -231,7 +228,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             items,
             from,
             to,
-            useConduit,
             expectRevertData
         );
     }
@@ -240,7 +236,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         TransferHelperItem[] memory items,
         address from,
         address to,
-        bool useConduit,
         bytes memory expectRevertData
     ) public {
         vm.startPrank(from);
@@ -272,10 +267,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
                 items,
                 to
             );
-        transferHelper.bulkTransfer(
-            itemsWithRecipient,
-            useConduit ? conduitKeyOne : bytes32(0)
-        );
+        transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
 
         // Get balances after transfer
         FromToBalance[] memory afterTransferBalances = new FromToBalance[](
@@ -322,103 +314,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.stopPrank();
     }
 
-    function _performMultiItemTransferAndCheckBalances(
-        TransferHelperItem[] memory items,
-        address from,
-        address to,
-        bool useConduit,
-        bytes memory expectRevertDataWithConduit,
-        bytes memory expectRevertDataWithoutConduit
-    ) public {
-        vm.startPrank(from);
-
-        // Get balances before transfer
-        FromToBalance[] memory beforeTransferBalances = new FromToBalance[](
-            items.length
-        );
-        for (uint256 i = 0; i < items.length; i++) {
-            beforeTransferBalances[i] = _balanceOfTransferItemForFromTo(
-                items[i],
-                from,
-                to
-            );
-        }
-
-        // Register expected revert if present.
-        if (
-            // Compare hashes as we cannot directly compare bytes memory with bytes storage.
-            (keccak256(expectRevertDataWithConduit) ==
-                keccak256(REVERT_DATA_NO_MSG) &&
-                useConduit) ||
-            (keccak256(expectRevertDataWithoutConduit) ==
-                keccak256(REVERT_DATA_NO_MSG) &&
-                !useConduit)
-        ) {
-            vm.expectRevert();
-        } else if (expectRevertDataWithConduit.length > 0 && useConduit) {
-            vm.expectRevert(expectRevertDataWithConduit);
-        } else if (expectRevertDataWithoutConduit.length > 0 && !useConduit) {
-            vm.expectRevert(expectRevertDataWithoutConduit);
-        }
-        // Perform transfer.
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
-                items,
-                to
-            );
-        transferHelper.bulkTransfer(
-            itemsWithRecipient,
-            useConduit ? conduitKeyOne : bytes32(0)
-        );
-
-        // Get balances after transfer
-        FromToBalance[] memory afterTransferBalances = new FromToBalance[](
-            items.length
-        );
-        for (uint256 i = 0; i < items.length; i++) {
-            afterTransferBalances[i] = _balanceOfTransferItemForFromTo(
-                items[i],
-                from,
-                to
-            );
-        }
-
-        if (
-            (expectRevertDataWithConduit.length > 0) ||
-            (expectRevertDataWithoutConduit.length > 0)
-        ) {
-            // If revert is expected, balances should not have changed.
-            for (uint256 i = 0; i < items.length; i++) {
-                assert(
-                    beforeTransferBalances[i].from ==
-                        afterTransferBalances[i].from
-                );
-                assert(
-                    beforeTransferBalances[i].to == afterTransferBalances[i].to
-                );
-            }
-            return;
-        }
-
-        // Check after transfer balances are as expected by calculating difference against before transfer balances.
-        for (uint256 i = 0; i < items.length; i++) {
-            // ERC721 balance should only ever change by amount 1.
-            uint256 amount = items[i].itemType == ConduitItemType.ERC721
-                ? 1
-                : items[i].amount;
-            assertEq(
-                afterTransferBalances[i].from,
-                beforeTransferBalances[i].from - amount
-            );
-            assertEq(
-                afterTransferBalances[i].to,
-                beforeTransferBalances[i].to + amount
-            );
-        }
-
-        vm.stopPrank();
-    }
-
     function _getFuzzedTransferItem(
         ConduitItemType itemType,
         uint256 fuzzAmount,
@@ -430,13 +325,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         if (itemType == ConduitItemType.ERC20) {
             uint256 index = fuzzIndex % erc20s.length;
             TestERC20 erc20 = erc20s[index];
-            return
-                TransferHelperItem(
-                    itemType,
-                    address(erc20),
-                    identifier,
-                    amount
-                );
+            return TransferHelperItem(itemType, address(erc20), 0, amount);
         } else if (itemType == ConduitItemType.ERC1155) {
             uint256 index = fuzzIndex % erc1155s.length;
             TestERC1155 erc1155 = erc1155s[index];
@@ -495,13 +384,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             0
         );
 
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
     function testBulkTransferERC721(FuzzInputsCommon memory inputs) public {
@@ -512,13 +395,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
     function testBulkTransferERC721toBobThenCal(FuzzInputsCommon memory inputs)
@@ -531,20 +408,8 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            bob,
-            cal,
-            inputs.useConduit,
-            ""
-        );
+        _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
+        _performSingleItemTransferAndCheckBalances(item, bob, cal, "");
     }
 
     function testBulkTransferERC1155(FuzzInputsCommon memory inputs) public {
@@ -555,13 +420,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        _performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
     function testBulkTransferERC1155andERC721(FuzzInputsCommon memory inputs)
@@ -581,13 +440,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[1]
         );
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     function testBulkTransferERC1155andERC721andERC20(
@@ -613,13 +466,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             0
         );
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     function testBulkTransferMultipleERC721SameContract(
@@ -639,13 +486,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             );
         }
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     function testBulkTransferMultipleERC721DifferentContracts(
@@ -672,13 +513,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[2]
         );
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     function testBulkTransferMultipleERC721andMultipleERC1155(
@@ -708,13 +543,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             }
         }
 
-        _performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            inputs.useConduit,
-            ""
-        );
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     function testBulkTransferERC7211NotUsingConduit(
@@ -727,7 +556,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        _performSingleItemTransferAndCheckBalances(item, alice, bob, false, "");
+        _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
     function testBulkTransferERC721ToContractRecipientNotUsingConduit(
@@ -754,7 +583,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             items,
             alice,
             address(erc721Receiver),
-            false,
             ""
         );
     }
@@ -777,7 +605,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             0
         );
 
-        _performMultiItemTransferAndCheckBalances(items, alice, bob, false, "");
+        _performMultiItemTransferAndCheckBalances(items, alice, bob, "");
     }
 
     // Test reverts
@@ -798,7 +626,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             item,
             alice,
             bob,
-            false,
             abi.encodePacked(
                 TransferHelperErrors.InvalidERC20Identifier.selector
             )
@@ -821,7 +648,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             item,
             alice,
             address(invalidRecipient),
-            false,
             abi.encodeWithSignature(
                 "InvalidERC721Recipient(address)",
                 invalidRecipient
@@ -840,31 +666,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
-                items,
-                bob
-            );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
-
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
             bob,
-            inputs.useConduit,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
-            ),
             abi.encodePacked(TransferHelperErrors.InvalidItemType.selector)
         );
     }
@@ -886,31 +691,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[1]
         );
 
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
-                items,
-                bob
-            );
-        try
-            transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
-            returnedData = this.getSelector(reason);
-        }
-
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
             bob,
-            inputs.useConduit,
-            abi.encodeWithSignature(
-                "ConduitErrorRevertBytes(bytes,bytes32,address)",
-                returnedData,
-                conduitKeyOne,
-                conduit
-            ),
             abi.encodePacked(TransferHelperErrors.InvalidItemType.selector)
         );
     }
@@ -941,7 +725,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             item,
             alice,
             bob,
-            true,
             abi.encodePacked(
                 TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
@@ -967,18 +750,10 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             inputs.identifiers[1]
         );
 
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
-                items,
-                bob
-            );
-
         _performMultiItemTransferAndCheckBalances(
             items,
             alice,
             bob,
-            true,
             abi.encodePacked(
                 TokenTransferrerErrors.InvalidERC721TransferAmount.selector
             )
@@ -1007,7 +782,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             items[0],
             alice,
             bob,
-            true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 returnedData,
@@ -1071,7 +845,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             item,
             alice,
             address(mockReceiver),
-            false,
             abi.encodeWithSignature(
                 "ERC721ReceiverErrorRevertString(string,address,address,uint256)",
                 "ERC721ReceiverMock: reverting",
@@ -1099,7 +872,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             item,
             bob,
             alice,
-            true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertString(string,bytes32,address)",
                 "WRONG_FROM",
@@ -1137,7 +909,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             items,
             alice,
             bob,
-            true,
             abi.encodeWithSignature(
                 "ConduitErrorRevertBytes(bytes,bytes32,address)",
                 panicError,
