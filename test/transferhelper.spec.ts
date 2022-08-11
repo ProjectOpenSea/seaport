@@ -247,11 +247,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfersWithRecipients[0].items.length; i++) {
         // Get Itemtype, token, amount, identifier
-        const {
-          itemType,
-          amount,
-          identifier,
-        } = transfersWithRecipients[0].items[i];
+        const { itemType, amount, identifier } =
+          transfersWithRecipients[0].items[i];
         const token = contracts[i];
 
         switch (itemType) {
