@@ -632,7 +632,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 OneWord
             )
         }
-        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
     }
 
     function testPartialFulfillEthTo1155NumeratorOverflowToZero() public {
@@ -727,7 +726,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 OneWord
             )
         }
-        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
     }
 
     function testPartialFulfillEthTo1155NumeratorDenominatorOverflowToZero()
@@ -825,7 +823,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 OneWord
             )
         }
-        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
     }
 
     function testPartialFulfillEthTo1155NumeratorSetToZero() public {
