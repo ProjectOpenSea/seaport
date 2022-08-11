@@ -12,6 +12,12 @@ interface TransferHelperErrors {
     error InvalidItemType();
 
     /**
+     * @dev Revert with an error when an ERC721 transfer with amount other than
+     *      one is attempted.
+     */
+    error InvalidERC721TransferAmount();
+
+    /**
      * @dev Revert with an error when attempting to execute an ERC721 transfer
      *      to an invalid recipient.
      */
