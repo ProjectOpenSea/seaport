@@ -247,8 +247,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfersWithRecipients[0].items.length; i++) {
         // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } =
-          transfersWithRecipients[0].items[i];
+        const {
+          itemType,
+          amount,
+          identifier,
+        } = transfersWithRecipients[0].items[i];
         const token = contracts[i];
 
         switch (itemType) {
@@ -1609,6 +1612,41 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           .connect(sender)
           .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
       ).to.be.revertedWith("InvalidERC721TransferAmount");
+    });
+
+    it("Successful ERC721 receiver contract", async () => {
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      // Will accept ERC721 transfers
+      const mockERC721ReceiverFactory = await ethers.getContractFactory(
+        "ERC721ReceiverMock"
+      );
+      const erc721Receiver = await mockERC721ReceiverFactory.deploy(
+        "0x150b7a02", // Magic value
+        0
+      );
+
+      // Create/Approve numEC721s amount of  ERC721s
+      const erc721Transfer = await createTransferWithApproval(
+        tempERC721Contract,
+        sender,
+        2,
+        tempConduit.address,
+        sender.address,
+        erc721Receiver.address
+      );
+
+      const erc721TransferHelperItems = [
+        {
+          items: [erc721Transfer],
+          recipient: erc721Receiver.address,
+          validateERC721Receiver: true,
+        },
+      ];
+
+      await tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(erc721TransferHelperItems, tempConduitKey);
     });
 
     it("Reverts on invalid ERC721 recipient", async () => {
