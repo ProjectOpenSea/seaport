@@ -600,38 +600,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             mstore(add(0x40, advancedOrder), shl(120, 1))
         }
 
-        bytes4 fulfillAdvancedOrderSelector = consideration
-            .fulfillAdvancedOrder
-            .selector;
-        bytes memory fulfillAdvancedOrderCalldata = abi.encodeWithSelector(
-            fulfillAdvancedOrderSelector,
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        context.consideration.fulfillAdvancedOrder(
             advancedOrder,
             new CriteriaResolver[](0),
             bytes32(0),
             address(0)
         );
-
-        address considerationAddress = address(consideration);
-        uint256 calldataLength = fulfillAdvancedOrderCalldata.length;
-        bool success;
-
-        assembly {
-            // Call fulfillBasicOrders
-            success := call(
-                gas(),
-                considerationAddress,
-                50,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of fulfillAdvancedOrderCalldata
-                add(fulfillAdvancedOrderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
     }
 
     function testPartialFulfillEthTo1155NumeratorOverflowToZero() public {
@@ -694,38 +669,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             mstore(add(0x20, advancedOrder), shl(120, 1))
         }
 
-        bytes4 fulfillAdvancedOrderSelector = consideration
-            .fulfillAdvancedOrder
-            .selector;
-        bytes memory fulfillAdvancedOrderCalldata = abi.encodeWithSelector(
-            fulfillAdvancedOrderSelector,
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        context.consideration.fulfillAdvancedOrder(
             advancedOrder,
             new CriteriaResolver[](0),
             bytes32(0),
             address(0)
         );
-
-        address considerationAddress = address(consideration);
-        uint256 calldataLength = fulfillAdvancedOrderCalldata.length;
-        bool success;
-
-        assembly {
-            // Call fulfillBasicOrders
-            success := call(
-                gas(),
-                considerationAddress,
-                50,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of fulfillAdvancedOrderCalldata
-                add(fulfillAdvancedOrderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
     }
 
     function testPartialFulfillEthTo1155NumeratorDenominatorOverflowToZero()
@@ -791,38 +741,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             mstore(add(0x40, advancedOrder), shl(120, 1))
         }
 
-        bytes4 fulfillAdvancedOrderSelector = consideration
-            .fulfillAdvancedOrder
-            .selector;
-        bytes memory fulfillAdvancedOrderCalldata = abi.encodeWithSelector(
-            fulfillAdvancedOrderSelector,
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        context.consideration.fulfillAdvancedOrder(
             advancedOrder,
             new CriteriaResolver[](0),
             bytes32(0),
             address(0)
         );
-
-        address considerationAddress = address(consideration);
-        uint256 calldataLength = fulfillAdvancedOrderCalldata.length;
-        bool success;
-
-        assembly {
-            // Call fulfillBasicOrders
-            success := call(
-                gas(),
-                considerationAddress,
-                50,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of fulfillAdvancedOrderCalldata
-                add(fulfillAdvancedOrderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
     }
 
     function testPartialFulfillEthTo1155NumeratorSetToZero() public {
