@@ -272,7 +272,8 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
      *         to provide an additional layer of assurance that the recipient
      *         can receive the tokens — any hooks or post-transfer checks will
      *         fail and the caller will be the transfer helper rather than the
-     *         ERC721 contract.
+     *         ERC721 contract. Note that the conduit is set as the operator, as
+     *         it will be the caller once the transfer is performed.
      *
      * @param conduit   The conduit to provide as the operator when calling
      *                  onERC721Received.
