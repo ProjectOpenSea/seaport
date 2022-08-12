@@ -119,6 +119,7 @@ To install dependencies and compile contracts:
 
 ```bash
 git clone https://github.com/ProjectOpenSea/seaport && cd seaport
+git submodule init && git submodule update
 yarn install
 yarn build
 ```
