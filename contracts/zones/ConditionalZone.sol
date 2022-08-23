@@ -105,59 +105,62 @@ contract ConditionalZone is ZoneInterface {
                 revert("Hash does not match");
             }
 
-            Condition memory condition = decodeCondition(order.extraData);
-
-            // TODO: Optimize this entire loop
-            uint256 conditionResult;
-            for (uint256 i = 0; i < condition.orderHashes.length; i++) {
-                (
-                    ,
-                    bool isCancelled,
-                    uint256 totalFilled,
-                    uint256 totalSize
-                ) = seaport.getOrderStatus(condition.orderHashes[i]);
-
-                // If the an order in the condition is cancelled, this order can never be valid.
-                if (isCancelled) {
-                    revert("A dependant order is cancelled");
-                }
-
-                uint256 isFilled = totalFilled > 0 && totalFilled == totalSize
-                    ? 1
-                    : 0;
-                if (i == 0) {
-                    conditionResult = isFilled;
-                } else if (
-                    condition.logicGate == LogicGate.AND ||
-                    condition.logicGate == LogicGate.NAND
-                ) {
-                    conditionResult = conditionResult & isFilled;
-                } else if (
-                    condition.logicGate == LogicGate.OR ||
-                    condition.logicGate == LogicGate.NOR
-                ) {
-                    conditionResult = conditionResult | isFilled;
-                } else if (
-                    condition.logicGate == LogicGate.XOR ||
-                    condition.logicGate == LogicGate.XNOR
-                ) {
-                    conditionResult = conditionResult ^ isFilled;
-                }
-            }
-
-            uint256 expectedResult = condition.logicGate == LogicGate.NAND ||
-                condition.logicGate == LogicGate.NOR ||
-                condition.logicGate == LogicGate.XNOR
-                ? 0
-                : 1;
-
-            if (conditionResult != expectedResult) {
-                revert("Condition not met");
-            }
+            isConditionValid(order.extraData);
         }
 
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+    }
+
+    function isConditionValid(bytes memory _data) public view {
+        Condition memory condition = decodeCondition(_data);
+        // TODO: Optimize this entire loop
+        uint256 conditionResult;
+        for (uint256 i = 0; i < condition.orderHashes.length; i++) {
+            (
+                ,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = seaport.getOrderStatus(condition.orderHashes[i]);
+
+            // If the an order in the condition is cancelled, this order can never be valid.
+            if (isCancelled) {
+                revert("A dependant order is cancelled");
+            }
+
+            uint256 isFilled = totalFilled > 0 && totalFilled == totalSize
+                ? 1
+                : 0;
+            if (i == 0) {
+                conditionResult = isFilled;
+            } else if (
+                condition.logicGate == LogicGate.AND ||
+                condition.logicGate == LogicGate.NAND
+            ) {
+                conditionResult = conditionResult & isFilled;
+            } else if (
+                condition.logicGate == LogicGate.OR ||
+                condition.logicGate == LogicGate.NOR
+            ) {
+                conditionResult = conditionResult | isFilled;
+            } else if (
+                condition.logicGate == LogicGate.XOR ||
+                condition.logicGate == LogicGate.XNOR
+            ) {
+                conditionResult = conditionResult ^ isFilled;
+            }
+        }
+
+        uint256 expectedResult = condition.logicGate == LogicGate.NAND ||
+            condition.logicGate == LogicGate.NOR ||
+            condition.logicGate == LogicGate.XNOR
+            ? 0
+            : 1;
+
+        if (conditionResult != expectedResult) {
+            revert("Condition not met");
+        }
     }
 
     function decodeCondition(bytes memory _data)
