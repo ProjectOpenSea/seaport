@@ -85,7 +85,20 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.EXPLORER_API_KEY,
+
+    customChains: [
+      {
+        network: "verificationNetwork",
+        chainId: 28,
+        urls: {
+          apiURL: "https://api-testnet.bobascan.com/api",
+          browserURL: "https://testnet.bobascan.com/"
+        }
+      }
+    ]
   },
+
+
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   paths: { cache: "hh-cache" },
 };
