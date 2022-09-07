@@ -28,15 +28,47 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.7",
+        version: "0.8.14",
         settings: {
-          viaIR: false,
+          viaIR: false, // can't have this enabled for stack too deep reasons
           optimizer: {
             enabled: false,
           },
         },
       },
     ],
+    overrides: {
+      "reference/conduit/ReferenceConduit.sol": {
+        version: "0.8.14",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "reference/conduit/ReferenceConduitController.sol": {
+        version: "0.8.14",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "contracts/helper/TransferHelper.sol": {
+        version: "0.8.14",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+    },
   },
   networks: {
     hardhat: {
@@ -48,6 +80,9 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    outputFile: "gas-report-reference.txt",
+    noColors: true,
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   paths: {

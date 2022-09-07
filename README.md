@@ -147,6 +147,12 @@ To profile gas usage:
 yarn profile
 ```
 
+To profile gas usage against the reference contracts:
+
+```bash
+yarn profile:ref
+```
+
 ### Foundry Tests
 
 Seaport also includes a suite of fuzzing tests written in solidity with Foundry.
