@@ -28,7 +28,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.14",
+        version: "0.8.7",
         settings: {
           viaIR: false, // can't have this enabled for stack too deep reasons
           optimizer: {
@@ -39,7 +39,7 @@ const config: HardhatUserConfig = {
     ],
     overrides: {
       "reference/conduit/ReferenceConduit.sol": {
-        version: "0.8.14",
+        version: "0.8.7",
         settings: {
           viaIR: true,
           optimizer: {
@@ -49,7 +49,7 @@ const config: HardhatUserConfig = {
         },
       },
       "reference/conduit/ReferenceConduitController.sol": {
-        version: "0.8.14",
+        version: "0.8.7",
         settings: {
           viaIR: true,
           optimizer: {
@@ -59,7 +59,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/helper/TransferHelper.sol": {
-        version: "0.8.14",
+        version: "0.8.7",
         settings: {
           viaIR: true,
           optimizer: {
