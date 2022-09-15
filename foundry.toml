@@ -15,7 +15,10 @@ remappings = [
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
 optimizer_runs = 19_066
-fs_permissions = [{ access = "read", path = "./optimized-out" }, { access = "read", path = "./reference-out" }]
+fs_permissions = [
+    { access = "read", path = "./optimized-out" },
+    { access = "read", path = "./reference-out" },
+]
 
 [profile.reference]
 solc = '0.8.7'
@@ -42,5 +45,4 @@ via_ir = false
 fuzz_runs = 1000
 src = 'reference'
 out = 'reference-out'
-
 # See more config options https://github.com/gakonst/foundry/tree/master/config
