@@ -295,10 +295,7 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return The domain separator.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
+        return _DOMAIN_SEPARATOR;
     }
 
     /**
