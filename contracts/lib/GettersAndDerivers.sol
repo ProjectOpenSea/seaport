@@ -361,7 +361,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // after the hash is performed.
             mstore(EIP712_OrderHash_offset, orderHash)
 
-            // Hash the relevant region (65 bytes).
+            // Hash the relevant region (66 bytes).
             value := keccak256(0, EIP712_DigestPayload_size)
 
             // Clear out the dirtied bits in the memory pointer.
