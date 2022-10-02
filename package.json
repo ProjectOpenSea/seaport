@@ -55,8 +55,16 @@
     "lodash": ">=4.17.21",
     "node-fetch": ">=2.6.7",
     "underscore": ">=1.12.1",
-    "undici": ">=5.5.1",
-    "yargs-parser": ">=5.0.1"
+    "undici": ">=5.8.2",
+    "yargs-parser": ">=5.0.1",
+    "minimist": ">=1.2.6",
+    "json-schema": ">=0.4.0",
+    "simple-get": ">=2.8.2",
+    "tar": ">=4.4.18",
+    "normalize-url": ">=4.5.1",
+    "ws": ">=5.2.3",
+    "path-parse": ">=1.0.7",
+    "elliptic": ">=6.5.4"
   },
   "scripts": {
     "build": "hardhat compile --config ./hardhat.config.ts",
