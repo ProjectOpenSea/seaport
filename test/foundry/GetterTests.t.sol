@@ -70,7 +70,7 @@ contract TestGetters is BaseConsiderationTest {
         );
     }
 
-    function testGetCorrectDomainSeparator(uint256 _chainId) public {
+    function testGetCorrectDomainSeparator(uint64 _chainId) public {
         // ignore case where _chainId is the same as block.chainid
         vm.assume(_chainId != block.chainid);
         bytes memory typeName = abi.encodePacked(
