@@ -15,6 +15,10 @@ remappings = [
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
 optimizer_runs = 19_066
+fs_permissions = [
+    { access = "read", path = "./optimized-out" },
+    { access = "read", path = "./reference-out" },
+]
 
 [reference]
 solc = '0.8.7'
@@ -35,7 +39,6 @@ src = 'test/foundry'
 out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
-fs_permissions = [{ access = "read", path = "./"}]
 
 [local]
 via_ir = false
