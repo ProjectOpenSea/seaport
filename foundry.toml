@@ -35,6 +35,7 @@ src = 'test/foundry'
 out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
+fs_permissions = [{ access = "read", path = "./"}]
 
 [local]
 via_ir = false
