@@ -64,7 +64,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source
-    //      (solc-0.8.14, IR pipeline enabled)
+    //      (solc-0.8.17, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
         conduitController = ConduitController(
             deployCode(

@@ -1,5 +1,5 @@
 [default]
-solc = '0.8.14'
+solc = '0.8.17'
 via_ir = true
 src = 'contracts'
 out = 'out'
@@ -25,7 +25,7 @@ solc = '0.8.7'
 via_ir = false
 src = 'reference'
 out = 'reference-out'
-# specify something so it doesn't try to compile the 0.8.14 files in test/foundry
+# specify something so it doesn't try to compile the 0.8.17 files in test/foundry
 test = 'reference'
 
 [optimized]
