@@ -572,12 +572,10 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     // Try to nuke the zone through the deployer before being assigned pauser
     await expect(
       pausableZoneController.connect(buyer).pause(zoneAddr)
-    ).to.be.revertedWith("InvalidPauser");
+    ).to.be.reverted;
 
     // Try to nuke the zone directly before being assigned pauser
-    await expect(zone.connect(buyer).pause(zoneAddr)).to.be.revertedWith(
-      "InvalidController"
-    );
+    await expect(zone.connect(buyer).pause(zoneAddr)).to.be.reverted;
 
     await expect(
       pausableZoneController.connect(buyer).assignPauser(seller.address)
@@ -769,7 +767,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       zone
         .connect(seller)
         .cancelOrders(marketplaceContract.address, [orderComponents])
-    ).to.be.revertedWith("InvalidOperator");
+    ).to.be.reverted;
 
     // Approve operator
     await pausableZoneController
@@ -812,12 +810,12 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       pausableZoneController
         .connect(seller)
         .assignOperator(zoneAddr, seller.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.reverted;
 
     // Try to approve operator directly without permission
     await expect(
       zone.connect(seller).assignOperator(seller.address)
-    ).to.be.revertedWith("InvalidController");
+    ).to.be.reverted;
   });
 
   it("Reverts if non-Zone tries to cancel restricted orders", async () => {

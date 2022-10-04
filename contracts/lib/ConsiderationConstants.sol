@@ -420,4 +420,3 @@ uint256 constant IsValidOrder_caller_ptr = 0x24;
 uint256 constant IsValidOrder_offerer_ptr = 0x44;
 uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
 uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
-
