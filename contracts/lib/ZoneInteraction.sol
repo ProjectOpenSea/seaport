@@ -49,23 +49,63 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
     }
 
+    /**
+     * @dev Internal view function to perform a staticcall to a given zone and
+     *      ensure that the correct magic value was returned.
+     *
+     * @param zone      The zone in question.
+     * @param orderHash The hash of the order.
+     * @param offerer   The offerer in question.
+     * @param zoneHash  The hash to provide upon calling the zone.
+     */
     function _callIsValidOrder(
         address zone,
         bytes32 orderHash,
         address offerer,
         bytes32 zoneHash
     ) internal view {
-        // Perform minimal staticcall to the zone.
-        bool success = _staticcall(
-            zone,
-            abi.encodeWithSelector(
-                ZoneInterface.isValidOrder.selector,
-                orderHash,
-                msg.sender,
-                offerer,
-                zoneHash
+        // Declare a boolean for the status of the isValidOrder staticcall.
+        bool success;
+
+        // Utilize assembly to efficiently perform the isValidOrder staticcall.
+        assembly {
+            // The free memory pointer memory slot will be used when populating
+            // call data for the check; read the value and restore it later.
+            let memPointer := mload(FreeMemoryPointerSlot)
+
+            // The following memory slots will be used when populating call data
+            // for the check; read the values and restore them later.
+            let slot0x80 := mload(Slot0x80)
+            let slot0xA0 := mload(Slot0xA0)
+
+            // Write call data to memory starting with function selector.
+            mstore(IsValidOrder_sig_ptr, IsValidOrder_signature)
+            mstore(IsValidOrder_orderHash_ptr, orderHash)
+            mstore(IsValidOrder_caller_ptr, caller())
+            mstore(IsValidOrder_offerer_ptr, offerer)
+            mstore(IsValidOrder_zoneHash_ptr, zoneHash)
+
+            // Perform the staticcall, ignoring return data.
+            success := staticcall(
+                gas(),
+                zone,
+                IsValidOrder_sig_ptr,
+                IsValidOrder_length,
+                0,
+                0
             )
-        );
+
+            // NOTE: can assert correct magic value was returned here directly.
+
+            mstore(Slot0x80, slot0x80) // Restore slot 0x80.
+            mstore(Slot0xA0, slot0xA0) // Restore slot 0xA0.
+
+            // Restore the original free memory pointer.
+            mstore(FreeMemoryPointerSlot, memPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
+        }
 
         // Ensure call was successful and returned the correct magic value.
         _assertIsValidOrderStaticcallSuccess(success, orderHash);
