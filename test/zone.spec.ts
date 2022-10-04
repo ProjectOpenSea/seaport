@@ -810,7 +810,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       pausableZoneController
         .connect(seller)
         .assignOperator(zoneAddr, seller.address)
-    ).to.be.reverted;
+    ).to.be.revertedWith("CallerIsNotOwner");
 
     // Try to approve operator directly without permission
     await expect(
