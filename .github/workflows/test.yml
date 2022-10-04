@@ -126,7 +126,7 @@ jobs:
       - name: Precompile reference using 0.8.7 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile optimized using 0.8.14 and via-ir=true
+      - name: Precompile optimized using 0.8.17 and via-ir=true
         run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
