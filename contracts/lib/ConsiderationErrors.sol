@@ -147,15 +147,6 @@ function _revertInvalidERC721TransferAmount() pure {
 	}
 }
 
-function _revertInvalidFulfillmentComponentData() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  InvalidFulfillmentComponentData_error_selector)
-		// revert(abi.encodeWithSignature("InvalidFulfillmentComponentData()"))
-		revert(0x1c, InvalidFulfillmentComponentData_error_length)
-	}
-}
-
 function _revertInvalidMsgValue(uint256 value) pure {
 	assembly {
 		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -203,15 +194,6 @@ function _revertInvalidSignature() pure {
 	}
 }
 
-function _revertInvalidSigner() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  InvalidSigner_error_selector)
-		// revert(abi.encodeWithSignature("InvalidSigner()"))
-		revert(0x1c, InvalidSigner_error_length)
-	}
-}
-
 function _revertInvalidTime() pure {
 	assembly {
 		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -237,15 +219,6 @@ function _revertMissingFulfillmentComponentOnAggregation(uint8 side) pure {
 		mstore(MissingFulfillmentComponentOnAggregation_error_side_ptr, side)
 		// revert(abi.encodeWithSignature("MissingFulfillmentComponentOnAggregation(uint8)", side))
 		revert(0x1c, MissingFulfillmentComponentOnAggregation_error_length)
-	}
-}
-
-function _revertMissingItemAmount() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  MissingItemAmount_error_selector)
-		// revert(abi.encodeWithSignature("MissingItemAmount()"))
-		revert(0x1c, MissingItemAmount_error_length)
 	}
 }
 
@@ -366,15 +339,5 @@ function _revertUnusedItemParameters() pure {
 		mstore(0,  UnusedItemParameters_error_selector)
 		// revert(abi.encodeWithSignature("UnusedItemParameters()"))
 		revert(0x1c, UnusedItemParameters_error_length)
-	}
-}
-
-function _revertPanic(uint256 code) pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  Panic_error_selector)
-		mstore(Panic_error_code_ptr, code)
-		// revert(abi.encodeWithSignature("Panic(uint256)", code))
-		revert(0x1c, Panic_error_length)
 	}
 }

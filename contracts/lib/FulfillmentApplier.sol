@@ -516,7 +516,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 mstore(0, InvalidFulfillmentComponentData_error_selector)
 
                 // Return, supplying InvalidFulfillmentComponentData signature.
-                revert(0, InvalidFulfillmentComponentData_error_length)
+                revert(0x1c, InvalidFulfillmentComponentData_error_length)
             }
 
             // Declare function for reverts due to arithmetic overflows.
