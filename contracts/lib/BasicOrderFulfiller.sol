@@ -20,7 +20,7 @@ import {
 
 import { OrderValidator } from "./OrderValidator.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -106,7 +106,7 @@ contract BasicOrderFulfiller is OrderValidator {
             // Revert if msg.value has not been supplied as part of payable
             // routes or has been supplied as part of non-payable routes.
             if (!correctPayableStatus) {
-                revert InvalidMsgValue(msg.value);
+                _revertInvalidMsgValue(msg.value);
             }
         }
 
@@ -185,7 +185,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 (uint160(parameters.considerationToken) |
                     parameters.considerationIdentifier) != 0
             ) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
 
             // Transfer the ERC721 or ERC1155 item, bypassing the accumulator.
@@ -945,7 +945,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
                 // Ensure that sufficient Ether is available.
                 if (additionalRecipientAmount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
+                    _revertInsufficientEtherSupplied();
                 }
 
                 // Transfer Ether to the additional recipient.
@@ -962,7 +962,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Ensure that sufficient Ether is still available.
         if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
+            _revertInsufficientEtherSupplied();
         }
 
         // Transfer Ether to the offerer.
@@ -1031,7 +1031,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Ensure that no identifier is supplied.
             if (identifier != 0) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
         }
 

@@ -7,6 +7,8 @@ import { Assertions } from "./Assertions.sol";
 
 import { SignatureVerification } from "./SignatureVerification.sol";
 
+import "./ConsiderationErrors.sol";
+
 /**
  * @title Verifiers
  * @author 0age
@@ -43,7 +45,7 @@ contract Verifiers is Assertions, SignatureVerification {
         if (startTime > block.timestamp || endTime <= block.timestamp) {
             // Only revert if revertOnInvalid has been supplied as true.
             if (revertOnInvalid) {
-                revert InvalidTime();
+                _revertInvalidTime();
             }
 
             // Return false as the order is invalid.
@@ -109,7 +111,7 @@ contract Verifiers is Assertions, SignatureVerification {
         if (orderStatus.isCancelled) {
             // Only revert if revertOnInvalid has been supplied as true.
             if (revertOnInvalid) {
-                revert OrderIsCancelled(orderHash);
+                _revertOrderIsCancelled(orderHash);
             }
 
             // Return false as the order status is invalid.
@@ -124,13 +126,13 @@ contract Verifiers is Assertions, SignatureVerification {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
-                revert OrderPartiallyFilled(orderHash);
+                _revertOrderPartiallyFilled(orderHash);
             }
             // Otherwise, ensure that order has not been entirely filled.
             else if (orderStatusNumerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
-                    revert OrderAlreadyFilled(orderHash);
+                    _revertOrderAlreadyFilled(orderHash);
                 }
 
                 // Return false as the order status is invalid.
