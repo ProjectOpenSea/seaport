@@ -69,22 +69,7 @@ uint256 constant ConsiderItem_recipient_offset = 0xa0;
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
-uint256 constant InvalidFulfillmentComponentData_error_signature = (
-    0x7fda727900000000000000000000000000000000000000000000000000000000
-);
-uint256 constant InvalidFulfillmentComponentData_error_len = 0x04;
-
-uint256 constant Panic_error_signature = (
-    0x4e487b7100000000000000000000000000000000000000000000000000000000
-);
-uint256 constant Panic_error_offset = 0x04;
-uint256 constant Panic_error_length = 0x24;
 uint256 constant Panic_arithmetic = 0x11;
-
-uint256 constant MissingItemAmount_error_signature = (
-    0x91b3e51400000000000000000000000000000000000000000000000000000000
-);
-uint256 constant MissingItemAmount_error_len = 0x04;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
@@ -294,14 +279,6 @@ uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
 
 uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
 
-// abi.encodeWithSignature("NoContract(address)")
-uint256 constant NoContract_error_signature = (
-    0x5f15d67200000000000000000000000000000000000000000000000000000000
-);
-uint256 constant NoContract_error_sig_ptr = 0x0;
-uint256 constant NoContract_error_token_ptr = 0x4;
-uint256 constant NoContract_error_length = 0x24; // 4 + 32 == 36
-
 uint256 constant EIP_712_PREFIX = (
     0x1901000000000000000000000000000000000000000000000000000000000000
 );
@@ -364,42 +341,9 @@ uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
 
-// Declare constant for errors related to amount derivation.
-// error InexactFraction() @ AmountDerivationErrors.sol
-uint256 constant InexactFraction_error_signature = (
-    0xc63cf08900000000000000000000000000000000000000000000000000000000
-);
-uint256 constant InexactFraction_error_len = 0x04;
-
-// Declare constant for errors related to signature verification.
 uint256 constant Ecrecover_precompile = 1;
 uint256 constant Ecrecover_args_size = 0x80;
 uint256 constant Signature_lower_v = 27;
-
-// error BadSignatureV(uint8) @ SignatureVerificationErrors.sol
-uint256 constant BadSignatureV_error_signature = (
-    0x1f003d0a00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant BadSignatureV_error_offset = 0x04;
-uint256 constant BadSignatureV_error_length = 0x24;
-
-// error InvalidSigner() @ SignatureVerificationErrors.sol
-uint256 constant InvalidSigner_error_signature = (
-    0x815e1d6400000000000000000000000000000000000000000000000000000000
-);
-uint256 constant InvalidSigner_error_length = 0x04;
-
-// error InvalidSignature() @ SignatureVerificationErrors.sol
-uint256 constant InvalidSignature_error_signature = (
-    0x8baa579f00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant InvalidSignature_error_length = 0x04;
-
-// error BadContractSignature() @ SignatureVerificationErrors.sol
-uint256 constant BadContractSignature_error_signature = (
-    0x4f7fb80d00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant BadContractSignature_error_length = 0x04;
 
 uint256 constant NumBitsAfterSelector = 0xe0;
 
@@ -420,3 +364,465 @@ uint256 constant IsValidOrder_caller_ptr = 0x24;
 uint256 constant IsValidOrder_offerer_ptr = 0x44;
 uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
 uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
+
+/*
+ *  error MissingFulfillmentComponentOnAggregation(uint8 side)
+ *    - Defined in FulfillmentApplicationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: side
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = 0x375c24c1;
+uint256 constant MissingFulfillmentComponentOnAggregation_error_side_ptr = 0x20;
+uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
+
+/*
+ *  error OfferAndConsiderationRequiredOnFulfillment()
+ *    - Defined in FulfillmentApplicationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = 0x98e9db6e;
+uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
+
+/*
+ *  error MismatchedFulfillmentOfferAndConsiderationComponents()
+ *    - Defined in FulfillmentApplicationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0x09cfb455;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x04;
+
+/*
+ *  error InvalidFulfillmentComponentData()
+ *    - Defined in FulfillmentApplicationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidFulfillmentComponentData_error_selector = 0x7fda7279;
+uint256 constant InvalidFulfillmentComponentData_error_length = 0x04;
+
+/*
+ *  error InexactFraction()
+ *    - Defined in AmountDerivationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InexactFraction_error_selector = 0xc63cf089;
+uint256 constant InexactFraction_error_length = 0x04;
+
+/*
+ *  error OrderCriteriaResolverOutOfRange()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant OrderCriteriaResolverOutOfRange_error_selector = 0x869586c4;
+uint256 constant OrderCriteriaResolverOutOfRange_error_length = 0x04;
+
+/*
+ *  error UnresolvedOfferCriteria()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant UnresolvedOfferCriteria_error_selector = 0xa6cfc673;
+uint256 constant UnresolvedOfferCriteria_error_length = 0x04;
+
+/*
+ *  error UnresolvedConsiderationCriteria()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xff75a340;
+uint256 constant UnresolvedConsiderationCriteria_error_length = 0x04;
+
+/*
+ *  error OfferCriteriaResolverOutOfRange()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant OfferCriteriaResolverOutOfRange_error_selector = 0xbfb3f8ce;
+uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
+
+/*
+ *  error ConsiderationCriteriaResolverOutOfRange()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = 0x6088d7de;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
+
+/*
+ *  error CriteriaNotEnabledForItem()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant CriteriaNotEnabledForItem_error_selector = 0x94eb6af6;
+uint256 constant CriteriaNotEnabledForItem_error_length = 0x04;
+
+/*
+ *  error InvalidProof()
+ *    - Defined in CriteriaResolutionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidProof_error_selector = 0x09bde339;
+uint256 constant InvalidProof_error_length = 0x04;
+
+/*
+ *  error InvalidRestrictedOrder(bytes32 orderHash)
+ *    - Defined in ZoneInteractionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderHash
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant InvalidRestrictedOrder_error_selector = 0xfb5014fc;
+uint256 constant InvalidRestrictedOrder_error_orderHash_ptr = 0x20;
+uint256 constant InvalidRestrictedOrder_error_length = 0x24;
+
+/*
+ *  error BadSignatureV(uint8 v)
+ *    - Defined in SignatureVerificationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: v
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant BadSignatureV_error_selector = 0x1f003d0a;
+uint256 constant BadSignatureV_error_v_ptr = 0x20;
+uint256 constant BadSignatureV_error_length = 0x24;
+
+/*
+ *  error InvalidSigner()
+ *    - Defined in SignatureVerificationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidSigner_error_selector = 0x815e1d64;
+uint256 constant InvalidSigner_error_length = 0x04;
+
+/*
+ *  error InvalidSignature()
+ *    - Defined in SignatureVerificationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidSignature_error_selector = 0x8baa579f;
+uint256 constant InvalidSignature_error_length = 0x04;
+
+/*
+ *  error BadContractSignature()
+ *    - Defined in SignatureVerificationErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant BadContractSignature_error_selector = 0x4f7fb80d;
+uint256 constant BadContractSignature_error_length = 0x04;
+
+/*
+ *  error InvalidERC721TransferAmount()
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidERC721TransferAmount_error_selector = 0xefcc00b1;
+uint256 constant InvalidERC721TransferAmount_error_length = 0x04;
+
+/*
+ *  error MissingItemAmount()
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant MissingItemAmount_error_selector = 0x91b3e514;
+uint256 constant MissingItemAmount_error_length = 0x04;
+
+/*
+ *  error UnusedItemParameters()
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant UnusedItemParameters_error_selector = 0x6ab37ce7;
+uint256 constant UnusedItemParameters_error_length = 0x04;
+
+/*
+ *  error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: token
+ *    - 0x40: from
+ *    - 0x60: to
+ *    - 0x80: amount
+ * Revert buffer is memory[0x1c:0xa0]
+ */
+uint256 constant BadReturnValueFromERC20OnTransfer_error_selector = 0x98891923;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x20;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x40;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x60;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x80;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
+
+/*
+ *  error NoContract(address account)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: account
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant NoContract_error_selector = 0x5f15d672;
+uint256 constant NoContract_error_account_ptr = 0x20;
+uint256 constant NoContract_error_length = 0x24;
+
+/*
+ *  error Invalid1155BatchTransferEncoding()
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant Invalid1155BatchTransferEncoding_error_selector = 0xeba2084c;
+uint256 constant Invalid1155BatchTransferEncoding_error_length = 0x04;
+
+/*
+ *  error NoReentrantCalls()
+ *    - Defined in ReentrancyErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant NoReentrantCalls_error_selector = 0x7fa8a987;
+uint256 constant NoReentrantCalls_error_length = 0x04;
+
+/*
+ *  error OrderAlreadyFilled(bytes32 orderHash)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderHash
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant OrderAlreadyFilled_error_selector = 0x10fda3e1;
+uint256 constant OrderAlreadyFilled_error_orderHash_ptr = 0x20;
+uint256 constant OrderAlreadyFilled_error_length = 0x24;
+
+/*
+ *  error InvalidTime()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidTime_error_selector = 0x6f7eac26;
+uint256 constant InvalidTime_error_length = 0x04;
+
+/*
+ *  error InvalidConduit(bytes32 conduitKey, address conduit)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: conduitKey
+ *    - 0x40: conduit
+ * Revert buffer is memory[0x1c:0x60]
+ */
+uint256 constant InvalidConduit_error_selector = 0x1cf99b26;
+uint256 constant InvalidConduit_error_conduitKey_ptr = 0x20;
+uint256 constant InvalidConduit_error_conduit_ptr = 0x40;
+uint256 constant InvalidConduit_error_length = 0x44;
+
+/*
+ *  error MissingOriginalConsiderationItems()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant MissingOriginalConsiderationItems_error_selector = 0x466aa616;
+uint256 constant MissingOriginalConsiderationItems_error_length = 0x04;
+
+/*
+ *  error InvalidCallToConduit(address conduit)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: conduit
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant InvalidCallToConduit_error_selector = 0xd13d53d4;
+uint256 constant InvalidCallToConduit_error_conduit_ptr = 0x20;
+uint256 constant InvalidCallToConduit_error_length = 0x24;
+
+/*
+ *  error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderIndex
+ *    - 0x40: considerationIndex
+ *    - 0x60: shortfallAmount
+ * Revert buffer is memory[0x1c:0x80]
+ */
+uint256 constant ConsiderationNotMet_error_selector = 0xa5f54208;
+uint256 constant ConsiderationNotMet_error_orderIndex_ptr = 0x20;
+uint256 constant ConsiderationNotMet_error_considerationIndex_ptr = 0x40;
+uint256 constant ConsiderationNotMet_error_shortfallAmount_ptr = 0x60;
+uint256 constant ConsiderationNotMet_error_length = 0x64;
+
+/*
+ *  error InsufficientEtherSupplied()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InsufficientEtherSupplied_error_selector = 0x1a783b8d;
+uint256 constant InsufficientEtherSupplied_error_length = 0x04;
+
+/*
+ *  error EtherTransferGenericFailure(address account, uint256 amount)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: account
+ *    - 0x40: amount
+ * Revert buffer is memory[0x1c:0x60]
+ */
+uint256 constant EtherTransferGenericFailure_error_selector = 0x470c7c1d;
+uint256 constant EtherTransferGenericFailure_error_account_ptr = 0x20;
+uint256 constant EtherTransferGenericFailure_error_amount_ptr = 0x40;
+uint256 constant EtherTransferGenericFailure_error_length = 0x44;
+
+/*
+ *  error PartialFillsNotEnabledForOrder()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant PartialFillsNotEnabledForOrder_error_selector = 0xa11b63ff;
+uint256 constant PartialFillsNotEnabledForOrder_error_length = 0x04;
+
+/*
+ *  error OrderIsCancelled(bytes32 orderHash)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderHash
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant OrderIsCancelled_error_selector = 0x1a515574;
+uint256 constant OrderIsCancelled_error_orderHash_ptr = 0x20;
+uint256 constant OrderIsCancelled_error_length = 0x24;
+
+/*
+ *  error OrderPartiallyFilled(bytes32 orderHash)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderHash
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant OrderPartiallyFilled_error_selector = 0xee9e0e63;
+uint256 constant OrderPartiallyFilled_error_orderHash_ptr = 0x20;
+uint256 constant OrderPartiallyFilled_error_length = 0x24;
+
+/*
+ *  error InvalidCanceller()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidCanceller_error_selector = 0x80ec7374;
+uint256 constant InvalidCanceller_error_length = 0x04;
+
+/*
+ *  error BadFraction()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant BadFraction_error_selector = 0x5a052b32;
+uint256 constant BadFraction_error_length = 0x04;
+
+/*
+ *  error InvalidMsgValue(uint256 value)
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: value
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant InvalidMsgValue_error_selector = 0xa61be9f0;
+uint256 constant InvalidMsgValue_error_value_ptr = 0x20;
+uint256 constant InvalidMsgValue_error_length = 0x24;
+
+/*
+ *  error InvalidBasicOrderParameterEncoding()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidBasicOrderParameterEncoding_error_selector = 0x39f3e3fd;
+uint256 constant InvalidBasicOrderParameterEncoding_error_length = 0x04;
+
+/*
+ *  error NoSpecifiedOrdersAvailable()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant NoSpecifiedOrdersAvailable_error_selector = 0xd5da9a1b;
+uint256 constant NoSpecifiedOrdersAvailable_error_length = 0x04;
+
+/*
+ *  error InvalidNativeOfferItem()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidNativeOfferItem_error_selector = 0x12d3f5a3;
+uint256 constant InvalidNativeOfferItem_error_length = 0x04;
+
+/*
+ *  error Panic(uint256 code)
+ *    - Built-in Solidity error
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: code
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant Panic_error_selector = 0x4e487b71;
+uint256 constant Panic_error_code_ptr = 0x20;
+uint256 constant Panic_error_length = 0x24;
