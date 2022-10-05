@@ -169,7 +169,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
             advancedOrder,
             criteriaResolvers,
             fulfillerConduitKey,
-            recipient == address(0) ? msg.sender : recipient
+            _substituteCallerForEmptyRecipient(recipient)
         );
     }
 
@@ -327,7 +327,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
-                recipient == address(0) ? msg.sender : recipient,
+                _substituteCallerForEmptyRecipient(recipient),
                 maximumFulfilled
             );
     }
