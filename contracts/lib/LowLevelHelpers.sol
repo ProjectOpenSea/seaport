@@ -122,4 +122,25 @@ contract LowLevelHelpers {
         // Return a boolean indicating whether expected and located value match.
         return result != expected;
     }
+
+    /**
+     * @dev Internal view function to branchlessly select either the caller (if
+     *      a supplied recipient is equal to zero) or the supplied recipient (if
+     *      that recipient is a nonzero value).
+     *
+     * @param recipient The supplied recipient.
+     *
+     * @return updatedRecipient The updated recipient.
+     */
+    function _substituteCallerForEmptyRecipient(address recipient)
+        internal
+        view
+        returns (address updatedRecipient)
+    {
+        // Utilize assembly to perform a branchless operation on the recipient.
+        assembly {
+            // Add caller to recipient if recipient equals 0; otherwise add 0.
+            updatedRecipient := add(recipient, mul(iszero(recipient), caller()))
+        }
+    }
 }
