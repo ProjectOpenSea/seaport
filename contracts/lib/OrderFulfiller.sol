@@ -20,7 +20,7 @@ import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title OrderFulfiller
@@ -218,7 +218,7 @@ contract OrderFulfiller is
                 // Offer items for the native token can not be received
                 // outside of a match order function.
                 if (offerItem.itemType == ItemType.NATIVE) {
-                    revert InvalidNativeOfferItem();
+                    _revertInvalidNativeOfferItem();
                 }
 
                 // Declare an additional nested scope to minimize stack depth.
@@ -344,7 +344,7 @@ contract OrderFulfiller is
                 if (considerationItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                        _revertInsufficientEtherSupplied();
                     }
 
                     // Skip underflow check as a comparison has just been made.

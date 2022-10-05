@@ -20,7 +20,7 @@ import { OrderFulfiller } from "./OrderFulfiller.sol";
 
 import { FulfillmentApplier } from "./FulfillmentApplier.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title OrderCombiner
@@ -398,7 +398,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
         if (invalidNativeOfferItemErrorBuffer == 3) {
-            revert InvalidNativeOfferItem();
+            _revertInvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
@@ -578,7 +578,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Revert if no orders are available.
         if (executions.length == 0) {
-            revert NoSpecifiedOrdersAvailable();
+            _revertNoSpecifiedOrdersAvailable();
         }
 
         // Perform final checks and return.
@@ -647,7 +647,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                     // Revert if the remaining amount is not zero.
                     if (unmetAmount != 0) {
-                        revert ConsiderationNotMet(i, j, unmetAmount);
+                        _revertConsiderationNotMet(i, j, unmetAmount);
                     }
                 }
             }
@@ -676,7 +676,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             if (item.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
                 if (item.amount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
+                    _revertInsufficientEtherSupplied();
                 }
 
                 // Skip underflow check as amount is less than ether remaining.

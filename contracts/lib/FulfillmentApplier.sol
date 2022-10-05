@@ -13,7 +13,8 @@ import {
     FulfillmentComponent
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+
+import "./ConsiderationErrors.sol";
 
 import {
     FulfillmentApplicationErrors
@@ -52,7 +53,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
         ) {
-            revert OfferAndConsiderationRequiredOnFulfillment();
+            _revertOfferAndConsiderationRequiredOnFulfillment();
         }
 
         // Declare a new Execution struct.
@@ -83,7 +84,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             execution.item.token != considerationItem.token ||
             execution.item.identifier != considerationItem.identifier
         ) {
-            revert MismatchedFulfillmentOfferAndConsiderationComponents();
+            _revertMismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
         // If total consideration amount exceeds the offer amount...
@@ -164,7 +165,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Retrieve fulfillment components array length and place on stack.
             // Ensure at least one fulfillment component has been supplied.
             if (fulfillmentComponents.length == 0) {
-                revert MissingFulfillmentComponentOnAggregation(side);
+                _revertMissingFulfillmentComponentOnAggregation(uint8(side));
             }
 
             // If the fulfillment components are offer components...
@@ -223,23 +224,20 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
-                // Store the InvalidFulfillmentComponentData error signature.
-                mstore(0, InvalidFulfillmentComponentData_error_signature)
-
-                // Return, supplying InvalidFulfillmentComponentData signature.
-                revert(0, InvalidFulfillmentComponentData_error_len)
+                // Store left-padded selector (uses push4 and reduces code size), mem[28:32] = selector
+                mstore(0, InvalidFulfillmentComponentData_error_selector)
+                // revert(abi.encodeWithSignature("InvalidFulfillmentComponentData()"))
+                revert(0x1c, InvalidFulfillmentComponentData_error_length)
             }
 
             // Declare function for reverts due to arithmetic overflows.
             function throwOverflow() {
                 // Store the Panic error signature.
-                mstore(0, Panic_error_signature)
-
-                // Store the arithmetic (0x11) panic code as initial argument.
-                mstore(Panic_error_offset, Panic_arithmetic)
-
-                // Return, supplying Panic signature and arithmetic code.
-                revert(0, Panic_error_length)
+                mstore(0, Panic_error_selector)
+                // Store the arithmetic (0x11) panic code.
+                mstore(Panic_error_code_ptr, Panic_arithmetic)
+                // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
+                revert(0x1c, Panic_error_length)
             }
 
             // Get position in offerComponents head.
@@ -479,11 +477,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             if errorBuffer {
                 // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
-                    // Store the MissingItemAmount error signature.
-                    mstore(0, MissingItemAmount_error_signature)
-
-                    // Return, supplying MissingItemAmount signature.
-                    revert(0, MissingItemAmount_error_len)
+                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    mstore(0, MissingItemAmount_error_selector)
+                    // revert(abi.encodeWithSignature("MissingItemAmount()"))
+                    revert(0x1c, MissingItemAmount_error_length)
                 }
 
                 // If errorBuffer is not 1 or 0, the sum overflowed.
@@ -516,22 +513,20 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
                 // Store the InvalidFulfillmentComponentData error signature.
-                mstore(0, InvalidFulfillmentComponentData_error_signature)
+                mstore(0, InvalidFulfillmentComponentData_error_selector)
 
                 // Return, supplying InvalidFulfillmentComponentData signature.
-                revert(0, InvalidFulfillmentComponentData_error_len)
+                revert(0x1c, InvalidFulfillmentComponentData_error_length)
             }
 
             // Declare function for reverts due to arithmetic overflows.
             function throwOverflow() {
                 // Store the Panic error signature.
-                mstore(0, Panic_error_signature)
-
-                // Store the arithmetic (0x11) panic code as initial argument.
-                mstore(Panic_error_offset, Panic_arithmetic)
-
-                // Return, supplying Panic signature and arithmetic code.
-                revert(0, Panic_error_length)
+                mstore(0, Panic_error_selector)
+                // Store the arithmetic (0x11) panic code.
+                mstore(Panic_error_code_ptr, Panic_arithmetic)
+                // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
+                revert(0x1c, Panic_error_length)
             }
 
             // Get position in considerationComponents head.
@@ -762,11 +757,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             if errorBuffer {
                 // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
-                    // Store the MissingItemAmount error signature.
-                    mstore(0, MissingItemAmount_error_signature)
-
-                    // Return, supplying MissingItemAmount signature.
-                    revert(0, MissingItemAmount_error_len)
+                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    mstore(0, MissingItemAmount_error_selector)
+                    // revert(abi.encodeWithSignature("MissingItemAmount()"))
+                    revert(0x1c, MissingItemAmount_error_length)
                 }
 
                 // If errorBuffer is not 1 or 0, the sum overflowed.

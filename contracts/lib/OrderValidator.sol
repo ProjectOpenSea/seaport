@@ -12,7 +12,7 @@ import {
     CriteriaResolver
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 import { Executor } from "./Executor.sol";
 
@@ -136,7 +136,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0) {
-            revert BadFraction();
+            _revertBadFraction();
         }
 
         // If attempting partial fill (n < d) check order type & ensure support.
@@ -145,7 +145,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             _doesNotSupportPartialFills(orderParameters.orderType)
         ) {
             // Revert if partial fill was attempted on an unsupported order.
-            revert PartialFillsNotEnabledForOrder();
+            _revertPartialFillsNotEnabledForOrder();
         }
 
         // Retrieve current counter & use it w/ parameters to derive order hash.
@@ -262,13 +262,11 @@ contract OrderValidator is Executor, ZoneInteraction {
                         gt(denominator, MaxUint120)
                     ) {
                         // Store the Panic error signature.
-                        mstore(0, Panic_error_signature)
-
-                        // Set arithmetic (0x11) panic code as initial argument.
-                        mstore(Panic_error_offset, Panic_arithmetic)
-
-                        // Return, supplying Panic signature & arithmetic code.
-                        revert(0, Panic_error_length)
+                        mstore(0, Panic_error_selector)
+                        // Store the arithmetic (0x11) panic code.
+                        mstore(Panic_error_code_ptr, Panic_arithmetic)
+                        // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
+                        revert(0x1c, Panic_error_length)
                     }
                 }
             }
@@ -330,7 +328,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // Ensure caller is either offerer or zone of the order.
                 if (msg.sender != offerer && msg.sender != zone) {
-                    revert InvalidCanceller();
+                    _revertInvalidCanceller();
                 }
 
                 // Derive order hash using the order parameters and the counter.

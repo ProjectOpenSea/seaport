@@ -7,11 +7,12 @@ import { OrderType } from "./ConsiderationEnums.sol";
 
 import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
+
+import "./ConsiderationErrors.sol";
 
 /**
  * @title ZoneInteraction
@@ -200,12 +201,12 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             _revertWithReasonIfOneIsReturned();
 
             // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
+            _revertInvalidRestrictedOrder(orderHash);
         }
 
         // Ensure result was extracted and matches isValidOrder magic value.
         if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
-            revert InvalidRestrictedOrder(orderHash);
+            _revertInvalidRestrictedOrder(orderHash);
         }
     }
 }

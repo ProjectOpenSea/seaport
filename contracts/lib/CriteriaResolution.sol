@@ -11,7 +11,7 @@ import {
     CriteriaResolver
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 import {
     CriteriaResolutionErrors
@@ -62,7 +62,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Ensure that the order index is in range.
                 if (orderIndex >= totalAdvancedOrders) {
-                    revert OrderCriteriaResolverOutOfRange();
+                    _revertOrderCriteriaResolverOutOfRange();
                 }
 
                 // Skip criteria resolution for order if not fulfilled.
@@ -89,7 +89,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                     // Ensure that the component index is in range.
                     if (componentIndex >= offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
+                        _revertOfferCriteriaResolverOutOfRange();
                     }
 
                     // Retrieve relevant item using the component index.
@@ -119,7 +119,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                     // Ensure that the component index is in range.
                     if (componentIndex >= consideration.length) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
+                        _revertConsiderationCriteriaResolverOutOfRange();
                     }
 
                     // Retrieve relevant item using order and component index.
@@ -150,7 +150,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Ensure the specified item type indicates criteria usage.
                 if (!_isItemWithCriteria(itemType)) {
-                    revert CriteriaNotEnabledForItem();
+                    _revertCriteriaNotEnabledForItem();
                 }
 
                 // If criteria is not 0 (i.e. a collection-wide offer)...
@@ -190,7 +190,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                             orderParameters.consideration[j].itemType
                         )
                     ) {
-                        revert UnresolvedConsiderationCriteria();
+                        _revertUnresolvedConsiderationCriteria();
                     }
                 }
 
@@ -203,7 +203,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     if (
                         _isItemWithCriteria(orderParameters.offer[j].itemType)
                     ) {
-                        revert UnresolvedOfferCriteria();
+                        _revertUnresolvedOfferCriteria();
                     }
                 }
             }
@@ -291,7 +291,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
         // Revert if computed hash does not equal supplied root.
         if (!isValid) {
-            revert InvalidProof();
+            _revertInvalidProof();
         }
     }
 }
