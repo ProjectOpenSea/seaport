@@ -3,31 +3,12 @@ pragma solidity >=0.8.13;
 
 import "./ConsiderationConstants.sol";
 
-function _revertBadContractSignature() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  BadContractSignature_error_selector)
-		// revert(abi.encodeWithSignature("BadContractSignature()"))
-		revert(0x1c, BadContractSignature_error_length)
-	}
-}
-
 function _revertBadFraction() pure {
 	assembly {
 		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
 		mstore(0,  BadFraction_error_selector)
 		// revert(abi.encodeWithSignature("BadFraction()"))
 		revert(0x1c, BadFraction_error_length)
-	}
-}
-
-function _revertBadSignatureV(uint8 v) pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  BadSignatureV_error_selector)
-		mstore(BadSignatureV_error_v_ptr, v)
-		// revert(abi.encodeWithSignature("BadSignatureV(uint8)", v))
-		revert(0x1c, BadSignatureV_error_length)
 	}
 }
 
@@ -72,30 +53,12 @@ function _revertEtherTransferGenericFailure(address account, uint256 amount) pur
 	}
 }
 
-function _revertInexactFraction() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  InexactFraction_error_selector)
-		// revert(abi.encodeWithSignature("InexactFraction()"))
-		revert(0x1c, InexactFraction_error_length)
-	}
-}
-
 function _revertInsufficientEtherSupplied() pure {
 	assembly {
 		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
 		mstore(0,  InsufficientEtherSupplied_error_selector)
 		// revert(abi.encodeWithSignature("InsufficientEtherSupplied()"))
 		revert(0x1c, InsufficientEtherSupplied_error_length)
-	}
-}
-
-function _revertInvalid1155BatchTransferEncoding() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  Invalid1155BatchTransferEncoding_error_selector)
-		// revert(abi.encodeWithSignature("Invalid1155BatchTransferEncoding()"))
-		revert(0x1c, Invalid1155BatchTransferEncoding_error_length)
 	}
 }
 
@@ -182,15 +145,6 @@ function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
 		mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
 		// revert(abi.encodeWithSignature("InvalidRestrictedOrder(bytes32)", orderHash))
 		revert(0x1c, InvalidRestrictedOrder_error_length)
-	}
-}
-
-function _revertInvalidSignature() pure {
-	assembly {
-		// Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-		mstore(0,  InvalidSignature_error_selector)
-		// revert(abi.encodeWithSignature("InvalidSignature()"))
-		revert(0x1c, InvalidSignature_error_length)
 	}
 }
 
