@@ -34,6 +34,9 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 18000,
           },
+          metadata: {
+            bytecodeHash: "none",
+          },
         },
       },
     ],
