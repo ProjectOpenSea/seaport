@@ -44,13 +44,14 @@ contract Verifiers is Assertions, SignatureVerification {
         // Mark as valid if order has started and has not already ended.
         assembly {
             valid := and(
-                gt(timestamp(), startTime), iszero(gt(timestamp(), endTime))
+                gt(timestamp(), startTime),
+                iszero(gt(timestamp(), endTime))
             )
         }
 
         // Only revert on invalid if revertOnInvalid has been supplied as true.
         if (revertOnInvalid && !valid) {
-             _revertInvalidTime();
+            _revertInvalidTime();
         }
     }
 
