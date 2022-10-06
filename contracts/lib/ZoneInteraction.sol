@@ -7,7 +7,6 @@ import { OrderType } from "./ConsiderationEnums.sol";
 
 import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
 
-
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";

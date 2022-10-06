@@ -13,7 +13,6 @@ import {
     FulfillmentComponent
 } from "./ConsiderationStructs.sol";
 
-
 import "./ConsiderationErrors.sol";
 
 import {
