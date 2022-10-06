@@ -90,7 +90,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             success := staticcall(
                 gas(),
                 zone,
-                IsValidOrder_sig_ptr,
+                IsValidOrder_calldata_ptr,
                 IsValidOrder_length,
                 0,
                 0

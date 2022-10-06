@@ -103,8 +103,13 @@ uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipients_size = 0x40;
 
-uint256 constant EIP712_DomainSeparator_offset = 0x02;
-uint256 constant EIP712_OrderHash_offset = 0x22;
+// Pointers are offset by 30 bytes because the prefix is written to
+// the end of the first word of memory in order to save a shift operation
+// and reduce the bytecode size.
+uint256 constant EIP_712_PREFIX = 0x1901;
+uint256 constant EIP712_DomainSeparator_offset = 0x20;
+uint256 constant EIP712_OrderHash_offset = 0x40;
+uint256 constant EIP712_DigestPayload_ptr = 0x1e;
 uint256 constant EIP712_DigestPayload_size = 0x42;
 
 uint256 constant receivedItemsHash_ptr = 0x60;
@@ -269,19 +274,15 @@ uint256 constant ECDSA_MaxLength = 65;
 uint256 constant ECDSA_signature_s_offset = 0x40;
 uint256 constant ECDSA_signature_v_offset = 0x60;
 
-bytes32 constant EIP1271_isValidSignature_selector = (
-    0x1626ba7e00000000000000000000000000000000000000000000000000000000
-);
+uint256 constant EIP1271_isValidSignature_selector = 0x1626ba7e;
 uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
 uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
-uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
+uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x60;
+// Offset from pointer selector is written to to beginning of calldata
+uint256 constant EIP1271_isValidSignature_calldata_offset = 0x1c;
 uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
 
 uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
-
-uint256 constant EIP_712_PREFIX = (
-    0x1901000000000000000000000000000000000000000000000000000000000000
-);
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
@@ -298,13 +299,7 @@ uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
 );
 
-uint256 constant MaskOverFirstFourBytes = (
-    0xffffffff00000000000000000000000000000000000000000000000000000000
-);
-
-uint256 constant Conduit_execute_signature = (
-    0x4ce34aa200000000000000000000000000000000000000000000000000000000
-);
+uint256 constant Conduit_execute_signature = 0x4ce34aa2;
 
 uint256 constant MaxUint8 = 0xff;
 uint256 constant MaxUint120 = 0xffffffffffffffffffffffffffffff;
@@ -355,14 +350,13 @@ uint256 constant NonMatchSelector_MagicModulus = 69;
 // remainder modulo 69 is 29.
 uint256 constant NonMatchSelector_MagicRemainder = 0x1d;
 
-uint256 constant IsValidOrder_signature = (
-    0x0e1d31dc00000000000000000000000000000000000000000000000000000000
-);
+uint256 constant IsValidOrder_signature = 0x0e1d31dc;
+uint256 constant IsValidOrder_calldata_ptr = 0x1c;
 uint256 constant IsValidOrder_sig_ptr = 0x0;
-uint256 constant IsValidOrder_orderHash_ptr = 0x04;
-uint256 constant IsValidOrder_caller_ptr = 0x24;
-uint256 constant IsValidOrder_offerer_ptr = 0x44;
-uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
+uint256 constant IsValidOrder_orderHash_ptr = 0x20;
+uint256 constant IsValidOrder_caller_ptr = 0x40;
+uint256 constant IsValidOrder_offerer_ptr = 0x60;
+uint256 constant IsValidOrder_zoneHash_ptr = 0x80;
 uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
 
 /*

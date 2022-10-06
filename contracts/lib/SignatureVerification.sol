@@ -176,7 +176,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Cache the value currently stored at the digest pointer.
                 let cachedWordOverwrittenByDigest := mload(digestPtr)
 
-                // Write the selector first, since it overlaps the digest.
+                // Write the function selector.
                 mstore(selectorPtr, EIP1271_isValidSignature_selector)
 
                 // Next, write the digest.
@@ -186,7 +186,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 success := staticcall(
                     gas(),
                     signer,
-                    selectorPtr,
+                    add(selectorPtr, EIP1271_isValidSignature_calldata_offset),
                     add(
                         signatureLength,
                         EIP1271_isValidSignature_calldata_baseLength
@@ -199,7 +199,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 if success {
                     // If first word of scratch space does not contain EIP-1271
                     // signature selector, revert.
-                    if iszero(eq(mload(0), EIP1271_isValidSignature_selector)) {
+                    if iszero(eq(shr(0xe0, mload(0)), EIP1271_isValidSignature_selector)) {
                         // Revert with bad 1271 signature if signer has code.
                         if extcodesize(signer) {
                             // Bad contract signature.

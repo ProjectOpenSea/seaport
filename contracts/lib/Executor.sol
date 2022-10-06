@@ -139,8 +139,12 @@ contract Executor is Verifiers, TokenTransferrer {
                 // Retrieve the free memory pointer and use it as the offset.
                 callDataOffset := mload(FreeMemoryPointerSlot)
 
-                // Write ConduitInterface.execute.selector to memory.
+                // Write ConduitInterface.execute.selector to memory,
+                // placing selector 28 bytes into free memory
                 mstore(callDataOffset, Conduit_execute_signature)
+
+                // Set pointer to beginning of function selector
+                callDataOffset := add(callDataOffset, 0x1c)
 
                 // Write the offset to the ConduitTransfer array in memory.
                 mstore(
@@ -627,8 +631,8 @@ contract Executor is Verifiers, TokenTransferrer {
         // Insert the item.
         assembly {
             let itemPointer := sub(
-                add(accumulator, mul(elements, Conduit_transferItem_size)),
-                Accumulator_itemSizeOffsetDifference
+              add(accumulator, mul(elements, Conduit_transferItem_size)),
+              Accumulator_itemSizeOffsetDifference
             )
             mstore(itemPointer, itemType)
             mstore(add(itemPointer, Conduit_transferItem_token_ptr), token)
