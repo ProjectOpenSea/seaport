@@ -13,6 +13,8 @@ import { Verifiers } from "./Verifiers.sol";
 
 import { TokenTransferrer } from "./TokenTransferrer.sol";
 
+import "./ConsiderationConstants.sol";
+
 import "./ConsiderationErrors.sol";
 
 /**
@@ -242,7 +244,16 @@ contract Executor is Verifiers, TokenTransferrer {
             _revertWithReasonIfOneIsReturned();
 
             // Otherwise, revert with a generic error message.
-            _revertEtherTransferGenericFailure(to, amount);
+            assembly {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, EtherTransferGenericFailure_error_selector)
+                mstore(EtherTransferGenericFailure_error_account_ptr, to)
+                mstore(EtherTransferGenericFailure_error_amount_ptr, amount)
+                // revert(abi.encodeWithSignature(
+                //   "EtherTransferGenericFailure(address,uint256)", to, amount)
+                // )
+                revert(0x1c, EtherTransferGenericFailure_error_length)
+            }
         }
     }
 
