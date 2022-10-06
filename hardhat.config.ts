@@ -37,6 +37,11 @@ const config: HardhatUserConfig = {
           metadata: {
             bytecodeHash: "none",
           },
+          outputSelection: {
+            "*": {
+              "*": ["evm.assembly", "irOptimized", "devdoc"],
+            },
+          },
         },
       },
     ],
