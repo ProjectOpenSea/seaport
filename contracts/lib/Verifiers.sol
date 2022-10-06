@@ -44,8 +44,8 @@ contract Verifiers is Assertions, SignatureVerification {
         // Mark as valid if order has started and has not already ended.
         assembly {
             valid := and(
-                gt(timestamp(), startTime),
-                iszero(gt(timestamp(), endTime))
+                iszero(gt(startTime, timestamp())),
+                gt(endTime, timestamp())
             )
         }
 
