@@ -143,4 +143,25 @@ contract LowLevelHelpers {
             updatedRecipient := add(recipient, mul(iszero(recipient), caller()))
         }
     }
+
+    /**
+     * @dev Internal pure function to compare two addresses without first
+     *      masking them. Note that dirty upper bits will cause otherwise equal
+     *      addresses to be recognized as unequal.
+     *
+     * @param a The first address.
+     * @param b The second address
+     *
+     * @return areEqual A boolean representing whether the addresses are equal.
+     */
+    function _unmaskedAddressComparison(address a, address b)
+        internal
+        pure
+        returns (bool areEqual)
+    {
+        // Utilize assembly to perform the comparison without masking.
+        assembly {
+            areEqual := eq(a, b)
+        }
+    }
 }

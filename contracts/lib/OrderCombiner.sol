@@ -527,7 +527,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 );
 
                 // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
+                if (
+                    _unmaskedAddressComparison(
+                        execution.item.recipient,
+                        execution.offerer
+                    )
+                ) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
@@ -553,7 +558,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 );
 
                 // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
+                if (
+                    _unmaskedAddressComparison(
+                        execution.item.recipient,
+                        execution.offerer
+                    )
+                ) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
@@ -813,7 +823,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 );
 
                 // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
+                if (
+                    _unmaskedAddressComparison(
+                        execution.item.recipient,
+                        execution.offerer
+                    )
+                ) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
