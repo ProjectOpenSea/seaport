@@ -42,8 +42,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            !_unmaskedAddressComparison(msg.sender, zone) &&
+            !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
             // Perform minimal staticcall to the zone.
             _callIsValidOrder(zone, orderHash, offerer, zoneHash);
@@ -151,8 +151,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            !_unmaskedAddressComparison(msg.sender, zone) &&
+            !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (

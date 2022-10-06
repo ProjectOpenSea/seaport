@@ -327,7 +327,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                 zone = order.zone;
 
                 // Ensure caller is either offerer or zone of the order.
-                if (msg.sender != offerer && msg.sender != zone) {
+                if (
+                    !_unmaskedAddressComparison(msg.sender, offerer) &&
+                    !_unmaskedAddressComparison(msg.sender, zone)
+                ) {
                     _revertInvalidCanceller();
                 }
 
