@@ -41,19 +41,17 @@ contract Verifiers is Assertions, SignatureVerification {
         uint256 endTime,
         bool revertOnInvalid
     ) internal view returns (bool valid) {
-        // Revert if order's timespan hasn't started yet or has already ended.
-        if (startTime > block.timestamp || endTime <= block.timestamp) {
-            // Only revert if revertOnInvalid has been supplied as true.
-            if (revertOnInvalid) {
-                _revertInvalidTime();
-            }
-
-            // Return false as the order is invalid.
-            return false;
+        // Mark as valid if order has started and has not already ended.
+        assembly {
+            valid := and(
+                gt(timestamp(), startTime), iszero(gt(timestamp(), endTime))
+            )
         }
 
-        // Return true as the order time is valid.
-        valid = true;
+        // Only revert on invalid if revertOnInvalid has been supplied as true.
+        if (revertOnInvalid && !valid) {
+             _revertInvalidTime();
+        }
     }
 
     /**
