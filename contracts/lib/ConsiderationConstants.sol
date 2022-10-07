@@ -41,9 +41,13 @@ pragma solidity ^0.8.7;
 uint256 constant NameLengthPtr = 77;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
-uint256 constant Version = 0x312e31;
-uint256 constant Version_length = 3;
-uint256 constant Version_shift = 0xe8;
+uint256 constant information_version_offset = 0;
+uint256 constant information_version_cd_offset = 0x60;
+uint256 constant information_domainSeparator_offset = 0x20;
+uint256 constant information_conduitController_offset = 0x40;
+uint256 constant information_versionLengthPtr = 0x63;
+uint256 constant information_versionWithLength = 0x03312e31;
+uint256 constant information_length = 0xa0;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
