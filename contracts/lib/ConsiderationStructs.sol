@@ -241,3 +241,14 @@ struct Execution {
     address offerer;
     bytes32 conduitKey;
 }
+
+/**
+ * @dev Emitted by contract offerers when their inventory has been updated (i.e.
+ *      some item has been added or removed as an available for offer or
+ *      expected to be received back as a consideration item).
+ */
+struct InventoryUpdate {
+    SpentItem item;
+    bool offerable;
+    bool receivable;
+}
