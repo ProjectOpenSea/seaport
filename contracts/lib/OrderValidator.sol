@@ -397,6 +397,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                     originalConsideration.token != newConsideration.token ||
                     originalConsideration.identifierOrCriteria !=
                     newConsideration.identifier
+                    // TODO: should we check recipient if supplied by fulfiller?
+                    // Should we allow empty args to be skipped in other cases?
                 ) {
                     _revertNoSpecifiedOrdersAvailable(); // TODO: replace
                 }
@@ -406,7 +408,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 originalConsideration.recipient = newConsideration.recipient;
             }
         } else {
-            // TODO: set orderParameters.consideration to new consideration
+            // TODO: optimize this
             orderParameters.consideration = new ConsiderationItem[](
                 consideration.length
             );
@@ -431,7 +433,6 @@ contract OrderValidator is Executor, ZoneInteraction {
         uint256 contractNonce = _contractNonces[offerer]++;
         assembly {
             orderHash := or(contractNonce, shl(0x60, offerer))
-            //orderHash := or(contractNonce, offerer)
         }
         return orderHash;
     }
