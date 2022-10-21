@@ -8,7 +8,6 @@ import {
 } from "../../lib/ConsiderationStructs.sol";
 import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 import { SimpleConditionalMax } from "../modules/SimpleConditional.sol";
-import "hardhat/console.sol";
 
 contract TestSimpleConditionalMax is SimpleConditionalMax {
     constructor(address seaport) BaseZone(seaport) {}
