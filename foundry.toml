@@ -11,7 +11,7 @@ remappings = [
     '@rari-capital/solmate/=lib/solmate/',
     'contracts/=contracts/',
     'murky/=lib/murky/src/',
-    '@openzeppelin/contracts=./lib/openzeppelin-contracts/',
+    '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts/',
 ]
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
