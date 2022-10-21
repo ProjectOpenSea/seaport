@@ -1,3 +1,4 @@
+/* eslint no-unused-vars: 0 */
 export const EIP_712_ORDER_TYPE = {
   OrderComponents: [
     { name: "offerer", type: "address" },
@@ -52,3 +53,4 @@ export const THIRTY_MINUTES = 30 * 60;
 export const WEEKS_26 = 60 * 60 * 24 * 7 * 26;
 
 export const IS_VALID_EXTRA_DATA_MAGIC = "0x33131570";
+/* eslint no-unused-vars: 1 */

@@ -15,13 +15,9 @@ import {
   THIRTY_MINUTES,
 } from "./constants";
 
+import type { TestERC20 } from "../../typechain-types";
 import type {
   ConsiderationInterface,
-  TestERC20,
-  TestSimpleConditionalMax,
-  TestSimpleConditionalMin,
-} from "../../typechain-types";
-import type {
   OrderComponentsStruct,
   OrderStruct,
 } from "../../typechain-types/contracts/interfaces/ConsiderationInterface";
@@ -30,6 +26,7 @@ import type {
   OrderParametersStruct,
 } from "../../typechain-types/contracts/zones/BaseZone";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { Contract } from "ethers";
 
 const NULL_ADDRESS = ethers.constants.AddressZero;
 
@@ -38,8 +35,8 @@ describe("Test Simple Conditional", function () {
   const owner = new ethers.Wallet(randomHex(32), provider);
   let otherAccounts: SignerWithAddress[];
   let marketplaceContract: ConsiderationInterface;
-  let simpleConditionalMax: TestSimpleConditionalMax;
-  let simpleConditionalMin: TestSimpleConditionalMin;
+  let simpleConditionalMax: Contract;
+  let simpleConditionalMin: Contract;
   let signedOrders: OrderStruct[];
   let testERC20: TestERC20;
 

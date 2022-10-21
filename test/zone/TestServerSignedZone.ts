@@ -6,11 +6,9 @@ import { randomHex } from "../utils/encoding";
 import { faucet } from "../utils/faucet";
 import { seaportFixture } from "../utils/fixtures";
 
-import type {
-  ConsiderationInterface,
-  TestServerSignedZone,
-} from "../../typechain-types";
+import type { ConsiderationInterface } from "../../typechain-types";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { Contract } from "ethers";
 
 const EMPTY_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -21,7 +19,7 @@ describe("Test Server Signed Zone", function () {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
   let otherAccounts: SignerWithAddress[];
-  let serverSignedZone: TestServerSignedZone;
+  let serverSignedZone: Contract;
   let marketplaceContract: ConsiderationInterface;
 
   after(async () => {

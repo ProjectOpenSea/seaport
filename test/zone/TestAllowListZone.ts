@@ -5,8 +5,8 @@ import { MerkleTree } from "merkletreejs";
 
 import { faucet } from "../utils/faucet";
 
-import type { TestAllowListZone } from "../../typechain-types";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { Contract } from "ethers";
 
 const EMPTY_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -18,7 +18,7 @@ describe("Test Allow List Zone", function () {
 
   let owner: SignerWithAddress;
   let otherAccounts: SignerWithAddress[];
-  let allowListZone: TestAllowListZone;
+  let allowListZone: Contract;
 
   after(async () => {
     await network.provider.request({

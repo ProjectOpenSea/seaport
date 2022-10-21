@@ -6,11 +6,9 @@ import { randomHex } from "../utils/encoding";
 import { faucet } from "../utils/faucet";
 import { seaportFixture } from "../utils/fixtures";
 
-import type {
-  ConsiderationInterface,
-  TestCommitAndRevealZone,
-} from "../../typechain-types";
+import type { ConsiderationInterface } from "../../typechain-types";
 import type { AdvancedOrderStruct } from "../../typechain-types/contracts/zones/modules/CommitAndReveal";
+import type { Contract } from "ethers";
 
 const EMPTY_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -21,7 +19,7 @@ describe("Test Commit and Reveal Zone", function () {
   const { provider } = ethers;
 
   let marketplaceContract: ConsiderationInterface;
-  let commitAndRevealZone: TestCommitAndRevealZone;
+  let commitAndRevealZone: Contract;
   let advancedOrder: AdvancedOrderStruct;
   let orderHash: string;
   let secret: string;

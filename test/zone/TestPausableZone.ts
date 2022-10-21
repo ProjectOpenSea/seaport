@@ -3,8 +3,8 @@ import { ethers } from "hardhat";
 
 import { faucet } from "../utils/faucet";
 
-import type { Pausable } from "../../typechain-types";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { Contract } from "ethers";
 
 const EMPTY_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -16,7 +16,7 @@ describe("Test Server Signed Zone", function () {
   const { provider } = ethers;
 
   let owner: SignerWithAddress;
-  let pausableZone: Pausable;
+  let pausableZone: Contract;
 
   before(async () => {
     [owner] = await ethers.getSigners();
