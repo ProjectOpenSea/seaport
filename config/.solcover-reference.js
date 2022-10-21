@@ -39,5 +39,13 @@ module.exports = {
     "test/ConduitMockRevertBytes.sol",
     "test/ConduitMockRevertNoReason.sol",
     "../reference/shim/Shim.sol",
+    "zones/lib/TwoStepOwnable.sol",
+    "zones/test/EndZone.sol",
+    "zones/test/TestAllowListZone.sol",
+    "zones/test/TestCommitAndRevealZone.sol",
+    "zones/test/TestPausableZone.sol",
+    "zones/test/TestServerSignedZone.sol",
+    "zones/test/TestSimpleConditionalMax.sol",
+    "zones/test/TestSimpleConditionalMin.sol",
   ],
 };

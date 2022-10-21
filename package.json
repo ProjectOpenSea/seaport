@@ -10,6 +10,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3",
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
     "hardhat": "https://github.com/0age/hardhat/releases/download/viaIR-2.9.3/hardhat-v2.9.3.tgz"
@@ -35,10 +36,11 @@
     "eslint-plugin-n": "^15.2.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
-    "ethereum-waffle": "^3.4.0",
+    "ethereum-waffle": "^3.4.4",
     "hardhat-gas-reporter": "^1.0.7",
     "husky": ">=6",
     "lint-staged": ">=10",
+    "merkletreejs": "^0.2.32",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "scuffed-abi": "^1.0.4",
