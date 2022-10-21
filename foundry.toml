@@ -8,7 +8,6 @@ test = 'test/foundry'
 remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
-    '@ope',
     '@rari-capital/solmate/=lib/solmate/',
     'contracts/=contracts/',
     'murky/=lib/murky/src/',
