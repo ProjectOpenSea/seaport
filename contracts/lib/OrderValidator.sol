@@ -314,6 +314,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         OrderParameters memory orderParameters,
         bytes memory context
     ) internal returns (bytes32 orderHash) {
+        uint256 originalOfferLength = orderParameters.offer.length;
+
         // TODO: reuse an existing memory region or relocate this functionality
         (
             SpentItem[] memory originalOfferItems,
@@ -334,8 +336,14 @@ contract OrderValidator is Executor, ZoneInteraction {
             );
 
         // Explicitly specified offer items cannot be removed.
-        if (orderParameters.offer.length > offer.length) {
+        if (originalOfferLength > offer.length) {
             _revertNoSpecifiedOrdersAvailable(); // TODO: replace w/ better err
+        } else if (offer.length > originalOfferLength) {
+            OfferItem[] memory extendedOffer = new OfferItem[](offer.length);
+            for (uint256 i = 0; i < originalOfferLength; ++i) {
+                extendedOffer[i] = orderParameters.offer[i];
+            }
+            orderParameters.offer = extendedOffer;
         }
 
         // Loop through each offer and ensure at least as much on returned offer
@@ -358,11 +366,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // add new offer items if there are more than original
-        for (
-            uint256 i = orderParameters.offer.length - 1;
-            i < offer.length;
-            ++i
-        ) {
+        for (uint256 i = originalOfferLength - 1; i < offer.length; ++i) {
             OfferItem memory originalOffer = orderParameters.offer[i];
             SpentItem memory newOffer = offer[i];
 
@@ -373,19 +377,23 @@ contract OrderValidator is Executor, ZoneInteraction {
             originalOffer.endAmount = newOffer.amount;
         }
 
-        if (orderParameters.consideration.length != 0) {
+        ConsiderationItem[] memory originalConsiderationArray = orderParameters
+            .consideration;
+        uint256 newConsiderationLength = consideration.length;
+
+        if (originalConsiderationArray.length != 0) {
             // Consideration items that are not explicitly specified cannot be
             // created. Note that this constraint could be relaxed if specified
             // consideration items can be split.
-            if (consideration.length > orderParameters.consideration.length) {
+            if (newConsiderationLength > originalConsiderationArray.length) {
                 _revertNoSpecifiedOrdersAvailable(); // TODO: replace
             }
 
             // Loop through returned consideration, ensure existing not exceeded
-            for (uint256 i = 0; i < consideration.length; ++i) {
+            for (uint256 i = 0; i < newConsiderationLength; ++i) {
                 ReceivedItem memory newConsideration = consideration[i];
                 ConsiderationItem memory originalConsideration = (
-                    orderParameters.consideration[i]
+                    originalConsiderationArray[i]
                 );
 
                 if (
@@ -406,6 +414,14 @@ contract OrderValidator is Executor, ZoneInteraction {
                 originalConsideration.startAmount = newConsideration.amount;
                 originalConsideration.endAmount = newConsideration.amount;
                 originalConsideration.recipient = newConsideration.recipient;
+            }
+
+            // Shorten original consideration array if longer than new array
+            assembly {
+                mstore(
+                    add(0x20, originalConsiderationArray),
+                    newConsiderationLength
+                )
             }
         } else {
             // TODO: optimize this
