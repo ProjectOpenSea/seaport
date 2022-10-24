@@ -36,7 +36,7 @@ contract OrderValidator is Executor, ZoneInteraction {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
-    mapping(address => uint256) private _contractNonces;
+    mapping(address => uint256) internal _contractNonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -314,8 +314,6 @@ contract OrderValidator is Executor, ZoneInteraction {
         OrderParameters memory orderParameters,
         bytes memory context
     ) internal returns (bytes32 orderHash) {
-        uint256 originalOfferLength = orderParameters.offer.length;
-
         // TODO: reuse an existing memory region or relocate this functionality
         (
             SpentItem[] memory originalOfferItems,
@@ -335,11 +333,20 @@ contract OrderValidator is Executor, ZoneInteraction {
                 context
             );
 
+        // Designate lengths & memory locations that will be reused throughout.
+        uint256 originalOfferLength = orderParameters.offer.length;
+        ConsiderationItem[] memory originalConsiderationArray = (
+            orderParameters.consideration
+        );
+        uint256 originalConsiderationLength = originalConsiderationArray.length;
+        uint256 newOfferLength = offer.length;
+        uint256 newConsiderationLength = consideration.length;
+
         // Explicitly specified offer items cannot be removed.
-        if (originalOfferLength > offer.length) {
+        if (originalOfferLength > newOfferLength) {
             _revertNoSpecifiedOrdersAvailable(); // TODO: replace w/ better err
         } else if (offer.length > originalOfferLength) {
-            OfferItem[] memory extendedOffer = new OfferItem[](offer.length);
+            OfferItem[] memory extendedOffer = new OfferItem[](newOfferLength);
             for (uint256 i = 0; i < originalOfferLength; ++i) {
                 extendedOffer[i] = orderParameters.offer[i];
             }
@@ -347,7 +354,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Loop through each offer and ensure at least as much on returned offer
-        for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+        for (uint256 i = 0; i < originalOfferLength; ++i) {
             OfferItem memory originalOffer = orderParameters.offer[i];
             SpentItem memory newOffer = offer[i];
 
@@ -366,7 +373,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // add new offer items if there are more than original
-        for (uint256 i = originalOfferLength - 1; i < offer.length; ++i) {
+        for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
             OfferItem memory originalOffer = orderParameters.offer[i];
             SpentItem memory newOffer = offer[i];
 
@@ -377,17 +384,11 @@ contract OrderValidator is Executor, ZoneInteraction {
             originalOffer.endAmount = newOffer.amount;
         }
 
-        ConsiderationItem[] memory originalConsiderationArray = (
-            orderParameters.consideration
-        );
-
-        uint256 newConsiderationLength = consideration.length;
-
-        if (originalConsiderationArray.length != 0) {
+        if (originalConsiderationLength != 0) {
             // Consideration items that are not explicitly specified cannot be
             // created. Note that this constraint could be relaxed if specified
             // consideration items can be split.
-            if (newConsiderationLength > originalConsiderationArray.length) {
+            if (newConsiderationLength > originalConsiderationLength) {
                 _revertNoSpecifiedOrdersAvailable(); // TODO: replace
             }
 
@@ -420,10 +421,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Shorten original consideration array if longer than new array.
             assembly {
-                mstore(
-                    mload(originalConsiderationArray),
-                    newConsiderationLength
-                )
+                mstore(originalConsiderationArray, newConsiderationLength)
             }
         } else {
             // TODO: optimize this
