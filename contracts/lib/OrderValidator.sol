@@ -377,8 +377,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             originalOffer.endAmount = newOffer.amount;
         }
 
-        ConsiderationItem[] memory originalConsiderationArray = orderParameters
-            .consideration;
+        ConsiderationItem[] memory originalConsiderationArray = (
+            orderParameters.consideration
+        );
+
         uint256 newConsiderationLength = consideration.length;
 
         if (originalConsiderationArray.length != 0) {
@@ -416,20 +418,20 @@ contract OrderValidator is Executor, ZoneInteraction {
                 originalConsideration.recipient = newConsideration.recipient;
             }
 
-            // Shorten original consideration array if longer than new array
+            // Shorten original consideration array if longer than new array.
             assembly {
                 mstore(
-                    add(0x20, originalConsiderationArray),
+                    mload(originalConsiderationArray),
                     newConsiderationLength
                 )
             }
         } else {
             // TODO: optimize this
             orderParameters.consideration = new ConsiderationItem[](
-                consideration.length
+                newConsiderationLength
             );
 
-            for (uint256 i = 0; i < consideration.length; ++i) {
+            for (uint256 i = 0; i < newConsiderationLength; ++i) {
                 ReceivedItem memory newConsideration = consideration[i];
                 ConsiderationItem memory originalConsideration = (
                     orderParameters.consideration[i]
