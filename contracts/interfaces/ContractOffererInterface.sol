@@ -8,6 +8,8 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 interface ContractOffererInterface {
+    event InventoryUpdated(InventoryUpdate[] inventoryUpdates);
+
     function generateOrder(
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
@@ -30,6 +32,4 @@ interface ContractOffererInterface {
         external
         view
         returns (SpentItem[] memory offerable, SpentItem[] memory receivable);
-
-    event InventoryUpdated(InventoryUpdate[] inventoryUpdates);
 }
