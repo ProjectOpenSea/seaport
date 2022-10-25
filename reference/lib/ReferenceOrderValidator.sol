@@ -401,7 +401,7 @@ contract ReferenceOrderValidator is
                 shortenedConsiderationArray[i] = originalConsiderationArray[i];
             }
 
-            originalConsiderationArray = shortenedConsiderationArray;
+            orderParameters.consideration = shortenedConsiderationArray;
         } else {
             // TODO: optimize this
             orderParameters.consideration = new ConsiderationItem[](
