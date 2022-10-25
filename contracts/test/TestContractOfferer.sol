@@ -39,11 +39,16 @@ contract TestContractOfferer is ContractOffererInterface {
     bool public ready;
     bool public fulfilled;
 
+    uint256 public extraAvailable;
+    uint256 public extraRequired;
+
     constructor(address seaport) {
         // Set immutable values and storage variables.
         _SEAPORT = seaport;
         fulfilled = false;
         ready = false;
+        extraAvailable = 0;
+        extraRequired = 0;
     }
 
     receive() external payable {}
@@ -107,6 +112,28 @@ contract TestContractOfferer is ContractOffererInterface {
         ready = true;
     }
 
+    function extendAvailable() public {
+        if (!ready || fulfilled) {
+            revert OrderUnavailable();
+        }
+
+        extraAvailable++;
+
+        _available.amount /= 2;
+
+        // TODO? emit InventoryUpdated event
+    }
+
+    function extendRequired() public {
+        if (!ready || fulfilled) {
+            revert OrderUnavailable();
+        }
+
+        extraRequired++;
+
+        // TODO? emit InventoryUpdated event
+    }
+
     function generateOrder(
         SpentItem[] calldata,
         SpentItem[] calldata,
@@ -122,31 +149,47 @@ contract TestContractOfferer is ContractOffererInterface {
         }
 
         // Set the offer and consideration that were supplied during deployment.
-        offer = new SpentItem[](1);
-        consideration = new ReceivedItem[](1);
+        offer = new SpentItem[](1 + extraAvailable);
+        consideration = new ReceivedItem[](1 + extraRequired);
 
-        offer[0] = _available;
-        consideration[0] = ReceivedItem({
-            itemType: _required.itemType,
-            token: _required.token,
-            identifier: _required.identifier,
-            amount: _required.amount,
-            recipient: payable(address(this))
-        });
+        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
+            offer[i] = _available;
+        }
+
+        for (uint256 i = 0; i < 1 + extraRequired; ++i) {
+            consideration[i] = ReceivedItem({
+                itemType: _required.itemType,
+                token: _required.token,
+                identifier: _required.identifier,
+                amount: _required.amount,
+                recipient: payable(address(this))
+            });
+        }
 
         // Emit an event indicating that the inventory has been updated.
-        InventoryUpdate[] memory inventoryUpdate = new InventoryUpdate[](2);
+        InventoryUpdate[] memory inventoryUpdate = new InventoryUpdate[](
+            2 + extraAvailable + extraRequired
+        );
 
-        inventoryUpdate[0] = InventoryUpdate({
-            item: _available,
-            offerable: false,
-            receivable: false
-        });
-        inventoryUpdate[1] = InventoryUpdate({
-            item: _required,
-            offerable: false,
-            receivable: false
-        });
+        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
+            inventoryUpdate[i] = InventoryUpdate({
+                item: _available,
+                offerable: false,
+                receivable: false
+            });
+        }
+
+        for (
+            uint256 i = 1 + extraAvailable;
+            i < 2 + extraAvailable + extraRequired;
+            ++i
+        ) {
+            inventoryUpdate[i] = InventoryUpdate({
+                item: _required,
+                offerable: false,
+                receivable: false
+            });
+        }
 
         emit InventoryUpdated(inventoryUpdate);
 
@@ -171,17 +214,22 @@ contract TestContractOfferer is ContractOffererInterface {
         }
 
         // Set the offer and consideration that were supplied during deployment.
-        offer = new SpentItem[](1);
-        consideration = new ReceivedItem[](1);
+        offer = new SpentItem[](1 + extraAvailable);
+        consideration = new ReceivedItem[](1 + extraRequired);
 
-        offer[0] = _available;
-        consideration[0] = ReceivedItem({
-            itemType: _required.itemType,
-            token: _required.token,
-            identifier: _required.identifier,
-            amount: _required.amount,
-            recipient: payable(address(this))
-        });
+        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
+            offer[i] = _available;
+        }
+
+        for (uint256 i = 0; i < 1 + extraRequired; ++i) {
+            consideration[i] = ReceivedItem({
+                itemType: _required.itemType,
+                token: _required.token,
+                identifier: _required.identifier,
+                amount: _required.amount,
+                recipient: payable(address(this))
+            });
+        }
     }
 
     function getInventory()
@@ -196,11 +244,15 @@ contract TestContractOfferer is ContractOffererInterface {
 
             receivable = new SpentItem[](0);
         } else {
-            offerable = new SpentItem[](1);
-            offerable[0] = _available;
+            offerable = new SpentItem[](1 + extraAvailable);
+            for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
+                offerable[i] = _available;
+            }
 
-            receivable = new SpentItem[](1);
-            receivable[0] = _required;
+            receivable = new SpentItem[](1 + extraRequired);
+            for (uint256 i = 0; i < 1 + extraRequired; ++i) {
+                receivable[i] = _required;
+            }
         }
     }
 
