@@ -137,14 +137,16 @@ contract TestContractOfferer is ContractOffererInterface {
     function generateOrder(
         SpentItem[] calldata,
         SpentItem[] calldata,
-        bytes calldata
+        bytes calldata context
     )
         external
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
-        if (!ready || fulfilled || msg.sender != _SEAPORT) {
+        if (
+            !ready || fulfilled || msg.sender != _SEAPORT || context.length != 0
+        ) {
             revert OrderUnavailable();
         }
 
@@ -201,7 +203,7 @@ contract TestContractOfferer is ContractOffererInterface {
         address caller,
         SpentItem[] calldata,
         SpentItem[] calldata,
-        bytes calldata
+        bytes calldata context
     )
         external
         view
@@ -209,7 +211,7 @@ contract TestContractOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
-        if (!ready || fulfilled || caller != _SEAPORT) {
+        if (!ready || fulfilled || caller != _SEAPORT || context.length != 0) {
             revert OrderUnavailable();
         }
 

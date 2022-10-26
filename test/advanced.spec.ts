@@ -1097,6 +1097,272 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           })
       ).to.be.reverted; // TODO: proper custom error
     });
+    it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {
+      // Seller mints nfts
+      const { nftId: nftIdOne, amount: amountOne } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+      const { nftId: nftIdTwo, amount: amountTwo } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+      const { nftId: nftIdThree, amount: amountThree } =
+        await mintAndApprove1155(seller, marketplaceContract.address, 10000);
+      const { nftId: nftIdFour, amount: amountFour } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContracts and approves them for 1155 token
+      const offererContractOne = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractOne.address, true);
+
+      const offererContractTwo = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractTwo.address, true);
+
+      const offererContractThree = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractThree.address, true);
+
+      const offererContractFour = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractFour.address, true);
+
+      const offerOne = [
+        getTestItem1155(nftIdOne, amountOne.mul(10), amountOne.mul(10)) as any,
+      ];
+
+      const considerationOne = [
+        getItemETH(
+          amountOne.mul(1000),
+          amountOne.mul(1000),
+          offererContractOne.address
+        ) as any,
+      ];
+
+      offerOne[0].identifier = offerOne[0].identifierOrCriteria;
+      offerOne[0].amount = offerOne[0].endAmount;
+
+      considerationOne[0].identifier = considerationOne[0].identifierOrCriteria;
+      considerationOne[0].amount = considerationOne[0].endAmount;
+
+      await offererContractOne
+        .connect(seller)
+        .activate(offerOne[0], considerationOne[0]);
+
+      const { order: orderOne, value } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        4 // CONTRACT
+      );
+
+      const contractOffererOneNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContractOne.address
+        );
+
+      const orderHashOne =
+        offererContractOne.address.toLowerCase() +
+        contractOffererOneNonce.toHexString().slice(2).padStart(24, "0");
+
+      orderOne.parameters.offerer = offererContractOne.address;
+      orderOne.numerator = 1;
+      orderOne.denominator = 1;
+      orderOne.signature = "0x";
+
+      // second order reverts when generating the order
+      const offerTwo = [
+        getTestItem1155(nftIdTwo, amountTwo.mul(10), amountTwo.mul(10)) as any,
+      ];
+
+      const considerationTwo = [
+        getItemETH(
+          amountTwo.mul(1000),
+          amountTwo.mul(1000),
+          offererContractTwo.address
+        ) as any,
+      ];
+
+      offerTwo[0].identifier = offerTwo[0].identifierOrCriteria;
+      offerTwo[0].amount = offerTwo[0].endAmount;
+
+      considerationTwo[0].identifier = considerationTwo[0].identifierOrCriteria;
+      considerationTwo[0].amount = considerationTwo[0].endAmount;
+
+      await offererContractTwo
+        .connect(seller)
+        .activate(offerTwo[0], considerationTwo[0]);
+
+      const { order: orderTwo } = await createOrder(
+        seller,
+        zone,
+        offerTwo,
+        considerationTwo,
+        4 // CONTRACT
+      );
+
+      orderTwo.parameters.offerer = offererContractTwo.address;
+      orderTwo.numerator = 1;
+      orderTwo.denominator = 1;
+      orderTwo.signature = "0x";
+      orderTwo.extraData = "0x1234"; // causes call to revert
+
+      // third order: generated order is missing expected offer items
+      const offerThree = [
+        getTestItem1155(
+          nftIdThree,
+          amountThree.mul(10),
+          amountThree.mul(10)
+        ) as any,
+        getTestItem1155(
+          nftIdOne,
+          amountOne.mul(10),
+          amountThree.mul(10)
+        ) as any,
+      ];
+
+      const considerationThree = [
+        getItemETH(
+          amountThree.mul(1000),
+          amountThree.mul(1000),
+          offererContractThree.address
+        ) as any,
+      ];
+
+      offerThree[0].identifier = offerThree[0].identifierOrCriteria;
+      offerThree[0].amount = offerThree[0].endAmount;
+
+      offerThree[1].identifier = offerThree[1].identifierOrCriteria;
+      offerThree[1].amount = offerThree[1].endAmount;
+
+      considerationThree[0].identifier =
+        considerationThree[0].identifierOrCriteria;
+      considerationThree[0].amount = considerationThree[0].endAmount;
+
+      await offererContractThree
+        .connect(seller)
+        .activate(offerThree[0], considerationThree[0]);
+
+      const { order: orderThree } = await createOrder(
+        seller,
+        zone,
+        offerThree,
+        considerationThree,
+        4 // CONTRACT
+      );
+
+      orderThree.parameters.offerer = offererContractThree.address;
+      orderThree.numerator = 1;
+      orderThree.denominator = 1;
+      orderThree.signature = "0x";
+
+      // fourth order: generated order exceeds expected consideration items
+      const offerFour = [
+        getTestItem1155(
+          nftIdFour,
+          amountFour.mul(10),
+          amountFour.mul(10)
+        ) as any,
+      ];
+
+      const considerationFour = [
+        getItemETH(
+          amountFour.mul(1000),
+          amountFour.mul(1000),
+          offererContractFour.address
+        ) as any,
+      ];
+
+      offerFour[0].identifier = offerFour[0].identifierOrCriteria;
+      offerFour[0].amount = offerFour[0].endAmount;
+
+      considerationFour[0].identifier =
+        considerationFour[0].identifierOrCriteria;
+      considerationFour[0].amount = considerationFour[0].endAmount;
+
+      await offererContractFour
+        .connect(seller)
+        .activate(offerFour[0], considerationFour[0]);
+
+      const { order: orderFour } = await createOrder(
+        seller,
+        zone,
+        offerFour,
+        considerationFour,
+        4 // CONTRACT
+      );
+
+      orderFour.parameters.offerer = offererContractFour.address;
+      orderFour.numerator = 1;
+      orderFour.denominator = 1;
+      orderFour.signature = "0x";
+      orderFour.parameters.consideration[0].startAmount =
+        orderFour.parameters.consideration[0].startAmount.sub(1);
+      orderFour.parameters.consideration[0].endAmount =
+        orderFour.parameters.consideration[0].endAmount.sub(1);
+
+      const offerComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+        [{ orderIndex: 2, itemIndex: 0 }],
+        [{ orderIndex: 3, itemIndex: 0 }],
+      ];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+        [{ orderIndex: 2, itemIndex: 0 }],
+        [{ orderIndex: 3, itemIndex: 0 }],
+      ];
+
+      await withBalanceChecks([orderOne], 0, undefined, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableOrders(
+            [orderOne, orderTwo, orderThree, orderFour],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            100,
+            {
+              value: value.mul(4),
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(tx, receipt, [
+          {
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: buyer.address,
+          },
+        ]);
+
+        return receipt;
+      });
+    });
   });
 
   describe("Partial fills", async () => {
