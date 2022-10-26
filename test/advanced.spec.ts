@@ -1217,7 +1217,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         .connect(seller)
         .activate(offerTwo[0], considerationTwo[0]);
 
-      const { order: orderTwo } = await createOrder(
+      const { order: orderTwo, value: valueTwo } = await createOrder(
         seller,
         zone,
         offerTwo,
@@ -1267,7 +1267,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         .connect(seller)
         .activate(offerThree[0], considerationThree[0]);
 
-      const { order: orderThree } = await createOrder(
+      const { order: orderThree, value: valueThree } = await createOrder(
         seller,
         zone,
         offerThree,
@@ -1308,7 +1308,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         .connect(seller)
         .activate(offerFour[0], considerationFour[0]);
 
-      const { order: orderFour } = await createOrder(
+      const { order: orderFour, value: valueFour } = await createOrder(
         seller,
         zone,
         offerFour,
@@ -1348,7 +1348,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             toKey(0),
             100,
             {
-              value: value.mul(4),
+              value: value.add(valueTwo).add(valueThree).add(valueFour).mul(2),
             }
           );
         const receipt = await (await tx).wait();
