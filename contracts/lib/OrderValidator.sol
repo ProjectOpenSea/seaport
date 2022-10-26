@@ -321,36 +321,39 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 denominator
         )
     {
-        // TODO: reuse an existing memory region or relocate this functionality
-        (
-            SpentItem[] memory originalOfferItems,
-            SpentItem[] memory originalConsiderationItems
-        ) = _convertToSpent(
-                orderParameters.offer,
-                orderParameters.consideration
-            );
-
         SpentItem[] memory offer;
         ReceivedItem[] memory consideration;
-        try
-            ContractOffererInterface(orderParameters.offerer).generateOrder(
-                originalOfferItems,
-                originalConsiderationItems,
-                context
-            )
-        returns (
-            SpentItem[] memory returnedOffer,
-            ReceivedItem[] memory ReturnedConsideration
-        ) {
-            offer = returnedOffer;
-            consideration = ReturnedConsideration;
-        } catch (bytes memory revertData) {
-            if (!revertOnInvalid) {
-                return (bytes32(0), 0, 0);
-            }
 
-            assembly {
-                revert(add(0x20, revertData), mload(revertData))
+        {
+            // TODO: reuse existing memory region or relocate this functionality
+            (
+                SpentItem[] memory originalOfferItems,
+                SpentItem[] memory originalConsiderationItems
+            ) = _convertToSpent(
+                    orderParameters.offer,
+                    orderParameters.consideration
+                );
+
+            try
+                ContractOffererInterface(orderParameters.offerer).generateOrder(
+                    originalOfferItems,
+                    originalConsiderationItems,
+                    context
+                )
+            returns (
+                SpentItem[] memory returnedOffer,
+                ReceivedItem[] memory ReturnedConsideration
+            ) {
+                offer = returnedOffer;
+                consideration = ReturnedConsideration;
+            } catch (bytes memory revertData) {
+                if (!revertOnInvalid) {
+                    return (bytes32(0), 0, 0);
+                }
+
+                assembly {
+                    revert(add(0x20, revertData), mload(revertData))
+                }
             }
         }
 
