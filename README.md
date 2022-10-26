@@ -118,7 +118,7 @@ For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.sv
 To install dependencies and compile contracts:
 
 ```bash
-git clone https://github.com/ProjectOpenSea/seaport && cd seaport
+git clone --recurse-submodules https://github.com/ProjectOpenSea/seaport && cd seaport
 yarn install
 yarn build
 ```
