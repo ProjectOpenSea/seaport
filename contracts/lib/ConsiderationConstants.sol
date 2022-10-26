@@ -59,6 +59,7 @@ uint256 constant _ENTERED = 2;
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
+uint256 constant Common_endAmount_offset = 0x80;
 
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;

@@ -141,13 +141,12 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         if (orderParameters.orderType == OrderType.CONTRACT) {
-            // TODO: skip on failing or empty-return call rather than revert
-            orderHash = _getGeneratedOrder(
-                orderParameters,
-                advancedOrder.extraData
-            );
-
-            return (orderHash, 1, 1);
+            return
+                _getGeneratedOrder(
+                    orderParameters,
+                    advancedOrder.extraData,
+                    revertOnInvalid
+                );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -312,8 +311,16 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     function _getGeneratedOrder(
         OrderParameters memory orderParameters,
-        bytes memory context
-    ) internal returns (bytes32 orderHash) {
+        bytes memory context,
+        bool revertOnInvalid
+    )
+        internal
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
         // TODO: reuse an existing memory region or relocate this functionality
         (
             SpentItem[] memory originalOfferItems,
@@ -323,126 +330,170 @@ contract OrderValidator is Executor, ZoneInteraction {
                 orderParameters.consideration
             );
 
-        // TODO: allow for skipping in cases where the call reverts
-        (
-            SpentItem[] memory offer,
-            ReceivedItem[] memory consideration
-        ) = ContractOffererInterface(orderParameters.offerer).generateOrder(
+        SpentItem[] memory offer;
+        ReceivedItem[] memory consideration;
+        try
+            ContractOffererInterface(orderParameters.offerer).generateOrder(
                 originalOfferItems,
                 originalConsiderationItems,
                 context
-            );
-
-        // Designate lengths & memory locations that will be reused throughout.
-        uint256 originalOfferLength = orderParameters.offer.length;
-        ConsiderationItem[] memory originalConsiderationArray = (
-            orderParameters.consideration
-        );
-        uint256 originalConsiderationLength = originalConsiderationArray.length;
-        uint256 newOfferLength = offer.length;
-        uint256 newConsiderationLength = consideration.length;
-
-        // Explicitly specified offer items cannot be removed.
-        if (originalOfferLength > newOfferLength) {
-            _revertNoSpecifiedOrdersAvailable(); // TODO: replace w/ better err
-        } else if (offer.length > originalOfferLength) {
-            OfferItem[] memory extendedOffer = new OfferItem[](newOfferLength);
-            for (uint256 i = 0; i < originalOfferLength; ++i) {
-                extendedOffer[i] = orderParameters.offer[i];
-            }
-            orderParameters.offer = extendedOffer;
-        }
-
-        // Loop through each offer and ensure at least as much on returned offer
-        for (uint256 i = 0; i < originalOfferLength; ++i) {
-            OfferItem memory originalOffer = orderParameters.offer[i];
-            SpentItem memory newOffer = offer[i];
-
-            if (
-                originalOffer.startAmount != originalOffer.endAmount ||
-                originalOffer.endAmount > newOffer.amount ||
-                originalOffer.itemType != newOffer.itemType ||
-                originalOffer.token != newOffer.token ||
-                originalOffer.identifierOrCriteria != newOffer.identifier
-            ) {
-                _revertNoSpecifiedOrdersAvailable(); // TODO: replace
+            )
+        returns (
+            SpentItem[] memory returnedOffer,
+            ReceivedItem[] memory ReturnedConsideration
+        ) {
+            offer = returnedOffer;
+            consideration = ReturnedConsideration;
+        } catch (bytes memory revertData) {
+            if (!revertOnInvalid) {
+                return (bytes32(0), 0, 0);
             }
 
-            originalOffer.startAmount = newOffer.amount;
-            originalOffer.endAmount = newOffer.amount;
-        }
-
-        // add new offer items if there are more than original
-        for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
-            OfferItem memory originalOffer = orderParameters.offer[i];
-            SpentItem memory newOffer = offer[i];
-
-            originalOffer.itemType = newOffer.itemType;
-            originalOffer.token = newOffer.token;
-            originalOffer.identifierOrCriteria = newOffer.identifier;
-            originalOffer.startAmount = newOffer.amount;
-            originalOffer.endAmount = newOffer.amount;
-        }
-
-        if (originalConsiderationLength != 0) {
-            // Consideration items that are not explicitly specified cannot be
-            // created. Note that this constraint could be relaxed if specified
-            // consideration items can be split.
-            if (newConsiderationLength > originalConsiderationLength) {
-                _revertNoSpecifiedOrdersAvailable(); // TODO: replace
+            assembly {
+                revert(add(0x20, revertData), mload(revertData))
             }
+        }
 
-            // Loop through returned consideration, ensure existing not exceeded
-            for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                ReceivedItem memory newConsideration = consideration[i];
-                ConsiderationItem memory originalConsideration = (
-                    originalConsiderationArray[i]
+        uint256 errorBuffer = 0;
+
+        {
+            // Designate lengths.
+            uint256 originalOfferLength = orderParameters.offer.length;
+            uint256 newOfferLength = offer.length;
+
+            // Explicitly specified offer items cannot be removed.
+            if (originalOfferLength > newOfferLength) {
+                return _revertOrReturnEmpty(revertOnInvalid);
+            } else if (newOfferLength > originalOfferLength) {
+                OfferItem[] memory extendedOffer = new OfferItem[](
+                    newOfferLength
                 );
+                for (uint256 i = 0; i < originalOfferLength; ++i) {
+                    extendedOffer[i] = orderParameters.offer[i];
+                }
+                orderParameters.offer = extendedOffer;
+            }
 
-                if (
-                    originalConsideration.startAmount !=
-                    originalConsideration.endAmount ||
-                    newConsideration.amount > originalConsideration.endAmount ||
-                    originalConsideration.itemType !=
-                    newConsideration.itemType ||
-                    originalConsideration.token != newConsideration.token ||
-                    originalConsideration.identifierOrCriteria !=
-                    newConsideration.identifier
-                    // TODO: should we check recipient if supplied by fulfiller?
-                    // Should we allow empty args to be skipped in other cases?
-                ) {
-                    _revertNoSpecifiedOrdersAvailable(); // TODO: replace
+            // Loop through offer and ensure at least as much on returned offer
+            for (uint256 i = 0; i < originalOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                // TODO: allow tolerance for criteria-based inputs
+                errorBuffer =
+                    errorBuffer |
+                    _cast(
+                        originalOffer.startAmount != originalOffer.endAmount
+                    ) |
+                    _cast(originalOffer.endAmount > newOffer.amount) |
+                    _cast(originalOffer.itemType != newOffer.itemType) |
+                    _cast(originalOffer.token != newOffer.token) |
+                    _cast(
+                        originalOffer.identifierOrCriteria !=
+                            newOffer.identifier
+                    );
+
+                originalOffer.startAmount = newOffer.amount;
+                originalOffer.endAmount = newOffer.amount;
+            }
+
+            // add new offer items if there are more than original
+            for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                originalOffer.itemType = newOffer.itemType;
+                originalOffer.token = newOffer.token;
+                originalOffer.identifierOrCriteria = newOffer.identifier;
+                originalOffer.startAmount = newOffer.amount;
+                originalOffer.endAmount = newOffer.amount;
+            }
+        }
+
+        {
+            // Designate lengths & memory locations.
+            ConsiderationItem[] memory originalConsiderationArray = (
+                orderParameters.consideration
+            );
+            uint256 originalConsiderationLength = originalConsiderationArray
+                .length;
+            uint256 newConsiderationLength = consideration.length;
+
+            if (originalConsiderationLength != 0) {
+                // Consideration items that are not explicitly specified cannot be
+                // created. Note that this constraint could be relaxed if specified
+                // consideration items can be split.
+                if (newConsiderationLength > originalConsiderationLength) {
+                    return _revertOrReturnEmpty(revertOnInvalid);
                 }
 
-                originalConsideration.startAmount = newConsideration.amount;
-                originalConsideration.endAmount = newConsideration.amount;
-                originalConsideration.recipient = newConsideration.recipient;
-            }
+                // Loop through returned consideration, ensure existing not exceeded
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ReceivedItem memory newConsideration = consideration[i];
+                    ConsiderationItem memory originalConsideration = (
+                        originalConsiderationArray[i]
+                    );
 
-            // Shorten original consideration array if longer than new array.
-            assembly {
-                mstore(originalConsiderationArray, newConsiderationLength)
-            }
-        } else {
-            // TODO: optimize this
-            orderParameters.consideration = new ConsiderationItem[](
-                newConsiderationLength
-            );
+                    // TODO: allow tolerance for criteria-based inputs
+                    errorBuffer =
+                        errorBuffer |
+                        _cast(
+                            originalConsideration.startAmount !=
+                                originalConsideration.endAmount
+                        ) |
+                        _cast(
+                            newConsideration.amount >
+                                originalConsideration.endAmount
+                        ) |
+                        _cast(
+                            originalConsideration.itemType !=
+                                newConsideration.itemType
+                        ) |
+                        _cast(
+                            originalConsideration.token !=
+                                newConsideration.token
+                        ) |
+                        _cast(
+                            originalConsideration.identifierOrCriteria !=
+                                newConsideration.identifier
+                        );
 
-            for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                ReceivedItem memory newConsideration = consideration[i];
-                ConsiderationItem memory originalConsideration = (
-                    orderParameters.consideration[i]
+                    originalConsideration.startAmount = newConsideration.amount;
+                    originalConsideration.endAmount = newConsideration.amount;
+                    originalConsideration.recipient = newConsideration
+                        .recipient;
+                }
+
+                // Shorten original consideration array if longer than new array.
+                assembly {
+                    mstore(originalConsiderationArray, newConsiderationLength)
+                }
+            } else {
+                // TODO: optimize this
+                orderParameters.consideration = new ConsiderationItem[](
+                    newConsiderationLength
                 );
 
-                originalConsideration.itemType = newConsideration.itemType;
-                originalConsideration.token = newConsideration.token;
-                originalConsideration.identifierOrCriteria = newConsideration
-                    .identifier;
-                originalConsideration.startAmount = newConsideration.amount;
-                originalConsideration.endAmount = newConsideration.amount;
-                originalConsideration.recipient = newConsideration.recipient;
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ReceivedItem memory newConsideration = consideration[i];
+                    ConsiderationItem memory originalConsideration = (
+                        orderParameters.consideration[i]
+                    );
+
+                    originalConsideration.itemType = newConsideration.itemType;
+                    originalConsideration.token = newConsideration.token;
+                    originalConsideration
+                        .identifierOrCriteria = newConsideration.identifier;
+                    originalConsideration.startAmount = newConsideration.amount;
+                    originalConsideration.endAmount = newConsideration.amount;
+                    originalConsideration.recipient = newConsideration
+                        .recipient;
+                }
             }
+        }
+
+        if (errorBuffer != 0) {
+            return _revertOrReturnEmpty(revertOnInvalid);
         }
 
         address offerer = orderParameters.offerer;
@@ -450,7 +501,28 @@ contract OrderValidator is Executor, ZoneInteraction {
         assembly {
             orderHash := or(contractNonce, shl(0x60, offerer))
         }
-        return orderHash;
+        return (orderHash, 1, 1);
+    }
+
+    function _cast(bool b) internal pure returns (uint256 u) {
+        assembly {
+            u := b
+        }
+    }
+
+    function _revertOrReturnEmpty(bool revertOnInvalid)
+        internal
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        if (!revertOnInvalid) {
+            return (bytes32(0), 0, 0);
+        }
+
+        _revertNoSpecifiedOrdersAvailable(); // TODO: return a better error msg
     }
 
     /**
