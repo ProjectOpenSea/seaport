@@ -660,7 +660,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
              */
             for (
                 uint256 recipientCount = 0;
-                recipientCount < parameters.additionalRecipients.length;
+                recipientCount < parameters.totalOriginalAdditionalRecipients;
                 ++recipientCount
             ) {
                 // Get the next additionalRecipient.
@@ -679,15 +679,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 // Add additional Received items to the
                 // OrderFulfilled ReceivedItem[].
                 consideration[recipientCount + 1] = additionalReceivedItem;
-
-                // Skip hashing items not contained in the
-                // Original Recipients.
-                if (
-                    recipientCount >=
-                    parameters.totalOriginalAdditionalRecipients
-                ) {
-                    continue;
-                }
 
                 // Create a new consideration item for each additional
                 // recipient.
