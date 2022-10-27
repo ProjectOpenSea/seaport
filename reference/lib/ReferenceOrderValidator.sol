@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -344,6 +344,16 @@ contract ReferenceOrderValidator is
                 SpentItem memory newOffer = offer[i];
 
                 if (
+                    uint256(originalOffer.itemType) > 3 &&
+                    originalOffer.identifierOrCriteria == 0
+                ) {
+                    originalOffer.itemType = ItemType(
+                        uint256(originalOffer.itemType) - 2
+                    );
+                    originalOffer.identifierOrCriteria = newOffer.identifier;
+                }
+
+                if (
                     originalOffer.startAmount != originalOffer.endAmount ||
                     originalOffer.endAmount > newOffer.amount ||
                     originalOffer.itemType != newOffer.itemType ||
@@ -392,6 +402,17 @@ contract ReferenceOrderValidator is
                     ConsiderationItem memory originalConsideration = (
                         originalConsiderationArray[i]
                     );
+
+                    if (
+                        uint256(originalConsideration.itemType) > 3 &&
+                        originalConsideration.identifierOrCriteria == 0
+                    ) {
+                        originalConsideration.itemType = ItemType(
+                            uint256(originalConsideration.itemType) - 2
+                        );
+                        originalConsideration
+                            .identifierOrCriteria = newConsideration.identifier;
+                    }
 
                     if (
                         originalConsideration.startAmount !=
