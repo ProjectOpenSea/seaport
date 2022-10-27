@@ -22,27 +22,27 @@ contract TestPoolOfferer is ContractOffererInterface {
     error InvalidTokenId(uint256 id);
 
     address immutable _SEAPORT;
-    address immutable token;
+    address immutable erc721;
     EnumerableSet.UintSet tokenIds;
-    address immutable payment;
+    address immutable erc20;
     uint256 balance;
     uint256 immutable k;
     uint256 constant scale = 10_000;
 
-    constructor(address seaport, address _token, uint256[] memory _tokenIds, address _payment, uint256 amount) {
+    constructor(address seaport, address _erc721, uint256[] memory _tokenIds, address _erc20, uint256 amount) {
         // Set immutable values and storage variables.
         _SEAPORT = seaport;
-        token = _token;
+        erc721 = _erc721;
         for (uint256 i; i < _tokenIds.length; i++) {
             tokenIds.add(_tokenIds[i]);
         }
         // tokenIds = _tokenIds;
-        payment = _payment;
+        erc20 = _erc20;
         balance = amount;
         k = amount * scale * _tokenIds.length;
 
-        IERC20(payment).approve(seaport, type(uint256).max);
-        IERC721(token).setApprovalForAll(seaport, true);
+        IERC20(erc20).approve(seaport, type(uint256).max);
+        IERC721(erc721).setApprovalForAll(seaport, true);
     }
 
     function generateOrder(SpentItem[] calldata minimumReceived, SpentItem[] calldata maximumSpent, bytes calldata)
@@ -119,7 +119,7 @@ contract TestPoolOfferer is ContractOffererInterface {
             consideration = new ReceivedItem[](1);
             consideration[0] = ReceivedItem({
                 itemType: ItemType.ERC20,
-                token: payment,
+                token: erc20,
                 identifier: 0,
                 amount: considerationAmount,
                 recipient: payable(address(this))
@@ -133,7 +133,7 @@ contract TestPoolOfferer is ContractOffererInterface {
             newBalance = k / (scale * newNumTokens);
             uint256 paymentAmount = balance - newBalance;
             offer = new SpentItem[](1);
-            offer[0] = SpentItem({itemType: ItemType.ERC20, token: payment, identifier: 0, amount: paymentAmount});
+            offer[0] = SpentItem({itemType: ItemType.ERC20, token: erc20, identifier: 0, amount: paymentAmount});
             consideration = _convertSpentTokensToReceivedItems(maximumSpent);
         }
     }
@@ -156,11 +156,11 @@ contract TestPoolOfferer is ContractOffererInterface {
             revert InvalidItemType();
         }
         if (nft) {
-            if (offerItem.token != token) {
+            if (offerItem.token != erc721) {
                 revert InvalidToken();
             }
         } else {
-            if (offerItem.token != payment) {
+            if (offerItem.token != erc20) {
                 revert InvalidToken();
             }
         }
@@ -176,7 +176,7 @@ contract TestPoolOfferer is ContractOffererInterface {
             SpentItem calldata spentItem = spentItems[i];
             receivedItems[i] = ReceivedItem({
                 itemType: ItemType.ERC721,
-                token: token,
+                token: erc721,
                 identifier: spentItem.identifier,
                 amount: spentItem.amount,
                 recipient: payable(address(this))
