@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -382,22 +382,13 @@ contract OrderValidator is Executor, ZoneInteraction {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
 
-                // TODO: allow tolerance for criteria-based inputs
-                errorBuffer =
-                    errorBuffer |
-                    _cast(
-                        originalOffer.startAmount != originalOffer.endAmount
-                    ) |
-                    _cast(originalOffer.endAmount > newOffer.amount) |
-                    _cast(originalOffer.itemType != newOffer.itemType) |
-                    _cast(originalOffer.token != newOffer.token) |
-                    _cast(
-                        originalOffer.identifierOrCriteria !=
-                            newOffer.identifier
-                    );
-
-                originalOffer.startAmount = newOffer.amount;
-                originalOffer.endAmount = newOffer.amount;
+                errorBuffer = _check(
+                    originalOffer,
+                    newOffer,
+                    originalOffer.endAmount,
+                    newOffer.amount,
+                    errorBuffer
+                );
             }
 
             // add new offer items if there are more than original
@@ -414,6 +405,34 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         {
+            // Declare virtual function pointer taking a ConsiderationItem and
+            // ReceivedItem as its initial arguments.
+            function(
+                ConsiderationItem memory,
+                ReceivedItem memory,
+                uint256,
+                uint256,
+                uint256
+            ) internal pure returns (uint256) _checkConsideration;
+
+            {
+                // Assign _check function to a new function pointer (it takes
+                // an OfferItem + SpentItem as its initial arguments)
+                function(
+                    OfferItem memory,
+                    SpentItem memory,
+                    uint256,
+                    uint256,
+                    uint256
+                ) internal pure returns (uint256) _checkOffer = _check;
+
+                // Utilize assembly to override the virtual function pointer.
+                assembly {
+                    // Cast the function to the one with modified arguments.
+                    _checkConsideration := _checkOffer
+                }
+            }
+
             // Designate lengths & memory locations.
             ConsiderationItem[] memory originalConsiderationArray = (
                 orderParameters.consideration
@@ -437,32 +456,14 @@ contract OrderValidator is Executor, ZoneInteraction {
                         originalConsiderationArray[i]
                     );
 
-                    // TODO: allow tolerance for criteria-based inputs
-                    errorBuffer =
-                        errorBuffer |
-                        _cast(
-                            originalConsideration.startAmount !=
-                                originalConsideration.endAmount
-                        ) |
-                        _cast(
-                            newConsideration.amount >
-                                originalConsideration.endAmount
-                        ) |
-                        _cast(
-                            originalConsideration.itemType !=
-                                newConsideration.itemType
-                        ) |
-                        _cast(
-                            originalConsideration.token !=
-                                newConsideration.token
-                        ) |
-                        _cast(
-                            originalConsideration.identifierOrCriteria !=
-                                newConsideration.identifier
-                        );
+                    errorBuffer = _checkConsideration(
+                        originalConsideration,
+                        newConsideration,
+                        newConsideration.amount,
+                        originalConsideration.endAmount,
+                        errorBuffer
+                    );
 
-                    originalConsideration.startAmount = newConsideration.amount;
-                    originalConsideration.endAmount = newConsideration.amount;
                     originalConsideration.recipient = newConsideration
                         .recipient;
                 }
@@ -507,6 +508,38 @@ contract OrderValidator is Executor, ZoneInteraction {
         return (orderHash, 1, 1);
     }
 
+    function _check(
+        OfferItem memory originalOffer,
+        SpentItem memory newOffer,
+        uint256 valueOne,
+        uint256 valueTwo,
+        uint256 errorBuffer
+    ) internal pure returns (uint256 updatedErrorBuffer) {
+        // Set returned identifier for criteria-based items with criteria = 0.
+        if (
+            (_cast(uint256(originalOffer.itemType) > 3) &
+                _cast(originalOffer.identifierOrCriteria == 0)) != 0
+        ) {
+            originalOffer.itemType = _replaceCriteriaItemType(
+                originalOffer.itemType
+            );
+            originalOffer.identifierOrCriteria = newOffer.identifier;
+        }
+
+        // Ensure the original and generated items are compatible.
+        updatedErrorBuffer =
+            errorBuffer |
+            _cast(originalOffer.startAmount != originalOffer.endAmount) |
+            _cast(valueOne > valueTwo) |
+            _cast(originalOffer.itemType != newOffer.itemType) |
+            _cast(originalOffer.token != newOffer.token) |
+            _cast(originalOffer.identifierOrCriteria != newOffer.identifier);
+
+        // Update the original amounts to use the generated amounts.
+        originalOffer.startAmount = newOffer.amount;
+        originalOffer.endAmount = newOffer.amount;
+    }
+
     function _cast(bool b) internal pure returns (uint256 u) {
         assembly {
             u := b
@@ -527,6 +560,17 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         _revertNoSpecifiedOrdersAvailable(); // TODO: return a better error msg
+    }
+
+    function _replaceCriteriaItemType(ItemType originalItemType)
+        internal
+        pure
+        returns (ItemType newItemType)
+    {
+        assembly {
+            // Item type 4 becomes 2 and item type 5 becomes 3.
+            newItemType := sub(3, eq(originalItemType, 4))
+        }
     }
 
     /**

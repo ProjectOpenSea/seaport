@@ -322,6 +322,212 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         return receipt;
       });
     });
+    it("Contract Orders (offer amount increased)", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContract and approves it for 1155 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContract.address, true);
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      const consideration = [
+        getItemETH(
+          amount.mul(1000),
+          amount.mul(1000),
+          offererContract.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      const orderWithSmallerOfferAmount = JSON.parse(JSON.stringify(order));
+      orderWithSmallerOfferAmount.parameters.offer[0].startAmount =
+        order.parameters.offer[0].startAmount.sub(1);
+      orderWithSmallerOfferAmount.parameters.offer[0].endAmount =
+        order.parameters.offer[0].endAmount.sub(1);
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            orderWithSmallerOfferAmount,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
+    it("Contract Orders (criteria-based offer item)", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContract and approves it for 1155 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContract.address, true);
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      const consideration = [
+        getItemETH(
+          amount.mul(1000),
+          amount.mul(1000),
+          offererContract.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      const orderWithCriteriaOffer = JSON.parse(JSON.stringify(order));
+      orderWithCriteriaOffer.parameters.offer[0].itemType = 5; // Criteria-1155
+      orderWithCriteriaOffer.parameters.offer[0].identifierOrCriteria = 0;
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            orderWithCriteriaOffer,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
     it("Contract Orders (offer extended with supplied offer)", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
@@ -515,6 +721,218 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .connect(buyer)
           .fulfillAdvancedOrder(
             orderWithExtraConsideration,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
+    it("Contract Orders (consideration amount reduced)", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContract and approves it for 1155 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContract.address, true);
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      const consideration = [
+        getItemETH(
+          amount.mul(1000),
+          amount.mul(1000),
+          offererContract.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      const orderWithIncreasedConsideration = JSON.parse(JSON.stringify(order));
+      orderWithIncreasedConsideration.parameters.consideration[0].startAmount =
+        order.parameters.consideration[0].startAmount.add(1);
+      orderWithIncreasedConsideration.parameters.consideration[0].endAmount =
+        order.parameters.consideration[0].endAmount.add(1);
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            orderWithIncreasedConsideration,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
+    it("Contract Orders (criteria-based consideration item)", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContract and approves it for 1155 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContract.address, true);
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      // Buyer mints nft
+      const { nftId: buyerNftId, amount: buyerAmount } =
+        await mintAndApprove1155(buyer, marketplaceContract.address, 10000);
+
+      const consideration = [
+        getTestItem1155(
+          buyerNftId,
+          buyerAmount.mul(10),
+          buyerAmount.mul(10),
+          undefined,
+          offererContract.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      const orderWithCriteriaConsideration = JSON.parse(JSON.stringify(order));
+      orderWithCriteriaConsideration.parameters.consideration[0].itemType = 5; // Criteria-1155
+      orderWithCriteriaConsideration.parameters.consideration[0].identifierOrCriteria = 0;
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            orderWithCriteriaConsideration,
             [],
             toKey(0),
             ethers.constants.AddressZero,
