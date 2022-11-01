@@ -33,7 +33,12 @@ import type {
   TestERC721,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
+import type {
+  AdvancedOrder,
+  BulkOrder,
+  ConsiderationItem,
+  OrderComponents,
+} from "./utils/types";
 import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
@@ -68,6 +73,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+  let signBulkOrder: SeaportFixtures["signBulkOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -104,6 +110,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       testERC20,
       testERC721,
       withBalanceChecks,
+      signBulkOrder,
     } = await seaportFixture(owner));
   });
 
@@ -119,6 +126,424 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
     for (const wallet of [seller, buyer, zone]) {
       await faucet(wallet.address, provider);
     }
+  });
+
+  describe("Bulk Signature", async () => {
+    it("Can sign for a bulk signature", async () => {
+
+      const getEmptyOrderComponents = (counterValue: number): OrderComponents => ({
+          offerer: ethers.constants.AddressZero,
+          zone: ethers.constants.AddressZero,
+          offer: [],
+          consideration: [],
+          orderType: 0,
+          startTime: toBN(0),
+          endTime: toBN(0),
+          zoneHash: ethers.constants.HashZero,
+          salt: ethers.constants.HashZero,
+          conduitKey: ethers.constants.HashZero,
+          counter: toBN(counterValue),
+      });
+
+      const getEmptyABTree = (depth: number): any => {
+        const tree = {a: {}, b: {}};
+        let node = {a: {}, b: {}};
+        for (let i = 1; i < depth; ++i) {
+          tree.a = node;
+          tree.b = node;
+          node = tree;
+        }
+      }
+
+      const tree = getEmptyABTree(7);
+
+      const orderComponents: BulkOrder = {
+        a: {
+          a: {
+            a: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+            b: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+          },
+          b: {
+            a: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+            b: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+          },
+        },
+        b: {
+          a: {
+            a: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+            b: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+          },
+          b: {
+            a: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+            b: {
+              a: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+              b: {
+                a: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+                b: {
+                  a: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                  b: {
+                    a: getEmptyOrderComponents(0),
+                    b: getEmptyOrderComponents(0),
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const signature = await signBulkOrder(orderComponents, owner);
+
+      console.log(signature);
+    });
   });
 
   describe("Partial fills", async () => {

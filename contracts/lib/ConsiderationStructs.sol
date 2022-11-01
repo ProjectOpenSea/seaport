@@ -241,3 +241,38 @@ struct Execution {
     address offerer;
     bytes32 conduitKey;
 }
+
+struct BulkOrder {
+    LevelOne a;
+    LevelOne b;
+}
+
+struct LevelOne {
+    LevelTwo a;
+    LevelTwo b;
+}
+
+struct LevelTwo {
+    LevelThree a;
+    LevelThree b;
+}
+
+struct LevelThree {
+    LevelFour a;
+    LevelFour b;
+}
+
+struct LevelFour {
+    LevelFive a;
+    LevelFive b;
+}
+
+struct LevelFive {
+    LevelSix a;
+    LevelSix b;
+}
+
+struct LevelSix {
+    OrderComponents a;
+    OrderComponents b;
+}

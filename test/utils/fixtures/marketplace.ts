@@ -21,6 +21,7 @@ import type {
 } from "../../../typechain-types";
 import type {
   AdvancedOrder,
+  BulkOrder,
   ConsiderationItem,
   CriteriaResolver,
   OfferItem,
@@ -29,6 +30,7 @@ import type {
 import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
+const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
 const { orderType } = require("../../../eip-712-types/order");
 
 export const marketplaceFixture = async (
@@ -118,6 +120,64 @@ export const marketplaceFixture = async (
     const recoveredAddress = recoverAddress(digest, signature);
 
     expect(recoveredAddress).to.equal(signer.address);
+
+    return signature;
+  };
+
+  const signBulkOrder = async (
+    bulkOrderComponents: BulkOrder,
+    signer: Wallet | Contract
+  ) => {
+    console.log(domainData, bulkOrderType, bulkOrderComponents);
+
+    const signature = await signer._signTypedData(
+      domainData,
+      bulkOrderType,
+      bulkOrderComponents
+    );
+
+    const locator = [0, 0, 0, 0, 0, 0, 0];
+
+    const incrementPriorIndex = (
+      arr: Array<number>,
+      i: number
+    ): Array<number> => {
+      const index = arr.length - 1 - i;
+      if (arr[index] === 0) {
+        arr[index] = 1;
+        return arr;
+      } else {
+        arr[index] = 0;
+        return incrementPriorIndex(arr, i + 1);
+      }
+    };
+
+    for (let i = 0; i < 128; ++i) {
+      const orderComponents =
+        bulkOrderComponents[locator[0] === 0 ? "a" : "b"][
+          locator[1] === 0 ? "a" : "b"
+        ][locator[2] === 0 ? "a" : "b"][locator[3] === 0 ? "a" : "b"][
+          locator[4] === 0 ? "a" : "b"
+        ][locator[5] === 0 ? "a" : "b"][locator[6] === 0 ? "a" : "b"];
+
+      const orderHash = await getAndVerifyOrderHash(orderComponents);
+
+      if (i !== 127) {
+        incrementPriorIndex(locator, 0);
+      }
+    }
+
+    /// / TODO: verify each order or a subset of the orders?
+    //
+    // const orderHash = await getAndVerifyOrderHash(orderComponents);
+    //
+    // const { domainSeparator } = await marketplaceContract.information();
+    // const digest = keccak256(
+    //   `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+    // );
+    // const recoveredAddress = recoverAddress(digest, signature);
+    //
+    // expect(recoveredAddress).to.equal(signer.address);
 
     return signature;
   };
@@ -470,6 +530,7 @@ export const marketplaceFixture = async (
     stubZone,
     domainData,
     signOrder,
+    signBulkOrder,
     createOrder,
     createMirrorBuyNowOrder,
     createMirrorAcceptOfferOrder,
