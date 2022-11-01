@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport/interfaces/ZoneInterface.sol";
 
-import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
     CriteriaResolver
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 import {
     ZoneInteractionErrors
-} from "contracts/interfaces/ZoneInteractionErrors.sol";
+} from "seaport/interfaces/ZoneInteractionErrors.sol";
 
 /**
  * @title ZoneInteraction
@@ -82,7 +82,6 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param orderType         The type of the order.
      * @param offerer           The offerer in question.
      * @param zone              The zone in question.
-
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,

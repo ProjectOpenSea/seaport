@@ -3,15 +3,15 @@ pragma solidity ^0.8.7;
 
 import {
     ConduitControllerInterface
-} from "contracts/interfaces/ConduitControllerInterface.sol";
+} from "seaport/interfaces/ConduitControllerInterface.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
+import { OrderStatus } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
+import { ReentrancyErrors } from "seaport/interfaces/ReentrancyErrors.sol";
 
 /**
  * @title ConsiderationBase
@@ -117,15 +117,7 @@ contract ReferenceConsiderationBase is
         bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
         // prettier-ignore
-        return keccak256(
-            abi.encode(
-                _eip712DomainTypeHash,
-                _nameHash,
-                _versionHash,
-                block.chainid,
-                address(this)
-            )
-        );
+        return keccak256(abi.encode(_eip712DomainTypeHash, _nameHash, _versionHash, block.chainid, address(this)));
     }
 
     /**
@@ -166,11 +158,11 @@ contract ReferenceConsiderationBase is
         // prettier-ignore
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount",
             ")"
         );
 
@@ -178,12 +170,12 @@ contract ReferenceConsiderationBase is
         // prettier-ignore
         bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount,",
-                "address recipient",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount,",
+            "address recipient",
             ")"
         );
 
@@ -191,17 +183,17 @@ contract ReferenceConsiderationBase is
         // prettier-ignore
         bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
-                "address offerer,",
-                "address zone,",
-                "OfferItem[] offer,",
-                "ConsiderationItem[] consideration,",
-                "uint8 orderType,",
-                "uint256 startTime,",
-                "uint256 endTime,",
-                "bytes32 zoneHash,",
-                "uint256 salt,",
-                "bytes32 conduitKey,",
-                "uint256 counter",
+            "address offerer,",
+            "address zone,",
+            "OfferItem[] offer,",
+            "ConsiderationItem[] consideration,",
+            "uint8 orderType,",
+            "uint256 startTime,",
+            "uint256 endTime,",
+            "bytes32 zoneHash,",
+            "uint256 salt,",
+            "bytes32 conduitKey,",
+            "uint256 counter",
             ")"
         );
 
@@ -209,12 +201,7 @@ contract ReferenceConsiderationBase is
         // prettier-ignore
         eip712DomainTypehash = keccak256(
             abi.encodePacked(
-                "EIP712Domain(",
-                    "string name,",
-                    "string version,",
-                    "uint256 chainId,",
-                    "address verifyingContract",
-                ")"
+                "EIP712Domain(", "string name,", "string version,", "uint256 chainId,", "address verifyingContract", ")"
             )
         );
 

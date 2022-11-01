@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import {
     ConsiderationInterface
-} from "contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport/interfaces/ConsiderationInterface.sol";
 
 import {
     OrderComponents,
@@ -16,7 +16,7 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 

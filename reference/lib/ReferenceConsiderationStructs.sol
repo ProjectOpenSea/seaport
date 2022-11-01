@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "seaport/lib/ConsiderationEnums.sol";
 
-import {
-    SpentItem,
-    ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
 
-import { ConduitTransfer } from "contracts/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer } from "seaport/conduit/lib/ConduitStructs.sol";
 
 // This file should only be used by the Reference Implementation
 

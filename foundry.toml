@@ -9,16 +9,17 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
     '@rari-capital/solmate/=lib/solmate/',
-    'contracts/=contracts/',
     'murky/=lib/murky/src/',
+    'seaport/=contracts/'
 ]
-fuzz_runs = 5000
-fuzz_max_global_rejects = 2_000_000
 optimizer_runs = 19_066
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
 ]
+
+[profile.default.fuzz]
+runs = 5000
 
 [profile.reference]
 solc = '0.8.7'
@@ -38,11 +39,15 @@ src = 'test/foundry'
 [profile.lite]
 out = 'optimized-out'
 via_ir = false
-fuzz_runs = 1000
+
+[profile.lite.fuzz]
+runs = 1000
 
 [profile.local]
 via_ir = false
-fuzz_runs = 1000
 src = 'reference'
 out = 'reference-out'
+
+[profile.local.fuzz]
+runs = 1000
 # See more config options https://github.com/gakonst/foundry/tree/master/config

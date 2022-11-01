@@ -5,11 +5,11 @@ import {
     ConsiderationItem,
     OfferItem,
     OrderParameters
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers
@@ -207,9 +207,7 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
         // prettier-ignore
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
-            _NAME_HASH,
-            _VERSION_HASH);
+            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH, _NAME_HASH, _VERSION_HASH);
     }
 
     /**

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -12,18 +12,18 @@ import {
     Execution,
     FulfillmentComponent,
     SpentItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationItemIndicesAndValidity,
     OrderToExecute
 } from "./ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 import {
     FulfillmentApplicationErrors
-} from "contracts/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport/interfaces/FulfillmentApplicationErrors.sol";
 
 /**
  * @title FulfillmentApplier
@@ -74,17 +74,16 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         );
 
         // Validate & aggregate offer items and store result as an Execution.
-        (
-            execution
-            /**
-             * ItemType itemType,
-             * address token,
-             * uint256 identifier,
-             * address offerer,
-             * bytes32 conduitKey,
-             * uint256 offerAmount
-             */
-        ) = _aggregateValidFulfillmentOfferItems(
+
+        (execution) = /**
+         * ItemType itemType,
+         * address token,
+         * uint256 identifier,
+         * address offerer,
+         * bytes32 conduitKey,
+         * uint256 offerAmount
+         */
+        _aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             offerComponents,
             0,
@@ -198,15 +197,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             // Return with an empty execution element that will be filtered.
             // prettier-ignore
             return Execution(
-                ReceivedItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    0,
-                    payable(address(0))
-                ),
-                address(0),
-                bytes32(0)
+                ReceivedItem(ItemType.NATIVE, address(0), 0, 0, payable(address(0))), address(0), bytes32(0)
             );
         }
 
@@ -215,10 +206,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             // Return execution for aggregated items provided by offerer.
             // prettier-ignore
             return _aggregateValidFulfillmentOfferItems(
-                ordersToExecute,
-                fulfillmentComponents,
-                nextComponentIndex - 1,
-                recipient
+                ordersToExecute, fulfillmentComponents, nextComponentIndex - 1, recipient
             );
         } else {
             // Otherwise, fulfillment components are consideration
@@ -226,10 +214,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             // the fulfiller.
             // prettier-ignore
             return _aggregateConsiderationItems(
-                ordersToExecute,
-                fulfillmentComponents,
-                nextComponentIndex - 1,
-                fulfillerConduitKey
+                ordersToExecute, fulfillmentComponents, nextComponentIndex - 1, fulfillerConduitKey
             );
         }
     }

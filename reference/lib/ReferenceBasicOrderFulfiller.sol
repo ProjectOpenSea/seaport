@@ -6,7 +6,7 @@ import {
     BasicOrderType,
     ItemType,
     BasicOrderRouteType
-} from "contracts/lib/ConsiderationEnums.sol";
+} from "seaport/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -15,7 +15,7 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -25,7 +25,7 @@ import {
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -654,7 +654,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // OrderFulfilled ReceivedItem[].
             consideration[0] = primaryReceivedItem;
 
-            /**  Loop through all additionalRecipients, to generate
+            /**
+             * Loop through all additionalRecipients, to generate
              *    ReceivedItems for OrderFulfilled Event and
              *    ConsiderationItems for hashing.
              */

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
+import { ReentrancyErrors } from "seaport/interfaces/ReentrancyErrors.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "seaport/lib/ConsiderationConstants.sol";
 
 /**
  * @title ReentrancyGuard

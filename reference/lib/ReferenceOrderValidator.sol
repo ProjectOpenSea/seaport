@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -10,7 +10,7 @@ import {
     OrderComponents,
     OrderStatus,
     CriteriaResolver
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "seaport/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
 
@@ -171,12 +171,8 @@ contract ReferenceOrderValidator is
 
         // Ensure order is fillable and is not cancelled.
         if (
-            !_verifyOrderStatus(
-                orderHash,
-                orderStatus,
-                false, // Allow partially used orders to be filled.
-                revertOnInvalid
-            )
+            !// Allow partially used orders to be filled.
+            _verifyOrderStatus(orderHash, orderStatus, false, revertOnInvalid)
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
             return (orderHash, 0, 0);
