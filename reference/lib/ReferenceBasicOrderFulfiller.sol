@@ -6,7 +6,7 @@ import {
     BasicOrderType,
     ItemType,
     BasicOrderRouteType
-} from "seaport/lib/ConsiderationEnums.sol";
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -15,7 +15,7 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -25,7 +25,7 @@ import {
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller

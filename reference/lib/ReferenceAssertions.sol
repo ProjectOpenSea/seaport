@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderParameters } from "seaport/lib/ConsiderationStructs.sol";
+import { OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceGettersAndDerivers } from "./ReferenceGettersAndDerivers.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport/interfaces/TokenTransferrerErrors.sol";
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title Assertions

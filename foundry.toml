@@ -28,6 +28,7 @@ src = 'reference'
 out = 'reference-out'
 # specify something so it doesn't try to compile the 0.8.14 files in test/foundry
 test = 'reference'
+script = 'reference'
 
 [profile.optimized]
 out = 'optimized-out'

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType, ItemType } from "seaport/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -12,7 +12,7 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -28,7 +28,7 @@ import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
 
 import { ReferenceAmountDeriver } from "./ReferenceAmountDeriver.sol";
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title OrderFulfiller

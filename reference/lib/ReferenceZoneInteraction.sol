@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ZoneInterface } from "seaport/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../../contracts/interfaces/ZoneInterface.sol";
 
-import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
+import { OrderType } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
     CriteriaResolver
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     ZoneInteractionErrors
-} from "seaport/interfaces/ZoneInteractionErrors.sol";
+} from "../../contracts/interfaces/ZoneInteractionErrors.sol";
 
 /**
  * @title ZoneInteraction

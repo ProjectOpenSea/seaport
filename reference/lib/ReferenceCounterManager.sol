@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport/interfaces/ConsiderationEventsAndErrors.sol";
+} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
 import { ReferenceReentrancyGuard } from "./ReferenceReentrancyGuard.sol";
 

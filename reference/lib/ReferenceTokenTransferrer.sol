@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "seaport/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport/interfaces/TokenTransferrerErrors.sol";
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 contract ReferenceTokenTransferrer is TokenTransferrerErrors {
     /**

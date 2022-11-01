@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
+import { OrderType } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -10,7 +10,7 @@ import {
     OrderComponents,
     OrderStatus,
     CriteriaResolver
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
 

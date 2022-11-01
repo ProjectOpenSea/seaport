@@ -5,11 +5,11 @@ import {
     ConsiderationItem,
     OfferItem,
     OrderParameters
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "seaport/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers

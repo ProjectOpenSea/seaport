@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {
-    ConsiderationInterface
-} from "seaport/interfaces/ConsiderationInterface.sol";
+import {ConsiderationInterface} from "../contracts/interfaces/ConsiderationInterface.sol";
 
 import {
     OrderComponents,
@@ -16,14 +14,11 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../contracts/lib/ConsiderationStructs.sol";
 
-import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
+import {ReferenceOrderCombiner} from "./lib/ReferenceOrderCombiner.sol";
 
-import {
-    OrderToExecute,
-    AccumulatorStruct
-} from "./lib/ReferenceConsiderationStructs.sol";
+import {OrderToExecute, AccumulatorStruct} from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration
@@ -39,10 +34,7 @@ import {
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract ReferenceConsideration is
-    ConsiderationInterface,
-    ReferenceOrderCombiner
-{
+contract ReferenceConsideration is ConsiderationInterface, ReferenceOrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -51,9 +43,7 @@ contract ReferenceConsideration is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderCombiner(conduitController)
-    {}
+    constructor(address conduitController) ReferenceOrderCombiner(conduitController) {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -178,20 +168,10 @@ contract ReferenceConsideration is
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
-    )
-        external
-        payable
-        override
-        notEntered
-        nonReentrant
-        returns (bool fulfilled)
-    {
+    ) external payable override notEntered nonReentrant returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            advancedOrder,
-            criteriaResolvers,
-            fulfillerConduitKey,
-            recipient == address(0) ? msg.sender : recipient
+            advancedOrder, criteriaResolvers, fulfillerConduitKey, recipient == address(0) ? msg.sender : recipient
         );
     }
 
@@ -253,27 +233,21 @@ contract ReferenceConsideration is
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
-            orders
-        );
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(orders);
         // Convert Advanced Orders to Orders To Execute
-        OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedToOrdersToExecute(
-                advancedOrders
-            );
+        OrderToExecute[] memory ordersToExecute = _convertAdvancedToOrdersToExecute(advancedOrders);
 
         // Fulfill all available orders.
-        return
-            _fulfillAvailableAdvancedOrders(
-                advancedOrders,
-                ordersToExecute,
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                offerFulfillments,
-                considerationFulfillments,
-                fulfillerConduitKey,
-                msg.sender,
-                maximumFulfilled
-            );
+        return _fulfillAvailableAdvancedOrders(
+            advancedOrders,
+            ordersToExecute,
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillerConduitKey,
+            msg.sender,
+            maximumFulfilled
+        );
     }
 
     /**
@@ -354,23 +328,19 @@ contract ReferenceConsideration is
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
-        OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedToOrdersToExecute(
-                advancedOrders
-            );
+        OrderToExecute[] memory ordersToExecute = _convertAdvancedToOrdersToExecute(advancedOrders);
 
         // Fulfill all available orders.
-        return
-            _fulfillAvailableAdvancedOrders(
-                advancedOrders,
-                ordersToExecute,
-                criteriaResolvers,
-                offerFulfillments,
-                considerationFulfillments,
-                fulfillerConduitKey,
-                recipient == address(0) ? msg.sender : recipient,
-                maximumFulfilled
-            );
+        return _fulfillAvailableAdvancedOrders(
+            advancedOrders,
+            ordersToExecute,
+            criteriaResolvers,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillerConduitKey,
+            recipient == address(0) ? msg.sender : recipient,
+            maximumFulfilled
+        );
     }
 
     /**
@@ -397,10 +367,7 @@ contract ReferenceConsideration is
      *                    transfers performed as part of matching the given
      *                    orders.
      */
-    function matchOrders(
-        Order[] calldata orders,
-        Fulfillment[] calldata fulfillments
-    )
+    function matchOrders(Order[] calldata orders, Fulfillment[] calldata fulfillments)
         external
         payable
         override
@@ -409,12 +376,11 @@ contract ReferenceConsideration is
         returns (Execution[] memory executions)
     {
         // Convert to advanced, validate, and match orders using fulfillments.
-        return
-            _matchAdvancedOrders(
-                _convertOrdersToAdvanced(orders),
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillments
-            );
+        return _matchAdvancedOrders(
+            _convertOrdersToAdvanced(orders),
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            fulfillments
+        );
     }
 
     /**
@@ -457,21 +423,9 @@ contract ReferenceConsideration is
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        notEntered
-        nonReentrant
-        returns (Execution[] memory executions)
-    {
+    ) external payable override notEntered nonReentrant returns (Execution[] memory executions) {
         // Validate and match the advanced orders using supplied fulfillments.
-        return
-            _matchAdvancedOrders(
-                advancedOrders,
-                criteriaResolvers,
-                fulfillments
-            );
+        return _matchAdvancedOrders(advancedOrders, criteriaResolvers, fulfillments);
     }
 
     /**
@@ -483,12 +437,7 @@ contract ReferenceConsideration is
      * @return cancelled A boolean indicating whether the supplied orders have
      *         been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders)
-        external
-        override
-        notEntered
-        returns (bool cancelled)
-    {
+    function cancel(OrderComponents[] calldata orders) external override notEntered returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -504,12 +453,7 @@ contract ReferenceConsideration is
      * @return validated A boolean indicating whether the supplied orders have
      *         been successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        override
-        notEntered
-        returns (bool validated)
-    {
+    function validate(Order[] calldata orders) external override notEntered returns (bool validated) {
         // Validate the orders.
         validated = _validate(orders);
     }
@@ -521,12 +465,7 @@ contract ReferenceConsideration is
      *
      * @return newCounter The new counter.
      */
-    function incrementCounter()
-        external
-        override
-        notEntered
-        returns (uint256 newCounter)
-    {
+    function incrementCounter() external override notEntered returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.
         newCounter = _incrementCounter();
     }
@@ -538,12 +477,7 @@ contract ReferenceConsideration is
      *
      * @return orderHash the order hash.
      */
-    function getOrderHash(OrderComponents calldata order)
-        external
-        view
-        override
-        returns (bytes32 orderHash)
-    {
+    function getOrderHash(OrderComponents calldata order) external view override returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with the
         // counter.
         // prettier-ignore
@@ -586,12 +520,7 @@ contract ReferenceConsideration is
         external
         view
         override
-        returns (
-            bool isValidated,
-            bool isCancelled,
-            uint256 totalFilled,
-            uint256 totalSize
-        )
+        returns (bool isValidated, bool isCancelled, uint256 totalFilled, uint256 totalSize)
     {
         // Retrieve the order status using the order hash.
         return _getOrderStatus(orderHash);
@@ -604,12 +533,7 @@ contract ReferenceConsideration is
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer)
-        external
-        view
-        override
-        returns (uint256 counter)
-    {
+    function getCounter(address offerer) external view override returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -625,11 +549,7 @@ contract ReferenceConsideration is
         external
         view
         override
-        returns (
-            string memory version,
-            bytes32 domainSeparator,
-            address conduitController
-        )
+        returns (string memory version, bytes32 domainSeparator, address conduitController)
     {
         // Return the information for this contract.
         return _information();
@@ -640,12 +560,7 @@ contract ReferenceConsideration is
      *
      * @return contractName The name of this contract.
      */
-    function name()
-        external
-        pure
-        override
-        returns (string memory contractName)
-    {
+    function name() external pure override returns (string memory contractName) {
         // Return the name of the contract.
         contractName = _name();
     }
