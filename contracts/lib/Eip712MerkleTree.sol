@@ -95,8 +95,8 @@ contract SevenLevelMerkleTree is SignatureVerification {
         _domainSeparator = keccak256(
             abi.encode(
                 eip712DomainTypehash,
-                "Domain",
-                "1",
+                keccak256(abi.encodePacked("Domain")),
+                keccak256(abi.encodePacked("1")),
                 block.chainid,
                 address(this)
             )
