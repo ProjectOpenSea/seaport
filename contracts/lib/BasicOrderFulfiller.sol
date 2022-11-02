@@ -75,6 +75,8 @@ contract BasicOrderFulfiller is OrderValidator {
         // Declare additional recipient item type to derive from the route type.
         ItemType additionalRecipientsItemType;
 
+        bytes32 orderHash;
+
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
             // Read basicOrderType from calldata.
@@ -154,7 +156,7 @@ contract BasicOrderFulfiller is OrderValidator {
             }
 
             // Derive & validate order using parameters and update order status.
-            _prepareBasicFulfillmentFromCalldata(
+            orderHash = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
                 receivedItemType,
@@ -274,6 +276,15 @@ contract BasicOrderFulfiller is OrderValidator {
             _triggerIfArmed(accumulator);
         }
 
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(
+            orderHash,
+            parameters.zoneHash,
+            orderType,
+            parameters.offerer,
+            parameters.zone
+        );
+
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
 
@@ -315,7 +326,7 @@ contract BasicOrderFulfiller is OrderValidator {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal {
+    ) internal returns (bytes32 orderHash) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -334,9 +345,6 @@ contract BasicOrderFulfiller is OrderValidator {
             parameters.additionalRecipients.length,
             parameters.totalOriginalAdditionalRecipients
         );
-
-        // Declare stack element for the order hash.
-        bytes32 orderHash;
 
         {
             /**
@@ -893,21 +901,15 @@ contract BasicOrderFulfiller is OrderValidator {
             mstore(ZeroSlot, 0)
         }
 
-        // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
-
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
             orderHash,
             parameters.offerer,
             parameters.signature
         );
+
+        // Return the derived order hash.
+        return orderHash;
     }
 
     /**

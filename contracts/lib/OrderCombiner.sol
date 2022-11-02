@@ -116,7 +116,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Validate orders, apply amounts, & determine if they utilize conduits.
-        _validateOrdersAndPrepareToFulfill(
+        bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
             false, // Signifies that invalid orders should NOT revert.
@@ -130,7 +130,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             offerFulfillments,
             considerationFulfillments,
             fulfillerConduitKey,
-            recipient
+            recipient,
+            orderHashes
         );
 
         // Return order fulfillment details and executions.
@@ -164,7 +165,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         bool revertOnInvalid,
         uint256 maximumFulfilled,
         address recipient
-    ) internal {
+    ) internal returns (bytes32[] memory orderHashes) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -172,7 +173,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         uint256 totalOrders = advancedOrders.length;
 
         // Track the order hash for each order being fulfilled.
-        bytes32[] memory orderHashes = new bytes32[](totalOrders);
+        orderHashes = new bytes32[](totalOrders);
 
         // Override orderHashes length to zero after memory has been allocated.
         assembly {
@@ -233,9 +234,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
-                        criteriaResolvers,
-                        revertOnInvalid,
-                        orderHashes
+                        revertOnInvalid
                     );
 
                 // Update the length of the orderHashes array.
@@ -487,7 +486,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey,
-        address recipient
+        address recipient,
+        bytes32[] memory orderHashes
     )
         internal
         returns (bool[] memory availableOrders, Execution[] memory executions)
@@ -594,7 +594,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Perform final checks and return.
         availableOrders = _performFinalChecksAndExecuteOrders(
             advancedOrders,
-            executions
+            executions,
+            orderHashes
         );
 
         return (availableOrders, executions);
@@ -616,53 +617,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      */
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
-        Execution[] memory executions
+        Execution[] memory executions,
+        bytes32[] memory orderHashes
     ) internal returns (bool[] memory availableOrders) {
-        // Retrieve the length of the advanced orders array and place on stack.
-        uint256 totalOrders = advancedOrders.length;
-
-        // Initialize array for tracking available orders.
-        availableOrders = new bool[](totalOrders);
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over orders to ensure all considerations are met.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Retrieve the order in question.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Skip consideration item checks for order if not fulfilled.
-                if (advancedOrder.numerator == 0) {
-                    // Note: orders do not need to be marked as unavailable as a
-                    // new memory region has been allocated. Review carefully if
-                    // altering compiler version or managing memory manually.
-                    continue;
-                }
-
-                // Mark the order as available.
-                availableOrders[i] = true;
-
-                // Retrieve consideration items to ensure they are fulfilled.
-                ConsiderationItem[] memory consideration = (
-                    advancedOrder.parameters.consideration
-                );
-
-                // Read length of consideration array and place on the stack.
-                uint256 totalConsiderationItems = consideration.length;
-
-                // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                    // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].startAmount;
-
-                    // Revert if the remaining amount is not zero.
-                    if (unmetAmount != 0) {
-                        _revertConsiderationNotMet(i, j, unmetAmount);
-                    }
-                }
-            }
-        }
-
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
@@ -717,6 +674,83 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
+        // At this point, the accumulator is no longer necessary; new memory
+        // allocations can safely overwrite the utilized space. Note, however,
+        // that newly allocated memory regions should be considered dirtied.
+
+        // Retrieve the length of the advanced orders array and place on stack.
+        uint256 totalOrders = advancedOrders.length;
+
+        // Initialize array for tracking available orders.
+        availableOrders = new bool[](totalOrders);
+
+        // Declare criteria resolvers (currently unused).
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // Override existing orderHashes array length to zero.
+        assembly {
+            mstore(orderHashes, 0)
+        }
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over orders to ensure all considerations are met.
+            for (uint256 i = 0; i < totalOrders; ++i) {
+                // Retrieve the order in question.
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
+
+                // Update the length of the orderHashes array.
+                assembly {
+                    mstore(orderHashes, add(i, 1))
+                }
+
+                // Skip consideration item checks for order if not fulfilled.
+                if (advancedOrder.numerator == 0) {
+                    // Note: orders do not need to be marked as unavailable as a
+                    // new memory region has been allocated. Review carefully if
+                    // altering compiler version or managing memory manually.
+                    continue;
+                }
+
+                // Mark the order as available.
+                availableOrders[i] = true;
+
+                // Retrieve the order parameters.
+                OrderParameters memory parameters = advancedOrder.parameters;
+
+                // Retrieve consideration items to ensure they are fulfilled.
+                ConsiderationItem[] memory consideration = (
+                    parameters.consideration
+                );
+
+                // Read length of consideration array and place on the stack.
+                uint256 totalConsiderationItems = consideration.length;
+
+                // Iterate over each consideration item to ensure it is met.
+                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
+                    // Retrieve remaining amount on the consideration item.
+                    uint256 unmetAmount = consideration[j].startAmount;
+
+                    // Revert if the remaining amount is not zero.
+                    if (unmetAmount != 0) {
+                        _revertConsiderationNotMet(i, j, unmetAmount);
+                    }
+                }
+
+                // Ensure restricted orders have valid submitter or pass check.
+                _assertRestrictedAdvancedOrderValidity(
+                    advancedOrder,
+                    criteriaResolvers,
+                    orderHashes,
+                    orderHashes[i],
+                    parameters.zoneHash,
+                    parameters.orderType,
+                    parameters.offerer,
+                    parameters.zone
+                );
+            }
+        }
+
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
 
@@ -766,7 +800,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         Fulfillment[] calldata fulfillments
     ) internal returns (Execution[] memory executions) {
         // Validate orders, update order status, and determine item amounts.
-        _validateOrdersAndPrepareToFulfill(
+        bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
@@ -775,7 +809,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        return _fulfillAdvancedOrders(advancedOrders, fulfillments, orderHashes);
     }
 
     /**
@@ -797,7 +831,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        bytes32[] memory orderHashes
     ) internal returns (Execution[] memory executions) {
         // Retrieve fulfillments array length and place on the stack.
         uint256 totalFulfillments = fulfillments.length;
@@ -850,7 +885,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         }
 
         // Perform final checks and execute orders.
-        _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        _performFinalChecksAndExecuteOrders(advancedOrders, executions, orderHashes);
 
         // Return the executions array.
         return (executions);

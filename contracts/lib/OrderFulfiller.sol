@@ -91,9 +91,7 @@ contract OrderFulfiller is
             uint256 fillDenominator
         ) = _validateOrderAndUpdateStatus(
                 advancedOrder,
-                criteriaResolvers,
-                true,
-                priorOrderHashes
+                true
             );
 
         // Create an array with length 1 containing the order.
@@ -115,6 +113,18 @@ contract OrderFulfiller is
             fillDenominator,
             fulfillerConduitKey,
             recipient
+        );
+
+        // Ensure restricted orders have a valid submitter or pass a zone check.
+        _assertRestrictedAdvancedOrderValidity(
+            advancedOrders[0],
+            criteriaResolvers,
+            priorOrderHashes,
+            orderHash,
+            orderParameters.zoneHash,
+            orderParameters.orderType,
+            orderParameters.offerer,
+            orderParameters.zone
         );
 
         // Emit an event signifying that the order has been fulfilled.
