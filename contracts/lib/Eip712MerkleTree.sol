@@ -124,6 +124,9 @@ contract SevenLevelMerkleTree is SignatureVerification {
 
             // Hash the relevant region (65 bytes).
             value := keccak256(0, EIP712_DigestPayload_size)
+
+            // reset the upper dirty bit of the free memory pointer.
+            mstore(EIP712_OrderHash_offset, 0)
         }
     }
 
