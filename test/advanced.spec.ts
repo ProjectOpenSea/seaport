@@ -130,415 +130,404 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
   describe("Bulk Signature", async () => {
     it("Can sign for a bulk signature", async () => {
-
-      const getEmptyOrderComponents = (counterValue: number): OrderComponents => ({
-          offerer: ethers.constants.AddressZero,
-          zone: ethers.constants.AddressZero,
-          offer: [],
-          consideration: [],
-          orderType: 0,
-          startTime: toBN(0),
-          endTime: toBN(0),
-          zoneHash: ethers.constants.HashZero,
-          salt: ethers.constants.HashZero,
-          conduitKey: ethers.constants.HashZero,
-          counter: toBN(counterValue),
+      const getEmptyOrderComponents = (
+        counterValue: number
+      ): OrderComponents => ({
+        offerer: ethers.constants.AddressZero,
+        zone: ethers.constants.AddressZero,
+        offer: [],
+        consideration: [],
+        orderType: 0,
+        startTime: toBN(0),
+        endTime: toBN(0),
+        zoneHash: ethers.constants.HashZero,
+        salt: ethers.constants.HashZero,
+        conduitKey: ethers.constants.HashZero,
+        counter: toBN(counterValue),
       });
 
-      const getEmptyABTree = (depth: number): any => {
-        const tree = {a: {}, b: {}};
-        let node = {a: {}, b: {}};
-        for (let i = 1; i < depth; ++i) {
-          tree.a = node;
-          tree.b = node;
-          node = tree;
-        }
-      }
-
-      const tree = getEmptyABTree(7);
-
-      const orderComponents: BulkOrder = {
-        a: {
-          a: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-          b: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-        },
-        b: {
-          a: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-          b: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-        },
-      };
+      const orderComponents: BulkOrder = {tree: [
+        [
+          [
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+          ],
+          [
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+        [
+          [
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+          ],
+          [
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+            [
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+              [
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+                [
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                  [
+                    getEmptyOrderComponents(0),
+                    getEmptyOrderComponents(0),
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+      ]};
 
       const signature = await signBulkOrder(orderComponents, owner);
 

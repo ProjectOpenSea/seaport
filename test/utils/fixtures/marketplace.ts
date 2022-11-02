@@ -136,37 +136,6 @@ export const marketplaceFixture = async (
       bulkOrderComponents
     );
 
-    const locator = [0, 0, 0, 0, 0, 0, 0];
-
-    const incrementPriorIndex = (
-      arr: Array<number>,
-      i: number
-    ): Array<number> => {
-      const index = arr.length - 1 - i;
-      if (arr[index] === 0) {
-        arr[index] = 1;
-        return arr;
-      } else {
-        arr[index] = 0;
-        return incrementPriorIndex(arr, i + 1);
-      }
-    };
-
-    for (let i = 0; i < 128; ++i) {
-      const orderComponents =
-        bulkOrderComponents[locator[0] === 0 ? "a" : "b"][
-          locator[1] === 0 ? "a" : "b"
-        ][locator[2] === 0 ? "a" : "b"][locator[3] === 0 ? "a" : "b"][
-          locator[4] === 0 ? "a" : "b"
-        ][locator[5] === 0 ? "a" : "b"][locator[6] === 0 ? "a" : "b"];
-
-      const orderHash = await getAndVerifyOrderHash(orderComponents);
-
-      if (i !== 127) {
-        incrementPriorIndex(locator, 0);
-      }
-    }
-
     /// / TODO: verify each order or a subset of the orders?
     //
     // const orderHash = await getAndVerifyOrderHash(orderComponents);

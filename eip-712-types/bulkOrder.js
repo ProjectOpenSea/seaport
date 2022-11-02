@@ -1,31 +1,6 @@
 const bulkOrderType = {
-  BulkOrder: [
-    { name: "a", type: "LevelOne" },
-    { name: "b", type: "LevelOne" },
-  ],
-  LevelOne: [
-    { name: "a", type: "LevelTwo" },
-    { name: "b", type: "LevelTwo" },
-  ],
-  LevelTwo: [
-    { name: "a", type: "LevelThree" },
-    { name: "b", type: "LevelThree" },
-  ],
-  LevelThree: [
-    { name: "a", type: "LevelFour" },
-    { name: "b", type: "LevelFour" },
-  ],
-  LevelFour: [
-    { name: "a", type: "LevelFive" },
-    { name: "b", type: "LevelFive" },
-  ],
-  LevelFive: [
-    { name: "a", type: "LevelSix" },
-    { name: "b", type: "LevelSix" },
-  ],
-  LevelSix: [
-    { name: "a", type: "OrderComponents" },
-    { name: "b", type: "OrderComponents" },
+  Tree: [
+    { name: "tree", type: "OrderComponents[2][2][2][2][2][2][2]" },
   ],
   OrderComponents: [
     { name: "offerer", type: "address" },

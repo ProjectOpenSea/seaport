@@ -94,37 +94,6 @@ export type AdvancedOrder = {
   extraData: string;
 };
 
-export type LevelSix = {
-  a: OrderComponents;
-  b: OrderComponents;
-};
-
-export type LevelFive = {
-  a: LevelSix;
-  b: LevelSix;
-};
-
-export type LevelFour = {
-  a: LevelFive;
-  b: LevelFive;
-};
-
-export type LevelThree = {
-  a: LevelFour;
-  b: LevelFour;
-};
-
-export type LevelTwo = {
-  a: LevelThree;
-  b: LevelThree;
-};
-
-export type LevelOne = {
-  a: LevelTwo;
-  b: LevelTwo;
-};
-
 export type BulkOrder = {
-  a: LevelOne;
-  b: LevelOne;
+  tree: Array<Array<Array<Array<Array<Array<Array<OrderComponents>>>>>>>;
 };
