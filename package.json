@@ -12,7 +12,8 @@
   "dependencies": {
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
-    "hardhat": "https://github.com/0age/hardhat/releases/download/viaIR-2.9.3/hardhat-v2.9.3.tgz"
+    "hardhat": "https://github.com/0age/hardhat/releases/download/viaIR-2.9.3/hardhat-v2.9.3.tgz",
+    "merkletreejs": "^0.3.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
