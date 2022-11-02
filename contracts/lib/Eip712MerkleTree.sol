@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./lib/ConsiderationConstants.sol";
-import "./lib/SignatureVerification.sol";
+import "./ConsiderationConstants.sol";
+import "./SignatureVerification.sol";
 import "hardhat/console.sol";
 
 type Eip712MerkleProof is uint256;
