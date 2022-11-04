@@ -79,7 +79,10 @@ contract Verifiers is Assertions, SignatureVerification {
         }
 
         if (_isValidBulkOrderSize(signature)) {
-          (signature, orderHash) = _computeBulkOrderProof(signature, orderHash);
+            (signature, orderHash) = _computeBulkOrderProof(
+                signature,
+                orderHash
+            );
         }
 
         // Derive EIP-712 digest using the domain separator and the order hash.
@@ -102,11 +105,10 @@ contract Verifiers is Assertions, SignatureVerification {
         }
     }
 
-    function _computeBulkOrderProof(bytes memory proofAndSignature, bytes32 leaf)
-        internal
-        view
-        returns (bytes memory signature, bytes32 bulkOrderHash)
-    {
+    function _computeBulkOrderProof(
+        bytes memory proofAndSignature,
+        bytes32 leaf
+    ) internal view returns (bytes memory signature, bytes32 bulkOrderHash) {
         bytes32 root;
         assembly {
             let key := shr(248, mload(add(proofAndSignature, 0x20)))
