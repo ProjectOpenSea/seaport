@@ -84,11 +84,70 @@ contract ReferenceVerifiers is
             return;
         }
 
+        if (_isValidBulkOrderSize(signature)) {
+            (orderHash, signature) = _computeBulkOrderProof(
+                signature,
+                orderHash
+            );
+        }
+
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(offerer, digest, signature);
+    }
+
+    function _isValidBulkOrderSize(bytes memory signature)
+        internal
+        pure
+        returns (bool validLength)
+    {
+        validLength = signature.length == 289 || signature.length == 290;
+    }
+
+    function _computeBulkOrderProof(
+        bytes memory proofAndSignature,
+        bytes32 leaf
+    ) internal view returns (bytes32 bulkOrderHash, bytes memory signature) {
+        bytes32 root = leaf;
+
+        uint256 length = proofAndSignature.length - 225;
+
+        signature = new bytes(length);
+        for (uint256 i = 0; i < length; ++i) {
+            signature[i] = proofAndSignature[i];
+        }
+
+        uint256 key = uint256(uint8(bytes1(proofAndSignature[length])));
+
+        bytes32[] memory proofElements = new bytes32[](7);
+        for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
+            uint256 start = (length + 1) + (elementIndex * 32);
+
+            bytes memory buffer = new bytes(32);
+            for (uint256 i = 0; i < 32; ++i) {
+                buffer[i] = proofAndSignature[start + i];
+            }
+
+            proofElements[elementIndex] = abi.decode(buffer, (bytes32));
+        }
+
+        // Iterate over each proof element.
+        for (uint256 i = 0; i < proofElements.length; ++i) {
+            // Retrieve the proof element.
+            bytes32 proofElement = proofElements[i];
+
+            if ((key >> i) % 2 == 0) {
+                root = keccak256(abi.encodePacked(root, proofElement));
+            } else {
+                root = keccak256(abi.encodePacked(proofElement, root));
+            }
+        }
+
+        bulkOrderHash = keccak256(abi.encodePacked(_BULK_ORDER_TYPEHASH, root));
+
+        proofAndSignature = signature;
     }
 
     /**

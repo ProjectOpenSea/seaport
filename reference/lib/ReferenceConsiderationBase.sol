@@ -36,6 +36,7 @@ contract ReferenceConsiderationBase is
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_TYPEHASH;
+    bytes32 internal immutable _BULK_ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
@@ -63,6 +64,7 @@ contract ReferenceConsiderationBase is
             _OFFER_ITEM_TYPEHASH,
             _CONSIDERATION_ITEM_TYPEHASH,
             _ORDER_TYPEHASH,
+            _BULK_ORDER_TYPEHASH,
             _DOMAIN_SEPARATOR
         ) = _deriveTypehashes();
 
@@ -141,6 +143,7 @@ contract ReferenceConsiderationBase is
      * @return considerationItemTypehash The EIP-712 typehash for
      *                                   ConsiderationItem types.
      * @return orderTypehash             The EIP-712 typehash for Order types.
+     * @return bulkOrderTypeHash
      * @return domainSeparator           The domain separator.
      */
     function _deriveTypehashes()
@@ -153,6 +156,7 @@ contract ReferenceConsiderationBase is
             bytes32 offerItemTypehash,
             bytes32 considerationItemTypehash,
             bytes32 orderTypehash,
+            bytes32 bulkOrderTypeHash,
             bytes32 domainSeparator
         )
     {
@@ -230,6 +234,19 @@ contract ReferenceConsiderationBase is
                 orderComponentsPartialTypeString,
                 considerationItemTypeString,
                 offerItemTypeString
+            )
+        );
+
+        bytes memory bulkOrderPartialTypeString = abi.encodePacked(
+            "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
+        );
+
+        bulkOrderTypeHash = keccak256(
+            abi.encodePacked(
+                bulkOrderPartialTypeString,
+                considerationItemTypeString,
+                offerItemTypeString,
+                orderComponentsPartialTypeString
             )
         );
 
