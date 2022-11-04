@@ -37,9 +37,10 @@ const encodeProof = (
   signature = `0x${"ff".repeat(64)}`
 ) => {
   return hexConcat([
+    signature,
     `0x${key.toString(16).padStart(2, "0")}`,
     defaultAbiCoder.encode(["uint256[7]"], [proof]),
-    signature,
+    // signature,
   ]);
 };
 

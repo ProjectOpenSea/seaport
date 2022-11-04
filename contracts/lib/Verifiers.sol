@@ -79,10 +79,7 @@ contract Verifiers is Assertions, SignatureVerification {
         }
 
         if (_isValidBulkOrderSize(signature)) {
-            (signature, orderHash) = _computeBulkOrderProof(
-                signature,
-                orderHash
-            );
+            (orderHash) = _computeBulkOrderProof(signature, orderHash);
         }
 
         // Derive EIP-712 digest using the domain separator and the order hash.
@@ -108,11 +105,20 @@ contract Verifiers is Assertions, SignatureVerification {
     function _computeBulkOrderProof(
         bytes memory proofAndSignature,
         bytes32 leaf
-    ) internal view returns (bytes memory signature, bytes32 bulkOrderHash) {
+    ) internal view returns (bytes32 bulkOrderHash) {
         bytes32 root;
+
         assembly {
-            let key := shr(248, mload(add(proofAndSignature, 0x20)))
-            let proof := add(proofAndSignature, 0x21)
+            // Set length to just the size of the signature
+            let length := sub(
+                mload(proofAndSignature),
+                BulkOrderProof_proofAndKeySize
+            )
+            mstore(proofAndSignature, length)
+
+            let keyPtr := add(proofAndSignature, add(0x20, length))
+            let key := shr(248, mload(keyPtr))
+            let proof := add(keyPtr, 1)
 
             // Compute level 1
             let scratch := shl(5, and(key, 1))
@@ -156,17 +162,6 @@ contract Verifiers is Assertions, SignatureVerification {
             mstore(0, rootTypeHash)
             mstore(0x20, root)
             bulkOrderHash := keccak256(0, 0x40)
-
-            let length := sub(
-                mload(proofAndSignature),
-                BulkOrderProof_signatureOffset
-            )
-            let signatureLengthPtr := add(
-                proofAndSignature,
-                BulkOrderProof_signatureOffset
-            )
-            signature := signatureLengthPtr
-            mstore(signature, length)
         }
     }
 
