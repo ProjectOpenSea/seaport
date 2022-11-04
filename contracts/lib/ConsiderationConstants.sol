@@ -111,6 +111,9 @@ uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
 uint256 constant EIP712_DigestPayload_size = 0x42;
 
+uint256 constant EIP712_BulkOrder_minSize = 0x121;
+uint256 constant BulkOrderProof_proofAndKeySize = 0xe1;
+
 uint256 constant receivedItemsHash_ptr = 0x60;
 
 /*

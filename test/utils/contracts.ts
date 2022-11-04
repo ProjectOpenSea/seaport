@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, waffle } from "hardhat";
 
 import type { JsonRpcSigner } from "@ethersproject/providers";
 import type { Contract, Wallet } from "ethers";
@@ -7,7 +7,7 @@ import "dotenv/config";
 
 export const deployContract = async <C extends Contract>(
   name: string,
-  signer: JsonRpcSigner | Wallet,
+  signer: JsonRpcSigner | Wallet = waffle.provider.getWallets()[0],
   ...args: any[]
 ): Promise<C> => {
   const references = new Map<string, string>([

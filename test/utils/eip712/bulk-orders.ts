@@ -1,4 +1,8 @@
-const bulkOrderType = {
+import { Eip712MerkleTree } from "./Eip712MerkleTree";
+
+import type { OrderComponents } from "../types";
+
+export const bulkOrderType = {
   BulkOrder: [{ name: "tree", type: "OrderComponents[2][2][2][2][2][2][2]" }],
   OrderComponents: [
     { name: "offerer", type: "address" },
@@ -30,6 +34,12 @@ const bulkOrderType = {
   ],
 };
 
-module.exports = Object.freeze({
-  bulkOrderType,
-});
+export function getBulkOrderTree(orderComponents: OrderComponents[]) {
+  return new Eip712MerkleTree(
+    bulkOrderType,
+    "BulkOrder",
+    "OrderComponents",
+    orderComponents,
+    7
+  );
+}

@@ -33,12 +33,7 @@ import type {
   TestERC721,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type {
-  AdvancedOrder,
-  BulkOrder,
-  ConsiderationItem,
-  OrderComponents,
-} from "./utils/types";
+import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
 import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
@@ -73,7 +68,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
-  let signBulkOrder: SeaportFixtures["signBulkOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -110,7 +104,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       testERC20,
       testERC721,
       withBalanceChecks,
-      signBulkOrder,
     } = await seaportFixture(owner));
   });
 
@@ -130,419 +123,75 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
   describe("Bulk Signature", async () => {
     it("Can sign for a bulk signature", async () => {
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
 
-      const getEmptyOrderComponents = (counterValue: number): OrderComponents => ({
-          offerer: ethers.constants.AddressZero,
-          zone: ethers.constants.AddressZero,
-          offer: [],
-          consideration: [],
-          orderType: 0,
-          startTime: toBN(0),
-          endTime: toBN(0),
-          zoneHash: ethers.constants.HashZero,
-          salt: ethers.constants.HashZero,
-          conduitKey: ethers.constants.HashZero,
-          counter: toBN(counterValue),
+      const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+      const consideration = [
+        getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+        getItemETH(amount.mul(10), amount.mul(10), zone.address),
+        getItemETH(amount.mul(20), amount.mul(20), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        1,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
+      if ((order.signature.length - 1) / 2 < 288) throw Error("");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.numerator = 2; // fill two tenths or one fifth
+      order.denominator = 10; // fill two tenths or one fifth
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
       });
-
-      const getEmptyABTree = (depth: number): any => {
-        const tree = {a: {}, b: {}};
-        let node = {a: {}, b: {}};
-        for (let i = 1; i < depth; ++i) {
-          tree.a = node;
-          tree.b = node;
-          node = tree;
-        }
-      }
-
-      const tree = getEmptyABTree(7);
-
-      const orderComponents: BulkOrder = {
-        a: {
-          a: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-          b: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-        },
-        b: {
-          a: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-          b: {
-            a: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-            b: {
-              a: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-              b: {
-                a: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-                b: {
-                  a: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                  b: {
-                    a: getEmptyOrderComponents(0),
-                    b: getEmptyOrderComponents(0),
-                  },
-                },
-              },
-            },
-          },
-        },
-      };
-
-      const signature = await signBulkOrder(orderComponents, owner);
-
-      console.log(signature);
     });
   });
 
