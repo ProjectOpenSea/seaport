@@ -1,9 +1,7 @@
 import { expect } from "chai";
-import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
 import { merkleTree } from "./utils/criteria";
-import { getBulkOrderTree } from "./utils/eip712/Tree";
 import {
   buildOrderStatus,
   buildResolver,
@@ -35,12 +33,7 @@ import type {
   TestERC721,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type {
-  AdvancedOrder,
-  BulkOrder,
-  ConsiderationItem,
-  OrderComponents,
-} from "./utils/types";
+import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
 import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
