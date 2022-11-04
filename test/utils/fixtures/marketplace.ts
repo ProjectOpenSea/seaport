@@ -4,7 +4,7 @@ import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
-import { getBulkOrderTree } from "../eip712/Tree";
+import { getBulkOrderTree } from "../eip712/Eip712MerkleTree";
 import {
   calculateOrderHash,
   convertSignatureToEIP2098,
