@@ -108,8 +108,6 @@ export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
     if (bulkOrderHash !== structHash) {
       throw Error("Bad hash");
     }
-    console.log(`HH Root Hash: ${rootHash}`);
-    console.log(`HH Order Hash: ${bulkOrderHash}`);
     return structHash;
   }
 
