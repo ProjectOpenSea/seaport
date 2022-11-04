@@ -1,5 +1,5 @@
 const bulkOrderType = {
-  Tree: [
+  BulkOrder: [
     { name: "tree", type: "OrderComponents[2][2][2][2][2][2][2]" },
   ],
   OrderComponents: [
