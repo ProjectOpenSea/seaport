@@ -46,4 +46,17 @@ fuzz_runs = 1000
 src = 'reference'
 out = 'reference-out'
 
+[profile.offerers]
+src='offerers'
+test='offerers'
+out = 'offerers-out'
+script = 'offerers'
+via_ir = false
+fuzz_runs = 1000
+
+[fmt]
+line_length = 80
+tab_width = 4
+bracket_spacing = true
+
 # See more config options https://github.com/gakonst/foundry/tree/master/config

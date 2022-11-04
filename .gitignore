@@ -4,6 +4,7 @@ coverage
 coverage.json
 typechain-types
 yarn-error.log
+remappings.txt
 
 #Hardhat files
 artifacts/
@@ -18,6 +19,7 @@ out
 reference-out
 optimized-out
 reference-working
+offerers-out
 
 .DS_Store
 
@@ -26,3 +28,7 @@ reference-working
 __pycache__
 
 Seaport.yul
+
+# coverage
+html
+lcov.info
