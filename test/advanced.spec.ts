@@ -68,7 +68,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
-  let signBulkOrder: SeaportFixtures["signBulkOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -105,7 +104,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       testERC20,
       testERC721,
       withBalanceChecks,
-      signBulkOrder,
     } = await seaportFixture(owner));
   });
 
