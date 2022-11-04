@@ -8,7 +8,6 @@ import {
 import { MerkleTree } from "merkletreejs";
 
 import { DefaultGetter } from "./defaults";
-import { bulkOrderType } from "./typedef";
 import {
   bufferKeccak,
   bufferToHex,
@@ -43,7 +42,6 @@ const encodeProof = (
     signature,
   ]);
 };
-
 
 export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
   tree: MerkleTree;
@@ -128,14 +126,4 @@ export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
     this.defaultLeaf = this.leafHasher(this.defaultNode);
     this.tree = getTree(this.getCompleteLeaves(), this.defaultLeaf);
   }
-}
-
-export function getBulkOrderTree(orderComponents: OrderComponents[]) {
-  return new Eip712MerkleTree(
-    bulkOrderType,
-    "BulkOrder",
-    "OrderComponents",
-    orderComponents,
-    7
-  );
 }
