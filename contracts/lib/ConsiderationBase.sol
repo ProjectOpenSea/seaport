@@ -229,13 +229,16 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         orderTypehash = keccak256(orderTypeString);
 
         bytes memory bulkOrderPartialTypeString = abi.encodePacked(
-            "BulkOrder(",
-            "OrderComponents[2][2][2][2][2][2][2] tree",
-            ")"
+            "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
         );
 
         bulkOrderTypeHash = keccak256(
-            abi.encodePacked(bulkOrderPartialTypeString, orderTypeString)
+            abi.encodePacked(
+                bulkOrderPartialTypeString,
+                considerationItemTypeString,
+                offerItemTypeString,
+                orderComponentsPartialTypeString
+            )
         );
     }
 }
