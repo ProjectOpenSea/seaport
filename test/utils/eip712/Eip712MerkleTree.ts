@@ -1,16 +1,28 @@
 import { _TypedDataEncoder as TypedDataEncoder } from "@ethersproject/hash";
+import {
+  defaultAbiCoder,
+  hexConcat,
+  keccak256,
+  toUtf8Bytes,
+} from "ethers/lib/utils";
 import { MerkleTree } from "merkletreejs";
 
 import { DefaultGetter } from "./defaults";
+import { bulkOrderType } from "./typedef";
 import {
   bufferKeccak,
   bufferToHex,
+  chunk,
   fillArray,
   getRoot,
   hexToBuffer,
 } from "./utils";
 
+import type { OrderComponents } from "../types";
 import type { EIP712TypeDefinitions } from "./defaults";
+
+type A2<T> = [T, T];
+type BulkOrderElements = A2<A2<A2<A2<A2<A2<OrderComponents>>>>>>;
 
 const getTree = (leaves: string[], defaultLeafHash: string) =>
   new MerkleTree(leaves.map(hexToBuffer), bufferKeccak, {
@@ -20,67 +32,110 @@ const getTree = (leaves: string[], defaultLeafHash: string) =>
     fillDefaultHash: hexToBuffer(defaultLeafHash),
   });
 
+const encodeProof = (
+  key: number,
+  proof: string[],
+  signature = `0x${"ff".repeat(64)}`
+) => {
+  return hexConcat([
+    `0x${key.toString(16).padStart(2, "0")}`,
+    defaultAbiCoder.encode(["uint256[7]"], [proof]),
+    signature,
+  ]);
+};
+
+
 export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
   tree: MerkleTree;
-  private rootEncoder: (value: any) => string;
   private leafHasher: (value: any) => string;
-  private _leaves: string[];
-  defaultNode: any;
+  defaultNode: BaseType;
   defaultLeaf: string;
   encoder: TypedDataEncoder;
 
-  leavesWithDefaults() {
-    const completedSize = Math.pow(
-      2,
-      Math.ceil(Math.log2(this._leaves.length))
-    );
-    return fillArray([...this._leaves], completedSize, this.defaultLeaf);
+  get completedSize() {
+    return Math.pow(2, this.depth);
   }
 
-  computeRoot() {
-    return bufferToHex(
-      getRoot(this.leavesWithDefaults().map(hexToBuffer), false)
-    );
+  /** Returns the array of elements in the tree, padded to the complete size with empty items. */
+  getCompleteElements() {
+    const elements = this.elements;
+    return fillArray([...elements], this.completedSize, this.defaultNode);
+  }
+
+  /** Returns the array of leaf nodes in the tree, padded to the complete size with default hashes. */
+  getCompleteLeaves() {
+    const leaves = this.elements.map(this.leafHasher);
+    return fillArray([...leaves], this.completedSize, this.defaultLeaf);
   }
 
   get root() {
     return this.tree.getHexRoot();
   }
 
-  getLeaf(i: number) {
-    return this._leaves[i];
+  getProof(i: number) {
+    const leaves = this.getCompleteLeaves();
+    const leaf = leaves[i];
+    const proof = this.tree.getHexProof(leaf, i);
+    const root = this.tree.getHexRoot();
+    return { leaf, proof, root };
   }
 
-  getProof(i: number) {
-    const leaf = this._leaves[i];
-    const proof = this.tree.getHexProof(this._leaves[i], i);
-    return { leaf, proof };
+  getEncodedProofAndSignature(i: number, signature: string) {
+    const { proof } = this.getProof(i);
+    return encodeProof(i, proof, signature);
+  }
+
+  getDataToSign(): BulkOrderElements {
+    const elements = this.getCompleteElements();
+    let layer: any = chunk(elements, 2);
+    while (layer.length > 2) {
+      layer = chunk(layer, 2);
+    }
+    return layer;
+  }
+
+  add(element: BaseType) {
+    this.elements.push(element);
+  }
+
+  getBulkOrderHash() {
+    const structHash = this.encoder.hashStruct("BulkOrder", {
+      tree: this.getDataToSign(),
+    });
+    const leaves = this.getCompleteLeaves().map(hexToBuffer);
+    const rootHash = bufferToHex(getRoot(leaves, false));
+    const typeHash = keccak256(toUtf8Bytes(this.encoder._types.BulkOrder));
+    const bulkOrderHash = keccak256(hexConcat([typeHash, rootHash]));
+    if (bulkOrderHash !== structHash) {
+      throw Error("Bad hash");
+    }
+    console.log(`HH Root Hash: ${rootHash}`);
+    console.log(`HH Order Hash: ${bulkOrderHash}`);
+    return structHash;
   }
 
   constructor(
-    protected types: EIP712TypeDefinitions,
-    rootType: string,
-    leafType: string,
-    protected elements: BaseType[]
+    public types: EIP712TypeDefinitions,
+    public rootType: string,
+    public leafType: string,
+    public elements: BaseType[],
+    public depth: number
   ) {
     const encoder = TypedDataEncoder.from(types);
     this.encoder = encoder;
     this.leafHasher = (leaf: BaseType) => encoder.hashStruct(leafType, leaf);
-    this.rootEncoder = encoder.getEncoder(rootType);
-    this._leaves = elements.map(this.leafHasher);
-    console.log(DefaultGetter.from(types, leafType));
     this.defaultNode = DefaultGetter.from(types, leafType);
     this.defaultLeaf = this.leafHasher(this.defaultNode);
-    this.tree = getTree(this._leaves, this.defaultLeaf);
+    this.tree = getTree(this.getCompleteLeaves(), this.defaultLeaf);
   }
+}
 
-  static fromLeafType<BaseType extends Record<string, any> = any>(
-    types: EIP712TypeDefinitions,
-    leafType: string,
-    depth: number,
-    elements: BaseType[]
-  ) {
-    types.Tree = [{ name: "tree", type: leafType + "[2]".repeat(depth) }];
-    return new Eip712MerkleTree(types, "Tree", leafType, elements);
-  }
+export function getBulkOrderTree(orderComponents: OrderComponents[]) {
+  return new Eip712MerkleTree(
+    bulkOrderType,
+    "BulkOrder",
+    "OrderComponents",
+    orderComponents,
+    7
+  );
 }
