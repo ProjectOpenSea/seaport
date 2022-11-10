@@ -20,13 +20,14 @@ contract TestPoolFactory {
         uint256[] calldata tokenIds,
         address erc20,
         uint256 amount
-    ) external returns (address newPool) {
-        newPool = address(
-            new TestPoolOfferer(seaport, erc721, tokenIds, erc20, amount)
-        );
-        IERC20(erc20).transferFrom(msg.sender, newPool, amount);
+    ) external returns (TestPoolOfferer newPool) {
+        newPool = new TestPoolOfferer(seaport, erc721, tokenIds, erc20, amount);
+
+        IERC20(erc20).transferFrom(msg.sender, address(newPool), amount);
         for (uint256 i; i < tokenIds.length; i++) {
-            IERC721(erc721).transferFrom(msg.sender, newPool, tokenIds[i]);
+            IERC721(erc721).transferFrom(
+                msg.sender, address(newPool), tokenIds[i]
+            );
         }
     }
 }
