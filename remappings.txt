@@ -1,11 +1,6 @@
-@ensdomains/=node_modules/@ensdomains/
-@rari-capital/=node_modules/@rari-capital/
-@rari-capital/solmate/=lib/solmate/
-contracts/=contracts/
-ds-test/=lib/ds-test/src/
-eth-gas-reporter/=node_modules/eth-gas-reporter/
-forge-std/=lib/forge-std/src/
-hardhat/=node_modules/hardhat/
 murky/=lib/murky/src/
-openzeppelin-contracts/=lib/openzeppelin-contracts/
+ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
+forge-std/=lib/forge-std/src/
+@rari-capital/solmate=lib/solmate/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
