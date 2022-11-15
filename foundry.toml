@@ -1,4 +1,4 @@
-[default]
+[profile.default]
 solc = '0.8.17'
 via_ir = true
 src = 'contracts'
@@ -20,30 +20,44 @@ fs_permissions = [
     { access = "read", path = "./reference-out" },
 ]
 
-[reference]
+[profile.reference]
 solc = '0.8.7'
 via_ir = false
 src = 'reference'
 out = 'reference-out'
+script = 'reference'
 # specify something so it doesn't try to compile the 0.8.17 files in test/foundry
 test = 'reference'
 
-[optimized]
+[profile.optimized]
 out = 'optimized-out'
 
-[test]
+[profile.test]
 via_ir = false
 src = 'test/foundry'
 
-[lite]
+[profile.lite]
 out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
-[local]
+[profile.local]
 via_ir = false
 fuzz_runs = 1000
 src = 'reference'
 out = 'reference-out'
+
+[profile.offerers]
+src='offerers'
+test='offerers'
+out = 'offerers-out'
+script = 'offerers'
+via_ir = false
+fuzz_runs = 1000
+
+[fmt]
+line_length = 80
+tab_width = 4
+bracket_spacing = true
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
