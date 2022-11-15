@@ -40,8 +40,9 @@ contract TestPoolFactoryImpl {
         address erc20,
         uint256 amount
     ) external returns (address newPool) {
-        newPool =
-            address(new TestPoolImpl(seaport, erc721, tokenIds, erc20, amount));
+        newPool = address(
+            new TestPoolImpl(seaport, erc721, tokenIds, erc20, amount, msg.sender)
+        );
         IERC20(erc20).transferFrom(msg.sender, newPool, amount);
         for (uint256 i; i < tokenIds.length; i++) {
             IERC721(erc721).transferFrom(msg.sender, newPool, tokenIds[i]);
@@ -57,8 +58,9 @@ contract TestPoolImpl is TestPoolOfferer {
         address _token,
         uint256[] memory _tokenIds,
         address _payment,
-        uint256 amount
-    ) TestPoolOfferer(seaport, _token, _tokenIds, _payment, amount) { }
+        uint256 amount,
+        address owner
+    ) TestPoolOfferer(seaport, _token, _tokenIds, _payment, amount, owner) { }
 
     function getInternalBalance() external view returns (uint256) {
         return balance;

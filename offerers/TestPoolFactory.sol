@@ -21,7 +21,8 @@ contract TestPoolFactory {
         address erc20,
         uint256 amount
     ) external returns (TestPoolOfferer newPool) {
-        newPool = new TestPoolOfferer(seaport, erc721, tokenIds, erc20, amount);
+        newPool =
+        new TestPoolOfferer(seaport, erc721, tokenIds, erc20, amount, msg.sender);
 
         IERC20(erc20).transferFrom(msg.sender, address(newPool), amount);
         for (uint256 i; i < tokenIds.length; i++) {

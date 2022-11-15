@@ -21,8 +21,9 @@ import { EnumerableSet } from
 import { IERC721 } from
     "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract TestPoolOfferer is ContractOffererInterface {
+contract TestPoolOfferer is ContractOffererInterface, Ownable {
     using EnumerableSet for EnumerableSet.UintSet;
 
     error OnlySeaport();
@@ -44,7 +45,8 @@ contract TestPoolOfferer is ContractOffererInterface {
         address _erc721,
         uint256[] memory _tokenIds,
         address _erc20,
-        uint256 amount
+        uint256 amount,
+        address initialOwner
     ) {
         // Set immutable values and storage variables.
         _SEAPORT = seaport;
