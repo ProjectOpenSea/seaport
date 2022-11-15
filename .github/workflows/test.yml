@@ -132,7 +132,7 @@ jobs:
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
 
-  forge:
+  forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
     steps:
