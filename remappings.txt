@@ -4,4 +4,4 @@ solmate/=lib/solmate/src/
 forge-std/=lib/forge-std/src/
 @rari-capital/solmate=lib/solmate/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
-seaport/=contracts/s
+seaport/=contracts/
