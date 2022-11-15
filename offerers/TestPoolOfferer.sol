@@ -295,4 +295,16 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             });
         }
     }
+
+    function withdrawAll() external onlyOwner {
+        uint256 erc20Balance = erc20.balanceOf(address(this));
+        address owner = owner();
+        erc20.transfer(owner(), erc20Balance);
+        while (tokenIds.length() > 0) {
+            uint256 tokenId = tokenIds.at(0);
+            erc721.transferFrom(address(this), owner, tokenId);
+            tokenIds.remove(tokenId);
+        }
+        balance = 0;
+    }
 }
