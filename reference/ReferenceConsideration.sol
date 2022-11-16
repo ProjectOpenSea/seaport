@@ -635,6 +635,15 @@ contract ReferenceConsideration is
         return _information();
     }
 
+    function getContractOffererNonce(address contractOfferer)
+        external
+        view
+        override
+        returns (uint256 nonce)
+    {
+        nonce = _contractNonces[contractOfferer];
+    }
+
     /**
      * @notice Retrieve the name of this contract.
      *

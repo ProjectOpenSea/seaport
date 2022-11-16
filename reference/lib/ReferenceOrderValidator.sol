@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -9,12 +9,20 @@ import {
     AdvancedOrder,
     OrderComponents,
     OrderStatus,
-    CriteriaResolver
+    CriteriaResolver,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem
 } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
 
 import { ReferenceZoneInteraction } from "./ReferenceZoneInteraction.sol";
+
+import {
+    ContractOffererInterface
+} from "contracts/interfaces/ContractOffererInterface.sol";
 
 /**
  * @title OrderValidator
@@ -28,6 +36,8 @@ contract ReferenceOrderValidator is
 {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
+
+    mapping(address => uint256) internal _contractNonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -131,6 +141,15 @@ contract ReferenceOrderValidator is
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
             return (bytes32(0), 0, 0);
+        }
+
+        if (orderParameters.orderType == OrderType.CONTRACT) {
+            return
+                _getGeneratedOrder(
+                    orderParameters,
+                    advancedOrder.extraData,
+                    revertOnInvalid
+                );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -261,6 +280,276 @@ contract ReferenceOrderValidator is
 
         // Return order hash, new numerator and denominator.
         return (orderHash, uint120(numerator), uint120(denominator));
+    }
+
+    function _getGeneratedOrder(
+        OrderParameters memory orderParameters,
+        bytes memory context,
+        bool revertOnInvalid
+    )
+        internal
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        // TODO: reuse an existing memory region or relocate this functionality
+        (
+            SpentItem[] memory originalOfferItems,
+            SpentItem[] memory originalConsiderationItems
+        ) = _convertToSpent(
+                orderParameters.offer,
+                orderParameters.consideration
+            );
+
+        SpentItem[] memory offer;
+        ReceivedItem[] memory consideration;
+        try
+            ContractOffererInterface(orderParameters.offerer).generateOrder(
+                originalOfferItems,
+                originalConsiderationItems,
+                context
+            )
+        returns (
+            SpentItem[] memory returnedOffer,
+            ReceivedItem[] memory ReturnedConsideration
+        ) {
+            offer = returnedOffer;
+            consideration = ReturnedConsideration;
+        } catch {
+            return _revertOrReturnEmpty(revertOnInvalid);
+        }
+
+        {
+            uint256 originalOfferLength = orderParameters.offer.length;
+            uint256 newOfferLength = offer.length;
+
+            // Explicitly specified offer items cannot be removed.
+            if (originalOfferLength > newOfferLength) {
+                return _revertOrReturnEmpty(revertOnInvalid);
+            } else if (offer.length > originalOfferLength) {
+                OfferItem[] memory extendedOffer = new OfferItem[](
+                    newOfferLength
+                );
+                for (uint256 i = 0; i < originalOfferLength; ++i) {
+                    extendedOffer[i] = orderParameters.offer[i];
+                }
+                orderParameters.offer = extendedOffer;
+            }
+
+            // Loop through each offer and ensure at least as much on returned offer
+            for (uint256 i = 0; i < originalOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                if (
+                    uint256(originalOffer.itemType) > 3 &&
+                    originalOffer.identifierOrCriteria == 0
+                ) {
+                    originalOffer.itemType = ItemType(
+                        uint256(originalOffer.itemType) - 2
+                    );
+                    originalOffer.identifierOrCriteria = newOffer.identifier;
+                }
+
+                if (
+                    originalOffer.startAmount != originalOffer.endAmount ||
+                    originalOffer.endAmount > newOffer.amount ||
+                    originalOffer.itemType != newOffer.itemType ||
+                    originalOffer.token != newOffer.token ||
+                    originalOffer.identifierOrCriteria != newOffer.identifier
+                ) {
+                    return _revertOrReturnEmpty(revertOnInvalid);
+                }
+
+                originalOffer.startAmount = newOffer.amount;
+                originalOffer.endAmount = newOffer.amount;
+            }
+
+            // add new offer items if there are more than original
+            for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                originalOffer.itemType = newOffer.itemType;
+                originalOffer.token = newOffer.token;
+                originalOffer.identifierOrCriteria = newOffer.identifier;
+                originalOffer.startAmount = newOffer.amount;
+                originalOffer.endAmount = newOffer.amount;
+            }
+        }
+
+        {
+            ConsiderationItem[] memory originalConsiderationArray = (
+                orderParameters.consideration
+            );
+            uint256 originalConsiderationLength = originalConsiderationArray
+                .length;
+            uint256 newConsiderationLength = consideration.length;
+
+            if (originalConsiderationLength != 0) {
+                // Consideration items that are not explicitly specified cannot be
+                // created. Note that this constraint could be relaxed if specified
+                // consideration items can be split.
+                if (newConsiderationLength > originalConsiderationLength) {
+                    return _revertOrReturnEmpty(revertOnInvalid);
+                }
+
+                // Loop through returned consideration, ensure existing not exceeded
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ReceivedItem memory newConsideration = consideration[i];
+                    ConsiderationItem memory originalConsideration = (
+                        originalConsiderationArray[i]
+                    );
+
+                    if (
+                        uint256(originalConsideration.itemType) > 3 &&
+                        originalConsideration.identifierOrCriteria == 0
+                    ) {
+                        originalConsideration.itemType = ItemType(
+                            uint256(originalConsideration.itemType) - 2
+                        );
+                        originalConsideration
+                            .identifierOrCriteria = newConsideration.identifier;
+                    }
+
+                    if (
+                        originalConsideration.startAmount !=
+                        originalConsideration.endAmount ||
+                        newConsideration.amount >
+                        originalConsideration.endAmount ||
+                        originalConsideration.itemType !=
+                        newConsideration.itemType ||
+                        originalConsideration.token != newConsideration.token ||
+                        originalConsideration.identifierOrCriteria !=
+                        newConsideration.identifier
+                        // TODO: should we check recipient if supplied by fulfiller?
+                        // Should we allow empty args to be skipped in other cases?
+                    ) {
+                        return _revertOrReturnEmpty(revertOnInvalid);
+                    }
+
+                    originalConsideration.startAmount = newConsideration.amount;
+                    originalConsideration.endAmount = newConsideration.amount;
+                    originalConsideration.recipient = newConsideration
+                        .recipient;
+                }
+
+                // Shorten original consideration array if longer than new array.
+                ConsiderationItem[] memory shortenedConsiderationArray = (
+                    new ConsiderationItem[](newConsiderationLength)
+                );
+
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    shortenedConsiderationArray[i] = originalConsiderationArray[
+                        i
+                    ];
+                }
+
+                orderParameters.consideration = shortenedConsiderationArray;
+            } else {
+                // TODO: optimize this
+                orderParameters.consideration = new ConsiderationItem[](
+                    newConsiderationLength
+                );
+
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ReceivedItem memory newConsideration = consideration[i];
+                    ConsiderationItem memory originalConsideration = (
+                        orderParameters.consideration[i]
+                    );
+
+                    originalConsideration.itemType = newConsideration.itemType;
+                    originalConsideration.token = newConsideration.token;
+                    originalConsideration
+                        .identifierOrCriteria = newConsideration.identifier;
+                    originalConsideration.startAmount = newConsideration.amount;
+                    originalConsideration.endAmount = newConsideration.amount;
+                    originalConsideration.recipient = newConsideration
+                        .recipient;
+                }
+            }
+        }
+
+        address offerer = orderParameters.offerer;
+        uint256 contractNonce = _contractNonces[offerer]++;
+
+        orderHash = bytes32(contractNonce | (uint256(uint160(offerer)) << 96));
+
+        return (orderHash, 1, 1);
+    }
+
+    function _revertOrReturnEmpty(bool revertOnInvalid)
+        internal
+        pure
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        if (!revertOnInvalid) {
+            return (bytes32(0), 0, 0);
+        }
+
+        revert NoSpecifiedOrdersAvailable(); // TODO: return a better error msg
+    }
+
+    /**
+     * @dev Internal pure function to convert both offer and consideration items
+     *      to spent items.
+     */
+    function _convertToSpent(
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory spentItems,
+            SpentItem[] memory receivedItems
+        )
+    {
+        // Create an array of spent items equal to the offer length.
+        spentItems = new SpentItem[](offer.length);
+
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < offer.length; ++i) {
+            // Retrieve the offer item.
+            OfferItem memory offerItem = offer[i];
+
+            // Create spent item for event based on the offer item.
+            SpentItem memory spentItem = SpentItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount
+            );
+
+            // Add to array of spent items
+            spentItems[i] = spentItem;
+        }
+
+        // Create an array of received items equal to the consideration length.
+        receivedItems = new SpentItem[](consideration.length);
+
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            // Retrieve the consideration item.
+            ConsiderationItem memory considerationItem = (consideration[i]);
+
+            // Create spent item for event based on the consideration item.
+            SpentItem memory receivedItem = SpentItem(
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount
+            );
+
+            // Add to array of received items
+            receivedItems[i] = receivedItem;
+        }
     }
 
     /**

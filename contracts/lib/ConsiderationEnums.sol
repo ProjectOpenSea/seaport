@@ -13,7 +13,10 @@ enum OrderType {
     FULL_RESTRICTED,
 
     // 3: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED
+    PARTIAL_RESTRICTED,
+
+    // 4: contract order type
+    CONTRACT
 }
 
 // prettier-ignore
