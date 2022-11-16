@@ -3434,6 +3434,80 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
     });
   });
 
+  describe("Bulk Signature", async () => {
+    it("Can sign for a bulk signature", async () => {
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+      const consideration = [
+        getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+        getItemETH(amount.mul(10), amount.mul(10), zone.address),
+        getItemETH(amount.mul(20), amount.mul(20), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        1,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
+      if ((order.signature.length - 1) / 2 < 288) throw Error("");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.numerator = 2; // fill two tenths or one fifth
+      order.denominator = 10; // fill two tenths or one fifth
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
+  });
+
   describe("Ascending / Descending amounts", async () => {
     it("Ascending offer amount (standard)", async () => {
       // Seller mints nft

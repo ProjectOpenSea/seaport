@@ -78,11 +78,91 @@ contract Verifiers is Assertions, SignatureVerification {
             return;
         }
 
+        if (_isValidBulkOrderSize(signature)) {
+            (orderHash) = _computeBulkOrderProof(signature, orderHash);
+        }
+
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(offerer, digest, signature);
+    }
+
+    function _isValidBulkOrderSize(bytes memory signature)
+        internal
+        pure
+        returns (bool validLength)
+    {
+        assembly {
+            validLength := lt(
+                sub(mload(signature), EIP712_BulkOrder_minSize),
+                2
+            )
+        }
+    }
+
+    function _computeBulkOrderProof(
+        bytes memory proofAndSignature,
+        bytes32 leaf
+    ) internal view returns (bytes32 bulkOrderHash) {
+        bytes32 root;
+
+        assembly {
+            // Set length to just the size of the signature
+            let length := sub(
+                mload(proofAndSignature),
+                BulkOrderProof_proofAndKeySize
+            )
+            mstore(proofAndSignature, length)
+
+            let keyPtr := add(proofAndSignature, add(0x20, length))
+            let key := shr(248, mload(keyPtr))
+            let proof := add(keyPtr, 1)
+
+            // Compute level 1
+            let scratch := shl(5, and(key, 1))
+            mstore(scratch, leaf)
+            mstore(xor(scratch, OneWord), mload(proof))
+
+            // Compute level 2
+            scratch := shl(5, and(shr(1, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x20)))
+
+            // Compute level 3
+            scratch := shl(5, and(shr(2, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x40)))
+
+            // Compute level 4
+            scratch := shl(5, and(shr(3, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x60)))
+
+            // Compute level 5
+            scratch := shl(5, and(shr(4, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x80)))
+
+            // Compute level 6
+            scratch := shl(5, and(shr(5, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0xa0)))
+
+            // Compute root hash
+            scratch := shl(5, and(shr(6, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0xc0)))
+            root := keccak256(0, TwoWords)
+        }
+
+        bytes32 rootTypeHash = _BULK_ORDER_TYPEHASH;
+        assembly {
+            mstore(0, rootTypeHash)
+            mstore(0x20, root)
+            bulkOrderHash := keccak256(0, 0x40)
+        }
     }
 
     /**
