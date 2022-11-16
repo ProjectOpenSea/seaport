@@ -7,6 +7,7 @@
 [![Docs][docs-badge]][docs-link]
 [![Discussions][discussions-badge]][discussions-link]
 [![JS Library][js-library-badge]][js-library-link]
+[![Discord][discord-badge]][discord-link]
 
 # Seaport
 
@@ -259,3 +260,5 @@ When making a pull request, ensure that:
 [discussions-link]: https://github.com/ProjectOpenSea/seaport/discussions
 [js-library-badge]: https://img.shields.io/badge/Seaport.js-library-red
 [js-library-link]: https://github.com/ProjectOpenSea/seaport-js
+[discord-badge]: https://img.shields.io/static/v1?logo=discord&label=discord&message=Join&color=blue
+[discord-link]: https://discord.gg/ADXcTXpqry
