@@ -127,7 +127,7 @@ contract PausableZone is
         operator = operatorToAssign;
 
         // Emit an event indicating the operator has been updated.
-        emit OperatorUpdated(operator);
+        emit OperatorUpdated(operatorToAssign);
     }
 
     /**

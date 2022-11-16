@@ -329,7 +329,7 @@ contract PausableZoneController is
         _pauser = pauserToAssign;
 
         // Emit an event indicating the pauser has been assigned.
-        emit PauserUpdated(_pauser);
+        emit PauserUpdated(pauserToAssign);
     }
 
     /**
