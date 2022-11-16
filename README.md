@@ -59,6 +59,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Optimism</td></tr>
 <tr><td>Optimistic Kovan</td></tr>
 <tr><td>Arbitrum</td></tr>
+<tr><td>Arbitrum Nova</td></tr>
 <tr><td>Arbitrum Rinkeby</td></tr>
 <tr><td>Avalanche Fuji</td></tr>
 <tr><td>Avalanche C-Chain</td></tr>
