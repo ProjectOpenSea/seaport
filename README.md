@@ -55,6 +55,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Rinkeby</td></tr>
 <tr><td>Goerli</td></tr>
 <tr><td>Kovan</td></tr>
+<tr><td>Sepolia</td></tr>
 <tr><td>Polygon</td></tr>
 <tr><td>Mumbai</td></tr>
 <tr><td>Optimism</td></tr>
