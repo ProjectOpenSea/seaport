@@ -1,7 +1,6 @@
-murky/=lib/murky/src/
-ds-test/=lib/ds-test/src/
-solmate/=lib/solmate/src/
-forge-std/=lib/forge-std/src/
-@rari-capital/solmate=lib/solmate/
-openzeppelin-contracts/=lib/openzeppelin-contracts/
+murky/=./lib/murky/src/
+ds-test/=./lib/ds-test/src/
+solmate/=./lib/solmate/src/
+forge-std/=./lib/forge-std/src/
+@rari-capital/solmate=./lib/solmate/
 seaport/=contracts/
