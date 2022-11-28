@@ -765,7 +765,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) internal returns (Execution[] memory executions) {
+    ) internal returns (Execution[] memory /* executions */) {
         // Validate orders, update order status, and determine item amounts.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
@@ -854,6 +854,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         _performFinalChecksAndExecuteOrders(advancedOrders, executions);
 
         // Return the executions array.
-        return (executions);
+        return executions;
     }
 }
