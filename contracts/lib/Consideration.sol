@@ -574,7 +574,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         view
         override
         returns (
-            string memory, /* version */
+            string memory version,
             bytes32 domainSeparator,
             address conduitController
         )
