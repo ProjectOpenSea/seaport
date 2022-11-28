@@ -574,7 +574,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         view
         override
         returns (
-            string memory version,
+            string memory, /* version */
             bytes32 domainSeparator,
             address conduitController
         )
@@ -601,9 +601,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         pure
         override
-        returns (string memory contractName)
+        returns (string memory /* contractName */)
     {
         // Return the name of the contract.
-        contractName = _name();
+        return _name();
     }
 }
