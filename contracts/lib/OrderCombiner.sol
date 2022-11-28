@@ -113,7 +113,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         uint256 maximumFulfilled
     )
         internal
-        returns (bool[] memory availableOrders, Execution[] memory executions)
+        returns (
+            bool[] memory, /* availableOrders */
+            Execution[] memory /* executions */
+        )
     {
         // Validate orders, apply amounts, & determine if they utilize conduits.
         _validateOrdersAndPrepareToFulfill(
@@ -125,16 +128,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         );
 
         // Aggregate used offer and consideration items and execute transfers.
-        (availableOrders, executions) = _executeAvailableFulfillments(
-            advancedOrders,
-            offerFulfillments,
-            considerationFulfillments,
-            fulfillerConduitKey,
-            recipient
-        );
-
-        // Return order fulfillment details and executions.
-        return (availableOrders, executions);
+        return
+            _executeAvailableFulfillments(
+                advancedOrders,
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                recipient
+            );
     }
 
     /**
