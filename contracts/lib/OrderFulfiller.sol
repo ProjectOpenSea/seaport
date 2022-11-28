@@ -426,10 +426,10 @@ contract OrderFulfiller is
     function _convertOrderToAdvanced(Order calldata order)
         internal
         pure
-        returns (AdvancedOrder memory advancedOrder)
+        returns (AdvancedOrder memory /* advancedOrder */)
     {
         // Convert to partial order (1/1 or full fill) and return new value.
-        advancedOrder = AdvancedOrder(
+        return AdvancedOrder(
             order.parameters,
             1,
             1,
@@ -449,13 +449,13 @@ contract OrderFulfiller is
     function _convertOrdersToAdvanced(Order[] calldata orders)
         internal
         pure
-        returns (AdvancedOrder[] memory advancedOrders)
+        returns (AdvancedOrder[] memory /* advancedOrders */)
     {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 
         // Allocate new empty array for each partial order in memory.
-        advancedOrders = new AdvancedOrder[](totalOrders);
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](totalOrders);
 
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {
