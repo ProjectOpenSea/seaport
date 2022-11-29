@@ -12,11 +12,8 @@ import {
 
 import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
 
-import {
-    SpentItem,
-    ReceivedItem,
-    InventoryUpdate
-} from "seaport/lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
+
 import {
     EnumerableSet
 } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
