@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {
-    SpentItem,
-    ReceivedItem,
-    InventoryUpdate
-} from "../lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 interface ContractOffererInterface {
     function generateOrder(
