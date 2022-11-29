@@ -26,7 +26,6 @@ import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
  */
 contract TestContractOfferer is ContractOffererInterface {
     error OrderUnavailable();
-    error NotImplemented();
 
     address private immutable _SEAPORT;
 
@@ -223,7 +222,7 @@ contract TestContractOfferer is ContractOffererInterface {
             bytes4 /* ratifyOrderMagicValue */
         )
     {
-        revert NotImplemented();
+        return ContractOffererInterface.ratifyOrder.selector;
     }
 
     function onERC1155Received(

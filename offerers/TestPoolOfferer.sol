@@ -134,7 +134,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             bytes4 /* ratifyOrderMagicValue */
         )
     {
-        revert NotImplemented();
+        return ContractOffererInterface.ratifyOrder.selector;
     }
 
     function getMetadata()
