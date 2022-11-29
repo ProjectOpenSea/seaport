@@ -6,21 +6,23 @@ import {
     ERC721Interface
 } from "seaport/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ContractOffererInterface } from
-    "seaport/interfaces/ContractOffererInterface.sol";
+import {
+    ContractOffererInterface
+} from "seaport/interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
 
+import { SpentItem, ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
+
 import {
-    SpentItem,
-    ReceivedItem,
-    InventoryUpdate
-} from "seaport/lib/ConsiderationStructs.sol";
-import { EnumerableSet } from
-    "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import { IERC721 } from
-    "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+    EnumerableSet
+} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import {
+    IERC721
+} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import {
+    IERC20
+} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TestPoolOfferer is ContractOffererInterface, Ownable {
@@ -79,8 +81,12 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         // if true, this offerer is spending NFTs and receiving ERC20
         bool nftOffer;
         uint256 newBalance;
-        (offer, consideration, newBalance, nftOffer) =
-            _generateOfferAndConsideration(minimumReceived, maximumSpent);
+        (
+            offer,
+            consideration,
+            newBalance,
+            nftOffer
+        ) = _generateOfferAndConsideration(minimumReceived, maximumSpent);
 
         // update token ids and balances
         // note that no tokens will actually be exchanged until Seaport executes fulfillments
@@ -107,18 +113,41 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         bool nftOffer;
-        (offer, consideration,, nftOffer) =
-            _generateOfferAndConsideration(minimumReceived, maximumSpent);
+        (offer, consideration, , nftOffer) = _generateOfferAndConsideration(
+            minimumReceived,
+            maximumSpent
+        );
         if (nftOffer) _previewNftOffer(offer);
     }
 
-    function getInventory()
+    function ratifyOrder(
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
+        uint256 /* contractNonce */
+    )
         external
         pure
         override
-        returns (SpentItem[] memory, SpentItem[] memory)
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
     {
-        revert NotImplemented();
+        return ContractOffererInterface.ratifyOrder.selector;
+    }
+
+    function getMetadata()
+        external
+        pure
+        override
+        returns (
+            uint256 schemaID, // maps to a Seaport standard's ID
+            string memory name,
+            bytes memory metadata // decoded based on the schemaID
+        )
+    {
+        return (7117, "TestPoolOfferer", "");
     }
 
     /// @dev add incoming tokens to the set of IDs in the pool
@@ -237,8 +266,8 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             homogenousType = ItemType.ERC721;
         }
         if (
-            homogenousType != ItemType.ERC721
-                && homogenousType != ItemType.ERC20
+            homogenousType != ItemType.ERC721 &&
+            homogenousType != ItemType.ERC20
         ) {
             revert InvalidItemType();
         }

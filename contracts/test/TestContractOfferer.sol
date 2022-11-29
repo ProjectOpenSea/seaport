@@ -13,11 +13,7 @@ import {
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
-import {
-    SpentItem,
-    ReceivedItem,
-    InventoryUpdate
-} from "../lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title TestContractOfferer
@@ -90,22 +86,6 @@ contract TestContractOfferer is ContractOffererInterface {
             token.setApprovalForAll(_SEAPORT, true);
         }
 
-        // Emit an event indicating that the initial inventory has been updated.
-        InventoryUpdate[] memory inventoryUpdate = new InventoryUpdate[](2);
-
-        inventoryUpdate[0] = InventoryUpdate({
-            item: available,
-            offerable: true,
-            receivable: false
-        });
-        inventoryUpdate[1] = InventoryUpdate({
-            item: required,
-            offerable: false,
-            receivable: true
-        });
-
-        emit InventoryUpdated(inventoryUpdate);
-
         // Set storage variables.
         _available = available;
         _required = required;
@@ -120,8 +100,6 @@ contract TestContractOfferer is ContractOffererInterface {
         extraAvailable++;
 
         _available.amount /= 2;
-
-        // TODO? emit InventoryUpdated event
     }
 
     function extendRequired() public {
@@ -168,33 +146,6 @@ contract TestContractOfferer is ContractOffererInterface {
             });
         }
 
-        // Emit an event indicating that the inventory has been updated.
-        InventoryUpdate[] memory inventoryUpdate = new InventoryUpdate[](
-            2 + extraAvailable + extraRequired
-        );
-
-        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
-            inventoryUpdate[i] = InventoryUpdate({
-                item: _available,
-                offerable: false,
-                receivable: false
-            });
-        }
-
-        for (
-            uint256 i = 1 + extraAvailable;
-            i < 2 + extraAvailable + extraRequired;
-            ++i
-        ) {
-            inventoryUpdate[i] = InventoryUpdate({
-                item: _required,
-                offerable: false,
-                receivable: false
-            });
-        }
-
-        emit InventoryUpdated(inventoryUpdate);
-
         // Update storage to reflect that the order has been fulfilled.
         fulfilled = true;
     }
@@ -237,7 +188,6 @@ contract TestContractOfferer is ContractOffererInterface {
     function getInventory()
         external
         view
-        override
         returns (SpentItem[] memory offerable, SpentItem[] memory receivable)
     {
         // Set offerable and receivable supplied at deployment if unfulfilled.
@@ -258,6 +208,23 @@ contract TestContractOfferer is ContractOffererInterface {
         }
     }
 
+    function ratifyOrder(
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
+        uint256 /* contractNonce */
+    )
+        external
+        pure
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
+        return ContractOffererInterface.ratifyOrder.selector;
+    }
+
     function onERC1155Received(
         address,
         address,
@@ -266,5 +233,18 @@ contract TestContractOfferer is ContractOffererInterface {
         bytes calldata
     ) external pure returns (bytes4) {
         return bytes4(0xf23a6e61);
+    }
+
+    function getMetadata()
+        external
+        pure
+        override
+        returns (
+            uint256 schemaID, // maps to a Seaport standard's ID
+            string memory name,
+            bytes memory metadata // decoded based on the schemaID
+        )
+    {
+        return (1337, "TestContractOfferer", "");
     }
 }
