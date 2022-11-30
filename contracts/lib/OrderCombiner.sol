@@ -809,7 +809,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments, orderHashes);
+        return
+            _fulfillAdvancedOrders(advancedOrders, fulfillments, orderHashes);
     }
 
     /**
@@ -885,7 +886,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         }
 
         // Perform final checks and execute orders.
-        _performFinalChecksAndExecuteOrders(advancedOrders, executions, orderHashes);
+        _performFinalChecksAndExecuteOrders(
+            advancedOrders,
+            executions,
+            orderHashes
+        );
 
         // Return the executions array.
         return (executions);
