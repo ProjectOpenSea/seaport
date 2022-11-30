@@ -59,7 +59,7 @@ contract TestPostExecution is ZoneInterface {
             revert("Returned item amount incorrectly modified");
         }
 
-        if (currentOwner != address(uint160(considerationItem.endAmount))) {
+        if (currentOwner != considerationItem.recipient) {
             revert("Validity check performed prior to execution");
         }
 

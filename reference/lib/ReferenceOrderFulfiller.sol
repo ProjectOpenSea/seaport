@@ -92,12 +92,7 @@ contract ReferenceOrderFulfiller is
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(
-                advancedOrder,
-                criteriaResolvers,
-                true,
-                priorOrderHashes
-            );
+        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
@@ -112,6 +107,18 @@ contract ReferenceOrderFulfiller is
             fillDenominator,
             fulfillerConduitKey,
             recipient
+        );
+
+        // Ensure restricted orders have a valid submitter or pass a zone check.
+        _assertRestrictedAdvancedOrderValidity(
+            advancedOrder,
+            criteriaResolvers,
+            priorOrderHashes,
+            orderHash,
+            orderParameters.zoneHash,
+            orderParameters.orderType,
+            orderParameters.offerer,
+            orderParameters.zone
         );
 
         // Emit an event signifying that the order has been fulfilled.

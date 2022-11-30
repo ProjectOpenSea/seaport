@@ -97,7 +97,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal view {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            uint256(orderType) > 1 &&
+            (orderType == OrderType.FULL_RESTRICTED ||
+                orderType == OrderType.PARTIAL_RESTRICTED) &&
             msg.sender != zone &&
             msg.sender != offerer
         ) {

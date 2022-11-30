@@ -39,8 +39,12 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         address zone
     ) internal view {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
+        bool isRestricted;
+        assembly {
+            isRestricted := or(eq(orderType, 2), eq(orderType, 3))
+        }
         if (
-            uint256(orderType) > 1 &&
+            isRestricted &&
             !_unmaskedAddressComparison(msg.sender, zone) &&
             !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
