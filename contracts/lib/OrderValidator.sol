@@ -93,19 +93,8 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                          fill. Note that all offer and consideration
      *                          amounts must divide with no remainder in order
      *                          for a partial fill to be valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid   A boolean indicating whether to revert if the
      *                          order is invalid due to the time or status.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
-     *                          the current order as part of a "match" variety
-     *                          of order fulfillment (e.g. this array will be
-     *                          empty for single or "fulfill available").
      *
      * @return orderHash      The order hash.
      * @return newNumerator   A value indicating the portion of the order that
@@ -114,9 +103,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bool revertOnInvalid,
-        bytes32[] memory priorOrderHashes
+        bool revertOnInvalid
     )
         internal
         returns (
@@ -169,18 +156,6 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Retrieve current counter & use it w/ parameters to derive order hash.
         orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
-
-        // Ensure restricted orders have a valid submitter or pass a zone check.
-        _assertRestrictedAdvancedOrderValidity(
-            advancedOrder,
-            criteriaResolvers,
-            priorOrderHashes,
-            orderHash,
-            orderParameters.zoneHash,
-            orderParameters.orderType,
-            orderParameters.offerer,
-            orderParameters.zone
-        );
 
         // Retrieve the order status using the derived order hash.
         OrderStatus storage orderStatus = _orderStatus[orderHash];
