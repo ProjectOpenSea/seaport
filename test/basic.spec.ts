@@ -18,7 +18,7 @@ import {
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
-import { VERSION, minRandom, simulateMatchOrders } from "./utils/helpers";
+import { VERSION, minRandom, simulateMatchOrders, simulateAdvancedMatchOrders } from "./utils/helpers";
 
 import type {
   ConduitInterface,
@@ -28,6 +28,7 @@ import type {
   TestERC20,
   TestERC721,
   TestZone,
+  TestPostExecution,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Wallet } from "ethers";
@@ -47,6 +48,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
   let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
   let stubZone: TestZone;
+  let postExecutionZone: TestPostExecution;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
 
@@ -91,6 +93,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
       mintAndApproveERC20,
       set721ApprovalForAll,
       stubZone,
+      postExecutionZone,
       testERC20,
       testERC721,
       withBalanceChecks,
@@ -2055,6 +2058,67 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
+      it("ERC721 <=> ETH (restricted order checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // Buyer approves marketplace contract to transfer ERC20 tokens too
+        await expect(
+          testERC20
+            .connect(buyer)
+            .approve(marketplaceContract.address, tokenAmount)
+        )
+          .to.emit(testERC20, "Approval")
+          .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+
+        const offer = [
+          getTestItem20(tokenAmount.sub(100), tokenAmount.sub(100)),
+        ];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        order.extraData = "0x1234";
+
+        await withBalanceChecks([order], 0, undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(0), ethers.constants.AddressZero);
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(tx, receipt, [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ]);
+
+          return receipt;
+        });
+      });
       it("ERC721 <=> ERC20 (standard, via conduit)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
@@ -2408,6 +2472,82 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         const tx = marketplaceContract
           .connect(owner)
           .matchOrders([order, mirrorOrder], fulfillments);
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: ethers.constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: ethers.constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
+      });
+      it("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [
+          getTestItem20(tokenAmount.sub(100), tokenAmount.sub(100)),
+        ];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        order.extraData = "0x1234";
+
+        const { mirrorOrder, mirrorOrderHash } =
+          await createMirrorAcceptOfferOrder(buyer, zone, order);
+
+        const fulfillments = defaultAcceptOfferMirrorFulfillment;
+
+        const executions = await simulateAdvancedMatchOrders(
+          marketplaceContract,
+          [order, mirrorOrder],
+          [],
+          fulfillments,
+          owner,
+          value
+        );
+
+        expect(executions.length).to.equal(4);
+
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders([order, mirrorOrder], [], fulfillments);
         const receipt = await (await tx).wait();
         await checkExpectedEvents(
           tx,

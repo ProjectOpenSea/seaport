@@ -31,6 +31,7 @@ module.exports = {
     "test/TestERC20.sol",
     "test/TestERC721.sol",
     "test/TestContractOfferer.sol",
+    "test/TestPostExecution.sol",
     "test/TestZone.sol",
     "test/TestERC20Panic.sol",
     "test/TestERC20Revert.sol",

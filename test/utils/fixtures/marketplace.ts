@@ -19,6 +19,7 @@ import type {
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
   TestZone,
+  TestPostExecution,
 } from "../../../typechain-types";
 import type {
   AdvancedOrder,
@@ -84,6 +85,9 @@ export const marketplaceFixture = async (
     .updateChannel(conduitOne.address, marketplaceContract.address, true);
 
   const stubZone = await deployContract<TestZone>("TestZone", owner);
+  const postExecutionZone = await deployContract<TestPostExecution>(
+    "TestPostExecution", owner
+  );
 
   // Required for EIP712 signing
   const domainData = {
@@ -165,7 +169,7 @@ export const marketplaceFixture = async (
 
   const createOrder = async (
     offerer: Wallet | Contract,
-    zone: TestZone | Wallet | undefined | string = undefined,
+    zone: TestZone | TestPostExecution | Wallet | undefined | string = undefined,
     offer: OfferItem[],
     consideration: ConsiderationItem[],
     orderType: number,
@@ -514,6 +518,7 @@ export const marketplaceFixture = async (
     marketplaceContract,
     directMarketplaceContract,
     stubZone,
+    postExecutionZone,
     domainData,
     signOrder,
     signBulkOrder,
