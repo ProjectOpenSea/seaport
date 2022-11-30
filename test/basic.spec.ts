@@ -18,7 +18,12 @@ import {
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
-import { VERSION, minRandom, simulateMatchOrders, simulateAdvancedMatchOrders } from "./utils/helpers";
+import {
+  VERSION,
+  minRandom,
+  simulateAdvancedMatchOrders,
+  simulateMatchOrders,
+} from "./utils/helpers";
 
 import type {
   ConduitInterface,
@@ -27,8 +32,8 @@ import type {
   EIP1271Wallet__factory,
   TestERC20,
   TestERC721,
-  TestZone,
   TestPostExecution,
+  TestZone,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Wallet } from "ethers";
@@ -2092,7 +2097,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           getTestItem20(50, 50, owner.address),
         ];
 
-        const { order, orderHash, value } = await createOrder(
+        const { order, orderHash } = await createOrder(
           seller,
           postExecutionZone,
           offer,
@@ -2105,7 +2110,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(0), ethers.constants.AddressZero);
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(0),
+              ethers.constants.AddressZero
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
