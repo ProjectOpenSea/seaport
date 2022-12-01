@@ -5,7 +5,11 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { OrderType } from "./ConsiderationEnums.sol";
 
-import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    ZoneParameters
+} from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
@@ -44,9 +48,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             isRestricted := or(eq(orderType, 2), eq(orderType, 3))
         }
         if (
-            isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            isRestricted && !_unmaskedAddressComparison(msg.sender, zone)
+                && !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
             // Perform minimal staticcall to the zone.
             _callIsValidOrder(zone, orderHash, offerer, zoneHash);
@@ -90,14 +93,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             mstore(IsValidOrder_zoneHash_ptr, zoneHash)
 
             // Perform the staticcall, ignoring return data.
-            success := staticcall(
-                gas(),
-                zone,
-                IsValidOrder_sig_ptr,
-                IsValidOrder_length,
-                0,
-                0
-            )
+            success :=
+                staticcall(
+                    gas(), zone, IsValidOrder_sig_ptr, IsValidOrder_length, 0, 0
+                )
 
             // NOTE: can assert correct magic value was returned here directly.
 
@@ -157,14 +156,13 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             isRestricted := or(eq(orderType, 2), eq(orderType, 3))
         }
         if (
-            isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            isRestricted && !_unmaskedAddressComparison(msg.sender, zone)
+                && !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
+                advancedOrder.extraData.length == 0
+                    && criteriaResolvers.length == 0
             ) {
                 // Perform minimal staticcall to the zone.
                 _callIsValidOrder(zone, orderHash, offerer, zoneHash);
@@ -174,12 +172,19 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 bool success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
-                        ZoneInterface.isValidOrderIncludingExtraData.selector,
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
+                        ZoneInterface.validateOrder.selector,
+                        ZoneParameters({
+                            orderHash: orderHash,
+                            fulfiller: msg.sender,
+                            offerer: advancedOrder.parameters.offerer,
+                            offer: advancedOrder.parameters.offer,
+                            consideration: advancedOrder.parameters.consideration,
+                            extraData: advancedOrder.extraData,
+                            orderHashes: priorOrderHashes,
+                            startTime: advancedOrder.parameters.startTime,
+                            endTime: advancedOrder.parameters.endTime,
+                            zoneHash: advancedOrder.parameters.zoneHash
+                        })
                     )
                 );
 
