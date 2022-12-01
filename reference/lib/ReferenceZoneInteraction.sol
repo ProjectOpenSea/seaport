@@ -8,14 +8,14 @@ import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
-    OrderParameters
+    OrderParameters,
+    ZoneParameters
 } from "contracts/lib/ConsiderationStructs.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
-import {
-    ZoneInteractionErrors
-} from "contracts/interfaces/ZoneInteractionErrors.sol";
+import { ZoneInteractionErrors } from
+    "contracts/interfaces/ZoneInteractionErrors.sol";
 
 /**
  * @title ZoneInteraction
@@ -44,17 +44,14 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal view {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            (
+                orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED
+            ) && msg.sender != zone && msg.sender != offerer
         ) {
             if (
                 ZoneInterface(zone).isValidOrder(
-                    orderHash,
-                    msg.sender,
-                    offerer,
-                    zoneHash
+                    orderHash, msg.sender, offerer, zoneHash
                 ) != ZoneInterface.isValidOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
@@ -97,40 +94,39 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            (
+                orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED
+            ) && msg.sender != zone && msg.sender != offerer
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
+                advancedOrder.extraData.length == 0
+                    && criteriaResolvers.length == 0
             ) {
                 if (
                     ZoneInterface(zone).isValidOrder(
-                        orderHash,
-                        msg.sender,
-                        offerer,
-                        zoneHash
+                        orderHash, msg.sender, offerer, zoneHash
                     ) != ZoneInterface.isValidOrder.selector
                 ) {
                     revert InvalidRestrictedOrder(orderHash);
                 }
             } else {
                 if (
-                    ZoneInterface(zone).validateOrder({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: offerer,
-                        offer: advancedOrder.parameters.offer,
-                        consideration: advancedOrder.parameters.consideration,
-                        extraData: advancedOrder.extraData,
-                        orderHashes: priorOrderHashes,
-                        startTime: advancedOrder.parameters.startTime,
-                        endTime: advancedOrder.parameters.endTime,
-                        zoneHash: zoneHash
-                    }) != ZoneInterface.isValidOrder.selector
+                    ZoneInterface(zone).validateOrder(
+                        ZoneParameters({
+                            orderHash: orderHash,
+                            fulfiller: msg.sender,
+                            offerer: offerer,
+                            offer: advancedOrder.parameters.offer,
+                            consideration: advancedOrder.parameters.consideration,
+                            extraData: advancedOrder.extraData,
+                            orderHashes: priorOrderHashes,
+                            startTime: advancedOrder.parameters.startTime,
+                            endTime: advancedOrder.parameters.endTime,
+                            zoneHash: zoneHash
+                        })
+                    ) != ZoneInterface.isValidOrder.selector
                 ) {
                     revert InvalidRestrictedOrder(orderHash);
                 }

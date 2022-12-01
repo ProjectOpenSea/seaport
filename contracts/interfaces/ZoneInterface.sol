@@ -5,7 +5,8 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     OfferItem,
-    ConsiderationItem
+    ConsiderationItem,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 interface ZoneInterface {
@@ -17,16 +18,7 @@ interface ZoneInterface {
         bytes32 zoneHash
     ) external view returns (bytes4 validOrderMagicValue);
 
-    function validateOrder(
-        bytes32 orderHash,
-        address fulfiller,
-        address offerer,
-        OfferItem[] calldata offer,
-        ConsiderationItem[] calldata consideration,
-        bytes calldata extraData,
-        bytes32[] calldata orderHashes,
-        uint256 startTime,
-        uint256 endTime,
-        bytes32 zoneHash
-    ) external returns (bytes4 validOrderMagicValue);
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        returns (bytes4 validOrderMagicValue);
 }

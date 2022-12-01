@@ -2,10 +2,7 @@
 pragma solidity ^0.8.7;
 
 import {
-    OrderType,
-    BasicOrderType,
-    ItemType,
-    Side
+    OrderType, BasicOrderType, ItemType, Side
 } from "./ConsiderationEnums.sol";
 
 /**
@@ -116,7 +113,7 @@ struct BasicOrderParameters {
     uint256 totalOriginalAdditionalRecipients; // 0x204
     AdditionalRecipient[] additionalRecipients; // 0x224
     bytes signature; // 0x244
-    // Total length, excluding dynamic array data: 0x264 (580)
+        // Total length, excluding dynamic array data: 0x264 (580)
 }
 
 /**
@@ -147,7 +144,7 @@ struct OrderParameters {
     uint256 salt; // 0x100
     bytes32 conduitKey; // 0x120
     uint256 totalOriginalConsiderationItems; // 0x140
-    // offer.length                          // 0x160
+        // offer.length                          // 0x160
 }
 
 /**
@@ -240,4 +237,23 @@ struct Execution {
     ReceivedItem item;
     address offerer;
     bytes32 conduitKey;
+}
+
+/**
+ * @dev Restricted orders are validated post-execution by calling validateOrder
+ *      on the zone. This struct provides context about the order fulfillment
+ *      and any supplied extraData, as well as all order hashes fulfilled in a
+ *      call to a match or fulfillAvailable method.
+ */
+struct ZoneParameters {
+    bytes32 orderHash;
+    address fulfiller;
+    address offerer;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
+    bytes extraData;
+    bytes32[] orderHashes;
+    uint256 startTime;
+    uint256 endTime;
+    bytes32 zoneHash;
 }

@@ -12,7 +12,8 @@ import {
     CriteriaResolver,
     ConsiderationItem,
     OfferItem,
-    ConsiderationItem
+    ConsiderationItem,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {
@@ -30,19 +31,14 @@ contract TestPostExecution is ZoneInterface {
         revert("Basic validity check not allowed");
     }
 
-    function validateOrder(
-        bytes32,
-        address,
-        address,
-        OfferItem[] calldata,
-        ConsiderationItem[] calldata consideration,
-        bytes calldata,
-        bytes32[] calldata,
-        uint256,
-        uint256,
-        bytes32
-    ) external view override returns (bytes4 validOrderMagicValue) {
-        ConsiderationItem memory considerationItem = consideration[0];
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
+        ConsiderationItem memory considerationItem =
+            zoneParameters.consideration[0];
 
         address currentOwner = ERC721Interface(considerationItem.token).ownerOf(
             considerationItem.identifierOrCriteria
