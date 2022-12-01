@@ -118,6 +118,7 @@ contract TestContractOfferer is ContractOffererInterface {
         bytes calldata context
     )
         external
+        virtual
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
