@@ -5,7 +5,9 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import {
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    OfferItem,
+    ConsiderationItem
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestZone is ZoneInterface {
@@ -32,28 +34,27 @@ contract TestZone is ZoneInterface {
             : bytes4(0xffffffff);
     }
 
-    function isValidOrderIncludingExtraData(
-        bytes32 orderHash,
-        address caller,
-        AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes,
-        CriteriaResolver[] calldata criteriaResolvers
+    function validateOrder(
+        bytes32,
+        address,
+        address,
+        OfferItem[] calldata,
+        ConsiderationItem[] calldata,
+        bytes calldata extraData,
+        bytes32[] calldata,
+        uint256,
+        uint256,
+        bytes32 zoneHash
     ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        order;
-        priorOrderHashes;
-        criteriaResolvers;
-
-        if (order.extraData.length == 4) {
+        if (extraData.length == 4) {
             revert("Revert on extraData length 4");
-        } else if (order.extraData.length == 5) {
+        } else if (extraData.length == 5) {
             assembly {
                 revert(0, 0)
             }
         }
 
-        validOrderMagicValue = order.parameters.zoneHash != bytes32(uint256(3))
+        validOrderMagicValue = zoneHash != bytes32(uint256(3))
             ? ZoneInterface.isValidOrder.selector
             : bytes4(0xffffffff);
     }

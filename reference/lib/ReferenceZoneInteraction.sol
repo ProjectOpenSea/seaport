@@ -7,7 +7,8 @@ import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    OrderParameters
 } from "contracts/lib/ConsiderationStructs.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
@@ -83,7 +84,6 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param orderType         The type of the order.
      * @param offerer           The offerer in question.
      * @param zone              The zone in question.
-
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
@@ -94,7 +94,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view {
+    ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             (orderType == OrderType.FULL_RESTRICTED ||
@@ -119,13 +119,18 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 }
             } else {
                 if (
-                    ZoneInterface(zone).isValidOrderIncludingExtraData(
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
-                    ) != ZoneInterface.isValidOrder.selector
+                    ZoneInterface(zone).validateOrder({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: offerer,
+                        offer: advancedOrder.parameters.offer,
+                        consideration: advancedOrder.parameters.consideration,
+                        extraData: advancedOrder.extraData,
+                        orderHashes: priorOrderHashes,
+                        startTime: advancedOrder.parameters.startTime,
+                        endTime: advancedOrder.parameters.endTime,
+                        zoneHash: zoneHash
+                    }) != ZoneInterface.isValidOrder.selector
                 ) {
                     revert InvalidRestrictedOrder(orderHash);
                 }

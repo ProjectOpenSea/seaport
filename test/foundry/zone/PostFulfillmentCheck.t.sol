@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {BaseOrderTest} from "../utils/BaseOrderTest.sol";
-import {TestZone} from "./impl/TestZone.sol";
+import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+import { TestZone } from "./impl/TestZone.sol";
 import {
     ConsiderationItem,
     OfferItem,
@@ -10,7 +10,7 @@ import {
     AdvancedOrder,
     CriteriaResolver
 } from "seaport/lib/ConsiderationStructs.sol";
-import {OrderType} from "seaport/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
 
 contract PostFulfillmentCheckTest is BaseOrderTest {
     TestZone zone = new TestZone();
@@ -40,12 +40,30 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
         // add typical 3 consideration items
         EthConsideration[] memory considerations = new EthConsideration[](3);
-        considerations[0] = EthConsideration(payable(address(0x56969)), 0x66969);
-        considerations[1] = EthConsideration(payable(address(0x76969)), 0x86969);
-        considerations[2] = EthConsideration(payable(address(0x96969)), 0xa6969);
-        addEthConsiderationItem(considerations[0].recipient, considerations[0].amount);
-        addEthConsiderationItem(considerations[1].recipient, considerations[1].amount);
-        addEthConsiderationItem(considerations[2].recipient, considerations[2].amount);
+        considerations[0] = EthConsideration(
+            payable(address(0x56969)),
+            0x66969
+        );
+        considerations[1] = EthConsideration(
+            payable(address(0x76969)),
+            0x86969
+        );
+        considerations[2] = EthConsideration(
+            payable(address(0x96969)),
+            0xa6969
+        );
+        addEthConsiderationItem(
+            considerations[0].recipient,
+            considerations[0].amount
+        );
+        addEthConsiderationItem(
+            considerations[1].recipient,
+            considerations[1].amount
+        );
+        addEthConsiderationItem(
+            considerations[2].recipient,
+            considerations[2].amount
+        );
 
         _configureOrderParameters({
             offerer: offerer,
@@ -69,7 +87,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
         CriteriaResolver[] memory criteriaResolvers;
 
-        consideration.fulfillAdvancedOrder{value: _sumConsiderationAmounts()}({
+        consideration.fulfillAdvancedOrder{
+            value: _sumConsiderationAmounts()
+        }({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),

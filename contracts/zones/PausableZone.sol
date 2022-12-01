@@ -16,7 +16,9 @@ import {
     Order,
     OrderComponents,
     Fulfillment,
-    Execution
+    Execution,
+    OfferItem,
+    ConsiderationItem
 } from "../lib/ConsiderationStructs.sol";
 
 import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
@@ -240,32 +242,23 @@ contract PausableZone is
      * @dev This function is called by Seaport whenever any extraData is
      *      provided by the caller.
      *
-     * @param orderHash         The hash of the order.
-     * @param caller            The caller in question.
-     * @param order             The order in question.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
-     *                          the current order as part of a "match" variety
-     *                          of order fulfillment.
-     * @param criteriaResolvers The criteria resolvers corresponding to
-     *                          the order.
      *
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function isValidOrderIncludingExtraData(
-        bytes32 orderHash,
-        address caller,
-        AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes,
-        CriteriaResolver[] calldata criteriaResolvers
+    function validateOrder(
+        bytes32,
+        address,
+        address,
+        OfferItem[] calldata,
+        ConsiderationItem[] calldata,
+        bytes calldata,
+        bytes32[] calldata,
+        uint256,
+        uint256,
+        bytes32
     ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        order;
-        priorOrderHashes;
-        criteriaResolvers;
-
         // Return the selector of isValidOrder as the magic value.
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 }
