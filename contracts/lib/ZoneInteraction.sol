@@ -20,6 +20,8 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
+import "./ConsiderationConstants.sol";
+
 import "./ConsiderationErrors.sol";
 
 /**
@@ -34,27 +36,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
      *
-     * @param orderHash                    The hash of the order.
-     * @param parameters                   The parameters of the basic order.
-     * @param orderType                    The order type.
-     * @param receivedItemType             The item type of the initial
-     *                                     consideration item on the order.
-     * @param additionalRecipientsItemType The item type of any additional
-     *                                     consideration item on the order.
-     * @param additionalRecipientsToken    The ERC20 token contract address (if
-     *                                     applicable) for any additional
-     *                                     consideration item on the order.
-     * @param offeredItemType              The item type of the offered item on
-     *                                     the order.
+     * @param orderHash   The hash of the order.
+     * @param orderType   The order type.
+     * @param parameters  The parameters of the basic order.
      */
     function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
         OrderType orderType,
-        BasicOrderParameters calldata parameters,
-        ItemType receivedItemType,
-        ItemType additionalRecipientsItemType,
-        address additionalRecipientsToken,
-        ItemType offeredItemType
+        BasicOrderParameters calldata parameters
     ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         bool isRestricted;
@@ -71,80 +60,42 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             orderHashes[0] = orderHash;
 
             SpentItem[] memory offer = new SpentItem[](1);
-            SpentItem memory offerItem = SpentItem(
-                offeredItemType,
-                parameters.offerToken,
-                parameters.offerIdentifier,
-                parameters.offerAmount
-            );
-            offer[0] = offerItem;
 
             ReceivedItem[] memory consideration = new ReceivedItem[](
                 parameters.additionalRecipients.length + 1
             );
 
-            {
-                // Create Consideration item.
-                ConsiderationItem memory primaryConsiderationItem = (
-                    ConsiderationItem(
-                        receivedItemType,
-                        parameters.considerationToken,
-                        parameters.considerationIdentifier,
-                        parameters.considerationAmount,
-                        parameters.considerationAmount,
-                        parameters.offerer
-                    )
-                );
-
-                // Declare memory for additionalReceivedItem and
-                // additionalRecipientItem.
-                ReceivedItem memory additionalReceivedItem;
-
-                // Create Received item.
-                ReceivedItem memory primaryReceivedItem = ReceivedItem(
-                    receivedItemType,
-                    primaryConsiderationItem.token,
-                    primaryConsiderationItem.identifierOrCriteria,
-                    primaryConsiderationItem.endAmount,
-                    primaryConsiderationItem.recipient
-                );
-
-                consideration[0] = primaryReceivedItem;
-                for (
-                    uint256 recipientCount = 0;
-                    recipientCount < parameters.additionalRecipients.length;
-                    ++recipientCount
-                ) {
-                    AdditionalRecipient memory additionalRecipient = (
-                        parameters.additionalRecipients[recipientCount]
-                    );
-
-                    additionalReceivedItem = ReceivedItem(
-                        additionalRecipientsItemType,
-                        additionalRecipientsToken,
-                        0,
-                        additionalRecipient.amount,
-                        additionalRecipient.recipient
-                    );
-
-                    consideration[recipientCount + 1] = additionalReceivedItem;
-                }
-            }
-
             bytes memory extraData;
 
-            _callAndCheckStatus(
+            // TODO: optimize (conversion is temporary to get it to compile)
+            bytes memory callData = _generateCallData(
                 orderHash,
                 orderHashes,
                 parameters.zoneHash,
                 parameters.offerer,
-                parameters.zone,
                 offer,
                 consideration,
                 extraData,
                 parameters.startTime,
                 parameters.endTime
             );
+
+            // Copy offer & consideration from event data into target callData.
+            // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
+            uint256 size;
+            unchecked {
+                size = 0x120 + (parameters.additionalRecipients.length * 0xa0);
+            }
+
+            // Send to the identity precompile.
+            _call(address(4), 0x80, size);
+
+            // Copy into the correct region of calldata.
+            assembly {
+                returndatacopy(add(callData, 0x1c0), 0, size)
+            }
+
+            _callAndCheckStatus(parameters.zone, orderHash, callData);
         }
     }
 
@@ -186,53 +137,65 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             !_unmaskedAddressComparison(msg.sender, zone) &&
             !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
-            _callAndCheckStatus(
+            // TODO: optimize (conversion is temporary to get it to compile)
+            bytes memory callData = _generateCallData(
                 orderHash,
                 orderHashes,
                 zoneHash,
                 offerer,
-                zone,
                 _convertOffer(advancedOrder.parameters.offer),
                 _convertConsideration(advancedOrder.parameters.consideration),
                 advancedOrder.extraData,
                 advancedOrder.parameters.startTime,
                 advancedOrder.parameters.endTime
             );
+
+            _callAndCheckStatus(zone, orderHash, callData);
         }
     }
 
-    function _callAndCheckStatus(
+    function _generateCallData(
         bytes32 orderHash,
         bytes32[] memory orderHashes,
         bytes32 zoneHash,
         address offerer,
-        address zone,
         SpentItem[] memory offer,
         ReceivedItem[] memory consideration,
         bytes memory extraData,
         uint256 startTime,
         uint256 endTime
-    ) internal {
+    ) internal view returns (bytes memory) {
         // TODO: optimize (conversion is temporary to get it to compile)
-        // TODO: make it stateful
-        bool success = _call(
-            zone,
+        return
             abi.encodeWithSelector(
                 ZoneInterface.validateOrder.selector,
-                ZoneParameters({
-                    orderHash: orderHash,
-                    fulfiller: msg.sender,
-                    offerer: offerer,
-                    offer: offer,
-                    consideration: consideration,
-                    extraData: extraData,
-                    orderHashes: orderHashes,
-                    startTime: startTime,
-                    endTime: endTime,
-                    zoneHash: zoneHash
-                })
-            )
-        );
+                ZoneParameters(
+                    orderHash,
+                    msg.sender,
+                    offerer,
+                    offer,
+                    consideration,
+                    extraData,
+                    orderHashes,
+                    startTime,
+                    endTime,
+                    zoneHash
+                )
+            );
+    }
+
+    function _callAndCheckStatus(
+        address zone,
+        bytes32 orderHash,
+        bytes memory callData
+    ) internal {
+        uint256 callDataLength = callData.length;
+        uint256 callDataMemoryPointer;
+        assembly {
+            callDataMemoryPointer := add(callData, OneWord)
+        }
+
+        bool success = _call(zone, callDataMemoryPointer, callDataLength);
 
         // Ensure call was successful and returned correct magic value.
         _assertIsValidOrderCallSuccess(success, orderHash);
