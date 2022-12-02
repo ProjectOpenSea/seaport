@@ -18,6 +18,7 @@ import type {
   ConduitInterface,
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
+  TestInvalidContractOfferer,
   TestPostExecution,
   TestZone,
 } from "../../../typechain-types";
@@ -89,6 +90,13 @@ export const marketplaceFixture = async (
     "TestPostExecution",
     owner
   );
+
+  const invalidContractOfferer =
+    await deployContract<TestInvalidContractOfferer>(
+      "TestInvalidContractOfferer",
+      owner,
+      marketplaceContractAddress
+    );
 
   // Required for EIP712 signing
   const domainData = {
@@ -525,6 +533,7 @@ export const marketplaceFixture = async (
     directMarketplaceContract,
     stubZone,
     postExecutionZone,
+    invalidContractOfferer,
     domainData,
     signOrder,
     signBulkOrder,
