@@ -3,11 +3,12 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
-    CriteriaResolver,
+    BasicOrderParameters,
+    AdditionalRecipient,
     ZoneParameters,
     OfferItem,
     ConsiderationItem,
@@ -33,19 +34,28 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
      *
-     * @param orderHash The hash of the order.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     * @param orderType The type of the order.
-     * @param offerer   The offerer in question.
-     * @param zone      The zone in question.
+     * @param orderHash                    The hash of the order.
+     * @param parameters                   The parameters of the basic order.
+     * @param orderType                    The order type.
+     * @param receivedItemType             The item type of the initial
+     *                                     consideration item on the order.
+     * @param additionalRecipientsItemType The item type of any additional
+     *                                     consideration item on the order.
+     * @param additionalRecipientsToken    The ERC20 token contract address (if
+     *                                     applicable) for any additional
+     *                                     consideration item on the order.
+     * @param offeredItemType              The item type of the offered item on
+     *                                     the order.
      */
     function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
-        bytes32 zoneHash,
         OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
+        BasicOrderParameters calldata parameters,
+        ItemType receivedItemType,
+        ItemType additionalRecipientsItemType,
+        address additionalRecipientsToken,
+        ItemType offeredItemType
+    ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         bool isRestricted;
         assembly {
@@ -53,74 +63,89 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
         if (
             isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            !_unmaskedAddressComparison(msg.sender, parameters.zone) &&
+            !_unmaskedAddressComparison(msg.sender, parameters.offerer)
         ) {
-            // Perform minimal staticcall to the zone.
-            _callValidateOrder(zone, orderHash, offerer, zoneHash);
+            // TODO: optimize (copy relevant arguments directly for calldata)
+            bytes32[] memory orderHashes = new bytes32[](1);
+            orderHashes[0] = orderHash;
+
+            SpentItem[] memory offer = new SpentItem[](1);
+            SpentItem memory offerItem = SpentItem(
+                offeredItemType,
+                parameters.offerToken,
+                parameters.offerIdentifier,
+                parameters.offerAmount
+            );
+            offer[0] = offerItem;
+
+            ReceivedItem[] memory consideration = new ReceivedItem[](
+                parameters.additionalRecipients.length + 1
+            );
+
+            {
+                // Create Consideration item.
+                ConsiderationItem memory primaryConsiderationItem = (
+                    ConsiderationItem(
+                        receivedItemType,
+                        parameters.considerationToken,
+                        parameters.considerationIdentifier,
+                        parameters.considerationAmount,
+                        parameters.considerationAmount,
+                        parameters.offerer
+                    )
+                );
+
+                // Declare memory for additionalReceivedItem and
+                // additionalRecipientItem.
+                ReceivedItem memory additionalReceivedItem;
+
+                // Create Received item.
+                ReceivedItem memory primaryReceivedItem = ReceivedItem(
+                    receivedItemType,
+                    primaryConsiderationItem.token,
+                    primaryConsiderationItem.identifierOrCriteria,
+                    primaryConsiderationItem.endAmount,
+                    primaryConsiderationItem.recipient
+                );
+
+                consideration[0] = primaryReceivedItem;
+                for (
+                    uint256 recipientCount = 0;
+                    recipientCount < parameters.additionalRecipients.length;
+                    ++recipientCount
+                ) {
+                    AdditionalRecipient memory additionalRecipient = (
+                        parameters.additionalRecipients[recipientCount]
+                    );
+
+                    additionalReceivedItem = ReceivedItem(
+                        additionalRecipientsItemType,
+                        additionalRecipientsToken,
+                        0,
+                        additionalRecipient.amount,
+                        additionalRecipient.recipient
+                    );
+
+                    consideration[recipientCount + 1] = additionalReceivedItem;
+                }
+            }
+
+            bytes memory extraData;
+
+            _callAndCheckStatus(
+                orderHash,
+                orderHashes,
+                parameters.zoneHash,
+                parameters.offerer,
+                parameters.zone,
+                offer,
+                consideration,
+                extraData,
+                parameters.startTime,
+                parameters.endTime
+            );
         }
-    }
-
-    /**
-     * @dev Internal view function to perform a staticcall to a given zone and
-     *      ensure that the correct magic value was returned.
-     *
-     * @param zone      The zone in question.
-     * @param orderHash The hash of the order.
-     * @param offerer   The offerer in question.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     */
-    function _callValidateOrder(
-        address zone,
-        bytes32 orderHash,
-        address offerer,
-        bytes32 zoneHash
-    ) internal view {
-        // Declare a boolean for the status of the isValidOrder staticcall.
-        bool success;
-
-        // Utilize assembly to efficiently perform the isValidOrder staticcall.
-        assembly {
-            // The free memory pointer memory slot will be used when populating
-            // call data for the check; read the value and restore it later.
-            let memPointer := mload(FreeMemoryPointerSlot)
-
-            // The following memory slots will be used when populating call data
-            // for the check; read the values and restore them later.
-            let slot0x80 := mload(Slot0x80)
-            let slot0xA0 := mload(Slot0xA0)
-
-            // Write call data to memory starting with function selector.
-            mstore(IsValidOrder_sig_ptr, IsValidOrder_signature)
-            mstore(IsValidOrder_orderHash_ptr, orderHash)
-            mstore(IsValidOrder_caller_ptr, caller())
-            mstore(IsValidOrder_offerer_ptr, offerer)
-            mstore(IsValidOrder_zoneHash_ptr, zoneHash)
-
-            // Perform the staticcall, ignoring return data.
-            success := staticcall(
-                gas(),
-                zone,
-                IsValidOrder_sig_ptr,
-                IsValidOrder_length,
-                0,
-                0
-            )
-
-            // NOTE: can assert correct magic value was returned here directly.
-
-            mstore(Slot0x80, slot0x80) // Restore slot 0x80.
-            mstore(Slot0xA0, slot0xA0) // Restore slot 0xA0.
-
-            // Restore the original free memory pointer.
-            mstore(FreeMemoryPointerSlot, memPointer)
-
-            // Restore the zero slot to zero.
-            mstore(ZeroSlot, 0)
-        }
-
-        // Ensure call was successful and returned the correct magic value.
-        _assertIsValidOrderStaticcallSuccess(success, orderHash);
     }
 
     /**
@@ -132,14 +157,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      fulfillment specifies extra data or criteria resolvers.
      *
      * @param advancedOrder     The advanced order in question.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     * @param orderHashes       The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety
      *                          of order fulfillment (e.g. this array will be
      *                          empty for single or "fulfill available").
@@ -151,14 +169,13 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bytes32[] memory priorOrderHashes,
+        bytes32[] memory orderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view {
+    ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         bool isRestricted;
         assembly {
@@ -169,31 +186,56 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             !_unmaskedAddressComparison(msg.sender, zone) &&
             !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
-            // TODO: optimize (conversion is temporary to get it to compile)
-            bool success = _staticcall(
+            _callAndCheckStatus(
+                orderHash,
+                orderHashes,
+                zoneHash,
+                offerer,
                 zone,
-                abi.encodeWithSelector(
-                    ZoneInterface.validateOrder.selector,
-                    ZoneParameters({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: advancedOrder.parameters.offerer,
-                        offer: _convertOffer(advancedOrder.parameters.offer),
-                        consideration: _convertConsideration(
-                            advancedOrder.parameters.consideration
-                        ),
-                        extraData: advancedOrder.extraData,
-                        orderHashes: priorOrderHashes,
-                        startTime: advancedOrder.parameters.startTime,
-                        endTime: advancedOrder.parameters.endTime,
-                        zoneHash: advancedOrder.parameters.zoneHash
-                    })
-                )
+                _convertOffer(advancedOrder.parameters.offer),
+                _convertConsideration(advancedOrder.parameters.consideration),
+                advancedOrder.extraData,
+                advancedOrder.parameters.startTime,
+                advancedOrder.parameters.endTime
             );
-
-            // Ensure call was successful and returned correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
         }
+    }
+
+    function _callAndCheckStatus(
+        bytes32 orderHash,
+        bytes32[] memory orderHashes,
+        bytes32 zoneHash,
+        address offerer,
+        address zone,
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        bytes memory extraData,
+        uint256 startTime,
+        uint256 endTime
+    ) internal {
+        // TODO: optimize (conversion is temporary to get it to compile)
+        // TODO: make it stateful
+        bool success = _staticcall(
+            zone,
+            abi.encodeWithSelector(
+                ZoneInterface.validateOrder.selector,
+                ZoneParameters({
+                    orderHash: orderHash,
+                    fulfiller: msg.sender,
+                    offerer: offerer,
+                    offer: offer,
+                    consideration: consideration,
+                    extraData: extraData,
+                    orderHashes: orderHashes,
+                    startTime: startTime,
+                    endTime: endTime,
+                    zoneHash: zoneHash
+                })
+            )
+        );
+
+        // Ensure call was successful and returned correct magic value.
+        _assertIsValidOrderStaticcallSuccess(success, orderHash);
     }
 
     function _convertOffer(OfferItem[] memory offer)
@@ -250,10 +292,9 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
     }
 
     /**
-     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
+     * @dev Internal view function to ensure that a call to `validateOrder`
+     *      as part of validating a restricted order that was not submitted by
+     *      the named zone was successful and returned the required magic value.
      *
      * @param success   A boolean indicating the status of the staticcall.
      * @param orderHash The order hash of the order in question.

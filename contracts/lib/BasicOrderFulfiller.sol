@@ -277,13 +277,26 @@ contract BasicOrderFulfiller is OrderValidator {
         }
 
         // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
+        {
+            ItemType receivedItemType;
+
+            assembly {
+                receivedItemType := add(
+                    mul(sub(route, 2), gt(route, 2)),
+                    eq(route, 2)
+                )
+            }
+
+            _assertRestrictedBasicOrderValidity(
+                orderHash,
+                orderType,
+                parameters,
+                receivedItemType,
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                offeredItemType
+            );
+        }
 
         // Clear the reentrancy guard.
         _clearReentrancyGuard();

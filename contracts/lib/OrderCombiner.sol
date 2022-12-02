@@ -684,25 +684,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
 
-        // Declare criteria resolvers (currently unused).
-        CriteriaResolver[] memory criteriaResolvers;
-
-        // Override existing orderHashes array length to zero.
-        assembly {
-            mstore(orderHashes, 0)
-        }
-
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order in question.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Skip consideration item checks for order if not fulfilled.
                 if (advancedOrder.numerator == 0) {
@@ -740,7 +727,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Ensure restricted orders have valid submitter or pass check.
                 _assertRestrictedAdvancedOrderValidity(
                     advancedOrder,
-                    criteriaResolvers,
                     orderHashes,
                     orderHashes[i],
                     parameters.zoneHash,
