@@ -2184,14 +2184,16 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
-        vm.prank(alice);
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        uint256 val = context
+            .args
+            .paymentAmts[0]
+            .add(context.args.paymentAmts[1])
+            .add(context.args.paymentAmts[2]);
+        hoax(context.args.zone, val);
+        context.consideration.fulfillOrder{ value: val }(
+            Order(orderParameters, signature),
+            conduitKey
+        );
     }
 
     function testFulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration(

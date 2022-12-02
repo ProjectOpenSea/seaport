@@ -41,13 +41,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         address offerer,
         address zone
     ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
+        // Order type 2-3 require zone to be caller or zone to approve.
+        if (uint256(orderType) > 1 && msg.sender != zone) {
             if (
                 ZoneInterface(zone).isValidOrder(
                     orderHash,
@@ -95,13 +90,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         address offerer,
         address zone
     ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
+        // Order type 2-3 require zone to be caller or zone to approve.
+        if (uint256(orderType) > 1 && msg.sender != zone) {
             // If no extraData or criteria resolvers are supplied...
             if (
                 advancedOrder.extraData.length == 0 &&

@@ -38,15 +38,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         address offerer,
         address zone
     ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        bool isRestricted;
-        assembly {
-            isRestricted := or(eq(orderType, 2), eq(orderType, 3))
-        }
+        // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            uint256(orderType) > 1 &&
+            !_unmaskedAddressComparison(msg.sender, zone)
         ) {
             // Perform minimal staticcall to the zone.
             _callIsValidOrder(zone, orderHash, offerer, zoneHash);
@@ -151,15 +146,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         address offerer,
         address zone
     ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        bool isRestricted;
-        assembly {
-            isRestricted := or(eq(orderType, 2), eq(orderType, 3))
-        }
+        // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            uint256(orderType) > 1 &&
+            !_unmaskedAddressComparison(msg.sender, zone)
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (
