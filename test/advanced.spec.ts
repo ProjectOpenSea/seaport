@@ -69,6 +69,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+  let invalidContractOfferer: SeaportFixtures["invalidContractOfferer"];
 
   after(async () => {
     await network.provider.request({
@@ -105,6 +106,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       testERC20,
       testERC721,
       withBalanceChecks,
+      invalidContractOfferer,
     } = await seaportFixture(owner));
   });
 
@@ -1523,15 +1525,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         10000
       );
 
-      // seller deploys offererContract with invalid generateOrders function
-      // and approves it for 1155 token
-      const offererContract = await deployContract(
-        "TestInvalidContractOfferer",
-        owner,
-        marketplaceContract.address
-      );
-
-      await set1155ApprovalForAll(seller, offererContract.address, true);
+      await set1155ApprovalForAll(seller, invalidContractOfferer.address, true);
 
       const offer = [
         getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
@@ -1541,7 +1535,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         getItemETH(
           amount.mul(1000),
           amount.mul(1000),
-          offererContract.address
+          invalidContractOfferer.address
         ) as any,
       ];
 
@@ -1551,7 +1545,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       consideration[0].identifier = consideration[0].identifierOrCriteria;
       consideration[0].amount = consideration[0].endAmount;
 
-      await offererContract
+      await invalidContractOfferer
         .connect(seller)
         .activate(offer[0], consideration[0]);
 
@@ -1568,11 +1562,11 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       const contractOffererNonce =
         await marketplaceContract.getContractOffererNonce(
-          offererContract.address
+          invalidContractOfferer.address
         );
 
       const orderHash =
-        offererContract.address.toLowerCase() +
+        invalidContractOfferer.address.toLowerCase() +
         contractOffererNonce.toHexString().slice(2).padStart(24, "0");
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -1581,7 +1575,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         buildOrderStatus(false, false, 0, 0)
       );
 
-      order.parameters.offerer = offererContract.address;
+      order.parameters.offerer = invalidContractOfferer.address;
       order.numerator = 1;
       order.denominator = 1;
       order.signature = "0x";
