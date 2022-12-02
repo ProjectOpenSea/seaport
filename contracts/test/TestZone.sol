@@ -12,36 +12,21 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestZone is ZoneInterface {
-    function isValidOrder(
-        bytes32 orderHash,
-        address caller,
-        address offerer,
-        bytes32 zoneHash
-    ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        offerer;
-
-        if (zoneHash == bytes32(uint256(1))) {
-            revert("Revert on zone hash 1");
-        } else if (zoneHash == bytes32(uint256(2))) {
-            assembly {
-                revert(0, 0)
-            }
-        }
-
-        validOrderMagicValue = zoneHash != bytes32(uint256(3))
-            ? ZoneInterface.isValidOrder.selector
-            : bytes4(0xffffffff);
-    }
-
     function validateOrder(ZoneParameters calldata zoneParameters)
         external
         pure
         override
         returns (bytes4 validOrderMagicValue)
     {
-        if (zoneParameters.extraData.length == 4) {
+        if (zoneParameters.extraData.length == 0) {
+            if (zoneParameters.zoneHash == bytes32(uint256(1))) {
+                revert("Revert on zone hash 1");
+            } else if (zoneParameters.zoneHash == bytes32(uint256(2))) {
+                assembly {
+                    revert(0, 0)
+                }
+            }
+        } else if (zoneParameters.extraData.length == 4) {
             revert("Revert on extraData length 4");
         } else if (zoneParameters.extraData.length == 5) {
             assembly {
@@ -50,7 +35,7 @@ contract TestZone is ZoneInterface {
         }
 
         validOrderMagicValue = zoneParameters.zoneHash != bytes32(uint256(3))
-            ? ZoneInterface.isValidOrder.selector
+            ? ZoneInterface.validateOrder.selector
             : bytes4(0xffffffff);
     }
 }

@@ -17,28 +17,14 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {
-    function isValidOrder(
-        bytes32 orderHash,
-        address caller,
-        address offerer,
-        bytes32 zoneHash
-    ) external pure override returns (bytes4) {
-        orderHash;
-        caller;
-        offerer;
-        zoneHash;
-
-        revert("Basic validity check not allowed");
-    }
-
     function validateOrder(ZoneParameters calldata zoneParameters)
         external
         view
         override
         returns (bytes4 validOrderMagicValue)
     {
-        ConsiderationItem memory considerationItem =
-            zoneParameters.consideration[0];
+        ConsiderationItem memory considerationItem = zoneParameters
+            .consideration[0];
 
         address currentOwner = ERC721Interface(considerationItem.token).ownerOf(
             considerationItem.identifierOrCriteria
@@ -59,6 +45,6 @@ contract TestPostExecution is ZoneInterface {
             revert("Validity check performed prior to execution");
         }
 
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 }

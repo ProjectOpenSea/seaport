@@ -4,8 +4,9 @@ pragma solidity ^0.8.7;
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
-import { PausableZoneEventsAndErrors } from
-    "./interfaces/PausableZoneEventsAndErrors.sol";
+import {
+    PausableZoneEventsAndErrors
+} from "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
@@ -160,7 +161,10 @@ contract PausableZone is
     {
         // Call matchOrders on Seaport and return the sequence of transfers
         // performed as part of matching the given orders.
-        executions = seaport.matchOrders{value: msg.value}(orders, fulfillments);
+        executions = seaport.matchOrders{ value: msg.value }(
+            orders,
+            fulfillments
+        );
     }
 
     /**
@@ -197,38 +201,11 @@ contract PausableZone is
     {
         // Call matchAdvancedOrders on Seaport and return the sequence of
         // transfers performed as part of matching the given orders.
-        executions = seaport.matchAdvancedOrders{value: msg.value}(
-            orders, criteriaResolvers, fulfillments
+        executions = seaport.matchAdvancedOrders{ value: msg.value }(
+            orders,
+            criteriaResolvers,
+            fulfillments
         );
-    }
-
-    /**
-     * @notice Check if a given order is currently valid.
-     *
-     * @dev This function is called by Seaport whenever extraData is not
-     *      provided by the caller.
-     *
-     * @param orderHash The hash of the order.
-     * @param caller    The caller in question.
-     * @param offerer   The offerer in question.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     *
-     * @return validOrderMagicValue A magic value indicating if the order is
-     *                              currently valid.
-     */
-    function isValidOrder(
-        bytes32 orderHash,
-        address caller,
-        address offerer,
-        bytes32 zoneHash
-    ) external pure override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        offerer;
-        zoneHash;
-
-        // Return the selector of isValidOrder as the magic value.
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
     /**

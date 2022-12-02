@@ -506,10 +506,10 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         // Determine whether order is restricted and, if so, that it is valid.
         _assertRestrictedBasicOrderValidity(
             orderHash,
-            parameters.zoneHash,
             orderType,
-            parameters.offerer,
-            parameters.zone
+            parameters,
+            offeredItemType,
+            receivedItemType
         );
 
         return true;

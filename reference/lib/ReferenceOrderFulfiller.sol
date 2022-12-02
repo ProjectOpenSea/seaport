@@ -112,7 +112,6 @@ contract ReferenceOrderFulfiller is
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
-            criteriaResolvers,
             priorOrderHashes,
             orderHash,
             orderParameters.zoneHash,

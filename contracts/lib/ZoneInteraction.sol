@@ -48,11 +48,12 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             isRestricted := or(eq(orderType, 2), eq(orderType, 3))
         }
         if (
-            isRestricted && !_unmaskedAddressComparison(msg.sender, zone)
-                && !_unmaskedAddressComparison(msg.sender, offerer)
+            isRestricted &&
+            !_unmaskedAddressComparison(msg.sender, zone) &&
+            !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
             // Perform minimal staticcall to the zone.
-            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
+            _callValidateOrder(zone, orderHash, offerer, zoneHash);
         }
     }
 
@@ -65,7 +66,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      * @param offerer   The offerer in question.
      * @param zoneHash  The hash to provide upon calling the zone.
      */
-    function _callIsValidOrder(
+    function _callValidateOrder(
         address zone,
         bytes32 orderHash,
         address offerer,
@@ -93,10 +94,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             mstore(IsValidOrder_zoneHash_ptr, zoneHash)
 
             // Perform the staticcall, ignoring return data.
-            success :=
-                staticcall(
-                    gas(), zone, IsValidOrder_sig_ptr, IsValidOrder_length, 0, 0
-                )
+            success := staticcall(
+                gas(),
+                zone,
+                IsValidOrder_sig_ptr,
+                IsValidOrder_length,
+                0,
+                0
+            )
 
             // NOTE: can assert correct magic value was returned here directly.
 
@@ -156,41 +161,31 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             isRestricted := or(eq(orderType, 2), eq(orderType, 3))
         }
         if (
-            isRestricted && !_unmaskedAddressComparison(msg.sender, zone)
-                && !_unmaskedAddressComparison(msg.sender, offerer)
+            isRestricted &&
+            !_unmaskedAddressComparison(msg.sender, zone) &&
+            !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
-            // If no extraData or criteria resolvers are supplied...
-            if (
-                advancedOrder.extraData.length == 0
-                    && criteriaResolvers.length == 0
-            ) {
-                // Perform minimal staticcall to the zone.
-                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-            } else {
-                // Otherwise, extra data or criteria resolvers were supplied; in
-                // that event, perform a more verbose staticcall to the zone.
-                bool success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.validateOrder.selector,
-                        ZoneParameters({
-                            orderHash: orderHash,
-                            fulfiller: msg.sender,
-                            offerer: advancedOrder.parameters.offerer,
-                            offer: advancedOrder.parameters.offer,
-                            consideration: advancedOrder.parameters.consideration,
-                            extraData: advancedOrder.extraData,
-                            orderHashes: priorOrderHashes,
-                            startTime: advancedOrder.parameters.startTime,
-                            endTime: advancedOrder.parameters.endTime,
-                            zoneHash: advancedOrder.parameters.zoneHash
-                        })
-                    )
-                );
+            bool success = _staticcall(
+                zone,
+                abi.encodeWithSelector(
+                    ZoneInterface.validateOrder.selector,
+                    ZoneParameters({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: advancedOrder.parameters.offerer,
+                        offer: advancedOrder.parameters.offer,
+                        consideration: advancedOrder.parameters.consideration,
+                        extraData: advancedOrder.extraData,
+                        orderHashes: priorOrderHashes,
+                        startTime: advancedOrder.parameters.startTime,
+                        endTime: advancedOrder.parameters.endTime,
+                        zoneHash: advancedOrder.parameters.zoneHash
+                    })
+                )
+            );
 
-                // Ensure call was successful and returned correct magic value.
-                _assertIsValidOrderStaticcallSuccess(success, orderHash);
-            }
+            // Ensure call was successful and returned correct magic value.
+            _assertIsValidOrderStaticcallSuccess(success, orderHash);
         }
     }
 
@@ -217,7 +212,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
 
         // Ensure result was extracted and matches isValidOrder magic value.
-        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
+        if (_doesNotMatchMagic(ZoneInterface.validateOrder.selector)) {
             _revertInvalidRestrictedOrder(orderHash);
         }
     }

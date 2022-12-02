@@ -640,9 +640,6 @@ contract ReferenceOrderCombiner is
         // Initialize array for tracking available orders.
         availableOrders = new bool[](ordersToExecute.length);
 
-        // Declare criteria resolvers (currently unused).
-        CriteriaResolver[] memory criteriaResolvers;
-
         // Iterate over orders to ensure all considerations are met.
         for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
@@ -683,7 +680,6 @@ contract ReferenceOrderCombiner is
             // Ensure restricted orders have valid submitter or pass check.
             _assertRestrictedAdvancedOrderValidity(
                 advancedOrder,
-                criteriaResolvers,
                 orderHashes,
                 orderHashes[i],
                 advancedOrder.parameters.zoneHash,
