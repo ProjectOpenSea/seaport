@@ -10,9 +10,7 @@ import { ItemType } from "../lib/ConsiderationEnums.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
-    ConsiderationItem,
-    OfferItem,
-    ConsiderationItem,
+    ReceivedItem,
     ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
@@ -23,25 +21,24 @@ contract TestPostExecution is ZoneInterface {
         override
         returns (bytes4 validOrderMagicValue)
     {
-        ConsiderationItem memory considerationItem = zoneParameters
-            .consideration[0];
+        ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
-        address currentOwner = ERC721Interface(considerationItem.token).ownerOf(
-            considerationItem.identifierOrCriteria
+        address currentOwner = ERC721Interface(receivedItem.token).ownerOf(
+            receivedItem.identifier
         );
 
-        if (considerationItem.itemType != ItemType.ERC721) {
+        if (receivedItem.itemType != ItemType.ERC721) {
             revert("Validity check performed with unsupported item type");
         }
 
         // Note that endAmount has been repurposed as recipient; this interface
         // still needs to be modified to return spent / received items.
-        if (considerationItem.startAmount != 1) {
+        if (receivedItem.amount != 1) {
             // Note that this is currently failing in the matchOrder case.
             revert("Returned item amount incorrectly modified");
         }
 
-        if (currentOwner != considerationItem.recipient) {
+        if (currentOwner != receivedItem.recipient) {
             revert("Validity check performed prior to execution");
         }
 

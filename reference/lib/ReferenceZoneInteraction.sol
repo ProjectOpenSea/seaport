@@ -11,10 +11,12 @@ import {
     BasicOrderParameters,
     OrderParameters,
     ZoneParameters,
-    OfferItem,
-    ConsiderationItem,
+    SpentItem,
+    ReceivedItem,
     AdditionalRecipient
 } from "contracts/lib/ConsiderationStructs.sol";
+
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
@@ -54,13 +56,14 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             msg.sender != basicOrderParameters.offerer
         ) {
             (
-                OfferItem[] memory offer,
-                ConsiderationItem[] memory consideration
-            ) = _convertToOfferAndConsiderationItems(
+                SpentItem[] memory offer,
+                ReceivedItem[] memory consideration
+            ) = _convertToSpentAndReceivedItems(
                     basicOrderParameters,
                     offeredItemType,
                     receivedItemType
                 );
+
             if (
                 ZoneInterface(basicOrderParameters.zone).validateOrder(
                     ZoneParameters({
@@ -100,6 +103,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
+        OrderToExecute memory orderToExecute,
         bytes32[] memory priorOrderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
@@ -120,8 +124,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                         orderHash: orderHash,
                         fulfiller: msg.sender,
                         offerer: offerer,
-                        offer: advancedOrder.parameters.offer,
-                        consideration: advancedOrder.parameters.consideration,
+                        offer: orderToExecute.spentItems,
+                        consideration: orderToExecute.receivedItems,
                         extraData: advancedOrder.extraData,
                         orderHashes: priorOrderHashes,
                         startTime: advancedOrder.parameters.startTime,
@@ -135,48 +139,45 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         }
     }
 
-    function _convertToOfferAndConsiderationItems(
+    function _convertToSpentAndReceivedItems(
         BasicOrderParameters calldata parameters,
         ItemType offerItemType,
         ItemType considerationItemType
-    ) internal pure returns (OfferItem[] memory, ConsiderationItem[] memory) {
-        OfferItem[] memory offerItems = new OfferItem[](1);
-        offerItems[0] = OfferItem({
+    ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](1);
+        spentItems[0] = SpentItem({
             itemType: offerItemType,
             token: parameters.offerToken,
-            startAmount: parameters.offerAmount,
-            endAmount: parameters.offerAmount,
-            identifierOrCriteria: parameters.offerIdentifier
+            amount: parameters.offerAmount,
+            identifier: parameters.offerIdentifier
         });
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
             1 + parameters.additionalRecipients.length
         );
         address token = parameters.considerationToken;
         uint256 amount = parameters.considerationAmount;
-        uint256 identifierOrCriteria = parameters.considerationIdentifier;
-        considerationItems[0] = ConsiderationItem({
+        uint256 identifier = parameters.considerationIdentifier;
+        receivedItems[0] = ReceivedItem({
             itemType: considerationItemType,
             token: token,
-            startAmount: amount,
-            endAmount: amount,
-            identifierOrCriteria: identifierOrCriteria,
+            amount: amount,
+            identifier: identifier,
             recipient: parameters.offerer
         });
         for (uint256 i = 0; i < parameters.additionalRecipients.length; i++) {
             AdditionalRecipient calldata additionalRecipient = parameters
                 .additionalRecipients[i];
             amount = additionalRecipient.amount;
-            considerationItems[i + 1] = ConsiderationItem({
+            receivedItems[i + 1] = ReceivedItem({
                 itemType: considerationItemType,
                 token: token,
-                startAmount: amount,
-                endAmount: amount,
-                identifierOrCriteria: identifierOrCriteria,
+                amount: amount,
+                identifier: identifier,
                 recipient: additionalRecipient.recipient
             });
         }
 
-        return (offerItems, considerationItems);
+        return (spentItems, receivedItems);
     }
 }

@@ -671,6 +671,23 @@ contract ReferenceOrderCombiner is
                     if (unmetAmount != 0) {
                         revert ConsiderationNotMet(i, j, unmetAmount);
                     }
+
+                    // Restore original amount.
+                    consideration[j].amount = orderToExecute
+                        .receivedItemOriginalAmounts[j];
+                }
+            }
+
+            {
+                // Get offer items as well.
+                SpentItem[] memory offer = (orderToExecute.spentItems);
+
+                // Iterate over each consideration item to ensure it is met.
+                for (uint256 j = 0; j < offer.length; ++j) {
+                    // Restore original amount.
+                    offer[j].amount = orderToExecute.spentItemOriginalAmounts[
+                        j
+                    ];
                 }
             }
 
@@ -680,6 +697,7 @@ contract ReferenceOrderCombiner is
             // Ensure restricted orders have valid submitter or pass check.
             _assertRestrictedAdvancedOrderValidity(
                 advancedOrder,
+                orderToExecute,
                 orderHashes,
                 orderHashes[i],
                 advancedOrder.parameters.zoneHash,

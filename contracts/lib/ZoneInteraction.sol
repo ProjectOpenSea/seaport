@@ -8,7 +8,11 @@ import { OrderType } from "./ConsiderationEnums.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
-    ZoneParameters
+    ZoneParameters,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
@@ -165,6 +169,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             !_unmaskedAddressComparison(msg.sender, zone) &&
             !_unmaskedAddressComparison(msg.sender, offerer)
         ) {
+            // TODO: optimize (conversion is temporary to get it to compile)
             bool success = _staticcall(
                 zone,
                 abi.encodeWithSelector(
@@ -173,8 +178,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                         orderHash: orderHash,
                         fulfiller: msg.sender,
                         offerer: advancedOrder.parameters.offerer,
-                        offer: advancedOrder.parameters.offer,
-                        consideration: advancedOrder.parameters.consideration,
+                        offer: _convertOffer(advancedOrder.parameters.offer),
+                        consideration: _convertConsideration(
+                            advancedOrder.parameters.consideration
+                        ),
                         extraData: advancedOrder.extraData,
                         orderHashes: priorOrderHashes,
                         startTime: advancedOrder.parameters.startTime,
@@ -186,6 +193,59 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
 
             // Ensure call was successful and returned correct magic value.
             _assertIsValidOrderStaticcallSuccess(success, orderHash);
+        }
+    }
+
+    function _convertOffer(OfferItem[] memory offer)
+        internal
+        pure
+        returns (SpentItem[] memory spentItems)
+    {
+        // Create an array of spent items equal to the offer length.
+        spentItems = new SpentItem[](offer.length);
+
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < offer.length; ++i) {
+            // Retrieve the offer item.
+            OfferItem memory offerItem = offer[i];
+
+            // Create spent item for event based on the offer item.
+            SpentItem memory spentItem = SpentItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount
+            );
+
+            // Add to array of spent items.
+            spentItems[i] = spentItem;
+        }
+    }
+
+    function _convertConsideration(ConsiderationItem[] memory consideration)
+        internal
+        pure
+        returns (ReceivedItem[] memory receivedItems)
+    {
+        // Create an array of received items equal to the consideration length.
+        receivedItems = new ReceivedItem[](consideration.length);
+
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            // Retrieve the consideration item.
+            ConsiderationItem memory considerationItem = (consideration[i]);
+
+            // Create received item for event based on the consideration item.
+            ReceivedItem memory receivedItem = ReceivedItem(
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.recipient
+            );
+
+            // Add to array of received items.
+            receivedItems[i] = receivedItem;
         }
     }
 

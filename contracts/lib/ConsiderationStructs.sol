@@ -2,7 +2,10 @@
 pragma solidity ^0.8.7;
 
 import {
-    OrderType, BasicOrderType, ItemType, Side
+    OrderType,
+    BasicOrderType,
+    ItemType,
+    Side
 } from "./ConsiderationEnums.sol";
 
 /**
@@ -113,7 +116,7 @@ struct BasicOrderParameters {
     uint256 totalOriginalAdditionalRecipients; // 0x204
     AdditionalRecipient[] additionalRecipients; // 0x224
     bytes signature; // 0x244
-        // Total length, excluding dynamic array data: 0x264 (580)
+    // Total length, excluding dynamic array data: 0x264 (580)
 }
 
 /**
@@ -144,7 +147,7 @@ struct OrderParameters {
     uint256 salt; // 0x100
     bytes32 conduitKey; // 0x120
     uint256 totalOriginalConsiderationItems; // 0x140
-        // offer.length                          // 0x160
+    // offer.length                          // 0x160
 }
 
 /**
@@ -249,8 +252,8 @@ struct ZoneParameters {
     bytes32 orderHash;
     address fulfiller;
     address offerer;
-    OfferItem[] offer;
-    ConsiderationItem[] consideration;
+    SpentItem[] offer;
+    ReceivedItem[] consideration;
     bytes extraData;
     bytes32[] orderHashes;
     uint256 startTime;
