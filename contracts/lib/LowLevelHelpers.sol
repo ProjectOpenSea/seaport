@@ -11,25 +11,25 @@ import "./ConsiderationConstants.sol";
  */
 contract LowLevelHelpers {
     /**
-     * @dev Internal view function to staticcall an arbitrary target with given
-     *      calldata. Note that no data is written to memory and no contract
-     *      size check is performed.
+     * @dev Internal function to call an arbitrary target with given calldata.
+     *      Note that no data is written to memory and no contract size check is
+     *      performed.
      *
      * @param target   The account to staticcall.
      * @param callData The calldata to supply when staticcalling the target.
      *
      * @return success The status of the staticcall to the target.
      */
-    function _staticcall(address target, bytes memory callData)
+    function _call(address target, bytes memory callData)
         internal
-        view
         returns (bool success)
     {
         assembly {
-            // Perform the staticcall.
-            success := staticcall(
+            // Perform the call.
+            success := call(
                 gas(),
                 target,
+                0,
                 add(callData, OneWord),
                 mload(callData),
                 0,

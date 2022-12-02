@@ -215,7 +215,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
     ) internal {
         // TODO: optimize (conversion is temporary to get it to compile)
         // TODO: make it stateful
-        bool success = _staticcall(
+        bool success = _call(
             zone,
             abi.encodeWithSelector(
                 ZoneInterface.validateOrder.selector,
@@ -235,7 +235,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         );
 
         // Ensure call was successful and returned correct magic value.
-        _assertIsValidOrderStaticcallSuccess(success, orderHash);
+        _assertIsValidOrderCallSuccess(success, orderHash);
     }
 
     function _convertOffer(OfferItem[] memory offer)
@@ -299,10 +299,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      * @param success   A boolean indicating the status of the staticcall.
      * @param orderHash The order hash of the order in question.
      */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
+    function _assertIsValidOrderCallSuccess(bool success, bytes32 orderHash)
+        internal
+        view
+    {
         // If the call failed...
         if (!success) {
             // Revert and pass reason along if one was returned.
