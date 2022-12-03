@@ -859,7 +859,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
-      it.only("ERC721 <=> ETH (basic with restricted order)", async () => {
+      it("ERC721 <=> ETH (basic with restricted order)", async () => {
         const nftId = await mintAndApprove721(
           seller,
           marketplaceContract.address
@@ -2306,7 +2306,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
-      it.only("ERC721 <=> ETH (basic with restricted order checked post-execution)", async () => {
+      it("ERC721 <=> ETH (basic with restricted order checked post-execution)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
 
@@ -2562,7 +2562,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
         return receipt;
       });
-      it.only("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
+      it("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
 
