@@ -4,16 +4,21 @@ pragma solidity ^0.8.17;
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 import { TestZone } from "./impl/TestZone.sol";
 import {
+    PostFulfillmentStatefulTestZone
+} from "./impl/PostFullfillmentStatefulTestZone.sol";
+import {
     ConsiderationItem,
     OfferItem,
     ItemType,
     AdvancedOrder,
     CriteriaResolver
 } from "seaport/lib/ConsiderationStructs.sol";
-import { OrderType } from "seaport/lib/ConsiderationEnums.sol";
+import { OrderType, Side } from "seaport/lib/ConsiderationEnums.sol";
 
 contract PostFulfillmentCheckTest is BaseOrderTest {
     TestZone zone = new TestZone();
+    PostFulfillmentStatefulTestZone statefulZone =
+        new PostFulfillmentStatefulTestZone();
 
     struct EthConsideration {
         address payable recipient;
@@ -95,6 +100,144 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             fulfillerConduitKey: bytes32(0),
             recipient: address(0)
         });
+    }
+
+    function testAscendingAmount() public {
+        addErc20OfferItem(1, 101);
+        addErc721ConsiderationItem(alice, 42);
+        test721_1.mint(address(this), 42);
+
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(statefulZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        baseOrderParameters.startTime = 1;
+        baseOrderParameters.endTime = 101;
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        _configureOrderComponents(0);
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: 1,
+            denominator: 1,
+            signature: signature,
+            extraData: "extradata"
+        });
+        CriteriaResolver[] memory criteriaResolvers;
+        vm.warp(50);
+        consideration.fulfillAdvancedOrder{
+            value: _sumConsiderationAmounts()
+        }({
+            advancedOrder: order,
+            criteriaResolvers: criteriaResolvers,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(0)
+        });
+    }
+
+    function testResolvedCriteria() public {
+        addErc20OfferItem(1, 101);
+        addErc721ConsiderationItem(alice, 0);
+        considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
+        test721_1.mint(address(this), 42);
+
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(statefulZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        baseOrderParameters.startTime = 1;
+        baseOrderParameters.endTime = 101;
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        _configureOrderComponents(0);
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: 1,
+            denominator: 1,
+            signature: signature,
+            extraData: "extradata"
+        });
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](1);
+        criteriaResolvers[0] = CriteriaResolver({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 42,
+            criteriaProof: new bytes32[](0)
+        });
+        vm.warp(50);
+        consideration.fulfillAdvancedOrder{
+            value: _sumConsiderationAmounts()
+        }({
+            advancedOrder: order,
+            criteriaResolvers: criteriaResolvers,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(0)
+        });
+    }
+
+    function testStateChange() public {
+        addErc20OfferItem(1, 101);
+        addErc721ConsiderationItem(alice, 0);
+        considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
+        test721_1.mint(address(this), 42);
+
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(statefulZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        baseOrderParameters.startTime = 1;
+        baseOrderParameters.endTime = 101;
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        _configureOrderComponents(0);
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: 1,
+            denominator: 1,
+            signature: signature,
+            extraData: "extradata"
+        });
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](1);
+        criteriaResolvers[0] = CriteriaResolver({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 42,
+            criteriaProof: new bytes32[](0)
+        });
+        vm.warp(50);
+        consideration.fulfillAdvancedOrder{
+            value: _sumConsiderationAmounts()
+        }({
+            advancedOrder: order,
+            criteriaResolvers: criteriaResolvers,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(0)
+        });
+
+        assertTrue(statefulZone.called());
     }
 
     function _sumConsiderationAmounts() internal returns (uint256 sum) {

@@ -26,6 +26,6 @@ contract TestZone is ZoneInterface {
         returns (bytes4 validOrderMagicValue)
     {
         // revert(hex"696969696969");
-        return 0x0e1d31dc;
+        return ZoneInterface.validateOrder.selector;
     }
 }
