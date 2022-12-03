@@ -126,9 +126,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         }
 
         // Reuse consideration recipient.
-        execution.item.recipient = address(
-            uint160(considerationItem.endAmount)
-        );
+        execution.item.recipient = considerationItem.recipient;
 
         // Return the final execution that will be triggered for relevant items.
         return execution; // Execution(considerationItem, offerer, conduitKey);
