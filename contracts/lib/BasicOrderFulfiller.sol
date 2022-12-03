@@ -277,26 +277,7 @@ contract BasicOrderFulfiller is OrderValidator {
         }
 
         // Determine whether order is restricted and, if so, that it is valid.
-        {
-            ItemType receivedItemType;
-
-            assembly {
-                receivedItemType := add(
-                    mul(sub(route, 2), gt(route, 2)),
-                    eq(route, 2)
-                )
-            }
-
-            _assertRestrictedBasicOrderValidity(
-                orderHash,
-                orderType,
-                parameters,
-                receivedItemType,
-                additionalRecipientsItemType,
-                additionalRecipientsToken,
-                offeredItemType
-            );
-        }
+        _assertRestrictedBasicOrderValidity(orderHash, orderType, parameters);
 
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
@@ -315,10 +296,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *      will ensure that other functions using Solidity's calldata accessors
      *      (which calculate pointers from the stored offsets) are reading the
      *      same data as the order hash is derived from. Also note that This
-     *      function accesses memory directly. It does not clear the expanded
-     *      memory regions used, nor does it update the free memory pointer, so
-     *      other direct memory access must not assume that unused memory is
-     *      empty.
+     *      function accesses memory directly.
      *
      * @param parameters                   The parameters of the basic order.
      * @param orderType                    The order type.
@@ -912,6 +890,9 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Restore the zero slot.
             mstore(ZeroSlot, 0)
+
+            // Update the free memory pointer so that event data is persisted.
+            mstore(0x40, add(0x80, add(eventDataPtr, dataSize)))
         }
 
         // Verify and update the status of the derived order.
