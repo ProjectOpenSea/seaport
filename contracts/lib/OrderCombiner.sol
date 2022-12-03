@@ -175,11 +175,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Track the order hash for each order being fulfilled.
         orderHashes = new bytes32[](totalOrders);
 
-        // Override orderHashes length to zero after memory has been allocated.
-        assembly {
-            mstore(orderHashes, 0)
-        }
-
         // Declare an error buffer indicating status of any native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
         // {01} == 1 => In a match function, some native offer items: allow.
@@ -218,11 +213,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     // Mark fill fraction as zero as the order will not be used.
                     advancedOrder.numerator = 0;
 
-                    // Update the length of the orderHashes array.
-                    assembly {
-                        mstore(orderHashes, add(i, 1))
-                    }
-
                     // Continue iterating through the remaining orders.
                     continue;
                 }
@@ -236,11 +226,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         advancedOrder,
                         revertOnInvalid
                     );
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
@@ -305,17 +290,19 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         );
                     }
 
-                    // Update end amount in memory to match the derived amount.
-                    offerItem.endAmount = endAmount;
-
                     // Adjust offer amount using current time; round down.
-                    offerItem.startAmount = _locateCurrentAmount(
+                    uint256 currentAmount = _locateCurrentAmount(
                         offerItem.startAmount,
-                        offerItem.endAmount,
+                        endAmount,
                         startTime,
                         endTime,
                         false // round down
                     );
+
+                    // Update amounts in memory to match the current amount.
+                    // Note that the end amount is used to track spent amounts.
+                    offerItem.startAmount = currentAmount;
+                    offerItem.endAmount = currentAmount;
                 }
 
                 // Retrieve array of consideration items for order in question.
@@ -356,19 +343,18 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         );
                     }
 
-                    // Update end amount in memory to match the derived amount.
-                    considerationItem.endAmount = endAmount;
-
                     // Adjust consideration amount using current time; round up.
-                    considerationItem.startAmount = (
+                    uint256 currentAmount = (
                         _locateCurrentAmount(
                             considerationItem.startAmount,
-                            considerationItem.endAmount,
+                            endAmount,
                             startTime,
                             endTime,
                             true // round up
                         )
                     );
+
+                    considerationItem.startAmount = currentAmount;
 
                     // Utilize assembly to manually "shift" the recipient value.
                     assembly {
@@ -384,6 +370,25 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                                 add(
                                     considerationItem,
                                     ConsiderationItem_recipient_offset
+                                )
+                            )
+                        )
+                    }
+
+                    // Utilize assembly to copy the start amount to recipient.
+                    assembly {
+                        // Write startAmount to recipient, as recipient is not
+                        // used from this point on and can be repurposed to
+                        // track received amounts.
+                        mstore(
+                            add(
+                                considerationItem,
+                                ConsiderationItem_recipient_offset // recipient
+                            ),
+                            mload(
+                                add(
+                                    considerationItem,
+                                    ReceivedItem_amount_offset
                                 )
                             )
                         )
@@ -684,25 +689,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
 
-        // Declare criteria resolvers (currently unused).
-        CriteriaResolver[] memory criteriaResolvers;
-
-        // Override existing orderHashes array length to zero.
-        assembly {
-            mstore(orderHashes, 0)
-        }
-
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order in question.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Skip consideration item checks for order if not fulfilled.
                 if (advancedOrder.numerator == 0) {
@@ -718,35 +710,76 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Retrieve the order parameters.
                 OrderParameters memory parameters = advancedOrder.parameters;
 
-                // Retrieve consideration items to ensure they are fulfilled.
-                ConsiderationItem[] memory consideration = (
-                    parameters.consideration
-                );
+                // Restore offer items for restricted or contract orders.
+                if (uint256(parameters.orderType) > 1) {
+                    // Retrieve offer items.
+                    OfferItem[] memory offer = parameters.offer;
 
-                // Read length of consideration array and place on the stack.
-                uint256 totalConsiderationItems = consideration.length;
+                    // Read length of offer array & place on the stack.
+                    uint256 totalOfferItems = offer.length;
 
-                // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                    // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].startAmount;
+                    // Iterate over each offer item to restore it.
+                    for (uint256 j = 0; j < totalOfferItems; ++j) {
+                        OfferItem memory offerItem = offer[j];
 
-                    // Revert if the remaining amount is not zero.
-                    if (unmetAmount != 0) {
-                        _revertConsiderationNotMet(i, j, unmetAmount);
+                        // Utilize assembly to restore the original value.
+                        assembly {
+                            // Write endAmount to startAmount.
+                            mstore(
+                                add(offerItem, Common_amount_offset),
+                                mload(add(offerItem, Common_endAmount_offset))
+                            )
+                        }
+                    }
+                }
+
+                {
+                    // Retrieve consideration items & ensure they are fulfilled.
+                    ConsiderationItem[] memory consideration = (
+                        parameters.consideration
+                    );
+
+                    // Read length of consideration array & place on the stack.
+                    uint256 totalConsiderationItems = consideration.length;
+
+                    // Iterate over each consideration item to ensure it is met.
+                    for (uint256 j = 0; j < totalConsiderationItems; ++j) {
+                        ConsiderationItem memory considerationItem = (
+                            consideration[j]
+                        );
+
+                        // Retrieve remaining amount on the consideration item.
+                        uint256 unmetAmount = considerationItem.startAmount;
+
+                        // Revert if the remaining amount is not zero.
+                        if (unmetAmount != 0) {
+                            _revertConsiderationNotMet(i, j, unmetAmount);
+                        }
+
+                        // Utilize assembly to restore the original value.
+                        assembly {
+                            // Write recipient to startAmount.
+                            mstore(
+                                add(
+                                    considerationItem,
+                                    ReceivedItem_amount_offset
+                                ),
+                                mload(
+                                    add(
+                                        considerationItem,
+                                        ConsiderationItem_recipient_offset
+                                    )
+                                )
+                            )
+                        }
                     }
                 }
 
                 // Ensure restricted orders have valid submitter or pass check.
                 _assertRestrictedAdvancedOrderValidity(
                     advancedOrder,
-                    criteriaResolvers,
                     orderHashes,
-                    orderHashes[i],
-                    parameters.zoneHash,
-                    parameters.orderType,
-                    parameters.offerer,
-                    parameters.zone
+                    orderHashes[i]
                 );
             }
         }

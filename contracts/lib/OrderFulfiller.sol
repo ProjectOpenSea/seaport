@@ -115,13 +115,8 @@ contract OrderFulfiller is
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrders[0],
-            criteriaResolvers,
             priorOrderHashes,
-            orderHash,
-            orderParameters.zoneHash,
-            orderParameters.orderType,
-            orderParameters.offerer,
-            orderParameters.zone
+            orderHash
         );
 
         // Emit an event signifying that the order has been fulfilled.

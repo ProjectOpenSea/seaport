@@ -10,59 +10,47 @@ import { ItemType } from "../lib/ConsiderationEnums.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
-    ConsiderationItem
+    ReceivedItem,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {
-    function isValidOrder(
-        bytes32 orderHash,
-        address caller,
-        address offerer,
-        bytes32 zoneHash
-    ) external pure override returns (bytes4) {
-        orderHash;
-        caller;
-        offerer;
-        zoneHash;
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
+        if (zoneParameters.consideration.length == 0) {
+            revert("No consideration items supplied");
+        }
 
-        revert("Basic validity check not allowed");
-    }
+        ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
-    function isValidOrderIncludingExtraData(
-        bytes32 orderHash,
-        address caller,
-        AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes,
-        CriteriaResolver[] calldata criteriaResolvers
-    ) external view override returns (bytes4 validOrderMagicValue) {
-        orderHash;
-        caller;
-        priorOrderHashes;
-        criteriaResolvers;
+        address currentOwner;
+        try
+            ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
+        returns (address owner) {
+            currentOwner = owner;
+        } catch {
+            revert("Unsupported consideration token type (must implement 721)");
+        }
 
-        ConsiderationItem memory considerationItem = (
-            order.parameters.consideration[0]
-        );
-
-        address currentOwner = ERC721Interface(considerationItem.token).ownerOf(
-            considerationItem.identifierOrCriteria
-        );
-
-        if (considerationItem.itemType != ItemType.ERC721) {
+        if (receivedItem.itemType != ItemType.ERC721) {
             revert("Validity check performed with unsupported item type");
         }
 
         // Note that endAmount has been repurposed as recipient; this interface
         // still needs to be modified to return spent / received items.
-        if (considerationItem.startAmount != 1) {
+        if (receivedItem.amount != 1) {
             // Note that this is currently failing in the matchOrder case.
             revert("Returned item amount incorrectly modified");
         }
 
-        if (currentOwner != considerationItem.recipient) {
+        if (currentOwner != receivedItem.recipient) {
             revert("Validity check performed prior to execution");
         }
 
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 }

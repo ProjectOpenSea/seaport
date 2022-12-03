@@ -617,12 +617,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Set the recipient on the received item.
             mstore(
                 add(receivedItem, ReceivedItem_recipient_offset),
-                mload(
-                    add(
-                        considerationItemPtr,
-                        ConsiderationItem_recipient_offset
-                    )
-                )
+                mload(add(considerationItemPtr, ReceivedItem_recipient_offset))
             )
 
             // Calculate the hash of (itemType, token, identifier).
@@ -725,7 +720,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                             mload(
                                 add(
                                     considerationItemPtr,
-                                    ConsiderItem_recipient_offset
+                                    ReceivedItem_recipient_offset
                                 )
                             ),
                             mload(

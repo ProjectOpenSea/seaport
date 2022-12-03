@@ -3,12 +3,20 @@ pragma solidity ^0.8.7;
 
 import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
-import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    BasicOrderParameters,
+    OrderParameters,
+    ZoneParameters,
+    SpentItem,
+    ReceivedItem,
+    AdditionalRecipient
 } from "contracts/lib/ConsiderationStructs.sol";
+
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
@@ -28,33 +36,49 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
      *
-     * @param orderHash The hash of the order.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     * @param orderType The type of the order.
-     * @param offerer   The offerer in question.
-     * @param zone      The zone in question.
+     * @param orderHash             The hash of the order.
+     * @param basicOrderParameters  The original basic order parameters.
+     * @param offeredItemType       The type of the order.
+     * @param receivedItemType      The offerer in question.
      */
     function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
-        bytes32 zoneHash,
         OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
+        BasicOrderParameters calldata basicOrderParameters,
+        ItemType offeredItemType,
+        ItemType receivedItemType
+    ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             (orderType == OrderType.FULL_RESTRICTED ||
                 orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            msg.sender != basicOrderParameters.zone &&
+            msg.sender != basicOrderParameters.offerer
         ) {
+            (
+                SpentItem[] memory offer,
+                ReceivedItem[] memory consideration
+            ) = _convertToSpentAndReceivedItems(
+                    basicOrderParameters,
+                    offeredItemType,
+                    receivedItemType
+                );
+
             if (
-                ZoneInterface(zone).isValidOrder(
-                    orderHash,
-                    msg.sender,
-                    offerer,
-                    zoneHash
-                ) != ZoneInterface.isValidOrder.selector
+                ZoneInterface(basicOrderParameters.zone).validateOrder(
+                    ZoneParameters({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: basicOrderParameters.offerer,
+                        offer: offer,
+                        consideration: consideration,
+                        extraData: "",
+                        orderHashes: new bytes32[](0),
+                        startTime: basicOrderParameters.startTime,
+                        endTime: basicOrderParameters.endTime,
+                        zoneHash: basicOrderParameters.zoneHash
+                    })
+                ) != ZoneInterface.validateOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
@@ -67,13 +91,6 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      *      order type.
      *
      * @param advancedOrder     The order in question.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
      * @param priorOrderHashes  The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety
      *                          of order fulfillment (e.g. this array will be
@@ -83,18 +100,17 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param orderType         The type of the order.
      * @param offerer           The offerer in question.
      * @param zone              The zone in question.
-
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
+        OrderToExecute memory orderToExecute,
         bytes32[] memory priorOrderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view {
+    ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             (orderType == OrderType.FULL_RESTRICTED ||
@@ -102,34 +118,66 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            // If no extraData or criteria resolvers are supplied...
             if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
+                ZoneInterface(zone).validateOrder(
+                    ZoneParameters({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: offerer,
+                        offer: orderToExecute.spentItems,
+                        consideration: orderToExecute.receivedItems,
+                        extraData: advancedOrder.extraData,
+                        orderHashes: priorOrderHashes,
+                        startTime: advancedOrder.parameters.startTime,
+                        endTime: advancedOrder.parameters.endTime,
+                        zoneHash: zoneHash
+                    })
+                ) != ZoneInterface.validateOrder.selector
             ) {
-                if (
-                    ZoneInterface(zone).isValidOrder(
-                        orderHash,
-                        msg.sender,
-                        offerer,
-                        zoneHash
-                    ) != ZoneInterface.isValidOrder.selector
-                ) {
-                    revert InvalidRestrictedOrder(orderHash);
-                }
-            } else {
-                if (
-                    ZoneInterface(zone).isValidOrderIncludingExtraData(
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
-                    ) != ZoneInterface.isValidOrder.selector
-                ) {
-                    revert InvalidRestrictedOrder(orderHash);
-                }
+                revert InvalidRestrictedOrder(orderHash);
             }
         }
+    }
+
+    function _convertToSpentAndReceivedItems(
+        BasicOrderParameters calldata parameters,
+        ItemType offerItemType,
+        ItemType considerationItemType
+    ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](1);
+        spentItems[0] = SpentItem({
+            itemType: offerItemType,
+            token: parameters.offerToken,
+            amount: parameters.offerAmount,
+            identifier: parameters.offerIdentifier
+        });
+
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            1 + parameters.additionalRecipients.length
+        );
+        address token = parameters.considerationToken;
+        uint256 amount = parameters.considerationAmount;
+        uint256 identifier = parameters.considerationIdentifier;
+        receivedItems[0] = ReceivedItem({
+            itemType: considerationItemType,
+            token: token,
+            amount: amount,
+            identifier: identifier,
+            recipient: parameters.offerer
+        });
+        for (uint256 i = 0; i < parameters.additionalRecipients.length; i++) {
+            AdditionalRecipient calldata additionalRecipient = parameters
+                .additionalRecipients[i];
+            amount = additionalRecipient.amount;
+            receivedItems[i + 1] = ReceivedItem({
+                itemType: considerationItemType,
+                token: token,
+                amount: amount,
+                identifier: identifier,
+                recipient: additionalRecipient.recipient
+            });
+        }
+
+        return (spentItems, receivedItems);
     }
 }

@@ -112,7 +112,7 @@ contract ReferenceOrderFulfiller is
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
-            criteriaResolvers,
+            orderToExecute,
             priorOrderHashes,
             orderHash,
             orderParameters.zoneHash,
@@ -364,6 +364,7 @@ contract ReferenceOrderFulfiller is
 
         // Create an array of spent items equal to the offer length.
         SpentItem[] memory spentItems = new SpentItem[](offer.length);
+        uint256[] memory spentItemOriginalAmounts = new uint256[](offer.length);
 
         // Iterate over each offer item on the order.
         for (uint256 i = 0; i < offer.length; ++i) {
@@ -380,6 +381,7 @@ contract ReferenceOrderFulfiller is
 
             // Add to array of spent items
             spentItems[i] = spentItem;
+            spentItemOriginalAmounts[i] = offerItem.startAmount;
         }
 
         // Retrieve the advanced orders considerations.
@@ -389,6 +391,9 @@ contract ReferenceOrderFulfiller is
 
         // Create an array of received items equal to the consideration length.
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+        uint256[] memory receivedItemOriginalAmounts = new uint256[](
             consideration.length
         );
 
@@ -408,6 +413,7 @@ contract ReferenceOrderFulfiller is
 
             // Add to array of received items
             receivedItems[i] = receivedItem;
+            receivedItemOriginalAmounts[i] = considerationItem.startAmount;
         }
 
         // Create the order to execute from the advanced order data.
@@ -416,8 +422,11 @@ contract ReferenceOrderFulfiller is
             spentItems,
             receivedItems,
             advancedOrder.parameters.conduitKey,
-            advancedOrder.numerator
+            advancedOrder.numerator,
+            spentItemOriginalAmounts,
+            receivedItemOriginalAmounts
         );
+
         // Return the order.
         return orderToExecute;
     }
