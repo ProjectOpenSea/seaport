@@ -726,16 +726,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         assembly {
                             // Write endAmount to startAmount.
                             mstore(
-                                add(
-                                    offerItem,
-                                    Common_amount_offset
-                                ),
-                                mload(
-                                    add(
-                                        offerItem,
-                                        Common_endAmount_offset
-                                    )
-                                )
+                                add(offerItem, Common_amount_offset),
+                                mload(add(offerItem, Common_endAmount_offset))
                             )
                         }
                     }
