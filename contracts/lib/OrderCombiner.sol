@@ -744,7 +744,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                     // Iterate over each consideration item to ensure it is met.
                     for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                        considerationItem memory considerationItem = (
+                        ConsiderationItem memory considerationItem = (
                             consideration[j]
                         );
 
