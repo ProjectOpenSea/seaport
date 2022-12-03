@@ -40,7 +40,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
     ) internal view {
         // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            uint256(orderType) > 1 &&
+            uint256(orderType) >> 1 == 1 &&
             !_unmaskedAddressComparison(msg.sender, zone)
         ) {
             // Perform minimal staticcall to the zone.
@@ -148,7 +148,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
     ) internal view {
         // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            uint256(orderType) > 1 &&
+            uint256(orderType) >> 1 == 1 &&
             !_unmaskedAddressComparison(msg.sender, zone)
         ) {
             // If no extraData or criteria resolvers are supplied...
