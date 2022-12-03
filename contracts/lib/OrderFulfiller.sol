@@ -116,11 +116,7 @@ contract OrderFulfiller is
         _assertRestrictedAdvancedOrderValidity(
             advancedOrders[0],
             priorOrderHashes,
-            orderHash,
-            orderParameters.zoneHash,
-            orderParameters.orderType,
-            orderParameters.offerer,
-            orderParameters.zone
+            orderHash
         );
 
         // Emit an event signifying that the order has been fulfilled.
