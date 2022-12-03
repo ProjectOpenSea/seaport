@@ -165,6 +165,12 @@ uint256 constant OrderFulfilled_baseOffset = 0x180;
 uint256 constant OrderFulfilled_consideration_length_baseOffset = 0x2a0;
 uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
+// Related constants used for restricted order checks on basic orders.
+uint256 constant OrderFulfilled_offerDataOffset = 0x240;
+address constant IdentityPrecompile = address(4);
+uint256 constant OrderFulfilled_baseDataSize = 0x160;
+uint256 constant ValidateOrder_offerDataOffset = 0x184;
+
 // uint256 constant OrderFulfilled_orderHash_offset = 0x00;
 uint256 constant OrderFulfilled_fulfiller_offset = 0x20;
 uint256 constant OrderFulfilled_offer_head_offset = 0x40;

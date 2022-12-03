@@ -84,15 +84,22 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
             uint256 size;
             unchecked {
-                size = 0x120 + (parameters.additionalRecipients.length * 0xa0);
+                size =
+                    OrderFulfilled_baseDataSize +
+                    (parameters.additionalRecipients.length *
+                        ReceivedItem_size);
             }
 
             // Send to the identity precompile.
-            _call(address(4), 0x80, size);
+            _call(IdentityPrecompile, OrderFulfilled_offerDataOffset, size);
 
             // Copy into the correct region of calldata.
             assembly {
-                returndatacopy(add(callData, 0x1c0), 0, size)
+                returndatacopy(
+                    add(callData, ValidateOrder_offerDataOffset),
+                    0,
+                    size
+                )
             }
 
             _callAndCheckStatus(parameters.zone, orderHash, callData);

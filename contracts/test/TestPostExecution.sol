@@ -21,11 +21,20 @@ contract TestPostExecution is ZoneInterface {
         override
         returns (bytes4 validOrderMagicValue)
     {
+        if (zoneParameters.consideration.length == 0) {
+            revert("No consideration items supplied");
+        }
+
         ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
-        address currentOwner = ERC721Interface(receivedItem.token).ownerOf(
-            receivedItem.identifier
-        );
+        address currentOwner;
+        try
+            ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
+        returns (address owner) {
+            currentOwner = owner;
+        } catch {
+            revert("Unsupported consideration token type (must implement 721)");
+        }
 
         if (receivedItem.itemType != ItemType.ERC721) {
             revert("Validity check performed with unsupported item type");

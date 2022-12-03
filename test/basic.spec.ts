@@ -859,7 +859,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
-      it("ERC721 <=> ETH (basic with restricted order)", async () => {
+      it.only("ERC721 <=> ETH (basic with restricted order)", async () => {
         const nftId = await mintAndApprove721(
           seller,
           marketplaceContract.address
@@ -972,6 +972,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
+
       it("ERC721 <=> ETH (basic, already validated)", async () => {
         const nftId = await mintAndApprove721(
           seller,
@@ -2305,6 +2306,65 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
+      it.only("ERC721 <=> ETH (basic with restricted order checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = toBN(random128());
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          4, // ERC721ForERC20
+          order
+        );
+
+        await withBalanceChecks([order], toBN(0), undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters);
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ],
+            getBasicOrderExecutions(order, buyer.address, conduitKeyOne)
+          );
+
+          return receipt;
+        });
+      });
       it("ERC721 <=> ERC20 (basic, many via conduit)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
@@ -2502,7 +2562,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
         return receipt;
       });
-      it("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
+      it.only("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
 
