@@ -1639,11 +1639,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         4 // CONTRACT
       );
 
-      const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
-        buyer,
-        zone,
-        order
-      );
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
 
       const contractOffererNonce =
         await marketplaceContract.getContractOffererNonce(
@@ -1665,7 +1661,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       order.denominator = 1;
       order.signature = "0x";
 
-      const orders = [order, mirrorOrder]
+      const orders = [order, mirrorOrder];
 
       const offerComponents = [
         [{ orderIndex: 0, itemIndex: 0 }],
@@ -1679,9 +1675,16 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(buyer)
-          .fulfillAvailableOrders(orders, offerComponents, considerationComponents, toKey(0), 100, {
-            value,
-          })
+          .fulfillAvailableOrders(
+            orders,
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            100,
+            {
+              value,
+            }
+          )
       ).to.be.reverted;
     });
     it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {

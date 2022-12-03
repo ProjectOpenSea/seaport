@@ -136,8 +136,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
         if (
             isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, advancedOrder.parameters.zone) &&
-            !_unmaskedAddressComparison(msg.sender, advancedOrder.parameters.offerer)
+            !_unmaskedAddressComparison(
+                msg.sender,
+                advancedOrder.parameters.zone
+            ) &&
+            !_unmaskedAddressComparison(
+                msg.sender,
+                advancedOrder.parameters.offerer
+            )
         ) {
             // TODO: optimize (conversion is temporary to get it to compile)
             bytes memory callData = _generateCallData(
@@ -152,7 +158,11 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 advancedOrder.parameters.endTime
             );
 
-            _callAndCheckStatus(advancedOrder.parameters.zone, orderHash, callData);
+            _callAndCheckStatus(
+                advancedOrder.parameters.zone,
+                orderHash,
+                callData
+            );
         }
     }
 
