@@ -779,11 +779,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 _assertRestrictedAdvancedOrderValidity(
                     advancedOrder,
                     orderHashes,
-                    orderHashes[i],
-                    parameters.zoneHash,
-                    parameters.orderType,
-                    parameters.offerer,
-                    parameters.zone
+                    orderHashes[i]
                 );
             }
         }

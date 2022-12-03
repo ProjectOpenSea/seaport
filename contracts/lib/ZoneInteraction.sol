@@ -120,36 +120,31 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *                          of order fulfillment (e.g. this array will be
      *                          empty for single or "fulfill available").
      * @param orderHash         The hash of the order.
-     * @param zoneHash          The hash to provide upon calling the zone.
-     * @param orderType         The type of the order.
-     * @param offerer           The offerer in question.
-     * @param zone              The zone in question.
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
         bytes32[] memory orderHashes,
-        bytes32 orderHash,
-        bytes32 zoneHash,
-        OrderType orderType,
-        address offerer,
-        address zone
+        bytes32 orderHash
     ) internal {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         bool isRestricted;
-        assembly {
-            isRestricted := or(eq(orderType, 2), eq(orderType, 3))
+        {
+            OrderType orderType = advancedOrder.parameters.orderType;
+            assembly {
+                isRestricted := or(eq(orderType, 2), eq(orderType, 3))
+            }
         }
         if (
             isRestricted &&
-            !_unmaskedAddressComparison(msg.sender, zone) &&
-            !_unmaskedAddressComparison(msg.sender, offerer)
+            !_unmaskedAddressComparison(msg.sender, advancedOrder.parameters.zone) &&
+            !_unmaskedAddressComparison(msg.sender, advancedOrder.parameters.offerer)
         ) {
             // TODO: optimize (conversion is temporary to get it to compile)
             bytes memory callData = _generateCallData(
                 orderHash,
                 orderHashes,
-                zoneHash,
-                offerer,
+                advancedOrder.parameters.zoneHash,
+                advancedOrder.parameters.offerer,
                 _convertOffer(advancedOrder.parameters.offer),
                 _convertConsideration(advancedOrder.parameters.consideration),
                 advancedOrder.extraData,
@@ -157,7 +152,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 advancedOrder.parameters.endTime
             );
 
-            _callAndCheckStatus(zone, orderHash, callData);
+            _callAndCheckStatus(advancedOrder.parameters.zone, orderHash, callData);
         }
     }
 
