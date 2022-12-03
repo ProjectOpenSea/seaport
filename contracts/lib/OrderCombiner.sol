@@ -175,11 +175,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Track the order hash for each order being fulfilled.
         orderHashes = new bytes32[](totalOrders);
 
-        // Override orderHashes length to zero after memory has been allocated.
-        assembly {
-            mstore(orderHashes, 0)
-        }
-
         // Declare an error buffer indicating status of any native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
         // {01} == 1 => In a match function, some native offer items: allow.
@@ -218,11 +213,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     // Mark fill fraction as zero as the order will not be used.
                     advancedOrder.numerator = 0;
 
-                    // Update the length of the orderHashes array.
-                    assembly {
-                        mstore(orderHashes, add(i, 1))
-                    }
-
                     // Continue iterating through the remaining orders.
                     continue;
                 }
@@ -236,11 +226,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         advancedOrder,
                         revertOnInvalid
                     );
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
@@ -725,22 +710,76 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Retrieve the order parameters.
                 OrderParameters memory parameters = advancedOrder.parameters;
 
-                // Retrieve consideration items to ensure they are fulfilled.
-                ConsiderationItem[] memory consideration = (
-                    parameters.consideration
-                );
+                // Restore offer items for restricted or contract orders.
+                if (uint256(parameters.orderType) > 1) {
+                    // Retrieve offer items.
+                    OfferItem[] memory offer = parameters.offer;
 
-                // Read length of consideration array and place on the stack.
-                uint256 totalConsiderationItems = consideration.length;
+                    // Read length of offer array & place on the stack.
+                    uint256 totalOfferItems = offer.length;
 
-                // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                    // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].startAmount;
+                    // Iterate over each offer item to restore it.
+                    for (uint256 j = 0; j < totalOfferItems; ++j) {
+                        OfferItem memory offerItem = offer[j];
 
-                    // Revert if the remaining amount is not zero.
-                    if (unmetAmount != 0) {
-                        _revertConsiderationNotMet(i, j, unmetAmount);
+                        // Utilize assembly to restore the original value.
+                        assembly {
+                            // Write endAmount to startAmount.
+                            mstore(
+                                add(
+                                    offerItem,
+                                    Common_amount_offset
+                                ),
+                                mload(
+                                    add(
+                                        offerItem,
+                                        Common_endAmount_offset
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
+
+                {
+                    // Retrieve consideration items & ensure they are fulfilled.
+                    ConsiderationItem[] memory consideration = (
+                        parameters.consideration
+                    );
+
+                    // Read length of consideration array & place on the stack.
+                    uint256 totalConsiderationItems = consideration.length;
+
+                    // Iterate over each consideration item to ensure it is met.
+                    for (uint256 j = 0; j < totalConsiderationItems; ++j) {
+                        considerationItem memory considerationItem = (
+                            consideration[j]
+                        );
+
+                        // Retrieve remaining amount on the consideration item.
+                        uint256 unmetAmount = considerationItem.startAmount;
+
+                        // Revert if the remaining amount is not zero.
+                        if (unmetAmount != 0) {
+                            _revertConsiderationNotMet(i, j, unmetAmount);
+                        }
+
+                        // Utilize assembly to restore the original value.
+                        assembly {
+                            // Write recipient to startAmount.
+                            mstore(
+                                add(
+                                    considerationItem,
+                                    ReceivedItem_amount_offset
+                                ),
+                                mload(
+                                    add(
+                                        considerationItem,
+                                        ConsiderationItem_recipient_offset
+                                    )
+                                )
+                            )
+                        }
                     }
                 }
 
