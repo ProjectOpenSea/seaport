@@ -43,8 +43,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal view {
         // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            (uint256(orderType) == 2 || uint256(orderType) == 3) &&
-            msg.sender != zone
+            (orderType == OrderType.FULL_RESTRICTED ||
+                orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone
         ) {
             if (
                 ZoneInterface(zone).isValidOrder(
@@ -95,8 +95,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal view {
         // Order type 2-3 require zone to be caller or zone to approve.
         if (
-            (uint256(orderType) == 2 || uint256(orderType) == 3) &&
-            msg.sender != zone
+            (orderType == OrderType.FULL_RESTRICTED ||
+                orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (
