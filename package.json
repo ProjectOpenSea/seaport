@@ -65,7 +65,8 @@
     "normalize-url": ">=4.5.1",
     "ws": ">=5.2.3",
     "path-parse": ">=1.0.7",
-    "elliptic": ">=6.5.4"
+    "elliptic": ">=6.5.4",
+    "minimatch": ">=3.0.5"
   },
   "scripts": {
     "build": "hardhat compile --config ./hardhat.config.ts",
