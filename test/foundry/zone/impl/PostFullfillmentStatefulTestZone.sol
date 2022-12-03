@@ -21,8 +21,8 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
         external
         returns (bytes4 validOrderMagicValue)
     {
-        if (zoneParameters.offer[0].startAmount != 50) {
-            revert IncorrectAmount(zoneParameters.offer[0].startAmount, 50);
+        if (zoneParameters.offer[0].amount != 50) {
+            revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
         }
         if (zoneParameters.consideration[0].itemType != ItemType.ERC721) {
             revert IncorrectIdentifier(
@@ -30,9 +30,9 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
                 uint256(ItemType.ERC721)
             );
         }
-        if (zoneParameters.consideration[0].identifierOrCriteria != 42) {
+        if (zoneParameters.consideration[0].identifier != 42) {
             revert IncorrectIdentifier(
-                zoneParameters.consideration[0].identifierOrCriteria,
+                zoneParameters.consideration[0].identifier,
                 42
             );
         }
