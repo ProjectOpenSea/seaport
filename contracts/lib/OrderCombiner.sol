@@ -305,17 +305,19 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         );
                     }
 
-                    // Update end amount in memory to match the derived amount.
-                    offerItem.endAmount = endAmount;
-
                     // Adjust offer amount using current time; round down.
-                    offerItem.startAmount = _locateCurrentAmount(
+                    uint256 currentAmount = _locateCurrentAmount(
                         offerItem.startAmount,
-                        offerItem.endAmount,
+                        endAmount,
                         startTime,
                         endTime,
                         false // round down
                     );
+
+                    // Update amounts in memory to match the current amount.
+                    // Note that the end amount is used to track spent amounts.
+                    offerItem.startAmount = currentAmount;
+                    offerItem.endAmount = currentAmount;
                 }
 
                 // Retrieve array of consideration items for order in question.
@@ -356,19 +358,18 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         );
                     }
 
-                    // Update end amount in memory to match the derived amount.
-                    considerationItem.endAmount = endAmount;
-
                     // Adjust consideration amount using current time; round up.
-                    considerationItem.startAmount = (
+                    uint256 currentAmount = (
                         _locateCurrentAmount(
                             considerationItem.startAmount,
-                            considerationItem.endAmount,
+                            endAmount,
                             startTime,
                             endTime,
                             true // round up
                         )
                     );
+
+                    considerationItem.startAmount = currentAmount;
 
                     // Utilize assembly to manually "shift" the recipient value.
                     assembly {
@@ -384,6 +385,25 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                                 add(
                                     considerationItem,
                                     ConsiderationItem_recipient_offset
+                                )
+                            )
+                        )
+                    }
+
+                    // Utilize assembly to copy the start amount to recipient.
+                    assembly {
+                        // Write startAmount to recipient, as recipient is not
+                        // used from this point on and can be repurposed to
+                        // track received amounts.
+                        mstore(
+                            add(
+                                considerationItem,
+                                ConsiderationItem_recipient_offset // recipient
+                            ),
+                            mload(
+                                add(
+                                    considerationItem,
+                                    ReceivedItem_amount_offset
                                 )
                             )
                         )
