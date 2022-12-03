@@ -19,6 +19,8 @@ interface ERC721Interface {
     ) external;
 
     function setApprovalForAll(address, bool) external;
+
+    function ownerOf(uint256) external view returns (address);
 }
 
 interface ERC1155Interface {

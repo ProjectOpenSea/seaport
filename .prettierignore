@@ -3,4 +3,8 @@ artifacts
 cache
 coverage*
 gasReporterOutput.json
+lib/ds-test
+lib/forge-std
 lib/murky
+lib/openzeppelin-contracts
+lib/solmate

@@ -58,6 +58,8 @@ struct OrderToExecute {
     ReceivedItem[] receivedItems; // Consideration
     bytes32 conduitKey;
     uint120 numerator;
+    uint256[] spentItemOriginalAmounts;
+    uint256[] receivedItemOriginalAmounts;
 }
 
 /**
