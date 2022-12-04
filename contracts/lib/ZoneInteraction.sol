@@ -90,8 +90,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                         ReceivedItem_size);
             }
 
+            uint256 offerDataOffset;
+            unchecked {
+                offerDataOffset = ((parameters
+                    .totalOriginalAdditionalRecipients + 1) * 192);
+            }
+
             // Send to the identity precompile.
-            _call(IdentityPrecompile, OrderFulfilled_offerDataOffset, size);
+            _call(IdentityPrecompile, offerDataOffset, size);
 
             // Copy into the correct region of calldata.
             assembly {
