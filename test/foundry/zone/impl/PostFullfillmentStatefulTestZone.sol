@@ -37,7 +37,7 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
             );
         }
 
-        // called = true;
+        called = true;
         return ZoneInterface.validateOrder.selector;
     }
 }
