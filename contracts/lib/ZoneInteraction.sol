@@ -94,8 +94,21 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                         ReceivedItem_size);
             }
 
+            uint256 offerDataOffset;
+            assembly {
+                offerDataOffset := add(
+                    OrderFulfilled_offer_length_baseOffset,
+                    mul(
+                        calldataload(
+                            BasicOrder_additionalRecipients_length_cdPtr
+                        ),
+                        OneWord
+                    )
+                )
+            }
+
             // Send to the identity precompile.
-            _call(IdentityPrecompile, OrderFulfilled_offerDataOffset, size);
+            _call(IdentityPrecompile, offerDataOffset, size);
 
             // Copy into the correct region of calldata.
             assembly {
