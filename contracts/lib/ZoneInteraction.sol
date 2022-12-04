@@ -70,14 +70,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             // TODO: optimize (conversion is temporary to get it to compile)
             bytes memory callData = _generateCallData(
                 orderHash,
-                orderHashes,
-                parameters.zoneHash,
                 parameters.offerer,
                 offer,
                 consideration,
                 extraData,
+                orderHashes,
                 parameters.startTime,
-                parameters.endTime
+                parameters.endTime,
+                parameters.zoneHash
             );
 
             // Copy offer & consideration from event data into target callData.
@@ -103,6 +103,11 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             }
 
             _callAndCheckStatus(parameters.zone, orderHash, callData);
+        } else if (orderType == OrderType.CONTRACT) {
+            // TODO: implement in similar fashion to above
+            assembly {
+                revert(0, 0) // NOT YET IMPLEMENTED
+            }
         }
     }
 
@@ -148,14 +153,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             // TODO: optimize (conversion is temporary to get it to compile)
             bytes memory callData = _generateCallData(
                 orderHash,
-                orderHashes,
-                advancedOrder.parameters.zoneHash,
                 advancedOrder.parameters.offerer,
                 _convertOffer(advancedOrder.parameters.offer),
                 _convertConsideration(advancedOrder.parameters.consideration),
                 advancedOrder.extraData,
+                orderHashes,
                 advancedOrder.parameters.startTime,
-                advancedOrder.parameters.endTime
+                advancedOrder.parameters.endTime,
+                advancedOrder.parameters.zoneHash
             );
 
             _callAndCheckStatus(
@@ -163,19 +168,27 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 orderHash,
                 callData
             );
+        } else if (advancedOrder.parameters.orderType == OrderType.CONTRACT) {
+            _ratifyOrder(
+                orderHash,
+                advancedOrder.parameters.offer,
+                advancedOrder.parameters.consideration,
+                advancedOrder.extraData,
+                orderHashes
+            );
         }
     }
 
     function _generateCallData(
         bytes32 orderHash,
-        bytes32[] memory orderHashes,
-        bytes32 zoneHash,
         address offerer,
         SpentItem[] memory offer,
         ReceivedItem[] memory consideration,
         bytes memory extraData,
+        bytes32[] memory orderHashes,
         uint256 startTime,
-        uint256 endTime
+        uint256 endTime,
+        bytes32 zoneHash
     ) internal view returns (bytes memory) {
         // TODO: optimize (conversion is temporary to get it to compile)
         return
@@ -213,23 +226,45 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         _assertIsValidOrderCallSuccess(success, orderHash);
     }
 
-    function _convertOffer(OfferItem[] memory offer)
-        internal
-        pure
-        returns (SpentItem[] memory spentItems)
-    {
-        assembly {
-            spentItems := offer
-        }
-    }
+    function _ratifyOrder(
+        bytes32 orderHash, // e.g. offerer + contract nonce
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration,
+        bytes calldata context, // encoded based on the schemaID
+        bytes32[] calldata orderHashes
+    ) internal {
+        bytes memory callData = abi.encodeWithSelector(
+            ContractOffererInterface.ratifyOrder.selector,
+            _convertOffer(offer),
+            _convertConsideration(consideration),
+            context,
+            orderHashes,
+            uint96(uint256(orderHash))
+        );
 
-    function _convertConsideration(ConsiderationItem[] memory consideration)
-        internal
-        pure
-        returns (ReceivedItem[] memory receivedItems)
-    {
+        uint256 callDataMemoryPointer;
         assembly {
-            receivedItems := consideration
+            callDataMemoryPointer := add(callData, OneWord)
+        }
+
+        bool success = _call(
+            address(bytes20(orderHash)),
+            callDataMemoryPointer,
+            callData.length
+        );
+
+        // If the call failed...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            _revertNoSpecifiedOrdersAvailable(); // TODO: use a better error msg
+        }
+
+        // Ensure result was extracted and matches ratifyOrder magic value.
+        if (_doesNotMatchMagic(ContractOffererInterface.ratifyOrder.selector)) {
+            _revertNoSpecifiedOrdersAvailable(); // TODO: use a better error msg
         }
     }
 
@@ -257,6 +292,26 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         // Ensure result was extracted and matches isValidOrder magic value.
         if (_doesNotMatchMagic(ZoneInterface.validateOrder.selector)) {
             _revertInvalidRestrictedOrder(orderHash);
+        }
+    }
+
+    function _convertOffer(OfferItem[] memory offer)
+        internal
+        pure
+        returns (SpentItem[] memory spentItems)
+    {
+        assembly {
+            spentItems := offer
+        }
+    }
+
+    function _convertConsideration(ConsiderationItem[] memory consideration)
+        internal
+        pure
+        returns (ReceivedItem[] memory receivedItems)
+    {
+        assembly {
+            receivedItems := consideration
         }
     }
 }

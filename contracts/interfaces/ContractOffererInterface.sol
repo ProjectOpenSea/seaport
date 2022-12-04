@@ -5,6 +5,7 @@ import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 interface ContractOffererInterface {
     function generateOrder(
+        address fulfiller,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata context // encoded based on the schemaID
@@ -22,6 +23,7 @@ interface ContractOffererInterface {
 
     function previewOrder(
         address caller,
+        address fulfiller,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata context // encoded based on the schemaID
