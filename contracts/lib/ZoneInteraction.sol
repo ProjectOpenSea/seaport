@@ -3,6 +3,10 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
+import {
+    ContractOffererInterface
+} from "../interfaces/ContractOffererInterface.sol";
+
 import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
@@ -230,8 +234,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         bytes32 orderHash, // e.g. offerer + contract nonce
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration,
-        bytes calldata context, // encoded based on the schemaID
-        bytes32[] calldata orderHashes
+        bytes memory context, // encoded based on the schemaID
+        bytes32[] memory orderHashes
     ) internal {
         bytes memory callData = abi.encodeWithSelector(
             ContractOffererInterface.ratifyOrder.selector,

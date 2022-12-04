@@ -113,6 +113,7 @@ contract TestContractOfferer is ContractOffererInterface {
     }
 
     function generateOrder(
+        address,
         SpentItem[] calldata,
         SpentItem[] calldata,
         bytes calldata context
@@ -153,6 +154,7 @@ contract TestContractOfferer is ContractOffererInterface {
 
     function previewOrder(
         address caller,
+        address,
         SpentItem[] calldata,
         SpentItem[] calldata,
         bytes calldata context
