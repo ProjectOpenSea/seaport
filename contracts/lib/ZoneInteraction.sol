@@ -91,9 +91,16 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             }
 
             uint256 offerDataOffset;
-            unchecked {
-                offerDataOffset = ((parameters
-                    .totalOriginalAdditionalRecipients + 1) * 192);
+            assembly {
+                offerDataOffset := add(
+                    OrderFulfilled_offer_length_baseOffset,
+                    mul(
+                        calldataload(
+                            BasicOrder_additionalRecipients_length_cdPtr
+                        ),
+                        OneWord
+                    )
+                )
             }
 
             // Send to the identity precompile.
