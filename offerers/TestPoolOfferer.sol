@@ -66,6 +66,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     function generateOrder(
+        address, /* fulfiller */
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata
@@ -102,6 +103,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     function previewOrder(
+        address,
         address,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,

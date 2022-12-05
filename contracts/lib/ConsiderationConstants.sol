@@ -166,10 +166,12 @@ uint256 constant OrderFulfilled_consideration_length_baseOffset = 0x2a0;
 uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
 // Related constants used for restricted order checks on basic orders.
-uint256 constant OrderFulfilled_offerDataOffset = 0x180;
+
 address constant IdentityPrecompile = address(4);
 uint256 constant OrderFulfilled_baseDataSize = 0x160;
 uint256 constant ValidateOrder_offerDataOffset = 0x184;
+
+uint256 constant RatifyOrder_offerDataOffset = 0xc4;
 
 // uint256 constant OrderFulfilled_orderHash_offset = 0x00;
 uint256 constant OrderFulfilled_fulfiller_offset = 0x20;
@@ -512,6 +514,18 @@ uint256 constant InvalidProof_error_length = 0x04;
 uint256 constant InvalidRestrictedOrder_error_selector = 0xfb5014fc;
 uint256 constant InvalidRestrictedOrder_error_orderHash_ptr = 0x20;
 uint256 constant InvalidRestrictedOrder_error_length = 0x24;
+
+/*
+ *  error InvalidContractOrder(bytes32 orderHash)
+ *    - Defined in ZoneInteractionErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: orderHash
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant InvalidContractOrder_error_selector = 0x93979285;
+uint256 constant InvalidContractOrder_error_orderHash_ptr = 0x20;
+uint256 constant InvalidContractOrder_error_length = 0x24;
 
 /*
  *  error BadSignatureV(uint8 v)

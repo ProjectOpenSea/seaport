@@ -145,7 +145,13 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.previewOrder(address(0), minimumReceived, maximumSpent, "");
+        ) = test.previewOrder(
+                address(0),
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 1, "wrong spentItems length");
         assertEq(
@@ -181,7 +187,13 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.previewOrder(address(0), minimumReceived, maximumSpent, "");
+        ) = test.previewOrder(
+                address(0),
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 1, "wrong spentItems length");
         assertEq(
@@ -223,7 +235,13 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.previewOrder(address(0), minimumReceived, maximumSpent, "");
+        ) = test.previewOrder(
+                address(0),
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
         assertEq(spentItems.length, 2, "wrong spentItems length");
         assertEq(
             uint8(spentItems[0].itemType),
@@ -274,7 +292,13 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.previewOrder(address(0), minimumReceived, maximumSpent, "");
+        ) = test.previewOrder(
+                address(0),
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 1, "wrong spentItems length");
         assertEq(
@@ -337,7 +361,12 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.generateOrder(minimumReceived, maximumSpent, "");
+        ) = test.generateOrder(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 1, "wrong spentItems length");
         assertEq(
@@ -412,7 +441,12 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.generateOrder(minimumReceived, maximumSpent, "");
+        ) = test.generateOrder(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 2, "wrong spentItems length");
         assertEq(
@@ -477,7 +511,12 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.generateOrder(minimumReceived, maximumSpent, "");
+        ) = test.generateOrder(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
 
         assertEq(spentItems.length, 2, "wrong spentItems length");
         assertEq(
@@ -555,6 +594,11 @@ contract TestPoolOffererTest is Test {
         (
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
-        ) = test.generateOrder(minimumReceived, maximumSpent, "");
+        ) = test.generateOrder(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
     }
 }

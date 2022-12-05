@@ -23,13 +23,15 @@ contract TestInvalidContractOfferer is TestContractOfferer {
     constructor(address seaport) TestContractOfferer(seaport) {}
 
     function generateOrder(
+        address,
         SpentItem[] calldata,
         SpentItem[] calldata,
         bytes calldata context
     )
         external
+        pure
         override
-        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
+        returns (SpentItem[] memory, ReceivedItem[] memory)
     {
         revert RevertWithData(context);
     }
