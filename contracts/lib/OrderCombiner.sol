@@ -113,7 +113,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         uint256 maximumFulfilled
     )
         internal
-        returns (bool[] memory availableOrders, Execution[] memory executions)
+        returns (
+            bool[] memory, /* availableOrders */
+            Execution[] memory /* executions */
+        )
     {
         // Validate orders, apply amounts, & determine if they utilize conduits.
         bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
@@ -125,17 +128,15 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         );
 
         // Aggregate used offer and consideration items and execute transfers.
-        (availableOrders, executions) = _executeAvailableFulfillments(
-            advancedOrders,
-            offerFulfillments,
-            considerationFulfillments,
-            fulfillerConduitKey,
-            recipient,
-            orderHashes
-        );
-
-        // Return order fulfillment details and executions.
-        return (availableOrders, executions);
+        return
+            _executeAvailableFulfillments(
+                advancedOrders,
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                recipient,
+                orderHashes
+            );
     }
 
     /**
@@ -831,7 +832,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) internal returns (Execution[] memory executions) {
+    ) internal returns (Execution[] memory /* executions */) {
         // Validate orders, update order status, and determine item amounts.
         bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
@@ -926,6 +927,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         );
 
         // Return the executions array.
-        return (executions);
+        return executions;
     }
 }
