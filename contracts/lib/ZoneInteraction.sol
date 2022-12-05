@@ -40,6 +40,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      order type and, if so, to ensure that either the offerer or the zone
      *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
+     *      Note that contract orders are not accessible via basic fulfillments.
      *
      * @param orderHash   The hash of the order.
      * @param orderType   The order type.
@@ -50,56 +51,51 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         OrderType orderType,
         BasicOrderParameters calldata parameters
     ) internal {
-        if (uint256(orderType) < 2) {
-            return;
-        }
-
-        bytes memory callData;
-
-        // TODO: optimize (copy relevant arguments directly for calldata)
-        bytes32[] memory orderHashes = new bytes32[](1);
-        orderHashes[0] = orderHash;
-
-        SpentItem[] memory offer = new SpentItem[](1);
-
-        ReceivedItem[] memory consideration = new ReceivedItem[](
-            parameters.additionalRecipients.length + 1
-        );
-
-        bytes memory extraData;
-
-        // Copy offer & consideration from event data into target callData.
-        // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
-        uint256 size;
-        unchecked {
-            size =
-                OrderFulfilled_baseDataSize +
-                (parameters.additionalRecipients.length * ReceivedItem_size);
-        }
-
-        {
-            uint256 offerDataOffset;
-            assembly {
-                offerDataOffset := add(
-                    OrderFulfilled_offer_length_baseOffset,
-                    mul(
-                        calldataload(
-                            BasicOrder_additionalRecipients_length_cdPtr
-                        ),
-                        OneWord
-                    )
-                )
-            }
-
-            // Send to the identity precompile. Note that some random data will
-            // be written to the first word of scratch space in the process.
-            _call(IdentityPrecompile, offerDataOffset, size);
-        }
-
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
+            // TODO: optimize (copy relevant arguments directly for calldata)
+            bytes32[] memory orderHashes = new bytes32[](1);
+            orderHashes[0] = orderHash;
+
+            SpentItem[] memory offer = new SpentItem[](1);
+
+            ReceivedItem[] memory consideration = new ReceivedItem[](
+                parameters.additionalRecipients.length + 1
+            );
+
+            bytes memory extraData;
+
+            // Copy offer & consideration from event data into target callData.
+            // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
+            uint256 size;
+            unchecked {
+                size =
+                    OrderFulfilled_baseDataSize +
+                    (parameters.additionalRecipients.length *
+                        ReceivedItem_size);
+            }
+
+            {
+                uint256 offerDataOffset;
+                assembly {
+                    offerDataOffset := add(
+                        OrderFulfilled_offer_length_baseOffset,
+                        mul(
+                            calldataload(
+                                BasicOrder_additionalRecipients_length_cdPtr
+                            ),
+                            OneWord
+                        )
+                    )
+                }
+
+                // Send to the identity precompile. Note: some random data will
+                // be written to the first word of scratch space in the process.
+                _call(IdentityPrecompile, offerDataOffset, size);
+            }
+
             // TODO: optimize (conversion is temporary to get it to compile)
-            callData = _generateValidateCallData(
+            bytes memory callData = _generateValidateCallData(
                 orderHash,
                 parameters.offerer,
                 offer,
@@ -127,33 +123,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 ZoneInterface.validateOrder.selector,
                 _revertInvalidRestrictedOrder
             );
-        } else if (orderType == OrderType.CONTRACT) {
-            callData = _generateRatifyCallData(
-                orderHash,
-                offer,
-                consideration,
-                extraData,
-                orderHashes
-            );
-
-            // Copy into the correct region of calldata.
-            assembly {
-                returndatacopy(
-                    add(callData, RatifyOrder_offerDataOffset),
-                    0,
-                    size
-                )
-            }
-
-            _callAndCheckStatus(
-                parameters.offerer,
-                orderHash,
-                callData,
-                ContractOffererInterface.ratifyOrder.selector,
-                _revertInvalidContractOrder
-            );
-        } else {
-            return;
         }
     }
 
