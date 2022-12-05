@@ -299,6 +299,19 @@ contract OrderValidator is Executor, ZoneInteraction {
         SpentItem[] memory offer;
         ReceivedItem[] memory consideration;
 
+        address offerer = orderParameters.offerer;
+
+        // Note: overflow is impossible as nonce can't be incremented that high.
+        uint256 contractNonce;
+        unchecked {
+            // Note that the nonce will be incremented even for failing orders.
+            contractNonce = _contractNonces[offerer]++;
+        }
+
+        assembly {
+            orderHash := or(contractNonce, shl(0x60, offerer))
+        }
+
         {
             // TODO: reuse existing memory region or relocate this functionality
             (
@@ -310,7 +323,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 );
 
             try
-                ContractOffererInterface(orderParameters.offerer).generateOrder(
+                ContractOffererInterface(offerer).generateOrder(
                     msg.sender,
                     originalOfferItems,
                     originalConsiderationItems,
@@ -342,7 +355,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Explicitly specified offer items cannot be removed.
             if (originalOfferLength > newOfferLength) {
-                return _revertOrReturnEmpty(revertOnInvalid);
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             } else if (newOfferLength > originalOfferLength) {
                 OfferItem[] memory extendedOffer = new OfferItem[](
                     newOfferLength
@@ -422,7 +435,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // created. Note that this constraint could be relaxed if specified
                 // consideration items can be split.
                 if (newConsiderationLength > originalConsiderationLength) {
-                    return _revertOrReturnEmpty(revertOnInvalid);
+                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
                 // Loop through returned consideration, ensure existing not exceeded
@@ -473,14 +486,9 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         if (errorBuffer != 0) {
-            return _revertOrReturnEmpty(revertOnInvalid);
+            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
 
-        address offerer = orderParameters.offerer;
-        uint256 contractNonce = _contractNonces[offerer]++;
-        assembly {
-            orderHash := or(contractNonce, shl(0x60, offerer))
-        }
         return (orderHash, 1, 1);
     }
 
@@ -726,7 +734,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
     }
 
-    function _revertOrReturnEmpty(bool revertOnInvalid)
+    function _revertOrReturnEmpty(bool revertOnInvalid, bytes32 contractOrderHash)
         internal
         pure
         returns (
@@ -736,10 +744,10 @@ contract OrderValidator is Executor, ZoneInteraction {
         )
     {
         if (!revertOnInvalid) {
-            return (bytes32(0), 0, 0);
+            return (contractOrderHash, 0, 0);
         }
 
-        _revertNoSpecifiedOrdersAvailable(); // TODO: return a better error msg
+        _revertInvalidContractOrder(contractOrderHash);
     }
 
     function _replaceCriteriaItemType(ItemType originalItemType)
