@@ -31,6 +31,7 @@ contract StatefulOffererTest is BaseOrderTest {
 
     struct Context {
         ConsiderationInterface consideration;
+        uint8 numToAdd;
     }
 
     function test(function(Context memory) external fn, Context memory context)
@@ -41,14 +42,14 @@ contract StatefulOffererTest is BaseOrderTest {
         }
     }
 
-    function testNormalFulfill() public {
+    function testFulfillAdvanced() public {
         test(
             this.execFulfillAdvanced,
-            Context({ consideration: consideration })
+            Context({ consideration: consideration, numToAdd: 0 })
         );
         test(
             this.execFulfillAdvanced,
-            Context({ consideration: referenceConsideration })
+            Context({ consideration: referenceConsideration, numToAdd: 0 })
         );
     }
 
@@ -56,7 +57,8 @@ contract StatefulOffererTest is BaseOrderTest {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
-            ERC721Interface(address(test721_1))
+            ERC721Interface(address(test721_1)),
+            1
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);
@@ -92,11 +94,27 @@ contract StatefulOffererTest is BaseOrderTest {
         assertTrue(offerer.called());
     }
 
-    function execFulfillBasic(Context memory context) public stateless {
+    function testFulfillAdvancedFuzz(uint8 numToAdd) public {
+        numToAdd = uint8(bound(numToAdd, 1, 255));
+        test(
+            this.execFulfillAdvancedFuzz,
+            Context({ consideration: consideration, numToAdd: numToAdd })
+        );
+        test(
+            this.execFulfillAdvancedFuzz,
+            Context({
+                consideration: referenceConsideration,
+                numToAdd: numToAdd
+            })
+        );
+    }
+
+    function execFulfillAdvancedFuzz(Context memory context) public stateless {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
-            ERC721Interface(address(test721_1))
+            ERC721Interface(address(test721_1)),
+            context.numToAdd
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);

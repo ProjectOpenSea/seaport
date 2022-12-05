@@ -7,8 +7,9 @@ import {
     ERC1155Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ContractOffererInterface } from
-    "../../../../contracts/interfaces/ContractOffererInterface.sol";
+import {
+    ContractOffererInterface
+} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
@@ -26,16 +27,19 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     ERC721Interface token2;
     uint256 value;
     bool public called;
+    uint256 numToReturn;
 
     constructor(
         address seaport,
         ERC20Interface _token1,
-        ERC721Interface _token2
+        ERC721Interface _token2,
+        uint256 _numToReturn
     ) {
+        numToReturn = _numToReturn;
         _token1.approve(seaport, type(uint256).max);
         token1 = _token1;
         token2 = _token2;
-        ERC20Mintable(address(_token1)).mint(address(this), 100);
+        ERC20Mintable(address(_token1)).mint(address(this), 100000);
     }
 
     function generateOrder(
@@ -50,13 +54,16 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         value = minimumReceived[0].amount;
-        offer = new SpentItem[](1);
-        offer[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: value + 1
-        });
+        offer = new SpentItem[](numToReturn);
+        for (uint256 i; i < numToReturn; i++) {
+            offer[i] = SpentItem({
+                itemType: ItemType.ERC20,
+                token: address(token1),
+                identifier: 0,
+                amount: value + i
+            });
+        }
+
         consideration = new ReceivedItem[](1);
         consideration[0] = ReceivedItem({
             itemType: ItemType.ERC721,
@@ -108,25 +115,36 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         bytes calldata, /* context */
         bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */ ) {
+    )
+        external
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         for (uint256 i = 0; i < minimumReceived.length; i++) {
-            if (minimumReceived[i].amount != value + 1) {
+            if (minimumReceived[i].itemType != ItemType.ERC20) {
                 revert IncorrectItemType(
-                    minimumReceived[i].itemType, ItemType.ERC20
+                    minimumReceived[i].itemType,
+                    ItemType.ERC20
                 );
             }
             if (minimumReceived[i].token != address(token1)) {
-                revert IncorrectToken(minimumReceived[i].token, address(token1));
+                revert IncorrectToken(
+                    minimumReceived[i].token,
+                    address(token1)
+                );
             }
 
-            if (minimumReceived[i].amount != value + 1) {
-                revert IncorrectValue(minimumReceived[i].amount, value + 1);
+            if (minimumReceived[i].amount != value + i) {
+                revert IncorrectValue(minimumReceived[i].amount, value + i);
             }
         }
         for (uint256 i; i < maximumSpent.length; i++) {
             if (maximumSpent[i].itemType != ItemType.ERC721) {
                 revert IncorrectItemType(
-                    maximumSpent[i].itemType, ItemType.ERC721
+                    maximumSpent[i].itemType,
+                    ItemType.ERC721
                 );
             }
             if (maximumSpent[i].token != address(token2)) {
