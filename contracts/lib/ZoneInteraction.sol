@@ -80,20 +80,24 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 (parameters.additionalRecipients.length * ReceivedItem_size);
         }
 
-        uint256 offerDataOffset;
-        assembly {
-            offerDataOffset := add(
-                OrderFulfilled_offer_length_baseOffset,
-                mul(
-                    calldataload(BasicOrder_additionalRecipients_length_cdPtr),
-                    OneWord
+        {
+            uint256 offerDataOffset;
+            assembly {
+                offerDataOffset := add(
+                    OrderFulfilled_offer_length_baseOffset,
+                    mul(
+                        calldataload(
+                            BasicOrder_additionalRecipients_length_cdPtr
+                        ),
+                        OneWord
+                    )
                 )
-            )
-        }
+            }
 
-        // Send to the identity precompile. Note that some random data will be
-        // written to the first word of scratch space in the process.
-        _call(IdentityPrecompile, offerDataOffset, size);
+            // Send to the identity precompile. Note that some random data will
+            // be written to the first word of scratch space in the process.
+            _call(IdentityPrecompile, offerDataOffset, size);
+        }
 
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {

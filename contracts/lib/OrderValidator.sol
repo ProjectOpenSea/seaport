@@ -734,7 +734,10 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
     }
 
-    function _revertOrReturnEmpty(bool revertOnInvalid, bytes32 contractOrderHash)
+    function _revertOrReturnEmpty(
+        bool revertOnInvalid,
+        bytes32 contractOrderHash
+    )
         internal
         pure
         returns (
