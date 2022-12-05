@@ -484,127 +484,6 @@ contract OrderValidator is Executor, ZoneInteraction {
         return (orderHash, 1, 1);
     }
 
-    function _check(
-        OfferItem memory originalOffer,
-        SpentItem memory newOffer,
-        uint256 valueOne,
-        uint256 valueTwo,
-        uint256 errorBuffer
-    ) internal pure returns (uint256 updatedErrorBuffer) {
-        // Set returned identifier for criteria-based items with criteria = 0.
-        if (
-            (_cast(uint256(originalOffer.itemType) > 3) &
-                _cast(originalOffer.identifierOrCriteria == 0)) != 0
-        ) {
-            originalOffer.itemType = _replaceCriteriaItemType(
-                originalOffer.itemType
-            );
-            originalOffer.identifierOrCriteria = newOffer.identifier;
-        }
-
-        // Ensure the original and generated items are compatible.
-        updatedErrorBuffer =
-            errorBuffer |
-            _cast(originalOffer.startAmount != originalOffer.endAmount) |
-            _cast(valueOne > valueTwo) |
-            _cast(originalOffer.itemType != newOffer.itemType) |
-            _cast(originalOffer.token != newOffer.token) |
-            _cast(originalOffer.identifierOrCriteria != newOffer.identifier);
-
-        // Update the original amounts to use the generated amounts.
-        originalOffer.startAmount = newOffer.amount;
-        originalOffer.endAmount = newOffer.amount;
-    }
-
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
-        }
-    }
-
-    function _revertOrReturnEmpty(bool revertOnInvalid)
-        internal
-        pure
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
-    {
-        if (!revertOnInvalid) {
-            return (bytes32(0), 0, 0);
-        }
-
-        _revertNoSpecifiedOrdersAvailable(); // TODO: return a better error msg
-    }
-
-    function _replaceCriteriaItemType(ItemType originalItemType)
-        internal
-        pure
-        returns (ItemType newItemType)
-    {
-        assembly {
-            // Item type 4 becomes 2 and item type 5 becomes 3.
-            newItemType := sub(3, eq(originalItemType, 4))
-        }
-    }
-
-    /**
-     * @dev Internal pure function to convert both offer and consideration items
-     *      to spent items. Copied from reference contract for now.
-     */
-    function _convertToSpent(
-        OfferItem[] memory offer,
-        ConsiderationItem[] memory consideration
-    )
-        internal
-        pure
-        returns (
-            SpentItem[] memory spentItems,
-            SpentItem[] memory receivedItems
-        )
-    {
-        // Create an array of spent items equal to the offer length.
-        spentItems = new SpentItem[](offer.length);
-
-        // Iterate over each offer item on the order.
-        for (uint256 i = 0; i < offer.length; ++i) {
-            // Retrieve the offer item.
-            OfferItem memory offerItem = offer[i];
-
-            // Create spent item for event based on the offer item.
-            SpentItem memory spentItem = SpentItem(
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifierOrCriteria,
-                offerItem.startAmount
-            );
-
-            // Add to array of spent items
-            spentItems[i] = spentItem;
-        }
-
-        // Create an array of received items equal to the consideration length.
-        receivedItems = new SpentItem[](consideration.length);
-
-        // Iterate over each consideration item on the order.
-        for (uint256 i = 0; i < consideration.length; ++i) {
-            // Retrieve the consideration item.
-            ConsiderationItem memory considerationItem = (consideration[i]);
-
-            // Create spent item for event based on the consideration item.
-            SpentItem memory receivedItem = SpentItem(
-                considerationItem.itemType,
-                considerationItem.token,
-                considerationItem.identifierOrCriteria,
-                considerationItem.startAmount
-            );
-
-            // Add to array of received items
-            receivedItems[i] = receivedItem;
-        }
-    }
-
     /**
      * @dev Internal function to cancel an arbitrary number of orders. Note that
      *      only the offerer or the zone of a given order may cancel it. Callers
@@ -807,6 +686,93 @@ contract OrderValidator is Executor, ZoneInteraction {
             orderStatus.numerator,
             orderStatus.denominator
         );
+    }
+
+    function _check(
+        OfferItem memory originalOffer,
+        SpentItem memory newOffer,
+        uint256 valueOne,
+        uint256 valueTwo,
+        uint256 errorBuffer
+    ) internal pure returns (uint256 updatedErrorBuffer) {
+        // Set returned identifier for criteria-based items with criteria = 0.
+        if (
+            (_cast(uint256(originalOffer.itemType) > 3) &
+                _cast(originalOffer.identifierOrCriteria == 0)) != 0
+        ) {
+            originalOffer.itemType = _replaceCriteriaItemType(
+                originalOffer.itemType
+            );
+            originalOffer.identifierOrCriteria = newOffer.identifier;
+        }
+
+        // Ensure the original and generated items are compatible.
+        updatedErrorBuffer =
+            errorBuffer |
+            _cast(originalOffer.startAmount != originalOffer.endAmount) |
+            _cast(valueOne > valueTwo) |
+            _cast(originalOffer.itemType != newOffer.itemType) |
+            _cast(originalOffer.token != newOffer.token) |
+            _cast(originalOffer.identifierOrCriteria != newOffer.identifier);
+
+        // Update the original amounts to use the generated amounts.
+        originalOffer.startAmount = newOffer.amount;
+        originalOffer.endAmount = newOffer.amount;
+    }
+
+    function _cast(bool b) internal pure returns (uint256 u) {
+        assembly {
+            u := b
+        }
+    }
+
+    function _revertOrReturnEmpty(bool revertOnInvalid)
+        internal
+        pure
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        if (!revertOnInvalid) {
+            return (bytes32(0), 0, 0);
+        }
+
+        _revertNoSpecifiedOrdersAvailable(); // TODO: return a better error msg
+    }
+
+    function _replaceCriteriaItemType(ItemType originalItemType)
+        internal
+        pure
+        returns (ItemType newItemType)
+    {
+        assembly {
+            // Item type 4 becomes 2 and item type 5 becomes 3.
+            newItemType := sub(3, eq(originalItemType, 4))
+        }
+    }
+
+    /**
+     * @dev Internal pure function to convert both offer and consideration items
+     *      to spent items.
+     */
+    function _convertToSpent(
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory spentItems,
+            SpentItem[] memory receivedItems
+        )
+    {
+        // Reuse each existing array by casting their types.
+        assembly {
+            spentItems := offer
+            receivedItems := consideration
+        }
     }
 
     /**
