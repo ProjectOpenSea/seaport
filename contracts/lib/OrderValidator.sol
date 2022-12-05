@@ -292,7 +292,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @param context         The context for generating the order.
      * @param revertOnInvalid Whether to revert on invalid input.
      *
-     * @return The generated order hash, numerator, and denominator.
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
+     * @return denominator The denominator.
      */
     function _getGeneratedOrder(
         OrderParameters memory orderParameters,
@@ -748,7 +750,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      *
      * @param b The `bool` value to cast.
      *
-     * @return The `uint256` value.
+     * @return u The `uint256` value.
      */
     function _cast(bool b) internal pure returns (uint256 u) {
         assembly {
@@ -763,8 +765,8 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @param revertOnInvalid   Whether to revert on invalid input.
      * @param contractOrderHash The contract order hash.
      *
-     * @return orderHash The order hash.
-     * @return numerator The numerator.
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
      * @return denominator The denominator.
      */
     function _revertOrReturnEmpty(
