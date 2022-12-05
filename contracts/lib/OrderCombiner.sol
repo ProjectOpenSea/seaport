@@ -134,7 +134,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
-                recipient
+                recipient,
+                orderHashes
             );
     }
 
