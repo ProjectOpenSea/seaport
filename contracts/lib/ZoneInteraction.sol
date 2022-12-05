@@ -55,9 +55,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
 
         bytes memory callData;
-        address target;
-        bytes4 magicValue;
-        function(bytes32) internal view errorHandler;
 
         // TODO: optimize (copy relevant arguments directly for calldata)
         bytes32[] memory orderHashes = new bytes32[](1);
@@ -123,9 +120,13 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 )
             }
 
-            target = parameters.zone;
-            magicValue = ZoneInterface.validateOrder.selector;
-            errorHandler = _revertInvalidRestrictedOrder;
+            _callAndCheckStatus(
+                parameters.zone,
+                orderHash,
+                callData,
+                ZoneInterface.validateOrder.selector,
+                _revertInvalidRestrictedOrder
+            );
         } else if (orderType == OrderType.CONTRACT) {
             callData = _generateRatifyCallData(
                 orderHash,
@@ -144,20 +145,16 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 )
             }
 
-            target = parameters.offerer;
-            magicValue = ContractOffererInterface.ratifyOrder.selector;
-            errorHandler = _revertInvalidContractOrder;
+            _callAndCheckStatus(
+                parameters.offerer,
+                orderHash,
+                callData,
+                ContractOffererInterface.ratifyOrder.selector,
+                _revertInvalidContractOrder
+            );
         } else {
             return;
         }
-
-        _callAndCheckStatus(
-            target,
-            orderHash,
-            callData,
-            magicValue,
-            errorHandler
-        );
     }
 
     /**
