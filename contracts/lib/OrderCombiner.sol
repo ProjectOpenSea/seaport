@@ -118,6 +118,15 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             Execution[] memory /* executions */
         )
     {
+        // Validate orders, apply amounts, & determine if they utilize conduits.
+        bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            false, // Signifies that invalid orders should NOT revert.
+            maximumFulfilled,
+            recipient
+        );
+
         // Aggregate used offer and consideration items and execute transfers.
         return
             _executeAvailableFulfillments(
@@ -126,13 +135,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 considerationFulfillments,
                 fulfillerConduitKey,
                 recipient,
-                _validateOrdersAndPrepareToFulfill(
-                    advancedOrders,
-                    criteriaResolvers,
-                    false, // Signifies that invalid orders should NOT revert.
-                    maximumFulfilled,
-                    recipient
-                )
+                orderHashes
             );
     }
 
