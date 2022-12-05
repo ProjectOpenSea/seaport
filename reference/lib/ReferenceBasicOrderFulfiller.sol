@@ -338,7 +338,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         }
 
         // Derive & validate order using parameters and update order status.
-        _prepareBasicFulfillment(
+        bytes32 orderHash = _prepareBasicFulfillment(
             parameters,
             orderType,
             receivedItemType,
@@ -346,9 +346,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             additionalRecipientsToken,
             offeredItemType
         );
-
-        // Read offerer from calldata and place on the stack.
-        address payable offerer = parameters.offerer;
 
         // Determine conduitKey argument used by transfer functions.
         bytes32 conduitKey;
@@ -387,7 +384,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -401,7 +398,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -415,7 +412,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -426,7 +423,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
@@ -437,7 +434,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -448,7 +445,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
@@ -460,7 +457,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             _transferERC721(
                 parameters.considerationToken,
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
                 conduitKey,
@@ -469,7 +466,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
@@ -484,7 +481,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             _transferERC1155(
                 parameters.considerationToken,
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
                 conduitKey,
@@ -493,7 +490,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
@@ -505,6 +502,15 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulatorStruct);
+
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(
+            orderHash,
+            orderType,
+            parameters,
+            offeredItemType,
+            receivedItemType
+        );
 
         return true;
     }
@@ -570,7 +576,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal {
+    ) internal returns (bytes32 orderHash) {
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
@@ -660,7 +666,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
              */
             for (
                 uint256 recipientCount = 0;
-                recipientCount < parameters.additionalRecipients.length;
+                recipientCount < parameters.totalOriginalAdditionalRecipients;
                 ++recipientCount
             ) {
                 // Get the next additionalRecipient.
@@ -679,15 +685,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 // Add additional Received items to the
                 // OrderFulfilled ReceivedItem[].
                 consideration[recipientCount + 1] = additionalReceivedItem;
-
-                // Skip hashing items not contained in the
-                // Original Recipients.
-                if (
-                    recipientCount >=
-                    parameters.totalOriginalAdditionalRecipients
-                ) {
-                    continue;
-                }
 
                 // Create a new consideration item for each additional
                 // recipient.
@@ -817,14 +814,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 consideration
             );
         }
-        // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            hashes.orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
@@ -832,6 +821,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             parameters.offerer,
             parameters.signature
         );
+
+        // Return the derived order hash.
+        return hashes.orderHash;
     }
 
     /**

@@ -7,6 +7,7 @@
 [![Docs][docs-badge]][docs-link]
 [![Discussions][discussions-badge]][discussions-link]
 [![JS Library][js-library-badge]][js-library-link]
+[![Discord][discord-badge]][discord-link]
 
 # Seaport
 
@@ -54,11 +55,13 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <tr><td>Rinkeby</td></tr>
 <tr><td>Goerli</td></tr>
 <tr><td>Kovan</td></tr>
+<tr><td>Sepolia</td></tr>
 <tr><td>Polygon</td></tr>
 <tr><td>Mumbai</td></tr>
 <tr><td>Optimism</td></tr>
 <tr><td>Optimistic Kovan</td></tr>
 <tr><td>Arbitrum</td></tr>
+<tr><td>Arbitrum Nova</td></tr>
 <tr><td>Arbitrum Rinkeby</td></tr>
 <tr><td>Avalanche Fuji</td></tr>
 <tr><td>Avalanche C-Chain</td></tr>
@@ -258,3 +261,5 @@ When making a pull request, ensure that:
 [discussions-link]: https://github.com/ProjectOpenSea/seaport/discussions
 [js-library-badge]: https://img.shields.io/badge/Seaport.js-library-red
 [js-library-link]: https://github.com/ProjectOpenSea/seaport-js
+[discord-badge]: https://img.shields.io/static/v1?logo=discord&label=discord&message=Join&color=blue
+[discord-link]: https://discord.gg/ADXcTXpqry
