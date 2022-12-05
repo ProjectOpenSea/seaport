@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import {
+    SpentItem,
+    ReceivedItem,
+    OrderParameters
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors
@@ -51,15 +55,10 @@ interface ConsiderationEventsAndErrors {
      *      this event will not be emitted on partial fills even though they do
      *      validate the order as part of partial fulfillment.
      *
-     * @param orderHash The hash of the validated order.
-     * @param offerer   The offerer of the validated order.
-     * @param zone      The zone of the validated order.
+     * @param orderHash        The hash of the validated order.
+     * @param orderParameters  The parameters of the validated order.
      */
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone
-    );
+    event OrderValidated(bytes32 orderHash, OrderParameters orderParameters);
 
     /**
      * @dev Emit an event whenever a counter for a given offerer is incremented.

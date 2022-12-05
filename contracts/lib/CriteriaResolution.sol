@@ -65,102 +65,51 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     _revertOrderCriteriaResolverOutOfRange();
                 }
 
+                // Retrieve the referenced advanced order.
+                AdvancedOrder memory advancedOrder = advancedOrders[orderIndex];
+
                 // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrders[orderIndex].numerator == 0) {
+                if (advancedOrder.numerator == 0) {
                     continue;
                 }
 
                 // Retrieve the parameters for the order.
                 OrderParameters memory orderParameters = (
-                    advancedOrders[orderIndex].parameters
+                    advancedOrder.parameters
                 );
 
                 // Read component index from memory and place it on the stack.
                 uint256 componentIndex = criteriaResolver.index;
 
-                // Declare values for item's type and criteria.
-                ItemType itemType;
-                uint256 identifierOrCriteria;
-
                 // If the criteria resolver refers to an offer item...
                 if (criteriaResolver.side == Side.OFFER) {
-                    // Retrieve the offer.
-                    OfferItem[] memory offer = orderParameters.offer;
-
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= offer.length) {
-                        _revertOfferCriteriaResolverOutOfRange();
-                    }
-
-                    // Retrieve relevant item using the component index.
-                    OfferItem memory offerItem = offer[componentIndex];
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = offerItem.itemType;
-                    identifierOrCriteria = offerItem.identifierOrCriteria;
-
-                    // Optimistically update item type to remove criteria usage.
-                    // Use assembly to operate on ItemType enum as a number.
-                    ItemType newItemType;
-                    assembly {
-                        // Item type 4 becomes 2 and item type 5 becomes 3.
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    offerItem.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    offerItem.identifierOrCriteria = criteriaResolver
-                        .identifier;
+                    _updateCriteriaItem(
+                        orderParameters.offer,
+                        componentIndex,
+                        criteriaResolver,
+                        _revertOfferCriteriaResolverOutOfRange
+                    );
                 } else {
                     // Otherwise, the resolver refers to a consideration item.
                     ConsiderationItem[] memory consideration = (
                         orderParameters.consideration
                     );
 
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= consideration.length) {
-                        _revertConsiderationCriteriaResolverOutOfRange();
-                    }
-
-                    // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory considerationItem = (
-                        consideration[componentIndex]
-                    );
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = considerationItem.itemType;
-                    identifierOrCriteria = (
-                        considerationItem.identifierOrCriteria
-                    );
-
-                    // Optimistically update item type to remove criteria usage.
-                    // Use assembly to operate on ItemType enum as a number.
-                    ItemType newItemType;
+                    OfferItem[] memory castedConsideration;
                     assembly {
-                        // Item type 4 becomes 2 and item type 5 becomes 3.
-                        newItemType := sub(3, eq(itemType, 4))
+                        castedConsideration := consideration
                     }
-                    considerationItem.itemType = newItemType;
 
-                    // Optimistically update identifier w/ supplied identifier.
-                    considerationItem.identifierOrCriteria = (
-                        criteriaResolver.identifier
+                    _updateCriteriaItem(
+                        castedConsideration,
+                        componentIndex,
+                        criteriaResolver,
+                        _revertConsiderationCriteriaResolverOutOfRange
                     );
-                }
 
-                // Ensure the specified item type indicates criteria usage.
-                if (!_isItemWithCriteria(itemType)) {
-                    _revertCriteriaNotEnabledForItem();
-                }
-
-                // If criteria is not 0 (i.e. a collection-wide offer)...
-                if (identifierOrCriteria != uint256(0)) {
-                    // Verify identifier inclusion in criteria root using proof.
-                    _verifyProof(
-                        criteriaResolver.identifier,
-                        identifierOrCriteria,
-                        criteriaResolver.criteriaProof
-                    );
+                    assembly {
+                        consideration := castedConsideration
+                    }
                 }
             }
 
@@ -208,6 +157,53 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 }
             }
         }
+    }
+
+    function _updateCriteriaItem(
+        OfferItem[] memory offer,
+        uint256 componentIndex,
+        CriteriaResolver memory criteriaResolver,
+        function() internal pure errorHandler
+    ) internal pure {
+        // Ensure that the component index is in range.
+        if (componentIndex >= offer.length) {
+            errorHandler();
+        }
+
+        // Retrieve relevant item using the component index.
+        OfferItem memory offerItem = offer[componentIndex];
+
+        // Read item type and criteria from memory & place on stack.
+        ItemType itemType = offerItem.itemType;
+
+        // Ensure the specified item type indicates criteria usage.
+        if (!_isItemWithCriteria(itemType)) {
+            _revertCriteriaNotEnabledForItem();
+        }
+
+        uint256 identifierOrCriteria = offerItem.identifierOrCriteria;
+
+        // If criteria is not 0 (i.e. a collection-wide offer)...
+        if (identifierOrCriteria != uint256(0)) {
+            // Verify identifier inclusion in criteria root using proof.
+            _verifyProof(
+                criteriaResolver.identifier,
+                identifierOrCriteria,
+                criteriaResolver.criteriaProof
+            );
+        }
+
+        // Update item type to remove criteria usage.
+        // Use assembly to operate on ItemType enum as a number.
+        ItemType newItemType;
+        assembly {
+            // Item type 4 becomes 2 and item type 5 becomes 3.
+            newItemType := sub(3, eq(itemType, 4))
+        }
+        offerItem.itemType = newItemType;
+
+        // Update identifier w/ supplied identifier.
+        offerItem.identifierOrCriteria = criteriaResolver.identifier;
     }
 
     /**
