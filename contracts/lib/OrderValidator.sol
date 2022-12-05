@@ -301,19 +301,20 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         address offerer = orderParameters.offerer;
 
-        // Note: overflow is impossible as nonce can't be incremented that high.
-        uint256 contractNonce;
-        unchecked {
-            // Note that the nonce will be incremented even for failing orders.
-            contractNonce = _contractNonces[offerer]++;
-        }
+        {
+            // Note: overflow impossible; nonce can't be incremented that high.
+            uint256 contractNonce;
+            unchecked {
+                // Note: the nonce will be incremented even for failing orders.
+                contractNonce = _contractNonces[offerer]++;
+            }
 
-        assembly {
-            orderHash := or(contractNonce, shl(0x60, offerer))
+            assembly {
+                orderHash := or(contractNonce, shl(0x60, offerer))
+            }
         }
 
         {
-            // TODO: reuse existing memory region or relocate this functionality
             (
                 SpentItem[] memory originalOfferItems,
                 SpentItem[] memory originalConsiderationItems
@@ -335,14 +336,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             ) {
                 offer = returnedOffer;
                 consideration = ReturnedConsideration;
-            } catch (bytes memory revertData) {
-                if (!revertOnInvalid) {
-                    return (bytes32(0), 0, 0);
-                }
-
-                assembly {
-                    revert(add(0x20, revertData), mload(revertData))
-                }
+            } catch (bytes memory) {
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
         }
 
