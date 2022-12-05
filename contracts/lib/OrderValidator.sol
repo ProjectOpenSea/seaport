@@ -426,14 +426,14 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 newConsiderationLength = consideration.length;
 
             if (originalConsiderationLength != 0) {
-                // Consideration items that are not explicitly specified cannot be
-                // created. Note that this constraint could be relaxed if specified
-                // consideration items can be split.
+                // Consideration items that are not explicitly specified cannot
+                // be created. Note that this constraint could be relaxed if
+                // specified consideration items can be split.
                 if (newConsiderationLength > originalConsiderationLength) {
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
-                // Loop through returned consideration, ensure existing not exceeded
+                // Loop through returned consideration & do not exceed existing.
                 for (uint256 i = 0; i < newConsiderationLength; ++i) {
                     ReceivedItem memory newConsideration = consideration[i];
                     ConsiderationItem memory originalConsideration = (
@@ -463,18 +463,17 @@ contract OrderValidator is Executor, ZoneInteraction {
                 );
 
                 for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                    ReceivedItem memory newConsideration = consideration[i];
                     ConsiderationItem memory originalConsideration = (
                         orderParameters.consideration[i]
                     );
 
-                    originalConsideration.itemType = newConsideration.itemType;
-                    originalConsideration.token = newConsideration.token;
+                    originalConsideration.itemType = consideration[i].itemType;
+                    originalConsideration.token = consideration[i].token;
                     originalConsideration
-                        .identifierOrCriteria = newConsideration.identifier;
-                    originalConsideration.startAmount = newConsideration.amount;
-                    originalConsideration.endAmount = newConsideration.amount;
-                    originalConsideration.recipient = newConsideration
+                        .identifierOrCriteria = consideration[i].identifier;
+                    originalConsideration.startAmount = consideration[i].amount;
+                    originalConsideration.endAmount = consideration[i].amount;
+                    originalConsideration.recipient = consideration[i]
                         .recipient;
                 }
             }
