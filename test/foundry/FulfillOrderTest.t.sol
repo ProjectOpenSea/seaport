@@ -2184,7 +2184,8 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
-        vm.prank(alice);
+
+        vm.prank(context.args.zone);
         context.consideration.fulfillOrder{
             value: context
                 .args
