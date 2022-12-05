@@ -556,6 +556,11 @@ contract ReferenceOrderValidator is
             // Retrieve the order parameters.
             OrderParameters calldata orderParameters = order.parameters;
 
+            // Skip contract orders.
+            if (orderParameters.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
             // Move offerer from memory to the stack.
             offerer = orderParameters.offerer;
 
@@ -584,7 +589,7 @@ contract ReferenceOrderValidator is
                 orderStatus.isValidated = true;
 
                 // Emit an event signifying the order has been validated.
-                emit OrderValidated(orderHash, offerer, orderParameters.zone);
+                emit OrderValidated(orderHash, orderParameters);
             }
         }
 

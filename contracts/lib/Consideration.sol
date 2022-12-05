@@ -365,7 +365,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory /* executions */) {
+    )
+        external
+        payable
+        override
+        returns (
+            Execution[] memory /* executions */
+        )
+    {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -415,7 +422,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory /* executions */) {
+    )
+        external
+        payable
+        override
+        returns (
+            Execution[] memory /* executions */
+        )
+    {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
@@ -601,7 +615,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         pure
         override
-        returns (string memory /* contractName */)
+        returns (
+            string memory /* contractName */
+        )
     {
         // Return the name of the contract.
         return _name();

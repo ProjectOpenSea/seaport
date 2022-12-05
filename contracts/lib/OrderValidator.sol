@@ -36,6 +36,7 @@ contract OrderValidator is Executor, ZoneInteraction {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
+    // Track nonces for contract offerers.
     mapping(address => uint256) internal _contractNonces;
 
     /**
@@ -601,12 +602,17 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
                 Order calldata order = orders[i];
 
                 // Retrieve the order parameters.
                 OrderParameters calldata orderParameters = order.parameters;
+
+                // Skip contract orders.
+                if (orderParameters.orderType == OrderType.CONTRACT) {
+                    continue;
+                }
 
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
@@ -636,15 +642,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                     orderStatus.isValidated = true;
 
                     // Emit an event signifying the order has been validated.
-                    emit OrderValidated(
-                        orderHash,
-                        offerer,
-                        orderParameters.zone
-                    );
+                    emit OrderValidated(orderHash, orderParameters);
                 }
-
-                // Increment counter inside body of the loop for gas efficiency.
-                ++i;
             }
         }
 
