@@ -269,7 +269,14 @@ contract ReferenceOrderValidator is
             uint256 denominator
         )
     {
-        // TODO: reuse an existing memory region or relocate this functionality
+        {
+            uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
+            orderHash = bytes32(
+                contractNonce |
+                    (uint256(uint160(orderParameters.offerer)) << 96)
+            );
+        }
+
         (
             SpentItem[] memory originalOfferItems,
             SpentItem[] memory originalConsiderationItems
@@ -282,6 +289,7 @@ contract ReferenceOrderValidator is
         ReceivedItem[] memory consideration;
         try
             ContractOffererInterface(orderParameters.offerer).generateOrder(
+                msg.sender,
                 originalOfferItems,
                 originalConsiderationItems,
                 context
@@ -293,7 +301,7 @@ contract ReferenceOrderValidator is
             offer = returnedOffer;
             consideration = ReturnedConsideration;
         } catch {
-            return _revertOrReturnEmpty(revertOnInvalid);
+            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
 
         {
@@ -302,7 +310,7 @@ contract ReferenceOrderValidator is
 
             // Explicitly specified offer items cannot be removed.
             if (originalOfferLength > newOfferLength) {
-                return _revertOrReturnEmpty(revertOnInvalid);
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             } else if (newOfferLength > originalOfferLength) {
                 OfferItem[] memory extendedOffer = new OfferItem[](
                     newOfferLength
@@ -335,7 +343,7 @@ contract ReferenceOrderValidator is
                     originalOffer.token != newOffer.token ||
                     originalOffer.identifierOrCriteria != newOffer.identifier
                 ) {
-                    return _revertOrReturnEmpty(revertOnInvalid);
+                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
                 originalOffer.startAmount = newOffer.amount;
@@ -368,7 +376,7 @@ contract ReferenceOrderValidator is
                 // created. Note that this constraint could be relaxed if specified
                 // consideration items can be split.
                 if (newConsiderationLength > originalConsiderationLength) {
-                    return _revertOrReturnEmpty(revertOnInvalid);
+                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
                 // Loop through returned consideration, ensure existing not exceeded
@@ -402,7 +410,7 @@ contract ReferenceOrderValidator is
                         // TODO: should we check recipient if supplied by fulfiller?
                         // Should we allow empty args to be skipped in other cases?
                     ) {
-                        return _revertOrReturnEmpty(revertOnInvalid);
+                        return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                     }
 
                     originalConsideration.startAmount = newConsideration.amount;
@@ -447,107 +455,7 @@ contract ReferenceOrderValidator is
             }
         }
 
-        address offerer = orderParameters.offerer;
-        uint256 contractNonce = _contractNonces[offerer]++;
-
-        orderHash = bytes32(contractNonce | (uint256(uint160(offerer)) << 96));
-
         return (orderHash, 1, 1);
-    }
-
-    function _revertOrReturnEmpty(bool revertOnInvalid)
-        internal
-        pure
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
-    {
-        if (!revertOnInvalid) {
-            return (bytes32(0), 0, 0);
-        }
-
-        revert NoSpecifiedOrdersAvailable(); // TODO: return a better error msg
-    }
-
-    /**
-     * @dev Internal pure function to convert both offer and consideration items
-     *      to spent items.
-     */
-    function _convertToSpent(
-        OfferItem[] memory offer,
-        ConsiderationItem[] memory consideration
-    )
-        internal
-        pure
-        returns (
-            SpentItem[] memory spentItems,
-            SpentItem[] memory receivedItems
-        )
-    {
-        // Create an array of spent items equal to the offer length.
-        spentItems = new SpentItem[](offer.length);
-
-        // Iterate over each offer item on the order.
-        for (uint256 i = 0; i < offer.length; ++i) {
-            // Retrieve the offer item.
-            OfferItem memory offerItem = offer[i];
-
-            // Create spent item for event based on the offer item.
-            SpentItem memory spentItem = SpentItem(
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifierOrCriteria,
-                offerItem.startAmount
-            );
-
-            // Add to array of spent items
-            spentItems[i] = spentItem;
-        }
-
-        // Create an array of received items equal to the consideration length.
-        receivedItems = new SpentItem[](consideration.length);
-
-        // Iterate over each consideration item on the order.
-        for (uint256 i = 0; i < consideration.length; ++i) {
-            // Retrieve the consideration item.
-            ConsiderationItem memory considerationItem = (consideration[i]);
-
-            // Create spent item for event based on the consideration item.
-            SpentItem memory receivedItem = SpentItem(
-                considerationItem.itemType,
-                considerationItem.token,
-                considerationItem.identifierOrCriteria,
-                considerationItem.startAmount
-            );
-
-            // Add to array of received items
-            receivedItems[i] = receivedItem;
-        }
-    }
-
-    /**
-     * @dev Internal function to derive the greatest common divisor of two
-     *      values using the classical euclidian algorithm.
-     *
-     * @param a The first value.
-     * @param b The second value.
-     *
-     * @return greatestCommonDivisor The greatest common divisor.
-     */
-    function _greatestCommonDivisor(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256 greatestCommonDivisor)
-    {
-        while (b > 0) {
-            uint256 c = b;
-            b = a % c;
-            a = c;
-        }
-
-        greatestCommonDivisor = a;
     }
 
     /**
@@ -720,6 +628,104 @@ contract ReferenceOrderValidator is
             orderStatus.numerator,
             orderStatus.denominator
         );
+    }
+
+    function _revertOrReturnEmpty(
+        bool revertOnInvalid,
+        bytes32 contractOrderHash
+    )
+        internal
+        pure
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        if (!revertOnInvalid) {
+            return (contractOrderHash, 0, 0);
+        }
+
+        revert InvalidContractOrder(contractOrderHash);
+    }
+
+    /**
+     * @dev Internal pure function to convert both offer and consideration items
+     *      to spent items.
+     */
+    function _convertToSpent(
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory spentItems,
+            SpentItem[] memory receivedItems
+        )
+    {
+        // Create an array of spent items equal to the offer length.
+        spentItems = new SpentItem[](offer.length);
+
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < offer.length; ++i) {
+            // Retrieve the offer item.
+            OfferItem memory offerItem = offer[i];
+
+            // Create spent item for event based on the offer item.
+            SpentItem memory spentItem = SpentItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount
+            );
+
+            // Add to array of spent items
+            spentItems[i] = spentItem;
+        }
+
+        // Create an array of received items equal to the consideration length.
+        receivedItems = new SpentItem[](consideration.length);
+
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            // Retrieve the consideration item.
+            ConsiderationItem memory considerationItem = (consideration[i]);
+
+            // Create spent item for event based on the consideration item.
+            SpentItem memory receivedItem = SpentItem(
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount
+            );
+
+            // Add to array of received items
+            receivedItems[i] = receivedItem;
+        }
+    }
+
+    /**
+     * @dev Internal function to derive the greatest common divisor of two
+     *      values using the classical euclidian algorithm.
+     *
+     * @param a The first value.
+     * @param b The second value.
+     *
+     * @return greatestCommonDivisor The greatest common divisor.
+     */
+    function _greatestCommonDivisor(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 greatestCommonDivisor)
+    {
+        while (b > 0) {
+            uint256 c = b;
+            b = a % c;
+            a = c;
+        }
+
+        greatestCommonDivisor = a;
     }
 
     /**
