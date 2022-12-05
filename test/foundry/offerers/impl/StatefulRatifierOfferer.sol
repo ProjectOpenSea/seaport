@@ -7,9 +7,8 @@ import {
     ERC1155Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
@@ -100,22 +99,42 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     error IncorrectValue(uint256 actual, uint256 expected);
+    error IncorrectToken(address actual, address expected);
+    error IncorrectItemType(ItemType actual, ItemType expected);
 
     function ratifyOrder(
         SpentItem[] calldata minimumReceived, /* offer */
-        ReceivedItem[] calldata, /* consideration */
+        ReceivedItem[] calldata maximumSpent, /* consideration */
         bytes calldata, /* context */
         bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    )
-        external
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
-        if (minimumReceived[0].amount != value + 1) {
-            revert IncorrectValue(minimumReceived[0].amount, value + 1);
+    ) external override returns (bytes4 /* ratifyOrderMagicValue */ ) {
+        for (uint256 i = 0; i < minimumReceived.length; i++) {
+            if (minimumReceived[i].amount != value + 1) {
+                revert IncorrectItemType(
+                    minimumReceived[i].itemType, ItemType.ERC20
+                );
+            }
+            if (minimumReceived[i].token != address(token1)) {
+                revert IncorrectToken(minimumReceived[i].token, address(token1));
+            }
+
+            if (minimumReceived[i].amount != value + 1) {
+                revert IncorrectValue(minimumReceived[i].amount, value + 1);
+            }
+        }
+        for (uint256 i; i < maximumSpent.length; i++) {
+            if (maximumSpent[i].itemType != ItemType.ERC721) {
+                revert IncorrectItemType(
+                    maximumSpent[i].itemType, ItemType.ERC721
+                );
+            }
+            if (maximumSpent[i].token != address(token2)) {
+                revert IncorrectToken(maximumSpent[i].token, address(token2));
+            }
+            if (maximumSpent[i].identifier != 42) {
+                revert IncorrectValue(maximumSpent[i].identifier, 42);
+            }
         }
         called = true;
         return ContractOffererInterface.ratifyOrder.selector;
