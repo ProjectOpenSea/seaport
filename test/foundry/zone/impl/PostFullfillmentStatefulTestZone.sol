@@ -14,6 +14,12 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
     error IncorrectItemType(ItemType actual, ItemType expected);
     error IncorrectIdentifier(uint256 actual, uint256 expected);
 
+    uint256 amountToCheck;
+
+    constructor(uint256 amount) {
+        amountToCheck = amount;
+    }
+
     bool public called = false;
 
     // Called by Consideration whenever any extraData is provided by the caller.
@@ -21,7 +27,7 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
         external
         returns (bytes4 validOrderMagicValue)
     {
-        if (zoneParameters.offer[0].amount != 50) {
+        if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
         }
         if (zoneParameters.consideration[0].itemType != ItemType.ERC721) {

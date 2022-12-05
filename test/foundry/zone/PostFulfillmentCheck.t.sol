@@ -13,22 +13,41 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     BasicOrderParameters,
-    Order
+    Order,
+    AdditionalRecipient
 } from "seaport/lib/ConsiderationStructs.sol";
 import {
     OrderType,
     Side,
     BasicOrderType
 } from "seaport/lib/ConsiderationEnums.sol";
+import {
+    ConsiderationInterface
+} from "seaport/interfaces/ConsiderationInterface.sol";
 
 contract PostFulfillmentCheckTest is BaseOrderTest {
     TestZone zone = new TestZone();
     PostFulfillmentStatefulTestZone statefulZone =
-        new PostFulfillmentStatefulTestZone();
+        new PostFulfillmentStatefulTestZone(50);
 
+    struct Context {
+        ConsiderationInterface consideration;
+        uint8 numOriginalAdditional;
+        uint8 numTips;
+    }
     struct EthConsideration {
         address payable recipient;
         uint256 amount;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {
+            fail();
+        } catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function setUp() public override {
@@ -36,79 +55,26 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         vm.label(address(zone), "TestZone");
     }
 
-    function testNormalOrder() public {
-        vm.warp(0x696969696969);
-        // create and label offerer who can sign an order
-        (address offerer, uint256 pkey) = makeAddrAndKey("offerer");
-        // mint an nft to the offerer
-        uint256 tokenId = 0x6969;
-        uint256 tokenIdAmt = 0x16969;
-        uint256 tokenIdAmtEnd = 0x26969;
-        test1155_1.mint(offerer, tokenId, tokenIdAmt);
-        vm.prank(offerer);
-        test1155_1.setApprovalForAll(address(consideration), true);
-        addOfferItem(ItemType.ERC1155, tokenId, tokenIdAmt, tokenIdAmtEnd);
-
-        // add typical 3 consideration items
-        EthConsideration[] memory considerations = new EthConsideration[](3);
-        considerations[0] = EthConsideration(
-            payable(address(0x56969)),
-            0x66969
+    function testAscendingAmount() public {
+        test(
+            this.execAscendingAmount,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
         );
-        considerations[1] = EthConsideration(
-            payable(address(0x76969)),
-            0x86969
+        test(
+            this.execAscendingAmount,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
         );
-        considerations[2] = EthConsideration(
-            payable(address(0x96969)),
-            0xa6969
-        );
-        addEthConsiderationItem(
-            considerations[0].recipient,
-            considerations[0].amount
-        );
-        addEthConsiderationItem(
-            considerations[1].recipient,
-            considerations[1].amount
-        );
-        addEthConsiderationItem(
-            considerations[2].recipient,
-            considerations[2].amount
-        );
-
-        _configureOrderParameters({
-            offerer: offerer,
-            zone: address(zone),
-            zoneHash: bytes32(0),
-            salt: 0,
-            useConduit: false
-        });
-        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
-
-        _configureOrderComponents(0);
-        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature = signOrder(consideration, pkey, orderHash);
-
-        AdvancedOrder memory order = AdvancedOrder({
-            parameters: baseOrderParameters,
-            numerator: 1,
-            denominator: 1,
-            signature: signature,
-            extraData: "extradata"
-        });
-        CriteriaResolver[] memory criteriaResolvers;
-
-        consideration.fulfillAdvancedOrder{
-            value: _sumConsiderationAmounts()
-        }({
-            advancedOrder: order,
-            criteriaResolvers: criteriaResolvers,
-            fulfillerConduitKey: bytes32(0),
-            recipient: address(0)
-        });
     }
 
-    function testAscendingAmount() public {
+    function execAscendingAmount(Context memory context) public stateless {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -126,8 +92,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         _configureOrderComponents(0);
-        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -138,7 +110,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
         CriteriaResolver[] memory criteriaResolvers;
         vm.warp(50);
-        consideration.fulfillAdvancedOrder({
+        context.consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -147,6 +119,25 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testResolvedCriteria() public {
+        test(
+            this.execResolvedCriteria,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execResolvedCriteria,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execResolvedCriteria(Context memory context) public stateless {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 0);
         considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
@@ -165,8 +156,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         _configureOrderComponents(0);
-        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -184,7 +181,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             criteriaProof: new bytes32[](0)
         });
         vm.warp(50);
-        consideration.fulfillAdvancedOrder({
+        context.consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -193,6 +190,25 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testStateChange() public {
+        test(
+            this.execStateChange,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execStateChange,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execStateChange(Context memory context) public stateless {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 0);
         considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
@@ -211,8 +227,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         _configureOrderComponents(0);
-        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -230,7 +252,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             criteriaProof: new bytes32[](0)
         });
         vm.warp(50);
-        consideration.fulfillAdvancedOrder({
+        context.consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -241,8 +263,30 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testBasicStateful() public {
+        test(
+            this.execBasicStateful,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execBasicStateful,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execBasicStateful(Context memory context) public stateless {
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
+        addErc20ConsiderationItem(bob, 1);
+        addErc20ConsiderationItem(cal, 1);
+
         test721_1.mint(address(this), 42);
 
         _configureOrderParameters({
@@ -257,8 +301,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         _configureOrderComponents(0);
-        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
         BasicOrderParameters
             memory basicOrderParameters = toBasicOrderParameters(
@@ -266,8 +316,140 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
                 signature
             );
+        basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            2
+        );
+        basicOrderParameters.additionalRecipients[0] = AdditionalRecipient({
+            recipient: bob,
+            amount: 1
+        });
+        basicOrderParameters.additionalRecipients[1] = AdditionalRecipient({
+            recipient: cal,
+            amount: 1
+        });
+        basicOrderParameters.totalOriginalAdditionalRecipients = 2;
         vm.warp(50);
-        consideration.fulfillBasicOrder({ parameters: basicOrderParameters });
+        context.consideration.fulfillBasicOrder({
+            parameters: basicOrderParameters
+        });
+    }
+
+    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
+        public
+    {
+        test(
+            this.execBasicStatefulFuzz,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: numOriginalAdditional,
+                numTips: numTips
+            })
+        );
+        test(
+            this.execBasicStatefulFuzz,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: numOriginalAdditional,
+                numTips: numTips
+            })
+        );
+    }
+
+    function execBasicStatefulFuzz(Context memory context) external stateless {
+        // keep track of each additional recipient so we can check their balances
+        address[] memory allAdditional = new address[](
+            uint256(context.numOriginalAdditional) + context.numTips
+        );
+        // make new stateful zone with a larger amount so each additional recipient can receive
+        statefulZone = new PostFulfillmentStatefulTestZone(5000);
+        // clear storage array just in case
+        delete additionalRecipients;
+
+        // create core order
+        addErc20OfferItem(5000);
+        addErc721ConsiderationItem(alice, 42);
+
+        // loop over original additional
+        for (uint256 i = 0; i < context.numOriginalAdditional; i++) {
+            // create specific labeled address
+            address payable recipient = payable(
+                makeAddr(string.concat("original additional ", vm.toString(i)))
+            );
+            // add to all additional
+            allAdditional[i] = recipient;
+            // add to consideration items that will be hashed with order
+            addErc20ConsiderationItem(recipient, 1);
+            // add to the additional recipients array included with the basic order
+            additionalRecipients.push(
+                AdditionalRecipient({ recipient: recipient, amount: 1 })
+            );
+        }
+        // do the same with additional recipients
+        for (uint256 i = 0; i < context.numTips; i++) {
+            // create specific labeled address
+            address payable recipient = payable(
+                makeAddr(string.concat("additional ", vm.toString(i)))
+            );
+            // add to all additional
+            allAdditional[i + context.numOriginalAdditional] = recipient;
+            // do not add to consideration items that will be hashed with order
+            // add to the additional recipients array included with the basic order
+            additionalRecipients.push(
+                AdditionalRecipient({ recipient: recipient, amount: 1 })
+            );
+        }
+
+        // mint token to fulfiller
+        test721_1.mint(address(this), 42);
+
+        // configure order parameters
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(statefulZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        // override settings parameters
+        baseOrderParameters.startTime = 1;
+        baseOrderParameters.endTime = 101;
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        // configure order components for signing
+        _configureOrderComponents(0);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        // convert to basic order parameters
+        BasicOrderParameters
+            memory basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
+                signature
+            );
+        // update additional recipients
+        basicOrderParameters.additionalRecipients = additionalRecipients;
+        basicOrderParameters.totalOriginalAdditionalRecipients = context
+            .numOriginalAdditional;
+        context.consideration.fulfillBasicOrder({
+            parameters: basicOrderParameters
+        });
+
+        // assertions
+        assertTrue(statefulZone.called());
+        for (uint256 i = 0; i < allAdditional.length; i++) {
+            assertEq(
+                token1.balanceOf(allAdditional[i]),
+                1,
+                "additional recipient has incorrect balance"
+            );
+        }
     }
 
     function _sumConsiderationAmounts() internal returns (uint256 sum) {
