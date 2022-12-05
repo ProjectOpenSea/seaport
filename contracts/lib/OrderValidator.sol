@@ -469,8 +469,9 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                     originalConsideration.itemType = consideration[i].itemType;
                     originalConsideration.token = consideration[i].token;
-                    originalConsideration
-                        .identifierOrCriteria = consideration[i].identifier;
+                    originalConsideration.identifierOrCriteria = consideration[
+                        i
+                    ].identifier;
                     originalConsideration.startAmount = consideration[i].amount;
                     originalConsideration.endAmount = consideration[i].amount;
                     originalConsideration.recipient = consideration[i]
