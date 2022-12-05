@@ -33,7 +33,7 @@ Rajiv Patel-O'Connor           | `rajivpoc.eth`
 tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
 Meta0xNull                     | `meta0xnull.eth`
-sach1r0                        |
+sach1r0                        | `sach1r0.eth`
 gpersoon                       | `gpersoon.eth`
 Matt Solomon                   | `msolomon.eth`
 twojoy0                        |

@@ -18,6 +18,8 @@ import type {
   ConduitInterface,
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
+  TestInvalidContractOfferer,
+  TestPostExecution,
   TestZone,
 } from "../../../typechain-types";
 import type {
@@ -84,6 +86,17 @@ export const marketplaceFixture = async (
     .updateChannel(conduitOne.address, marketplaceContract.address, true);
 
   const stubZone = await deployContract<TestZone>("TestZone", owner);
+  const postExecutionZone = await deployContract<TestPostExecution>(
+    "TestPostExecution",
+    owner
+  );
+
+  const invalidContractOfferer =
+    await deployContract<TestInvalidContractOfferer>(
+      "TestInvalidContractOfferer",
+      owner,
+      marketplaceContractAddress
+    );
 
   // Required for EIP712 signing
   const domainData = {
@@ -165,7 +178,12 @@ export const marketplaceFixture = async (
 
   const createOrder = async (
     offerer: Wallet | Contract,
-    zone: TestZone | Wallet | undefined | string = undefined,
+    zone:
+      | TestZone
+      | TestPostExecution
+      | Wallet
+      | undefined
+      | string = undefined,
     offer: OfferItem[],
     consideration: ConsiderationItem[],
     orderType: number,
@@ -514,6 +532,8 @@ export const marketplaceFixture = async (
     marketplaceContract,
     directMarketplaceContract,
     stubZone,
+    postExecutionZone,
+    invalidContractOfferer,
     domainData,
     signOrder,
     signBulkOrder,

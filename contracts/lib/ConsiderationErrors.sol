@@ -144,6 +144,16 @@ function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
     }
 }
 
+function _revertInvalidContractOrder(bytes32 orderHash) pure {
+    assembly {
+        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+        mstore(0, InvalidContractOrder_error_selector)
+        mstore(InvalidContractOrder_error_orderHash_ptr, orderHash)
+        // revert(abi.encodeWithSignature("InvalidContractOrder(bytes32)", orderHash))
+        revert(0x1c, InvalidContractOrder_error_length)
+    }
+}
+
 function _revertInvalidTime() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector

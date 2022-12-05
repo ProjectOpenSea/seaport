@@ -75,6 +75,8 @@ contract BasicOrderFulfiller is OrderValidator {
         // Declare additional recipient item type to derive from the route type.
         ItemType additionalRecipientsItemType;
 
+        bytes32 orderHash;
+
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
             // Read basicOrderType from calldata.
@@ -154,7 +156,7 @@ contract BasicOrderFulfiller is OrderValidator {
             }
 
             // Derive & validate order using parameters and update order status.
-            _prepareBasicFulfillmentFromCalldata(
+            orderHash = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
                 receivedItemType,
@@ -274,6 +276,9 @@ contract BasicOrderFulfiller is OrderValidator {
             _triggerIfArmed(accumulator);
         }
 
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(orderHash, orderType, parameters);
+
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
 
@@ -291,10 +296,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *      will ensure that other functions using Solidity's calldata accessors
      *      (which calculate pointers from the stored offsets) are reading the
      *      same data as the order hash is derived from. Also note that This
-     *      function accesses memory directly. It does not clear the expanded
-     *      memory regions used, nor does it update the free memory pointer, so
-     *      other direct memory access must not assume that unused memory is
-     *      empty.
+     *      function accesses memory directly.
      *
      * @param parameters                   The parameters of the basic order.
      * @param orderType                    The order type.
@@ -315,7 +317,7 @@ contract BasicOrderFulfiller is OrderValidator {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal {
+    ) internal returns (bytes32 orderHash) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -334,9 +336,6 @@ contract BasicOrderFulfiller is OrderValidator {
             parameters.additionalRecipients.length,
             parameters.totalOriginalAdditionalRecipients
         );
-
-        // Declare stack element for the order hash.
-        bytes32 orderHash;
 
         {
             /**
@@ -891,16 +890,10 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Restore the zero slot.
             mstore(ZeroSlot, 0)
-        }
 
-        // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
+            // Update the free memory pointer so that event data is persisted.
+            mstore(0x40, add(0x80, add(eventDataPtr, dataSize)))
+        }
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
@@ -908,6 +901,9 @@ contract BasicOrderFulfiller is OrderValidator {
             parameters.offerer,
             parameters.signature
         );
+
+        // Return the derived order hash.
+        return orderHash;
     }
 
     /**

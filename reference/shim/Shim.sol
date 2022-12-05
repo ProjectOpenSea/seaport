@@ -12,7 +12,11 @@ import { TestERC20 } from "contracts/test/TestERC20.sol";
 import { TestERC721 } from "contracts/test/TestERC721.sol";
 import { TestERC1155 } from "contracts/test/TestERC1155.sol";
 import { TestZone } from "contracts/test/TestZone.sol";
+import { TestPostExecution } from "contracts/test/TestPostExecution.sol";
 import { TestContractOfferer } from "contracts/test/TestContractOfferer.sol";
+import {
+    TestInvalidContractOfferer
+} from "contracts/test/TestInvalidContractOfferer.sol";
 import {
     PausableZoneController
 } from "contracts/zones/PausableZoneController.sol";

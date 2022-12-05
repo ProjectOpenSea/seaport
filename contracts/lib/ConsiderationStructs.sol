@@ -243,12 +243,20 @@ struct Execution {
 }
 
 /**
- * @dev Emitted by contract offerers when their inventory has been updated (i.e.
- *      some item has been added or removed as an available for offer or
- *      expected to be received back as a consideration item).
+ * @dev Restricted orders are validated post-execution by calling validateOrder
+ *      on the zone. This struct provides context about the order fulfillment
+ *      and any supplied extraData, as well as all order hashes fulfilled in a
+ *      call to a match or fulfillAvailable method.
  */
-struct InventoryUpdate {
-    SpentItem item;
-    bool offerable;
-    bool receivable;
+struct ZoneParameters {
+    bytes32 orderHash;
+    address fulfiller;
+    address offerer;
+    SpentItem[] offer;
+    ReceivedItem[] consideration;
+    bytes extraData;
+    bytes32[] orderHashes;
+    uint256 startTime;
+    uint256 endTime;
+    bytes32 zoneHash;
 }
