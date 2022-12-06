@@ -631,18 +631,15 @@ contract ReferenceConsideration is
     }
 
     /**
-    * @dev Gets the contract offerer nonce for the specified contract offerer.
-    *
-    * @param contractOfferer The contract offerer for which to get the nonce.
-    * 
-    * @return nonce The contract offerer nonce.
-    */
-    function getContractOffererNonce(address contractOfferer)
-        external
-        view
-        override
-        returns (uint256 nonce)
-    {
+     * @dev Gets the contract offerer nonce for the specified contract offerer.
+     *
+     * @param contractOfferer The contract offerer for which to get the nonce.
+     *
+     * @return nonce The contract offerer nonce.
+     */
+    function getContractOffererNonce(
+        address contractOfferer
+    ) external view override returns (uint256 nonce) {
         nonce = _contractNonces[contractOfferer];
     }
 

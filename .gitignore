@@ -32,3 +32,5 @@ Seaport.yul
 # coverage
 html
 lcov.info
+
+test/utils/eip712/gen.sol
