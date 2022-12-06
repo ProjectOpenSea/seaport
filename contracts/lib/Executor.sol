@@ -567,11 +567,9 @@ contract Executor is Verifiers, TokenTransferrer {
      * @return accumulatorConduitKey The conduit key currently set for the
      *                               accumulator.
      */
-    function _getAccumulatorConduitKey(bytes memory accumulator)
-        internal
-        pure
-        returns (bytes32 accumulatorConduitKey)
-    {
+    function _getAccumulatorConduitKey(
+        bytes memory accumulator
+    ) internal pure returns (bytes32 accumulatorConduitKey) {
         // Retrieve the current conduit key from the accumulator.
         assembly {
             accumulatorConduitKey := mload(

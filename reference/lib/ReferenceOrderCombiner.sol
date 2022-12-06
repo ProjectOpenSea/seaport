@@ -50,9 +50,9 @@ contract ReferenceOrderCombiner is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderFulfiller(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceOrderFulfiller(conduitController) {}
 
     /**
      * @notice Internal function to attempt to fill a group of orders, fully or

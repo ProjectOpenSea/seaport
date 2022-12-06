@@ -198,11 +198,10 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         );
     }
 
-    function _isRestrictedAndCallerNotZone(OrderType orderType, address zone)
-        internal
-        view
-        returns (bool mustValidate)
-    {
+    function _isRestrictedAndCallerNotZone(
+        OrderType orderType,
+        address zone
+    ) internal view returns (bool mustValidate) {
         assembly {
             mustValidate := and(
                 or(eq(orderType, 2), eq(orderType, 3)),
@@ -286,21 +285,17 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             );
     }
 
-    function _convertOffer(OfferItem[] memory offer)
-        internal
-        pure
-        returns (SpentItem[] memory spentItems)
-    {
+    function _convertOffer(
+        OfferItem[] memory offer
+    ) internal pure returns (SpentItem[] memory spentItems) {
         assembly {
             spentItems := offer
         }
     }
 
-    function _convertConsideration(ConsiderationItem[] memory consideration)
-        internal
-        pure
-        returns (ReceivedItem[] memory receivedItems)
-    {
+    function _convertConsideration(
+        ConsiderationItem[] memory consideration
+    ) internal pure returns (ReceivedItem[] memory receivedItems) {
         assembly {
             receivedItems := consideration
         }

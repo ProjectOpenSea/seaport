@@ -12,7 +12,8 @@
   "dependencies": {
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
-    "hardhat": "^2.12.1-ir.0"
+    "hardhat": "^2.12.1-ir.0",
+    "merkletreejs": "^0.3.9"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
@@ -76,11 +77,11 @@
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
     "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
     "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
-    "lint:check:format": "prettier --check **/*.{sol,js,ts}",
+    "lint:check:format": "prettier --check **.{sol,js,ts}",
     "lint:check:solhint": "yarn build && solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore contracts/**/*.sol",
     "lint:check:eslint": "eslint . --ext js,ts",
     "lint:fix": "yarn lint:fix:format && yarn lint:fix:eslint",
-    "lint:fix:format": "prettier --write **/*.{sol,js,ts}",
+    "lint:fix:format": "prettier --write **.{sol,js,ts}",
     "lint:fix:eslint": "eslint --fix . --ext js,ts",
     "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",

@@ -26,9 +26,9 @@ contract ReferenceVerifiers is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceAssertions(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceAssertions(conduitController) {}
 
     /**
      * @dev Internal view function to ensure that the current time falls within
@@ -98,11 +98,9 @@ contract ReferenceVerifiers is
         _assertValidSignature(offerer, digest, signature);
     }
 
-    function _isValidBulkOrderSize(bytes memory signature)
-        internal
-        pure
-        returns (bool validLength)
-    {
+    function _isValidBulkOrderSize(
+        bytes memory signature
+    ) internal pure returns (bool validLength) {
         validLength = signature.length == 289 || signature.length == 290;
     }
 

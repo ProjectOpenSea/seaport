@@ -47,9 +47,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderValidator(conduitController)
-    {
+    constructor(
+        address conduitController
+    ) ReferenceOrderValidator(conduitController) {
         createMappings();
     }
 

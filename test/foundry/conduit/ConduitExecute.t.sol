@@ -24,9 +24,10 @@ contract ConduitExecuteTest is BaseConduitTest {
         ConduitTransfer[] transfers;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }

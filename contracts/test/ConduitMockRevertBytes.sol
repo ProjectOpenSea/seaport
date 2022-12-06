@@ -26,7 +26,7 @@ contract ConduitMockRevertBytes is ConduitInterface {
     ) external view override returns (bytes4 magicValue) {}
 
     function executeWithBatch1155(
-        ConduitTransfer[] calldata, /* standardTransfers */
+        ConduitTransfer[] calldata /* standardTransfers */,
         ConduitBatch1155Transfer[] calldata /*  batch1155Transfers */
     ) external view override returns (bytes4 magicValue) {}
 

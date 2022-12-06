@@ -54,9 +54,9 @@ interface ConduitInterface {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        returns (bytes4 magicValue);
+    function execute(
+        ConduitTransfer[] calldata transfers
+    ) external returns (bytes4 magicValue);
 
     /**
      * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
