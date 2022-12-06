@@ -3,6 +3,9 @@ pragma solidity >=0.8.13;
 
 import "./ConsiderationConstants.sol";
 
+/**
+ * @dev Reverts the current transaction with a "BadFraction" error message.
+ */
 function _revertBadFraction() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -12,6 +15,9 @@ function _revertBadFraction() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with a "ConsiderationCriteriaResolverOutOfRange" error message.
+ */
 function _revertConsiderationCriteriaResolverOutOfRange() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -21,6 +27,14 @@ function _revertConsiderationCriteriaResolverOutOfRange() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with a "ConsiderationNotMet" error message,
+ *      including the provided order index, consideration index, and shortfall amount.
+ *
+ * @param orderIndex      The index of the order that did not meet the consideration criteria.
+ * @param considerationIndex The index of the consideration item that did not meet its criteria.
+ * @param shortfallAmount The amount by which the consideration criteria were not met.
+ */
 function _revertConsiderationNotMet(
     uint256 orderIndex,
     uint256 considerationIndex,
@@ -40,6 +54,9 @@ function _revertConsiderationNotMet(
     }
 }
 
+/**
+ * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem" error message.
+ */
 function _revertCriteriaNotEnabledForItem() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -49,6 +66,9 @@ function _revertCriteriaNotEnabledForItem() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InsufficientEtherSupplied" error message.
+ */
 function _revertInsufficientEtherSupplied() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -58,6 +78,9 @@ function _revertInsufficientEtherSupplied() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidBasicOrderParameterEncoding" error message.
+ */
 function _revertInvalidBasicOrderParameterEncoding() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -67,6 +90,12 @@ function _revertInvalidBasicOrderParameterEncoding() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidCallToConduit" error message,
+ *      including the provided address of the conduit that was called improperly.
+ *
+ * @param conduit The address of the conduit that was called improperly.
+ */
 function _revertInvalidCallToConduit(address conduit) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -77,6 +106,9 @@ function _revertInvalidCallToConduit(address conduit) pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidCanceller" error message.
+ */
 function _revertInvalidCanceller() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -86,6 +118,13 @@ function _revertInvalidCanceller() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidConduit" error message,
+ *      including the provided key and address of the invalid conduit.
+ *
+ * @param conduitKey The key of the invalid conduit.
+ * @param conduit The address of the invalid conduit.
+ */
 function _revertInvalidConduit(bytes32 conduitKey, address conduit) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -97,6 +136,9 @@ function _revertInvalidConduit(bytes32 conduitKey, address conduit) pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidERC721TransferAmount" error message.
+ */
 function _revertInvalidERC721TransferAmount() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -106,6 +148,12 @@ function _revertInvalidERC721TransferAmount() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidMsgValue" error message,
+ *      including the invalid value that was sent in the transaction's `msg.value` field.
+ *
+ * @param value The invalid value that was sent in the transaction's `msg.value` field.
+ */
 function _revertInvalidMsgValue(uint256 value) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -116,6 +164,10 @@ function _revertInvalidMsgValue(uint256 value) pure {
     }
 }
 
+
+/**
+ * @dev Reverts the current transaction with an "InvalidNativeOfferItem" error message.
+ */
 function _revertInvalidNativeOfferItem() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -125,6 +177,9 @@ function _revertInvalidNativeOfferItem() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidProof" error message.
+ */
 function _revertInvalidProof() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -134,6 +189,11 @@ function _revertInvalidProof() pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidRestrictedOrder" error message.
+ *
+ * @param orderHash The hash of the restricted order that caused the error.
+ */
 function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -144,6 +204,11 @@ function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidContractOrder" error message.
+ *
+ * @param orderHash The hash of the contract order that caused the error.
+ */
 function _revertInvalidContractOrder(bytes32 orderHash) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -154,6 +219,9 @@ function _revertInvalidContractOrder(bytes32 orderHash) pure {
     }
 }
 
+/**
+ * @dev Reverts the current transaction with an "InvalidTime" error message.
+ */
 function _revertInvalidTime() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -163,6 +231,9 @@ function _revertInvalidTime() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
+ */
 function _revertMismatchedFulfillmentOfferAndConsiderationComponents() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -178,6 +249,12 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "MissingFulfillmentComponentOnAggregation" error message.
+ *
+ * @param side The side of the fulfillment component that is missing (0 for offer, 1 for consideration).
+ *
+ */
 function _revertMissingFulfillmentComponentOnAggregation(uint8 side) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -188,6 +265,9 @@ function _revertMissingFulfillmentComponentOnAggregation(uint8 side) pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "MissingOriginalConsiderationItems" error message.
+ */
 function _revertMissingOriginalConsiderationItems() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -197,6 +277,9 @@ function _revertMissingOriginalConsiderationItems() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "NoReentrantCalls" error message.
+ */
 function _revertNoReentrantCalls() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -206,6 +289,9 @@ function _revertNoReentrantCalls() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "NoSpecifiedOrdersAvailable" error message.
+ */
 function _revertNoSpecifiedOrdersAvailable() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -215,6 +301,9 @@ function _revertNoSpecifiedOrdersAvailable() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment" error message.
+ */
 function _revertOfferAndConsiderationRequiredOnFulfillment() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -224,6 +313,9 @@ function _revertOfferAndConsiderationRequiredOnFulfillment() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "OfferCriteriaResolverOutOfRange" error message.
+ */
 function _revertOfferCriteriaResolverOutOfRange() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -233,6 +325,11 @@ function _revertOfferCriteriaResolverOutOfRange() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with an "OrderAlreadyFilled" error message.
+ *
+ * @param orderHash The hash of the order that has already been filled.
+ */
 function _revertOrderAlreadyFilled(bytes32 orderHash) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -243,6 +340,9 @@ function _revertOrderAlreadyFilled(bytes32 orderHash) pure {
     }
 }
 
+/**
+ * @dev Reverts execution with an "OrderCriteriaResolverOutOfRange" error message.
+ */
 function _revertOrderCriteriaResolverOutOfRange() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -252,6 +352,11 @@ function _revertOrderCriteriaResolverOutOfRange() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with an "OrderIsCancelled" error message.
+ *
+ * @param orderHash The hash of the order that has already been cancelled.
+ */
 function _revertOrderIsCancelled(bytes32 orderHash) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -262,6 +367,11 @@ function _revertOrderIsCancelled(bytes32 orderHash) pure {
     }
 }
 
+/**
+ * @dev Reverts execution with an "OrderPartiallyFilled" error message.
+ *
+ * @param orderHash The hash of the order that has already been partially filled.
+ */
 function _revertOrderPartiallyFilled(bytes32 orderHash) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -272,6 +382,10 @@ function _revertOrderPartiallyFilled(bytes32 orderHash) pure {
     }
 }
 
+/**
+ * @dev Reverts execution with a "PartialFillsNotEnabledForOrder" error message.
+ */
+
 function _revertPartialFillsNotEnabledForOrder() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -280,6 +394,10 @@ function _revertPartialFillsNotEnabledForOrder() pure {
         revert(0x1c, PartialFillsNotEnabledForOrder_error_length)
     }
 }
+
+/**
+ * @dev Reverts execution with an "UnresolvedConsiderationCriteria" error message.
+ */
 
 function _revertUnresolvedConsiderationCriteria() pure {
     assembly {
@@ -290,6 +408,10 @@ function _revertUnresolvedConsiderationCriteria() pure {
     }
 }
 
+/**
+ * @dev Reverts execution with an "UnresolvedOfferCriteria" error message.
+ */
+
 function _revertUnresolvedOfferCriteria() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
@@ -298,6 +420,10 @@ function _revertUnresolvedOfferCriteria() pure {
         revert(0x1c, UnresolvedOfferCriteria_error_length)
     }
 }
+
+/**
+ * @dev Reverts execution with an "UnusedItemParameters" error message.
+ */
 
 function _revertUnusedItemParameters() pure {
     assembly {
