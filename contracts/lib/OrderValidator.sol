@@ -25,6 +25,7 @@ import { ZoneInteraction } from "./ZoneInteraction.sol";
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
+import "./PointerLibraries.sol";
 
 /**
  * @title OrderValidator
@@ -33,6 +34,9 @@ import {
  *         and updating their status.
  */
 contract OrderValidator is Executor, ZoneInteraction {
+    using MemoryPointerLib for MemoryPointer;
+    using ReturndataPointerLib for ReturndataPointer;
+
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
@@ -378,14 +382,10 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // add new offer items if there are more than original
             for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
-                OfferItem memory originalOffer = orderParameters.offer[i];
-                SpentItem memory newOffer = offer[i];
-
-                originalOffer.itemType = newOffer.itemType;
-                originalOffer.token = newOffer.token;
-                originalOffer.identifierOrCriteria = newOffer.identifier;
-                originalOffer.startAmount = newOffer.amount;
-                originalOffer.endAmount = newOffer.amount;
+              MemoryPointer originalOffer = orderParameters.offer[i].toPointer();
+              MemoryPointer newOffer = offer[i].toPointer();
+              newOffer.copy(originalOffer, 0x80);
+              ReturndataPointer.wrap(0x60).copy(originalOffer.offset(0x80), 0x20);
             }
         }
 
