@@ -2107,9 +2107,10 @@ contract FulfillOrderTest is BaseOrderTest {
         external
         stateless
     {
-        if (context.args.zone == address(0)) {
-            context.args.zone == address(1);
-        }
+        context.args.zone = address(
+            uint160(bound(uint160(context.args.zone), 1, type(uint160).max))
+        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
