@@ -84,9 +84,6 @@ contract ReferenceOrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal returns (bool) {
-        // Declare empty bytes32 array (unused, will remain empty).
-        bytes32[] memory priorOrderHashes;
-
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
@@ -108,6 +105,10 @@ contract ReferenceOrderFulfiller is
             fulfillerConduitKey,
             recipient
         );
+
+        // Declare empty bytes32 array (unused, will remain empty).
+        bytes32[] memory priorOrderHashes = new bytes32[](1);
+        priorOrderHashes[0] = orderHash;
 
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(

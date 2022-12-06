@@ -145,7 +145,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 ContractOffererInterface(offerer).ratifyOrder(
                     orderToExecute.spentItems,
                     orderToExecute.receivedItems,
-                    "",
+                    advancedOrder.extraData,
                     orderHashes,
                     uint96(uint256(orderHash))
                 ) != ContractOffererInterface.ratifyOrder.selector
