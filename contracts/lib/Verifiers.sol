@@ -7,6 +7,8 @@ import { Assertions } from "./Assertions.sol";
 
 import { SignatureVerification } from "./SignatureVerification.sol";
 
+import "./ConsiderationErrors.sol";
+
 /**
  * @title Verifiers
  * @author 0age
@@ -39,19 +41,18 @@ contract Verifiers is Assertions, SignatureVerification {
         uint256 endTime,
         bool revertOnInvalid
     ) internal view returns (bool valid) {
-        // Revert if order's timespan hasn't started yet or has already ended.
-        if (startTime > block.timestamp || endTime <= block.timestamp) {
-            // Only revert if revertOnInvalid has been supplied as true.
-            if (revertOnInvalid) {
-                revert InvalidTime();
-            }
-
-            // Return false as the order is invalid.
-            return false;
+        // Mark as valid if order has started and has not already ended.
+        assembly {
+            valid := and(
+                iszero(gt(startTime, timestamp())),
+                gt(endTime, timestamp())
+            )
         }
 
-        // Return true as the order time is valid.
-        valid = true;
+        // Only revert on invalid if revertOnInvalid has been supplied as true.
+        if (revertOnInvalid && !valid) {
+            _revertInvalidTime();
+        }
     }
 
     /**
@@ -73,8 +74,12 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes memory signature
     ) internal view {
         // Skip signature verification if the offerer is the caller.
-        if (offerer == msg.sender) {
+        if (_unmaskedAddressComparison(offerer, msg.sender)) {
             return;
+        }
+
+        if (_isValidBulkOrderSize(signature)) {
+            (orderHash) = _computeBulkOrderProof(signature, orderHash);
         }
 
         // Derive EIP-712 digest using the domain separator and the order hash.
@@ -82,6 +87,82 @@ contract Verifiers is Assertions, SignatureVerification {
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(offerer, digest, signature);
+    }
+
+    function _isValidBulkOrderSize(bytes memory signature)
+        internal
+        pure
+        returns (bool validLength)
+    {
+        assembly {
+            validLength := lt(
+                sub(mload(signature), EIP712_BulkOrder_minSize),
+                2
+            )
+        }
+    }
+
+    function _computeBulkOrderProof(
+        bytes memory proofAndSignature,
+        bytes32 leaf
+    ) internal view returns (bytes32 bulkOrderHash) {
+        bytes32 root;
+
+        assembly {
+            // Set length to just the size of the signature
+            let length := sub(
+                mload(proofAndSignature),
+                BulkOrderProof_proofAndKeySize
+            )
+            mstore(proofAndSignature, length)
+
+            let keyPtr := add(proofAndSignature, add(0x20, length))
+            let key := shr(248, mload(keyPtr))
+            let proof := add(keyPtr, 1)
+
+            // Compute level 1
+            let scratch := shl(5, and(key, 1))
+            mstore(scratch, leaf)
+            mstore(xor(scratch, OneWord), mload(proof))
+
+            // Compute level 2
+            scratch := shl(5, and(shr(1, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x20)))
+
+            // Compute level 3
+            scratch := shl(5, and(shr(2, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x40)))
+
+            // Compute level 4
+            scratch := shl(5, and(shr(3, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x60)))
+
+            // Compute level 5
+            scratch := shl(5, and(shr(4, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0x80)))
+
+            // Compute level 6
+            scratch := shl(5, and(shr(5, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0xa0)))
+
+            // Compute root hash
+            scratch := shl(5, and(shr(6, key), 1))
+            mstore(scratch, keccak256(0, TwoWords))
+            mstore(xor(scratch, OneWord), mload(add(proof, 0xc0)))
+            root := keccak256(0, TwoWords)
+        }
+
+        bytes32 rootTypeHash = _BULK_ORDER_TYPEHASH;
+        assembly {
+            mstore(0, rootTypeHash)
+            mstore(0x20, root)
+            bulkOrderHash := keccak256(0, 0x40)
+        }
     }
 
     /**
@@ -109,7 +190,7 @@ contract Verifiers is Assertions, SignatureVerification {
         if (orderStatus.isCancelled) {
             // Only revert if revertOnInvalid has been supplied as true.
             if (revertOnInvalid) {
-                revert OrderIsCancelled(orderHash);
+                _revertOrderIsCancelled(orderHash);
             }
 
             // Return false as the order status is invalid.
@@ -124,13 +205,13 @@ contract Verifiers is Assertions, SignatureVerification {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
-                revert OrderPartiallyFilled(orderHash);
+                _revertOrderPartiallyFilled(orderHash);
             }
             // Otherwise, ensure that order has not been entirely filled.
             else if (orderStatusNumerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
-                    revert OrderAlreadyFilled(orderHash);
+                    _revertOrderAlreadyFilled(orderHash);
                 }
 
                 // Return false as the order status is invalid.

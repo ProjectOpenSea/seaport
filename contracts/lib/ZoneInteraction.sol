@@ -3,15 +3,31 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import {
+    ContractOffererInterface
+} from "../interfaces/ContractOffererInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    AdvancedOrder,
+    OrderParameters,
+    BasicOrderParameters,
+    AdditionalRecipient,
+    ZoneParameters,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem
+} from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
+
+import "./ConsiderationConstants.sol";
+
+import "./ConsiderationErrors.sol";
 
 /**
  * @title ZoneInteraction
@@ -24,51 +40,90 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      order type and, if so, to ensure that either the offerer or the zone
      *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
+     *      Note that contract orders are not accessible via basic fulfillments.
      *
-     * @param orderHash The hash of the order.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     * @param orderType The type of the order.
-     * @param offerer   The offerer in question.
-     * @param zone      The zone in question.
+     * @param orderHash   The hash of the order.
+     * @param orderType   The order type.
+     * @param parameters  The parameters of the basic order.
      */
     function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
-        bytes32 zoneHash,
         OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // Perform minimal staticcall to the zone.
-            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-        }
-    }
+        BasicOrderParameters calldata parameters
+    ) internal {
+        // Order type 2-3 require zone be caller or zone to approve.
+        if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
+            // TODO: optimize (copy relevant arguments directly for calldata)
+            bytes32[] memory orderHashes = new bytes32[](1);
+            orderHashes[0] = orderHash;
 
-    function _callIsValidOrder(
-        address zone,
-        bytes32 orderHash,
-        address offerer,
-        bytes32 zoneHash
-    ) internal view {
-        // Perform minimal staticcall to the zone.
-        bool success = _staticcall(
-            zone,
-            abi.encodeWithSelector(
-                ZoneInterface.isValidOrder.selector,
+            SpentItem[] memory offer = new SpentItem[](1);
+
+            ReceivedItem[] memory consideration = new ReceivedItem[](
+                parameters.additionalRecipients.length + 1
+            );
+
+            bytes memory extraData;
+
+            // Copy offer & consideration from event data into target callData.
+            // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
+            uint256 size;
+            unchecked {
+                size =
+                    OrderFulfilled_baseDataSize +
+                    (parameters.additionalRecipients.length *
+                        ReceivedItem_size);
+            }
+
+            {
+                uint256 offerDataOffset;
+                assembly {
+                    offerDataOffset := add(
+                        OrderFulfilled_offer_length_baseOffset,
+                        mul(
+                            calldataload(
+                                BasicOrder_additionalRecipients_length_cdPtr
+                            ),
+                            OneWord
+                        )
+                    )
+                }
+
+                // Send to the identity precompile. Note: some random data will
+                // be written to the first word of scratch space in the process.
+                _call(IdentityPrecompile, offerDataOffset, size);
+            }
+
+            // TODO: optimize (conversion is temporary to get it to compile)
+            bytes memory callData = _generateValidateCallData(
                 orderHash,
-                msg.sender,
-                offerer,
-                zoneHash
-            )
-        );
+                parameters.offerer,
+                offer,
+                consideration,
+                extraData,
+                orderHashes,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash
+            );
 
-        // Ensure call was successful and returned the correct magic value.
-        _assertIsValidOrderStaticcallSuccess(success, orderHash);
+            // Copy into the correct region of calldata.
+            assembly {
+                returndatacopy(
+                    add(callData, ValidateOrder_offerDataOffset),
+                    0,
+                    size
+                )
+            }
+
+            _callAndCheckStatus(
+                parameters.zone,
+                orderHash,
+                callData,
+                ZoneInterface.validateOrder.selector,
+                _revertInvalidRestrictedOrder
+            );
+        }
     }
 
     /**
@@ -80,92 +135,174 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *      fulfillment specifies extra data or criteria resolvers.
      *
      * @param advancedOrder     The advanced order in question.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     * @param orderHashes       The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety
      *                          of order fulfillment (e.g. this array will be
      *                          empty for single or "fulfill available").
      * @param orderHash         The hash of the order.
-     * @param zoneHash          The hash to provide upon calling the zone.
-     * @param orderType         The type of the order.
-     * @param offerer           The offerer in question.
-     * @param zone              The zone in question.
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bytes32[] memory priorOrderHashes,
-        bytes32 orderHash,
-        bytes32 zoneHash,
-        OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // If no extraData or criteria resolvers are supplied...
-            if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
-            ) {
-                // Perform minimal staticcall to the zone.
-                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-            } else {
-                // Otherwise, extra data or criteria resolvers were supplied; in
-                // that event, perform a more verbose staticcall to the zone.
-                bool success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrderIncludingExtraData.selector,
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
-                    )
-                );
+        bytes32[] memory orderHashes,
+        bytes32 orderHash
+    ) internal {
+        bytes memory callData;
+        address target;
+        bytes4 magicValue;
+        function(bytes32) internal view errorHandler;
 
-                // Ensure call was successful and returned correct magic value.
-                _assertIsValidOrderStaticcallSuccess(success, orderHash);
-            }
+        OrderParameters memory parameters = advancedOrder.parameters;
+
+        // OrderType 2-3 require zone to be caller or approve via validateOrder.
+        if (
+            _isRestrictedAndCallerNotZone(parameters.orderType, parameters.zone)
+        ) {
+            // TODO: optimize (conversion is temporary to get it to compile)
+            callData = _generateValidateCallData(
+                orderHash,
+                parameters.offerer,
+                _convertOffer(parameters.offer),
+                _convertConsideration(parameters.consideration),
+                advancedOrder.extraData,
+                orderHashes,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash
+            );
+
+            target = parameters.zone;
+            magicValue = ZoneInterface.validateOrder.selector;
+            errorHandler = _revertInvalidRestrictedOrder;
+        } else if (parameters.orderType == OrderType.CONTRACT) {
+            callData = _generateRatifyCallData(
+                orderHash,
+                _convertOffer(parameters.offer),
+                _convertConsideration(parameters.consideration),
+                advancedOrder.extraData,
+                orderHashes
+            );
+
+            target = parameters.offerer;
+            magicValue = ContractOffererInterface.ratifyOrder.selector;
+            errorHandler = _revertInvalidContractOrder;
+        } else {
+            return;
+        }
+
+        _callAndCheckStatus(
+            target,
+            orderHash,
+            callData,
+            magicValue,
+            errorHandler
+        );
+    }
+
+    function _isRestrictedAndCallerNotZone(OrderType orderType, address zone)
+        internal
+        view
+        returns (bool mustValidate)
+    {
+        assembly {
+            mustValidate := and(
+                or(eq(orderType, 2), eq(orderType, 3)),
+                iszero(eq(caller(), zone))
+            )
         }
     }
 
-    /**
-     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
-     *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
-     */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
+    function _callAndCheckStatus(
+        address target,
+        bytes32 orderHash,
+        bytes memory callData,
+        bytes4 magicValue,
+        function(bytes32) internal view errorHandler
+    ) internal {
+        uint256 callDataMemoryPointer;
+        assembly {
+            callDataMemoryPointer := add(callData, OneWord)
+        }
+
         // If the call failed...
-        if (!success) {
+        if (!_call(target, callDataMemoryPointer, callData.length)) {
             // Revert and pass reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
 
             // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
+            errorHandler(orderHash);
         }
 
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
-            revert InvalidRestrictedOrder(orderHash);
+        // Ensure result was extracted and matches magic value.
+        if (_doesNotMatchMagic(magicValue)) {
+            errorHandler(orderHash);
+        }
+    }
+
+    function _generateValidateCallData(
+        bytes32 orderHash,
+        address offerer,
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        bytes memory extraData,
+        bytes32[] memory orderHashes,
+        uint256 startTime,
+        uint256 endTime,
+        bytes32 zoneHash
+    ) internal view returns (bytes memory) {
+        // TODO: optimize (conversion is temporary to get it to compile)
+        return
+            abi.encodeWithSelector(
+                ZoneInterface.validateOrder.selector,
+                ZoneParameters(
+                    orderHash,
+                    msg.sender,
+                    offerer,
+                    offer,
+                    consideration,
+                    extraData,
+                    orderHashes,
+                    startTime,
+                    endTime,
+                    zoneHash
+                )
+            );
+    }
+
+    function _generateRatifyCallData(
+        bytes32 orderHash, // e.g. offerer + contract nonce
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        bytes memory context, // encoded based on the schemaID
+        bytes32[] memory orderHashes
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                ContractOffererInterface.ratifyOrder.selector,
+                offer,
+                consideration,
+                context,
+                orderHashes,
+                uint96(uint256(orderHash))
+            );
+    }
+
+    function _convertOffer(OfferItem[] memory offer)
+        internal
+        pure
+        returns (SpentItem[] memory spentItems)
+    {
+        assembly {
+            spentItems := offer
+        }
+    }
+
+    function _convertConsideration(ConsiderationItem[] memory consideration)
+        internal
+        pure
+        returns (ReceivedItem[] memory receivedItems)
+    {
+        assembly {
+            receivedItems := consideration
         }
     }
 }

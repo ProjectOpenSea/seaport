@@ -24,6 +24,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_TYPEHASH;
+    bytes32 internal immutable _BULK_ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
@@ -49,7 +50,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             _EIP_712_DOMAIN_TYPEHASH,
             _OFFER_ITEM_TYPEHASH,
             _CONSIDERATION_ITEM_TYPEHASH,
-            _ORDER_TYPEHASH
+            _ORDER_TYPEHASH,
+            _BULK_ORDER_TYPEHASH
         ) = _deriveTypehashes();
 
         // Store the current chainId and derive the current domain separator.
@@ -68,19 +70,48 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     /**
      * @dev Internal view function to derive the EIP-712 domain separator.
      *
-     * @return The derived domain separator.
+     * @return domainSeparator The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                address(this)
-            )
-        );
+    function _deriveDomainSeparator()
+        internal
+        view
+        returns (bytes32 domainSeparator)
+    {
+        bytes32 typehash = _EIP_712_DOMAIN_TYPEHASH;
+        bytes32 nameHash = _NAME_HASH;
+        bytes32 versionHash = _VERSION_HASH;
+
+        // Leverage scratch space and other memory to perform an efficient hash.
+        assembly {
+            // Retrieve the free memory pointer; it will be replaced afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
+
+            // Retrieve value at 0x80; it will also be replaced afterwards.
+            let slot0x80 := mload(Slot0x80)
+
+            // Place typehash, name hash, and version hash at start of memory.
+            mstore(0, typehash)
+            mstore(OneWord, nameHash)
+            mstore(TwoWords, versionHash)
+
+            // Place chainId in the next memory location.
+            mstore(ThreeWords, chainid())
+
+            // Place the address of this contract in the next memory location.
+            mstore(FourWords, address())
+
+            // Hash relevant region of memory to derive the domain separator.
+            domainSeparator := keccak256(0, FiveWords)
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
+
+            // Restore the value at 0x80.
+            mstore(Slot0x80, slot0x80)
+        }
     }
 
     /**
@@ -133,6 +164,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      * @return considerationItemTypehash The EIP-712 typehash for
      *                                   ConsiderationItem types.
      * @return orderTypehash             The EIP-712 typehash for Order types.
+     * @return bulkOrderTypeHash         The EIP-712 typehash for bulk Order
+     *                                   types.
      */
     function _deriveTypehashes()
         internal
@@ -143,7 +176,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             bytes32 eip712DomainTypehash,
             bytes32 offerItemTypehash,
             bytes32 considerationItemTypehash,
-            bytes32 orderTypehash
+            bytes32 orderTypehash,
+            bytes32 bulkOrderTypeHash
         )
     {
         // Derive hash of the name of the contract.
@@ -214,12 +248,25 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         // Derive ConsiderationItem type hash using corresponding type string.
         considerationItemTypehash = keccak256(considerationItemTypeString);
 
+        bytes memory orderTypeString = abi.encodePacked(
+            orderComponentsPartialTypeString,
+            considerationItemTypeString,
+            offerItemTypeString
+        );
+
         // Derive OrderItem type hash via combination of relevant type strings.
-        orderTypehash = keccak256(
+        orderTypehash = keccak256(orderTypeString);
+
+        bytes memory bulkOrderPartialTypeString = abi.encodePacked(
+            "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
+        );
+
+        bulkOrderTypeHash = keccak256(
             abi.encodePacked(
-                orderComponentsPartialTypeString,
+                bulkOrderPartialTypeString,
                 considerationItemTypeString,
-                offerItemTypeString
+                offerItemTypeString,
+                orderComponentsPartialTypeString
             )
         );
     }

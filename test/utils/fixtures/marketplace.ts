@@ -4,6 +4,7 @@ import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
+import { getBulkOrderTree } from "../eip712/bulk-orders";
 import {
   calculateOrderHash,
   convertSignatureToEIP2098,
@@ -17,6 +18,8 @@ import type {
   ConduitInterface,
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
+  TestInvalidContractOfferer,
+  TestPostExecution,
   TestZone,
 } from "../../../typechain-types";
 import type {
@@ -29,6 +32,7 @@ import type {
 import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
+const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
 const { orderType } = require("../../../eip-712-types/order");
 
 export const marketplaceFixture = async (
@@ -82,6 +86,17 @@ export const marketplaceFixture = async (
     .updateChannel(conduitOne.address, marketplaceContract.address, true);
 
   const stubZone = await deployContract<TestZone>("TestZone", owner);
+  const postExecutionZone = await deployContract<TestPostExecution>(
+    "TestPostExecution",
+    owner
+  );
+
+  const invalidContractOfferer =
+    await deployContract<TestInvalidContractOfferer>(
+      "TestInvalidContractOfferer",
+      owner,
+      marketplaceContractAddress
+    );
 
   // Required for EIP712 signing
   const domainData = {
@@ -122,9 +137,53 @@ export const marketplaceFixture = async (
     return signature;
   };
 
+  const signBulkOrder = async (
+    orderComponents: OrderComponents[],
+    signer: Wallet | Contract
+  ) => {
+    const tree = getBulkOrderTree(orderComponents);
+    // console.log(domainData, bulkOrderType, bulkOrderComponents);
+    const chunks = tree.getDataToSign();
+
+    const signature = await signer._signTypedData(domainData, bulkOrderType, {
+      tree: chunks,
+    });
+
+    const proofAndSignature = tree.getEncodedProofAndSignature(0, signature);
+
+    const orderHash = tree.getBulkOrderHash(); // await getAndVerifyOrderHash(orderComponents);
+
+    const { domainSeparator } = await marketplaceContract.information();
+    const digest = keccak256(
+      `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+    );
+    const recoveredAddress = recoverAddress(digest, signature);
+
+    expect(recoveredAddress).to.equal(signer.address);
+
+    /// / TODO: verify each order or a subset of the orders?
+    //
+    // const orderHash = await getAndVerifyOrderHash(orderComponents);
+    //
+    // const { domainSeparator } = await marketplaceContract.information();
+    // const digest = keccak256(
+    //   `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+    // );
+    // const recoveredAddress = recoverAddress(digest, signature);
+    //
+    // expect(recoveredAddress).to.equal(signer.address);
+
+    return proofAndSignature;
+  };
+
   const createOrder = async (
     offerer: Wallet | Contract,
-    zone: TestZone | Wallet | undefined | string = undefined,
+    zone:
+      | TestZone
+      | TestPostExecution
+      | Wallet
+      | undefined
+      | string = undefined,
     offer: OfferItem[],
     consideration: ConsiderationItem[],
     orderType: number,
@@ -133,7 +192,8 @@ export const marketplaceFixture = async (
     signer?: Wallet,
     zoneHash = constants.HashZero,
     conduitKey = constants.HashZero,
-    extraCheap = false
+    extraCheap = false,
+    useBulkSignature = false
   ) => {
     const counter = await marketplaceContract.getCounter(offerer.address);
 
@@ -187,6 +247,10 @@ export const marketplaceFixture = async (
       denominator: 1, // only used for advanced orders
       extraData: "0x", // only used for advanced orders
     };
+
+    if (useBulkSignature) {
+      order.signature = signBulkOrder([orderComponents], signer ?? offerer);
+    }
 
     // How much ether (at most) needs to be supplied when fulfilling the order
     const value = offer
@@ -468,8 +532,11 @@ export const marketplaceFixture = async (
     marketplaceContract,
     directMarketplaceContract,
     stubZone,
+    postExecutionZone,
+    invalidContractOfferer,
     domainData,
     signOrder,
+    signBulkOrder,
     createOrder,
     createMirrorBuyNowOrder,
     createMirrorAcceptOfferOrder,

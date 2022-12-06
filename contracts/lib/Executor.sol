@@ -15,6 +15,8 @@ import { TokenTransferrer } from "./TokenTransferrer.sol";
 
 import "./ConsiderationConstants.sol";
 
+import "./ConsiderationErrors.sol";
+
 /**
  * @title Executor
  * @author 0age
@@ -56,7 +58,7 @@ contract Executor is Verifiers, TokenTransferrer {
         if (item.itemType == ItemType.NATIVE) {
             // Ensure neither the token nor the identifier parameters are set.
             if ((uint160(item.token) | item.identifier) != 0) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
 
             // transfer the native tokens to the recipient.
@@ -64,7 +66,7 @@ contract Executor is Verifiers, TokenTransferrer {
         } else if (item.itemType == ItemType.ERC20) {
             // Ensure that no identifier is supplied.
             if (item.identifier != 0) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
 
             // Transfer ERC20 tokens from the source to the recipient.
@@ -205,7 +207,7 @@ contract Executor is Verifiers, TokenTransferrer {
             if (itemType == ItemType.ERC721) {
                 // Ensure that exactly one 721 item is being transferred.
                 if (amount != 1) {
-                    revert InvalidERC721TransferAmount();
+                    _revertInvalidERC721TransferAmount();
                 }
 
                 // Perform transfer via the token contract directly.
@@ -242,7 +244,16 @@ contract Executor is Verifiers, TokenTransferrer {
             _revertWithReasonIfOneIsReturned();
 
             // Otherwise, revert with a generic error message.
-            revert EtherTransferGenericFailure(to, amount);
+            assembly {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, EtherTransferGenericFailure_error_selector)
+                mstore(EtherTransferGenericFailure_error_account_ptr, to)
+                mstore(EtherTransferGenericFailure_error_amount_ptr, amount)
+                // revert(abi.encodeWithSignature(
+                //   "EtherTransferGenericFailure(address,uint256)", to, amount)
+                // )
+                revert(0x1c, EtherTransferGenericFailure_error_length)
+            }
         }
     }
 
@@ -328,7 +339,7 @@ contract Executor is Verifiers, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
-                revert InvalidERC721TransferAmount();
+                _revertInvalidERC721TransferAmount();
             }
 
             // Perform transfer via the token contract directly.
@@ -537,12 +548,12 @@ contract Executor is Verifiers, TokenTransferrer {
             _revertWithReasonIfOneIsReturned();
 
             // Otherwise, revert with a generic error.
-            revert InvalidCallToConduit(conduit);
+            _revertInvalidCallToConduit(conduit);
         }
 
         // Ensure result was extracted and matches EIP-1271 magic value.
         if (result != ConduitInterface.execute.selector) {
-            revert InvalidConduit(conduitKey, conduit);
+            _revertInvalidConduit(conduitKey, conduit);
         }
     }
 

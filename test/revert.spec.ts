@@ -5081,8 +5081,32 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       await testERC20.blockTransfer(true);
 
       if (!process.env.REFERENCE) {
-        await expect(
-          marketplaceContract
+        const data = await marketplaceContract.interface.encodeFunctionData(
+          "fulfillAdvancedOrder",
+          [order, [], conduitKeyOne, ethers.constants.AddressZero]
+        );
+
+        const fullTx = await buyer.populateTransaction({
+          from: buyer.address,
+          to: marketplaceContract.address,
+          value,
+          data,
+          gasLimit: 30_000_000,
+        });
+
+        const returnedData = await provider.call(fullTx);
+
+        const expectedData = marketplaceContract.interface.encodeErrorResult(
+          "BadReturnValueFromERC20OnTransfer",
+          [testERC20.address, buyer.address, seller.address, amount.mul(1000)]
+        );
+
+        expect(returnedData).to.equal(expectedData);
+
+        let success = false;
+
+        try {
+          const tx = await marketplaceContract
             .connect(buyer)
             .fulfillAdvancedOrder(
               order,
@@ -5092,18 +5116,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               {
                 value,
               }
-            )
-        )
-          .to.be.revertedWithCustomError(
-            marketplaceContract,
-            "BadReturnValueFromERC20OnTransfer"
-          )
-          .withArgs(
-            testERC20.address,
-            buyer.address,
-            seller.address,
-            amount.mul(1000)
-          );
+            );
+
+          const receipt = await tx.wait();
+          success = receipt.status === 1;
+        } catch (err) {}
+
+        expect(success).to.be.false;
       } else {
         await expect(
           marketplaceContract
@@ -5122,9 +5141,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
+      expect(orderStatus.isValidated).to.equal(false);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("0");
+      expect(orderStatus.totalSize.toString()).to.equal("0");
 
       await testERC20.blockTransfer(false);
 
@@ -5161,9 +5181,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 1, 1)
-      );
+      expect(orderStatus.isValidated).to.equal(true);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("1");
+      expect(orderStatus.totalSize.toString()).to.equal("1");
     });
 
     it("Reverts when providing non-existent conduit", async () => {
@@ -5230,9 +5251,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
+      expect(orderStatus.isValidated).to.equal(false);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("0");
+      expect(orderStatus.totalSize.toString()).to.equal("0");
 
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
@@ -5266,9 +5288,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 1, 1)
-      );
+      expect(orderStatus.isValidated).to.equal(true);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("1");
+      expect(orderStatus.totalSize.toString()).to.equal("1");
     });
 
     it("Reverts when 1155 tokens are not approved", async () => {

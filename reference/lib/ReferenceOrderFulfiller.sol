@@ -84,20 +84,12 @@ contract ReferenceOrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal returns (bool) {
-        // Declare empty bytes32 array (unused, will remain empty).
-        bytes32[] memory priorOrderHashes;
-
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(
-                advancedOrder,
-                criteriaResolvers,
-                true,
-                priorOrderHashes
-            );
+        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
@@ -112,6 +104,22 @@ contract ReferenceOrderFulfiller is
             fillDenominator,
             fulfillerConduitKey,
             recipient
+        );
+
+        // Declare bytes32 array with this order's hash
+        bytes32[] memory priorOrderHashes = new bytes32[](1);
+        priorOrderHashes[0] = orderHash;
+
+        // Ensure restricted orders have a valid submitter or pass a zone check.
+        _assertRestrictedAdvancedOrderValidity(
+            advancedOrder,
+            orderToExecute,
+            priorOrderHashes,
+            orderHash,
+            orderParameters.zoneHash,
+            orderParameters.orderType,
+            orderParameters.offerer,
+            orderParameters.zone
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -357,6 +365,7 @@ contract ReferenceOrderFulfiller is
 
         // Create an array of spent items equal to the offer length.
         SpentItem[] memory spentItems = new SpentItem[](offer.length);
+        uint256[] memory spentItemOriginalAmounts = new uint256[](offer.length);
 
         // Iterate over each offer item on the order.
         for (uint256 i = 0; i < offer.length; ++i) {
@@ -373,6 +382,7 @@ contract ReferenceOrderFulfiller is
 
             // Add to array of spent items
             spentItems[i] = spentItem;
+            spentItemOriginalAmounts[i] = offerItem.startAmount;
         }
 
         // Retrieve the advanced orders considerations.
@@ -382,6 +392,9 @@ contract ReferenceOrderFulfiller is
 
         // Create an array of received items equal to the consideration length.
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+        uint256[] memory receivedItemOriginalAmounts = new uint256[](
             consideration.length
         );
 
@@ -401,6 +414,7 @@ contract ReferenceOrderFulfiller is
 
             // Add to array of received items
             receivedItems[i] = receivedItem;
+            receivedItemOriginalAmounts[i] = considerationItem.startAmount;
         }
 
         // Create the order to execute from the advanced order data.
@@ -409,8 +423,11 @@ contract ReferenceOrderFulfiller is
             spentItems,
             receivedItems,
             advancedOrder.parameters.conduitKey,
-            advancedOrder.numerator
+            advancedOrder.numerator,
+            spentItemOriginalAmounts,
+            receivedItemOriginalAmounts
         );
+
         // Return the order.
         return orderToExecute;
     }

@@ -431,6 +431,11 @@ interface ConsiderationInterface {
             address conduitController
         );
 
+    function getContractOffererNonce(address contractOfferer)
+        external
+        view
+        returns (uint256 nonce);
+
     /**
      * @notice Retrieve the name of this contract.
      *

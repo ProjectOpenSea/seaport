@@ -305,31 +305,32 @@ contract GettersAndDerivers is ConsiderationBase {
      * @dev Internal view function to retrieve configuration information for
      *      this contract.
      *
-     * @return version           The contract version.
-     * @return domainSeparator   The domain separator for this contract.
-     * @return conduitController The conduit Controller set for this contract.
+     * @return The contract version.
+     * @return The domain separator for this contract.
+     * @return The conduit Controller set for this contract.
      */
     function _information()
         internal
         view
         returns (
-            string memory version,
-            bytes32 domainSeparator,
-            address conduitController
+            string memory, /* version */
+            bytes32, /* domainSeparator */
+            address /* conduitController */
         )
     {
         // Derive the domain separator.
-        domainSeparator = _domainSeparator();
+        bytes32 domainSeparator = _domainSeparator();
 
         // Declare variable as immutables cannot be accessed within assembly.
-        conduitController = address(_CONDUIT_CONTROLLER);
+        address conduitController = address(_CONDUIT_CONTROLLER);
 
-        // Allocate a string with the intended length.
-        version = new string(Version_length);
-
-        // Set the version as data on the newly allocated string.
+        // Return the version, domain separator, and conduit controller.
         assembly {
-            mstore(add(version, OneWord), shl(Version_shift, Version))
+            mstore(information_version_offset, information_version_cd_offset)
+            mstore(information_domainSeparator_offset, domainSeparator)
+            mstore(information_conduitController_offset, conduitController)
+            mstore(information_versionLengthPtr, information_versionWithLength)
+            return(information_version_offset, information_length)
         }
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -9,14 +9,22 @@ import {
     AdvancedOrder,
     OrderComponents,
     OrderStatus,
-    CriteriaResolver
+    CriteriaResolver,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 import { Executor } from "./Executor.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
+
+import {
+    ContractOffererInterface
+} from "../interfaces/ContractOffererInterface.sol";
 
 /**
  * @title OrderValidator
@@ -27,6 +35,9 @@ import { ZoneInteraction } from "./ZoneInteraction.sol";
 contract OrderValidator is Executor, ZoneInteraction {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
+
+    // Track nonces for contract offerers.
+    mapping(address => uint256) internal _contractNonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -83,19 +94,8 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                          fill. Note that all offer and consideration
      *                          amounts must divide with no remainder in order
      *                          for a partial fill to be valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid   A boolean indicating whether to revert if the
      *                          order is invalid due to the time or status.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
-     *                          the current order as part of a "match" variety
-     *                          of order fulfillment (e.g. this array will be
-     *                          empty for single or "fulfill available").
      *
      * @return orderHash      The order hash.
      * @return newNumerator   A value indicating the portion of the order that
@@ -104,9 +104,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bool revertOnInvalid,
-        bytes32[] memory priorOrderHashes
+        bool revertOnInvalid
     )
         internal
         returns (
@@ -130,13 +128,22 @@ contract OrderValidator is Executor, ZoneInteraction {
             return (bytes32(0), 0, 0);
         }
 
+        if (orderParameters.orderType == OrderType.CONTRACT) {
+            return
+                _getGeneratedOrder(
+                    orderParameters,
+                    advancedOrder.extraData,
+                    revertOnInvalid
+                );
+        }
+
         // Read numerator and denominator from memory and place on the stack.
         uint256 numerator = uint256(advancedOrder.numerator);
         uint256 denominator = uint256(advancedOrder.denominator);
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0) {
-            revert BadFraction();
+            _revertBadFraction();
         }
 
         // If attempting partial fill (n < d) check order type & ensure support.
@@ -145,23 +152,11 @@ contract OrderValidator is Executor, ZoneInteraction {
             _doesNotSupportPartialFills(orderParameters.orderType)
         ) {
             // Revert if partial fill was attempted on an unsupported order.
-            revert PartialFillsNotEnabledForOrder();
+            _revertPartialFillsNotEnabledForOrder();
         }
 
         // Retrieve current counter & use it w/ parameters to derive order hash.
         orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
-
-        // Ensure restricted orders have a valid submitter or pass a zone check.
-        _assertRestrictedAdvancedOrderValidity(
-            advancedOrder,
-            criteriaResolvers,
-            priorOrderHashes,
-            orderHash,
-            orderParameters.zoneHash,
-            orderParameters.orderType,
-            orderParameters.offerer,
-            orderParameters.zone
-        );
 
         // Retrieve the order status using the derived order hash.
         OrderStatus storage orderStatus = _orderStatus[orderHash];
@@ -262,13 +257,11 @@ contract OrderValidator is Executor, ZoneInteraction {
                         gt(denominator, MaxUint120)
                     ) {
                         // Store the Panic error signature.
-                        mstore(0, Panic_error_signature)
-
-                        // Set arithmetic (0x11) panic code as initial argument.
-                        mstore(Panic_error_offset, Panic_arithmetic)
-
-                        // Return, supplying Panic signature & arithmetic code.
-                        revert(0, Panic_error_length)
+                        mstore(0, Panic_error_selector)
+                        // Store the arithmetic (0x11) panic code.
+                        mstore(Panic_error_code_ptr, Panic_arithmetic)
+                        // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
+                        revert(0x1c, Panic_error_length)
                     }
                 }
             }
@@ -290,6 +283,209 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Return order hash, a modified numerator, and a modified denominator.
         return (orderHash, numerator, denominator);
+    }
+
+    function _getGeneratedOrder(
+        OrderParameters memory orderParameters,
+        bytes memory context,
+        bool revertOnInvalid
+    )
+        internal
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        SpentItem[] memory offer;
+        ReceivedItem[] memory consideration;
+
+        address offerer = orderParameters.offerer;
+
+        {
+            // Note: overflow impossible; nonce can't be incremented that high.
+            uint256 contractNonce;
+            unchecked {
+                // Note: the nonce will be incremented even for failing orders.
+                contractNonce = _contractNonces[offerer]++;
+            }
+
+            assembly {
+                orderHash := or(contractNonce, shl(0x60, offerer))
+            }
+        }
+
+        {
+            (
+                SpentItem[] memory originalOfferItems,
+                SpentItem[] memory originalConsiderationItems
+            ) = _convertToSpent(
+                    orderParameters.offer,
+                    orderParameters.consideration
+                );
+
+            try
+                ContractOffererInterface(offerer).generateOrder(
+                    msg.sender,
+                    originalOfferItems,
+                    originalConsiderationItems,
+                    context
+                )
+            returns (
+                SpentItem[] memory returnedOffer,
+                ReceivedItem[] memory ReturnedConsideration
+            ) {
+                offer = returnedOffer;
+                consideration = ReturnedConsideration;
+            } catch (bytes memory) {
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            }
+        }
+
+        uint256 errorBuffer = 0;
+
+        {
+            // Designate lengths.
+            uint256 originalOfferLength = orderParameters.offer.length;
+            uint256 newOfferLength = offer.length;
+
+            // Explicitly specified offer items cannot be removed.
+            if (originalOfferLength > newOfferLength) {
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            } else if (newOfferLength > originalOfferLength) {
+                OfferItem[] memory extendedOffer = new OfferItem[](
+                    newOfferLength
+                );
+                for (uint256 i = 0; i < originalOfferLength; ++i) {
+                    extendedOffer[i] = orderParameters.offer[i];
+                }
+                orderParameters.offer = extendedOffer;
+            }
+
+            // Loop through offer and ensure at least as much on returned offer
+            for (uint256 i = 0; i < originalOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                errorBuffer = _check(
+                    originalOffer,
+                    newOffer,
+                    originalOffer.endAmount,
+                    newOffer.amount,
+                    errorBuffer
+                );
+            }
+
+            // add new offer items if there are more than original
+            for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
+                OfferItem memory originalOffer = orderParameters.offer[i];
+                SpentItem memory newOffer = offer[i];
+
+                originalOffer.itemType = newOffer.itemType;
+                originalOffer.token = newOffer.token;
+                originalOffer.identifierOrCriteria = newOffer.identifier;
+                originalOffer.startAmount = newOffer.amount;
+                originalOffer.endAmount = newOffer.amount;
+            }
+        }
+
+        {
+            // Declare virtual function pointer taking a ConsiderationItem and
+            // ReceivedItem as its initial arguments.
+            function(
+                ConsiderationItem memory,
+                ReceivedItem memory,
+                uint256,
+                uint256,
+                uint256
+            ) internal pure returns (uint256) _checkConsideration;
+
+            {
+                // Assign _check function to a new function pointer (it takes
+                // an OfferItem + SpentItem as its initial arguments)
+                function(
+                    OfferItem memory,
+                    SpentItem memory,
+                    uint256,
+                    uint256,
+                    uint256
+                ) internal pure returns (uint256) _checkOffer = _check;
+
+                // Utilize assembly to override the virtual function pointer.
+                assembly {
+                    // Cast the function to the one with modified arguments.
+                    _checkConsideration := _checkOffer
+                }
+            }
+
+            // Designate lengths & memory locations.
+            ConsiderationItem[] memory originalConsiderationArray = (
+                orderParameters.consideration
+            );
+            uint256 originalConsiderationLength = originalConsiderationArray
+                .length;
+            uint256 newConsiderationLength = consideration.length;
+
+            if (originalConsiderationLength != 0) {
+                // Consideration items that are not explicitly specified cannot
+                // be created. Note that this constraint could be relaxed if
+                // specified consideration items can be split.
+                if (newConsiderationLength > originalConsiderationLength) {
+                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                }
+
+                // Loop through returned consideration & do not exceed existing.
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ReceivedItem memory newConsideration = consideration[i];
+                    ConsiderationItem memory originalConsideration = (
+                        originalConsiderationArray[i]
+                    );
+
+                    errorBuffer = _checkConsideration(
+                        originalConsideration,
+                        newConsideration,
+                        newConsideration.amount,
+                        originalConsideration.endAmount,
+                        errorBuffer
+                    );
+
+                    originalConsideration.recipient = newConsideration
+                        .recipient;
+                }
+
+                // Shorten original consideration array if longer than new array.
+                assembly {
+                    mstore(originalConsiderationArray, newConsiderationLength)
+                }
+            } else {
+                // TODO: optimize this
+                orderParameters.consideration = new ConsiderationItem[](
+                    newConsiderationLength
+                );
+
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    ConsiderationItem memory originalConsideration = (
+                        orderParameters.consideration[i]
+                    );
+
+                    originalConsideration.itemType = consideration[i].itemType;
+                    originalConsideration.token = consideration[i].token;
+                    originalConsideration.identifierOrCriteria = consideration[
+                        i
+                    ].identifier;
+                    originalConsideration.startAmount = consideration[i].amount;
+                    originalConsideration.endAmount = consideration[i].amount;
+                    originalConsideration.recipient = consideration[i]
+                        .recipient;
+                }
+            }
+        }
+
+        if (errorBuffer != 0) {
+            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+        }
+
+        return (orderHash, 1, 1);
     }
 
     /**
@@ -329,8 +525,11 @@ contract OrderValidator is Executor, ZoneInteraction {
                 zone = order.zone;
 
                 // Ensure caller is either offerer or zone of the order.
-                if (msg.sender != offerer && msg.sender != zone) {
-                    revert InvalidCanceller();
+                if (
+                    !_unmaskedAddressComparison(msg.sender, offerer) &&
+                    !_unmaskedAddressComparison(msg.sender, zone)
+                ) {
+                    _revertInvalidCanceller();
                 }
 
                 // Derive order hash using the order parameters and the counter.
@@ -403,12 +602,17 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
                 Order calldata order = orders[i];
 
                 // Retrieve the order parameters.
                 OrderParameters calldata orderParameters = order.parameters;
+
+                // Skip contract orders.
+                if (orderParameters.orderType == OrderType.CONTRACT) {
+                    continue;
+                }
 
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
@@ -438,15 +642,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                     orderStatus.isValidated = true;
 
                     // Emit an event signifying the order has been validated.
-                    emit OrderValidated(
-                        orderHash,
-                        offerer,
-                        orderParameters.zone
-                    );
+                    emit OrderValidated(orderHash, orderParameters);
                 }
-
-                // Increment counter inside body of the loop for gas efficiency.
-                ++i;
             }
         }
 
@@ -491,6 +688,96 @@ contract OrderValidator is Executor, ZoneInteraction {
             orderStatus.numerator,
             orderStatus.denominator
         );
+    }
+
+    function _check(
+        OfferItem memory originalOffer,
+        SpentItem memory newOffer,
+        uint256 valueOne,
+        uint256 valueTwo,
+        uint256 errorBuffer
+    ) internal pure returns (uint256 updatedErrorBuffer) {
+        // Set returned identifier for criteria-based items with criteria = 0.
+        if (
+            (_cast(uint256(originalOffer.itemType) > 3) &
+                _cast(originalOffer.identifierOrCriteria == 0)) != 0
+        ) {
+            originalOffer.itemType = _replaceCriteriaItemType(
+                originalOffer.itemType
+            );
+            originalOffer.identifierOrCriteria = newOffer.identifier;
+        }
+
+        // Ensure the original and generated items are compatible.
+        updatedErrorBuffer =
+            errorBuffer |
+            _cast(originalOffer.startAmount != originalOffer.endAmount) |
+            _cast(valueOne > valueTwo) |
+            _cast(originalOffer.itemType != newOffer.itemType) |
+            _cast(originalOffer.token != newOffer.token) |
+            _cast(originalOffer.identifierOrCriteria != newOffer.identifier);
+
+        // Update the original amounts to use the generated amounts.
+        originalOffer.startAmount = newOffer.amount;
+        originalOffer.endAmount = newOffer.amount;
+    }
+
+    function _cast(bool b) internal pure returns (uint256 u) {
+        assembly {
+            u := b
+        }
+    }
+
+    function _revertOrReturnEmpty(
+        bool revertOnInvalid,
+        bytes32 contractOrderHash
+    )
+        internal
+        pure
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
+    {
+        if (!revertOnInvalid) {
+            return (contractOrderHash, 0, 0);
+        }
+
+        _revertInvalidContractOrder(contractOrderHash);
+    }
+
+    function _replaceCriteriaItemType(ItemType originalItemType)
+        internal
+        pure
+        returns (ItemType newItemType)
+    {
+        assembly {
+            // Item type 4 becomes 2 and item type 5 becomes 3.
+            newItemType := sub(3, eq(originalItemType, 4))
+        }
+    }
+
+    /**
+     * @dev Internal pure function to convert both offer and consideration items
+     *      to spent items.
+     */
+    function _convertToSpent(
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory spentItems,
+            SpentItem[] memory receivedItems
+        )
+    {
+        // Reuse each existing array by casting their types.
+        assembly {
+            spentItems := offer
+            receivedItems := consideration
+        }
     }
 
     /**

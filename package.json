@@ -1,13 +1,13 @@
 {
   "name": "seaport",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
   "main": "contracts/Seaport.sol",
   "author": "0age",
   "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.15.1"
   },
   "dependencies": {
     "ethers": "^5.5.3",
@@ -74,6 +74,7 @@
     "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
+    "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
     "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
     "lint:check:format": "prettier --check **/*.{sol,js,ts}",
     "lint:check:solhint": "yarn build && solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore contracts/**/*.sol",
@@ -81,6 +82,7 @@
     "lint:fix": "yarn lint:fix:format && yarn lint:fix:eslint",
     "lint:fix:format": "prettier --write **/*.{sol,js,ts}",
     "lint:fix:eslint": "eslint --fix . --ext js,ts",
+    "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "prepare": "husky install"

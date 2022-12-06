@@ -7,6 +7,8 @@ interface ERC20Interface {
         address,
         uint256
     ) external returns (bool);
+
+    function approve(address, uint256) external returns (bool);
 }
 
 interface ERC721Interface {
@@ -15,6 +17,10 @@ interface ERC721Interface {
         address,
         uint256
     ) external;
+
+    function setApprovalForAll(address, bool) external;
+
+    function ownerOf(uint256) external view returns (address);
 }
 
 interface ERC1155Interface {
@@ -33,4 +39,6 @@ interface ERC1155Interface {
         uint256[] calldata amounts,
         bytes calldata data
     ) external;
+
+    function setApprovalForAll(address, bool) external;
 }

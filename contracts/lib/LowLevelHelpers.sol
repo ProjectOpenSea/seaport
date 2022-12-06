@@ -11,29 +11,35 @@ import "./ConsiderationConstants.sol";
  */
 contract LowLevelHelpers {
     /**
-     * @dev Internal view function to staticcall an arbitrary target with given
-     *      calldata. Note that no data is written to memory and no contract
-     *      size check is performed.
+     * @dev Internal function to call an arbitrary target with given calldata.
+     *      Note that no data is written to memory and no contract size check is
+     *      performed.
      *
-     * @param target   The account to staticcall.
-     * @param callData The calldata to supply when staticcalling the target.
+     * @param target                The account to call.
+     * @param callDataMemoryPointer The location in memory of the calldata to
+     *                              supply when calling the target.
+     * @param callDataLength        The length of the calldata.
      *
      * @return success The status of the staticcall to the target.
      */
-    function _staticcall(address target, bytes memory callData)
-        internal
-        view
-        returns (bool success)
-    {
+    function _call(
+        address target,
+        uint256 callDataMemoryPointer,
+        uint256 callDataLength
+    ) internal returns (bool success) {
         assembly {
-            // Perform the staticcall.
-            success := staticcall(
+            // Clear the start of scratch space.
+            mstore(0, 0)
+
+            // Perform call, placing result in the first word of scratch space.
+            success := call(
                 gas(),
                 target,
-                add(callData, OneWord),
-                mload(callData),
                 0,
-                0
+                callDataMemoryPointer,
+                callDataLength,
+                0,
+                OneWord
             )
         }
     }
@@ -95,31 +101,67 @@ contract LowLevelHelpers {
     }
 
     /**
-     * @dev Internal pure function to determine if the first word of returndata
-     *      matches an expected magic value.
+     * @dev Internal pure function to determine if the first word of scratch
+     *      space matches an expected magic value.
      *
      * @param expected The expected magic value.
      *
      * @return A boolean indicating whether the expected value matches the one
-     *         located in the first word of returndata.
+     *         located in the first word of scratch space.
      */
     function _doesNotMatchMagic(bytes4 expected) internal pure returns (bool) {
-        // Declare a variable for the value held by the return data buffer.
+        // Declare a variable for the value held in scratch space.
         bytes4 result;
 
-        // Utilize assembly in order to read directly from returndata buffer.
+        // Utilize assembly in order to read directly from scratch space.
         assembly {
-            // Only put result on stack if return data is exactly one word.
-            if eq(returndatasize(), OneWord) {
-                // Copy the word directly from return data into scratch space.
-                returndatacopy(0, 0, OneWord)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
+            // Take value from scratch space and place it on the stack.
+            result := mload(0)
         }
 
         // Return a boolean indicating whether expected and located value match.
         return result != expected;
+    }
+
+    /**
+     * @dev Internal view function to branchlessly select either the caller (if
+     *      a supplied recipient is equal to zero) or the supplied recipient (if
+     *      that recipient is a nonzero value).
+     *
+     * @param recipient The supplied recipient.
+     *
+     * @return updatedRecipient The updated recipient.
+     */
+    function _substituteCallerForEmptyRecipient(address recipient)
+        internal
+        view
+        returns (address updatedRecipient)
+    {
+        // Utilize assembly to perform a branchless operation on the recipient.
+        assembly {
+            // Add caller to recipient if recipient equals 0; otherwise add 0.
+            updatedRecipient := add(recipient, mul(iszero(recipient), caller()))
+        }
+    }
+
+    /**
+     * @dev Internal pure function to compare two addresses without first
+     *      masking them. Note that dirty upper bits will cause otherwise equal
+     *      addresses to be recognized as unequal.
+     *
+     * @param a The first address.
+     * @param b The second address
+     *
+     * @return areEqual A boolean representing whether the addresses are equal.
+     */
+    function _unmaskedAddressComparison(address a, address b)
+        internal
+        pure
+        returns (bool areEqual)
+    {
+        // Utilize assembly to perform the comparison without masking.
+        assembly {
+            areEqual := eq(a, b)
+        }
     }
 }

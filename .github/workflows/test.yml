@@ -126,11 +126,30 @@ jobs:
       - name: Precompile reference using 0.8.7 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile optimized using 0.8.14 and via-ir=true
+      - name: Precompile optimized using 0.8.17 and via-ir=true
         run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
+
+  forge-offerers:
+    name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Run tests
+        run: FOUNDRY_PROFILE=offerers forge test -vvv
 
   coverage:
     name: Run Coverage Tests

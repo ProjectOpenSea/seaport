@@ -2107,6 +2107,10 @@ contract FulfillOrderTest is BaseOrderTest {
         external
         stateless
     {
+        context.args.zone = address(
+            uint160(bound(uint160(context.args.zone), 1, type(uint160).max))
+        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -2184,14 +2188,17 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
-        vm.prank(alice);
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+
+        uint256 value = context
+            .args
+            .paymentAmts[0]
+            .add(context.args.paymentAmts[1])
+            .add(context.args.paymentAmts[2]);
+        hoax(context.args.zone, value);
+        context.consideration.fulfillOrder{ value: value }(
+            Order(orderParameters, signature),
+            conduitKey
+        );
     }
 
     function testFulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration(

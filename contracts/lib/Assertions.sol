@@ -11,7 +11,7 @@ import {
 
 import { CounterManager } from "./CounterManager.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title Assertions
@@ -80,7 +80,7 @@ contract Assertions is
     ) internal pure {
         // Ensure supplied consideration array length is not less than original.
         if (suppliedConsiderationItemTotal < originalConsiderationItemTotal) {
-            revert MissingOriginalConsiderationItems();
+            _revertMissingOriginalConsiderationItems();
         }
     }
 
@@ -91,9 +91,13 @@ contract Assertions is
      * @param amount The amount to check.
      */
     function _assertNonZeroAmount(uint256 amount) internal pure {
-        // Revert if the supplied amount is equal to zero.
-        if (amount == 0) {
-            revert MissingItemAmount();
+        assembly {
+            if iszero(amount) {
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, MissingItemAmount_error_selector)
+                // revert(abi.encodeWithSignature("MissingItemAmount()"))
+                revert(0x1c, MissingItemAmount_error_length)
+            }
         }
     }
 
@@ -165,7 +169,7 @@ contract Assertions is
 
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
-            revert InvalidBasicOrderParameterEncoding();
+            _revertInvalidBasicOrderParameterEncoding();
         }
     }
 }
