@@ -95,10 +95,11 @@ interface ConsiderationEventsAndErrors {
     error MissingOriginalConsiderationItems();
 
     /**
-     * @dev Revert with an error when an order is validated with a
-     *      consideration array that is larger than the original items.
+     * @dev Revert with an error when an order is validated when the length of
+     *      the consideration array exceeds the supplied total original
+     *      consideration items value.
      */
-    error ExtraOriginalConsiderationItems();
+    error ConsiderationLengthExceedsTotalOriginal();
 
     /**
      * @dev Revert with an error when a call to a conduit fails with revert data
