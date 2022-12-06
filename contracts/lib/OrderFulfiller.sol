@@ -42,9 +42,9 @@ contract OrderFulfiller is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        BasicOrderFulfiller(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) BasicOrderFulfiller(conduitController) {}
 
     /**
      * @dev Internal function to validate an order and update its status, adjust
@@ -426,13 +426,9 @@ contract OrderFulfiller is
      *
      * @return advancedOrder The new advanced order.
      */
-    function _convertOrderToAdvanced(Order calldata order)
-        internal
-        pure
-        returns (
-            AdvancedOrder memory /* advancedOrder */
-        )
-    {
+    function _convertOrderToAdvanced(
+        Order calldata order
+    ) internal pure returns (AdvancedOrder memory /* advancedOrder */) {
         // Convert to partial order (1/1 or full fill) and return new value.
         return AdvancedOrder(order.parameters, 1, 1, order.signature, "");
     }
@@ -445,13 +441,9 @@ contract OrderFulfiller is
      *
      * @return advancedOrders The new array of partial orders.
      */
-    function _convertOrdersToAdvanced(Order[] calldata orders)
-        internal
-        pure
-        returns (
-            AdvancedOrder[] memory /* advancedOrders */
-        )
-    {
+    function _convertOrdersToAdvanced(
+        Order[] calldata orders
+    ) internal pure returns (AdvancedOrder[] memory /* advancedOrders */) {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 

@@ -116,18 +116,12 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     error IncorrectOrderHashesLength(uint256 actual, uint256 expected);
 
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived, /* offer */
-        ReceivedItem[] calldata maximumSpent, /* consideration */
-        bytes calldata context, /* context */
-        bytes32[] calldata orderHashes, /* orderHashes */
+        SpentItem[] calldata minimumReceived /* offer */,
+        ReceivedItem[] calldata maximumSpent /* consideration */,
+        bytes calldata context /* context */,
+        bytes32[] calldata orderHashes /* orderHashes */,
         uint256 /* contractNonce */
-    )
-        external
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
+    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         for (uint256 i = 0; i < minimumReceived.length; i++) {
             if (minimumReceived[i].itemType != ItemType.ERC20) {
                 revert IncorrectItemType(

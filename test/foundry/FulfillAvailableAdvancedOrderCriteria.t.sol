@@ -30,15 +30,18 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         FuzzArgs args;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function prepareCriteriaOfferOrder(Context memory context)
+    function prepareCriteriaOfferOrder(
+        Context memory context
+    )
         internal
         returns (
             bytes32[] memory hashedIdentifiers,
@@ -76,9 +79,10 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         advancedOrder = AdvancedOrder(baseOrderParameters, 1, 1, signature, "");
     }
 
-    function addOfferItem721Criteria(address token, uint256 identifierHash)
-        internal
-    {
+    function addOfferItem721Criteria(
+        address token,
+        uint256 identifierHash
+    ) internal {
         addOfferItem721Criteria(token, identifierHash, 1, 1);
     }
 
@@ -120,10 +124,9 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersWithCriteria(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAvailableAdvancedOrdersWithCriteria(
+        Context memory context
+    ) external stateless {
         // pick a "random" index in the array of identifiers; use that identifier
         context.args.index = context.args.index % 8;
         uint256 identifier = context.args.identifiers[context.args.index];

@@ -45,11 +45,9 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        override
-        returns (bytes4 magicValue)
-    {
+    function execute(
+        ConduitTransfer[] calldata transfers
+    ) external override returns (bytes4 magicValue) {
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
         }

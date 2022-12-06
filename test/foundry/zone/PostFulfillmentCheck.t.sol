@@ -40,9 +40,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint256 amount;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -334,9 +335,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
-        public
-    {
+    function testBasicStateful(
+        uint8 numOriginalAdditional,
+        uint8 numTips
+    ) public {
         test(
             this.execBasicStatefulFuzz,
             Context({

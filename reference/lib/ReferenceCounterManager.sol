@@ -47,11 +47,9 @@ contract ReferenceCounterManager is
      *
      * @return currentCounter The current counter.
      */
-    function _getCounter(address offerer)
-        internal
-        view
-        returns (uint256 currentCounter)
-    {
+    function _getCounter(
+        address offerer
+    ) internal view returns (uint256 currentCounter) {
         // Return the counter for the supplied offerer.
         currentCounter = _counters[offerer];
     }

@@ -22,9 +22,9 @@ contract GettersAndDerivers is ConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ConsiderationBase(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ConsiderationBase(conduitController) {}
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
@@ -242,11 +242,9 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _deriveConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Read conduit controller address from runtime and place on the stack.
         address conduitController = address(_CONDUIT_CONTROLLER);
 
@@ -313,8 +311,8 @@ contract GettersAndDerivers is ConsiderationBase {
         internal
         view
         returns (
-            string memory, /* version */
-            bytes32, /* domainSeparator */
+            string memory /* version */,
+            bytes32 /* domainSeparator */,
             address /* conduitController */
         )
     {
@@ -343,11 +341,10 @@ contract GettersAndDerivers is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
+    function _deriveEIP712Digest(
+        bytes32 domainSeparator,
+        bytes32 orderHash
+    ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.

@@ -89,11 +89,9 @@ contract Verifiers is Assertions, SignatureVerification {
         _assertValidSignature(offerer, digest, signature);
     }
 
-    function _isValidBulkOrderSize(bytes memory signature)
-        internal
-        pure
-        returns (bool validLength)
-    {
+    function _isValidBulkOrderSize(
+        bytes memory signature
+    ) internal pure returns (bool validLength) {
         assembly {
             validLength := lt(
                 sub(mload(signature), EIP712_BulkOrder_minSize),

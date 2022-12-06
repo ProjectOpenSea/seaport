@@ -24,12 +24,10 @@ contract PreapprovedERC721 is ERC721 {
         return true;
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override returns (bool) {
         return
             preapprovals[operator] || super.isApprovedForAll(owner, operator);
     }

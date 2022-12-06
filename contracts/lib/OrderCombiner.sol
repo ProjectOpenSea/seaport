@@ -114,7 +114,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     )
         internal
         returns (
-            bool[] memory, /* availableOrders */
+            bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
         )
     {
@@ -621,12 +621,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         Execution[] memory executions,
         bytes32[] memory orderHashes
-    )
-        internal
-        returns (
-            bool[] memory /* availableOrders */
-        )
-    {
+    ) internal returns (bool[] memory /* availableOrders */) {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
@@ -831,12 +826,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        internal
-        returns (
-            Execution[] memory /* executions */
-        )
-    {
+    ) internal returns (Execution[] memory /* executions */) {
         // Validate orders, update order status, and determine item amounts.
         bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
