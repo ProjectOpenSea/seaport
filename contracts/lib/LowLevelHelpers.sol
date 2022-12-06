@@ -132,11 +132,9 @@ contract LowLevelHelpers {
      *
      * @return updatedRecipient The updated recipient.
      */
-    function _substituteCallerForEmptyRecipient(address recipient)
-        internal
-        view
-        returns (address updatedRecipient)
-    {
+    function _substituteCallerForEmptyRecipient(
+        address recipient
+    ) internal view returns (address updatedRecipient) {
         // Utilize assembly to perform a branchless operation on the recipient.
         assembly {
             // Add caller to recipient if recipient equals 0; otherwise add 0.
@@ -154,11 +152,10 @@ contract LowLevelHelpers {
      *
      * @return areEqual A boolean representing whether the addresses are equal.
      */
-    function _unmaskedAddressComparison(address a, address b)
-        internal
-        pure
-        returns (bool areEqual)
-    {
+    function _unmaskedAddressComparison(
+        address a,
+        address b
+    ) internal pure returns (bool areEqual) {
         // Utilize assembly to perform the comparison without masking.
         assembly {
             areEqual := eq(a, b)

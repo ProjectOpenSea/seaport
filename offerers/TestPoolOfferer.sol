@@ -66,7 +66,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     function generateOrder(
-        address, /* fulfiller */
+        address /* fulfiller */,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata
@@ -123,19 +123,12 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    )
-        external
-        pure
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
@@ -153,9 +146,9 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     /// @dev add incoming tokens to the set of IDs in the pool
-    function _processNftConsideration(ReceivedItem[] memory maximumSpent)
-        internal
-    {
+    function _processNftConsideration(
+        ReceivedItem[] memory maximumSpent
+    ) internal {
         for (uint256 i = 0; i < maximumSpent.length; i++) {
             ReceivedItem memory maximumSpentItem = maximumSpent[i];
             bool added = tokenIds.add(maximumSpentItem.identifier);
@@ -191,10 +184,9 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         }
     }
 
-    function _previewNftOffer(SpentItem[] memory minimumReceived)
-        internal
-        view
-    {
+    function _previewNftOffer(
+        SpentItem[] memory minimumReceived
+    ) internal view {
         uint256 criteriaIndex;
         for (uint256 i = 0; i < minimumReceived.length; i++) {
             SpentItem memory minimumReceivedItem = minimumReceived[i];

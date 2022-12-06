@@ -470,11 +470,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
     }
 
-    function _makeSafeRecipient(address from, address fuzzRecipient)
-        internal
-        view
-        returns (address)
-    {
+    function _makeSafeRecipient(
+        address from,
+        address fuzzRecipient
+    ) internal view returns (address) {
         return _makeSafeRecipient(from, fuzzRecipient, false);
     }
 
@@ -578,11 +577,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         return item;
     }
 
-    function getSelector(bytes calldata returnData)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function getSelector(
+        bytes calldata returnData
+    ) public pure returns (bytes memory) {
         return returnData[0x84:0x88];
     }
 
@@ -611,10 +608,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC721(FuzzInputsCommon memory inputs)
-        public
-        _ensureFuzzAssumptions(inputs)
-    {
+    function testBulkTransferERC721(
+        FuzzInputsCommon memory inputs
+    ) public _ensureFuzzAssumptions(inputs) {
         uint256 numItems = inputs.amounts.length;
 
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
@@ -632,10 +628,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC1155(FuzzInputsCommon memory inputs)
-        public
-        _ensureFuzzAssumptions(inputs)
-    {
+    function testBulkTransferERC1155(
+        FuzzInputsCommon memory inputs
+    ) public _ensureFuzzAssumptions(inputs) {
         uint256 numItems = inputs.amounts.length;
 
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
@@ -658,9 +653,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC1155andERC721(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testBulkTransferERC1155andERC721(
+        FuzzInputsCommon memory inputs
+    ) public {
         uint256 numItems = inputs.amounts.length;
 
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
@@ -956,9 +951,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertBulkTransferETHonly(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = _getFuzzedTransferItem(
             ConduitItemType.NATIVE,
@@ -975,9 +970,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferETHandERC721(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertBulkTransferETHandERC721(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
         items[0] = _getFuzzedTransferItem(
             ConduitItemType.NATIVE,
@@ -1147,9 +1142,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
     }
 
-    function testRevertInvalidERC721Receiver(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertInvalidERC721Receiver(
+        FuzzInputsCommon memory inputs
+    ) public {
         address[10] memory invalidReceivers;
 
         for (uint256 i = 0; i < 10; i++) {
@@ -1182,9 +1177,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testRevertStringErrorWithConduit(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertStringErrorWithConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(erc721s[0]),
@@ -1209,9 +1204,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testRevertPanicErrorWithConduit(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertPanicErrorWithConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
         // Create ERC20 token that reverts with a panic when calling transferFrom.
         TestERC20Panic panicERC20 = new TestERC20Panic();
 
@@ -1247,9 +1242,9 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
     }
 
-    function testRevertInvalidConduitMagicValue(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertInvalidConduitMagicValue(
+        FuzzInputsCommon memory inputs
+    ) public {
         // Deploy mock conduit controller
         ConduitControllerMock mockConduitController = new ConduitControllerMock(
             2 // ConduitMockInvalidMagic
@@ -1458,9 +1453,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             );
         try
             mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
+        returns (bytes4 /* magicValue */) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
         vm.expectRevert(

@@ -23,10 +23,9 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
     bool public called = false;
 
     // Called by Consideration whenever any extraData is provided by the caller.
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external returns (bytes4 validOrderMagicValue) {
         if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
         }

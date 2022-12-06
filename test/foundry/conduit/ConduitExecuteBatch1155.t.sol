@@ -25,9 +25,10 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
         ConduitBatch1155Transfer[] batchTransfers;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }

@@ -8,8 +8,7 @@ interface ProxyRegistry {
 
     function registerProxy() external returns (OwnableDelegateProxy);
 
-    function proxies(address _addr)
-        external
-        view
-        returns (OwnableDelegateProxy);
+    function proxies(
+        address _addr
+    ) external view returns (OwnableDelegateProxy);
 }

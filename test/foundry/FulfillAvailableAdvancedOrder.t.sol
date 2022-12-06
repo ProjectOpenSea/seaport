@@ -71,7 +71,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         vm.assume(
             inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
                 inputs.paymentAmts[2]
-            ) <= 2**128 - 1
+            ) <= 2 ** 128 - 1
         );
         _;
     }
@@ -87,14 +87,15 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             inputs.paymentAmts[0].mul(inputs.denom) +
                 inputs.paymentAmts[1].mul(inputs.denom) +
                 inputs.paymentAmts[2].mul(inputs.denom) <=
-                2**128 - 1
+                2 ** 128 - 1
         );
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -135,10 +136,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAvailableAdvanced(Context memory context)
-        external
-        stateless
-    {
+    function noNativeOfferItemsFulfillAvailableAdvanced(
+        Context memory context
+    ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
         _configureOrderComponents(counter);
@@ -273,10 +273,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersOverflow(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAvailableAdvancedOrdersOverflow(
+        Context memory context
+    ) external stateless {
         test721_1.mint(alice, 1);
         addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
@@ -798,8 +797,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = AdvancedOrder(
             baseOrderParameters,
-            2**118,
-            2**119,
+            2 ** 118,
+            2 ** 119,
             signature,
             ""
         );
@@ -898,8 +897,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = AdvancedOrder(
             baseOrderParameters,
-            2**118,
-            2**119,
+            2 ** 118,
+            2 ** 119,
             signature,
             ""
         );

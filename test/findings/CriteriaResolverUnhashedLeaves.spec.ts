@@ -134,7 +134,7 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
               toKey(0),
               carol.address
             )
-        ).to.be.revertedWith("InvalidProof");
+        ).to.be.revertedWithCustomError(marketplaceContract, "InvalidProof");
       });
     }
   });
