@@ -509,8 +509,8 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
     });
 
-    it("Reverts if consideration array length doesn't match", async () => {
-      // Seller mints an nft
+    it("Skip validation for contract order", async () => {
+      // Seller mints an nft (FULL_OPEN order)
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -525,13 +525,12 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       ];
 
       const { order, orderHash } = await createOrder(
-
-      order.parameters.totalOriginalConsiderationItems = 2;
-
-      // cannot validate when consideration array length is different than total original consideration
-      await expect(
-        marketplaceContract.connect(seller).validate([order])
-      ).to.be.revertedWith("ExtraOriginalConsiderationItems");
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.eq(
@@ -616,6 +615,33 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       expect(event?.event).to.equal("OrderValidated");
 
       expect(event?.args?.orderHash).to.equal(orderHash);
+    });
+
+    it("Reverts on validate when consideration array length doesn't match totalOriginalConsiderationItems", async () => {
+      // Seller mints an nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const offer = [getTestItem721(nftId)];
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+      order.parameters.totalOriginalConsiderationItems = 2;
+
+      // cannot validate when consideration array length is different than total original consideration
+      await expect(
+        marketplaceContract.connect(seller).validate([order])
+      ).to.be.revertedWith("ExtraOriginalConsiderationItems");
     });
   });
 
