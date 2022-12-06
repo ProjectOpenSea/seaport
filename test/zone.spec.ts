@@ -648,6 +648,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
+    // eslint-disable-next-line
     const { order, orderHash, value } = await createOrder(
       seller,
       zoneAddr,

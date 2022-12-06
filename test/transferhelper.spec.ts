@@ -954,8 +954,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
-      const panicError =
-        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
       if (!process.env.REFERENCE) {
         await expect(
           tempTransferHelper
@@ -1085,8 +1083,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           validateERC721Receiver: true,
         },
       ];
-
-      const customErrorSelector = ethers.utils.id("CustomError()").slice(0, 10);
 
       await expect(
         mockTransferHelper
@@ -2183,9 +2179,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
-      const panicError =
-        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
-
       if (!process.env.REFERENCE) {
         await expect(
           tempTransferHelper
@@ -2369,8 +2362,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           validateERC721Receiver: true,
         },
       ];
-
-      const customErrorSelector = ethers.utils.id("CustomError()").slice(0, 10);
 
       await expect(
         mockTransferHelper
