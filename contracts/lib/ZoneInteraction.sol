@@ -198,6 +198,14 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         );
     }
 
+    /**
+    * @dev Determines whether the specified order type is restricted and the caller is not the specified zone.
+    *
+    * @param orderType The type of the order to check.
+    * @param zone The address of the zone to check against.
+    *
+    * @return mustValidate True if the order type is restricted and the caller is not the specified zone, false otherwise.
+    */
     function _isRestrictedAndCallerNotZone(OrderType orderType, address zone)
         internal
         view
@@ -211,6 +219,15 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
     }
 
+    /**
+    * @dev Calls the specified target with the given data and checks the status of the call.
+    *
+    * @param target The address of the contract to call.
+    * @param orderHash The hash of the order associated with the call.
+    * @param callData The data to pass to the contract call.
+    * @param magicValue The expected magic value of the call result.
+    * @param errorHandler The error handling function to call if the call fails or the magic value does not match.
+    */
     function _callAndCheckStatus(
         address target,
         bytes32 orderHash,
@@ -237,7 +254,21 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             errorHandler(orderHash);
         }
     }
-
+    /**
+    * @dev Generates the call data for a `validateOrder` call to a zone contract.
+    *
+    * @param orderHash The hash of the order to validate.
+    * @param offerer The address of the offerer.
+    * @param offer The items being offered.
+    * @param consideration The items being received.
+    * @param extraData Additional data to include in the call.
+    * @param orderHashes The hashes of any orders that must be validated together with this order.
+    * @param startTime The start time of the order.
+    * @param endTime The end time of the order.
+    * @param zoneHash The hash of the zone that the order is being validated in.
+    *
+    * @return bytes The call data for the `validateOrder` call to the zone contract.
+    */
     function _generateValidateCallData(
         bytes32 orderHash,
         address offerer,
@@ -268,6 +299,18 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             );
     }
 
+    /**
+    * @dev Generates the call data for a `ratifyOrder` call to a contract offerer.
+    *
+    * @param orderHash The hash of the order to ratify.
+    * @param offer The items being offered.
+    * @param consideration The items being received.
+    * @param context The context of the order.
+    * @param orderHashes The hashes of any orders that must be ratified together with this order.
+    *
+    * @return The call data for the `ratifyOrder` call to the contract offerer.
+    */
+
     function _generateRatifyCallData(
         bytes32 orderHash, // e.g. offerer + contract nonce
         SpentItem[] memory offer,
@@ -286,6 +329,12 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
             );
     }
 
+    /**
+    * @dev Converts an offer from an `OfferItem` array to a `SpentItem` array.
+    *
+    * @param offer The offer to convert.
+    * @return spentItems The converted offer.
+    */
     function _convertOffer(OfferItem[] memory offer)
         internal
         pure
@@ -296,6 +345,12 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         }
     }
 
+    /**
+    * @dev Converts consideration from a `ConsiderationItem` array to a `ReceivedItem` array.
+    *
+    * @param consideration The consideration to convert.
+    * @return receivedItems The converted consideration.
+    */
     function _convertConsideration(ConsiderationItem[] memory consideration)
         internal
         pure
