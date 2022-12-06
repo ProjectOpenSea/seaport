@@ -646,6 +646,14 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
+                    // Validate total original consideration items and consideration length
+                    if (
+                        orderParameters.consideration.length !=
+                        orderParameters.totalOriginalConsiderationItems
+                    ) {
+                        revert ExtraOriginalConsiderationItems();
+                    }
+
                     // Verify the supplied signature.
                     _verifySignature(offerer, orderHash, order.signature);
 
