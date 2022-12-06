@@ -1725,9 +1725,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         .connect(seller)
         .activate(offer[0], consideration[0]);
 
-      consideration[0].startAmount = consideration[0].startAmount.sub(1);
-      consideration[0].endAmount = consideration[0].endAmount.sub(1);
-
       const { order, value } = await createOrder(
         seller,
         zone,
