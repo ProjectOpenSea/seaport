@@ -19,6 +19,7 @@ import type {
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
   TestInvalidContractOfferer,
+  TestInvalidContractOffererRatifyOrder,
   TestPostExecution,
   TestZone,
 } from "../../../typechain-types";
@@ -94,6 +95,13 @@ export const marketplaceFixture = async (
   const invalidContractOfferer =
     await deployContract<TestInvalidContractOfferer>(
       "TestInvalidContractOfferer",
+      owner,
+      marketplaceContractAddress
+    );
+
+  const invalidContractOffererRatifyOrder =
+    await deployContract<TestInvalidContractOffererRatifyOrder>(
+      "TestInvalidContractOffererRatifyOrder",
       owner,
       marketplaceContractAddress
     );
@@ -534,6 +542,7 @@ export const marketplaceFixture = async (
     stubZone,
     postExecutionZone,
     invalidContractOfferer,
+    invalidContractOffererRatifyOrder,
     domainData,
     signOrder,
     signBulkOrder,
