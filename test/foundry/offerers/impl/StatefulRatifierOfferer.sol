@@ -87,13 +87,17 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        offer = new SpentItem[](1);
-        offer[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: minimumReceived[0].amount + 1
-        });
+        uint256 _value = minimumReceived[0].amount;
+        offer = new SpentItem[](numToReturn);
+        for (uint256 i; i < numToReturn; i++) {
+            offer[i] = SpentItem({
+                itemType: ItemType.ERC20,
+                token: address(token1),
+                identifier: 0,
+                amount: _value + i
+            });
+        }
+
         consideration = new ReceivedItem[](1);
         consideration[0] = ReceivedItem({
             itemType: ItemType.ERC721,
@@ -108,12 +112,14 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     error IncorrectValue(uint256 actual, uint256 expected);
     error IncorrectToken(address actual, address expected);
     error IncorrectItemType(ItemType actual, ItemType expected);
+    error IncorrectContext(bytes context);
+    error IncorrectOrderHashesLength(uint256 actual, uint256 expected);
 
     function ratifyOrder(
         SpentItem[] calldata minimumReceived, /* offer */
         ReceivedItem[] calldata maximumSpent, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        bytes calldata context, /* context */
+        bytes32[] calldata orderHashes, /* orderHashes */
         uint256 /* contractNonce */
     )
         external
@@ -153,6 +159,13 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
             if (maximumSpent[i].identifier != 42) {
                 revert IncorrectValue(maximumSpent[i].identifier, 42);
             }
+        }
+
+        if (keccak256(context) != keccak256("context")) {
+            revert IncorrectContext(context);
+        }
+        if (orderHashes.length < 1) {
+            revert IncorrectOrderHashesLength(orderHashes.length, 1);
         }
         called = true;
         return ContractOffererInterface.ratifyOrder.selector;
