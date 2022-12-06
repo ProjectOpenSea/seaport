@@ -47,9 +47,9 @@ contract ReferenceOrderValidator is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceExecutor(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceExecutor(conduitController) {}
 
     /**
      * @dev Internal function to verify and update the status of a basic order.
@@ -263,11 +263,7 @@ contract ReferenceOrderValidator is
         bool revertOnInvalid
     )
         internal
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         {
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
@@ -467,11 +463,9 @@ contract ReferenceOrderValidator is
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function _cancel(OrderComponents[] calldata orders)
-        internal
-        notEntered
-        returns (bool)
-    {
+    function _cancel(
+        OrderComponents[] calldata orders
+    ) internal notEntered returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         address offerer;
@@ -535,11 +529,9 @@ contract ReferenceOrderValidator is
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function _validate(Order[] calldata orders)
-        internal
-        notEntered
-        returns (bool)
-    {
+    function _validate(
+        Order[] calldata orders
+    ) internal notEntered returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         bytes32 orderHash;
@@ -582,12 +574,13 @@ contract ReferenceOrderValidator is
 
             // If the order has not already been validated...
             if (!orderStatus.isValidated) {
-                // Validate total original consideration items and consideration length
+                // Ensure that consideration array length is equal to the total
+                // original consideration items value.
                 if (
                     orderParameters.consideration.length !=
                     orderParameters.totalOriginalConsiderationItems
                 ) {
-                    revert ExtraOriginalConsiderationItems();
+                    revert ConsiderationLengthExceedsTotalOriginal();
                 }
 
                 // Verify the supplied signature.
@@ -621,7 +614,9 @@ contract ReferenceOrderValidator is
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function _getOrderStatus(bytes32 orderHash)
+    function _getOrderStatus(
+        bytes32 orderHash
+    )
         internal
         view
         returns (
@@ -660,11 +655,7 @@ contract ReferenceOrderValidator is
     )
         internal
         pure
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         if (!revertOnInvalid) {
             return (contractOrderHash, 0, 0);
@@ -744,11 +735,10 @@ contract ReferenceOrderValidator is
      *
      * @return greatestCommonDivisor The greatest common divisor.
      */
-    function _greatestCommonDivisor(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256 greatestCommonDivisor)
-    {
+    function _greatestCommonDivisor(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (uint256 greatestCommonDivisor) {
         while (b > 0) {
             uint256 c = b;
             b = a % c;
@@ -768,11 +758,9 @@ contract ReferenceOrderValidator is
      * @return isFullOrder A boolean indicating whether the order type only
      *                     supports full fills.
      */
-    function _doesNotSupportPartialFills(OrderType orderType)
-        internal
-        pure
-        returns (bool isFullOrder)
-    {
+    function _doesNotSupportPartialFills(
+        OrderType orderType
+    ) internal pure returns (bool isFullOrder) {
         // The "full" order types are even, while "partial" order types are odd.
         isFullOrder = uint256(orderType) & 1 == 0;
     }

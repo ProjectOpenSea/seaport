@@ -302,11 +302,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         bool revertOnInvalid
     )
         internal
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         SpentItem[] memory offer;
         ReceivedItem[] memory consideration;
@@ -510,10 +506,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return cancelled A boolean indicating whether the supplied orders were
      *                   successfully cancelled.
      */
-    function _cancel(OrderComponents[] calldata orders)
-        internal
-        returns (bool cancelled)
-    {
+    function _cancel(
+        OrderComponents[] calldata orders
+    ) internal returns (bool cancelled) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -595,10 +590,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return validated A boolean indicating whether the supplied orders were
      *                   successfully validated.
      */
-    function _validate(Order[] calldata orders)
-        internal
-        returns (bool validated)
-    {
+    function _validate(
+        Order[] calldata orders
+    ) internal returns (bool validated) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -646,12 +640,13 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
-                    // Validate total original consideration items and consideration length
+                    // Ensure that consideration array length is equal to the total
+                    // original consideration items value.
                     if (
                         orderParameters.consideration.length !=
                         orderParameters.totalOriginalConsiderationItems
                     ) {
-                        revert ExtraOriginalConsiderationItems();
+                        _revertConsiderationLengthExceedsTotalOriginal();
                     }
 
                     // Verify the supplied signature.
@@ -687,7 +682,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function _getOrderStatus(bytes32 orderHash)
+    function _getOrderStatus(
+        bytes32 orderHash
+    )
         internal
         view
         returns (
@@ -783,11 +780,7 @@ contract OrderValidator is Executor, ZoneInteraction {
     )
         internal
         pure
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         if (!revertOnInvalid) {
             return (contractOrderHash, 0, 0);
@@ -804,11 +797,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      *
      * @return newItemType The new item type.
      */
-    function _replaceCriteriaItemType(ItemType originalItemType)
-        internal
-        pure
-        returns (ItemType newItemType)
-    {
+    function _replaceCriteriaItemType(
+        ItemType originalItemType
+    ) internal pure returns (ItemType newItemType) {
         assembly {
             // Item type 4 becomes 2 and item type 5 becomes 3.
             newItemType := sub(3, eq(originalItemType, 4))
@@ -853,11 +844,9 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return isFullOrder A boolean indicating whether the order type only
      *                     supports full fills.
      */
-    function _doesNotSupportPartialFills(OrderType orderType)
-        internal
-        pure
-        returns (bool isFullOrder)
-    {
+    function _doesNotSupportPartialFills(
+        OrderType orderType
+    ) internal pure returns (bool isFullOrder) {
         // The "full" order types are even, while "partial" order types are odd.
         // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
         assembly {
