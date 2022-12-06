@@ -239,8 +239,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *      matches original item.
      *
      * @param orderToExecute  The order to compare.
-     * @param offer The offer to compare
-     * @param execution  The aggregated offer item
+     * @param offer The offer to compare.
+     * @param execution  The aggregated offer item.
      *
      * @return invalidFulfillment A boolean indicating whether the
      *                            fulfillment is invalid.
