@@ -568,6 +568,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
+     *
+     * @return orderHash                   The calculated order hash.
      */
     function _prepareBasicFulfillment(
         BasicOrderParameters calldata parameters,

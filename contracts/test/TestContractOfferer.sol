@@ -220,6 +220,7 @@ contract TestContractOfferer is ContractOffererInterface {
     )
         external
         pure
+        virtual
         override
         returns (
             bytes4 /* ratifyOrderMagicValue */

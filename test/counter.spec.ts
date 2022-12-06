@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
+import { deployContract } from "./utils/contracts";
 import {
   buildOrderStatus,
   getItemETH,
@@ -28,6 +29,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
   let createOrder: SeaportFixtures["createOrder"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
@@ -45,6 +47,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       getTestItem721,
       marketplaceContract,
       mintAndApprove721,
+      set721ApprovalForAll,
       withBalanceChecks,
     } = await seaportFixture(owner));
   });
@@ -505,6 +508,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
     });
+
     it("Reverts if consideration array length doesn't match", async () => {
       // Seller mints an nft
       const nftId = await mintAndApprove721(
@@ -520,13 +524,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0 // FULL_OPEN
-      );
+      const { order, orderHash } = await createOrder(
 
       order.parameters.totalOriginalConsiderationItems = 2;
 
@@ -534,6 +532,90 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       await expect(
         marketplaceContract.connect(seller).validate([order])
       ).to.be.revertedWith("ExtraOriginalConsiderationItems");
+
+      const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+      expect({ ...initialStatus }).to.deep.eq(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      // Seller mints nft (CONTRACT order)
+      const contractOrderNftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      // seller deploys offererContract and approves it for 721 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address, true);
+
+      const contractOrderOffer = [getTestItem721(contractOrderNftId) as any];
+
+      const contractOrderConsideration = [
+        getItemETH(
+          parseEther("10"),
+          parseEther("10"),
+          offererContract.address
+        ) as any,
+      ];
+
+      contractOrderOffer[0].identifier =
+        contractOrderOffer[0].identifierOrCriteria;
+      contractOrderOffer[0].amount = contractOrderOffer[0].endAmount;
+
+      contractOrderConsideration[0].identifier =
+        contractOrderConsideration[0].identifierOrCriteria;
+      contractOrderConsideration[0].amount =
+        contractOrderConsideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(contractOrderOffer[0], contractOrderOffer[0]);
+
+      const { order: contractOrder } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const contractOrderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(
+        contractOrderHash
+      );
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      // can validate it from the seller
+      const tx = await marketplaceContract
+        .connect(seller)
+        .validate([order, contractOrder]);
+
+      const receipt = await tx.wait();
+
+      // should only validate the FULL_OPEN order
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
     });
   });
 
