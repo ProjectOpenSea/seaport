@@ -217,7 +217,15 @@ contract TestContractOfferer is ContractOffererInterface {
         bytes calldata /* context */,
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        pure
+        virtual
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 

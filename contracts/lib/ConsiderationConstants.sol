@@ -381,6 +381,8 @@ uint256 constant IsValidOrder_offerer_ptr = 0x44;
 uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
 uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
 
+uint256 constant Error_selector_offset = 0x1c;
+
 /*
  *  error MissingFulfillmentComponentOnAggregation(uint8 side)
  *    - Defined in FulfillmentApplicationErrors.sol
@@ -842,6 +844,11 @@ uint256 constant NoSpecifiedOrdersAvailable_error_length = 0x04;
  */
 uint256 constant InvalidNativeOfferItem_error_selector = 0x12d3f5a3;
 uint256 constant InvalidNativeOfferItem_error_length = 0x04;
+
+uint256 constant ConsiderationLengthExceedsTotalOriginal_error_selector = (
+    0xba832fdd
+);
+uint256 constant ConsiderationLengthExceedsTotalOriginal_error_length = 0x04;
 
 /*
  *  error Panic(uint256 code)

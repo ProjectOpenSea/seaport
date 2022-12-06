@@ -71,6 +71,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
   let invalidContractOfferer: SeaportFixtures["invalidContractOfferer"];
+  let invalidContractOffererRatifyOrder: SeaportFixtures["invalidContractOffererRatifyOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -108,6 +109,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       testERC721,
       withBalanceChecks,
       invalidContractOfferer,
+      invalidContractOffererRatifyOrder,
     } = await seaportFixture(owner));
   });
 
@@ -1687,6 +1689,83 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             }
           )
       ).to.be.reverted;
+    });
+    it("Reverts on contract orders where call to ratifyOrders returns incorrect magic value", async () => {
+      // Seller mints nfts
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      await set1155ApprovalForAll(
+        seller,
+        invalidContractOffererRatifyOrder.address,
+        true
+      );
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      const consideration = [
+        getItemETH(
+          amount.mul(1000),
+          amount.mul(1000),
+          invalidContractOffererRatifyOrder.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await invalidContractOffererRatifyOrder
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          invalidContractOffererRatifyOrder.address
+        );
+
+      const orderHash =
+        invalidContractOffererRatifyOrder.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = invalidContractOffererRatifyOrder.address;
+      order.numerator = 1;
+      order.denominator = 1;
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          )
+      ).to.be.revertedWith("InvalidContractOrder");
     });
     it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {
       // Seller mints nfts

@@ -285,6 +285,17 @@ contract OrderValidator is Executor, ZoneInteraction {
         return (orderHash, numerator, denominator);
     }
 
+    /**
+     * @dev Internal function to generate a contract order.
+     *
+     * @param orderParameters The parameters for the order.
+     * @param context         The context for generating the order.
+     * @param revertOnInvalid Whether to revert on invalid input.
+     *
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
+     * @return denominator The denominator.
+     */
     function _getGeneratedOrder(
         OrderParameters memory orderParameters,
         bytes memory context,
@@ -629,6 +640,15 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
+                    // Ensure that consideration array length is equal to the total
+                    // original consideration items value.
+                    if (
+                        orderParameters.consideration.length !=
+                        orderParameters.totalOriginalConsiderationItems
+                    ) {
+                        _revertConsiderationLengthExceedsTotalOriginal();
+                    }
+
                     // Verify the supplied signature.
                     _verifySignature(offerer, orderHash, order.signature);
 
@@ -686,6 +706,18 @@ contract OrderValidator is Executor, ZoneInteraction {
         );
     }
 
+    /**
+     * @dev Internal pure function to check the compatibility of two offer items
+     *      and update the original offer item with the new offer item.
+     *
+     * @param originalOffer    The original offer item.
+     * @param newOffer         The new offer item.
+     * @param valueOne         A value to compare against `valueTwo`.
+     * @param valueTwo         A value to compare against `valueOne`.
+     * @param errorBuffer      A buffer for storing error codes.
+     *
+     * @return updatedErrorBuffer The updated error buffer.
+     */
     function _check(
         OfferItem memory originalOffer,
         SpentItem memory newOffer,
@@ -718,12 +750,30 @@ contract OrderValidator is Executor, ZoneInteraction {
         originalOffer.endAmount = newOffer.amount;
     }
 
+    /**
+     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
+     *
+     * @param b The `bool` value to cast.
+     *
+     * @return u The `uint256` value.
+     */
     function _cast(bool b) internal pure returns (uint256 u) {
         assembly {
             u := b
         }
     }
 
+    /**
+     * @dev Internal pure function to either revert or return an empty tuple
+     *      depending on the value of `revertOnInvalid`.
+     *
+     * @param revertOnInvalid   Whether to revert on invalid input.
+     * @param contractOrderHash The contract order hash.
+     *
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
+     * @return denominator The denominator.
+     */
     function _revertOrReturnEmpty(
         bool revertOnInvalid,
         bytes32 contractOrderHash
@@ -739,6 +789,14 @@ contract OrderValidator is Executor, ZoneInteraction {
         _revertInvalidContractOrder(contractOrderHash);
     }
 
+    /**
+     * @dev Internal pure function to replace item types 4 and 5 with item types
+     *      2 and 3, respectively.
+     *
+     * @param originalItemType The original item type.
+     *
+     * @return newItemType The new item type.
+     */
     function _replaceCriteriaItemType(
         ItemType originalItemType
     ) internal pure returns (ItemType newItemType) {
@@ -751,6 +809,12 @@ contract OrderValidator is Executor, ZoneInteraction {
     /**
      * @dev Internal pure function to convert both offer and consideration items
      *      to spent items.
+     *
+     * @param offer          The offer items to convert.
+     * @param consideration  The consideration items to convert.
+     *
+     * @return spentItems    The converted spent items.
+     * @return receivedItems The converted received items.
      */
     function _convertToSpent(
         OfferItem[] memory offer,

@@ -18,6 +18,9 @@ import {
     TestInvalidContractOfferer
 } from "contracts/test/TestInvalidContractOfferer.sol";
 import {
+    TestInvalidContractOffererRatifyOrder
+} from "contracts/test/TestInvalidContractOffererRatifyOrder.sol";
+import {
     PausableZoneController
 } from "contracts/zones/PausableZoneController.sol";
 import { TransferHelper } from "contracts/helpers/TransferHelper.sol";

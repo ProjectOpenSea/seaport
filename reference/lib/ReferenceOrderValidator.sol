@@ -574,6 +574,15 @@ contract ReferenceOrderValidator is
 
             // If the order has not already been validated...
             if (!orderStatus.isValidated) {
+                // Ensure that consideration array length is equal to the total
+                // original consideration items value.
+                if (
+                    orderParameters.consideration.length !=
+                    orderParameters.totalOriginalConsiderationItems
+                ) {
+                    revert ConsiderationLengthExceedsTotalOriginal();
+                }
+
                 // Verify the supplied signature.
                 _verifySignature(offerer, orderHash, order.signature);
 
@@ -629,6 +638,17 @@ contract ReferenceOrderValidator is
         );
     }
 
+    /**
+     * @dev Internal pure function to either revert or return an empty tuple
+     *      depending on the value of `revertOnInvalid`.
+     *
+     * @param revertOnInvalid   Whether to revert on invalid input.
+     * @param contractOrderHash The contract order hash.
+     *
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
+     * @return denominator The denominator.
+     */
     function _revertOrReturnEmpty(
         bool revertOnInvalid,
         bytes32 contractOrderHash
@@ -647,6 +667,12 @@ contract ReferenceOrderValidator is
     /**
      * @dev Internal pure function to convert both offer and consideration items
      *      to spent items.
+     *
+     * @param offer          The offer items to convert.
+     * @param consideration  The consideration items to convert.
+     *
+     * @return spentItems    The converted spent items.
+     * @return receivedItems The converted received items.
      */
     function _convertToSpent(
         OfferItem[] memory offer,
