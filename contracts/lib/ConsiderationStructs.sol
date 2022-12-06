@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     OrderType,
@@ -7,6 +7,7 @@ import {
     ItemType,
     Side
 } from "./ConsiderationEnums.sol";
+import { MemoryPointer } from "./PointerLibraries.sol";
 
 /**
  * @dev An order contains eleven components: an offerer, a zone (or account that
@@ -259,4 +260,149 @@ struct ZoneParameters {
     uint256 startTime;
     uint256 endTime;
     bytes32 zoneHash;
+}
+
+using StructPointers for OrderComponents global;
+using StructPointers for OfferItem global;
+using StructPointers for ConsiderationItem global;
+using StructPointers for SpentItem global;
+using StructPointers for ReceivedItem global;
+using StructPointers for BasicOrderParameters global;
+using StructPointers for AdditionalRecipient global;
+using StructPointers for OrderParameters global;
+using StructPointers for Order global;
+using StructPointers for AdvancedOrder global;
+using StructPointers for OrderStatus global;
+using StructPointers for CriteriaResolver global;
+using StructPointers for Fulfillment global;
+using StructPointers for FulfillmentComponent global;
+using StructPointers for Execution global;
+using StructPointers for ZoneParameters global;
+
+library StructPointers {
+    function toPointer(
+        OrderComponents memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        OfferItem memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        ConsiderationItem memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        SpentItem memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        ReceivedItem memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        BasicOrderParameters memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        AdditionalRecipient memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        OrderParameters memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(Order memory obj) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        AdvancedOrder memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        OrderStatus memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        CriteriaResolver memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        Fulfillment memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        FulfillmentComponent memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        Execution memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
+
+    function toPointer(
+        ZoneParameters memory obj
+    ) internal pure returns (MemoryPointer ptr) {
+        assembly {
+            ptr := obj
+        }
+    }
 }
