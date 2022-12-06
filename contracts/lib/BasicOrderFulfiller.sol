@@ -309,6 +309,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
+     * @return The calculated order hash.
      */
     function _prepareBasicFulfillmentFromCalldata(
         BasicOrderParameters calldata parameters,
