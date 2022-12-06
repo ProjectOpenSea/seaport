@@ -1,3 +1,4 @@
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { network } from "hardhat";
@@ -14,7 +15,6 @@ import type {
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { AdvancedOrder, OfferItem } from "../utils/types";
 import type { Wallet } from "ethers";
-import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
 const IS_FIXED = true;
 

@@ -1,3 +1,4 @@
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
@@ -36,7 +37,6 @@ import type {
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
 import type { Wallet } from "ethers";
-import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
 const { parseEther } = ethers.utils;
 
