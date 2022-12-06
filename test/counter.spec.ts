@@ -505,6 +505,37 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
     });
+    it("Reverts if consideration array length doesn't match", async () => {
+      // Seller mints an nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      order.signature = "0x";
+
+      order.parameters.totalOriginalConsiderationItems = 4;
+
+      // cannot validate when consideration array length is different than total original consideration
+        await expect(marketplaceContract.connect(seller).validate([order])).to.be
+          .revertedWith('MissingOriginalConsiderationItems');
+    });
   });
 
   describe("Cancel", async () => {
