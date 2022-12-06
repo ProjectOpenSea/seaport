@@ -811,8 +811,8 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @dev Internal pure function to convert both offer and consideration items
      *      to spent items.
      *
-     * @param offer         The offer items to convert.
-     * @param consideration The consideration items to convert.
+     * @param offer          The offer items to convert.
+     * @param consideration  The consideration items to convert.
      *
      * @return spentItems    The converted spent items.
      * @return receivedItems The converted received items.

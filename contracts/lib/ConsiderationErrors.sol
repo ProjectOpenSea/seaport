@@ -16,7 +16,8 @@ function _revertBadFraction() pure {
 }
 
 /**
- * @dev Reverts the current transaction with a "ConsiderationCriteriaResolverOutOfRange" error message.
+ * @dev Reverts the current transaction with a
+ *      "ConsiderationCriteriaResolverOutOfRange" error message.
  */
 function _revertConsiderationCriteriaResolverOutOfRange() pure {
     assembly {
@@ -28,12 +29,16 @@ function _revertConsiderationCriteriaResolverOutOfRange() pure {
 }
 
 /**
- * @dev Reverts the current transaction with a "ConsiderationNotMet" error message,
- *      including the provided order index, consideration index, and shortfall amount.
+ * @dev Reverts the current transaction with a "ConsiderationNotMet" error
+ *      message, including the provided order index, consideration index, and
+ *      shortfall amount.
  *
- * @param orderIndex      The index of the order that did not meet the consideration criteria.
- * @param considerationIndex The index of the consideration item that did not meet its criteria.
- * @param shortfallAmount The amount by which the consideration criteria were not met.
+ * @param orderIndex         The index of the order that did not meet the
+ *                           consideration criteria.
+ * @param considerationIndex The index of the consideration item that did not
+ *                           meet its criteria.
+ * @param shortfallAmount    The amount by which the consideration criteria were
+ *                           not met.
  */
 function _revertConsiderationNotMet(
     uint256 orderIndex,
@@ -55,7 +60,8 @@ function _revertConsiderationNotMet(
 }
 
 /**
- * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem" error message.
+ * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem" error
+ *      message.
  */
 function _revertCriteriaNotEnabledForItem() pure {
     assembly {
@@ -67,7 +73,8 @@ function _revertCriteriaNotEnabledForItem() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InsufficientEtherSupplied" error message.
+ * @dev Reverts the current transaction with an "InsufficientEtherSupplied"
+ *      error message.
  */
 function _revertInsufficientEtherSupplied() pure {
     assembly {
@@ -79,7 +86,8 @@ function _revertInsufficientEtherSupplied() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidBasicOrderParameterEncoding" error message.
+ * @dev Reverts the current transaction with an
+ *      "InvalidBasicOrderParameterEncoding" error message.
  */
 function _revertInvalidBasicOrderParameterEncoding() pure {
     assembly {
@@ -91,8 +99,9 @@ function _revertInvalidBasicOrderParameterEncoding() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidCallToConduit" error message,
- *      including the provided address of the conduit that was called improperly.
+ * @dev Reverts the current transaction with an "InvalidCallToConduit" error
+ *      message, including the provided address of the conduit that was called
+ *      improperly.
  *
  * @param conduit The address of the conduit that was called improperly.
  */
@@ -107,7 +116,8 @@ function _revertInvalidCallToConduit(address conduit) pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidCanceller" error message.
+ * @dev Reverts the current transaction with an "InvalidCanceller" error
+ *      message.
  */
 function _revertInvalidCanceller() pure {
     assembly {
@@ -122,8 +132,8 @@ function _revertInvalidCanceller() pure {
  * @dev Reverts the current transaction with an "InvalidConduit" error message,
  *      including the provided key and address of the invalid conduit.
  *
- * @param conduitKey The key of the invalid conduit.
- * @param conduit The address of the invalid conduit.
+ * @param conduitKey    The key of the invalid conduit.
+ * @param conduit       The address of the invalid conduit.
  */
 function _revertInvalidConduit(bytes32 conduitKey, address conduit) pure {
     assembly {
@@ -137,7 +147,8 @@ function _revertInvalidConduit(bytes32 conduitKey, address conduit) pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidERC721TransferAmount" error message.
+ * @dev Reverts the current transaction with an "InvalidERC721TransferAmount"
+ *      error message.
  */
 function _revertInvalidERC721TransferAmount() pure {
     assembly {
@@ -150,9 +161,11 @@ function _revertInvalidERC721TransferAmount() pure {
 
 /**
  * @dev Reverts the current transaction with an "InvalidMsgValue" error message,
- *      including the invalid value that was sent in the transaction's `msg.value` field.
+ *      including the invalid value that was sent in the transaction's
+ *      `msg.value` field.
  *
- * @param value The invalid value that was sent in the transaction's `msg.value` field.
+ * @param value The invalid value that was sent in the transaction's `msg.value`
+ *              field.
  */
 function _revertInvalidMsgValue(uint256 value) pure {
     assembly {
@@ -166,7 +179,8 @@ function _revertInvalidMsgValue(uint256 value) pure {
 
 
 /**
- * @dev Reverts the current transaction with an "InvalidNativeOfferItem" error message.
+ * @dev Reverts the current transaction with an "InvalidNativeOfferItem" error
+ *      message.
  */
 function _revertInvalidNativeOfferItem() pure {
     assembly {
@@ -190,7 +204,8 @@ function _revertInvalidProof() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidRestrictedOrder" error message.
+ * @dev Reverts the current transaction with an "InvalidRestrictedOrder" error
+ *      message.
  *
  * @param orderHash The hash of the restricted order that caused the error.
  */
@@ -205,7 +220,8 @@ function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidContractOrder" error message.
+ * @dev Reverts the current transaction with an "InvalidContractOrder" error
+ *      message.
  *
  * @param orderHash The hash of the contract order that caused the error.
  */
@@ -232,7 +248,8 @@ function _revertInvalidTime() pure {
 }
 
 /**
- * @dev Reverts execution with a "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
+ * @dev Reverts execution with a
+ *      "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
  */
 function _revertMismatchedFulfillmentOfferAndConsiderationComponents() pure {
     assembly {
@@ -250,7 +267,8 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents() pure {
 }
 
 /**
- * @dev Reverts execution with a "MissingFulfillmentComponentOnAggregation" error message.
+ * @dev Reverts execution with a "MissingFulfillmentComponentOnAggregation"
+*       error message.
  *
  * @param side The side of the fulfillment component that is missing (0 for offer, 1 for consideration).
  *
@@ -266,7 +284,8 @@ function _revertMissingFulfillmentComponentOnAggregation(uint8 side) pure {
 }
 
 /**
- * @dev Reverts execution with a "MissingOriginalConsiderationItems" error message.
+ * @dev Reverts execution with a "MissingOriginalConsiderationItems" error
+ *      message.
  */
 function _revertMissingOriginalConsiderationItems() pure {
     assembly {
@@ -302,7 +321,8 @@ function _revertNoSpecifiedOrdersAvailable() pure {
 }
 
 /**
- * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment" error message.
+ * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
+ *      error message.
  */
 function _revertOfferAndConsiderationRequiredOnFulfillment() pure {
     assembly {
@@ -314,7 +334,8 @@ function _revertOfferAndConsiderationRequiredOnFulfillment() pure {
 }
 
 /**
- * @dev Reverts execution with a "OfferCriteriaResolverOutOfRange" error message.
+ * @dev Reverts execution with a "OfferCriteriaResolverOutOfRange" error
+ *      message.
  */
 function _revertOfferCriteriaResolverOutOfRange() pure {
     assembly {
@@ -341,7 +362,8 @@ function _revertOrderAlreadyFilled(bytes32 orderHash) pure {
 }
 
 /**
- * @dev Reverts execution with an "OrderCriteriaResolverOutOfRange" error message.
+ * @dev Reverts execution with an "OrderCriteriaResolverOutOfRange" error
+ *      message.
  */
 function _revertOrderCriteriaResolverOutOfRange() pure {
     assembly {

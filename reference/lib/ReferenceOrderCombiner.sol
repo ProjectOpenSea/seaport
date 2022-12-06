@@ -186,7 +186,7 @@ contract ReferenceOrderCombiner is
      * @param maximumFulfilled  The maximum number of orders to fulfill.
      * @param recipient         The intended recipient for all received items.
      * 
-     * @return orderHashes The hashes of the orders being fulfilled.
+     * @return orderHashes      The hashes of the orders being fulfilled.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
@@ -589,9 +589,9 @@ contract ReferenceOrderCombiner is
      *                           orders.
      * @param orderHashes        An array of order hashes for each order.
      *
-     * @return availableOrders  An array of booleans indicating if each order
-     *                          with an index corresponding to the index of the
-     *                          returned boolean was fulfillable or not.
+     * @return availableOrders   An array of booleans indicating if each order
+     *                           with an index corresponding to the index of the
+     *                           returned boolean was fulfillable or not.
      */
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -796,9 +796,9 @@ contract ReferenceOrderCombiner is
      *                           be considered valid.
      * @param orderHashes        An array of order hashes for each order.
      *
-     * @return executions          An array of elements indicating the sequence
-     *                            of transfers performed as part of
-     *                            matching the given orders.
+     * @return executions        An array of elements indicating the sequence
+     *                           of transfers performed as part of
+     *                           matching the given orders.
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
