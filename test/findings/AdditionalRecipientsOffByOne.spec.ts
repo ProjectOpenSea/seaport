@@ -224,7 +224,10 @@ describe("Additional recipients off by one error allows skipping second consider
             to: marketplaceContract.address,
             data: maliciousCallData,
           })
-        ).to.be.revertedWith("MissingOriginalConsiderationItems");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MissingOriginalConsiderationItems"
+        );
       });
     }
   });

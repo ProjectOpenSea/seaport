@@ -97,7 +97,7 @@ export const conduitFixture = async (
         conduitController
           .connect(owner)
           .createConduit(assignedConduitKey, constants.AddressZero)
-      ).to.be.revertedWith("InvalidInitialOwner");
+      ).to.be.revertedWithCustomError(conduitController, "InvalidInitialOwner");
     } else {
       await expect(
         conduitController

@@ -14,6 +14,7 @@ import type {
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { AdvancedOrder, OfferItem } from "../utils/types";
 import type { Wallet } from "ethers";
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
 const IS_FIXED = true;
 
@@ -141,9 +142,7 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
           marketplaceContract
             .connect(bob)
             .matchAdvancedOrders([order, maliciousOrder], [], fulfillments)
-        ).to.be.revertedWith(
-          "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-        );
+        ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
       });
     }
   });

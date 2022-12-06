@@ -36,6 +36,7 @@ import type {
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
 import type { Wallet } from "ethers";
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 
 const { parseEther } = ethers.utils;
 
@@ -2660,9 +2661,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.revertedWith(
-        "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
   });
 
