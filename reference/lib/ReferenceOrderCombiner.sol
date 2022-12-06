@@ -185,6 +185,8 @@ contract ReferenceOrderCombiner is
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
      * @param recipient         The intended recipient for all received items.
+     * 
+     * @return orderHashes The hashes of the orders being fulfilled.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
@@ -442,6 +444,7 @@ contract ReferenceOrderCombiner is
      *                                  direct approvals set on Consideration).
      * @param recipient                 The intended recipient for all received
      *                                  items.
+     * @param orderHashes               An array of order hashes for each order.
      *
      * @return availableOrders          An array of booleans indicating if each
      *                                  order with an index corresponding to the
@@ -584,6 +587,7 @@ contract ReferenceOrderCombiner is
      * @param executions         An array of elements indicating the sequence of
      *                           transfers to perform when fulfilling the given
      *                           orders.
+     * @param orderHashes        An array of order hashes for each order.
      *
      * @return availableOrders  An array of booleans indicating if each order
      *                          with an index corresponding to the index of the
@@ -790,6 +794,7 @@ contract ReferenceOrderCombiner is
      *                           that the final amount of each consideration
      *                           component must be zero for a match operation to
      *                           be considered valid.
+     * @param orderHashes        An array of order hashes for each order.
      *
      * @return executions          An array of elements indicating the sequence
      *                            of transfers performed as part of
