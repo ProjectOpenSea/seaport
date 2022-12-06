@@ -222,9 +222,7 @@ contract TestContractOfferer is ContractOffererInterface {
         pure
         virtual
         override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
+        returns (bytes4 /* ratifyOrderMagicValue */)
     {
         return ContractOffererInterface.ratifyOrder.selector;
     }

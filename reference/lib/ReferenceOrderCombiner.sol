@@ -185,7 +185,7 @@ contract ReferenceOrderCombiner is
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
      * @param recipient         The intended recipient for all received items.
-     * 
+     *
      * @return orderHashes      The hashes of the orders being fulfilled.
      */
     function _validateOrdersAndPrepareToFulfill(

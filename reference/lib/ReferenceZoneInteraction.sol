@@ -156,21 +156,21 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     }
 
     /**
-    * @dev Converts the offer and consideration parameters from a
-    *      BasicOrderParameters object into an array of SpentItem and
-    *      ReceivedItem objects.
-    *
-    * @param parameters            The BasicOrderParameters object containing
-    *                              the offer and consideration parameters to be
-    *                              converted.
-    * @param offerItemType         The item type of the offer.
-    * @param considerationItemType The item type of the consideration.
-    *
-    * @return spentItems           The converted offer parameters as an array of
-    *                              SpentItem objects.
-    * @return receivedItems        The converted consideration parameters as an
-    *                              array of ReceivedItem objects.
-    */
+     * @dev Converts the offer and consideration parameters from a
+     *      BasicOrderParameters object into an array of SpentItem and
+     *      ReceivedItem objects.
+     *
+     * @param parameters            The BasicOrderParameters object containing
+     *                              the offer and consideration parameters to be
+     *                              converted.
+     * @param offerItemType         The item type of the offer.
+     * @param considerationItemType The item type of the consideration.
+     *
+     * @return spentItems           The converted offer parameters as an array of
+     *                              SpentItem objects.
+     * @return receivedItems        The converted consideration parameters as an
+     *                              array of ReceivedItem objects.
+     */
     function _convertToSpentAndReceivedItems(
         BasicOrderParameters calldata parameters,
         ItemType offerItemType,
