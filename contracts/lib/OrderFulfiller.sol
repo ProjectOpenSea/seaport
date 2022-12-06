@@ -81,9 +81,6 @@ contract OrderFulfiller is
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
-        // Declare empty bytes32 array (unused, will remain empty).
-        bytes32[] memory priorOrderHashes;
-
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
@@ -112,10 +109,14 @@ contract OrderFulfiller is
             recipient
         );
 
+        // Declare empty bytes32 array and populate with the order hash.
+        bytes32[] memory orderHashes = new bytes32[](1);
+        orderHashes[0] = orderHash;
+
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrders[0],
-            priorOrderHashes,
+            orderHashes,
             orderHash
         );
 
@@ -428,16 +429,12 @@ contract OrderFulfiller is
     function _convertOrderToAdvanced(Order calldata order)
         internal
         pure
-        returns (AdvancedOrder memory advancedOrder)
+        returns (
+            AdvancedOrder memory /* advancedOrder */
+        )
     {
         // Convert to partial order (1/1 or full fill) and return new value.
-        advancedOrder = AdvancedOrder(
-            order.parameters,
-            1,
-            1,
-            order.signature,
-            ""
-        );
+        return AdvancedOrder(order.parameters, 1, 1, order.signature, "");
     }
 
     /**
@@ -451,13 +448,17 @@ contract OrderFulfiller is
     function _convertOrdersToAdvanced(Order[] calldata orders)
         internal
         pure
-        returns (AdvancedOrder[] memory advancedOrders)
+        returns (
+            AdvancedOrder[] memory /* advancedOrders */
+        )
     {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 
         // Allocate new empty array for each partial order in memory.
-        advancedOrders = new AdvancedOrder[](totalOrders);
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
+            totalOrders
+        );
 
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {

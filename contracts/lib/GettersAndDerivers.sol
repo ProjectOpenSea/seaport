@@ -313,9 +313,9 @@ contract GettersAndDerivers is ConsiderationBase {
         internal
         view
         returns (
-            string memory, // version
-            bytes32, // domainSeparator
-            address // conduitController
+            string memory, /* version */
+            bytes32, /* domainSeparator */
+            address /* conduitController */
         )
     {
         // Derive the domain separator.

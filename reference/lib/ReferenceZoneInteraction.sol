@@ -53,13 +53,6 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         ItemType offeredItemType,
         ItemType receivedItemType
     ) internal {
-        if (
-            orderType == OrderType.FULL_OPEN ||
-            orderType == OrderType.PARTIAL_OPEN
-        ) {
-            return;
-        }
-
         bytes32[] memory orderHashes = new bytes32[](1);
         orderHashes[0] = orderHash;
 
@@ -95,19 +88,6 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 ) != ZoneInterface.validateOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
-            }
-        } else if (orderType == OrderType.CONTRACT) {
-            if (
-                ContractOffererInterface(basicOrderParameters.offerer)
-                    .ratifyOrder(
-                        offer,
-                        consideration,
-                        "",
-                        orderHashes,
-                        uint96(uint256(orderHash))
-                    ) != ContractOffererInterface.ratifyOrder.selector
-            ) {
-                revert InvalidContractOrder(orderHash);
             }
         }
     }

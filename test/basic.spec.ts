@@ -503,9 +503,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         const basicOrderParameters = getBasicOrderParameters(
           0, // EthForERC721
@@ -602,9 +667,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
@@ -700,9 +830,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
@@ -996,9 +1191,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, zone.address);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         const basicOrderParameters = getBasicOrderParameters(
           0, // EthForERC721
