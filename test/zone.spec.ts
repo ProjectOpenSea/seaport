@@ -829,7 +829,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       .reverted;
   });
 
-  it.only("Reverts if non-Zone tries to cancel restricted orders", async () => {
+  it("Reverts if non-Zone tries to cancel restricted orders", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
@@ -861,7 +861,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       .to.be.reverted;
   });
 
-  it.only("Reverts if non-owner tries to use the zone to cancel restricted orders", async () => {
+  it("Reverts if non-owner tries to use the zone to cancel restricted orders", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
