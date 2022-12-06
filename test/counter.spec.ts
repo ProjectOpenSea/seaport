@@ -531,8 +531,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       order.parameters.totalOriginalConsiderationItems = 2;
 
       // cannot validate when consideration array length is different than total original consideration
-        await expect(marketplaceContract.connect(seller).validate([order])).to.be
-          .revertedWith('ExtraOriginalConsiderationItems');
+      await expect(
+        marketplaceContract.connect(seller).validate([order])
+      ).to.be.revertedWith("ExtraOriginalConsiderationItems");
     });
   });
 
