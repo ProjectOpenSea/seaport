@@ -645,7 +645,10 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // original consideration items value
       await expect(
         marketplaceContract.connect(seller).validate([order])
-      ).to.be.revertedWith("ConsiderationLengthExceedsTotalOriginal");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "ConsiderationLengthExceedsTotalOriginal"
+      );
     });
   });
 

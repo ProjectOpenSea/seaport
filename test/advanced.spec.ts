@@ -1765,7 +1765,10 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidContractOrder");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidContractOrder"
+      );
     });
     it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {
       // Seller mints nfts
