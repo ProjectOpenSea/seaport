@@ -106,7 +106,7 @@ contract ReferenceOrderFulfiller is
             recipient
         );
 
-        // Declare empty bytes32 array (unused, will remain empty).
+        // Declare bytes32 array with this order's hash
         bytes32[] memory priorOrderHashes = new bytes32[](1);
         priorOrderHashes[0] = orderHash;
 
