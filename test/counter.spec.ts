@@ -520,7 +520,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const { order } = await createOrder(
         seller,
         zone,
         offer,
@@ -528,13 +528,11 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         0 // FULL_OPEN
       );
 
-      order.signature = "0x";
-
-      order.parameters.totalOriginalConsiderationItems = 4;
+      order.parameters.totalOriginalConsiderationItems = 2;
 
       // cannot validate when consideration array length is different than total original consideration
         await expect(marketplaceContract.connect(seller).validate([order])).to.be
-          .revertedWith('MissingOriginalConsiderationItems');
+          .revertedWith('ExtraOriginalConsiderationItems');
     });
   });
 
