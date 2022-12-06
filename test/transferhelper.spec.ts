@@ -967,7 +967,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         await expect(
           tempTransferHelper
             .connect(sender)
-            .bulkTransfer(transfers, recipient.address)
+            .bulkTransfer(transfers, tempConduitKey)
         ).to.be.reverted;
       }
     });
