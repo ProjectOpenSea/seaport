@@ -2075,7 +2075,10 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("BadContractSignature");
+          ).to.be.revertedWithCustomError(
+            marketplaceContract,
+            "BadContractSignature"
+          );
         } else {
           await expect(
             marketplaceContract

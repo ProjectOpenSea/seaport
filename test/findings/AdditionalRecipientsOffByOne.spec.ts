@@ -223,8 +223,12 @@ describe("Additional recipients off by one error allows skipping second consider
           bob.sendTransaction({
             to: marketplaceContract.address,
             data: maliciousCallData,
+            gasLimit: 29_999_999,
           })
-        ).to.be.revertedWith("MissingOriginalConsiderationItems");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MissingOriginalConsiderationItems"
+        );
       });
     }
   });

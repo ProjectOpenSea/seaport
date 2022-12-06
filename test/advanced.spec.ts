@@ -1,3 +1,4 @@
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
@@ -2660,9 +2661,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.revertedWith(
-        "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
   });
 
