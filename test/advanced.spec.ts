@@ -1754,7 +1754,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       order.parameters.offerer = invalidContractOffererRatifyOrder.address;
       order.numerator = 1;
       order.denominator = 1;
-      order.signature = "0x";
 
       await expect(
         marketplaceContract
