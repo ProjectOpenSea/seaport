@@ -4,3 +4,4 @@ cache
 coverage*
 gasReporterOutput.json
 lib/murky
+typechain-types/
