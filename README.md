@@ -38,7 +38,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <table>
 <tr>
 <th>Network</th>
-<th>Seaport 1.1</th>
+<th>Seaport 1.2</th>
 <th>ConduitController</th>
 </tr>
 

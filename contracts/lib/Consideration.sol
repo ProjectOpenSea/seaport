@@ -25,10 +25,9 @@ import { OrderCombiner } from "./OrderCombiner.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1.1
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
- *         It minimizes external calls to the greatest extent possible and
- *         provides lightweight methods for common routes as well as more
+ * @custom:version 1.2
+ * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace
+ *         that provides lightweight methods for common routes as well as more
  *         flexible methods for composing advanced orders or groups of orders.
  *         Each order contains an arbitrary number of items that may be spent
  *         (the "offer") along with an arbitrary number of items that must be

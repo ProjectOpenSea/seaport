@@ -5,7 +5,7 @@ import { Consideration } from "./lib/Consideration.sol";
 
 /**
  * @title Seaport
- * @custom:version 1.1
+ * @custom:version 1.2
  * @author 0age (0age.eth)
  * @custom:coauthor d1ll0n (d1ll0n.eth)
  * @custom:coauthor transmissions11 (t11s.eth)
@@ -73,8 +73,7 @@ import { Consideration } from "./lib/Consideration.sol";
  * @custom:contributor rfart(rfa)
  * @custom:contributor Riley Holterhus
  * @custom:contributor big-tech-sux
- * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
- *         minimizes external calls to the greatest extent possible and provides
+ * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace with
  *         lightweight methods for common routes as well as more flexible
  *         methods for composing advanced orders or groups of orders. Each order
  *         contains an arbitrary number of items that may be spent (the "offer")
