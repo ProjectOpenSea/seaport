@@ -382,6 +382,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // add new offer items if there are more than original
             for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
+              // @todo replace with optimized returndata decoder
               MemoryPointer originalOffer = orderParameters.offer[i].toPointer();
               MemoryPointer newOffer = offer[i].toPointer();
               newOffer.copy(originalOffer, 0x80);
