@@ -829,7 +829,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       .reverted;
   });
 
-  it("Reverts if non-Zone tries to cancel restricted orders", async () => {
+  it.only("Reverts if non-Zone tries to cancel restricted orders", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
@@ -849,7 +849,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    const { order } = await createOrder(
+    const { orderComponents } = await createOrder(
       seller,
       stubZone,
       offer,
@@ -857,11 +857,11 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    await expect(marketplaceContract.connect(buyer).cancel(order as any)).to.be
-      .reverted;
+    await expect(marketplaceContract.connect(buyer).cancel([orderComponents]))
+      .to.be.reverted;
   });
 
-  it("Reverts if non-owner tries to use the zone to cancel restricted orders", async () => {
+  it.only("Reverts if non-owner tries to use the zone to cancel restricted orders", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
@@ -881,7 +881,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    const { order } = await createOrder(
+    const { orderComponents } = await createOrder(
       seller,
       stubZone,
       offer,
@@ -893,7 +893,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     await expect(
       pausableZoneController
         .connect(buyer)
-        .cancelOrders(zoneAddr, marketplaceContract.address, order as any)
+        .cancelOrders(zoneAddr, marketplaceContract.address, [orderComponents])
     ).to.be.reverted;
   });
 
