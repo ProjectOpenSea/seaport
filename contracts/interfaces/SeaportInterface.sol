@@ -16,7 +16,7 @@ import {
 /**
  * @title SeaportInterface
  * @author 0age
- * @custom:version 1.1
+ * @custom:version 1.2
  * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
  *         minimizes external calls to the greatest extent possible and provides
  *         lightweight methods for common routes as well as more flexible
