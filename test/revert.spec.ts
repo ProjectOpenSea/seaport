@@ -49,7 +49,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let conduitOne: ConduitInterface;
   let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
-  let reenterer: Reenterer;
   let stubZone: TestZone;
   let testERC1155: TestERC1155;
   let testERC20: TestERC20;
@@ -113,6 +112,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let seller: Wallet;
   let buyer: Wallet;
   let zone: Wallet;
+  let reenterer: Reenterer;
 
   let sellerContract: EIP1271Wallet;
   let buyerContract: EIP1271Wallet;
