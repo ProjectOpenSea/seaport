@@ -6170,8 +6170,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
-        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
       ];
 
       let { order, value } = await createOrder(
@@ -6202,7 +6201,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         await expect(
           marketplaceContract
             .connect(seller)
-            .fulfillBasicOrder(basicOrderParameters)
+            .fulfillBasicOrder(basicOrderParameters, { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
           "NoReentrantCalls"
@@ -6211,7 +6210,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         await expect(
           marketplaceContract
             .connect(seller)
-            .fulfillBasicOrder(basicOrderParameters)
+            .fulfillBasicOrder(basicOrderParameters, { value })
         ).to.be.reverted;
       }
     });
