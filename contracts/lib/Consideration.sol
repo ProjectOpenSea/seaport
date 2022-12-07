@@ -74,7 +74,7 @@ contract Consideration is OrderCombiner {
      */
     function fulfillBasicOrder(
         BasicOrderParameters calldata parameters
-    ) external payable  returns (bool fulfilled) {
+    ) external payable returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -104,7 +104,7 @@ contract Consideration is OrderCombiner {
     function fulfillOrder(
         Order calldata order,
         bytes32 fulfillerConduitKey
-    ) external payable  returns (bool fulfilled) {
+    ) external payable returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
@@ -159,7 +159,7 @@ contract Consideration is OrderCombiner {
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
-    ) external payable  returns (bool fulfilled) {
+    ) external payable returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -221,7 +221,6 @@ contract Consideration is OrderCombiner {
     )
         external
         payable
-        
         returns (
             bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
@@ -315,7 +314,6 @@ contract Consideration is OrderCombiner {
     )
         external
         payable
-        
         returns (
             bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
@@ -361,7 +359,7 @@ contract Consideration is OrderCombiner {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable  returns (Execution[] memory /* executions */) {
+    ) external payable returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -411,7 +409,7 @@ contract Consideration is OrderCombiner {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable  returns (Execution[] memory /* executions */) {
+    ) external payable returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
@@ -434,7 +432,7 @@ contract Consideration is OrderCombiner {
      */
     function cancel(
         OrderComponents[] calldata orders
-    ) external  returns (bool cancelled) {
+    ) external returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -454,11 +452,11 @@ contract Consideration is OrderCombiner {
      * @ return validated A boolean indicating whether the supplied orders have
      *                   been successfully validated.
      */
-    function validate(
-        Order[] calldata
-    ) external  returns (bool validated) {
-      Order[] memory orders = to_dyn_array_Order_ReturnType(abi_decode_dyn_array_Order)(CalldataStart.pptr());
-      validated = _validate(orders);
+    function validate(Order[] calldata) external returns (bool validated) {
+        Order[] memory orders = to_dyn_array_Order_ReturnType(
+            abi_decode_dyn_array_Order
+        )(CalldataStart.pptr());
+        validated = _validate(orders);
     }
 
     /**
@@ -468,7 +466,7 @@ contract Consideration is OrderCombiner {
      *
      * @ return newCounter The new counter.
      */
-    function incrementCounter() external  returns (uint256 newCounter) {
+    function incrementCounter() external returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.
         newCounter = _incrementCounter();
     }
@@ -482,7 +480,7 @@ contract Consideration is OrderCombiner {
      */
     function getOrderHash(
         OrderComponents calldata order
-    ) external view  returns (bytes32 orderHash) {
+    ) external view returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             OrderParameters(
@@ -524,7 +522,6 @@ contract Consideration is OrderCombiner {
     )
         external
         view
-        
         returns (
             bool isValidated,
             bool isCancelled,
@@ -545,7 +542,7 @@ contract Consideration is OrderCombiner {
      */
     function getCounter(
         address offerer
-    ) external view  returns (uint256 counter) {
+    ) external view returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -560,7 +557,6 @@ contract Consideration is OrderCombiner {
     function information()
         external
         view
-        
         returns (
             string memory version,
             bytes32 domainSeparator,
@@ -580,7 +576,7 @@ contract Consideration is OrderCombiner {
      */
     function getContractOffererNonce(
         address contractOfferer
-    ) external view  returns (uint256 nonce) {
+    ) external view returns (uint256 nonce) {
         nonce = _contractNonces[contractOfferer];
     }
 
@@ -589,12 +585,7 @@ contract Consideration is OrderCombiner {
      *
      * @ return contractName The name of this contract.
      */
-    function name()
-        external
-        pure
-        
-        returns (string memory /* contractName */)
-    {
+    function name() external pure returns (string memory /* contractName */) {
         // Return the name of the contract.
         return _name();
     }
