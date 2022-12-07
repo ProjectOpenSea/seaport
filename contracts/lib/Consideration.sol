@@ -35,7 +35,7 @@ import "./ConsiderationDecoder.sol";
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract Consideration is OrderCombiner {
+contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
