@@ -29,6 +29,7 @@ uint256 constant Fulfillment_considerationComponents_offset = 0x20;
 uint256 constant OrderComponents_head_size = 0x0160;
 uint256 constant OrderComponents_offer_offset = 0x40;
 uint256 constant OrderComponents_consideration_offset = 0x60;
+uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
 
 function abi_decode_dyn_array_AdditionalRecipient(CalldataPointer cdPtrLength) pure returns (MemoryPointer mPtrLength) {
   assembly {
@@ -255,6 +256,16 @@ function abi_decode_dyn_array_OrderComponents(CalldataPointer cdPtrLength) pure 
   }
 }
 
+function abi_decode_OrderComponents_as_OrderParameters(CalldataPointer cdPtr) pure returns (MemoryPointer mPtr) {
+  mPtr = malloc(OrderParameters_head_size);
+  cdPtr.copy(mPtr, OrderComponents_OrderParameters_common_head_size);
+  mPtr.offset(OrderParameters_offer_offset).write(abi_decode_dyn_array_OfferItem(cdPtr.pptr(OrderParameters_offer_offset)));
+  MemoryPointer consideration = abi_decode_dyn_array_ConsiderationItem(cdPtr.pptr(OrderParameters_consideration_offset));
+  mPtr.offset(OrderParameters_consideration_offset).write(consideration);
+  // Write totalOriginalConsiderationItems
+  mPtr.offset(OrderComponents_OrderParameters_common_head_size).write(consideration.read());
+}
+
 function to_BasicOrderParameters_ReturnType(function(CalldataPointer) internal pure returns (MemoryPointer) inFn) pure returns (function(CalldataPointer) internal pure returns (BasicOrderParameters memory) outFn) {
   assembly {
     outFn := inFn
@@ -262,6 +273,12 @@ function to_BasicOrderParameters_ReturnType(function(CalldataPointer) internal p
 }
 
 function to_Order_ReturnType(function(CalldataPointer) internal pure returns (MemoryPointer) inFn) pure returns (function(CalldataPointer) internal pure returns (Order memory) outFn) {
+  assembly {
+    outFn := inFn
+  }
+}
+
+function to_OrderParameters_ReturnType(function(CalldataPointer) internal pure returns (MemoryPointer) inFn) pure returns (function(CalldataPointer) internal pure returns (Order memory) outFn) {
   assembly {
     outFn := inFn
   }
