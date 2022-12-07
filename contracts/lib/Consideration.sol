@@ -479,24 +479,17 @@ contract Consideration is OrderCombiner {
      * @ return orderHash The order hash.
      */
     function getOrderHash(
-        OrderComponents calldata order
+        OrderComponents calldata /* order */
     ) external view returns (bytes32 orderHash) {
+        CalldataPointer orderPointer = CalldataStart.pptr();
+
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
-            OrderParameters(
-                order.offerer,
-                order.zone,
-                order.offer,
-                order.consideration,
-                order.orderType,
-                order.startTime,
-                order.endTime,
-                order.zoneHash,
-                order.salt,
-                order.conduitKey,
-                order.consideration.length
-            ),
-            order.counter
+            to_OrderParameters_ReturnType(
+                abi_decode_OrderComponents_as_OrderParameters
+            )(orderPointer),
+            // Read order counter
+            orderPointer.offset(OrderParameters_counter_offset).readUint256()
         );
     }
 
