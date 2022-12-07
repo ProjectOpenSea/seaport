@@ -197,6 +197,20 @@ library MemoryPointerLib {
     }
   }
 
+  /// @dev Resolves a pointer pointer at `mPtr + headOffset` to a memory pointer.
+  ///    `mPtr` must point to some parent object with a dynamic type's pointer stored at
+  ///    `mPtr + headOffset`.
+  function pptr(MemoryPointer mPtr, uint256 headOffset) internal pure returns (MemoryPointer mPtrChild) {
+    mPtrChild = MemoryPointer.wrap(mPtr.offset(headOffset).read());
+  }
+
+  /// @dev Resolves a pointer pointer stored at `mPtr` to a memory pointer.
+  ///    `mPtr` must point to some parent object with a dynamic type as its first
+  ///    member, e.g. `struct { bytes data; }`
+  function pptr(MemoryPointer mPtr) internal pure returns (MemoryPointer mPtrChild) {
+    mPtrChild = MemoryPointer.wrap(mPtr.read());
+  }
+
   function copy(MemoryPointer src, MemoryPointer dst, uint256 size) internal view {
     assembly {
       let success := staticcall(gas(), IdentityPrecompileAddress, src, size, dst, size)
