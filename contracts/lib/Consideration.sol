@@ -40,7 +40,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
      *
-     * @param conduitController A contract that deploys conduits, or proxies
+     * @ param conduitController A contract that deploys conduits, or proxies
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
@@ -61,7 +61,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         to the documentation for a more comprehensive summary of how to
      *         utilize this method and what orders are compatible with it.
      *
-     * @param parameters Additional information on the fulfilled order. Note
+     * @ param parameters Additional information on the fulfilled order. Note
      *                   that the offerer and the fulfiller must first approve
      *                   this contract (or their chosen conduit if indicated)
      *                   before any tokens can be transferred. Also note that
@@ -69,7 +69,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
      *
-     * @return fulfilled A boolean indicating whether the order has been
+     * @ return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
     function fulfillBasicOrder(
@@ -85,20 +85,20 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         criteria-based orders or partial filling of orders (though
      *         filling the remainder of a partially-filled order is supported).
      *
-     * @param order               The order to fulfill. Note that both the
+     * @ param order               The order to fulfill. Note that both the
      *                            offerer and the fulfiller must first approve
      *                            this contract (or the corresponding conduit if
      *                            indicated) to transfer any relevant tokens on
      *                            their behalf and that contracts must implement
      *                            `onERC1155Received` to receive ERC1155 tokens
      *                            as consideration.
-     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     * @ param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return fulfilled A boolean indicating whether the order has been
+     * @ return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
     function fulfillOrder(
@@ -121,7 +121,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         items for offer and consideration alongside criteria resolvers
      *         containing specific token identifiers and associated proofs.
      *
-     * @param advancedOrder       The order to fulfill along with the fraction
+     * @ param advancedOrder       The order to fulfill along with the fraction
      *                            of the order to attempt to fill. Note that
      *                            both the offerer and the fulfiller must first
      *                            approve this contract (or their conduit if
@@ -134,7 +134,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            multiplication of the respective amount with
      *                            the supplied fraction for the partial fill to
      *                            be considered valid.
-     * @param criteriaResolvers   An array where each element contains a
+     * @ param criteriaResolvers   An array where each element contains a
      *                            reference to a specific offer or
      *                            consideration, a token identifier, and a proof
      *                            that the supplied token identifier is
@@ -144,16 +144,16 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            (transferable) token identifier on the token
      *                            in question is valid and that no associated
      *                            proof needs to be supplied.
-     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     * @ param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
-     * @param recipient           The intended recipient for all received items,
+     * @ param recipient           The intended recipient for all received items,
      *                            with `address(0)` indicating that the caller
      *                            should receive the items.
      *
-     * @return fulfilled A boolean indicating whether the order has been
+     * @ return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
@@ -189,7 +189,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         partial filling of orders (though filling the remainder of a
      *         partially-filled order is supported).
      *
-     * @param orders                    The orders to fulfill. Note that both
+     * @ param orders                    The orders to fulfill. Note that both
      *                                  the offerer and the fulfiller must first
      *                                  approve this contract (or the
      *                                  corresponding conduit if indicated) to
@@ -197,24 +197,24 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  behalf and that contracts must implement
      *                                  `onERC1155Received` to receive ERC1155
      *                                  tokens as consideration.
-     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     * @ param offerFulfillments         An array of FulfillmentComponent arrays
      *                                  indicating which offer items to attempt
      *                                  to aggregate when preparing executions.
-     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     * @ param considerationFulfillments An array of FulfillmentComponent arrays
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     * @ param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
-     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     * @ param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders An array of booleans indicating if each order
+     * @ return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
      *                         returned boolean was fulfillable or not.
-     * @return executions      An array of elements indicating the sequence of
+     * @ return executions      An array of elements indicating the sequence of
      *                         transfers performed as part of matching the given
      *                         orders.
      */
@@ -265,7 +265,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         recipient, respectively. Note that a failing item transfer or an
      *         issue with order formatting will cause the entire batch to fail.
      *
-     * @param advancedOrders            The orders to fulfill along with the
+     * @ param advancedOrders            The orders to fulfill along with the
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
@@ -281,7 +281,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  with the supplied fraction for an
      *                                  order's partial fill amount to be
      *                                  considered valid.
-     * @param criteriaResolvers         An array where each element contains a
+     * @ param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
      *                                  consideration, a token identifier, and a
      *                                  proof that the supplied token identifier
@@ -292,27 +292,27 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
-     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     * @ param offerFulfillments         An array of FulfillmentComponent arrays
      *                                  indicating which offer items to attempt
      *                                  to aggregate when preparing executions.
-     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     * @ param considerationFulfillments An array of FulfillmentComponent arrays
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     * @ param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
-     * @param recipient                 The intended recipient for all received
+     * @ param recipient                 The intended recipient for all received
      *                                  items, with `address(0)` indicating that
      *                                  the caller should receive the items.
-     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     * @ param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders An array of booleans indicating if each order
+     * @ return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
      *                         returned boolean was fulfillable or not.
-     * @return executions      An array of elements indicating the sequence of
+     * @ return executions      An array of elements indicating the sequence of
      *                         transfers performed as part of matching the given
      *                         orders.
      */
@@ -362,19 +362,19 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders            The orders to match. Note that both the offerer
+     * @ param orders            The orders to match. Note that both the offerer
      *                          and fulfiller on each order must first approve
      *                          this contract (or their conduit if indicated by
      *                          the order) to transfer any relevant tokens on
      *                          their behalf and each consideration recipient
      *                          must implement `onERC1155Received` in order to
      *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
+     * @ param fulfillments      An array of elements allocating offer components
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return executions An array of elements indicating the sequence of
+     * @ return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
      *                    orders.
      */
@@ -402,7 +402,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         associated proofs as well as fulfillments allocating offer
      *         components to consideration components.
      *
-     * @param advancedOrders    The advanced orders to match. Note that both the
+     * @ param advancedOrders    The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
      *                          approve this contract (or their conduit if
      *                          indicated by the order) to transfer any relevant
@@ -414,7 +414,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          the respective amount with the supplied fraction
      *                          in order for the group of partial fills to be
      *                          considered valid.
-     * @param criteriaResolvers An array where each element contains a reference
+     * @ param criteriaResolvers An array where each element contains a reference
      *                          to a specific order as well as that order's
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
@@ -422,12 +422,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
-     * @param fulfillments      An array of elements allocating offer components
+     * @ param fulfillments      An array of elements allocating offer components
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return executions An array of elements indicating the sequence of
+     * @ return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
      *                    orders.
      */
@@ -457,9 +457,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         that the intended order was cancelled by calling `getOrderStatus`
      *         and confirming that `isCancelled` returns `true`.
      *
-     * @param orders The orders to cancel.
+     * @ param orders The orders to cancel.
      *
-     * @return cancelled A boolean indicating whether the supplied orders have
+     * @ return cancelled A boolean indicating whether the supplied orders have
      *                   been successfully cancelled.
      */
     function cancel(
@@ -479,9 +479,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         that anyone can validate a signed order, but only the offerer can
      *         validate an order without supplying a signature.
      *
-     * @param orders The orders to validate.
+     * @ param orders The orders to validate.
      *
-     * @return validated A boolean indicating whether the supplied orders have
+     * @ return validated A boolean indicating whether the supplied orders have
      *                   been successfully validated.
      */
     function validate(
@@ -498,7 +498,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         by incrementing a counter. Note that only the offerer may
      *         increment the counter.
      *
-     * @return newCounter The new counter.
+     * @ return newCounter The new counter.
      */
     function incrementCounter() external override returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.
@@ -508,9 +508,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Retrieve the order hash for a given order.
      *
-     * @param order The components of the order.
+     * @ param order The components of the order.
      *
-     * @return orderHash The order hash.
+     * @ return orderHash The order hash.
      */
     function getOrderHash(
         OrderComponents calldata /* order */
@@ -532,16 +532,16 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         the order has been cancelled or validated and the fraction of the
      *         order that has been filled.
      *
-     * @param orderHash The order hash in question.
+     * @ param orderHash The order hash in question.
      *
-     * @return isValidated A boolean indicating whether the order in question
+     * @ return isValidated A boolean indicating whether the order in question
      *                     has been validated (i.e. previously approved or
      *                     partially filled).
-     * @return isCancelled A boolean indicating whether the order in question
+     * @ return isCancelled A boolean indicating whether the order in question
      *                     has been cancelled.
-     * @return totalFilled The total portion of the order that has been filled
+     * @ return totalFilled The total portion of the order that has been filled
      *                     (i.e. the "numerator").
-     * @return totalSize   The total size of the order that is either filled or
+     * @ return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
     function getOrderStatus(
@@ -564,9 +564,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Retrieve the current counter for a given offerer.
      *
-     * @param offerer The offerer in question.
+     * @ param offerer The offerer in question.
      *
-     * @return counter The current counter.
+     * @ return counter The current counter.
      */
     function getCounter(
         address offerer
@@ -578,9 +578,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Retrieve configuration information for this contract.
      *
-     * @return version           The contract version.
-     * @return domainSeparator   The domain separator for this contract.
-     * @return conduitController The conduit Controller set for this contract.
+     * @ return version           The contract version.
+     * @ return domainSeparator   The domain separator for this contract.
+     * @ return conduitController The conduit Controller set for this contract.
      */
     function information()
         external
@@ -599,9 +599,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @dev Gets the contract offerer nonce for the specified contract offerer.
      *
-     * @param contractOfferer The contract offerer for which to get the nonce.
+     * @ param contractOfferer The contract offerer for which to get the nonce.
      *
-     * @return nonce The contract offerer nonce.
+     * @ return nonce The contract offerer nonce.
      */
     function getContractOffererNonce(
         address contractOfferer
@@ -612,7 +612,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return contractName The name of this contract.
+     * @ return contractName The name of this contract.
      */
     function name()
         external
