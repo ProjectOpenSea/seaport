@@ -21,6 +21,20 @@ fs_permissions = [
     { access = "read", path = "./reference-out" },
 ]
 
+[profile.default.optimizer_details]
+peephole = true
+inliner = true
+jumpdestRemover = true
+orderLiterals = true
+deduplicate = true
+cse = true
+constantOptimizer = true
+
+[profile.default.optimizer_details.yulDetails]
+stackAllocation = true
+optimizerSteps = "dhfoDgvulfnTUtnIf[xa[r]EscLMcCTUtTOntnfDIulLculVcul [j]Tpeulxa[rul]xa[r]cLgvifCTUca[r]LSsTOtfDnca[r]Iulc]jmul[jul] VcTOcul jmul"
+
+
 [profile.reference]
 solc = '0.8.13'
 via_ir = false
