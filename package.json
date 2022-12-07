@@ -68,10 +68,12 @@
     "minimatch": ">=3.0.5"
   },
   "scripts": {
-    "build": "hardhat compile --config ./hardhat.config.ts",
+    "build": "yarn clean; hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
     "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
-    "clean": "hardhat clean; hardhat clean --config ./hardhat-reference.config.ts; forge clean; rm -rf {coverage,coverage.json}",
+    "build:nospec": "yarn clean; NO_SPECIALIZER=true hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
+    "clean": "hardhat clean; hardhat clean --config ./hardhat-reference.config.ts; forge clean; rm -rf {coverage,coverage.json}; rm -rf hh-cache hh-cache-ref;",
     "test": "hardhat test --config ./hardhat.config.ts",
+    "test:nospec": "NO_SPECIALIZER=true hardhat test --config ./hardhat.config.ts",
     "test:ref": "REFERENCE=true hardhat test --config ./hardhat-reference.config.ts",
     "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",

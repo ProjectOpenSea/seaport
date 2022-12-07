@@ -20,6 +20,25 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   }
 );
 
+const optimizerSettingsNoSpecializer = {
+  enabled: true,
+  runs: 20000,
+  details: {
+    peephole: true,
+    inliner: true,
+    jumpdestRemover: true,
+    orderLiterals: true,
+    deduplicate: true,
+    cse: true,
+    constantOptimizer: true,
+    yulDetails: {
+      stackAllocation: true,
+      optimizerSteps:
+        "dhfoDgvulfnTUtnIf[xa[r]EscLMcCTUtTOntnfDIulLculVcul [j]Tpeulxa[rul]xa[r]cLgvifCTUca[r]LSsTOtfDnca[r]Iulc]jmul[jul] VcTOcul jmul",
+    },
+  },
+};
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
@@ -31,8 +50,9 @@ const config: HardhatUserConfig = {
         settings: {
           viaIR: true,
           optimizer: {
-            enabled: true,
-            runs: 200,
+            ...(process.env.NO_SPECIALIZER
+              ? optimizerSettingsNoSpecializer
+              : { enabled: true, runs: 200 }),
           },
           metadata: {
             bytecodeHash: "none",
@@ -82,6 +102,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
+      allowUnlimitedContractSize: true,
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",
