@@ -591,7 +591,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                   successfully validated.
      */
     function _validate(
-        Order[] calldata orders
+        Order[] memory orders
     ) internal returns (bool validated) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
@@ -609,10 +609,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
-                Order calldata order = orders[i];
+                Order memory order = orders[i];
 
                 // Retrieve the order parameters.
-                OrderParameters calldata orderParameters = order.parameters;
+                OrderParameters memory orderParameters = order.parameters;
 
                 // Skip contract orders.
                 if (orderParameters.orderType == OrderType.CONTRACT) {
