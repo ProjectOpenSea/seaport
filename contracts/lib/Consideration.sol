@@ -167,9 +167,9 @@ contract Consideration is OrderCombiner {
             to_AdvancedOrder_ReturnType(abi_decode_AdvancedOrder)(
                 CalldataStart.pptr()
             ),
-            to_dyn_array_CriteriaResolver_ReturnType(abi_decode_dyn_array_CriteriaResolver)(
-                  CalldataStart.pptr(0x20)
-              ),
+            to_dyn_array_CriteriaResolver_ReturnType(
+                abi_decode_dyn_array_CriteriaResolver
+            )(CalldataStart.pptr(0x20)),
             fulfillerConduitKey,
             _substituteCallerForEmptyRecipient(recipient)
         );
@@ -333,9 +333,9 @@ contract Consideration is OrderCombiner {
                 to_dyn_array_AdvancedOrder_ReturnType(
                     abi_decode_dyn_array_AdvancedOrder
                 )(CalldataStart.pptr()),
-            to_dyn_array_CriteriaResolver_ReturnType(abi_decode_dyn_array_CriteriaResolver)(
-                  CalldataStart.pptr(0x20)
-              ),
+                to_dyn_array_CriteriaResolver_ReturnType(
+                    abi_decode_dyn_array_CriteriaResolver
+                )(CalldataStart.pptr(0x20)),
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
@@ -430,9 +430,9 @@ contract Consideration is OrderCombiner {
                 to_dyn_array_AdvancedOrder_ReturnType(
                     abi_decode_dyn_array_AdvancedOrder
                 )(CalldataStart.pptr()),
-                to_dyn_array_CriteriaResolver_ReturnType(abi_decode_dyn_array_CriteriaResolver)(
-                  CalldataStart.pptr(0x20)
-                ),
+                to_dyn_array_CriteriaResolver_ReturnType(
+                    abi_decode_dyn_array_CriteriaResolver
+                )(CalldataStart.pptr(0x20)),
                 fulfillments
             );
     }
