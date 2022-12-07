@@ -70,6 +70,7 @@
   "scripts": {
     "build": "hardhat compile --config ./hardhat.config.ts",
     "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
+    "clean": "hardhat clean; forge clean; rm -rf coverage; rm coverage.json; rm -rf hh-cache; rm -rf hh-cache-ref",
     "test": "hardhat test --config ./hardhat.config.ts",
     "test:ref": "REFERENCE=true hardhat test --config ./hardhat-reference.config.ts",
     "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
