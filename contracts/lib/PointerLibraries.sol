@@ -14,7 +14,7 @@ using ReturndataReaders for ReturndataPointer global;
 
 CalldataPointer constant CalldataStart = CalldataPointer.wrap(0x04);
 MemoryPointer constant FreeMemoryPPtr = MemoryPointer.wrap(0x40);
-uint256 constant IdentityPrecompile = 4;
+uint256 constant IdentityPrecompileAddress = 4;
 uint256 constant OffsetOrLengthMask = 0xffffffff;
 
 /// @dev Allocates `size` bytes in memory by increasing the free memory pointer
@@ -199,7 +199,7 @@ library MemoryPointerLib {
 
   function copy(MemoryPointer src, MemoryPointer dst, uint256 size) internal view {
     assembly {
-      let success := staticcall(gas(), IdentityPrecompile, src, size, dst, size)
+      let success := staticcall(gas(), IdentityPrecompileAddress, src, size, dst, size)
       if or(iszero(success), iszero(returndatasize())) {
         revert(0, 0)
       }
