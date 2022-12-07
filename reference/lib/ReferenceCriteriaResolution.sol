@@ -59,7 +59,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
 
             // Ensure that the order index is in range.
             if (orderIndex >= ordersToExecute.length) {
-                revert OrderCriteriaResolverOutOfRange();
+                revert OrderCriteriaResolverOutOfRange(criteriaResolver.side);
             }
 
             // Skip criteria resolution for order if not fulfilled.
@@ -170,7 +170,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 if (
                     _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
                 ) {
-                    revert UnresolvedOfferCriteria();
+                    revert UnresolvedOfferCriteria(i, j);
                 }
             }
 
@@ -185,7 +185,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                         orderToExecute.receivedItems[j].itemType
                     )
                 ) {
-                    revert UnresolvedConsiderationCriteria();
+                    revert UnresolvedConsiderationCriteria(i, j);
                 }
             }
         }
@@ -224,7 +224,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             uint256 orderIndex = criteriaResolver.orderIndex;
 
             if (orderIndex != 0) {
-                revert OrderCriteriaResolverOutOfRange();
+                revert OrderCriteriaResolverOutOfRange(criteriaResolver.side);
             }
 
             // Read component index from memory and place it on the stack.
@@ -317,7 +317,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     advancedOrder.parameters.consideration[i].itemType
                 )
             ) {
-                revert UnresolvedConsiderationCriteria();
+                revert UnresolvedConsiderationCriteria(0, i);
             }
         }
 
@@ -330,7 +330,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             if (
                 _isItemWithCriteria(advancedOrder.parameters.offer[i].itemType)
             ) {
-                revert UnresolvedOfferCriteria();
+                revert UnresolvedOfferCriteria(0, i);
             }
         }
     }

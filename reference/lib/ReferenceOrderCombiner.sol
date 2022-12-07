@@ -824,7 +824,8 @@ contract ReferenceOrderCombiner is
             Execution memory execution = _applyFulfillment(
                 ordersToExecute,
                 fulfillment.offerComponents,
-                fulfillment.considerationComponents
+                fulfillment.considerationComponents,
+                i
             );
 
             // If offerer and recipient on the execution are the same...

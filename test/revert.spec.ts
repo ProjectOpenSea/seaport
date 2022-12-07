@@ -2968,10 +2968,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "OrderCriteriaResolverOutOfRange"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "OrderCriteriaResolverOutOfRange"
+          )
+          .withArgs(0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -3216,10 +3218,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "UnresolvedOfferCriteria"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedOfferCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
