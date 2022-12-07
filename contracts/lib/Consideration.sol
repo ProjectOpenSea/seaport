@@ -157,14 +157,16 @@ contract Consideration is OrderCombiner {
      *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
-        AdvancedOrder calldata advancedOrder,
+        AdvancedOrder calldata /* advancedOrder */,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
     ) external payable returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            advancedOrder,
+            to_AdvancedOrder_ReturnType(abi_decode_AdvancedOrder)(
+                CalldataStart.pptr()
+            ),
             criteriaResolvers,
             fulfillerConduitKey,
             _substituteCallerForEmptyRecipient(recipient)
@@ -308,7 +310,7 @@ contract Consideration is OrderCombiner {
      *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
+        AdvancedOrder[] calldata /* advancedOrders */,
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
@@ -326,7 +328,9 @@ contract Consideration is OrderCombiner {
         // Fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                advancedOrders,
+                to_dyn_array_AdvancedOrder_ReturnType(
+                    abi_decode_dyn_array_AdvancedOrder
+                )(CalldataStart.pptr()),
                 criteriaResolvers,
                 offerFulfillments,
                 considerationFulfillments,
@@ -412,14 +416,16 @@ contract Consideration is OrderCombiner {
      *                    orders.
      */
     function matchAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
+        AdvancedOrder[] calldata /* advancedOrders */,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
-                advancedOrders,
+                to_dyn_array_AdvancedOrder_ReturnType(
+                    abi_decode_dyn_array_AdvancedOrder
+                )(CalldataStart.pptr()),
                 criteriaResolvers,
                 fulfillments
             );
