@@ -62,7 +62,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Ensure that the order index is in range.
                 if (orderIndex >= totalAdvancedOrders) {
-                    _revertOrderCriteriaResolverOutOfRange();
+                    _revertOrderCriteriaResolverOutOfRange(
+                        uint8(criteriaResolver.side)
+                    );
                 }
 
                 // Retrieve the referenced advanced order.
@@ -139,7 +141,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                             orderParameters.consideration[j].itemType
                         )
                     ) {
-                        _revertUnresolvedConsiderationCriteria();
+                        _revertUnresolvedConsiderationCriteria(i, j);
                     }
                 }
 
@@ -152,7 +154,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     if (
                         _isItemWithCriteria(orderParameters.offer[j].itemType)
                     ) {
-                        _revertUnresolvedOfferCriteria();
+                        _revertUnresolvedOfferCriteria(i, j);
                     }
                 }
             }

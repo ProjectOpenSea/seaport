@@ -888,7 +888,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 Execution memory execution = _applyFulfillment(
                     advancedOrders,
                     fulfillment.offerComponents,
-                    fulfillment.considerationComponents
+                    fulfillment.considerationComponents,
+                    i
                 );
 
                 // If offerer and recipient on the execution are the same...

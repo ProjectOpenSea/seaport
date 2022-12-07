@@ -2,6 +2,7 @@
 pragma solidity >=0.8.13;
 
 import "./ConsiderationConstants.sol";
+import { Side } from "./ConsiderationEnums.sol";
 
 /**
  * @dev Reverts the current transaction with a "BadFraction" error message.
@@ -242,12 +243,17 @@ function _revertInvalidContractOrder(bytes32 orderHash) pure {
 
 /**
  * @dev Reverts the current transaction with an "InvalidTime" error message.
+ *
+ * @param startTime       The time at which the order becomes active.
+ * @param endTime         The time at which the order becomes inactive.
  */
-function _revertInvalidTime() pure {
+function _revertInvalidTime(uint256 startTime, uint256 endTime) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, InvalidTime_error_selector)
-        // revert(abi.encodeWithSignature("InvalidTime()"))
+        mstore(InvalidTime_error_startTime_ptr, startTime)
+        mstore(InvalidTime_error_endTime_ptr, endTime)
+        // revert(abi.encodeWithSignature("InvalidTime(uint256,uint256)", startTime, endTime))
         revert(Error_selector_offset, InvalidTime_error_length)
     }
 }
@@ -255,15 +261,24 @@ function _revertInvalidTime() pure {
 /**
  * @dev Reverts execution with a
  *      "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
+ *
+ * @param fulfillmentIndex         The index of the fulfillment that caused the
+ *                                 error.
  */
-function _revertMismatchedFulfillmentOfferAndConsiderationComponents() pure {
+function _revertMismatchedFulfillmentOfferAndConsiderationComponents(
+    uint256 fulfillmentIndex
+) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(
             0,
             MismatchedFulfillmentOfferAndConsiderationComponents_error_selector
         )
-        // revert(abi.encodeWithSignature("MismatchedFulfillmentOfferAndConsiderationComponents()"))
+        mstore(
+            MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr,
+            fulfillmentIndex
+        )
+        // revert(abi.encodeWithSignature("MismatchedFulfillmentOfferAndConsiderationComponents(uint256)", fulfillmentIndex))
         revert(
             Error_selector_offset,
             MismatchedFulfillmentOfferAndConsiderationComponents_error_length
@@ -381,12 +396,16 @@ function _revertOrderAlreadyFilled(bytes32 orderHash) pure {
 /**
  * @dev Reverts execution with an "OrderCriteriaResolverOutOfRange" error
  *      message.
+ *
+ * @param side The side of the criteria that is missing (0 for offer, 1 for consideration).
+ *
  */
-function _revertOrderCriteriaResolverOutOfRange() pure {
+function _revertOrderCriteriaResolverOutOfRange(uint8 side) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, OrderCriteriaResolverOutOfRange_error_selector)
-        // revert(abi.encodeWithSignature("OrderCriteriaResolverOutOfRange()"))
+        mstore(OrderCriteriaResolverOutOfRange_error_side_ptr, side)
+        // revert(abi.encodeWithSignature("OrderCriteriaResolverOutOfRange(uint8)", side))
         revert(
             Error_selector_offset,
             OrderCriteriaResolverOutOfRange_error_length
@@ -444,11 +463,19 @@ function _revertPartialFillsNotEnabledForOrder() pure {
  * @dev Reverts execution with an "UnresolvedConsiderationCriteria" error message.
  */
 
-function _revertUnresolvedConsiderationCriteria() pure {
+function _revertUnresolvedConsiderationCriteria(
+    uint256 orderIndex,
+    uint256 considerationIndex
+) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, UnresolvedConsiderationCriteria_error_selector)
-        // revert(abi.encodeWithSignature("UnresolvedConsiderationCriteria()"))
+        mstore(UnresolvedConsiderationCriteria_error_orderIndex_ptr, orderIndex)
+        mstore(
+            UnresolvedConsiderationCriteria_error_considerationIndex_ptr,
+            considerationIndex
+        )
+        // revert(abi.encodeWithSignature("UnresolvedConsiderationCriteria(uint256, uint256)", orderIndex, considerationIndex))
         revert(
             Error_selector_offset,
             UnresolvedConsiderationCriteria_error_length
@@ -460,11 +487,16 @@ function _revertUnresolvedConsiderationCriteria() pure {
  * @dev Reverts execution with an "UnresolvedOfferCriteria" error message.
  */
 
-function _revertUnresolvedOfferCriteria() pure {
+function _revertUnresolvedOfferCriteria(
+    uint256 orderIndex,
+    uint256 offerIndex
+) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, UnresolvedOfferCriteria_error_selector)
-        // revert(abi.encodeWithSignature("UnresolvedOfferCriteria()"))
+        mstore(UnresolvedOfferCriteria_error_orderIndex_ptr, orderIndex)
+        mstore(UnresolvedOfferCriteria_error_offerIndex_ptr, offerIndex)
+        // revert(abi.encodeWithSignature("UnresolvedOfferCriteria(uint256, uint256)", orderIndex, offerIndex))
         revert(Error_selector_offset, UnresolvedOfferCriteria_error_length)
     }
 }

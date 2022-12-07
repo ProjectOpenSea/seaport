@@ -406,14 +406,16 @@ uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = 0x9
 uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
 
 /*
- *  error MismatchedFulfillmentOfferAndConsiderationComponents()
+ *  error MismatchedFulfillmentOfferAndConsiderationComponents(uint256 fulfillmentIndex)
  *    - Defined in FulfillmentApplicationErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: fulfillmentIndex
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0x09cfb455;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x04;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0xbced929d;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr = 0x20;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x24;
 
 /*
  *  error InvalidFulfillmentComponentData()
@@ -436,34 +438,44 @@ uint256 constant InexactFraction_error_selector = 0xc63cf089;
 uint256 constant InexactFraction_error_length = 0x04;
 
 /*
- *  error OrderCriteriaResolverOutOfRange()
+ *  error OrderCriteriaResolverOutOfRange(uint8 side)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: side
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant OrderCriteriaResolverOutOfRange_error_selector = 0x869586c4;
-uint256 constant OrderCriteriaResolverOutOfRange_error_length = 0x04;
+uint256 constant OrderCriteriaResolverOutOfRange_error_selector = 0x133c37c6;
+uint256 constant OrderCriteriaResolverOutOfRange_error_side_ptr = 0x20;
+uint256 constant OrderCriteriaResolverOutOfRange_error_length = 0x24;
 
 /*
- *  error UnresolvedOfferCriteria()
+ *  error UnresolvedOfferCriteria(uint256 orderIndex, uint256 offerIndex)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: orderIndex
+ *    - 0x40: offerIndex
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant UnresolvedOfferCriteria_error_selector = 0xa6cfc673;
-uint256 constant UnresolvedOfferCriteria_error_length = 0x04;
+uint256 constant UnresolvedOfferCriteria_error_selector = 0xd6929332;
+uint256 constant UnresolvedOfferCriteria_error_orderIndex_ptr = 0x20;
+uint256 constant UnresolvedOfferCriteria_error_offerIndex_ptr = 0x40;
+uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
 
 /*
- *  error UnresolvedConsiderationCriteria()
+ *  error UnresolvedConsiderationCriteria(uint256 orderIndex, uint256 considerationIndex)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: orderIndex
+ *    - 0x40: considerationIndex
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xff75a340;
-uint256 constant UnresolvedConsiderationCriteria_error_length = 0x04;
+uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xa8930e9a;
+uint256 constant UnresolvedConsiderationCriteria_error_orderIndex_ptr = 0x20;
+uint256 constant UnresolvedConsiderationCriteria_error_considerationIndex_ptr = 0x40;
+uint256 constant UnresolvedConsiderationCriteria_error_length = 0x44;
 
 /*
  *  error OfferCriteriaResolverOutOfRange()
@@ -664,14 +676,18 @@ uint256 constant OrderAlreadyFilled_error_orderHash_ptr = 0x20;
 uint256 constant OrderAlreadyFilled_error_length = 0x24;
 
 /*
- *  error InvalidTime()
+ *  error InvalidTime(uint256 startTime, uint256 endTime)
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: startTime
+ *    - 0x40: endTime
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant InvalidTime_error_selector = 0x6f7eac26;
-uint256 constant InvalidTime_error_length = 0x04;
+uint256 constant InvalidTime_error_selector = 0x21ccfeb7;
+uint256 constant InvalidTime_error_startTime_ptr = 0x20;
+uint256 constant InvalidTime_error_endTime_ptr = 0x40;
+uint256 constant InvalidTime_error_length = 0x44;
 
 /*
  *  error InvalidConduit(bytes32 conduitKey, address conduit)

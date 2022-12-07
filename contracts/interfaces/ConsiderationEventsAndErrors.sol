@@ -79,8 +79,11 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when attempting to fill an order outside the
      *      specified start time and end time.
+     *
+     * @param startTime       The time at which the order becomes active.
+     * @param endTime         The time at which the order becomes inactive.
      */
-    error InvalidTime();
+    error InvalidTime(uint256 startTime, uint256 endTime);
 
     /**
      * @dev Revert with an error when attempting to fill an order referencing an

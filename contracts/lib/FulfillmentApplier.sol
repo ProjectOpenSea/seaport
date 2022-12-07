@@ -40,13 +40,15 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
+     * @param fulfillmentIndex        The index of the fulfillment being applied.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
+        FulfillmentComponent[] calldata considerationComponents,
+        uint256 fulfillmentIndex
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
@@ -83,7 +85,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             execution.item.token != considerationItem.token ||
             execution.item.identifier != considerationItem.identifier
         ) {
-            _revertMismatchedFulfillmentOfferAndConsiderationComponents();
+            _revertMismatchedFulfillmentOfferAndConsiderationComponents(
+                fulfillmentIndex
+            );
         }
 
         // If total consideration amount exceeds the offer amount...

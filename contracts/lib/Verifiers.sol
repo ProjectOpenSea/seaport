@@ -51,7 +51,7 @@ contract Verifiers is Assertions, SignatureVerification {
 
         // Only revert on invalid if revertOnInvalid has been supplied as true.
         if (revertOnInvalid && !valid) {
-            _revertInvalidTime();
+            _revertInvalidTime(startTime, endTime);
         }
     }
 
