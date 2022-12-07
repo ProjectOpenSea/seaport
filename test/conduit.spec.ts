@@ -762,10 +762,12 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
             },
           ]
         )
-      ).to.be.revertedWithCustomError(
-        tempConduit,
-        "ERC1155BatchTransferGenericFailure"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempConduit,
+          "ERC1155BatchTransferGenericFailure"
+        )
+        .withArgs(receiver.address, seller.address, receiver.address, [1], [1]);
     });
   }
 
@@ -1348,7 +1350,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .createConduit(conduitKeyOne, owner.address)
-    ).to.be.revertedWithCustomError(conduitController, "ConduitAlreadyExists");
+    )
+      .to.be.revertedWithCustomError(conduitController, "ConduitAlreadyExists")
+      .withArgs(conduitOne.address);
   });
 
   it("Reverts when attempting to update a channel for an unowned conduit", async () => {
@@ -1356,7 +1360,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(buyer)
         .updateChannel(conduitOne.address, buyer.address, true)
-    ).to.be.revertedWithCustomError(conduitController, "CallerIsNotOwner");
+    )
+      .to.be.revertedWithCustomError(conduitController, "CallerIsNotOwner")
+      .withArgs(conduitOne.address);
   });
 
   it("Retrieves no initial potential owner for new conduit", async () => {

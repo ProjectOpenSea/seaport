@@ -376,7 +376,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             transfersWithRecipients,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit")
+        .withArgs(ethers.constants.HashZero, ethers.constants.AddressZero);
     });
 
     it("Cannot execute ERC721 transfers to a contract recipient without a conduit", async () => {
@@ -425,7 +427,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             transfersWithRecipients,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit")
+        .withArgs(ethers.constants.HashZero, ethers.constants.AddressZero);
     });
 
     it("Reverts on native token transfers", async () => {
@@ -550,10 +554,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721Transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ERC721ReceiverErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ERC721ReceiverErrorRevertBytes"
+        )
+        .withArgs("0x", tempERC721Contract.address, sender.address, 1);
     });
 
     it("Reverts on invalid function selector", async () => {
@@ -588,10 +594,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721Transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721Recipient"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721Recipient"
+        )
+        .withArgs(invalidRecipient.address);
     });
 
     it("Reverts on nonexistent conduit", async () => {
@@ -690,10 +698,17 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ERC721ReceiverErrorRevertString"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ERC721ReceiverErrorRevertString"
+        )
+        .withArgs(
+          "ERC721ReceiverMock: reverting",
+          mockERC721Receiver.address,
+          sender.address,
+          1
+        );
     });
 
     it("Reverts on error in ERC721 receiver via conduit", async () => {
@@ -747,10 +762,17 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ERC721ReceiverErrorRevertString"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ERC721ReceiverErrorRevertString"
+        )
+        .withArgs(
+          "ERC721ReceiverMock: reverting",
+          mockERC721Receiver.address,
+          sender.address,
+          1
+        );
     });
 
     it("Reverts with custom error in conduit", async () => {
@@ -843,10 +865,16 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ConduitErrorRevertString"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ConduitErrorRevertString"
+        )
+        .withArgs(
+          "WRONG_FROM",
+          tempConduitKey.toLowerCase(),
+          tempConduit.address
+        );
     });
 
     it("Reverts when no revert string is returned from call to conduit", async () => {
@@ -920,10 +948,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ConduitErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ConduitErrorRevertBytes"
+        )
+        .withArgs("0x", mockConduitKey.toLowerCase(), mockConduitAddress);
     });
 
     it("Reverts with bubbled up panic error from call to conduit", async () => {
@@ -954,15 +984,23 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const panicError =
+        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
       if (!process.env.REFERENCE) {
         await expect(
           tempTransferHelper
             .connect(sender)
             .bulkTransfer(transfers, tempConduitKey)
-        ).to.be.revertedWithCustomError(
-          tempTransferHelper,
-          "ConduitErrorRevertBytes"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            tempTransferHelper,
+            "ConduitErrorRevertBytes"
+          )
+          .withArgs(
+            panicError,
+            tempConduitKey.toLowerCase(),
+            tempConduit.address
+          );
       } else {
         await expect(
           tempTransferHelper
@@ -1029,7 +1067,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(mockTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(mockTransferHelper, "InvalidConduit")
+        .withArgs(mockConduitKey.toLowerCase(), mockConduitAddress);
     });
 
     it("Reverts with conduit revert data", async () => {
@@ -1084,14 +1124,22 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const customErrorSelector = ethers.utils.id("CustomError()").slice(0, 10);
+
       await expect(
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(
-        mockTransferHelper,
-        "ConduitErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          mockTransferHelper,
+          "ConduitErrorRevertBytes"
+        )
+        .withArgs(
+          customErrorSelector,
+          mockConduitKey.toLowerCase(),
+          mockConduitAddress
+        );
     });
 
     it("Reverts when recipient is the null address (with conduit)", async () => {
@@ -1416,7 +1464,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             transfersWithRecipientsNoConduit,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit")
+        .withArgs(ethers.constants.HashZero, ethers.constants.AddressZero);
     });
 
     it("Cannot execute ERC721 transfers to multiple contract recipients without a conduit", async () => {
@@ -1500,7 +1550,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             transfersWithRecipients,
             ethers.utils.formatBytes32String("")
           )
-      ).to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(tempTransferHelper, "InvalidConduit")
+        .withArgs(ethers.constants.HashZero, ethers.constants.AddressZero);
     });
 
     it("Reverts on native token transfers", async () => {
@@ -1687,10 +1739,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ERC721ReceiverErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ERC721ReceiverErrorRevertBytes"
+        )
+        .withArgs("0x", tempERC721Contract.address, sender.address, 1);
     });
 
     it("Reverts on invalid function selector", async () => {
@@ -1733,10 +1787,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721Recipient"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721Recipient"
+        )
+        .withArgs(invalidRecipient.address);
     });
 
     it("Reverts on nonexistent conduit", async () => {
@@ -1888,10 +1944,17 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ERC721ReceiverErrorRevertString"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ERC721ReceiverErrorRevertString"
+        )
+        .withArgs(
+          "ERC721ReceiverMock: reverting",
+          mockERC721ReceiverOne.address,
+          sender.address,
+          1
+        );
     });
 
     it("Reverts with custom error in conduit", async () => {
@@ -2020,10 +2083,16 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(transferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ConduitErrorRevertString"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ConduitErrorRevertString"
+        )
+        .withArgs(
+          "WRONG_FROM",
+          tempConduitKey.toLowerCase(),
+          tempConduit.address
+        );
     });
 
     it("Reverts when no revert string is returned from call to conduit", async () => {
@@ -2127,10 +2196,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "ConduitErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "ConduitErrorRevertBytes"
+        )
+        .withArgs("0x", mockConduitKey.toLowerCase(), mockConduitAddress);
     });
 
     it("Reverts with bubbled up panic error from call to conduit", async () => {
@@ -2179,15 +2250,24 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const panicError =
+        "0x4e487b710000000000000000000000000000000000000000000000000000000000000012";
+
       if (!process.env.REFERENCE) {
         await expect(
           tempTransferHelper
             .connect(sender)
             .bulkTransfer(transfers, tempConduitKey)
-        ).to.be.revertedWithCustomError(
-          tempTransferHelper,
-          "ConduitErrorRevertBytes"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            tempTransferHelper,
+            "ConduitErrorRevertBytes"
+          )
+          .withArgs(
+            panicError,
+            tempConduitKey.toLowerCase(),
+            tempConduit.address
+          );
       } else {
         await expect(
           tempTransferHelper
@@ -2272,7 +2352,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(mockTransferHelper, "InvalidConduit");
+      )
+        .to.be.revertedWithCustomError(mockTransferHelper, "InvalidConduit")
+        .withArgs(mockConduitKey.toLowerCase(), mockConduitAddress);
     });
 
     it("Reverts with conduit revert data", async () => {
@@ -2363,14 +2445,22 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         },
       ];
 
+      const customErrorSelector = ethers.utils.id("CustomError()").slice(0, 10);
+
       await expect(
         mockTransferHelper
           .connect(sender)
           .bulkTransfer(transfers, mockConduitKey)
-      ).to.be.revertedWithCustomError(
-        mockTransferHelper,
-        "ConduitErrorRevertBytes"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          mockTransferHelper,
+          "ConduitErrorRevertBytes"
+        )
+        .withArgs(
+          customErrorSelector,
+          mockConduitKey.toLowerCase(),
+          mockConduitAddress
+        );
     });
 
     it("Reverts when recipient is the null address (with conduit)", async () => {
