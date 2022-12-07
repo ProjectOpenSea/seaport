@@ -84,6 +84,8 @@ contract ReferenceVerifiers is
             return;
         }
 
+        // If the signature length is 64 or 65 bytes, compute the bulk order
+        // proof.
         if (_isValidBulkOrderSize(signature)) {
             (orderHash, signature) = _computeBulkOrderProof(
                 signature,
@@ -118,6 +120,7 @@ contract ReferenceVerifiers is
      * @param leaf               The leaf of the bulk order tree.
      *
      * @return bulkOrderHash     The bulk order hash.
+     * @return signature         The signature of the bulk order.
      */
     function _computeBulkOrderProof(
         bytes memory proofAndSignature,
@@ -125,24 +128,43 @@ contract ReferenceVerifiers is
     ) internal view returns (bytes32 bulkOrderHash, bytes memory signature) {
         bytes32 root = leaf;
 
+        // Compute the length of the signature by subtracting the length of the
+        // proof elements.
         uint256 length = proofAndSignature.length - 225;
 
+        // Create a new array of bytes equal to the length of the signature.
         signature = new bytes(length);
+
+        // Iterate over each byte in the signature.
         for (uint256 i = 0; i < length; ++i) {
+            // Assign the byte from the proofAndSignature to the signature.
             signature[i] = proofAndSignature[i];
         }
 
+        // Compute the key by extracting the final byte from the
+        // proofAndSignature.
         uint256 key = uint256(uint8(bytes1(proofAndSignature[length])));
 
+        // Create an array of bytes32 to hold the proof elements.
         bytes32[] memory proofElements = new bytes32[](7);
+
+        
+        // Iterate over each proof element.
         for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
+            // Compute the starting index for the current proof element.
             uint256 start = (length + 1) + (elementIndex * 32);
 
+            // Create a new array of bytes to hold the current proof element.
             bytes memory buffer = new bytes(32);
+
+            // Iterate over each byte in the proof element.
             for (uint256 i = 0; i < 32; ++i) {
+                // Assign the byte from the proofAndSignature to the buffer.
                 buffer[i] = proofAndSignature[start + i];
             }
 
+            // Decode the current proof element from the buffer and assign it to
+            // the proofElements array.
             proofElements[elementIndex] = abi.decode(buffer, (bytes32));
         }
 
@@ -151,15 +173,24 @@ contract ReferenceVerifiers is
             // Retrieve the proof element.
             bytes32 proofElement = proofElements[i];
 
+            // Check if the current bit of the key is set.
             if ((key >> i) % 2 == 0) {
+                // If the current bit is not set, then concatenate the root and
+                // the proof element, and compute the keccak256 hash of the
+                // concatenation to assign it to the root.
                 root = keccak256(abi.encodePacked(root, proofElement));
             } else {
+                // If the current bit is set, then concatenate the proof element
+                // and the root, and compute the keccak256 hash of the
+                // concatenation to assign it to the root.
                 root = keccak256(abi.encodePacked(proofElement, root));
             }
         }
 
+        // Compute the bulk order hash and return it.
         bulkOrderHash = keccak256(abi.encodePacked(_BULK_ORDER_TYPEHASH, root));
 
+        // Return the signature.
         proofAndSignature = signature;
     }
 

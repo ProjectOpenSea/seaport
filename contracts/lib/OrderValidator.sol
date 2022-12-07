@@ -128,13 +128,18 @@ contract OrderValidator is Executor, ZoneInteraction {
             return (bytes32(0), 0, 0);
         }
 
-        if (orderParameters.orderType == OrderType.CONTRACT) {
-            return
-                _getGeneratedOrder(
-                    orderParameters,
-                    advancedOrder.extraData,
-                    revertOnInvalid
-                );
+        // If the order is a contract order, return the generated order.
+        if (
+            orderParameters.orderType == OrderType.CONTRACT
+        ) {
+            // Return the generated order based on the order params and the 
+            // provided extra data. If revertOnInvalid is true, the function
+            // will revert if the input is invalid.
+            return _getGeneratedOrder(
+                orderParameters,
+                advancedOrder.extraData,
+                revertOnInvalid
+            );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -369,7 +374,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 orderParameters.offer = extendedOffer;
             }
 
-            // Loop through offer and ensure at least as much on returned offer
+            // Loop through each offer and ensure at least as much on returned
+            // offer.
             for (uint256 i = 0; i < originalOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
@@ -383,7 +389,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 );
             }
 
-            // add new offer items if there are more than original
+            // Add new offer items if there are more than original.
             for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
