@@ -6,7 +6,8 @@ import {
     FulfillmentComponent,
     Execution,
     Fulfillment,
-    OrderComponents
+    OrderComponents,
+    OrderParameters
 } from "./ConsiderationStructs.sol";
 import "./PointerLibraries.sol";
 
@@ -17,24 +18,33 @@ uint256 constant AdditionalRecipient_mem_tail_size = 0x40;
 uint256 constant BasicOrderParameters_signature_offset = 0x0220;
 uint256 constant AlmostTwoWords = 0x3f;
 uint256 constant OnlyFullWordMask = 0xffffe0;
-uint256 constant Order_head_size = 0x40;
+
 uint256 constant OrderParameters_head_size = 0x0160;
 uint256 constant OrderParameters_offer_offset = 0x40;
-uint256 constant OfferItem_mem_tail_size = 0xa0;
 uint256 constant OrderParameters_consideration_offset = 0x60;
+uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = 0x0140;
+
+uint256 constant OfferItem_mem_tail_size = 0xa0;
+
 uint256 constant ConsiderationItem_mem_tail_size = 0xc0;
+
 uint256 constant Order_signature_offset = 0x20;
+uint256 constant Order_head_size = 0x40;
+
 uint256 constant AdvancedOrder_head_size = 0xa0;
 uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
 uint256 constant AdvancedOrder_signature_offset = 0x60;
 uint256 constant AdvancedOrder_extraData_offset = 0x80;
+
 uint256 constant CriteriaResolver_head_size = 0xa0;
 uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
 uint256 constant CriteriaResolver_criteriaProof_offset = 0x80;
+
 uint256 constant FulfillmentComponent_mem_tail_size = 0x40;
 uint256 constant Fulfillment_head_size = 0x40;
 uint256 constant Fulfillment_considerationComponents_offset = 0x20;
+
 uint256 constant OrderComponents_head_size = 0x0160;
 uint256 constant OrderComponents_offer_offset = 0x40;
 uint256 constant OrderComponents_consideration_offset = 0x60;
@@ -406,7 +416,7 @@ function abi_decode_OrderComponents_as_OrderParameters(
     );
     mPtr.offset(OrderParameters_consideration_offset).write(consideration);
     // Write totalOriginalConsiderationItems
-    mPtr.offset(OrderComponents_OrderParameters_common_head_size).write(
+    mPtr.offset(OrderParameters_totalOriginalConsiderationItems_offset).write(
         consideration.read()
     );
 }
@@ -445,7 +455,10 @@ function to_OrderParameters_ReturnType(
 )
     pure
     returns (
-        function(CalldataPointer) internal pure returns (Order memory) outFn
+        function(CalldataPointer)
+            internal
+            pure
+            returns (OrderParameters memory) outFn
     )
 {
     assembly {
