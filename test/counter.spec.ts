@@ -1464,9 +1464,17 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       );
       await tx.wait();
 
-      await expect(
-        marketplaceContract.connect(seller).incrementCounter()
-      ).to.be.revertedWithCustomError(marketplaceContract, "NoReentrantCalls");
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract.connect(seller).incrementCounter()
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        await expect(marketplaceContract.connect(seller).incrementCounter()).to
+          .be.reverted;
+      }
     });
   });
 });
