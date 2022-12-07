@@ -20,6 +20,8 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
+import "./ConsiderationDecoder.sol";
+
 /**
  * @title Consideration
  * @author 0age
@@ -453,10 +455,10 @@ contract Consideration is OrderCombiner {
      *                   been successfully validated.
      */
     function validate(
-        Order[] calldata orders
+        Order[] calldata
     ) external  returns (bool validated) {
-        // Validate the orders.
-        validated = _validate(orders);
+      Order[] memory orders = to_dyn_array_Order_ReturnType(abi_decode_dyn_array_Order)(CalldataStart.pptr());
+      validated = _validate(orders);
     }
 
     /**
