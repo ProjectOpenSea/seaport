@@ -33,7 +33,7 @@ import { OrderCombiner } from "./OrderCombiner.sol";
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract Consideration is ConsiderationInterface, OrderCombiner {
+contract Consideration is OrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -72,7 +72,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function fulfillBasicOrder(
         BasicOrderParameters calldata parameters
-    ) external payable override returns (bool fulfilled) {
+    ) external payable  returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -102,7 +102,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function fulfillOrder(
         Order calldata order,
         bytes32 fulfillerConduitKey
-    ) external payable override returns (bool fulfilled) {
+    ) external payable  returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
@@ -157,7 +157,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
-    ) external payable override returns (bool fulfilled) {
+    ) external payable  returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -219,7 +219,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     )
         external
         payable
-        override
+        
         returns (
             bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
@@ -313,7 +313,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     )
         external
         payable
-        override
+        
         returns (
             bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
@@ -359,7 +359,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory /* executions */) {
+    ) external payable  returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -409,7 +409,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory /* executions */) {
+    ) external payable  returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
@@ -432,7 +432,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function cancel(
         OrderComponents[] calldata orders
-    ) external override returns (bool cancelled) {
+    ) external  returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -454,7 +454,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function validate(
         Order[] calldata orders
-    ) external override returns (bool validated) {
+    ) external  returns (bool validated) {
         // Validate the orders.
         validated = _validate(orders);
     }
@@ -466,7 +466,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return newCounter The new counter.
      */
-    function incrementCounter() external override returns (uint256 newCounter) {
+    function incrementCounter() external  returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.
         newCounter = _incrementCounter();
     }
@@ -480,7 +480,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function getOrderHash(
         OrderComponents calldata order
-    ) external view override returns (bytes32 orderHash) {
+    ) external view  returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             OrderParameters(
@@ -522,7 +522,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     )
         external
         view
-        override
+        
         returns (
             bool isValidated,
             bool isCancelled,
@@ -543,7 +543,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function getCounter(
         address offerer
-    ) external view override returns (uint256 counter) {
+    ) external view  returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -558,7 +558,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function information()
         external
         view
-        override
+        
         returns (
             string memory version,
             bytes32 domainSeparator,
@@ -578,7 +578,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      */
     function getContractOffererNonce(
         address contractOfferer
-    ) external view override returns (uint256 nonce) {
+    ) external view  returns (uint256 nonce) {
         nonce = _contractNonces[contractOfferer];
     }
 
@@ -590,7 +590,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function name()
         external
         pure
-        override
+        
         returns (string memory /* contractName */)
     {
         // Return the name of the contract.
