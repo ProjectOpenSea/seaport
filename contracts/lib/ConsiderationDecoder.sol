@@ -14,8 +14,10 @@ import "./PointerLibraries.sol";
 uint256 constant BasicOrderParameters_head_size = 0x0240;
 uint256 constant BasicOrderParameters_fixed_segment_0 = 0x0200;
 uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
-uint256 constant AdditionalRecipient_mem_tail_size = 0x40;
 uint256 constant BasicOrderParameters_signature_offset = 0x0220;
+
+uint256 constant AdditionalRecipient_mem_tail_size = 0x40;
+
 uint256 constant AlmostTwoWords = 0x3f;
 uint256 constant OnlyFullWordMask = 0xffffe0;
 
@@ -34,6 +36,7 @@ uint256 constant Order_head_size = 0x40;
 uint256 constant AdvancedOrder_head_size = 0xa0;
 uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
+uint256 constant AdvancedOrder_denominator_offset = 0x40;
 uint256 constant AdvancedOrder_signature_offset = 0x60;
 uint256 constant AdvancedOrder_extraData_offset = 0x80;
 
@@ -49,6 +52,7 @@ uint256 constant OrderComponents_head_size = 0x0160;
 uint256 constant OrderComponents_offer_offset = 0x40;
 uint256 constant OrderComponents_consideration_offset = 0x60;
 uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
+uint256 constant OrderParameters_counter_offset = 0x0140;
 
 function abi_decode_dyn_array_AdditionalRecipient(
     CalldataPointer cdPtrLength
@@ -169,10 +173,10 @@ function abi_decode_dyn_array_ConsiderationItem(
     }
 }
 
-function abi_decode_OrderParameters(
-    CalldataPointer cdPtr
-) pure returns (MemoryPointer mPtr) {
-    mPtr = malloc(OrderParameters_head_size);
+function abi_decode_OrderParameters_to(
+    CalldataPointer cdPtr,
+    MemoryPointer mPtr
+) pure {
     cdPtr.copy(mPtr, OrderParameters_head_size);
     mPtr.offset(OrderParameters_offer_offset).write(
         abi_decode_dyn_array_OfferItem(cdPtr.pptr(OrderParameters_offer_offset))
@@ -182,6 +186,13 @@ function abi_decode_OrderParameters(
             cdPtr.pptr(OrderParameters_consideration_offset)
         )
     );
+}
+
+function abi_decode_OrderParameters(
+    CalldataPointer cdPtr
+) pure returns (MemoryPointer mPtr) {
+    mPtr = malloc(OrderParameters_head_size);
+    abi_decode_OrderParameters_to(cdPtr, mPtr);
 }
 
 function abi_decode_Order(
@@ -197,18 +208,79 @@ function abi_decode_Order(
 function abi_decode_AdvancedOrder(
     CalldataPointer cdPtr
 ) pure returns (MemoryPointer mPtr) {
-    mPtr = malloc(AdvancedOrder_head_size);
+    // Allocate memory for AdvancedOrder head and OrderParameters head
+    mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
+
+    // Copy order numerator and denominator
     cdPtr.offset(AdvancedOrder_numerator_offset).copy(
         mPtr.offset(AdvancedOrder_numerator_offset),
         AdvancedOrder_fixed_segment_0
     );
-    mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
+
+
+    // Get pointer to memory immediately after advanced order
+    MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
+    // Write pptr for advanced order parameters 
+    mPtr.write(mPtrParameters);
+    // Copy order parameters to allocated region
+    abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
+
+    // mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
     mPtr.offset(AdvancedOrder_signature_offset).write(
         abi_decode_bytes(cdPtr.pptr(AdvancedOrder_signature_offset))
     );
     mPtr.offset(AdvancedOrder_extraData_offset).write(
         abi_decode_bytes(cdPtr.pptr(AdvancedOrder_extraData_offset))
     );
+}
+
+function getEmptyBytesOrArray() pure returns (MemoryPointer mPtr) {
+    mPtr = malloc(32);
+    mPtr.write(0);
+}
+
+function abi_decode_Order_as_AdvancedOrder(
+    CalldataPointer cdPtr
+) pure returns (MemoryPointer mPtr) {
+    // Allocate memory for AdvancedOrder head and OrderParameters head
+    mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
+
+    // Get pointer to memory immediately after advanced order
+    MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
+    // Write pptr for advanced order parameters 
+    mPtr.write(mPtrParameters);
+    // Copy order parameters to allocated region
+    abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
+
+
+    mPtr.offset(AdvancedOrder_numerator_offset).write(1);
+    mPtr.offset(AdvancedOrder_denominator_offset).write(1);
+
+    // Copy order signature to advanced order signature
+    mPtr.offset(AdvancedOrder_signature_offset).write(
+        abi_decode_bytes(cdPtr.pptr(Order_signature_offset))
+    );
+
+    // Set empty bytes for advanced order extraData
+    mPtr.offset(AdvancedOrder_extraData_offset).write(getEmptyBytesOrArray());
+}
+
+function abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder(
+    CalldataPointer cdPtrLength
+) pure returns (MemoryPointer mPtrLength) {
+    unchecked {
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+        uint256 tailOffset = arrLength * 32;
+        mPtrLength = malloc(tailOffset + 32);
+        mPtrLength.write(arrLength);
+        MemoryPointer mPtrHead = mPtrLength.next();
+        CalldataPointer cdPtrHead = cdPtrLength.next();
+        for (uint256 offset; offset < tailOffset; offset += 32) {
+            mPtrHead.offset(offset).write(
+                abi_decode_Order_as_AdvancedOrder(cdPtrHead.pptr(offset))
+            );
+        }
+    }
 }
 
 function abi_decode_dyn_array_bytes32(
