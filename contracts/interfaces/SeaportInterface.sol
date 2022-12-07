@@ -16,7 +16,7 @@ import {
 /**
  * @title SeaportInterface
  * @author 0age
- * @custom:version 1.1
+ * @custom:version 1.2
  * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
  *         minimizes external calls to the greatest extent possible and provides
  *         lightweight methods for common routes as well as more flexible
@@ -40,10 +40,9 @@ interface SeaportInterface {
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
-    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
-        external
-        payable
-        returns (bool fulfilled);
+    function fulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool fulfilled);
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
@@ -67,10 +66,10 @@ interface SeaportInterface {
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
-    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
-        external
-        payable
-        returns (bool fulfilled);
+    function fulfillOrder(
+        Order calldata order,
+        bytes32 fulfillerConduitKey
+    ) external payable returns (bool fulfilled);
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -331,9 +330,9 @@ interface SeaportInterface {
      * @return cancelled A boolean indicating whether the supplied orders have
      *                   been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders)
-        external
-        returns (bool cancelled);
+    function cancel(
+        OrderComponents[] calldata orders
+    ) external returns (bool cancelled);
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering their
@@ -350,9 +349,9 @@ interface SeaportInterface {
      * @return validated A boolean indicating whether the supplied orders have
      *                   been successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        returns (bool validated);
+    function validate(
+        Order[] calldata orders
+    ) external returns (bool validated);
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
@@ -370,10 +369,9 @@ interface SeaportInterface {
      *
      * @return orderHash The order hash.
      */
-    function getOrderHash(OrderComponents calldata order)
-        external
-        view
-        returns (bytes32 orderHash);
+    function getOrderHash(
+        OrderComponents calldata order
+    ) external view returns (bytes32 orderHash);
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -392,7 +390,9 @@ interface SeaportInterface {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(bytes32 orderHash)
+    function getOrderStatus(
+        bytes32 orderHash
+    )
         external
         view
         returns (
@@ -409,10 +409,9 @@ interface SeaportInterface {
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer)
-        external
-        view
-        returns (uint256 counter);
+    function getCounter(
+        address offerer
+    ) external view returns (uint256 counter);
 
     /**
      * @notice Retrieve configuration information for this contract.
@@ -430,10 +429,9 @@ interface SeaportInterface {
             address conduitController
         );
 
-    function getContractOffererNonce(address contractOfferer)
-        external
-        view
-        returns (uint256 nonce);
+    function getContractOffererNonce(
+        address contractOfferer
+    ) external view returns (uint256 nonce);
 
     /**
      * @notice Retrieve the name of this contract.

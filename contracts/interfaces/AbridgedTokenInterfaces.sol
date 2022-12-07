@@ -2,21 +2,13 @@
 pragma solidity ^0.8.7;
 
 interface ERC20Interface {
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) external returns (bool);
+    function transferFrom(address, address, uint256) external returns (bool);
 
     function approve(address, uint256) external returns (bool);
 }
 
 interface ERC721Interface {
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) external;
+    function transferFrom(address, address, uint256) external;
 
     function setApprovalForAll(address, bool) external;
 

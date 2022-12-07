@@ -25,10 +25,9 @@ import { OrderCombiner } from "./OrderCombiner.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1.1
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
- *         It minimizes external calls to the greatest extent possible and
- *         provides lightweight methods for common routes as well as more
+ * @custom:version 1.2
+ * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace
+ *         that provides lightweight methods for common routes as well as more
  *         flexible methods for composing advanced orders or groups of orders.
  *         Each order contains an arbitrary number of items that may be spent
  *         (the "offer") along with an arbitrary number of items that must be
@@ -71,12 +70,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
-    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
-        external
-        payable
-        override
-        returns (bool fulfilled)
-    {
+    function fulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -103,12 +99,10 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
-    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
-        external
-        payable
-        override
-        returns (bool fulfilled)
-    {
+    function fulfillOrder(
+        Order calldata order,
+        bytes32 fulfillerConduitKey
+    ) external payable override returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
@@ -227,7 +221,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         payable
         override
         returns (
-            bool[] memory, /* availableOrders */
+            bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
         )
     {
@@ -321,7 +315,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         payable
         override
         returns (
-            bool[] memory, /* availableOrders */
+            bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
         )
     {
@@ -365,14 +359,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory /* executions */
-        )
-    {
+    ) external payable override returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -422,14 +409,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory /* executions */
-        )
-    {
+    ) external payable override returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
@@ -450,11 +430,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return cancelled A boolean indicating whether the supplied orders have
      *                   been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders)
-        external
-        override
-        returns (bool cancelled)
-    {
+    function cancel(
+        OrderComponents[] calldata orders
+    ) external override returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -474,11 +452,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return validated A boolean indicating whether the supplied orders have
      *                   been successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        override
-        returns (bool validated)
-    {
+    function validate(
+        Order[] calldata orders
+    ) external override returns (bool validated) {
         // Validate the orders.
         validated = _validate(orders);
     }
@@ -502,12 +478,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return orderHash The order hash.
      */
-    function getOrderHash(OrderComponents calldata order)
-        external
-        view
-        override
-        returns (bytes32 orderHash)
-    {
+    function getOrderHash(
+        OrderComponents calldata order
+    ) external view override returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             OrderParameters(
@@ -544,7 +517,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(bytes32 orderHash)
+    function getOrderStatus(
+        bytes32 orderHash
+    )
         external
         view
         override
@@ -566,12 +541,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer)
-        external
-        view
-        override
-        returns (uint256 counter)
-    {
+    function getCounter(
+        address offerer
+    ) external view override returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -598,18 +570,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     }
 
     /**
-    * @dev Gets the contract offerer nonce for the specified contract offerer.
-    *
-    * @param contractOfferer The contract offerer for which to get the nonce.
-    * 
-    * @return nonce The contract offerer nonce.
-    */
-    function getContractOffererNonce(address contractOfferer)
-        external
-        view
-        override
-        returns (uint256 nonce)
-    {
+     * @dev Gets the contract offerer nonce for the specified contract offerer.
+     *
+     * @param contractOfferer The contract offerer for which to get the nonce.
+     *
+     * @return nonce The contract offerer nonce.
+     */
+    function getContractOffererNonce(
+        address contractOfferer
+    ) external view override returns (uint256 nonce) {
         nonce = _contractNonces[contractOfferer];
     }
 
@@ -622,9 +591,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         pure
         override
-        returns (
-            string memory /* contractName */
-        )
+        returns (string memory /* contractName */)
     {
         // Return the name of the contract.
         return _name();

@@ -43,9 +43,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceVerifiers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceVerifiers(conduitController) {}
 
     /**
      * @dev Internal function to transfer a given item.
@@ -327,9 +327,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param accumulatorStruct A struct containing conduit transfer data
      *                          and its corresponding conduitKey.
      */
-    function _triggerIfArmed(AccumulatorStruct memory accumulatorStruct)
-        internal
-    {
+    function _triggerIfArmed(
+        AccumulatorStruct memory accumulatorStruct
+    ) internal {
         // Exit if the accumulator is not "armed".
         if (accumulatorStruct.transfers.length == 0) {
             return;
@@ -444,11 +444,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @return conduit   The address of the conduit associated with the given
      *                   conduit key.
      */
-    function _getConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _getConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Derive the address of the conduit using the conduit key.
         conduit = _deriveConduit(conduitKey);
 

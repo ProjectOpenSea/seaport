@@ -32,9 +32,9 @@ contract Assertions is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        GettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) GettersAndDerivers(conduitController) {}
 
     /**
      * @dev Internal view function to ensure that the supplied consideration

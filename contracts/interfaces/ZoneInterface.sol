@@ -10,7 +10,7 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 interface ZoneInterface {
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        returns (bytes4 validOrderMagicValue);
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external returns (bytes4 validOrderMagicValue);
 }

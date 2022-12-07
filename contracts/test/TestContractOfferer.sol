@@ -49,10 +49,10 @@ contract TestContractOfferer is ContractOffererInterface {
 
     receive() external payable {}
 
-    function activate(SpentItem memory available, SpentItem memory required)
-        public
-        payable
-    {
+    function activate(
+        SpentItem memory available,
+        SpentItem memory required
+    ) public payable {
         if (ready || fulfilled) {
             revert OrderUnavailable();
         }
@@ -212,19 +212,17 @@ contract TestContractOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
     )
         external
         pure
         virtual
         override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
+        returns (bytes4 /* ratifyOrderMagicValue */)
     {
         return ContractOffererInterface.ratifyOrder.selector;
     }

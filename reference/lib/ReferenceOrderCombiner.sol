@@ -50,9 +50,9 @@ contract ReferenceOrderCombiner is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderFulfiller(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceOrderFulfiller(conduitController) {}
 
     /**
      * @notice Internal function to attempt to fill a group of orders, fully or
@@ -185,7 +185,7 @@ contract ReferenceOrderCombiner is
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
      * @param recipient         The intended recipient for all received items.
-     * 
+     *
      * @return orderHashes      The hashes of the orders being fulfilled.
      */
     function _validateOrdersAndPrepareToFulfill(

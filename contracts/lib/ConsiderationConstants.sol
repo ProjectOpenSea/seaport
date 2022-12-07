@@ -46,7 +46,7 @@ uint256 constant information_version_cd_offset = 0x60;
 uint256 constant information_domainSeparator_offset = 0x20;
 uint256 constant information_conduitController_offset = 0x40;
 uint256 constant information_versionLengthPtr = 0x63;
-uint256 constant information_versionWithLength = 0x03312e31;
+uint256 constant information_versionWithLength = 0x03312e32; // 1.2
 uint256 constant information_length = 0xa0;
 
 uint256 constant _NOT_ENTERED = 1;
@@ -380,6 +380,8 @@ uint256 constant IsValidOrder_caller_ptr = 0x24;
 uint256 constant IsValidOrder_offerer_ptr = 0x44;
 uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
 uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
+
+uint256 constant Error_selector_offset = 0x1c;
 
 /*
  *  error MissingFulfillmentComponentOnAggregation(uint8 side)
@@ -842,6 +844,11 @@ uint256 constant NoSpecifiedOrdersAvailable_error_length = 0x04;
  */
 uint256 constant InvalidNativeOfferItem_error_selector = 0x12d3f5a3;
 uint256 constant InvalidNativeOfferItem_error_length = 0x04;
+
+uint256 constant ConsiderationLengthExceedsTotalOriginal_error_selector = (
+    0xba832fdd
+);
+uint256 constant ConsiderationLengthExceedsTotalOriginal_error_length = 0x04;
 
 /*
  *  error Panic(uint256 code)

@@ -32,9 +32,9 @@ contract ReferenceAssertions is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceGettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceGettersAndDerivers(conduitController) {}
 
     /**
      * @dev Internal view function to to ensure that the supplied consideration

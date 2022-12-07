@@ -4,7 +4,7 @@ import { subtask } from "hardhat/config";
 import type { HardhatUserConfig } from "hardhat/config";
 
 import "dotenv/config";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";

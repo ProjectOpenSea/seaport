@@ -335,7 +335,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
           fulfillments,
           { value: 0 }
         )
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     // Ensure that the number of executions from matching orders with zone
     // is equal to the number of fulfillments
@@ -490,7 +490,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
           fulfillments,
           { value: 0 }
         )
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     // Ensure that the number of executions from matching advanced orders with zone
     // is equal to the number of fulfillments
@@ -546,7 +546,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     const salt = randomHex();
     await expect(
       pausableZoneController.connect(seller).createZone(salt)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     // deploy pausable zone from owner
     await createZone(pausableZoneController);
@@ -578,11 +578,14 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
 
     await expect(
       pausableZoneController.connect(buyer).assignPauser(seller.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     await expect(
       pausableZoneController.connect(owner).assignPauser(toAddress(0))
-    ).to.be.revertedWith("PauserCanNotBeSetAsZero");
+    ).to.be.revertedWithCustomError(
+      pausableZoneController,
+      "PauserCanNotBeSetAsZero"
+    );
 
     // owner assigns the pauser of the zone
     await pausableZoneController.connect(owner).assignPauser(buyer.address);
@@ -615,7 +618,10 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     await pausableZoneController.createZone(salt);
 
     // Create zone with same salt
-    await expect(pausableZoneController.createZone(salt)).to.be.revertedWith(
+    await expect(
+      pausableZoneController.createZone(salt)
+    ).to.be.revertedWithCustomError(
+      pausableZoneController,
       "ZoneAlreadyExists"
     );
   });
@@ -642,6 +648,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
+    // eslint-disable-next-line
     const { order, orderHash, value } = await createOrder(
       seller,
       zoneAddr,
@@ -658,7 +665,10 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidRestrictedOrder"
+      );
     } else {
       await expect(
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
@@ -717,7 +727,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       pausableZoneController
         .connect(buyer)
         .cancelOrders(zoneAddr, marketplaceContract.address, [orderComponents])
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     await pausableZoneController.cancelOrders(
       zoneAddr,
@@ -783,7 +793,10 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       pausableZoneController
         .connect(owner)
         .assignOperator(zoneAddr, toAddress(0))
-    ).to.be.revertedWith("PauserCanNotBeSetAsZero");
+    ).to.be.revertedWithCustomError(
+      pausableZoneController,
+      "PauserCanNotBeSetAsZero"
+    );
   });
 
   it("Reverts trying to assign operator as non-deployer", async () => {
@@ -809,7 +822,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       pausableZoneController
         .connect(seller)
         .assignOperator(zoneAddr, seller.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     // Try to approve operator directly without permission
     await expect(zone.connect(seller).assignOperator(seller.address)).to.be
@@ -836,7 +849,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    const { order } = await createOrder(
+    const { orderComponents } = await createOrder(
       seller,
       stubZone,
       offer,
@@ -844,8 +857,8 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    await expect(marketplaceContract.connect(buyer).cancel(order as any)).to.be
-      .reverted;
+    await expect(marketplaceContract.connect(buyer).cancel([orderComponents]))
+      .to.be.reverted;
   });
 
   it("Reverts if non-owner tries to use the zone to cancel restricted orders", async () => {
@@ -868,7 +881,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    const { order } = await createOrder(
+    const { orderComponents } = await createOrder(
       seller,
       stubZone,
       offer,
@@ -880,7 +893,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     await expect(
       pausableZoneController
         .connect(buyer)
-        .cancelOrders(zoneAddr, marketplaceContract.address, order as any)
+        .cancelOrders(zoneAddr, marketplaceContract.address, [orderComponents])
     ).to.be.reverted;
   });
 
@@ -897,19 +910,25 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
 
     await expect(
       pausableZoneController.connect(buyer).transferOwnership(buyer.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     await expect(
       pausableZoneController.connect(owner).transferOwnership(toAddress(0))
-    ).to.be.revertedWith("OwnerCanNotBeSetAsZero");
+    ).to.be.revertedWithCustomError(
+      pausableZoneController,
+      "OwnerCanNotBeSetAsZero"
+    );
 
     await expect(
       pausableZoneController.connect(seller).cancelOwnershipTransfer()
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(pausableZoneController, "CallerIsNotOwner");
 
     await expect(
       pausableZoneController.connect(buyer).acceptOwnership()
-    ).to.be.revertedWith("CallerIsNotPotentialOwner");
+    ).to.be.revertedWithCustomError(
+      pausableZoneController,
+      "CallerIsNotPotentialOwner"
+    );
 
     // just get any random address as the next potential owner.
     await pausableZoneController
