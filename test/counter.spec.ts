@@ -1428,53 +1428,5 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         return receipt;
       });
     });
-    it("Reverts on a reentrant call", async () => {
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address
-      );
-
-      const offer = [getTestItem721(nftId)];
-
-      const consideration = [
-        getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
-        getItemETH(parseEther("1"), parseEther("1"), owner.address),
-      ];
-
-      let { orderComponents } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0 // FULL_OPEN
-      );
-
-      const counter = await marketplaceContract.getCounter(seller.address);
-      expect(counter).to.equal(0);
-      expect(orderComponents.counter).to.equal(counter);
-
-      const callData =
-        marketplaceContract.interface.encodeFunctionData("incrementCounter");
-      const tx = await reenterer.prepare(
-        marketplaceContract.address,
-        0,
-        callData
-      );
-      await tx.wait();
-
-      if (!process.env.REFERENCE) {
-        await expect(
-          marketplaceContract.connect(seller).incrementCounter()
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "NoReentrantCalls"
-        );
-      } else {
-        await expect(marketplaceContract.connect(seller).incrementCounter()).to
-          .be.reverted;
-      }
-    });
   });
 });
