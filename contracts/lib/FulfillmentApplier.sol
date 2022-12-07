@@ -45,8 +45,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent[] memory considerationComponents
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (

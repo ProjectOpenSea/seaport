@@ -106,8 +106,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
+        FulfillmentComponent[][] memory offerFulfillments,
+        FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled
@@ -829,7 +829,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] memory fulfillments
     ) internal returns (Execution[] memory /* executions */) {
         // Validate orders, update order status, and determine item amounts.
         bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
@@ -865,7 +865,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        Fulfillment[] calldata fulfillments,
+        Fulfillment[] memory fulfillments,
         bytes32[] memory orderHashes
     ) internal returns (Execution[] memory executions) {
         // Retrieve fulfillments array length and place on the stack.
@@ -882,7 +882,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             // Iterate over each fulfillment.
             for (uint256 i = 0; i < totalFulfillments; ++i) {
                 /// Retrieve the fulfillment in question.
-                Fulfillment calldata fulfillment = fulfillments[i];
+                Fulfillment memory fulfillment = fulfillments[i];
 
                 // Derive the execution corresponding with the fulfillment.
                 Execution memory execution = _applyFulfillment(

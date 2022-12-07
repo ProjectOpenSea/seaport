@@ -220,8 +220,8 @@ contract Consideration is OrderCombiner {
      */
     function fulfillAvailableOrders(
         Order[] calldata /* orders */,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
+        FulfillmentComponent[][] calldata /* offerFulfillments */,
+        FulfillmentComponent[][] calldata /* considerationFulfillments */,
         bytes32 fulfillerConduitKey,
         uint256 maximumFulfilled
     )
@@ -239,8 +239,12 @@ contract Consideration is OrderCombiner {
                     abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
                 )(CalldataStart.pptr()), // Convert to advanced orders.
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                offerFulfillments,
-                considerationFulfillments,
+                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
+                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                )(CalldataStart.pptr(0x20)),
+                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
+                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                )(CalldataStart.pptr(0x40)),
                 fulfillerConduitKey,
                 msg.sender,
                 maximumFulfilled
@@ -314,8 +318,8 @@ contract Consideration is OrderCombiner {
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] calldata /* advancedOrders */,
         CriteriaResolver[] calldata /* criteriaResolvers */,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
+        FulfillmentComponent[][] calldata /* offerFulfillments */,
+        FulfillmentComponent[][] calldata /* considerationFulfillments */,
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled
@@ -336,8 +340,12 @@ contract Consideration is OrderCombiner {
                 to_dyn_array_CriteriaResolver_ReturnType(
                     abi_decode_dyn_array_CriteriaResolver
                 )(CalldataStart.pptr(0x20)),
-                offerFulfillments,
-                considerationFulfillments,
+                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
+                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                )(CalldataStart.pptr(0x40)),
+                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
+                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                )(CalldataStart.pptr(0x60)),
                 fulfillerConduitKey,
                 _substituteCallerForEmptyRecipient(recipient),
                 maximumFulfilled
@@ -370,7 +378,7 @@ contract Consideration is OrderCombiner {
      */
     function matchOrders(
         Order[] calldata /* orders */,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata /* fulfillments */
     ) external payable returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
@@ -379,7 +387,9 @@ contract Consideration is OrderCombiner {
                     abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
                 )(CalldataStart.pptr()),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillments
+                to_dyn_array_Fulfillment_ReturnType(
+                    abi_decode_dyn_array_Fulfillment
+                )(CalldataStart.pptr(0x20))
             );
     }
 
@@ -422,7 +432,7 @@ contract Consideration is OrderCombiner {
     function matchAdvancedOrders(
         AdvancedOrder[] calldata /* advancedOrders */,
         CriteriaResolver[] calldata /* criteriaResolvers */,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata /* fulfillments */
     ) external payable returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
@@ -433,7 +443,9 @@ contract Consideration is OrderCombiner {
                 to_dyn_array_CriteriaResolver_ReturnType(
                     abi_decode_dyn_array_CriteriaResolver
                 )(CalldataStart.pptr(0x20)),
-                fulfillments
+                to_dyn_array_Fulfillment_ReturnType(
+                    abi_decode_dyn_array_Fulfillment
+                )(CalldataStart.pptr(0x40))
             );
     }
 
