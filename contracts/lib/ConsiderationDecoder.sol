@@ -217,10 +217,9 @@ function abi_decode_AdvancedOrder(
         AdvancedOrder_fixed_segment_0
     );
 
-
     // Get pointer to memory immediately after advanced order
     MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
-    // Write pptr for advanced order parameters 
+    // Write pptr for advanced order parameters
     mPtr.write(mPtrParameters);
     // Copy order parameters to allocated region
     abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
@@ -247,11 +246,10 @@ function abi_decode_Order_as_AdvancedOrder(
 
     // Get pointer to memory immediately after advanced order
     MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
-    // Write pptr for advanced order parameters 
+    // Write pptr for advanced order parameters
     mPtr.write(mPtrParameters);
     // Copy order parameters to allocated region
     abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
-
 
     mPtr.offset(AdvancedOrder_numerator_offset).write(1);
     mPtr.offset(AdvancedOrder_denominator_offset).write(1);

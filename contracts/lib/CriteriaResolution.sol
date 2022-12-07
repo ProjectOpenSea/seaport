@@ -114,7 +114,11 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                             revert(Error_selector_offset, 4)
                         }
                     }
-                    _updateCriteriaItem(items, componentIndex, criteriaResolver);
+                    _updateCriteriaItem(
+                        items,
+                        componentIndex,
+                        criteriaResolver
+                    );
                 }
             }
 
