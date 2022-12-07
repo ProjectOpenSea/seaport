@@ -22,7 +22,7 @@ fs_permissions = [
 ]
 
 [profile.reference]
-solc = '0.8.7'
+solc = '0.8.8'
 via_ir = false
 src = 'reference'
 out = 'reference-out'
