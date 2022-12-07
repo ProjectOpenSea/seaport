@@ -637,7 +637,99 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         )
         .withArgs(orderHash);
     });
-    it("Reverts on non-zero unused item parameters (identifier set on native, basic)", async () => {
+    it("Reverts on non-zero unused item parameters (identifier set on native, basic, ERC721)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(1000, 1000, seller.address),
+        getItemETH(10, 10, zone.address),
+        getItemETH(20, 20, owner.address),
+      ];
+
+      consideration[0].identifierOrCriteria = minRandom(1);
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        0, // EthForERC721
+        order
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillBasicOrder(basicOrderParameters, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+    });
+    it("Reverts on non-zero unused item parameters (identifier set on ERC20, basic, ERC721)", async () => {
+      // Seller mints ERC20
+      await mintAndApproveERC20(seller, marketplaceContract.address, 1000);
+
+      // Buyer mints nft
+      const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
+
+      const offer = [getTestItem20(500, 500)];
+
+      offer[0].identifierOrCriteria = minRandom(1);
+
+      const consideration = [
+        getTestItem721(nftId, 1, 1, seller.address),
+        getTestItem20(50, 50, zone.address),
+        getTestItem20(50, 50, owner.address),
+      ];
+
+      const { order, orderHash } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        4, // ERC721ForERC20
+        order
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillBasicOrder(basicOrderParameters)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+    });
+    it("Reverts on non-zero unused item parameters (identifier set on native, basic, ERC1155)", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
         seller,
