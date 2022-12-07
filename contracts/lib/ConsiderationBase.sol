@@ -11,12 +11,17 @@ import {
 
 import "./ConsiderationConstants.sol";
 
+import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
  * @notice ConsiderationBase contains immutable constants and constructor logic.
  */
-contract ConsiderationBase is ConsiderationEventsAndErrors {
+contract ConsiderationBase is
+    ConsiderationDecoder,
+    ConsiderationEventsAndErrors
+{
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;

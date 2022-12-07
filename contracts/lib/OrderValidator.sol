@@ -25,10 +25,7 @@ import { ZoneInteraction } from "./ZoneInteraction.sol";
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
-import {
-    abi_decode_OrderComponents_as_OrderParameters,
-    to_OrderParameters_ReturnType
-} from "./ConsiderationDecoder.sol";
+
 import { MemoryPointer, getFreeMemoryPointer } from "./PointerLibraries.sol";
 
 /**

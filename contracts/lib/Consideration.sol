@@ -20,7 +20,7 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
-import "./ConsiderationDecoder.sol";
+import "./PointerLibraries.sol";
 
 /**
  * @title Consideration
