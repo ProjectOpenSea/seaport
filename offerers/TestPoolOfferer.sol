@@ -66,15 +66,11 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         IERC721(erc721).setApprovalForAll(seaport, true);
     }
 
-    // Have to move this out of the natspec comments to avoid a stubborn
-    // DocstringParsingError.
-    //
-    // @param                  The address of the fulfiller.
-    //
     /**
      * @dev Generate an order based on the minimumReceived and maximumSpent
      *      arrays. This function can only be called by Seaport.
      *
+     * @param -                The address of the fulfiller.
      * @param minimumReceived  An array of SpentItem structs representing the
      *                         minimum amount that the offerer is willing to
      *                         receive.
@@ -170,23 +166,20 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         if (nftOffer) _previewNftOffer(offer);
     }
 
-    // Have to make these unofficial natspec comments to avoid a stubborn
-    // DocstringParsingError.
-    //
-    // /**
-    //  * @dev Ratify an order.
-    //  *
-    //  * @param                 An array of SpentItem structs representing the
-    //  *                        offer.
-    //  * @param                 An array of ReceivedItem structs representing the
-    //  *                        consideration.
-    //  * @param                 The context of the order.
-    //  * @param                 An array of order hashes.
-    //  * @param                 The contract nonce.
-    //  *
-    //  * @return ratifyOrderMagicValue The magic value of the ratifyOrder
-    //  *                               function.
-    //  */
+    /**
+     * @dev Ratify an order.
+     *
+     * @param -               An array of SpentItem structs representing the
+     *                        offer.
+     * @param -               An array of ReceivedItem structs representing the
+     *                        consideration.
+     * @param -               The context of the order.
+     * @param -               An array of order hashes.
+     * @param -               The contract nonce.
+     *
+     * @return -              The magic value of the ratifyOrder
+     *                        function.
+     */
     function ratifyOrder(
         SpentItem[] calldata /* offer */,
         ReceivedItem[] calldata /* consideration */,
