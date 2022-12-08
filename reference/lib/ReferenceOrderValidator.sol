@@ -37,6 +37,7 @@ contract ReferenceOrderValidator is
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
+    // Track nonces for contract offerers.
     mapping(address => uint256) internal _contractNonces;
 
     /**
@@ -130,6 +131,7 @@ contract ReferenceOrderValidator is
             return (bytes32(0), 0, 0);
         }
 
+        // If the order is a contract order, return the generated order.
         if (orderParameters.orderType == OrderType.CONTRACT) {
             return
                 _getGeneratedOrder(
@@ -266,13 +268,16 @@ contract ReferenceOrderValidator is
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         {
+            // Increment contract nonce and use it to derive order hash.
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
+            // Derive order hash from contract nonce and offerer address.
             orderHash = bytes32(
                 contractNonce |
                     (uint256(uint160(orderParameters.offerer)) << 96)
             );
         }
 
+        // Convert offer and consideration to spent and received items.
         (
             SpentItem[] memory originalOfferItems,
             SpentItem[] memory originalConsiderationItems
@@ -281,15 +286,19 @@ contract ReferenceOrderValidator is
                 orderParameters.consideration
             );
 
+        // Create arrays for returned offer and consideration items.
         SpentItem[] memory offer;
         ReceivedItem[] memory consideration;
+
         try
+            // Attempt to generate the order.
             ContractOffererInterface(orderParameters.offerer).generateOrder(
                 msg.sender,
                 originalOfferItems,
                 originalConsiderationItems,
                 context
             )
+        //  If the call succeeds, return the offer and consideration items.
         returns (
             SpentItem[] memory returnedOffer,
             ReceivedItem[] memory ReturnedConsideration
@@ -301,6 +310,7 @@ contract ReferenceOrderValidator is
         }
 
         {
+            // Designate lengths.
             uint256 originalOfferLength = orderParameters.offer.length;
             uint256 newOfferLength = offer.length;
 
@@ -308,20 +318,27 @@ contract ReferenceOrderValidator is
             if (originalOfferLength > newOfferLength) {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             } else if (newOfferLength > originalOfferLength) {
+                // If new offer items are added, extend the original offer.
                 OfferItem[] memory extendedOffer = new OfferItem[](
                     newOfferLength
                 );
+                // Copy original offer items to new array.
                 for (uint256 i = 0; i < originalOfferLength; ++i) {
                     extendedOffer[i] = orderParameters.offer[i];
                 }
+                // Update order parameters with extended offer.
                 orderParameters.offer = extendedOffer;
             }
 
-            // Loop through each offer and ensure at least as much on returned offer
+            // Loop through each new offer and ensure the new amounts are at
+            // least as much as the respective original amounts.
             for (uint256 i = 0; i < originalOfferLength; ++i) {
+                // Designate original and new offer items.
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
 
+                // Set returned identifier for criteria-based items with
+                // criteria = 0.
                 if (
                     uint256(originalOffer.itemType) > 3 &&
                     originalOffer.identifierOrCriteria == 0
@@ -332,6 +349,7 @@ contract ReferenceOrderValidator is
                     originalOffer.identifierOrCriteria = newOffer.identifier;
                 }
 
+                // Ensure the original and generated items are compatible.
                 if (
                     originalOffer.startAmount != originalOffer.endAmount ||
                     originalOffer.endAmount > newOffer.amount ||
@@ -342,11 +360,12 @@ contract ReferenceOrderValidator is
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
+                // Update the original amounts to use the generated amounts.
                 originalOffer.startAmount = newOffer.amount;
                 originalOffer.endAmount = newOffer.amount;
             }
 
-            // add new offer items if there are more than original
+            // Add new offer items if there are more than original.
             for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
@@ -360,6 +379,7 @@ contract ReferenceOrderValidator is
         }
 
         {
+            // Designate lengths & memory locations.
             ConsiderationItem[] memory originalConsiderationArray = (
                 orderParameters.consideration
             );
@@ -368,14 +388,14 @@ contract ReferenceOrderValidator is
             uint256 newConsiderationLength = consideration.length;
 
             if (originalConsiderationLength != 0) {
-                // Consideration items that are not explicitly specified cannot be
-                // created. Note that this constraint could be relaxed if specified
-                // consideration items can be split.
+                // Consideration items that are not explicitly specified cannot
+                // be created. Note that this constraint could be relaxed if
+                // specified consideration items can be split.
                 if (newConsiderationLength > originalConsiderationLength) {
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
-                // Loop through returned consideration, ensure existing not exceeded
+                // Loop through and check consideration.
                 for (uint256 i = 0; i < newConsiderationLength; ++i) {
                     ReceivedItem memory newConsideration = consideration[i];
                     ConsiderationItem memory originalConsideration = (
@@ -409,6 +429,7 @@ contract ReferenceOrderValidator is
                         return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                     }
 
+                    // Update the original amounts to use the generated amounts.
                     originalConsideration.startAmount = newConsideration.amount;
                     originalConsideration.endAmount = newConsideration.amount;
                     originalConsideration.recipient = newConsideration
@@ -420,12 +441,14 @@ contract ReferenceOrderValidator is
                     new ConsiderationItem[](newConsiderationLength)
                 );
 
+                // Iterate over original consideration array and copy to new.
                 for (uint256 i = 0; i < newConsiderationLength; ++i) {
                     shortenedConsiderationArray[i] = originalConsiderationArray[
                         i
                     ];
                 }
 
+                // Replace original consideration array with new shortend array.
                 orderParameters.consideration = shortenedConsiderationArray;
             } else {
                 // TODO: optimize this
@@ -433,6 +456,7 @@ contract ReferenceOrderValidator is
                     newConsiderationLength
                 );
 
+                // Iterate and update consideration array.
                 for (uint256 i = 0; i < newConsiderationLength; ++i) {
                     ReceivedItem memory newConsideration = consideration[i];
                     ConsiderationItem memory originalConsideration = (
@@ -451,6 +475,7 @@ contract ReferenceOrderValidator is
             }
         }
 
+        // Return the order hash, the numerator, and the denominator.
         return (orderHash, 1, 1);
     }
 
@@ -657,10 +682,14 @@ contract ReferenceOrderValidator is
         pure
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
+        // If we should not revert on invalid input...
         if (!revertOnInvalid) {
+            // Return the contract order hash and zero values for the numerator
+            // and denominator. 
             return (contractOrderHash, 0, 0);
         }
 
+        // Otherwise, revert.
         revert InvalidContractOrder(contractOrderHash);
     }
 
@@ -701,7 +730,7 @@ contract ReferenceOrderValidator is
                 offerItem.startAmount
             );
 
-            // Add to array of spent items
+            // Add to array of spent items.
             spentItems[i] = spentItem;
         }
 
@@ -721,7 +750,7 @@ contract ReferenceOrderValidator is
                 considerationItem.startAmount
             );
 
-            // Add to array of received items
+            // Add to array of received items.
             receivedItems[i] = receivedItem;
         }
     }

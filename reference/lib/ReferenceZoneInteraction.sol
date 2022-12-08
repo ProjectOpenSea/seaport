@@ -53,9 +53,11 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         ItemType offeredItemType,
         ItemType receivedItemType
     ) internal {
+        // Create a new array for the hash.
         bytes32[] memory orderHashes = new bytes32[](1);
         orderHashes[0] = orderHash;
 
+        // Convert the order params and types to spent and received items.
         (
             SpentItem[] memory offer,
             ReceivedItem[] memory consideration
@@ -71,6 +73,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 orderType == OrderType.PARTIAL_RESTRICTED) &&
             msg.sender != basicOrderParameters.zone
         ) {
+            // Validate the order with the zone.
             if (
                 ZoneInterface(basicOrderParameters.zone).validateOrder(
                     ZoneParameters({
@@ -122,6 +125,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             (orderType == OrderType.FULL_RESTRICTED ||
                 orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone
         ) {
+            // Validate the order.
             if (
                 ZoneInterface(zone).validateOrder(
                     ZoneParameters({
@@ -141,6 +145,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 revert InvalidRestrictedOrder(orderHash);
             }
         } else if (orderType == OrderType.CONTRACT) {
+            // Ratify the contract order.
             if (
                 ContractOffererInterface(offerer).ratifyOrder(
                     orderToExecute.spentItems,
@@ -176,6 +181,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         ItemType offerItemType,
         ItemType considerationItemType
     ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
+        // Create the spent item.
         SpentItem[] memory spentItems = new SpentItem[](1);
         spentItems[0] = SpentItem({
             itemType: offerItemType,
@@ -184,6 +190,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             identifier: parameters.offerIdentifier
         });
 
+        // Create the received item.
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             1 + parameters.additionalRecipients.length
         );
@@ -197,6 +204,9 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             identifier: identifier,
             recipient: parameters.offerer
         });
+
+        // Iterate through the additional recipients and create the received
+        // items.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; i++) {
             AdditionalRecipient calldata additionalRecipient = parameters
                 .additionalRecipients[i];
@@ -210,6 +220,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             });
         }
 
+        // Return the spent and received items.
         return (spentItems, receivedItems);
     }
 }
