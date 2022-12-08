@@ -6396,8 +6396,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
-        marketplaceContract.address,
-        11
+        marketplaceContract.address
       );
 
       const offer = [getTestItem721(nftId)];
@@ -6477,6 +6476,76 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               100,
               { value }
             )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to matchOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "matchOrders",
+        [[order, mirrorOrder], fulfillments]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value,
+            })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value,
+            })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
           "EtherTransferGenericFailure"
