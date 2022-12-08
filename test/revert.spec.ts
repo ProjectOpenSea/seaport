@@ -1822,6 +1822,72 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
+    it("Reverts on mismatched offer and consideration components (branch coverage 1)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [getTestItem721(10, 1, 1, seller.address)];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
+    });
+    it("Reverts on mismatched offer and consideration components (branch coverage 2)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getTestItem721(10, 1, 1, seller.address, owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
+    });
     it("Reverts on mismatched offer components", async () => {
       // Seller mints nft
       const nftId = await mint721(seller);
