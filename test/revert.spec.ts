@@ -126,7 +126,14 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     sellerContract = await EIP1271WalletFactory.deploy(seller.address);
     buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
 
-    for (const wallet of [seller, buyer, zone, sellerContract, buyerContract]) {
+    for (const wallet of [
+      seller,
+      buyer,
+      zone,
+      sellerContract,
+      buyerContract,
+      reenterer,
+    ]) {
       await faucet(wallet.address, provider);
     }
   });
@@ -6107,60 +6114,63 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   });
 
   describe("Reentrancy", async () => {
-    // it("Reverts on a reentrant call to fulfillOrder", async () => {
-    //   // Seller mints nft
-    //   const nftId = await mintAndApprove721(
-    //     seller,
-    //     marketplaceContract.address
-    //   );
+    it("Reverts on a reentrant call to fulfillOrder", async () => {
+      console.log("reenterer address: ", reenterer.address);
 
-    //   const offer = [getTestItem721(nftId)];
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
 
-    //   const consideration = [
-    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
-    //   ];
+      const offer = [getTestItem721(nftId)];
 
-    //   const { order, value } = await createOrder(
-    //     seller,
-    //     zone,
-    //     offer,
-    //     consideration,
-    //     0 // FULL_OPEN
-    //   );
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
 
-    //   // prepare the reentrant call on the reenterer
-    //   const callData = marketplaceContract.interface.encodeFunctionData(
-    //     "fulfillOrder",
-    //     [order, toKey(0)]
-    //   );
-    //   const tx = await reenterer.prepare(
-    //     marketplaceContract.address,
-    //     0,
-    //     callData
-    //   );
-    //   await tx.wait();
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
 
-    //   if (!process.env.REFERENCE) {
-    //     await expect(
-    //       marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
-    //         value,
-    //       })
-    //     ).to.be.revertedWithCustomError(
-    //       marketplaceContract,
-    //       "NoReentrantCalls"
-    //     );
-    //   } else {
-    //     await expect(
-    //       marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
-    //         value,
-    //       })
-    //     ).to.be.revertedWithCustomError(
-    //       marketplaceContract,
-    //       "NoReentrantCalls"
-    //     );
-    //   }
-    // });
+      // prepare the reentrant call on the reenterer
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillOrder",
+        [order, toKey(0)]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
+            value,
+          })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
+            value,
+          })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
 
     it("Reverts on a reentrant call to fulfillBasicOrder", async () => {
       // Seller mints nft
@@ -6173,6 +6183,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
         getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
       ];
 
@@ -6210,11 +6222,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract
             .connect(seller)
             .fulfillBasicOrder(basicOrderParameters, { value })
-        ).to.be.reverted;
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
       }
     });
 
@@ -6277,6 +6293,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract
             .connect(seller)
@@ -6287,7 +6304,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               ethers.constants.AddressZero,
               { value }
             )
-        ).to.be.reverted;
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
       }
     });
 
