@@ -20,6 +20,7 @@ fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
 ]
+extra_output = ["evm.assembly", "irOptimized", "devdoc"]
 
 [profile.default.optimizer_details]
 peephole = true
