@@ -12,8 +12,8 @@ import {
   randomBN,
   randomHex,
   toBN,
-  toFulfillmentComponents,
   toFulfillment,
+  toFulfillmentComponents,
   toKey,
 } from "./utils/encoding";
 import { faucet, getWalletWithEther } from "./utils/faucet";
@@ -6187,7 +6187,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
       ];
 
-      let { order, value } = await createOrder(
+      const { order, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -6256,7 +6256,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         1 // PARTIAL_OPEN
       );
 
-      let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
         buildOrderStatus(false, false, 0, 0)
@@ -6326,7 +6326,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
       ];
 
-      let { order, value } = await createOrder(
+      const { order, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -6406,7 +6406,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const { order, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -6504,7 +6504,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
         buildOrderStatus(false, false, 0, 0)
@@ -6575,7 +6575,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         1 // PARTIAL_OPEN
       );
 
-      let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
         buildOrderStatus(false, false, 0, 0)
@@ -6584,8 +6584,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       order.numerator = 2; // fill two tenths or one fifth
       order.denominator = 10; // fill two tenths or one fifth
 
-      let mirrorObject;
-      mirrorObject = await createMirrorBuyNowOrder(buyer, zone, order);
+      const mirrorObject = await createMirrorBuyNowOrder(buyer, zone, order);
 
       const fulfillments = defaultBuyNowMirrorFulfillment;
 
@@ -6632,6 +6631,58 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         ).to.be.revertedWithCustomError(
           marketplaceContract,
           "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to cancel", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { orderComponents, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "cancel",
+        [[orderComponents]]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract.connect(seller).cancel([orderComponents])
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        await expect(
+          marketplaceContract.connect(seller).cancel([orderComponents])
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
         );
       }
     });

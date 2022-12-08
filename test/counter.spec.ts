@@ -13,7 +13,7 @@ import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION, getCustomRevertSelector } from "./utils/helpers";
 
-import type { ConsiderationInterface, Reenterer } from "../typechain-types";
+import type { ConsiderationInterface } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Wallet } from "ethers";
 
@@ -24,7 +24,6 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
   const owner = new ethers.Wallet(randomHex(32), provider);
 
   let marketplaceContract: ConsiderationInterface;
-  let reenterer: Reenterer;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
@@ -47,7 +46,6 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       createOrder,
       getTestItem721,
       marketplaceContract,
-      reenterer,
       mintAndApprove721,
       set721ApprovalForAll,
       withBalanceChecks,
