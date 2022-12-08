@@ -6116,8 +6116,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
   describe("Reentrancy", async () => {
     it("Reverts on a reentrant call to fulfillOrder", async () => {
-      console.log("reenterer address: ", reenterer.address);
-
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
@@ -6546,6 +6544,91 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             .matchOrders([order, mirrorOrder], fulfillments, {
               value,
             })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to matchAdvancedOrders", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+      const consideration = [
+        getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+        getItemETH(amount.mul(10), amount.mul(10), zone.address),
+        getItemETH(amount.mul(20), amount.mul(20), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        1 // PARTIAL_OPEN
+      );
+
+      let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.numerator = 2; // fill two tenths or one fifth
+      order.denominator = 10; // fill two tenths or one fifth
+
+      let mirrorObject;
+      mirrorObject = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "matchAdvancedOrders",
+        [[order, mirrorObject.mirrorOrder], [], fulfillments]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchAdvancedOrders(
+              [order, mirrorObject.mirrorOrder],
+              [],
+              fulfillments,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchAdvancedOrders(
+              [order, mirrorObject.mirrorOrder],
+              [],
+              fulfillments,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWithCustomError(
           marketplaceContract,
           "EtherTransferGenericFailure"
