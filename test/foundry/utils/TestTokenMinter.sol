@@ -1,5 +1,5 @@
 // SPDX-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
