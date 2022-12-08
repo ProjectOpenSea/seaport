@@ -70,7 +70,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
      * @dev Generate an order based on the minimumReceived and maximumSpent
      *      arrays. This function can only be called by Seaport.
      *
-     * @param fulfiller        The address of the fulfiller.
+     * @param                  The address of the fulfiller.
      * @param minimumReceived  An array of SpentItem structs representing the
      *                         minimum amount that the offerer is willing to
      *                         receive.
@@ -169,13 +169,13 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     /**
      * @dev Ratify an order.
      *
-     * @param offer           An array of SpentItem structs representing the
+     * @param                 An array of SpentItem structs representing the
      *                        offer.
-     * @param consideration   An array of ReceivedItem structs representing the
+     * @param                 An array of ReceivedItem structs representing the
      *                        consideration.
-     * @param context         The context of the order.
-     * @param orderHashes     An array of order hashes.
-     * @param contractNonce   The contract nonce.
+     * @param                 The context of the order.
+     * @param                 An array of order hashes.
+     * @param                 The contract nonce.
      *
      * @return ratifyOrderMagicValue The magic value of the ratifyOrder
      *                               function.
@@ -454,11 +454,13 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     /** @dev Validates each SpentItem. Ensures that the item type is valid, all
      *        tokens are homogenous, and that the addresses are those we expect.
      *
-     *  @param minimumReceived An array of SpentItem structs to be validated.
-     *  @param offer           A bool indicating whether the minimumReceived
-     *                         array is the offer or the consideration. This is
-     *                         used to determine if ERC721_WITH_CRITERIA items
-     *                         are allowed.
+     * @param offerItem      The item to validate.
+     * @param homogenousType The item type that should be homogenous.
+     * @param nft            Whether the item is a non-fungible token.
+     * @param offer          A bool indicating whether the minimumReceived
+     *                       array is the offer or the consideration. This is
+     *                       used to determine if ERC721_WITH_CRITERIA items
+     *                       are allowed.
      */
     function _validateSpentItem(
         SpentItem calldata offerItem,
@@ -527,12 +529,6 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     /**
      * @dev Transfers the contract's entire ERC20 and ERC721 balances to the
      * contract's owner.
-     * @param erc20 The contract's ERC20 contract address.
-     * @param erc721 The contract's ERC721 contract address.
-     * @param owner The contract's owner address.
-     * @param tokenIds The contract's ERC721 token ID set.
-     * @param balance The contract's ERC20 balance.
-     * @return None.
      */
     function withdrawAll() external onlyOwner {
         // Get the contract's ERC20 balance.
