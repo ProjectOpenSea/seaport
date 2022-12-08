@@ -6380,11 +6380,11 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             }
           }
         };
+        const hreProvider = hre.network.provider as any;
         recurse(
-          (hre.network.provider as any)._wrapped._wrapped._wrapped?._node
-            ?._vm ??
-            (hre.network.provider as any)._wrapped._wrapped._wrapped._wrapped
-              ._node._vm
+          hreProvider._wrapped._wrapped._wrapped?._node?._vm ??
+            // When running coverage, there was an additional layer of wrapping
+            hreProvider._wrapped._wrapped._wrapped._wrapped._node._vm
         );
       };
       changeChainId();
