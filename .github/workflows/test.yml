@@ -101,7 +101,7 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.7 and via-ir=false
+      - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Run tests
@@ -123,7 +123,7 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.7 and via-ir=false
+      - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Precompile optimized using 0.8.17 and via-ir=true
