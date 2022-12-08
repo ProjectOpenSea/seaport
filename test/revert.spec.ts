@@ -6216,7 +6216,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       if (!process.env.REFERENCE) {
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
@@ -6226,7 +6226,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
@@ -6281,7 +6281,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       if (!process.env.REFERENCE) {
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillAdvancedOrder(
               order,
               [],
@@ -6297,7 +6297,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillAdvancedOrder(
               order,
               [],
@@ -6359,7 +6359,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       if (!process.env.REFERENCE) {
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillAvailableOrders(
               [order],
               offerComponents,
@@ -6373,14 +6373,107 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract
-            .connect(seller)
+            .connect(buyer)
             .fulfillAvailableOrders(
               [order],
               offerComponents,
               considerationComponents,
               toKey(0),
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to fulfillAvailableAdvancedOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        11
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [[{ orderIndex: 0, itemIndex: 0 }]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+        [{ orderIndex: 0, itemIndex: 3 }],
+      ];
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillAvailableAdvancedOrders",
+        [
+          [order],
+          [],
+          offerComponents,
+          considerationComponents,
+          toKey(0),
+          ethers.constants.AddressZero,
+          100,
+        ]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
               100,
               { value }
             )
