@@ -374,8 +374,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 orderParameters.offer = extendedOffer;
             }
 
-            // Loop through each offer and ensure at least as much on returned
-            // offer.
+            // Loop through each new offer and ensure the new amounts are at
+            // least as much as the respective original amounts.
             for (uint256 i = 0; i < originalOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
