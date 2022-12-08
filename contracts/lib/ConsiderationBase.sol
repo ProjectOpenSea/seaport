@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     ConduitControllerInterface
@@ -11,12 +11,17 @@ import {
 
 import "./ConsiderationConstants.sol";
 
+import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
  * @notice ConsiderationBase contains immutable constants and constructor logic.
  */
-contract ConsiderationBase is ConsiderationEventsAndErrors {
+contract ConsiderationBase is
+    ConsiderationDecoder,
+    ConsiderationEventsAndErrors
+{
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
@@ -257,10 +262,13 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         // Derive OrderItem type hash via combination of relevant type strings.
         orderTypehash = keccak256(orderTypeString);
 
+        // Encode the type string for the BulkOrder struct.
         bytes memory bulkOrderPartialTypeString = abi.encodePacked(
             "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
         );
 
+        // Generate the keccak256 hash of the concatenated type strings for the
+        // BulkOrder, considerationItem, offerItem, and orderComponents.
         bulkOrderTypeHash = keccak256(
             abi.encodePacked(
                 bulkOrderPartialTypeString,
