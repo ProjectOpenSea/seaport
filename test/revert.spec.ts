@@ -12,6 +12,7 @@ import {
   randomBN,
   randomHex,
   toBN,
+  toFulfillmentComponents,
   toFulfillment,
   toKey,
 } from "./utils/encoding";
@@ -6311,54 +6312,84 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       }
     });
 
-    // it("Reverts on a reentrant call", async () => {
-    //   // Seller mints nft
-    //   const nftId = await mintAndApprove721(
-    //     seller,
-    //     marketplaceContract.address
-    //   );
+    it("Reverts on a reentrant call to fulfillAvailableOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
 
-    //   const offer = [getTestItem721(nftId)];
+      const offer = [getTestItem721(nftId)];
 
-    //   const consideration = [
-    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), zone.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), owner.address),
-    //   ];
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
 
-    //   let { orderComponents } = await createOrder(
-    //     seller,
-    //     zone,
-    //     offer,
-    //     consideration,
-    //     0 // FULL_OPEN
-    //   );
+      let { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
 
-    //   const counter = await marketplaceContract.getCounter(seller.address);
-    //   expect(counter).to.equal(0);
-    //   expect(orderComponents.counter).to.equal(counter);
+      const offerComponents = [toFulfillmentComponents([[0, 0]])];
 
-    //   const callData =
-    //     marketplaceContract.interface.encodeFunctionData("incrementCounter");
-    //   const tx = await reenterer.prepare(
-    //     marketplaceContract.address,
-    //     0,
-    //     callData
-    //   );
-    //   await tx.wait();
+      const considerationComponents = [
+        [[0, 0]],
+        [[0, 1]],
+        [[0, 2]],
+        [[0, 3]],
+      ].map(toFulfillmentComponents);
 
-    //   if (!process.env.REFERENCE) {
-    //     await expect(
-    //       marketplaceContract.connect(seller).incrementCounter()
-    //     ).to.be.revertedWithCustomError(
-    //       marketplaceContract,
-    //       "NoReentrantCalls"
-    //     );
-    //   } else {
-    //     await expect(marketplaceContract.connect(seller).incrementCounter()).to
-    //       .be.reverted;
-    //   }
-    // });
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillAvailableOrders",
+        [[order], offerComponents, considerationComponents, toKey(0), 100]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillAvailableOrders(
+              [order],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillAvailableOrders(
+              [order],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
   });
 
   describe("ETH offer items", async () => {
