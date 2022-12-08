@@ -168,6 +168,13 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         }
     }
 
+    /**
+     * @dev Internal pure function to update a criteria item.
+     *
+     * @param offer             The offer containing the item to update.
+     * @param componentIndex    The index of the item to update.
+     * @param criteriaResolver  The criteria resolver to use to update the item.
+     */
     function _updateCriteriaItem(
         OfferItem[] memory offer,
         uint256 componentIndex,
