@@ -39,7 +39,7 @@ contract ReferenceReentrancyGuard is ReentrancyErrors {
      *      of the call, and check that the sentinel value for the reentrancy guard
      *      is not currently set by a previous call.
      */
-    modifier nonReentrantAndNotEntered() {
+    modifier nonReentrant() {
         if (_reentrancyGuard == _ENTERED) {
             revert NoReentrantCalls();
         }
