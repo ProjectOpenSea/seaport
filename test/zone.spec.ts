@@ -665,10 +665,12 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidRestrictedOrder"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidRestrictedOrder"
+        )
+        .withArgs(orderHash);
     } else {
       await expect(
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {

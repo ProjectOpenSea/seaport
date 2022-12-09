@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
@@ -374,7 +374,7 @@ contract ReferenceOrderFulfiller is
                 offerItem.startAmount
             );
 
-            // Add to array of spent items
+            // Add to array of spent items.
             spentItems[i] = spentItem;
             spentItemOriginalAmounts[i] = offerItem.startAmount;
         }
@@ -388,6 +388,8 @@ contract ReferenceOrderFulfiller is
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             consideration.length
         );
+        // Create an array of uint256 values equal in length to the 
+        // consideration length containing the amounts of each item.
         uint256[] memory receivedItemOriginalAmounts = new uint256[](
             consideration.length
         );
@@ -406,8 +408,10 @@ contract ReferenceOrderFulfiller is
                 considerationItem.recipient
             );
 
-            // Add to array of received items
+            // Add to array of received items.
             receivedItems[i] = receivedItem;
+
+            // Add to array of received item amounts.
             receivedItemOriginalAmounts[i] = considerationItem.startAmount;
         }
 

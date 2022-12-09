@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
@@ -45,8 +45,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent[] memory considerationComponents
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (

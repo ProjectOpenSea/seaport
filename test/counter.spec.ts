@@ -500,15 +500,15 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         .withArgs(orderHash, seller.address, zone.address);
 
       // cannot validate it from the seller
-      await expect(
-        marketplaceContract.connect(seller).validate([order])
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      await expect(marketplaceContract.connect(seller).validate([order]))
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       // cannot validate it with a signature either
       order.signature = signature;
-      await expect(
-        marketplaceContract.connect(owner).validate([order])
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      await expect(marketplaceContract.connect(owner).validate([order]))
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
@@ -700,7 +700,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
@@ -823,7 +825,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...finalStatus }).to.deep.equal(
@@ -873,7 +877,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.equal(
@@ -996,7 +1002,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...finalStatus }).to.deep.equal(
