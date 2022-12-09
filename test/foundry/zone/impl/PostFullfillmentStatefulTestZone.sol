@@ -22,19 +22,31 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
 
     bool public called = false;
 
-    // Called by Consideration whenever any extraData is provided by the caller.
+    /**
+    * @dev Validates the order with the given `zoneParameters`.  Called by
+    *      Consideration whenever any extraData is provided by the caller.
+    *
+    * @param zoneParameters The parameters for the order.
+    *
+    * @return validOrderMagicValue The validOrder magic value.
+    */
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external returns (bytes4 validOrderMagicValue) {
+        // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
         }
+
+        // Check that the item type in the consideration is correct.
         if (zoneParameters.consideration[0].itemType != ItemType.ERC721) {
             revert IncorrectIdentifier(
                 uint256(zoneParameters.consideration[0].itemType),
                 uint256(ItemType.ERC721)
             );
         }
+
+        // Check that the token ID in the consideration is correct.
         if (zoneParameters.consideration[0].identifier != 42) {
             revert IncorrectIdentifier(
                 zoneParameters.consideration[0].identifier,
@@ -42,7 +54,11 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
             );
         }
 
+        // Set the global called flag to true.
         called = true;
+
+        // Return the validOrderMagicValue.
         return ZoneInterface.validateOrder.selector;
     }
+
 }
