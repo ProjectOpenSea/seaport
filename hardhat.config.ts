@@ -1,5 +1,10 @@
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
-import { subtask } from "hardhat/config";
+import { subtask, task } from "hardhat/config";
+
+import { compareLastTwoReports } from "./scripts/compare_reports";
+import { printLastReport } from "./scripts/print_report";
+import { getReportPathForCommit } from "./scripts/utils";
+import { writeReports } from "./scripts/write_reports";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
@@ -17,6 +22,24 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
     const paths = await runSuper();
 
     return paths.filter((p: any) => !p.includes("contracts/reference/"));
+  }
+);
+
+task("write-reports", "Write pending gas reports").setAction(
+  async (taskArgs, hre) => {
+    writeReports(hre);
+  }
+);
+
+task("compare-reports", "Compare last two gas reports").setAction(
+  async (taskArgs, hre) => {
+    compareLastTwoReports(hre);
+  }
+);
+
+task("print-report", "Print the last gas report").setAction(
+  async (taskArgs, hre) => {
+    printLastReport(hre);
   }
 );
 
@@ -111,6 +134,8 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    outputFile: getReportPathForCommit(),
+    noColors: true,
   },
   etherscan: {
     apiKey: process.env.EXPLORER_API_KEY,
