@@ -34,3 +34,4 @@ html
 lcov.info
 
 test/utils/eip712/gen.sol
+.gas_reports/*.md
