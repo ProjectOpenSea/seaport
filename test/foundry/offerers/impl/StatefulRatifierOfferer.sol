@@ -78,8 +78,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     {
         // Generate an offer of ERC20 items.
         value = minimumReceived[0].amount;
-        offer = new SpentItem[](numToReturn);
-        for (uint256 i; i < numToReturn; i++) {
+        offer = new SpentItem[](numOffersToReturn);
+        for (uint256 i; i < numOffersToReturn; i++) {
             // Create a new ERC20 item with a unique value.
             offer[i] = SpentItem({
                 itemType: ItemType.ERC20,

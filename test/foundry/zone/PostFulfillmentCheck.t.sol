@@ -537,101 +537,101 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         assertTrue(statefulZone.called());
     }
 
-    function testMatchAdvancedOrders() external {
-        test(
-            this.execMatchAdvancedOrders,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execMatchAdvancedOrders,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-    }
+    // function testMatchAdvancedOrders() external {
+    //     test(
+    //         this.execMatchAdvancedOrders,
+    //         Context({
+    //             consideration: consideration,
+    //             numOriginalAdditional: 0,
+    //             numTips: 0
+    //         })
+    //     );
+    //     test(
+    //         this.execMatchAdvancedOrders,
+    //         Context({
+    //             consideration: referenceConsideration,
+    //             numOriginalAdditional: 0,
+    //             numTips: 0
+    //         })
+    //     );
+    // }
 
-    function execMatchAdvancedOrders(Context memory context) external {
-        addErc20OfferItem(1);
-        addErc721ConsiderationItem(payable(address(offerer)), 42);
-        addErc721ConsiderationItem(payable(address(offerer)), 43);
-        addErc721ConsiderationItem(payable(address(offerer)), 44);
+    // function execMatchAdvancedOrders(Context memory context) external {
+    //     addErc20OfferItem(1);
+    //     addErc721ConsiderationItem(payable(address(offerer)), 42);
+    //     addErc721ConsiderationItem(payable(address(offerer)), 43);
+    //     addErc721ConsiderationItem(payable(address(offerer)), 44);
 
-        _configureOrderParameters({
-            offerer: address(offerer),
-            zone: address(0),
-            zoneHash: bytes32(0),
-            salt: 0,
-            useConduit: false
-        });
-        baseOrderParameters.orderType = OrderType.CONTRACT;
+    //     _configureOrderParameters({
+    //         offerer: address(this),
+    //         zone: address(0),
+    //         zoneHash: bytes32(0),
+    //         salt: 0,
+    //         useConduit: false
+    //     });
+    //     baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(0);
+    //     _configureOrderComponents(0);
 
-        AdvancedOrder memory order = AdvancedOrder({
-            parameters: baseOrderParameters,
-            numerator: 1,
-            denominator: 1,
-            signature: "",
-            extraData: "context"
-        });
+    //     AdvancedOrder memory order = AdvancedOrder({
+    //         parameters: baseOrderParameters,
+    //         numerator: 1,
+    //         denominator: 1,
+    //         signature: "",
+    //         extraData: "context"
+    //     });
 
-        AdvancedOrder memory mirror = createMirrorContractOffererOrder(
-            context,
-            "mirroroooor",
-            order
-        );
+    //     AdvancedOrder memory mirror = createMirrorContractOffererOrder(
+    //         context,
+    //         "mirroroooor",
+    //         order
+    //     );
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
-        orders[0] = order;
-        orders[1] = mirror;
+    //     CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+    //     AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+    //     orders[0] = order;
+    //     orders[1] = mirror;
 
-        //match first order offer to second order consideration
-        createFulfillmentFromComponentsAndAddToFulfillments({
-            _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 1,
-                itemIndex: 0
-            })
-        });
-        // match second order first offer to first order first consideration
-        createFulfillmentFromComponentsAndAddToFulfillments({
-            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 0
-            })
-        });
-        // match second order second offer to first order second consideration
-        createFulfillmentFromComponentsAndAddToFulfillments({
-            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 1
-            })
-        });
-        // match second order third offer to first order third consideration
-        createFulfillmentFromComponentsAndAddToFulfillments({
-            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 2
-            })
-        });
+    //     //match first order offer to second order consideration
+    //     createFulfillmentFromComponentsAndAddToFulfillments({
+    //         _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+    //         _consideration: FulfillmentComponent({
+    //             orderIndex: 1,
+    //             itemIndex: 0
+    //         })
+    //     });
+    //     // match second order first offer to first order first consideration
+    //     createFulfillmentFromComponentsAndAddToFulfillments({
+    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+    //         _consideration: FulfillmentComponent({
+    //             orderIndex: 0,
+    //             itemIndex: 0
+    //         })
+    //     });
+    //     // match second order second offer to first order second consideration
+    //     createFulfillmentFromComponentsAndAddToFulfillments({
+    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
+    //         _consideration: FulfillmentComponent({
+    //             orderIndex: 0,
+    //             itemIndex: 1
+    //         })
+    //     });
+    //     // match second order third offer to first order third consideration
+    //     createFulfillmentFromComponentsAndAddToFulfillments({
+    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
+    //         _consideration: FulfillmentComponent({
+    //             orderIndex: 0,
+    //             itemIndex: 2
+    //         })
+    //     });
 
-        context.consideration.matchAdvancedOrders({
-            orders: orders,
-            criteriaResolvers: criteriaResolvers,
-            fulfillments: fulfillments
-        });
-        assertTrue(offerer.called());
-    }
+    //     context.consideration.matchAdvancedOrders({
+    //         orders: orders,
+    //         criteriaResolvers: criteriaResolvers,
+    //         fulfillments: fulfillments
+    //     });
+    //     assertTrue(zone.called());
+    // }
 
     function createMirrorOrder(
         Context memory context,
@@ -711,5 +711,20 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }
+    }
+
+    function createFulfillmentFromComponentsAndAddToFulfillments(
+        FulfillmentComponent memory _offer,
+        FulfillmentComponent memory _consideration
+    ) internal {
+        delete offerComponents;
+        delete considerationComponents;
+        // add second offer item from second order
+        offerComponents.push(_offer);
+        // match to first order's second consideration item
+        considerationComponents.push(_consideration);
+        fulfillment.offerComponents = offerComponents;
+        fulfillment.considerationComponents = considerationComponents;
+        fulfillments.push(fulfillment);
     }
 }
