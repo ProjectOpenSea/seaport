@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     ConduitControllerInterface
@@ -237,10 +237,13 @@ contract ReferenceConsiderationBase is
             )
         );
 
+        // Encode the type string for the BulkOrder struct.
         bytes memory bulkOrderPartialTypeString = abi.encodePacked(
             "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
         );
 
+        // Generate the keccak256 hash of the concatenated type strings for the
+        // BulkOrder, considerationItem, offerItem, and orderComponents.
         bulkOrderTypeHash = keccak256(
             abi.encodePacked(
                 bulkOrderPartialTypeString,
@@ -250,6 +253,8 @@ contract ReferenceConsiderationBase is
             )
         );
 
+        // Derive the initial domain separator using the domain typehash, the
+        // name hash, and the version hash.
         domainSeparator = _deriveInitialDomainSeparator(
             eip712DomainTypehash,
             nameHash,

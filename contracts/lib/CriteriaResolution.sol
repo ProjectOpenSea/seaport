@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
@@ -8,10 +8,12 @@ import {
     ConsiderationItem,
     OrderParameters,
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    MemoryPointer
 } from "./ConsiderationStructs.sol";
 
 import "./ConsiderationErrors.sol";
+import "./PointerLibraries.sol";
 
 import {
     CriteriaResolutionErrors
@@ -78,38 +80,45 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     advancedOrder.parameters
                 );
 
-                // Read component index from memory and place it on the stack.
-                uint256 componentIndex = criteriaResolver.index;
+                {
+                    // Get a pointer to the list of items to give to _updateCriteriaItem.
+                    // If the resolver refers to a consideration item, this array pointer will be
+                    // replaced with the consideration array.
+                    OfferItem[] memory items = orderParameters.offer;
 
-                // If the criteria resolver refers to an offer item...
-                if (criteriaResolver.side == Side.OFFER) {
-                    _updateCriteriaItem(
-                        orderParameters.offer,
-                        componentIndex,
-                        criteriaResolver,
-                        _revertOfferCriteriaResolverOutOfRange
-                    );
-                } else {
-                    // Otherwise, the resolver refers to a consideration item.
-                    ConsiderationItem[] memory consideration = (
-                        orderParameters.consideration
-                    );
+                    // Read component index from memory and place it on the stack.
+                    uint256 componentIndex = criteriaResolver.index;
 
-                    OfferItem[] memory castedConsideration;
-                    assembly {
-                        castedConsideration := consideration
+                    // Get the error selector for OfferCriteriaResolverOutOfRange
+                    uint256 errorSelector = OfferCriteriaResolverOutOfRange_error_selector;
+
+                    // If the resolver refers to a consideration item...
+                    if (criteriaResolver.side != Side.OFFER) {
+                        // Get the pointer to `orderParameters.consideration`
+                        // Using the array directly has a significant impact on the optimized compiler output.
+                        MemoryPointer considerationPtr = orderParameters
+                            .toMemoryPointer()
+                            .pptr(OrderParameters_consideration_head_offset);
+                        // replace the items pointer with a pointer to the considerations array
+                        assembly {
+                            items := considerationPtr
+                        }
+                        // replace the error selector with the selector for ConsiderationCriteriaResolverOutOfRange
+                        errorSelector = ConsiderationCriteriaResolverOutOfRange_error_selector;
                     }
 
-                    _updateCriteriaItem(
-                        castedConsideration,
-                        componentIndex,
-                        criteriaResolver,
-                        _revertConsiderationCriteriaResolverOutOfRange
-                    );
-
-                    assembly {
-                        consideration := castedConsideration
+                    // Ensure that the component index is in range.
+                    if (componentIndex >= items.length) {
+                        assembly {
+                            mstore(0, errorSelector)
+                            revert(Error_selector_offset, 4)
+                        }
                     }
+                    _updateCriteriaItem(
+                        items,
+                        componentIndex,
+                        criteriaResolver
+                    );
                 }
             }
 
@@ -159,17 +168,18 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         }
     }
 
+    /**
+     * @dev Internal pure function to update a criteria item.
+     *
+     * @param offer             The offer containing the item to update.
+     * @param componentIndex    The index of the item to update.
+     * @param criteriaResolver  The criteria resolver to use to update the item.
+     */
     function _updateCriteriaItem(
         OfferItem[] memory offer,
         uint256 componentIndex,
-        CriteriaResolver memory criteriaResolver,
-        function() internal pure errorHandler
+        CriteriaResolver memory criteriaResolver // function() internal pure errorHandler
     ) internal pure {
-        // Ensure that the component index is in range.
-        if (componentIndex >= offer.length) {
-            errorHandler();
-        }
-
         // Retrieve relevant item using the component index.
         OfferItem memory offerItem = offer[componentIndex];
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //Author: CupOJoseph
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,

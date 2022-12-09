@@ -1830,6 +1830,72 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
+    it("Reverts on mismatched offer and consideration components (branch coverage 1)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [getTestItem721(10, 1, 1, seller.address)];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
+    });
+    it("Reverts on mismatched offer and consideration components (branch coverage 2)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getTestItem721(10, 1, 1, seller.address, owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
+    });
     it("Reverts on mismatched offer components", async () => {
       // Seller mints nft
       const nftId = await mint721(seller);
@@ -6851,6 +6917,80 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
           value: ethAmount,
         });
+    });
+  });
+
+  describe(`Changing chainId`, function () {
+    // Note: Run this test last in this file as it hacks changing the hre
+    it("Reverts on changed chainId", async () => {
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      // Buyer mints ERC20
+      const tokenAmount = minRandom(100);
+      await mintAndApproveERC20(
+        buyer,
+        marketplaceContract.address,
+        tokenAmount
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getTestItem20(
+          tokenAmount.sub(100),
+          tokenAmount.sub(100),
+          seller.address
+        ),
+        getTestItem20(50, 50, zone.address),
+        getTestItem20(50, 50, owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        2, // ERC20ForERC721
+        order
+      );
+
+      // Change chainId in-flight to test branch coverage for _deriveDomainSeparator()
+      // (hacky way, until https://github.com/NomicFoundation/hardhat/issues/3074 is added)
+      const changeChainId = () => {
+        const recurse = (obj: any) => {
+          for (const [key, value] of Object.entries(obj ?? {})) {
+            if (key === "transactions") continue;
+            if (key === "chainId") {
+              obj[key] = typeof value === "bigint" ? BigInt(1) : 1;
+            } else if (typeof value === "object") {
+              recurse(obj[key]);
+            }
+          }
+        };
+        const hreProvider = hre.network.provider as any;
+        recurse(
+          hreProvider._wrapped._wrapped._wrapped?._node?._vm ??
+            // When running coverage, there was an additional layer of wrapping
+            hreProvider._wrapped._wrapped._wrapped._wrapped._node._vm
+        );
+      };
+      changeChainId();
+
+      const expectedRevertReason = getCustomRevertSelector("InvalidSigner()");
+
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .populateTransaction.fulfillBasicOrder(basicOrderParameters);
+      tx.chainId = 1;
+      const returnData = await provider.call(tx);
+      expect(returnData).to.equal(expectedRevertReason);
     });
   });
 });

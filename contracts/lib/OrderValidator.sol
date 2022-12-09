@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
@@ -25,6 +25,8 @@ import { ZoneInteraction } from "./ZoneInteraction.sol";
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
+
+import { MemoryPointer, getFreeMemoryPointer } from "./PointerLibraries.sol";
 
 /**
  * @title OrderValidator
@@ -128,13 +130,18 @@ contract OrderValidator is Executor, ZoneInteraction {
             return (bytes32(0), 0, 0);
         }
 
-        if (orderParameters.orderType == OrderType.CONTRACT) {
-            return
-                _getGeneratedOrder(
-                    orderParameters,
-                    advancedOrder.extraData,
-                    revertOnInvalid
-                );
+        // If the order is a contract order, return the generated order.
+        if (
+            orderParameters.orderType == OrderType.CONTRACT
+        ) {
+            // Return the generated order based on the order params and the 
+            // provided extra data. If revertOnInvalid is true, the function
+            // will revert if the input is invalid.
+            return _getGeneratedOrder(
+                orderParameters,
+                advancedOrder.extraData,
+                revertOnInvalid
+            );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -369,7 +376,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 orderParameters.offer = extendedOffer;
             }
 
-            // Loop through offer and ensure at least as much on returned offer
+            // Loop through each new offer and ensure the new amounts are at
+            // least as much as the respective original amounts.
             for (uint256 i = 0; i < originalOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
@@ -383,7 +391,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 );
             }
 
-            // add new offer items if there are more than original
+            // Add new offer items if there are more than original.
             for (uint256 i = originalOfferLength; i < newOfferLength; ++i) {
                 OfferItem memory originalOffer = orderParameters.offer[i];
                 SpentItem memory newOffer = offer[i];
@@ -514,8 +522,9 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
-        address offerer;
-        address zone;
+
+        // Accumulator for invariant in each loop
+        bool anyInvalidCaller;
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
@@ -526,33 +535,22 @@ contract OrderValidator is Executor, ZoneInteraction {
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
+                address offerer = order.offerer;
+                address zone = order.zone;
 
-                offerer = order.offerer;
-                zone = order.zone;
-
-                // Ensure caller is either offerer or zone of the order.
-                if (
-                    !_unmaskedAddressComparison(msg.sender, offerer) &&
-                    !_unmaskedAddressComparison(msg.sender, zone)
-                ) {
-                    _revertInvalidCanceller();
+                assembly {
+                    // If caller is neither offerer nor zone of order, ensure that is flagged.
+                    anyInvalidCaller := or(
+                        anyInvalidCaller,
+                        // !(caller == offerer || caller == zone)
+                        iszero(or(eq(caller(), offerer), eq(caller(), zone)))
+                    )
                 }
 
-                // Derive order hash using the order parameters and the counter.
                 bytes32 orderHash = _deriveOrderHash(
-                    OrderParameters(
-                        offerer,
-                        zone,
-                        order.offer,
-                        order.consideration,
-                        order.orderType,
-                        order.startTime,
-                        order.endTime,
-                        order.zoneHash,
-                        order.salt,
-                        order.conduitKey,
-                        order.consideration.length
-                    ),
+                    to_OrderParameters_ReturnType(
+                        abi_decode_OrderComponents_as_OrderParameters
+                    )(order.toCalldataPointer()),
                     order.counter
                 );
 
@@ -569,6 +567,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Increment counter inside body of loop for gas efficiency.
                 ++i;
             }
+        }
+
+        if (anyInvalidCaller) {
+            _revertInvalidCanceller();
         }
 
         // Return a boolean indicating that orders were successfully cancelled.
@@ -591,7 +593,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                   successfully validated.
      */
     function _validate(
-        Order[] calldata orders
+        Order[] memory orders
     ) internal returns (bool validated) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
@@ -609,10 +611,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
-                Order calldata order = orders[i];
+                Order memory order = orders[i];
 
                 // Retrieve the order parameters.
-                OrderParameters calldata orderParameters = order.parameters;
+                OrderParameters memory orderParameters = order.parameters;
 
                 // Skip contract orders.
                 if (orderParameters.orderType == OrderType.CONTRACT) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
@@ -48,6 +48,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     function execute(
         ConduitTransfer[] calldata transfers
     ) external override returns (bytes4 magicValue) {
+        // Ensure that the caller is an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
         }
@@ -75,6 +76,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
+        // Ensure that the caller is an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
         }
@@ -112,6 +114,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
+        // Ensure that the caller is an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
         }
@@ -140,6 +143,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      * @param isOpen  The status of the channel (either open or closed).
      */
     function updateChannel(address channel, bool isOpen) external override {
+        // Ensure that the caller is the controller.
         if (msg.sender != _controller) {
             revert InvalidController();
         }
@@ -149,8 +153,10 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             revert ChannelStatusAlreadySet(channel, isOpen);
         }
 
+        // Update the channel status.
         _channels[channel] = isOpen;
 
+        // Emit an event indicating that the channel status was updated.
         emit ChannelUpdated(channel, isOpen);
     }
 
