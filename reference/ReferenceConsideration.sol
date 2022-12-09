@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     ConsiderationInterface
@@ -85,7 +85,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (bool fulfilled)
     {
         // Validate and fulfill the basic order.
@@ -118,7 +118,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -176,13 +176,7 @@ contract ReferenceConsideration is
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
-    )
-        external
-        payable
-        override
-        nonReentrantAndNotEntered
-        returns (bool fulfilled)
-    {
+    ) external payable override nonReentrant returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -245,7 +239,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
@@ -345,7 +339,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
@@ -399,7 +393,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (Execution[] memory executions)
     {
         // Convert to advanced, validate, and match orders using fulfillments.
@@ -455,7 +449,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrantAndNotEntered
+        nonReentrant
         returns (Execution[] memory executions)
     {
         // Validate and match the advanced orders using supplied fulfillments.
