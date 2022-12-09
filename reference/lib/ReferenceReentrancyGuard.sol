@@ -43,4 +43,18 @@ contract ReferenceReentrancyGuard is ReentrancyErrors {
         }
         _;
     }
+
+    /**
+     * @dev Modifier to set the reentrancy guard sentinel value for the duration
+     *      of the call, and check that the sentinel value for the reentrancy guard
+     *      is not currently set by a previous call.
+     */
+    modifier nonReentrantAndNotEntered() {
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+        _reentrancyGuard = _ENTERED;
+        _;
+        _reentrancyGuard = _NOT_ENTERED;
+    }
 }
