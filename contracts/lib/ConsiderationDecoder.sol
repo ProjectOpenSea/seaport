@@ -60,38 +60,6 @@ contract ConsiderationDecoder {
     uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
     uint256 constant OrderParameters_counter_offset = 0x0140;
 
-    function abi_decode_dyn_array_AdditionalRecipient(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
-        assembly {
-            let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
-            mPtrLength := mload(0x40)
-            mstore(mPtrLength, arrLength)
-            let mPtrHead := add(mPtrLength, 32)
-            let mPtrTail := add(mPtrHead, mul(arrLength, 0x20))
-            let mPtrTailNext := mPtrTail
-            calldatacopy(
-                mPtrTail,
-                add(cdPtrLength, 0x20),
-                mul(arrLength, AdditionalRecipient_mem_tail_size)
-            )
-            let mPtrHeadNext := mPtrHead
-            for {
-
-            } lt(mPtrHeadNext, mPtrTail) {
-
-            } {
-                mstore(mPtrHeadNext, mPtrTailNext)
-                mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(
-                    mPtrTailNext,
-                    AdditionalRecipient_mem_tail_size
-                )
-            }
-            mstore(0x40, mPtrTailNext)
-        }
-    }
-
     function abi_decode_bytes(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
