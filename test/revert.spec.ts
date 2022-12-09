@@ -6701,57 +6701,197 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       }
     });
 
-    // it("Reverts on a reentrant call to cancel", async () => {
-    //   // Seller mints nft
-    //   const nftId = await mintAndApprove721(
-    //     seller,
-    //     marketplaceContract.address
-    //   );
+    it("Reverts on a reentrant call to cancel", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
 
-    //   const offer = [getTestItem721(nftId)];
+      const offer = [getTestItem721(nftId)];
 
-    //   const consideration = [
-    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), zone.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), owner.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
-    //   ];
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
 
-    //   const { orderComponents, value } = await createOrder(
-    //     seller,
-    //     zone,
-    //     offer,
-    //     consideration,
-    //     0 // FULL_OPEN
-    //   );
+      const { order, orderComponents, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
 
-    //   const callData = marketplaceContract.interface.encodeFunctionData(
-    //     "cancel",
-    //     [[orderComponents]]
-    //   );
-    //   const tx = await reenterer.prepare(
-    //     marketplaceContract.address,
-    //     value,
-    //     callData
-    //   );
-    //   await tx.wait();
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-    //   if (!process.env.REFERENCE) {
-    //     await expect(
-    //       marketplaceContract.connect(seller).cancel([orderComponents])
-    //     ).to.be.revertedWithCustomError(
-    //       marketplaceContract,
-    //       "NoReentrantCalls"
-    //     );
-    //   } else {
-    //     await expect(
-    //       marketplaceContract.connect(seller).cancel([orderComponents])
-    //     ).to.be.revertedWithCustomError(
-    //       marketplaceContract,
-    //       "NoReentrantCalls"
-    //     );
-    //   }
-    // });
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "cancel",
+        [[orderComponents]]
+      );
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to validate", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "validate",
+        [[order]]
+      );
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth,
+        // which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to incrementCounter", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData =
+        marketplaceContract.interface.encodeFunctionData("incrementCounter");
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth,
+        // which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
   });
 
   describe("ETH offer items", async () => {
