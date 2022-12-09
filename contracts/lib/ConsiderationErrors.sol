@@ -156,12 +156,15 @@ function _revertInvalidConduit(bytes32 conduitKey, address conduit) pure {
 /**
  * @dev Reverts the current transaction with an "InvalidERC721TransferAmount"
  *      error message.
+ *
+ * @param amount The invalid amount.
  */
-function _revertInvalidERC721TransferAmount() pure {
+function _revertInvalidERC721TransferAmount(uint256 amount) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, InvalidERC721TransferAmount_error_selector)
-        // revert(abi.encodeWithSignature("InvalidERC721TransferAmount()"))
+        mstore(InvalidERC721TransferAmount_error_amount_ptr, amount)
+        // revert(abi.encodeWithSignature("InvalidERC721TransferAmount(uint256)", amount))
         revert(Error_selector_offset, InvalidERC721TransferAmount_error_length)
     }
 }

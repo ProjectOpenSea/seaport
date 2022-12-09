@@ -148,7 +148,6 @@ contract ReferenceVerifiers is
         // Create an array of bytes32 to hold the proof elements.
         bytes32[] memory proofElements = new bytes32[](7);
 
-        
         // Iterate over each proof element.
         for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
             // Compute the starting index for the current proof element.

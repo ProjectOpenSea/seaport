@@ -3774,10 +3774,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer (basic)", async () => {
       // Seller mints nft
@@ -3815,10 +3817,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
       const nftId = await mintAndApprove721(seller, conduitOne.address, 0);
@@ -3850,10 +3854,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
   });
 

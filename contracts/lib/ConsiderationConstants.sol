@@ -584,14 +584,16 @@ uint256 constant BadContractSignature_error_selector = 0x4f7fb80d;
 uint256 constant BadContractSignature_error_length = 0x04;
 
 /*
- *  error InvalidERC721TransferAmount()
+ *  error InvalidERC721TransferAmount(uint256 amount)
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: amount
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant InvalidERC721TransferAmount_error_selector = 0xefcc00b1;
-uint256 constant InvalidERC721TransferAmount_error_length = 0x04;
+uint256 constant InvalidERC721TransferAmount_error_selector = 0x69f95827;
+uint256 constant InvalidERC721TransferAmount_error_amount_ptr = 0x20;
+uint256 constant InvalidERC721TransferAmount_error_length = 0x24;
 
 /*
  *  error MissingItemAmount()

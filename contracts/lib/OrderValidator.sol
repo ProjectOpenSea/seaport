@@ -131,17 +131,16 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // If the order is a contract order, return the generated order.
-        if (
-            orderParameters.orderType == OrderType.CONTRACT
-        ) {
-            // Return the generated order based on the order params and the 
+        if (orderParameters.orderType == OrderType.CONTRACT) {
+            // Return the generated order based on the order params and the
             // provided extra data. If revertOnInvalid is true, the function
             // will revert if the input is invalid.
-            return _getGeneratedOrder(
-                orderParameters,
-                advancedOrder.extraData,
-                revertOnInvalid
-            );
+            return
+                _getGeneratedOrder(
+                    orderParameters,
+                    advancedOrder.extraData,
+                    revertOnInvalid
+                );
         }
 
         // Read numerator and denominator from memory and place on the stack.

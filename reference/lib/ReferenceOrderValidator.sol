@@ -298,8 +298,8 @@ contract ReferenceOrderValidator is
                 originalConsiderationItems,
                 context
             )
-        //  If the call succeeds, return the offer and consideration items.
         returns (
+            //  If the call succeeds, return the offer and consideration items.
             SpentItem[] memory returnedOffer,
             ReceivedItem[] memory ReturnedConsideration
         ) {
@@ -685,7 +685,7 @@ contract ReferenceOrderValidator is
         // If we should not revert on invalid input...
         if (!revertOnInvalid) {
             // Return the contract order hash and zero values for the numerator
-            // and denominator. 
+            // and denominator.
             return (contractOrderHash, 0, 0);
         }
 
