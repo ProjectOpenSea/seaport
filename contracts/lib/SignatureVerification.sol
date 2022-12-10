@@ -23,14 +23,16 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      *      is not 64 or 65 bytes or if the recovered signer does not match the
      *      supplied signer.
      *
-     * @param signer    The signer for the order.
-     * @param digest    The digest to verify the signature against.
-     * @param signature A signature from the signer indicating that the order
-     *                  has been approved.
+     * @param signer         The signer for the order.
+     * @param digest         The digest to verify the signature against.
+     * @param originalDigest The original digest to verify signature against.
+     * @param signature      A signature from the signer indicating that the
+     *                       order has been approved.
      */
     function _assertValidSignature(
         address signer,
         bytes32 digest,
+        bytes32 originalDigest,
         bytes memory signature
     ) internal view {
         // Declare value for ecrecover equality or 1271 call success status.
@@ -179,8 +181,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Write the selector first, since it overlaps the digest.
                 mstore(selectorPtr, EIP1271_isValidSignature_selector)
 
-                // Next, write the digest.
-                mstore(digestPtr, digest)
+                // Next, write the original digest.
+                mstore(digestPtr, originalDigest)
 
                 // Call signer with `isValidSignature` to validate signature.
                 success := staticcall(

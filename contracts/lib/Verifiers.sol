@@ -78,15 +78,25 @@ contract Verifiers is Assertions, SignatureVerification {
             return;
         }
 
+        bytes32 domainSeparator = _domainSeparator();
+
+        // Derive original EIP-712 digest using domain separator and order hash.
+        bytes32 originalDigest = _deriveEIP712Digest(
+            domainSeparator,
+            orderHash
+        );
+
+        bytes32 digest;
         if (_isValidBulkOrderSize(signature)) {
+            // Rederive order hash and digest using bulk order proof.
             (orderHash) = _computeBulkOrderProof(signature, orderHash);
+            digest = _deriveEIP712Digest(domainSeparator, orderHash);
+        } else {
+            digest = originalDigest;
         }
 
-        // Derive EIP-712 digest using the domain separator and the order hash.
-        bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
-
         // Ensure that the signature for the digest is valid for the offerer.
-        _assertValidSignature(offerer, digest, signature);
+        _assertValidSignature(offerer, digest, originalDigest, signature);
     }
 
     /**
