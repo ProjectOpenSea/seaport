@@ -238,7 +238,15 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             // Revert with invalid v value.
                             // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
                             mstore(0, BadSignatureV_error_selector)
-                            mstore(BadSignatureV_error_v_ptr, v)
+                            mstore(
+                                BadSignatureV_error_v_ptr,
+                                byte(
+                                    0,
+                                    mload(
+                                        add(signature, ECDSA_signature_v_offset)
+                                    )
+                                )
+                            )
                             // revert(abi.encodeWithSignature("BadSignatureV(uint8)", v))
                             revert(0x1c, BadSignatureV_error_length)
                         }
