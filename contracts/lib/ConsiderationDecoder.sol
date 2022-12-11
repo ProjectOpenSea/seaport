@@ -10,8 +10,13 @@ import {
     Execution,
     Fulfillment,
     OrderComponents,
-    OrderParameters
+    OrderParameters,
+    SpentItem,
+    OfferItem,
+    ConsiderationItem,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
+import "./ConsiderationConstants.sol";
 import "./PointerLibraries.sol";
 
 contract ConsiderationDecoder {
@@ -20,31 +25,15 @@ contract ConsiderationDecoder {
     uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
     uint256 constant BasicOrderParameters_signature_offset = 0x0220;
 
-    uint256 constant AdditionalRecipient_mem_tail_size = 0x40;
-
-    uint256 constant AlmostTwoWords = 0x3f;
-    uint256 constant OnlyFullWordMask = 0xffffe0;
-
     uint256 constant OrderParameters_head_size = 0x0160;
-    uint256 constant OrderParameters_offer_offset = 0x40;
-    uint256 constant OrderParameters_consideration_offset = 0x60;
     uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
         0x0140
     );
 
-    uint256 constant OfferItem_mem_tail_size = 0xa0;
-
-    uint256 constant ConsiderationItem_mem_tail_size = 0xc0;
-
     uint256 constant Order_signature_offset = 0x20;
     uint256 constant Order_head_size = 0x40;
 
-    uint256 constant AdvancedOrder_head_size = 0xa0;
     uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
-    uint256 constant AdvancedOrder_numerator_offset = 0x20;
-    uint256 constant AdvancedOrder_denominator_offset = 0x40;
-    uint256 constant AdvancedOrder_signature_offset = 0x60;
-    uint256 constant AdvancedOrder_extraData_offset = 0x80;
 
     uint256 constant CriteriaResolver_head_size = 0xa0;
     uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
@@ -54,11 +43,7 @@ contract ConsiderationDecoder {
     uint256 constant Fulfillment_head_size = 0x40;
     uint256 constant Fulfillment_considerationComponents_offset = 0x20;
 
-    uint256 constant OrderComponents_head_size = 0x0160;
-    uint256 constant OrderComponents_offer_offset = 0x40;
-    uint256 constant OrderComponents_consideration_offset = 0x60;
     uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
-    uint256 constant OrderParameters_counter_offset = 0x0140;
 
     function abi_decode_bytes(
         CalldataPointer cdPtrLength
@@ -90,7 +75,7 @@ contract ConsiderationDecoder {
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, 0x20),
-                mul(arrLength, OfferItem_mem_tail_size)
+                mul(arrLength, OfferItem_size)
             )
             let mPtrHeadNext := mPtrHead
             for {
@@ -100,7 +85,7 @@ contract ConsiderationDecoder {
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
                 mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(mPtrTailNext, OfferItem_mem_tail_size)
+                mPtrTailNext := add(mPtrTailNext, OfferItem_size)
             }
             mstore(0x40, mPtrTailNext)
         }
@@ -119,7 +104,7 @@ contract ConsiderationDecoder {
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, 0x20),
-                mul(arrLength, ConsiderationItem_mem_tail_size)
+                mul(arrLength, ConsiderationItem_size)
             )
             let mPtrHeadNext := mPtrHead
             for {
@@ -131,7 +116,7 @@ contract ConsiderationDecoder {
                 mPtrHeadNext := add(mPtrHeadNext, 0x20)
                 mPtrTailNext := add(
                     mPtrTailNext,
-                    ConsiderationItem_mem_tail_size
+                    ConsiderationItem_size
                 )
             }
             mstore(0x40, mPtrTailNext)
@@ -143,14 +128,14 @@ contract ConsiderationDecoder {
         MemoryPointer mPtr
     ) internal pure {
         cdPtr.copy(mPtr, OrderParameters_head_size);
-        mPtr.offset(OrderParameters_offer_offset).write(
+        mPtr.offset(OrderParameters_offer_head_offset).write(
             abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_offset)
+                cdPtr.pptr(OrderParameters_offer_head_offset)
             )
         );
-        mPtr.offset(OrderParameters_consideration_offset).write(
+        mPtr.offset(OrderParameters_consideration_head_offset).write(
             abi_decode_dyn_array_ConsiderationItem(
-                cdPtr.pptr(OrderParameters_consideration_offset)
+                cdPtr.pptr(OrderParameters_consideration_head_offset)
             )
         );
     }
@@ -414,19 +399,21 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(OrderParameters_head_size);
         cdPtr.copy(mPtr, OrderComponents_OrderParameters_common_head_size);
-        mPtr.offset(OrderParameters_offer_offset).write(
+        mPtr.offset(OrderParameters_offer_head_offset).write(
             abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_offset)
+                cdPtr.pptr(OrderParameters_offer_head_offset)
             )
         );
         MemoryPointer consideration = abi_decode_dyn_array_ConsiderationItem(
-            cdPtr.pptr(OrderParameters_consideration_offset)
+            cdPtr.pptr(OrderParameters_consideration_head_offset)
         );
-        mPtr.offset(OrderParameters_consideration_offset).write(consideration);
+        mPtr.offset(OrderParameters_consideration_head_offset).write(
+            consideration
+        );
         // Write totalOriginalConsiderationItems
         mPtr
             .offset(OrderParameters_totalOriginalConsiderationItems_offset)
-            .write(consideration.read());
+            .write(consideration.readUint256());
     }
 
     function to_OrderParameters_ReturnType(
