@@ -114,10 +114,7 @@ contract ConsiderationDecoder {
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
                 mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(
-                    mPtrTailNext,
-                    ConsiderationItem_size
-                )
+                mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
             }
             mstore(0x40, mPtrTailNext)
         }
@@ -414,6 +411,159 @@ contract ConsiderationDecoder {
         mPtr
             .offset(OrderParameters_totalOriginalConsiderationItems_offset)
             .write(consideration.readUint256());
+    }
+
+    function abi_decode_generateOrder_returndata()
+        internal
+        pure
+        returns (MemoryPointer offer, MemoryPointer consideration)
+    {
+        assembly {
+            // First two words of calldata are the offsets to offer and consideration
+            // array lengths. Copy these to scratch space.
+            returndatacopy(0, 0, TwoWords)
+            let offsetOffer := mload(0)
+            let offsetConsideration := mload(0x20)
+
+            // Copy length of offer array to scratch space
+            returndatacopy(0, offsetOffer, 0x20)
+            let offerLength := mload(0)
+
+            // Copy length of consideration array to scratch space
+            returndatacopy(0x20, offsetConsideration, 0x20)
+            let considerationLength := mload(0x20)
+
+            {
+                // Calculate total size of offer and consideration arrays
+                let totalOfferSize := mul(SpentItem_size, offerLength)
+                let totalConsiderationSize := mul(
+                    ReceivedItem_size,
+                    considerationLength
+                )
+
+                // Add 4 words to total size to cover the offset and length fields of
+                // the two arrays
+                let totalSize := add(
+                    FourWords,
+                    add(totalOfferSize, totalConsiderationSize)
+                )
+                // Revert if returndatasize exceeds 65535 bytes or returndatasize
+                // is not equal to the calculated size.
+                if or(
+                    gt(or(offerLength, considerationLength), 0xffff),
+                    xor(totalSize, returndatasize())
+                ) {
+                    mstore(0, Panic_error_selector)
+                    mstore(Panic_error_code_ptr, Panic_resource)
+                    revert(0, Panic_error_length)
+                }
+            }
+
+            offer := copySpentItemsAsOfferItems(
+                add(offsetOffer, 0x20),
+                offerLength
+            )
+
+            consideration := copyReceivedItemsAsConsiderationItems(
+                add(offsetConsideration, 0x20),
+                considerationLength
+            )
+
+            function copySpentItemsAsOfferItems(rdPtrHead, length)
+                -> mPtrLength
+            {
+                mPtrLength := mload(FreeMemoryPointerSlot)
+                // allocate memory for array
+                mstore(
+                    FreeMemoryPointerSlot,
+                    add(
+                        mPtrLength,
+                        add(32, mul(length, add(OfferItem_size, 32)))
+                    )
+                )
+                // Write length
+                mstore(mPtrLength, length)
+
+                // Use offset from length to minimize stack depth
+                let headOffsetFromLength := 32
+
+                let headSizeWithLength := mul(add(1, length), 32)
+                let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+                for {
+
+                } lt(headOffsetFromLength, headSizeWithLength) {
+
+                } {
+                    mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
+                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
+                    // Copy amount to endAmount
+                    mstore(
+                        add(mPtrTailNext, Common_endAmount_offset),
+                        mload(add(mPtrTailNext, Common_amount_offset))
+                    )
+                    rdPtrHead := add(rdPtrHead, SpentItem_size)
+                    mPtrTailNext := add(mPtrTailNext, OfferItem_size)
+                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                }
+            }
+
+            function copyReceivedItemsAsConsiderationItems(rdPtrHead, length)
+                -> mPtrLength
+            {
+                mPtrLength := mload(FreeMemoryPointerSlot)
+                // allocate memory for array
+                mstore(
+                    FreeMemoryPointerSlot,
+                    add(
+                        mPtrLength,
+                        add(32, mul(length, add(ConsiderationItem_size, 32)))
+                    )
+                )
+                // Write length
+                mstore(mPtrLength, length)
+
+                // Use offset from length to minimize stack depth
+                let headOffsetFromLength := 32
+
+                let headSizeWithLength := mul(add(1, length), 32)
+                let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+                for {
+
+                } lt(headOffsetFromLength, headSizeWithLength) {
+
+                } {
+                    mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
+                    // Copy itemType, token, identifier and amount
+                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
+                    // Copy amount and recipient
+                    returndatacopy(
+                        add(mPtrTailNext, Common_endAmount_offset),
+                        add(rdPtrHead, Common_amount_offset),
+                        TwoWords
+                    )
+                    rdPtrHead := add(rdPtrHead, ReceivedItem_size)
+                    mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
+                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                }
+            }
+        }
+    }
+
+    function to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
+        function() internal pure returns (MemoryPointer, MemoryPointer) inFn
+    )
+        internal
+        pure
+        returns (
+            function()
+                internal
+                pure
+                returns (OfferItem[] memory, ConsiderationItem[] memory) outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
     }
 
     function to_OrderParameters_ReturnType(
