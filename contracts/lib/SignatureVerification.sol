@@ -196,7 +196,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     signer,
                     selectorPtr,
                     add(
-                        signatureLength,
+                        originalSignatureLength,
                         EIP1271_isValidSignature_calldata_baseLength
                     ),
                     0,
