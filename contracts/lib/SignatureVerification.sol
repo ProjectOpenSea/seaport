@@ -46,9 +46,6 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // Ensure that first word of scratch space is empty.
             mstore(0, 0)
 
-            // Declare value for v signature parameter.
-            let v
-
             // Get the length of the signature.
             let signatureLength := mload(signature)
 
@@ -83,7 +80,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     // signature is 65 bytes, this will be the real `v` value.
                     // If not, it will need to be modified - doing it this way
                     // saves an extra condition.
-                    v := byte(
+                    let v := byte(
                         0,
                         mload(add(signature, ECDSA_signature_v_offset))
                     )
@@ -228,7 +225,15 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                         // Check if v was invalid.
                         if iszero(
-                            byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
+                            byte(
+                                byte(
+                                    0,
+                                    mload(
+                                        add(signature, ECDSA_signature_v_offset)
+                                    )
+                                ),
+                                ECDSA_twentySeventhAndTwentyEighthBytesSet
+                            )
                         ) {
                             // Revert with invalid v value.
                             // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
