@@ -119,7 +119,7 @@ uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
-uint256 constant AdditionalRecipients_size = 0x40;
+uint256 constant AdditionalRecipient_size = 0x40;
 
 uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;

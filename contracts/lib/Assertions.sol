@@ -150,7 +150,7 @@ contract Assertions is
                                 BasicOrder_additionalRecipients_length_cdPtr
                             ),
                             // Each additional recipient has a length of 0x40.
-                            AdditionalRecipients_size
+                            AdditionalRecipient_size
                         )
                     )
                 )
