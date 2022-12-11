@@ -23,16 +23,19 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      *      is not 64 or 65 bytes or if the recovered signer does not match the
      *      supplied signer.
      *
-     * @param signer         The signer for the order.
-     * @param digest         The digest to verify the signature against.
-     * @param originalDigest The original digest to verify signature against.
-     * @param signature      A signature from the signer indicating that the
-     *                       order has been approved.
+     * @param signer                  The signer for the order.
+     * @param digest                  The digest to verify signature against.
+     * @param originalDigest          The original digest to verify signature
+     *                                against.
+     * @param originalSignatureLength The original signature length.
+     * @param signature               A signature from the signer indicating
+     *                                that the order has been approved.
      */
     function _assertValidSignature(
         address signer,
         bytes32 digest,
         bytes32 originalDigest,
+        uint256 originalSignatureLength,
         bytes memory signature
     ) internal view {
         // Declare value for ecrecover equality or 1271 call success status.
@@ -152,6 +155,9 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // If the signature was not verified with ecrecover, try EIP1271.
             if iszero(success) {
+                // Reset the original signature length.
+                mstore(signature, originalSignatureLength)
+
                 // Temporarily overwrite the word before the signature length
                 // and use it as the head of the signature input to
                 // `isValidSignature`, which has a value of 64.

@@ -86,6 +86,8 @@ contract Verifiers is Assertions, SignatureVerification {
             orderHash
         );
 
+        uint256 originalSignatureLength = signature.length;
+
         bytes32 digest;
         if (_isValidBulkOrderSize(signature)) {
             // Rederive order hash and digest using bulk order proof.
@@ -96,7 +98,13 @@ contract Verifiers is Assertions, SignatureVerification {
         }
 
         // Ensure that the signature for the digest is valid for the offerer.
-        _assertValidSignature(offerer, digest, originalDigest, signature);
+        _assertValidSignature(
+            offerer,
+            digest,
+            originalDigest,
+            originalSignatureLength,
+            signature
+        );
     }
 
     /**
