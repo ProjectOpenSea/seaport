@@ -53,7 +53,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
     ) internal {
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
-            // TODO: optimize (copy relevant arguments directly for calldata)
             bytes32[] memory orderHashes = new bytes32[](1);
             orderHashes[0] = orderHash;
 
@@ -94,7 +93,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
                 _call(IdentityPrecompile, offerDataOffset, size);
             }
 
-            // TODO: optimize (conversion is temporary to get it to compile)
             bytes memory callData = _generateValidateCallData(
                 orderHash,
                 parameters.offerer,
@@ -157,7 +155,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         if (
             _isRestrictedAndCallerNotZone(parameters.orderType, parameters.zone)
         ) {
-            // TODO: optimize (conversion is temporary to get it to compile)
             callData = _generateValidateCallData(
                 orderHash,
                 parameters.offerer,
@@ -290,7 +287,6 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         uint256 endTime,
         bytes32 zoneHash
     ) internal view returns (bytes memory) {
-        // TODO: optimize (conversion is temporary to get it to compile)
         return
             abi.encodeWithSelector(
                 ZoneInterface.validateOrder.selector,
