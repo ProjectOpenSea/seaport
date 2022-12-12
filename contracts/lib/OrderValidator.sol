@@ -432,32 +432,28 @@ contract OrderValidator is Executor, ZoneInteraction {
             ConsiderationItem[] memory originalConsiderationArray = (
                 orderParameters.consideration
             );
-            uint256 originalConsiderationLength = originalConsiderationArray
-                .length;
             uint256 newConsiderationLength = consideration.length;
 
-            if (originalConsiderationLength != 0) {
-                // Consideration items that are not explicitly specified cannot be
-                // created. Note that this constraint could be relaxed if specified
-                // consideration items can be split.
-                if (newConsiderationLength > originalConsiderationLength) {
-                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
-                }
-                // Loop through returned consideration, ensure existing not exceeded
-                for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                    ConsiderationItem
-                        memory originalItem = originalConsiderationArray[i];
-                    ConsiderationItem memory newItem = consideration[i];
-
-                    errorBuffer |= _cast(
-                        newItem.startAmount > originalItem.startAmount
-                    );
-                    errorBuffer |= _compareItems(
-                        originalItem.toMemoryPointer(),
-                        newItem.toMemoryPointer()
-                    );
-                }
+            // New consideration items cannot be created.
+            if (newConsiderationLength > originalConsiderationArray.length) {
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
+
+            // Loop through returned consideration, ensure existing not exceeded
+            for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                ConsiderationItem
+                    memory originalItem = originalConsiderationArray[i];
+                ConsiderationItem memory newItem = consideration[i];
+
+                errorBuffer |= _cast(
+                    newItem.startAmount > originalItem.startAmount
+                );
+                errorBuffer |= _compareItems(
+                    originalItem.toMemoryPointer(),
+                    newItem.toMemoryPointer()
+                );
+            }
+
             orderParameters.consideration = consideration;
         }
 
