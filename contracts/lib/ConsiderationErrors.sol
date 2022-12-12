@@ -371,7 +371,7 @@ function _revertOrderAlreadyFilled(bytes32 orderHash) pure {
  * @param side The side of the criteria that is missing (0 for offer, 1 for consideration).
  *
  */
-function _revertOrderCriteriaResolverOutOfRange(uint8 side) pure {
+function _revertOrderCriteriaResolverOutOfRange(Side side) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, OrderCriteriaResolverOutOfRange_error_selector)

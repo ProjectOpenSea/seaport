@@ -65,7 +65,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Ensure that the order index is in range.
                 if (orderIndex >= totalAdvancedOrders) {
                     _revertOrderCriteriaResolverOutOfRange(
-                        uint8(criteriaResolver.side)
+                        criteriaResolver.side
                     );
                 }
 
