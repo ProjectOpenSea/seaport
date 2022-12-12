@@ -2527,63 +2527,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         "InvalidFulfillmentComponentData"
       );
     });
-    // it("Reverts on fulfillment component with invalid identifier on matching offer", async () => {
-    //   // Seller mints nft
-    //   const nftId = await mintAndApprove721(
-    //     seller,
-    //     marketplaceContract.address
-    //   );
-
-    //   const offer = [getTestItem721(nftId)];
-
-    //   const consideration = [
-    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), zone.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), owner.address),
-    //   ];
-
-    //   const { order, value } = await createOrder(
-    //     seller,
-    //     zone,
-    //     offer,
-    //     consideration,
-    //     0 // FULL_OPEN
-    //   );
-
-    //   console.log("order.parameters", order.parameters);
-
-    //   const offerInvalid = [...order.parameters.offer];
-
-    //   offerInvalid[0].identifierOrCriteria = toBN(329);
-
-    //   const {order: invalidOrder} = await createOrder(seller, zone, offerInvalid, consideration, 0);
-
-    //   console.log("2 order.parameters", order.parameters);
-
-    //   const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, invalidOrder);
-
-    //   console.log("mirrorOrder.parameters", mirrorOrder.parameters);
-
-    //   const fulfillments = [
-    //     [[[0, 0]], [[1, 0]]],
-    //     [[[1, 0]], [[0, 0]]],
-    //     [[[1, 0]], [[0, 1]]],
-    //     [[[1, 0]], [[0, 2]]],
-    //   ].map(([offerArr, considerationArr]) =>
-    //     toFulfillment(offerArr, considerationArr)
-    //   );
-
-    //   await expect(
-    //     marketplaceContract
-    //       .connect(buyer)
-    //       .matchOrders([order, mirrorOrder], fulfillments, {
-    //         value,
-    //       })
-    //   ).to.be.revertedWithCustomError(
-    //     marketplaceContract,
-    //     "InvalidFulfillmentComponentData"
-    //   );
-    // });
     it("Reverts on fulfillment component with out-of-range initial order on fulfillAvailableOrders", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
