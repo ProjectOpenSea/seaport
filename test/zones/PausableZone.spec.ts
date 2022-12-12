@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
-import { merkleTree } from "./utils/criteria";
+import { merkleTree } from "../utils/criteria";
 import {
   buildResolver,
   getItemETH,
@@ -11,18 +11,18 @@ import {
   toBN,
   toFulfillment,
   toKey,
-} from "./utils/encoding";
-import { decodeEvents } from "./utils/events";
-import { faucet } from "./utils/faucet";
-import { seaportFixture } from "./utils/fixtures";
-import { VERSION } from "./utils/helpers";
+} from "../utils/encoding";
+import { decodeEvents } from "../utils/events";
+import { faucet } from "../utils/faucet";
+import { seaportFixture } from "../utils/fixtures";
+import { VERSION } from "../utils/helpers";
 
 import type {
   ConsiderationInterface,
   TestERC721,
   TestZone,
-} from "../typechain-types";
-import type { SeaportFixtures } from "./utils/fixtures";
+} from "../../typechain-types";
+import type { SeaportFixtures } from "../utils/fixtures";
 import type { Contract, Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;

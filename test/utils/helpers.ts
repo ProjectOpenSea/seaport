@@ -51,3 +51,26 @@ export const simulateAdvancedMatchOrders = async (
         value,
       }
     );
+
+/**
+ * Change chainId in-flight to test branch coverage for _deriveDomainSeparator()
+ * (hacky way, until https://github.com/NomicFoundation/hardhat/issues/3074 is added)
+ */
+export const changeChainId = (hre: any) => {
+  const recurse = (obj: any) => {
+    for (const [key, value] of Object.entries(obj ?? {})) {
+      if (key === "transactions") continue;
+      if (key === "chainId") {
+        obj[key] = typeof value === "bigint" ? BigInt(1) : 1;
+      } else if (typeof value === "object") {
+        recurse(obj[key]);
+      }
+    }
+  };
+  const hreProvider = hre.network.provider;
+  recurse(
+    hreProvider._wrapped._wrapped._wrapped?._node?._vm ??
+      // When running coverage, there was an additional layer of wrapping
+      hreProvider._wrapped._wrapped._wrapped._wrapped._node._vm
+  );
+};

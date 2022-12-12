@@ -21,10 +21,7 @@ module.exports = {
   rules: {
     "@typescript-eslint/consistent-type-imports": "error",
     "@typescript-eslint/prefer-nullish-coalescing": "error",
-    camelcase: [
-      "error",
-      { allow: ["Conduit__factory", "EIP1271Wallet__factory"] },
-    ],
+    camelcase: ["error", { allow: ["(.*)__factory"] }],
     "import/order": [
       "error",
       {
