@@ -170,7 +170,7 @@ contract ReferenceSignatureVerifierLogic is
             alice,
             digest,
             digest,
-            signature.length,
+            signature,
             signature
         );
     }

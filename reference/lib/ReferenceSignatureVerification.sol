@@ -23,14 +23,18 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
      *
-     * @param signer    The signer for the order.
-     * @param digest    The digest to verify the signature against.
-     * @param signature A signature from the signer indicating that the order
-     *                  has been approved.
+     * @param signer            The signer for the order.
+     * @param digest            The digest to verify signature against.
+     * @param originalDigest    The original digest to verify signature against.
+     * @param originalSignature The original signature.
+     * @param signature         A signature from the signer indicating that the
+     *                          order has been approved.
      */
     function _assertValidSignature(
         address signer,
         bytes32 digest,
+        bytes32 originalDigest,
+        bytes memory originalSignature,
         bytes memory signature
     ) internal view {
         // Declare r, s, and v signature parameters.
@@ -40,7 +44,11 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
 
         if (signer.code.length > 0) {
             // If signer is a contract, try verification via EIP-1271.
-            _assertValidEIP1271Signature(signer, digest, signature);
+            _assertValidEIP1271Signature(
+                signer,
+                originalDigest,
+                originalSignature
+            );
 
             // Return early if the ERC-1271 signature check succeeded.
             return;

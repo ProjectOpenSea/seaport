@@ -84,20 +84,37 @@ contract ReferenceVerifiers is
             return;
         }
 
-        // If the signature length is 64 or 65 bytes, compute the bulk order
-        // proof.
+        bytes32 domainSeparator = _domainSeparator();
+
+        // Derive original EIP-712 digest using domain separator and order hash.
+        bytes32 originalDigest = _deriveEIP712Digest(
+            domainSeparator,
+            orderHash
+        );
+
+        uint256 originalSignatureLength = signature.length;
+
+        bytes32 digest;
+        bytes memory bulkOrderSignature;
         if (_isValidBulkOrderSize(signature)) {
-            (orderHash, signature) = _computeBulkOrderProof(
+            // Rederive order hash and digest using bulk order proof.
+            (orderHash, bulkOrderSignature) = _computeBulkOrderProof(
                 signature,
                 orderHash
             );
+            digest = _deriveEIP712Digest(domainSeparator, orderHash);
+        } else {
+            digest = originalDigest;
         }
 
-        // Derive EIP-712 digest using the domain separator and the order hash.
-        bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
-
         // Ensure that the signature for the digest is valid for the offerer.
-        _assertValidSignature(offerer, digest, signature);
+        _assertValidSignature(
+            offerer,
+            digest,
+            originalDigest,
+            signature,
+            bulkOrderSignature
+        );
     }
 
     /**
@@ -148,7 +165,6 @@ contract ReferenceVerifiers is
         // Create an array of bytes32 to hold the proof elements.
         bytes32[] memory proofElements = new bytes32[](7);
 
-        
         // Iterate over each proof element.
         for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
             // Compute the starting index for the current proof element.
@@ -191,7 +207,7 @@ contract ReferenceVerifiers is
         bulkOrderHash = keccak256(abi.encodePacked(_BULK_ORDER_TYPEHASH, root));
 
         // Return the signature.
-        proofAndSignature = signature;
+        return (bulkOrderHash, signature);
     }
 
     /**
