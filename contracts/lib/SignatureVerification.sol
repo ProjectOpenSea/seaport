@@ -172,20 +172,25 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Cache the value currently stored at the selector pointer.
                 let cachedWordOverwrittenBySelector := mload(selectorPtr)
 
-                // Get pointer to use for `digest` input to `isValidSignature`.
-                let digestPtr := sub(
-                    signature,
-                    EIP1271_isValidSignature_digest_negativeOffset
-                )
-
                 // Cache the value currently stored at the digest pointer.
-                let cachedWordOverwrittenByDigest := mload(digestPtr)
+                let cachedWordOverwrittenByDigest := mload(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    )
+                )
 
                 // Write the selector first, since it overlaps the digest.
                 mstore(selectorPtr, EIP1271_isValidSignature_selector)
 
                 // Next, write the original digest.
-                mstore(digestPtr, originalDigest)
+                mstore(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    ),
+                    originalDigest
+                )
 
                 // Call signer with `isValidSignature` to validate signature.
                 success := staticcall(
@@ -263,7 +268,13 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // signature head.
                 mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
                 mstore(selectorPtr, cachedWordOverwrittenBySelector)
-                mstore(digestPtr, cachedWordOverwrittenByDigest)
+                mstore(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    ),
+                    cachedWordOverwrittenByDigest
+                )
             }
         }
 
