@@ -61,12 +61,17 @@ uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
 uint256 constant Common_endAmount_offset = 0x80;
 
+uint256 constant SpentItem_size = 0x80;
+
+uint256 constant OfferItem_size = 0xa0;
+
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
 
 uint256 constant ReceivedItem_CommonParams_size = 0x60;
 
+uint256 constant ConsiderationItem_size = 0xc0;
 uint256 constant ConsiderationItem_recipient_offset = 0xa0;
 // Store the same constant in an abbreviated format for a line length fix.
 uint256 constant ConsiderItem_recipient_offset = 0xa0;
@@ -75,6 +80,7 @@ uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
 uint256 constant Panic_arithmetic = 0x11;
+uint256 constant Panic_resource = 0x41;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
@@ -83,7 +89,11 @@ uint256 constant OrderParameters_counter_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
+uint256 constant AdvancedOrder_head_size = 0xa0;
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
+uint256 constant AdvancedOrder_denominator_offset = 0x40;
+uint256 constant AdvancedOrder_signature_offset = 0x60;
+uint256 constant AdvancedOrder_extraData_offset = 0x80;
 
 uint256 constant AlmostOneWord = 0x1f;
 uint256 constant OneWord = 0x20;
@@ -91,6 +101,9 @@ uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 uint256 constant FourWords = 0x80;
 uint256 constant FiveWords = 0xa0;
+
+uint256 constant AlmostTwoWords = 0x3f;
+uint256 constant OnlyFullWordMask = 0xffffe0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
@@ -106,7 +119,7 @@ uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
-uint256 constant AdditionalRecipients_size = 0x40;
+uint256 constant AdditionalRecipient_size = 0x40;
 
 uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
@@ -406,14 +419,16 @@ uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = 0x9
 uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
 
 /*
- *  error MismatchedFulfillmentOfferAndConsiderationComponents()
+ *  error MismatchedFulfillmentOfferAndConsiderationComponents(uint256 fulfillmentIndex)
  *    - Defined in FulfillmentApplicationErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: fulfillmentIndex
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0x09cfb455;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x04;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0xbced929d;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr = 0x20;
+uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x24;
 
 /*
  *  error InvalidFulfillmentComponentData()
@@ -436,34 +451,44 @@ uint256 constant InexactFraction_error_selector = 0xc63cf089;
 uint256 constant InexactFraction_error_length = 0x04;
 
 /*
- *  error OrderCriteriaResolverOutOfRange()
+ *  error OrderCriteriaResolverOutOfRange(uint8 side)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: side
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant OrderCriteriaResolverOutOfRange_error_selector = 0x869586c4;
-uint256 constant OrderCriteriaResolverOutOfRange_error_length = 0x04;
+uint256 constant OrderCriteriaResolverOutOfRange_error_selector = 0x133c37c6;
+uint256 constant OrderCriteriaResolverOutOfRange_error_side_ptr = 0x20;
+uint256 constant OrderCriteriaResolverOutOfRange_error_length = 0x24;
 
 /*
- *  error UnresolvedOfferCriteria()
+ *  error UnresolvedOfferCriteria(uint256 orderIndex, uint256 offerIndex)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: orderIndex
+ *    - 0x40: offerIndex
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant UnresolvedOfferCriteria_error_selector = 0xa6cfc673;
-uint256 constant UnresolvedOfferCriteria_error_length = 0x04;
+uint256 constant UnresolvedOfferCriteria_error_selector = 0xd6929332;
+uint256 constant UnresolvedOfferCriteria_error_orderIndex_ptr = 0x20;
+uint256 constant UnresolvedOfferCriteria_error_offerIndex_ptr = 0x40;
+uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
 
 /*
- *  error UnresolvedConsiderationCriteria()
+ *  error UnresolvedConsiderationCriteria(uint256 orderIndex, uint256 considerationIndex)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: orderIndex
+ *    - 0x40: considerationIndex
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xff75a340;
-uint256 constant UnresolvedConsiderationCriteria_error_length = 0x04;
+uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xa8930e9a;
+uint256 constant UnresolvedConsiderationCriteria_error_orderIndex_ptr = 0x20;
+uint256 constant UnresolvedConsiderationCriteria_error_considerationIndex_ptr = 0x40;
+uint256 constant UnresolvedConsiderationCriteria_error_length = 0x44;
 
 /*
  *  error OfferCriteriaResolverOutOfRange()
@@ -572,14 +597,16 @@ uint256 constant BadContractSignature_error_selector = 0x4f7fb80d;
 uint256 constant BadContractSignature_error_length = 0x04;
 
 /*
- *  error InvalidERC721TransferAmount()
+ *  error InvalidERC721TransferAmount(uint256 amount)
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: amount
+ * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant InvalidERC721TransferAmount_error_selector = 0xefcc00b1;
-uint256 constant InvalidERC721TransferAmount_error_length = 0x04;
+uint256 constant InvalidERC721TransferAmount_error_selector = 0x69f95827;
+uint256 constant InvalidERC721TransferAmount_error_amount_ptr = 0x20;
+uint256 constant InvalidERC721TransferAmount_error_length = 0x24;
 
 /*
  *  error MissingItemAmount()
@@ -664,14 +691,18 @@ uint256 constant OrderAlreadyFilled_error_orderHash_ptr = 0x20;
 uint256 constant OrderAlreadyFilled_error_length = 0x24;
 
 /*
- *  error InvalidTime()
+ *  error InvalidTime(uint256 startTime, uint256 endTime)
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
+ *    - 0x20: startTime
+ *    - 0x40: endTime
+ * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant InvalidTime_error_selector = 0x6f7eac26;
-uint256 constant InvalidTime_error_length = 0x04;
+uint256 constant InvalidTime_error_selector = 0x21ccfeb7;
+uint256 constant InvalidTime_error_startTime_ptr = 0x20;
+uint256 constant InvalidTime_error_endTime_ptr = 0x40;
+uint256 constant InvalidTime_error_length = 0x44;
 
 /*
  *  error InvalidConduit(bytes32 conduitKey, address conduit)
@@ -861,3 +892,21 @@ uint256 constant ConsiderationLengthExceedsTotalOriginal_error_length = 0x04;
 uint256 constant Panic_error_selector = 0x4e487b71;
 uint256 constant Panic_error_code_ptr = 0x20;
 uint256 constant Panic_error_length = 0x24;
+
+/**
+ * @dev Selector and offsets for generateOrder
+ *
+ * function generateOrder(
+ *   address fulfiller,
+ *   SpentItem[] calldata minimumReceived,
+ *   SpentItem[] calldata maximumSpent,
+ *   bytes calldata context
+ * )
+ */
+uint256 constant generateOrder_selector = 0x98919765;
+uint256 constant generateOrder_selector_offset = 0x1c;
+uint256 constant generateOrder_head_offset = 0x04;
+uint256 constant generateOrder_minimumReceived_head_offset = 0x20;
+uint256 constant generateOrder_maximumSpent_head_offset = 0x40;
+uint256 constant generateOrder_context_head_offset = 0x60;
+uint256 constant generateOrder_base_tail_offset = 0x80;

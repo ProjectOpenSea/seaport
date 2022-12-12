@@ -10,8 +10,11 @@ type MemoryPointer is uint256;
 using CalldataPointerLib for CalldataPointer global;
 using MemoryPointerLib for MemoryPointer global;
 using ReturndataPointerLib for ReturndataPointer global;
+
 using CalldataReaders for CalldataPointer global;
 using ReturndataReaders for ReturndataPointer global;
+using MemoryReaders for MemoryPointer global;
+using MemoryWriters for MemoryPointer global;
 
 CalldataPointer constant CalldataStart = CalldataPointer.wrap(0x04);
 MemoryPointer constant FreeMemoryPPtr = MemoryPointer.wrap(0x40);
@@ -28,7 +31,7 @@ function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
 }
 
 function getFreeMemoryPointer() pure returns (MemoryPointer mPtr) {
-    mPtr = MemoryPointer.wrap(FreeMemoryPPtr.read());
+    mPtr = FreeMemoryPPtr.readMemoryPointer();
 }
 
 function setFreeMemoryPointer(MemoryPointer mPtr) pure {
@@ -223,26 +226,6 @@ library MemoryPointerLib {
         }
     }
 
-    function read(MemoryPointer mPtr) internal pure returns (uint256 value) {
-        assembly {
-            value := mload(mPtr)
-        }
-    }
-
-    /// @dev Writes `value` to memory at `mPtr`.
-    function write(MemoryPointer mPtr, uint256 value) internal pure {
-        assembly {
-            mstore(mPtr, value)
-        }
-    }
-
-    /// @dev Writes `valuePtr` to memory at `mPtr`.
-    function write(MemoryPointer mPtr, MemoryPointer valuePtr) internal pure {
-        assembly {
-            mstore(mPtr, valuePtr)
-        }
-    }
-
     /// @dev Returns the memory pointer one word after `mPtr`.
     function next(
         MemoryPointer mPtr
@@ -269,7 +252,7 @@ library MemoryPointerLib {
         MemoryPointer mPtr,
         uint256 headOffset
     ) internal pure returns (MemoryPointer mPtrChild) {
-        mPtrChild = MemoryPointer.wrap(mPtr.offset(headOffset).read());
+        mPtrChild = mPtr.offset(headOffset).readMemoryPointer();
     }
 
     /// @dev Resolves a pointer pointer stored at `mPtr` to a memory pointer.
@@ -278,7 +261,7 @@ library MemoryPointerLib {
     function pptr(
         MemoryPointer mPtr
     ) internal pure returns (MemoryPointer mPtrChild) {
-        mPtrChild = MemoryPointer.wrap(mPtr.read());
+        mPtrChild = mPtr.readMemoryPointer();
     }
 
     function copy(
@@ -2178,6 +2161,923 @@ library ReturndataReaders {
         assembly {
             returndatacopy(0, rdPtr, 0x20)
             value := mload(0)
+        }
+    }
+}
+
+library MemoryReaders {
+    /// @dev Reads the memory pointer at `mPtr` in memory.
+    function readMemoryPointer(
+        MemoryPointer mPtr
+    ) internal pure returns (MemoryPointer value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the value at `mPtr` and applies a mask to return only the last 4 bytes
+    function readMaskedUint256(
+        MemoryPointer mPtr
+    ) internal pure returns (uint256 value) {
+        value = mPtr.readUint256() & OffsetOrLengthMask;
+    }
+
+    /// @dev Reads the bool at `mPtr` in memory.
+    function readBool(MemoryPointer mPtr) internal pure returns (bool value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the address at `mPtr` in memory.
+    function readAddress(
+        MemoryPointer mPtr
+    ) internal pure returns (address value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes1 at `mPtr` in memory.
+    function readBytes1(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes1 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes2 at `mPtr` in memory.
+    function readBytes2(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes2 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes3 at `mPtr` in memory.
+    function readBytes3(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes3 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes4 at `mPtr` in memory.
+    function readBytes4(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes4 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes5 at `mPtr` in memory.
+    function readBytes5(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes5 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes6 at `mPtr` in memory.
+    function readBytes6(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes6 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes7 at `mPtr` in memory.
+    function readBytes7(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes7 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes8 at `mPtr` in memory.
+    function readBytes8(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes8 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes9 at `mPtr` in memory.
+    function readBytes9(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes9 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes10 at `mPtr` in memory.
+    function readBytes10(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes10 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes11 at `mPtr` in memory.
+    function readBytes11(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes11 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes12 at `mPtr` in memory.
+    function readBytes12(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes12 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes13 at `mPtr` in memory.
+    function readBytes13(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes13 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes14 at `mPtr` in memory.
+    function readBytes14(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes14 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes15 at `mPtr` in memory.
+    function readBytes15(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes15 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes16 at `mPtr` in memory.
+    function readBytes16(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes16 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes17 at `mPtr` in memory.
+    function readBytes17(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes17 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes18 at `mPtr` in memory.
+    function readBytes18(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes18 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes19 at `mPtr` in memory.
+    function readBytes19(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes19 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes20 at `mPtr` in memory.
+    function readBytes20(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes20 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes21 at `mPtr` in memory.
+    function readBytes21(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes21 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes22 at `mPtr` in memory.
+    function readBytes22(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes22 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes23 at `mPtr` in memory.
+    function readBytes23(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes23 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes24 at `mPtr` in memory.
+    function readBytes24(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes24 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes25 at `mPtr` in memory.
+    function readBytes25(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes25 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes26 at `mPtr` in memory.
+    function readBytes26(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes26 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes27 at `mPtr` in memory.
+    function readBytes27(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes27 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes28 at `mPtr` in memory.
+    function readBytes28(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes28 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes29 at `mPtr` in memory.
+    function readBytes29(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes29 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes30 at `mPtr` in memory.
+    function readBytes30(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes30 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes31 at `mPtr` in memory.
+    function readBytes31(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes31 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the bytes32 at `mPtr` in memory.
+    function readBytes32(
+        MemoryPointer mPtr
+    ) internal pure returns (bytes32 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint8 at `mPtr` in memory.
+    function readUint8(MemoryPointer mPtr) internal pure returns (uint8 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint16 at `mPtr` in memory.
+    function readUint16(
+        MemoryPointer mPtr
+    ) internal pure returns (uint16 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint24 at `mPtr` in memory.
+    function readUint24(
+        MemoryPointer mPtr
+    ) internal pure returns (uint24 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint32 at `mPtr` in memory.
+    function readUint32(
+        MemoryPointer mPtr
+    ) internal pure returns (uint32 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint40 at `mPtr` in memory.
+    function readUint40(
+        MemoryPointer mPtr
+    ) internal pure returns (uint40 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint48 at `mPtr` in memory.
+    function readUint48(
+        MemoryPointer mPtr
+    ) internal pure returns (uint48 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint56 at `mPtr` in memory.
+    function readUint56(
+        MemoryPointer mPtr
+    ) internal pure returns (uint56 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint64 at `mPtr` in memory.
+    function readUint64(
+        MemoryPointer mPtr
+    ) internal pure returns (uint64 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint72 at `mPtr` in memory.
+    function readUint72(
+        MemoryPointer mPtr
+    ) internal pure returns (uint72 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint80 at `mPtr` in memory.
+    function readUint80(
+        MemoryPointer mPtr
+    ) internal pure returns (uint80 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint88 at `mPtr` in memory.
+    function readUint88(
+        MemoryPointer mPtr
+    ) internal pure returns (uint88 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint96 at `mPtr` in memory.
+    function readUint96(
+        MemoryPointer mPtr
+    ) internal pure returns (uint96 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint104 at `mPtr` in memory.
+    function readUint104(
+        MemoryPointer mPtr
+    ) internal pure returns (uint104 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint112 at `mPtr` in memory.
+    function readUint112(
+        MemoryPointer mPtr
+    ) internal pure returns (uint112 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint120 at `mPtr` in memory.
+    function readUint120(
+        MemoryPointer mPtr
+    ) internal pure returns (uint120 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint128 at `mPtr` in memory.
+    function readUint128(
+        MemoryPointer mPtr
+    ) internal pure returns (uint128 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint136 at `mPtr` in memory.
+    function readUint136(
+        MemoryPointer mPtr
+    ) internal pure returns (uint136 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint144 at `mPtr` in memory.
+    function readUint144(
+        MemoryPointer mPtr
+    ) internal pure returns (uint144 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint152 at `mPtr` in memory.
+    function readUint152(
+        MemoryPointer mPtr
+    ) internal pure returns (uint152 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint160 at `mPtr` in memory.
+    function readUint160(
+        MemoryPointer mPtr
+    ) internal pure returns (uint160 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint168 at `mPtr` in memory.
+    function readUint168(
+        MemoryPointer mPtr
+    ) internal pure returns (uint168 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint176 at `mPtr` in memory.
+    function readUint176(
+        MemoryPointer mPtr
+    ) internal pure returns (uint176 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint184 at `mPtr` in memory.
+    function readUint184(
+        MemoryPointer mPtr
+    ) internal pure returns (uint184 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint192 at `mPtr` in memory.
+    function readUint192(
+        MemoryPointer mPtr
+    ) internal pure returns (uint192 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint200 at `mPtr` in memory.
+    function readUint200(
+        MemoryPointer mPtr
+    ) internal pure returns (uint200 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint208 at `mPtr` in memory.
+    function readUint208(
+        MemoryPointer mPtr
+    ) internal pure returns (uint208 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint216 at `mPtr` in memory.
+    function readUint216(
+        MemoryPointer mPtr
+    ) internal pure returns (uint216 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint224 at `mPtr` in memory.
+    function readUint224(
+        MemoryPointer mPtr
+    ) internal pure returns (uint224 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint232 at `mPtr` in memory.
+    function readUint232(
+        MemoryPointer mPtr
+    ) internal pure returns (uint232 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint240 at `mPtr` in memory.
+    function readUint240(
+        MemoryPointer mPtr
+    ) internal pure returns (uint240 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint248 at `mPtr` in memory.
+    function readUint248(
+        MemoryPointer mPtr
+    ) internal pure returns (uint248 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the uint256 at `mPtr` in memory.
+    function readUint256(
+        MemoryPointer mPtr
+    ) internal pure returns (uint256 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int8 at `mPtr` in memory.
+    function readInt8(MemoryPointer mPtr) internal pure returns (int8 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int16 at `mPtr` in memory.
+    function readInt16(MemoryPointer mPtr) internal pure returns (int16 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int24 at `mPtr` in memory.
+    function readInt24(MemoryPointer mPtr) internal pure returns (int24 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int32 at `mPtr` in memory.
+    function readInt32(MemoryPointer mPtr) internal pure returns (int32 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int40 at `mPtr` in memory.
+    function readInt40(MemoryPointer mPtr) internal pure returns (int40 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int48 at `mPtr` in memory.
+    function readInt48(MemoryPointer mPtr) internal pure returns (int48 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int56 at `mPtr` in memory.
+    function readInt56(MemoryPointer mPtr) internal pure returns (int56 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int64 at `mPtr` in memory.
+    function readInt64(MemoryPointer mPtr) internal pure returns (int64 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int72 at `mPtr` in memory.
+    function readInt72(MemoryPointer mPtr) internal pure returns (int72 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int80 at `mPtr` in memory.
+    function readInt80(MemoryPointer mPtr) internal pure returns (int80 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int88 at `mPtr` in memory.
+    function readInt88(MemoryPointer mPtr) internal pure returns (int88 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int96 at `mPtr` in memory.
+    function readInt96(MemoryPointer mPtr) internal pure returns (int96 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int104 at `mPtr` in memory.
+    function readInt104(
+        MemoryPointer mPtr
+    ) internal pure returns (int104 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int112 at `mPtr` in memory.
+    function readInt112(
+        MemoryPointer mPtr
+    ) internal pure returns (int112 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int120 at `mPtr` in memory.
+    function readInt120(
+        MemoryPointer mPtr
+    ) internal pure returns (int120 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int128 at `mPtr` in memory.
+    function readInt128(
+        MemoryPointer mPtr
+    ) internal pure returns (int128 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int136 at `mPtr` in memory.
+    function readInt136(
+        MemoryPointer mPtr
+    ) internal pure returns (int136 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int144 at `mPtr` in memory.
+    function readInt144(
+        MemoryPointer mPtr
+    ) internal pure returns (int144 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int152 at `mPtr` in memory.
+    function readInt152(
+        MemoryPointer mPtr
+    ) internal pure returns (int152 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int160 at `mPtr` in memory.
+    function readInt160(
+        MemoryPointer mPtr
+    ) internal pure returns (int160 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int168 at `mPtr` in memory.
+    function readInt168(
+        MemoryPointer mPtr
+    ) internal pure returns (int168 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int176 at `mPtr` in memory.
+    function readInt176(
+        MemoryPointer mPtr
+    ) internal pure returns (int176 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int184 at `mPtr` in memory.
+    function readInt184(
+        MemoryPointer mPtr
+    ) internal pure returns (int184 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int192 at `mPtr` in memory.
+    function readInt192(
+        MemoryPointer mPtr
+    ) internal pure returns (int192 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int200 at `mPtr` in memory.
+    function readInt200(
+        MemoryPointer mPtr
+    ) internal pure returns (int200 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int208 at `mPtr` in memory.
+    function readInt208(
+        MemoryPointer mPtr
+    ) internal pure returns (int208 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int216 at `mPtr` in memory.
+    function readInt216(
+        MemoryPointer mPtr
+    ) internal pure returns (int216 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int224 at `mPtr` in memory.
+    function readInt224(
+        MemoryPointer mPtr
+    ) internal pure returns (int224 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int232 at `mPtr` in memory.
+    function readInt232(
+        MemoryPointer mPtr
+    ) internal pure returns (int232 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int240 at `mPtr` in memory.
+    function readInt240(
+        MemoryPointer mPtr
+    ) internal pure returns (int240 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int248 at `mPtr` in memory.
+    function readInt248(
+        MemoryPointer mPtr
+    ) internal pure returns (int248 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+
+    /// @dev Reads the int256 at `mPtr` in memory.
+    function readInt256(
+        MemoryPointer mPtr
+    ) internal pure returns (int256 value) {
+        assembly {
+            value := mload(mPtr)
+        }
+    }
+}
+
+library MemoryWriters {
+    /// @dev Writes `valuePtr` to memory at `mPtr`.
+    function write(MemoryPointer mPtr, MemoryPointer valuePtr) internal pure {
+        assembly {
+            mstore(mPtr, valuePtr)
+        }
+    }
+
+    /// @dev Writes `value` to `mPtr` in memory.
+    function write(MemoryPointer mPtr, bool value) internal pure {
+        assembly {
+            mstore(mPtr, value)
+        }
+    }
+
+    /// @dev Writes `value` to `mPtr` in memory.
+    function write(MemoryPointer mPtr, address value) internal pure {
+        assembly {
+            mstore(mPtr, value)
+        }
+    }
+
+    // /// @dev Writes `value` to `mPtr` in memory.
+    function writeBytes(MemoryPointer mPtr, bytes32 value) internal pure {
+        assembly {
+            mstore(mPtr, value)
+        }
+    }
+
+    /// @dev Writes `value` to `mPtr` in memory.
+    function write(MemoryPointer mPtr, uint256 value) internal pure {
+        assembly {
+            mstore(mPtr, value)
+        }
+    }
+
+    /// @dev Writes `value` to `mPtr` in memory.
+    /// Separate name to disambiguate literal write parameters
+    function writeInt(MemoryPointer mPtr, int256 value) internal pure {
+        assembly {
+            mstore(mPtr, value)
         }
     }
 }

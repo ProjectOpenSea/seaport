@@ -1,5 +1,10 @@
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
-import { subtask } from "hardhat/config";
+import { subtask, task } from "hardhat/config";
+
+import { compareLastTwoReports } from "./scripts/compare_reports";
+import { printLastReport } from "./scripts/print_report";
+import { getReportPathForCommit } from "./scripts/utils";
+import { writeReports } from "./scripts/write_reports";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
@@ -20,9 +25,27 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   }
 );
 
+task("write-reports", "Write pending gas reports").setAction(
+  async (taskArgs, hre) => {
+    writeReports(hre);
+  }
+);
+
+task("compare-reports", "Compare last two gas reports").setAction(
+  async (taskArgs, hre) => {
+    compareLastTwoReports(hre);
+  }
+);
+
+task("print-report", "Print the last gas report").setAction(
+  async (taskArgs, hre) => {
+    printLastReport(hre);
+  }
+);
+
 const optimizerSettingsNoSpecializer = {
   enabled: true,
-  runs: 20000,
+  runs: 4_294_967_295,
   details: {
     peephole: true,
     inliner: true,
@@ -52,7 +75,7 @@ const config: HardhatUserConfig = {
           optimizer: {
             ...(process.env.NO_SPECIALIZER
               ? optimizerSettingsNoSpecializer
-              : { enabled: true, runs: 5500 }),
+              : { enabled: true, runs: 16_200 }),
           },
           metadata: {
             bytecodeHash: "none",
@@ -111,6 +134,8 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    outputFile: getReportPathForCommit(),
+    noColors: true,
   },
   etherscan: {
     apiKey: process.env.EXPLORER_API_KEY,

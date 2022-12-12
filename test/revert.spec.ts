@@ -1788,10 +1788,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "MismatchedFulfillmentOfferAndConsiderationComponents"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MismatchedFulfillmentOfferAndConsiderationComponents"
+        )
+        .withArgs(0);
 
       fulfillments = defaultBuyNowMirrorFulfillment;
 
@@ -3107,10 +3109,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "OrderCriteriaResolverOutOfRange"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "OrderCriteriaResolverOutOfRange"
+        )
+        .withArgs(0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -3240,10 +3244,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "OrderCriteriaResolverOutOfRange"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "OrderCriteriaResolverOutOfRange"
+          )
+          .withArgs(0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -3340,10 +3346,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "UnresolvedConsiderationCriteria"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedConsiderationCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -3361,10 +3369,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "UnresolvedOfferCriteria"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedOfferCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -3462,10 +3472,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "UnresolvedConsiderationCriteria"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedConsiderationCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -3482,10 +3494,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "UnresolvedOfferCriteria"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedOfferCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -4036,10 +4050,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer (basic)", async () => {
       // Seller mints nft
@@ -4077,10 +4093,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
       const nftId = await mintAndApprove721(seller, conduitOne.address, 0);
@@ -4112,10 +4130,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
   });
 
@@ -4135,7 +4155,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4149,7 +4169,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (standard)", async () => {
       // Seller mints nft
@@ -4166,7 +4188,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4180,7 +4202,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (basic)", async () => {
       // Seller mints nft
@@ -4197,7 +4221,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4218,7 +4242,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (basic)", async () => {
       // Seller mints nft
@@ -4235,7 +4261,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4256,7 +4282,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (match)", async () => {
       // Seller mints nft
@@ -4273,7 +4301,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4291,7 +4319,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (match)", async () => {
       // Seller mints nft
@@ -4308,7 +4338,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4326,7 +4356,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
   });
 

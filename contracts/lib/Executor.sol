@@ -207,7 +207,7 @@ contract Executor is Verifiers, TokenTransferrer {
             if (itemType == ItemType.ERC721) {
                 // Ensure that exactly one 721 item is being transferred.
                 if (amount != 1) {
-                    _revertInvalidERC721TransferAmount();
+                    _revertInvalidERC721TransferAmount(amount);
                 }
 
                 // Perform transfer via the token contract directly.
@@ -339,7 +339,7 @@ contract Executor is Verifiers, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
-                _revertInvalidERC721TransferAmount();
+                _revertInvalidERC721TransferAmount(amount);
             }
 
             // Perform transfer via the token contract directly.

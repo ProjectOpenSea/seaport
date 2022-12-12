@@ -388,7 +388,7 @@ contract ReferenceOrderFulfiller is
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             consideration.length
         );
-        // Create an array of uint256 values equal in length to the 
+        // Create an array of uint256 values equal in length to the
         // consideration length containing the amounts of each item.
         uint256[] memory receivedItemOriginalAmounts = new uint256[](
             consideration.length

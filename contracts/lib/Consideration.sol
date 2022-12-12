@@ -21,6 +21,7 @@ import {
 import { OrderCombiner } from "./OrderCombiner.sol";
 
 import "./PointerLibraries.sol";
+import "./ConsiderationConstants.sol";
 
 /**
  * @title Consideration
