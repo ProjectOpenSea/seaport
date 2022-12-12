@@ -50,7 +50,7 @@ contract ReferenceVerifiers is
         if (startTime > block.timestamp || endTime <= block.timestamp) {
             // Only revert if revertOnInvalid has been supplied as true.
             if (revertOnInvalid) {
-                revert InvalidTime();
+                revert InvalidTime(startTime, endTime);
             }
 
             // Return false as the order is invalid.

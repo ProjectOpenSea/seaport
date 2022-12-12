@@ -520,10 +520,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721Transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(10);
     });
 
     it("Reverts on invalid ERC721 recipient", async () => {
@@ -1662,10 +1664,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(10);
     });
 
     it("Successful ERC721 receiver contract", async () => {

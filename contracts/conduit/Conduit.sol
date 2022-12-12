@@ -220,7 +220,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         } else if (item.itemType == ConduitItemType.ERC721) {
             // Ensure that exactly one 721 item is being transferred.
             if (item.amount != 1) {
-                revert InvalidERC721TransferAmount();
+                revert InvalidERC721TransferAmount(item.amount);
             }
 
             // Transfer ERC721 token.

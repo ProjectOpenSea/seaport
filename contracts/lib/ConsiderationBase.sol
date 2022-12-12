@@ -12,6 +12,7 @@ import {
 import "./ConsiderationConstants.sol";
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 /**
  * @title ConsiderationBase
@@ -20,6 +21,7 @@ import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
  */
 contract ConsiderationBase is
     ConsiderationDecoder,
+    ConsiderationEncoder,
     ConsiderationEventsAndErrors
 {
     // Precompute hashes, original chainId, and domain separator on deployment.

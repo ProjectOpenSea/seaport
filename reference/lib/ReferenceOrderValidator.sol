@@ -298,8 +298,8 @@ contract ReferenceOrderValidator is
                 originalConsiderationItems,
                 context
             )
-        //  If the call succeeds, return the offer and consideration items.
         returns (
+            //  If the call succeeds, return the offer and consideration items.
             SpentItem[] memory returnedOffer,
             ReceivedItem[] memory ReturnedConsideration
         ) {
@@ -383,96 +383,64 @@ contract ReferenceOrderValidator is
             ConsiderationItem[] memory originalConsiderationArray = (
                 orderParameters.consideration
             );
-            uint256 originalConsiderationLength = originalConsiderationArray
-                .length;
             uint256 newConsiderationLength = consideration.length;
 
-            if (originalConsiderationLength != 0) {
-                // Consideration items that are not explicitly specified cannot
-                // be created. Note that this constraint could be relaxed if
-                // specified consideration items can be split.
-                if (newConsiderationLength > originalConsiderationLength) {
+            // New consideration items cannot be created.
+            if (newConsiderationLength > originalConsiderationArray.length) {
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            }
+
+            // Loop through and check consideration.
+            for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                ReceivedItem memory newConsideration = consideration[i];
+                ConsiderationItem memory originalConsideration = (
+                    originalConsiderationArray[i]
+                );
+
+                if (
+                    uint256(originalConsideration.itemType) > 3 &&
+                    originalConsideration.identifierOrCriteria == 0
+                ) {
+                    originalConsideration.itemType = ItemType(
+                        uint256(originalConsideration.itemType) - 2
+                    );
+                    originalConsideration
+                        .identifierOrCriteria = newConsideration.identifier;
+                }
+
+                if (
+                    originalConsideration.startAmount !=
+                    originalConsideration.endAmount ||
+                    newConsideration.amount > originalConsideration.endAmount ||
+                    originalConsideration.itemType !=
+                    newConsideration.itemType ||
+                    originalConsideration.token != newConsideration.token ||
+                    originalConsideration.identifierOrCriteria !=
+                    newConsideration.identifier
+                    // TODO: should we check recipient if supplied by fulfiller?
+                    // Should we allow empty args to be skipped in other cases?
+                ) {
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
 
-                // Loop through and check consideration.
-                for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                    ReceivedItem memory newConsideration = consideration[i];
-                    ConsiderationItem memory originalConsideration = (
-                        originalConsiderationArray[i]
-                    );
-
-                    if (
-                        uint256(originalConsideration.itemType) > 3 &&
-                        originalConsideration.identifierOrCriteria == 0
-                    ) {
-                        originalConsideration.itemType = ItemType(
-                            uint256(originalConsideration.itemType) - 2
-                        );
-                        originalConsideration
-                            .identifierOrCriteria = newConsideration.identifier;
-                    }
-
-                    if (
-                        originalConsideration.startAmount !=
-                        originalConsideration.endAmount ||
-                        newConsideration.amount >
-                        originalConsideration.endAmount ||
-                        originalConsideration.itemType !=
-                        newConsideration.itemType ||
-                        originalConsideration.token != newConsideration.token ||
-                        originalConsideration.identifierOrCriteria !=
-                        newConsideration.identifier
-                        // TODO: should we check recipient if supplied by fulfiller?
-                        // Should we allow empty args to be skipped in other cases?
-                    ) {
-                        return _revertOrReturnEmpty(revertOnInvalid, orderHash);
-                    }
-
-                    // Update the original amounts to use the generated amounts.
-                    originalConsideration.startAmount = newConsideration.amount;
-                    originalConsideration.endAmount = newConsideration.amount;
-                    originalConsideration.recipient = newConsideration
-                        .recipient;
-                }
-
-                // Shorten original consideration array if longer than new array.
-                ConsiderationItem[] memory shortenedConsiderationArray = (
-                    new ConsiderationItem[](newConsiderationLength)
-                );
-
-                // Iterate over original consideration array and copy to new.
-                for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                    shortenedConsiderationArray[i] = originalConsiderationArray[
-                        i
-                    ];
-                }
-
-                // Replace original consideration array with new shortend array.
-                orderParameters.consideration = shortenedConsiderationArray;
-            } else {
-                // TODO: optimize this
-                orderParameters.consideration = new ConsiderationItem[](
-                    newConsiderationLength
-                );
-
-                // Iterate and update consideration array.
-                for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                    ReceivedItem memory newConsideration = consideration[i];
-                    ConsiderationItem memory originalConsideration = (
-                        orderParameters.consideration[i]
-                    );
-
-                    originalConsideration.itemType = newConsideration.itemType;
-                    originalConsideration.token = newConsideration.token;
-                    originalConsideration
-                        .identifierOrCriteria = newConsideration.identifier;
-                    originalConsideration.startAmount = newConsideration.amount;
-                    originalConsideration.endAmount = newConsideration.amount;
-                    originalConsideration.recipient = newConsideration
-                        .recipient;
-                }
+                // Update the original amounts to use the generated amounts.
+                originalConsideration.startAmount = newConsideration.amount;
+                originalConsideration.endAmount = newConsideration.amount;
+                originalConsideration.recipient = newConsideration.recipient;
             }
+
+            // Shorten original consideration array if longer than new array.
+            ConsiderationItem[] memory shortenedConsiderationArray = (
+                new ConsiderationItem[](newConsiderationLength)
+            );
+
+            // Iterate over original consideration array and copy to new.
+            for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                shortenedConsiderationArray[i] = originalConsiderationArray[i];
+            }
+
+            // Replace original consideration array with new shortend array.
+            orderParameters.consideration = shortenedConsiderationArray;
         }
 
         // Return the order hash, the numerator, and the denominator.
@@ -685,7 +653,7 @@ contract ReferenceOrderValidator is
         // If we should not revert on invalid input...
         if (!revertOnInvalid) {
             // Return the contract order hash and zero values for the numerator
-            // and denominator. 
+            // and denominator.
             return (contractOrderHash, 0, 0);
         }
 

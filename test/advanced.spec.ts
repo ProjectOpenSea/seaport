@@ -964,7 +964,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         return receipt;
       });
     });
-    it("Contract Orders (consideration omitted)", async () => {
+    it("Reverts on contract orders where consideration is omitted", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
         seller,
@@ -1034,8 +1034,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       const orderWithNoConsideration = JSON.parse(JSON.stringify(order));
       orderWithNoConsideration.parameters.consideration = [];
 
-      await withBalanceChecks([order], 0, [], async () => {
-        const tx = marketplaceContract
+      await expect(
+        marketplaceContract
           .connect(buyer)
           .fulfillAdvancedOrder(
             orderWithNoConsideration,
@@ -1045,27 +1045,15 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             {
               value,
             }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(0),
-            },
-          ],
-          undefined,
-          []
-        );
-
-        return receipt;
-      });
+          )
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
-    it("Contract Orders (offer and consideration omitted)", async () => {
+    it("Reverts on contract orders where offer and consideration omitted", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
         seller,
@@ -1138,8 +1126,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       orderWithoutOfferOrConsideration.parameters.offer = [];
       orderWithoutOfferOrConsideration.parameters.consideration = [];
 
-      await withBalanceChecks([order], 0, [], async () => {
-        const tx = marketplaceContract
+      await expect(
+        marketplaceContract
           .connect(buyer)
           .fulfillAdvancedOrder(
             orderWithoutOfferOrConsideration,
@@ -1149,25 +1137,13 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             {
               value,
             }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order,
-              orderHash,
-              fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(0),
-            },
-          ],
-          undefined,
-          []
-        );
-
-        return receipt;
-      });
+          )
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where offer is reduced by contract offerer", async () => {
       // Seller mints nfts
@@ -1270,7 +1246,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.reverted; // TODO: proper custom error
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where consideration is extended by contract offerer", async () => {
       // Seller mints nfts
@@ -1347,7 +1328,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.reverted; // TODO: proper custom error
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where offer amount is reduced by contract offerer", async () => {
       // Seller mints nfts
@@ -1440,7 +1426,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.reverted; // TODO: proper custom error
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where consideration amount is increased by contract offerer", async () => {
       // Seller mints nfts
@@ -1518,7 +1509,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.reverted; // TODO: proper custom error
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where call to generateOrders throws and reverts aren't skipped", async () => {
       // Seller mints nfts
@@ -1589,7 +1585,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      ).to.be.reverted;
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on contract orders where call to generateOrders throws and reverts are skipped", async () => {
       // Seller mints nfts
@@ -1688,7 +1689,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.reverted;
+      ).to.be.reverted; // TODO: look into this
     });
     it("Reverts on contract orders where call to ratifyOrders returns incorrect magic value", async () => {
       // Seller mints nfts
@@ -1765,10 +1766,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidContractOrder"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {
       // Seller mints nfts
