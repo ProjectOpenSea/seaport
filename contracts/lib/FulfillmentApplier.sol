@@ -168,7 +168,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Retrieve fulfillment components array length and place on stack.
             // Ensure at least one fulfillment component has been supplied.
             if (fulfillmentComponents.length == 0) {
-                _revertMissingFulfillmentComponentOnAggregation(uint8(side));
+                _revertMissingFulfillmentComponentOnAggregation(side);
             }
 
             // If the fulfillment components are offer components...

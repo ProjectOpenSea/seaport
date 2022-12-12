@@ -280,7 +280,7 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents(
  * @param side The side of the fulfillment component that is missing (0 for offer, 1 for consideration).
  *
  */
-function _revertMissingFulfillmentComponentOnAggregation(uint8 side) pure {
+function _revertMissingFulfillmentComponentOnAggregation(Side side) pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
         mstore(0, MissingFulfillmentComponentOnAggregation_error_selector)
