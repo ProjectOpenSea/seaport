@@ -22,6 +22,7 @@ import { faucet, getWalletWithEther } from "./utils/faucet";
 import { fixtureERC20, seaportFixture } from "./utils/fixtures";
 import {
   VERSION,
+  changeChainId,
   getCustomRevertSelector,
   minRandom,
   simulateMatchOrders,
@@ -8441,25 +8442,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       // Change chainId in-flight to test branch coverage for _deriveDomainSeparator()
       // (hacky way, until https://github.com/NomicFoundation/hardhat/issues/3074 is added)
-      const changeChainId = () => {
-        const recurse = (obj: any) => {
-          for (const [key, value] of Object.entries(obj ?? {})) {
-            if (key === "transactions") continue;
-            if (key === "chainId") {
-              obj[key] = typeof value === "bigint" ? BigInt(1) : 1;
-            } else if (typeof value === "object") {
-              recurse(obj[key]);
-            }
-          }
-        };
-        const hreProvider = hre.network.provider as any;
-        recurse(
-          hreProvider._wrapped._wrapped._wrapped?._node?._vm ??
-            // When running coverage, there was an additional layer of wrapping
-            hreProvider._wrapped._wrapped._wrapped._wrapped._node._vm
-        );
-      };
-      changeChainId();
+      changeChainId(hre);
 
       const expectedRevertReason = getCustomRevertSelector("InvalidSigner()");
 
