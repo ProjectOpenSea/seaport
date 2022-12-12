@@ -288,6 +288,8 @@ export const marketplaceFixture = async (
       value,
       orderStatus,
       orderComponents,
+      startTime,
+      endTime,
     };
   };
 
