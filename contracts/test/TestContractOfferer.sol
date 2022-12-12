@@ -108,8 +108,6 @@ contract TestContractOfferer is ContractOffererInterface {
         }
 
         extraRequired++;
-
-        // TODO? emit InventoryUpdated event
     }
 
     function generateOrder(
