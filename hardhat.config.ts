@@ -45,7 +45,7 @@ task("print-report", "Print the last gas report").setAction(
 
 const optimizerSettingsNoSpecializer = {
   enabled: true,
-  runs: 20000,
+  runs: 4_294_967_295,
   details: {
     peephole: true,
     inliner: true,
@@ -75,7 +75,7 @@ const config: HardhatUserConfig = {
           optimizer: {
             ...(process.env.NO_SPECIALIZER
               ? optimizerSettingsNoSpecializer
-              : { enabled: true, runs: 5500 }),
+              : { enabled: true, runs: 16_200 }),
           },
           metadata: {
             bytecodeHash: "none",
