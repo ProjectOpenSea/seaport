@@ -17,22 +17,6 @@ function _revertBadFraction() pure {
 }
 
 /**
- * @dev Reverts the current transaction with a
- *      "ConsiderationCriteriaResolverOutOfRange" error message.
- */
-function _revertConsiderationCriteriaResolverOutOfRange() pure {
-    assembly {
-        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-        mstore(0, ConsiderationCriteriaResolverOutOfRange_error_selector)
-        // revert(abi.encodeWithSignature("ConsiderationCriteriaResolverOutOfRange()"))
-        revert(
-            Error_selector_offset,
-            ConsiderationCriteriaResolverOutOfRange_error_length
-        )
-    }
-}
-
-/**
  * @dev Reverts the current transaction with a "ConsiderationNotMet" error
  *      message, including the provided order index, consideration index, and
  *      shortfall amount.
@@ -361,22 +345,6 @@ function _revertOfferAndConsiderationRequiredOnFulfillment() pure {
         revert(
             Error_selector_offset,
             OfferAndConsiderationRequiredOnFulfillment_error_length
-        )
-    }
-}
-
-/**
- * @dev Reverts execution with a "OfferCriteriaResolverOutOfRange" error
- *      message.
- */
-function _revertOfferCriteriaResolverOutOfRange() pure {
-    assembly {
-        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-        mstore(0, OfferCriteriaResolverOutOfRange_error_selector)
-        // revert(abi.encodeWithSignature("OfferCriteriaResolverOutOfRange()"))
-        revert(
-            Error_selector_offset,
-            OfferCriteriaResolverOutOfRange_error_length
         )
     }
 }

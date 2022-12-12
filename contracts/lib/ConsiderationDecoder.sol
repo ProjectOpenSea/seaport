@@ -10,8 +10,13 @@ import {
     Execution,
     Fulfillment,
     OrderComponents,
-    OrderParameters
+    OrderParameters,
+    SpentItem,
+    OfferItem,
+    ConsiderationItem,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
+import "./ConsiderationConstants.sol";
 import "./PointerLibraries.sol";
 
 contract ConsiderationDecoder {
@@ -20,31 +25,15 @@ contract ConsiderationDecoder {
     uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
     uint256 constant BasicOrderParameters_signature_offset = 0x0220;
 
-    uint256 constant AdditionalRecipient_mem_tail_size = 0x40;
-
-    uint256 constant AlmostTwoWords = 0x3f;
-    uint256 constant OnlyFullWordMask = 0xffffe0;
-
     uint256 constant OrderParameters_head_size = 0x0160;
-    uint256 constant OrderParameters_offer_offset = 0x40;
-    uint256 constant OrderParameters_consideration_offset = 0x60;
     uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
         0x0140
     );
 
-    uint256 constant OfferItem_mem_tail_size = 0xa0;
-
-    uint256 constant ConsiderationItem_mem_tail_size = 0xc0;
-
     uint256 constant Order_signature_offset = 0x20;
     uint256 constant Order_head_size = 0x40;
 
-    uint256 constant AdvancedOrder_head_size = 0xa0;
     uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
-    uint256 constant AdvancedOrder_numerator_offset = 0x20;
-    uint256 constant AdvancedOrder_denominator_offset = 0x40;
-    uint256 constant AdvancedOrder_signature_offset = 0x60;
-    uint256 constant AdvancedOrder_extraData_offset = 0x80;
 
     uint256 constant CriteriaResolver_head_size = 0xa0;
     uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
@@ -54,43 +43,7 @@ contract ConsiderationDecoder {
     uint256 constant Fulfillment_head_size = 0x40;
     uint256 constant Fulfillment_considerationComponents_offset = 0x20;
 
-    uint256 constant OrderComponents_head_size = 0x0160;
-    uint256 constant OrderComponents_offer_offset = 0x40;
-    uint256 constant OrderComponents_consideration_offset = 0x60;
     uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
-    uint256 constant OrderParameters_counter_offset = 0x0140;
-
-    function abi_decode_dyn_array_AdditionalRecipient(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
-        assembly {
-            let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
-            mPtrLength := mload(0x40)
-            mstore(mPtrLength, arrLength)
-            let mPtrHead := add(mPtrLength, 32)
-            let mPtrTail := add(mPtrHead, mul(arrLength, 0x20))
-            let mPtrTailNext := mPtrTail
-            calldatacopy(
-                mPtrTail,
-                add(cdPtrLength, 0x20),
-                mul(arrLength, AdditionalRecipient_mem_tail_size)
-            )
-            let mPtrHeadNext := mPtrHead
-            for {
-
-            } lt(mPtrHeadNext, mPtrTail) {
-
-            } {
-                mstore(mPtrHeadNext, mPtrTailNext)
-                mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(
-                    mPtrTailNext,
-                    AdditionalRecipient_mem_tail_size
-                )
-            }
-            mstore(0x40, mPtrTailNext)
-        }
-    }
 
     function abi_decode_bytes(
         CalldataPointer cdPtrLength
@@ -109,21 +62,6 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_BasicOrderParameters(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
-        mPtr = malloc(BasicOrderParameters_head_size);
-        cdPtr.copy(mPtr, BasicOrderParameters_fixed_segment_0);
-        mPtr.offset(BasicOrderParameters_additionalRecipients_offset).write(
-            abi_decode_dyn_array_AdditionalRecipient(
-                cdPtr.pptr(BasicOrderParameters_additionalRecipients_offset)
-            )
-        );
-        mPtr.offset(BasicOrderParameters_signature_offset).write(
-            abi_decode_bytes(cdPtr.pptr(BasicOrderParameters_signature_offset))
-        );
-    }
-
     function abi_decode_dyn_array_OfferItem(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
@@ -137,7 +75,7 @@ contract ConsiderationDecoder {
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, 0x20),
-                mul(arrLength, OfferItem_mem_tail_size)
+                mul(arrLength, OfferItem_size)
             )
             let mPtrHeadNext := mPtrHead
             for {
@@ -147,7 +85,7 @@ contract ConsiderationDecoder {
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
                 mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(mPtrTailNext, OfferItem_mem_tail_size)
+                mPtrTailNext := add(mPtrTailNext, OfferItem_size)
             }
             mstore(0x40, mPtrTailNext)
         }
@@ -166,7 +104,7 @@ contract ConsiderationDecoder {
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, 0x20),
-                mul(arrLength, ConsiderationItem_mem_tail_size)
+                mul(arrLength, ConsiderationItem_size)
             )
             let mPtrHeadNext := mPtrHead
             for {
@@ -176,10 +114,7 @@ contract ConsiderationDecoder {
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
                 mPtrHeadNext := add(mPtrHeadNext, 0x20)
-                mPtrTailNext := add(
-                    mPtrTailNext,
-                    ConsiderationItem_mem_tail_size
-                )
+                mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
             }
             mstore(0x40, mPtrTailNext)
         }
@@ -190,14 +125,14 @@ contract ConsiderationDecoder {
         MemoryPointer mPtr
     ) internal pure {
         cdPtr.copy(mPtr, OrderParameters_head_size);
-        mPtr.offset(OrderParameters_offer_offset).write(
+        mPtr.offset(OrderParameters_offer_head_offset).write(
             abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_offset)
+                cdPtr.pptr(OrderParameters_offer_head_offset)
             )
         );
-        mPtr.offset(OrderParameters_consideration_offset).write(
+        mPtr.offset(OrderParameters_consideration_head_offset).write(
             abi_decode_dyn_array_ConsiderationItem(
-                cdPtr.pptr(OrderParameters_consideration_offset)
+                cdPtr.pptr(OrderParameters_consideration_head_offset)
             )
         );
     }
@@ -456,85 +391,174 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_OrderComponents(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
-        mPtr = malloc(OrderComponents_head_size);
-        cdPtr.copy(mPtr, OrderComponents_head_size);
-        mPtr.offset(OrderComponents_offer_offset).write(
-            abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderComponents_offer_offset)
-            )
-        );
-        mPtr.offset(OrderComponents_consideration_offset).write(
-            abi_decode_dyn_array_ConsiderationItem(
-                cdPtr.pptr(OrderComponents_consideration_offset)
-            )
-        );
-    }
-
-    function abi_decode_dyn_array_OrderComponents(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
-        unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
-            mPtrLength.write(arrLength);
-            MemoryPointer mPtrHead = mPtrLength.next();
-            CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
-                mPtrHead.offset(offset).write(
-                    abi_decode_OrderComponents(cdPtrHead.pptr(offset))
-                );
-            }
-        }
-    }
-
     function abi_decode_OrderComponents_as_OrderParameters(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(OrderParameters_head_size);
         cdPtr.copy(mPtr, OrderComponents_OrderParameters_common_head_size);
-        mPtr.offset(OrderParameters_offer_offset).write(
+        mPtr.offset(OrderParameters_offer_head_offset).write(
             abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_offset)
+                cdPtr.pptr(OrderParameters_offer_head_offset)
             )
         );
         MemoryPointer consideration = abi_decode_dyn_array_ConsiderationItem(
-            cdPtr.pptr(OrderParameters_consideration_offset)
+            cdPtr.pptr(OrderParameters_consideration_head_offset)
         );
-        mPtr.offset(OrderParameters_consideration_offset).write(consideration);
+        mPtr.offset(OrderParameters_consideration_head_offset).write(
+            consideration
+        );
         // Write totalOriginalConsiderationItems
         mPtr
             .offset(OrderParameters_totalOriginalConsiderationItems_offset)
-            .write(consideration.read());
+            .write(consideration.readUint256());
     }
 
-    function to_BasicOrderParameters_ReturnType(
-        function(CalldataPointer) internal pure returns (MemoryPointer) inFn
-    )
+    function abi_decode_generateOrder_returndata()
         internal
         pure
-        returns (
-            function(CalldataPointer)
-                internal
-                pure
-                returns (BasicOrderParameters memory) outFn
-        )
+        returns (MemoryPointer offer, MemoryPointer consideration)
     {
         assembly {
-            outFn := inFn
+            // First two words of calldata are the offsets to offer and consideration
+            // array lengths. Copy these to scratch space.
+            returndatacopy(0, 0, TwoWords)
+            let offsetOffer := mload(0)
+            let offsetConsideration := mload(0x20)
+
+            // Copy length of offer array to scratch space
+            returndatacopy(0, offsetOffer, 0x20)
+            let offerLength := mload(0)
+
+            // Copy length of consideration array to scratch space
+            returndatacopy(0x20, offsetConsideration, 0x20)
+            let considerationLength := mload(0x20)
+
+            {
+                // Calculate total size of offer and consideration arrays
+                let totalOfferSize := mul(SpentItem_size, offerLength)
+                let totalConsiderationSize := mul(
+                    ReceivedItem_size,
+                    considerationLength
+                )
+
+                // Add 4 words to total size to cover the offset and length fields of
+                // the two arrays
+                let totalSize := add(
+                    FourWords,
+                    add(totalOfferSize, totalConsiderationSize)
+                )
+                // Revert if returndatasize exceeds 65535 bytes or returndatasize
+                // is not equal to the calculated size.
+                if or(
+                    gt(or(offerLength, considerationLength), 0xffff),
+                    xor(totalSize, returndatasize())
+                ) {
+                    mstore(0, Panic_error_selector)
+                    mstore(Panic_error_code_ptr, Panic_resource)
+                    revert(0, Panic_error_length)
+                }
+            }
+
+            offer := copySpentItemsAsOfferItems(
+                add(offsetOffer, 0x20),
+                offerLength
+            )
+
+            consideration := copyReceivedItemsAsConsiderationItems(
+                add(offsetConsideration, 0x20),
+                considerationLength
+            )
+
+            function copySpentItemsAsOfferItems(rdPtrHead, length)
+                -> mPtrLength
+            {
+                mPtrLength := mload(FreeMemoryPointerSlot)
+                // allocate memory for array
+                mstore(
+                    FreeMemoryPointerSlot,
+                    add(
+                        mPtrLength,
+                        add(32, mul(length, add(OfferItem_size, 32)))
+                    )
+                )
+                // Write length
+                mstore(mPtrLength, length)
+
+                // Use offset from length to minimize stack depth
+                let headOffsetFromLength := 32
+
+                let headSizeWithLength := mul(add(1, length), 32)
+                let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+                for {
+
+                } lt(headOffsetFromLength, headSizeWithLength) {
+
+                } {
+                    mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
+                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
+                    // Copy amount to endAmount
+                    mstore(
+                        add(mPtrTailNext, Common_endAmount_offset),
+                        mload(add(mPtrTailNext, Common_amount_offset))
+                    )
+                    rdPtrHead := add(rdPtrHead, SpentItem_size)
+                    mPtrTailNext := add(mPtrTailNext, OfferItem_size)
+                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                }
+            }
+
+            function copyReceivedItemsAsConsiderationItems(rdPtrHead, length)
+                -> mPtrLength
+            {
+                mPtrLength := mload(FreeMemoryPointerSlot)
+                // allocate memory for array
+                mstore(
+                    FreeMemoryPointerSlot,
+                    add(
+                        mPtrLength,
+                        add(32, mul(length, add(ConsiderationItem_size, 32)))
+                    )
+                )
+                // Write length
+                mstore(mPtrLength, length)
+
+                // Use offset from length to minimize stack depth
+                let headOffsetFromLength := 32
+
+                let headSizeWithLength := mul(add(1, length), 32)
+                let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+                for {
+
+                } lt(headOffsetFromLength, headSizeWithLength) {
+
+                } {
+                    mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
+                    // Copy itemType, token, identifier and amount
+                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
+                    // Copy amount and recipient
+                    returndatacopy(
+                        add(mPtrTailNext, Common_endAmount_offset),
+                        add(rdPtrHead, Common_amount_offset),
+                        TwoWords
+                    )
+                    rdPtrHead := add(rdPtrHead, ReceivedItem_size)
+                    mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
+                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                }
+            }
         }
     }
 
-    function to_Order_ReturnType(
-        function(CalldataPointer) internal pure returns (MemoryPointer) inFn
+    function to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
+        function() internal pure returns (MemoryPointer, MemoryPointer) inFn
     )
         internal
         pure
         returns (
-            function(CalldataPointer) internal pure returns (Order memory) outFn
+            function()
+                internal
+                pure
+                returns (OfferItem[] memory, ConsiderationItem[] memory) outFn
         )
     {
         assembly {
@@ -658,100 +682,6 @@ contract ConsiderationDecoder {
     {
         assembly {
             outFn := inFn
-        }
-    }
-
-    function to_dyn_array_OrderComponents_ReturnType(
-        function(CalldataPointer) internal pure returns (MemoryPointer) inFn
-    )
-        internal
-        pure
-        returns (
-            function(CalldataPointer)
-                internal
-                pure
-                returns (OrderComponents[] memory) outFn
-        )
-    {
-        assembly {
-            outFn := inFn
-        }
-    }
-
-    function to_OrderComponents_ReturnType(
-        function(CalldataPointer) internal pure returns (MemoryPointer) inFn
-    )
-        internal
-        pure
-        returns (
-            function(CalldataPointer)
-                internal
-                pure
-                returns (OrderComponents memory) outFn
-        )
-    {
-        assembly {
-            outFn := inFn
-        }
-    }
-
-    function return_bool(bool fulfilled) internal pure {
-        bytes memory returnData = abi.encode(fulfilled);
-        assembly {
-            return(add(returnData, 32), mload(returnData))
-        }
-    }
-
-    function return_uint256(uint256 newCounter) internal pure {
-        bytes memory returnData = abi.encode(newCounter);
-        assembly {
-            return(add(returnData, 32), mload(returnData))
-        }
-    }
-
-    function return_bytes32(bytes32 orderHash) internal pure {
-        bytes memory returnData = abi.encode(orderHash);
-        assembly {
-            return(add(returnData, 32), mload(returnData))
-        }
-    }
-
-    function return_tuple_bool_bool_uint256_uint256(
-        bool isValidated,
-        bool isCancelled,
-        uint256 totalFilled,
-        uint256 totalSize
-    ) internal pure {
-        bytes memory returnData = abi.encode(
-            isValidated,
-            isCancelled,
-            totalFilled,
-            totalSize
-        );
-        assembly {
-            return(add(returnData, 32), mload(returnData))
-        }
-    }
-
-    function return_tuple_string_bytes32_address(
-        string memory version,
-        bytes32 domainSeparator,
-        address conduitController
-    ) internal pure {
-        bytes memory returnData = abi.encode(
-            version,
-            domainSeparator,
-            conduitController
-        );
-        assembly {
-            return(add(returnData, 32), mload(returnData))
-        }
-    }
-
-    function return_string(string memory value0) internal pure {
-        bytes memory returnData = abi.encode(value0);
-        assembly {
-            return(add(returnData, 32), mload(returnData))
         }
     }
 }

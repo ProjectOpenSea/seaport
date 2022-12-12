@@ -500,7 +500,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     // Retrieve calldata pointer for additional recipient.
                     let additionalRecipientCdPtr := add(
                         BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
+                        mul(AdditionalRecipient_size, i)
                     )
 
                     // Copy startAmount from calldata to the ConsiderationItem
@@ -516,7 +516,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     calldatacopy(
                         BasicOrder_considerationItem_endAmount_ptr,
                         additionalRecipientCdPtr,
-                        AdditionalRecipients_size
+                        AdditionalRecipient_size
                     )
 
                     // Add 1 word to the pointer as part of each loop to reduce
@@ -605,7 +605,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     // Retrieve calldata pointer for additional recipient.
                     let additionalRecipientCdPtr := add(
                         BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
+                        mul(AdditionalRecipient_size, i)
                     )
 
                     // At this point, eventConsiderationArrPtr points to the
@@ -728,7 +728,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 // offerAmount) from OrderParameters to (token, identifier,
                 // amount) in SpentItem struct.
                 calldatacopy(
-                    add(eventConsiderationArrPtr, AdditionalRecipients_size),
+                    add(eventConsiderationArrPtr, AdditionalRecipient_size),
                     BasicOrder_offerToken_cdPtr,
                     ThreeWords
                 )

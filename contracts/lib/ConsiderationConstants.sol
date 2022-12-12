@@ -61,12 +61,17 @@ uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
 uint256 constant Common_endAmount_offset = 0x80;
 
+uint256 constant SpentItem_size = 0x80;
+
+uint256 constant OfferItem_size = 0xa0;
+
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
 
 uint256 constant ReceivedItem_CommonParams_size = 0x60;
 
+uint256 constant ConsiderationItem_size = 0xc0;
 uint256 constant ConsiderationItem_recipient_offset = 0xa0;
 // Store the same constant in an abbreviated format for a line length fix.
 uint256 constant ConsiderItem_recipient_offset = 0xa0;
@@ -75,6 +80,7 @@ uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
 uint256 constant Panic_arithmetic = 0x11;
+uint256 constant Panic_resource = 0x41;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
@@ -83,7 +89,11 @@ uint256 constant OrderParameters_counter_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
+uint256 constant AdvancedOrder_head_size = 0xa0;
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
+uint256 constant AdvancedOrder_denominator_offset = 0x40;
+uint256 constant AdvancedOrder_signature_offset = 0x60;
+uint256 constant AdvancedOrder_extraData_offset = 0x80;
 
 uint256 constant AlmostOneWord = 0x1f;
 uint256 constant OneWord = 0x20;
@@ -91,6 +101,9 @@ uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 uint256 constant FourWords = 0x80;
 uint256 constant FiveWords = 0xa0;
+
+uint256 constant AlmostTwoWords = 0x3f;
+uint256 constant OnlyFullWordMask = 0xffffe0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
@@ -106,7 +119,7 @@ uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
-uint256 constant AdditionalRecipients_size = 0x40;
+uint256 constant AdditionalRecipient_size = 0x40;
 
 uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
@@ -879,3 +892,21 @@ uint256 constant ConsiderationLengthExceedsTotalOriginal_error_length = 0x04;
 uint256 constant Panic_error_selector = 0x4e487b71;
 uint256 constant Panic_error_code_ptr = 0x20;
 uint256 constant Panic_error_length = 0x24;
+
+/**
+ * @dev Selector and offsets for generateOrder
+ *
+ * function generateOrder(
+ *   address fulfiller,
+ *   SpentItem[] calldata minimumReceived,
+ *   SpentItem[] calldata maximumSpent,
+ *   bytes calldata context
+ * )
+ */
+uint256 constant generateOrder_selector = 0x98919765;
+uint256 constant generateOrder_selector_offset = 0x1c;
+uint256 constant generateOrder_head_offset = 0x04;
+uint256 constant generateOrder_minimumReceived_head_offset = 0x20;
+uint256 constant generateOrder_maximumSpent_head_offset = 0x40;
+uint256 constant generateOrder_context_head_offset = 0x60;
+uint256 constant generateOrder_base_tail_offset = 0x80;
