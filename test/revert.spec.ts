@@ -39,7 +39,6 @@ import type {
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { ConsiderationItem, Fulfillment, OfferItem } from "./utils/types";
 import type { BigNumber, Wallet } from "ethers";
-import { conduit } from "../typechain-types/contracts";
 
 const { parseEther } = ethers.utils;
 
@@ -2015,7 +2014,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [0, 1],
             [0, 0],
           ],
-          [[1, 0],],
+          [[1, 0]],
         ],
         [[[1, 0]], [[0, 0]]],
         [[[1, 0]], [[0, 1]]],
@@ -2079,7 +2078,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       offer2[0].identifierOrCriteria = secondNFTId;
 
-      const { order: order2 } = await createOrder(owner, zone, offer2, consideration, 0);
+      const { order: order2 } = await createOrder(
+        owner,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
 
       const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
 
@@ -2089,7 +2094,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [2, 0],
             [0, 1],
           ],
-          [[1, 0],],
+          [[1, 0]],
         ],
         [[[1, 0]], [[0, 0]]],
         [[[1, 0]], [[0, 1]]],
@@ -2153,7 +2158,18 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       offer2[0].identifierOrCriteria = secondNFTId;
 
-      const { order: order2 } = await createOrder(seller, zone, offer2, consideration, 0, [], null, undefined, ethers.constants.HashZero, conduitKeyOne);
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0,
+        [],
+        null,
+        undefined,
+        ethers.constants.HashZero,
+        conduitKeyOne
+      );
 
       const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
 
@@ -2163,7 +2179,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [2, 0],
             [0, 1],
           ],
-          [[1, 0],],
+          [[1, 0]],
         ],
         [[[1, 0]], [[0, 0]]],
         [[[1, 0]], [[0, 1]]],
@@ -2229,7 +2245,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       offer2[0].itemType = 1;
 
-      const { order: order2 } = await createOrder(seller, zone, offer2, consideration, 0);
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
 
       const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
 
@@ -2239,7 +2261,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [2, 0],
             [0, 1],
           ],
-          [[1, 0],],
+          [[1, 0]],
         ],
         [[[1, 0]], [[0, 0]]],
         [[[1, 0]], [[0, 1]]],
@@ -2305,7 +2327,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       offer2[0].token = testERC1155.address;
 
-      const { order: order2 } = await createOrder(seller, zone, offer2, consideration, 0);
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
 
       const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
 
@@ -2315,7 +2343,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [2, 0],
             [0, 1],
           ],
-          [[1, 0],],
+          [[1, 0]],
         ],
         [[[1, 0]], [[0, 0]]],
         [[[1, 0]], [[0, 1]]],
