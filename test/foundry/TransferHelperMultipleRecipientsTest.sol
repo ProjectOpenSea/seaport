@@ -1026,7 +1026,8 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             inputs.recipients,
             true,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector, items[0].amount
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }
@@ -1067,7 +1068,8 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             inputs.recipients,
             true,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector, items[0].amount
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }
