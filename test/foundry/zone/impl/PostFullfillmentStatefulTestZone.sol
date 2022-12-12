@@ -23,13 +23,13 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
     bool public called = false;
 
     /**
-    * @dev Validates the order with the given `zoneParameters`.  Called by
-    *      Consideration whenever any extraData is provided by the caller.
-    *
-    * @param zoneParameters The parameters for the order.
-    *
-    * @return validOrderMagicValue The validOrder magic value.
-    */
+     * @dev Validates the order with the given `zoneParameters`.  Called by
+     *      Consideration whenever any extraData is provided by the caller.
+     *
+     * @param zoneParameters The parameters for the order.
+     *
+     * @return validOrderMagicValue The validOrder magic value.
+     */
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external returns (bytes4 validOrderMagicValue) {
@@ -60,5 +60,4 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
         // Return the validOrderMagicValue.
         return ZoneInterface.validateOrder.selector;
     }
-
 }

@@ -229,13 +229,10 @@ contract ReferenceOrderValidator is
                     _greatestCommonDivisor(filledNumerator, denominator)
                 );
 
-                // Note: this may not be necessary — need to validate.
-                uint256 safeScaleDown = scaleDown == 0 ? 1 : scaleDown;
-
                 // Scale all fractional values down by gcd.
-                numerator = numerator / safeScaleDown;
-                filledNumerator = filledNumerator / safeScaleDown;
-                denominator = denominator / safeScaleDown;
+                numerator = numerator / scaleDown;
+                filledNumerator = filledNumerator / scaleDown;
+                denominator = denominator / scaleDown;
 
                 // Perform the overflow check a second time.
                 uint256 maxOverhead = type(uint256).max - type(uint120).max;
