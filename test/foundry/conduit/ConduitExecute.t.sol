@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
 import {
@@ -24,9 +24,10 @@ contract ConduitExecuteTest is BaseConduitTest {
         ConduitTransfer[] transfers;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
@@ -9,7 +9,7 @@ import {
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title SignatureVerification
@@ -203,15 +203,19 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         // Revert with bad 1271 signature if signer has code.
                         if extcodesize(signer) {
                             // Bad contract signature.
-                            mstore(0, BadContractSignature_error_signature)
-                            revert(0, BadContractSignature_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, BadContractSignature_error_selector)
+                            // revert(abi.encodeWithSignature("BadContractSignature()"))
+                            revert(0x1c, BadContractSignature_error_length)
                         }
 
                         // Check if signature length was invalid.
                         if gt(sub(ECDSA_MaxLength, signatureLength), 1) {
                             // Revert with generic invalid signature error.
-                            mstore(0, InvalidSignature_error_signature)
-                            revert(0, InvalidSignature_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, InvalidSignature_error_selector)
+                            // revert(abi.encodeWithSignature("InvalidSignature()"))
+                            revert(0x1c, InvalidSignature_error_length)
                         }
 
                         // Check if v was invalid.
@@ -219,14 +223,18 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
                         ) {
                             // Revert with invalid v value.
-                            mstore(0, BadSignatureV_error_signature)
-                            mstore(BadSignatureV_error_offset, v)
-                            revert(0, BadSignatureV_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, BadSignatureV_error_selector)
+                            mstore(BadSignatureV_error_v_ptr, v)
+                            // revert(abi.encodeWithSignature("BadSignatureV(uint8)", v))
+                            revert(0x1c, BadSignatureV_error_length)
                         }
 
                         // Revert with generic invalid signer error message.
-                        mstore(0, InvalidSigner_error_signature)
-                        revert(0, InvalidSigner_error_length)
+                        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                        mstore(0, InvalidSigner_error_selector)
+                        // revert(abi.encodeWithSignature("InvalidSigner()"))
+                        revert(0x1c, InvalidSigner_error_length)
                     }
                 }
 
@@ -245,8 +253,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // Otherwise, revert with error indicating bad contract signature.
             assembly {
-                mstore(0, BadContractSignature_error_signature)
-                revert(0, BadContractSignature_error_length)
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, BadContractSignature_error_selector)
+                // revert(abi.encodeWithSignature("BadContractSignature()"))
+                revert(0x1c, BadContractSignature_error_length)
             }
         }
     }

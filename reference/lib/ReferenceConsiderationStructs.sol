@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
@@ -58,6 +58,8 @@ struct OrderToExecute {
     ReceivedItem[] receivedItems; // Consideration
     bytes32 conduitKey;
     uint120 numerator;
+    uint256[] spentItemOriginalAmounts;
+    uint256[] receivedItemOriginalAmounts;
 }
 
 /**

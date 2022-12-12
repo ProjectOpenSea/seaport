@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     ConduitController
@@ -64,7 +64,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source
-    //      (solc-0.8.14, IR pipeline enabled)
+    //      (solc-0.8.17, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
         conduitController = ConduitController(
             deployCode(
@@ -190,14 +190,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    )
-        internal
-        returns (
-            bytes32,
-            bytes32,
-            uint8
-        )
-    {
+    ) internal returns (bytes32, bytes32, uint8) {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,

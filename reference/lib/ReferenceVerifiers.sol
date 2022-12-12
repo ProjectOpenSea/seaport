@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
 
@@ -26,9 +26,9 @@ contract ReferenceVerifiers is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceAssertions(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceAssertions(conduitController) {}
 
     /**
      * @dev Internal view function to ensure that the current time falls within
@@ -50,7 +50,7 @@ contract ReferenceVerifiers is
         if (startTime > block.timestamp || endTime <= block.timestamp) {
             // Only revert if revertOnInvalid has been supplied as true.
             if (revertOnInvalid) {
-                revert InvalidTime();
+                revert InvalidTime(startTime, endTime);
             }
 
             // Return false as the order is invalid.
@@ -84,11 +84,113 @@ contract ReferenceVerifiers is
             return;
         }
 
+        // If the signature length is 64 or 65 bytes, compute the bulk order
+        // proof.
+        if (_isValidBulkOrderSize(signature)) {
+            (orderHash, signature) = _computeBulkOrderProof(
+                signature,
+                orderHash
+            );
+        }
+
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(offerer, digest, signature);
+    }
+
+    /**
+     * @dev Determines whether the specified bulk order size is valid.
+     *
+     * @param signature    The signature of the bulk order to check.
+     *
+     * @return validLength True if the bulk order size is valid, false otherwise.
+     */
+    function _isValidBulkOrderSize(
+        bytes memory signature
+    ) internal pure returns (bool validLength) {
+        validLength = signature.length == 289 || signature.length == 290;
+    }
+
+    /**
+     * @dev Computes the bulk order hash for the specified proof and leaf.
+     *
+     * @param proofAndSignature  The proof and signature of the bulk order.
+     * @param leaf               The leaf of the bulk order tree.
+     *
+     * @return bulkOrderHash     The bulk order hash.
+     * @return signature         The signature of the bulk order.
+     */
+    function _computeBulkOrderProof(
+        bytes memory proofAndSignature,
+        bytes32 leaf
+    ) internal view returns (bytes32 bulkOrderHash, bytes memory signature) {
+        bytes32 root = leaf;
+
+        // Compute the length of the signature by subtracting the length of the
+        // proof elements.
+        uint256 length = proofAndSignature.length - 225;
+
+        // Create a new array of bytes equal to the length of the signature.
+        signature = new bytes(length);
+
+        // Iterate over each byte in the signature.
+        for (uint256 i = 0; i < length; ++i) {
+            // Assign the byte from the proofAndSignature to the signature.
+            signature[i] = proofAndSignature[i];
+        }
+
+        // Compute the key by extracting the final byte from the
+        // proofAndSignature.
+        uint256 key = uint256(uint8(bytes1(proofAndSignature[length])));
+
+        // Create an array of bytes32 to hold the proof elements.
+        bytes32[] memory proofElements = new bytes32[](7);
+
+        // Iterate over each proof element.
+        for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
+            // Compute the starting index for the current proof element.
+            uint256 start = (length + 1) + (elementIndex * 32);
+
+            // Create a new array of bytes to hold the current proof element.
+            bytes memory buffer = new bytes(32);
+
+            // Iterate over each byte in the proof element.
+            for (uint256 i = 0; i < 32; ++i) {
+                // Assign the byte from the proofAndSignature to the buffer.
+                buffer[i] = proofAndSignature[start + i];
+            }
+
+            // Decode the current proof element from the buffer and assign it to
+            // the proofElements array.
+            proofElements[elementIndex] = abi.decode(buffer, (bytes32));
+        }
+
+        // Iterate over each proof element.
+        for (uint256 i = 0; i < proofElements.length; ++i) {
+            // Retrieve the proof element.
+            bytes32 proofElement = proofElements[i];
+
+            // Check if the current bit of the key is set.
+            if ((key >> i) % 2 == 0) {
+                // If the current bit is not set, then concatenate the root and
+                // the proof element, and compute the keccak256 hash of the
+                // concatenation to assign it to the root.
+                root = keccak256(abi.encodePacked(root, proofElement));
+            } else {
+                // If the current bit is set, then concatenate the proof element
+                // and the root, and compute the keccak256 hash of the
+                // concatenation to assign it to the root.
+                root = keccak256(abi.encodePacked(proofElement, root));
+            }
+        }
+
+        // Compute the bulk order hash and return it.
+        bulkOrderHash = keccak256(abi.encodePacked(_BULK_ORDER_TYPEHASH, root));
+
+        // Return the signature.
+        proofAndSignature = signature;
     }
 
     /**
@@ -104,7 +206,7 @@ contract ReferenceVerifiers is
      *                        order has been cancelled or filled beyond the
      *                        allowable amount.
      *
-     * @return valid A boolean indicating whether the order is valid.
+     * @return valid          A boolean indicating whether the order is valid.
      */
     function _verifyOrderStatus(
         bytes32 orderHash,

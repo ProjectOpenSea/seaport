@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
+import { deployContract } from "./utils/contracts";
 import {
   buildOrderStatus,
   getItemETH,
@@ -28,6 +29,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
   let createOrder: SeaportFixtures["createOrder"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
@@ -45,6 +47,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       getTestItem721,
       marketplaceContract,
       mintAndApprove721,
+      set721ApprovalForAll,
       withBalanceChecks,
     } = await seaportFixture(owner));
   });
@@ -141,9 +144,73 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
 
       // can validate it once you add the signature back
       order.signature = signature;
-      await expect(marketplaceContract.connect(owner).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+
+      const tx = await marketplaceContract.connect(owner).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(true, false, 0, 0));
@@ -180,7 +247,10 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot validate it once it's been fully filled
       await expect(
         marketplaceContract.connect(owner).validate([order])
-      ).to.be.revertedWith("OrderAlreadyFilled");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "OrderAlreadyFilled"
+      );
     });
     it("Validate unsigned order from offerer and fill it with no signature", async () => {
       // Seller mints an nft
@@ -254,9 +324,72 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       }
 
       // can validate it from the seller
-      await expect(marketplaceContract.connect(seller).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+      const tx = await marketplaceContract.connect(seller).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(true, false, 0, 0));
@@ -365,18 +498,157 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         .withArgs(orderHash, seller.address, zone.address);
 
       // cannot validate it from the seller
-      await expect(
-        marketplaceContract.connect(seller).validate([order])
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      await expect(marketplaceContract.connect(seller).validate([order]))
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       // cannot validate it with a signature either
       order.signature = signature;
-      await expect(
-        marketplaceContract.connect(owner).validate([order])
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      await expect(marketplaceContract.connect(owner).validate([order]))
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
+    });
+
+    it("Skip validation for contract order", async () => {
+      // Seller mints an nft (FULL_OPEN order)
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+      expect({ ...initialStatus }).to.deep.eq(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      // Seller mints nft (CONTRACT order)
+      const contractOrderNftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      // seller deploys offererContract and approves it for 721 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address, true);
+
+      const contractOrderOffer = [getTestItem721(contractOrderNftId) as any];
+
+      const contractOrderConsideration = [
+        getItemETH(
+          parseEther("10"),
+          parseEther("10"),
+          offererContract.address
+        ) as any,
+      ];
+
+      contractOrderOffer[0].identifier =
+        contractOrderOffer[0].identifierOrCriteria;
+      contractOrderOffer[0].amount = contractOrderOffer[0].endAmount;
+
+      contractOrderConsideration[0].identifier =
+        contractOrderConsideration[0].identifierOrCriteria;
+      contractOrderConsideration[0].amount =
+        contractOrderConsideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(contractOrderOffer[0], contractOrderOffer[0]);
+
+      const { order: contractOrder } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const contractOrderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(
+        contractOrderHash
+      );
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      // can validate it from the seller
+      const tx = await marketplaceContract
+        .connect(seller)
+        .validate([order, contractOrder]);
+
+      const receipt = await tx.wait();
+
+      // should only validate the FULL_OPEN order
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+    });
+
+    it("Reverts on validate when consideration array length doesn't match totalOriginalConsiderationItems", async () => {
+      // Seller mints an nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const offer = [getTestItem721(nftId)];
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+      order.parameters.totalOriginalConsiderationItems = 2;
+
+      // cannot validate when consideration array length is different than total
+      // original consideration items value
+      await expect(
+        marketplaceContract.connect(seller).validate([order])
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "ConsiderationLengthExceedsTotalOriginal"
+      );
     });
   });
 
@@ -407,7 +679,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWith("InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.eq(
@@ -426,7 +698,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.eq(buildOrderStatus(false, true, 0, 0));
@@ -457,7 +731,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWith("InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.equal(
@@ -465,9 +739,72 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       );
 
       // Can validate it
-      await expect(marketplaceContract.connect(owner).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+      const tx = await marketplaceContract.connect(owner).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.equal(
@@ -486,7 +823,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...finalStatus }).to.deep.equal(
@@ -519,7 +858,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWith("InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.equal(
@@ -536,7 +875,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.equal(
@@ -572,14 +913,77 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       );
 
       // Can validate it
-      await expect(marketplaceContract.connect(owner).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+      const tx = await marketplaceContract.connect(owner).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWith("InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.equal(
@@ -596,7 +1000,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+        .withArgs(orderHash);
 
       const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...finalStatus }).to.deep.equal(
@@ -729,9 +1135,72 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       expect(counter).to.equal(0);
       expect(orderComponents.counter).to.equal(counter);
 
-      await expect(marketplaceContract.connect(owner).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+      const tx = await marketplaceContract.connect(owner).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       // can increment the counter
       await expect(marketplaceContract.connect(seller).incrementCounter())
@@ -829,9 +1298,72 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       expect(counter).to.equal(0);
       expect(orderComponents.counter).to.equal(counter);
 
-      await expect(marketplaceContract.connect(owner).validate([order]))
-        .to.emit(marketplaceContract, "OrderValidated")
-        .withArgs(orderHash, seller.address, zone.address);
+      const tx = await marketplaceContract.connect(owner).validate([order]);
+
+      const receipt = await tx.wait();
+
+      expect(receipt.events?.length).to.equal(1);
+
+      const event = receipt.events && receipt.events[0];
+
+      expect(event?.event).to.equal("OrderValidated");
+
+      expect(event?.args?.orderHash).to.equal(orderHash);
+
+      const parameters = event && event.args && event.args.orderParameters;
+
+      expect(parameters.offerer).to.equal(order.parameters.offerer);
+      expect(parameters.zone).to.equal(order.parameters.zone);
+      expect(parameters.orderType).to.equal(order.parameters.orderType);
+      expect(parameters.startTime).to.equal(order.parameters.startTime);
+      expect(parameters.endTime).to.equal(order.parameters.endTime);
+      expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+      expect(parameters.salt).to.equal(order.parameters.salt);
+      expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        order.parameters.totalOriginalConsiderationItems
+      );
+      expect(parameters.totalOriginalConsiderationItems).to.equal(
+        parameters.consideration.length
+      );
+
+      expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+      expect(parameters.consideration.length).to.equal(
+        order.parameters.consideration.length
+      );
+
+      for (let i = 0; i < parameters.offer.length; i++) {
+        const eventOffer = parameters.offer[i];
+        const suppliedOffer = order.parameters.offer[i];
+        expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+        expect(eventOffer.token).to.equal(suppliedOffer.token);
+        expect(eventOffer.identifierOrCriteria).to.equal(
+          suppliedOffer.identifierOrCriteria
+        );
+        expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+        expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+      }
+
+      for (let i = 0; i < parameters.consideration.length; i++) {
+        const eventConsideration = parameters.consideration[i];
+        const suppliedConsideration = order.parameters.consideration[i];
+        expect(eventConsideration.itemType).to.equal(
+          suppliedConsideration.itemType
+        );
+        expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+        expect(eventConsideration.identifierOrCriteria).to.equal(
+          suppliedConsideration.identifierOrCriteria
+        );
+        expect(eventConsideration.startAmount).to.equal(
+          suppliedConsideration.startAmount
+        );
+        expect(eventConsideration.endAmount).to.equal(
+          suppliedConsideration.endAmount
+        );
+        expect(eventConsideration.recipient).to.equal(
+          suppliedConsideration.recipient
+        );
+      }
 
       // can increment the counter as the offerer
       await expect(marketplaceContract.connect(seller).incrementCounter())

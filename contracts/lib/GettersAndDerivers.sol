@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { OrderParameters } from "./ConsiderationStructs.sol";
 
@@ -22,9 +22,9 @@ contract GettersAndDerivers is ConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ConsiderationBase(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ConsiderationBase(conduitController) {}
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
@@ -242,11 +242,9 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _deriveConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Read conduit controller address from runtime and place on the stack.
         address conduitController = address(_CONDUIT_CONTROLLER);
 
@@ -305,31 +303,32 @@ contract GettersAndDerivers is ConsiderationBase {
      * @dev Internal view function to retrieve configuration information for
      *      this contract.
      *
-     * @return version           The contract version.
-     * @return domainSeparator   The domain separator for this contract.
-     * @return conduitController The conduit Controller set for this contract.
+     * @return The contract version.
+     * @return The domain separator for this contract.
+     * @return The conduit Controller set for this contract.
      */
     function _information()
         internal
         view
         returns (
-            string memory version,
-            bytes32 domainSeparator,
-            address conduitController
+            string memory /* version */,
+            bytes32 /* domainSeparator */,
+            address /* conduitController */
         )
     {
         // Derive the domain separator.
-        domainSeparator = _domainSeparator();
+        bytes32 domainSeparator = _domainSeparator();
 
         // Declare variable as immutables cannot be accessed within assembly.
-        conduitController = address(_CONDUIT_CONTROLLER);
+        address conduitController = address(_CONDUIT_CONTROLLER);
 
-        // Allocate a string with the intended length.
-        version = new string(Version_length);
-
-        // Set the version as data on the newly allocated string.
+        // Return the version, domain separator, and conduit controller.
         assembly {
-            mstore(add(version, OneWord), shl(Version_shift, Version))
+            mstore(information_version_offset, information_version_cd_offset)
+            mstore(information_domainSeparator_offset, domainSeparator)
+            mstore(information_conduitController_offset, conduitController)
+            mstore(information_versionLengthPtr, information_versionWithLength)
+            return(information_version_offset, information_length)
         }
     }
 
@@ -342,11 +341,10 @@ contract GettersAndDerivers is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
+    function _deriveEIP712Digest(
+        bytes32 domainSeparator,
+        bytes32 orderHash
+    ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.

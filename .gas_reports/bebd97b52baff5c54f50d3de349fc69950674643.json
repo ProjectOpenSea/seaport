@@ -1,0 +1,474 @@
+{
+  "commitHash": "bebd97b52baff5c54f50d3de349fc69950674643",
+  "contractReports": {
+    "Conduit": {
+      "name": "Conduit",
+      "methods": [
+        {
+          "method": "execute",
+          "min": 77455,
+          "max": 2412219,
+          "avg": 490175,
+          "calls": 6
+        },
+        {
+          "method": "executeBatch1155",
+          "min": null,
+          "max": null,
+          "avg": 97251,
+          "calls": 1
+        },
+        {
+          "method": "executeWithBatch1155",
+          "min": 97723,
+          "max": 361437,
+          "avg": 228770,
+          "calls": 4
+        },
+        {
+          "method": "updateChannel",
+          "min": null,
+          "max": null,
+          "avg": 45802,
+          "calls": 1
+        }
+      ],
+      "bytecodeSize": 3060,
+      "deployedBytecodeSize": 3019
+    },
+    "ConduitController": {
+      "name": "ConduitController",
+      "methods": [
+        {
+          "method": "acceptOwnership",
+          "min": null,
+          "max": null,
+          "avg": 32944,
+          "calls": 1
+        },
+        {
+          "method": "cancelOwnershipTransfer",
+          "min": null,
+          "max": null,
+          "avg": 27966,
+          "calls": 1
+        },
+        {
+          "method": "createConduit",
+          "min": 710626,
+          "max": 710770,
+          "avg": 710745,
+          "calls": 81
+        },
+        {
+          "method": "transferOwnership",
+          "min": null,
+          "max": null,
+          "avg": 50329,
+          "calls": 2
+        },
+        {
+          "method": "updateChannel",
+          "min": 34454,
+          "max": 121098,
+          "avg": 117183,
+          "calls": 69
+        }
+      ],
+      "bytecodeSize": 11985,
+      "deployedBytecodeSize": 8649
+    },
+    "ConduitControllerMock": {
+      "name": "ConduitControllerMock",
+      "methods": [
+        {
+          "method": "createConduit",
+          "min": 202022,
+          "max": 207463,
+          "avg": 205528,
+          "calls": 6
+        }
+      ],
+      "bytecodeSize": 9161,
+      "deployedBytecodeSize": 6440
+    },
+    "EIP1271Wallet": {
+      "name": "EIP1271Wallet",
+      "methods": [
+        {
+          "method": "approveNFT",
+          "min": null,
+          "max": null,
+          "avg": 49680,
+          "calls": 14
+        },
+        {
+          "method": "registerDigest",
+          "min": 22245,
+          "max": 44157,
+          "avg": 36853,
+          "calls": 3
+        },
+        {
+          "method": "revertWithMessage",
+          "min": null,
+          "max": null,
+          "avg": 21683,
+          "calls": 1
+        },
+        {
+          "method": "setValid",
+          "min": 21705,
+          "max": 43617,
+          "avg": 32661,
+          "calls": 2
+        }
+      ],
+      "bytecodeSize": 2444,
+      "deployedBytecodeSize": 2266
+    },
+    "ExcessReturnDataRecipient": {
+      "name": "ExcessReturnDataRecipient",
+      "methods": [
+        {
+          "method": "setRevertDataSize",
+          "min": null,
+          "max": null,
+          "avg": 43441,
+          "calls": 2
+        }
+      ],
+      "bytecodeSize": 1907,
+      "deployedBytecodeSize": 1879
+    },
+    "PausableZone": {
+      "name": "PausableZone",
+      "methods": [
+        {
+          "method": "cancelOrders",
+          "min": null,
+          "max": null,
+          "avg": 65293,
+          "calls": 1
+        }
+      ],
+      "bytecodeSize": 4540,
+      "deployedBytecodeSize": 4434
+    },
+    "PausableZoneController": {
+      "name": "PausableZoneController",
+      "methods": [
+        {
+          "method": "acceptOwnership",
+          "min": null,
+          "max": null,
+          "avg": 28945,
+          "calls": 1
+        },
+        {
+          "method": "assignOperator",
+          "min": null,
+          "max": null,
+          "avg": 50887,
+          "calls": 1
+        },
+        {
+          "method": "assignPauser",
+          "min": null,
+          "max": null,
+          "avg": 47186,
+          "calls": 1
+        },
+        {
+          "method": "cancelOrders",
+          "min": null,
+          "max": null,
+          "avg": 73857,
+          "calls": 1
+        },
+        {
+          "method": "cancelOwnershipTransfer",
+          "min": null,
+          "max": null,
+          "avg": 24581,
+          "calls": 1
+        },
+        {
+          "method": "createZone",
+          "min": 950488,
+          "max": 950500,
+          "avg": 950498,
+          "calls": 29
+        },
+        {
+          "method": "executeMatchAdvancedOrders",
+          "min": null,
+          "max": null,
+          "avg": 288744,
+          "calls": 2
+        },
+        {
+          "method": "executeMatchOrders",
+          "min": null,
+          "max": null,
+          "avg": 282719,
+          "calls": 2
+        },
+        {
+          "method": "pause",
+          "min": 32869,
+          "max": 35000,
+          "avg": 33579,
+          "calls": 3
+        },
+        {
+          "method": "transferOwnership",
+          "min": null,
+          "max": null,
+          "avg": 47202,
+          "calls": 2
+        }
+      ],
+      "bytecodeSize": 15022,
+      "deployedBytecodeSize": 10269
+    },
+    "Reenterer": {
+      "name": "Reenterer",
+      "methods": [
+        {
+          "method": "prepare",
+          "min": 209097,
+          "max": 1211940,
+          "avg": 667976,
+          "calls": 20
+        }
+      ],
+      "bytecodeSize": 1859,
+      "deployedBytecodeSize": 1831
+    },
+    "Seaport": {
+      "name": "Seaport",
+      "methods": [
+        {
+          "method": "cancel",
+          "min": 41174,
+          "max": 58382,
+          "avg": 53996,
+          "calls": 16
+        },
+        {
+          "method": "fulfillAdvancedOrder",
+          "min": 97367,
+          "max": 212855,
+          "avg": 158037,
+          "calls": 173
+        },
+        {
+          "method": "fulfillAvailableAdvancedOrders",
+          "min": 132976,
+          "max": 217761,
+          "avg": 183841,
+          "calls": 19
+        },
+        {
+          "method": "fulfillAvailableOrders",
+          "min": 165532,
+          "max": 410394,
+          "avg": 233991,
+          "calls": 16
+        },
+        {
+          "method": "fulfillBasicOrder",
+          "min": 91894,
+          "max": 1637815,
+          "avg": 597656,
+          "calls": 187
+        },
+        {
+          "method": "fulfillOrder",
+          "min": 120012,
+          "max": 208650,
+          "avg": 170689,
+          "calls": 105
+        },
+        {
+          "method": "incrementCounter",
+          "min": null,
+          "max": null,
+          "avg": 47029,
+          "calls": 6
+        },
+        {
+          "method": "matchAdvancedOrders",
+          "min": 161279,
+          "max": 282283,
+          "avg": 246458,
+          "calls": 74
+        },
+        {
+          "method": "matchOrders",
+          "min": 156979,
+          "max": 346975,
+          "avg": 252470,
+          "calls": 107
+        },
+        {
+          "method": "validate",
+          "min": 53213,
+          "max": 83994,
+          "avg": 73874,
+          "calls": 27
+        }
+      ],
+      "bytecodeSize": 25366,
+      "deployedBytecodeSize": 23317
+    },
+    "TestContractOfferer": {
+      "name": "TestContractOfferer",
+      "methods": [
+        {
+          "method": "activate",
+          "min": 201425,
+          "max": 246618,
+          "avg": 205929,
+          "calls": 19
+        },
+        {
+          "method": "extendAvailable",
+          "min": null,
+          "max": null,
+          "avg": 50663,
+          "calls": 1
+        },
+        {
+          "method": "extendRequired",
+          "min": null,
+          "max": null,
+          "avg": 45761,
+          "calls": 1
+        }
+      ],
+      "bytecodeSize": 5795,
+      "deployedBytecodeSize": 5612
+    },
+    "TestERC1155": {
+      "name": "TestERC1155",
+      "methods": [
+        {
+          "method": "mint",
+          "min": 47226,
+          "max": 49918,
+          "avg": 49452,
+          "calls": 244
+        },
+        {
+          "method": "setApprovalForAll",
+          "min": 26105,
+          "max": 46005,
+          "avg": 45642,
+          "calls": 440
+        }
+      ],
+      "bytecodeSize": 3783,
+      "deployedBytecodeSize": 3755
+    },
+    "TestERC20": {
+      "name": "TestERC20",
+      "methods": [
+        {
+          "method": "approve",
+          "min": 28872,
+          "max": 46248,
+          "avg": 45696,
+          "calls": 236
+        },
+        {
+          "method": "blockTransfer",
+          "min": 21984,
+          "max": 43896,
+          "avg": 32940,
+          "calls": 4
+        },
+        {
+          "method": "mint",
+          "min": 33985,
+          "max": 68461,
+          "avg": 57909,
+          "calls": 113
+        },
+        {
+          "method": "setNoReturnData",
+          "min": 21929,
+          "max": 43841,
+          "avg": 32885,
+          "calls": 2
+        }
+      ],
+      "bytecodeSize": 5117,
+      "deployedBytecodeSize": 3946
+    },
+    "TestERC721": {
+      "name": "TestERC721",
+      "methods": [
+        {
+          "method": "mint",
+          "min": 51495,
+          "max": 68787,
+          "avg": 66456,
+          "calls": 271
+        },
+        {
+          "method": "setApprovalForAll",
+          "min": 26198,
+          "max": 46098,
+          "avg": 45510,
+          "calls": 476
+        }
+      ],
+      "bytecodeSize": 4576,
+      "deployedBytecodeSize": 3789
+    },
+    "TestInvalidContractOfferer": {
+      "name": "TestInvalidContractOfferer",
+      "methods": [
+        {
+          "method": "activate",
+          "min": 201425,
+          "max": 201437,
+          "avg": 201431,
+          "calls": 2
+        }
+      ],
+      "bytecodeSize": 5335,
+      "deployedBytecodeSize": 5159
+    },
+    "TestInvalidContractOffererRatifyOrder": {
+      "name": "TestInvalidContractOffererRatifyOrder",
+      "methods": [
+        {
+          "method": "activate",
+          "min": null,
+          "max": null,
+          "avg": 201437,
+          "calls": 1
+        }
+      ],
+      "bytecodeSize": 5795,
+      "deployedBytecodeSize": 5612
+    },
+    "TransferHelper": {
+      "name": "TransferHelper",
+      "methods": [
+        {
+          "method": "bulkTransfer",
+          "min": 77930,
+          "max": 1458692,
+          "avg": 640874,
+          "calls": 3
+        }
+      ],
+      "bytecodeSize": 3998,
+      "deployedBytecodeSize": 3723
+    }
+  }
+}

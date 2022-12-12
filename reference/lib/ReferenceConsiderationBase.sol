@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     ConduitControllerInterface
@@ -25,7 +25,7 @@ contract ReferenceConsiderationBase is
 {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "1.1-reference";
+    string internal constant _VERSION = "1.2-reference";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 
@@ -36,6 +36,7 @@ contract ReferenceConsiderationBase is
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_TYPEHASH;
+    bytes32 internal immutable _BULK_ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
@@ -63,6 +64,7 @@ contract ReferenceConsiderationBase is
             _OFFER_ITEM_TYPEHASH,
             _CONSIDERATION_ITEM_TYPEHASH,
             _ORDER_TYPEHASH,
+            _BULK_ORDER_TYPEHASH,
             _DOMAIN_SEPARATOR
         ) = _deriveTypehashes();
 
@@ -141,6 +143,7 @@ contract ReferenceConsiderationBase is
      * @return considerationItemTypehash The EIP-712 typehash for
      *                                   ConsiderationItem types.
      * @return orderTypehash             The EIP-712 typehash for Order types.
+     * @return bulkOrderTypeHash
      * @return domainSeparator           The domain separator.
      */
     function _deriveTypehashes()
@@ -153,6 +156,7 @@ contract ReferenceConsiderationBase is
             bytes32 offerItemTypehash,
             bytes32 considerationItemTypehash,
             bytes32 orderTypehash,
+            bytes32 bulkOrderTypeHash,
             bytes32 domainSeparator
         )
     {
@@ -233,6 +237,24 @@ contract ReferenceConsiderationBase is
             )
         );
 
+        // Encode the type string for the BulkOrder struct.
+        bytes memory bulkOrderPartialTypeString = abi.encodePacked(
+            "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
+        );
+
+        // Generate the keccak256 hash of the concatenated type strings for the
+        // BulkOrder, considerationItem, offerItem, and orderComponents.
+        bulkOrderTypeHash = keccak256(
+            abi.encodePacked(
+                bulkOrderPartialTypeString,
+                considerationItemTypeString,
+                offerItemTypeString,
+                orderComponentsPartialTypeString
+            )
+        );
+
+        // Derive the initial domain separator using the domain typehash, the
+        // name hash, and the version hash.
         domainSeparator = _deriveInitialDomainSeparator(
             eip712DomainTypehash,
             nameHash,

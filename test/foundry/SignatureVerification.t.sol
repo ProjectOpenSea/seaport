@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     SignatureVerification
@@ -25,15 +25,16 @@ interface GetterAndDeriver {
 
     function domainSeparator() external returns (bytes32);
 
-    function deriveEIP712Digest(bytes32 _domainSeparator_, bytes32 orderHash)
-        external
-        returns (bytes32 value);
+    function deriveEIP712Digest(
+        bytes32 _domainSeparator_,
+        bytes32 orderHash
+    ) external returns (bytes32 value);
 }
 
 contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
-    constructor(address conduitController)
-        GettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) GettersAndDerivers(conduitController) {}
 
     function deriveOrderHash(
         OrderParameters memory orderParameters,
@@ -46,11 +47,10 @@ contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
         return _domainSeparator();
     }
 
-    function deriveEIP712Digest(bytes32 _domainSeparator_, bytes32 orderHash)
-        public
-        pure
-        returns (bytes32 value)
-    {
+    function deriveEIP712Digest(
+        bytes32 _domainSeparator_,
+        bytes32 orderHash
+    ) public pure returns (bytes32 value) {
         return _deriveEIP712Digest(_domainSeparator_, orderHash);
     }
 }
@@ -59,9 +59,9 @@ contract ReferenceGettersAndDeriversImpl is
     GetterAndDeriver,
     ReferenceGettersAndDerivers
 {
-    constructor(address conduitController)
-        ReferenceGettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceGettersAndDerivers(conduitController) {}
 
     function deriveOrderHash(
         OrderParameters memory orderParameters,
@@ -74,11 +74,10 @@ contract ReferenceGettersAndDeriversImpl is
         return _domainSeparator();
     }
 
-    function deriveEIP712Digest(bytes32 _domainSeparator_, bytes32 orderHash)
-        public
-        pure
-        returns (bytes32 value)
-    {
+    function deriveEIP712Digest(
+        bytes32 _domainSeparator_,
+        bytes32 orderHash
+    ) public pure returns (bytes32 value) {
         return _deriveEIP712Digest(_domainSeparator_, orderHash);
     }
 }

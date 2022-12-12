@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { Side } from "../lib/ConsiderationEnums.sol";
 
@@ -28,8 +28,13 @@ interface FulfillmentApplicationErrors {
      * @dev Revert with an error when the initial offer item named by a
      *      fulfillment component does not match the type, token, identifier,
      *      or conduit preference of the initial consideration item.
+     *
+     * @param fulfillmentIndex The index of the fulfillment component that
+     *                         does not match the initial offer item.
      */
-    error MismatchedFulfillmentOfferAndConsiderationComponents();
+    error MismatchedFulfillmentOfferAndConsiderationComponents(
+        uint256 fulfillmentIndex
+    );
 
     /**
      * @dev Revert with an error when an order or item index are out of range

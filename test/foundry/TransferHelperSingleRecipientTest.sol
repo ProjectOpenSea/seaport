@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
@@ -366,11 +366,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         return item;
     }
 
-    function getSelector(bytes calldata returnData)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function getSelector(
+        bytes calldata returnData
+    ) public pure returns (bytes memory) {
         return returnData[0x84:0x88];
     }
 
@@ -398,9 +396,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
-    function testBulkTransferERC721toBobThenCal(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testBulkTransferERC721toBobThenCal(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
             inputs.amounts[0],
@@ -423,9 +421,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(item, alice, bob, "");
     }
 
-    function testBulkTransferERC1155andERC721(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testBulkTransferERC1155andERC721(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
         items[0] = _getFuzzedTransferItem(
             ConduitItemType.ERC1155,
@@ -655,9 +653,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertBulkTransferETHonly(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = _getFuzzedTransferItem(
             ConduitItemType.NATIVE,
@@ -674,9 +672,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferETHandERC721(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertBulkTransferETHandERC721(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
         items[0] = _getFuzzedTransferItem(
             ConduitItemType.NATIVE,
@@ -726,7 +724,8 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             alice,
             bob,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }
@@ -755,7 +754,8 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             alice,
             bob,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }
@@ -826,9 +826,9 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
     }
 
-    function testRevertInvalidERC721Receiver(FuzzInputsCommon memory inputs)
-        public
-    {
+    function testRevertInvalidERC721Receiver(
+        FuzzInputsCommon memory inputs
+    ) public {
         // Deploy invalid mock ERC721 receiver
         ERC721ReceiverMock mockReceiver = new ERC721ReceiverMock(
             0xabcd0000,
@@ -1121,9 +1121,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             );
         try
             mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice)
-        returns (
-            bytes4 /* magicValue */
-        ) {} catch (bytes memory reason) {
+        returns (bytes4 /* magicValue */) {} catch (bytes memory reason) {
             returnedData = this.getSelector(reason);
         }
         vm.expectRevert(

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //Author: CupOJoseph
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,
@@ -65,18 +65,18 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testBasicEthTo721(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicEthTo721(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
@@ -85,10 +85,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicEthTo721WithZone(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         inputs.zone = address(0);
 
         addErc721OfferItem(inputs.tokenId);
@@ -99,10 +98,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicErc20To721(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicErc20To721(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
@@ -514,7 +512,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
-    function prepareBasicOrder(uint256 tokenId)
+    function prepareBasicOrder(
+        uint256 tokenId
+    )
         internal
         returns (
             Order memory order,

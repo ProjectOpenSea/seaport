@@ -1,5 +1,5 @@
 // SPDX-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
@@ -24,12 +24,10 @@ contract PreapprovedERC721 is ERC721 {
         return true;
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override returns (bool) {
         return
             preapprovals[operator] || super.isApprovedForAll(owner, operator);
     }

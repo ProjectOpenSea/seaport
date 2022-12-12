@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 /**
  * @title ImmutableCreate2FactoryInterface
@@ -30,10 +30,10 @@ interface ImmutableCreate2FactoryInterface {
      *
      * @return deploymentAddress Address of the contract that will be created.
      */
-    function safeCreate2(bytes32 salt, bytes calldata initializationCode)
-        external
-        payable
-        returns (address deploymentAddress);
+    function safeCreate2(
+        bytes32 salt,
+        bytes calldata initializationCode
+    ) external payable returns (address deploymentAddress);
 
     /**
      * @dev Compute the address of the contract that will be created when
@@ -53,10 +53,10 @@ interface ImmutableCreate2FactoryInterface {
      *                           or the null address if a contract already
      *                           exists at that address.
      */
-    function findCreate2Address(bytes32 salt, bytes calldata initCode)
-        external
-        view
-        returns (address deploymentAddress);
+    function findCreate2Address(
+        bytes32 salt,
+        bytes calldata initCode
+    ) external view returns (address deploymentAddress);
 
     /**
      * @dev Compute the address of the contract that will be created when
@@ -77,10 +77,10 @@ interface ImmutableCreate2FactoryInterface {
      *                           or the null address if a contract already
      *                           exists at that address.
      */
-    function findCreate2AddressViaHash(bytes32 salt, bytes32 initCodeHash)
-        external
-        view
-        returns (address deploymentAddress);
+    function findCreate2AddressViaHash(
+        bytes32 salt,
+        bytes32 initCodeHash
+    ) external view returns (address deploymentAddress);
 
     /**
      * @dev Determine if a contract has already been deployed by the factory to
@@ -90,8 +90,7 @@ interface ImmutableCreate2FactoryInterface {
      *
      * @return True if the contract has been deployed, false otherwise.
      */
-    function hasBeenDeployed(address deploymentAddress)
-        external
-        view
-        returns (bool);
+    function hasBeenDeployed(
+        address deploymentAddress
+    ) external view returns (bool);
 }

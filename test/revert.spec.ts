@@ -1,3 +1,4 @@
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
 
@@ -12,6 +13,7 @@ import {
   randomHex,
   toBN,
   toFulfillment,
+  toFulfillmentComponents,
   toKey,
 } from "./utils/encoding";
 import { faucet, getWalletWithEther } from "./utils/faucet";
@@ -48,7 +50,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let conduitOne: ConduitInterface;
   let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
-  let reenterer: Reenterer;
   let stubZone: TestZone;
   let testERC1155: TestERC1155;
   let testERC20: TestERC20;
@@ -112,6 +113,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let seller: Wallet;
   let buyer: Wallet;
   let zone: Wallet;
+  let reenterer: Reenterer;
 
   let sellerContract: EIP1271Wallet;
   let buyerContract: EIP1271Wallet;
@@ -125,7 +127,14 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     sellerContract = await EIP1271WalletFactory.deploy(seller.address);
     buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
 
-    for (const wallet of [seller, buyer, zone, sellerContract, buyerContract]) {
+    for (const wallet of [
+      seller,
+      buyer,
+      zone,
+      sellerContract,
+      buyerContract,
+      reenterer,
+    ]) {
       await faucet(wallet.address, provider);
     }
   });
@@ -176,7 +185,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("BadFraction");
+      ).to.be.revertedWithCustomError(marketplaceContract, "BadFraction");
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -199,7 +208,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("BadFraction");
+      ).to.be.revertedWithCustomError(marketplaceContract, "BadFraction");
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -222,7 +231,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("BadFraction");
+      ).to.be.revertedWithCustomError(marketplaceContract, "BadFraction");
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -315,7 +324,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InexactFraction");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InexactFraction");
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -408,7 +417,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("PartialFillsNotEnabledForOrder");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "PartialFillsNotEnabledForOrder"
+      );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -537,7 +549,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith(`OrderPartiallyFilled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          `OrderPartiallyFilled`
+        )
+        .withArgs(orderHash);
     });
     it("Reverts on fully filled order", async () => {
       // Seller mints nft
@@ -621,9 +638,106 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "OrderAlreadyFilled"
+        )
+        .withArgs(orderHash);
     });
-    it("Reverts on non-zero unused item parameters (identifier set on native, basic)", async () => {
+    it("Reverts on non-zero unused item parameters (identifier set on native, basic, ERC721)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(1000, 1000, seller.address),
+        getItemETH(10, 10, zone.address),
+        getItemETH(20, 20, owner.address),
+      ];
+
+      consideration[0].identifierOrCriteria = minRandom(1);
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        0, // EthForERC721
+        order
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillBasicOrder(basicOrderParameters, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+    });
+    it("Reverts on non-zero unused item parameters (identifier set on ERC20, basic, ERC721)", async () => {
+      // Seller mints ERC20
+      await mintAndApproveERC20(seller, marketplaceContract.address, 1000);
+
+      // Buyer mints nft
+      const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
+
+      const offer = [getTestItem20(500, 500)];
+
+      offer[0].identifierOrCriteria = minRandom(1);
+
+      const consideration = [
+        getTestItem721(nftId, 1, 1, seller.address),
+        getTestItem20(50, 50, zone.address),
+        getTestItem20(50, 50, owner.address),
+      ];
+
+      const { order, orderHash } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        4, // ERC721ForERC20
+        order
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillBasicOrder(basicOrderParameters)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+    });
+    it("Reverts on non-zero unused item parameters (identifier set on native, basic, ERC1155)", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
         seller,
@@ -660,7 +774,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith(`UnusedItemParameters`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -705,7 +822,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith(`UnusedItemParameters`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -757,7 +877,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`UnusedItemParameters`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
     });
     it("Reverts on non-zero unused item parameters (identifier set on native, standard)", async () => {
       // Seller mints nft
@@ -803,7 +926,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`UnusedItemParameters`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
     });
     it("Reverts on non-zero unused item parameters (identifier set on ERC20, standard)", async () => {
       // Seller mints nft
@@ -849,7 +975,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`UnusedItemParameters`);
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        `UnusedItemParameters`
+      );
     });
     it("Reverts on inadequate consideration items", async () => {
       // Seller mints nft
@@ -898,7 +1027,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("MissingOriginalConsiderationItems");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MissingOriginalConsiderationItems"
+      );
     });
     it("Reverts on invalid submitter when required by order", async () => {
       // Seller mints nft
@@ -948,7 +1080,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             .matchOrders([order, mirrorOrder], fulfillments, {
               value,
             })
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract
@@ -1046,7 +1183,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
           value,
         });
-      expect(provider.call(tx)).to.be.revertedWith("InvalidSigner");
+      expect(provider.call(tx)).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidSigner"
+      );
 
       await expect(
         marketplaceContract
@@ -1197,7 +1337,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters)
-        ).to.be.revertedWith("BadContractSignature");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "BadContractSignature"
+        );
       } else {
         await expect(
           marketplaceContract
@@ -1320,7 +1463,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
@@ -1344,7 +1492,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract
@@ -1400,7 +1553,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract
@@ -1416,7 +1574,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
@@ -1440,7 +1603,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            `InvalidRestrictedOrder`
+          )
+          .withArgs(orderHash);
       } else {
         await expect(
           marketplaceContract
@@ -1497,7 +1665,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchOrders([order, mirrorOrder], fulfillments, { value })
-      ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "OfferAndConsiderationRequiredOnFulfillment"
+      );
 
       fulfillments = [
         {
@@ -1515,7 +1686,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchOrders([order, mirrorOrder], fulfillments, { value })
-      ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "OfferAndConsiderationRequiredOnFulfillment"
+      );
 
       fulfillments = [
         {
@@ -1535,7 +1709,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "OfferAndConsiderationRequiredOnFulfillment"
+      );
 
       fulfillments = defaultBuyNowMirrorFulfillment;
 
@@ -1611,9 +1788,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith(
-        "MismatchedFulfillmentOfferAndConsiderationComponents"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MismatchedFulfillmentOfferAndConsiderationComponents"
+        )
+        .withArgs(0);
 
       fulfillments = defaultBuyNowMirrorFulfillment;
 
@@ -1651,6 +1831,72 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         executions
       );
       return receipt;
+    });
+    it("Reverts on mismatched offer and consideration components (branch coverage 1)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [getTestItem721(10, 1, 1, seller.address)];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
+    });
+    it("Reverts on mismatched offer and consideration components (branch coverage 2)", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getTestItem721(10, 1, 1, seller.address, owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [toFulfillment([[0, 0]], [[0, 0]])];
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments)
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "MismatchedFulfillmentOfferAndConsiderationComponents"
+      );
     });
     it("Reverts on mismatched offer components", async () => {
       // Seller mints nft
@@ -1715,7 +1961,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on mismatched consideration components", async () => {
       // Seller mints nft
@@ -1780,7 +2029,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillment component with out-of-range order", async () => {
       // Seller mints nft
@@ -1828,7 +2080,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillment component with out-of-range offer item", async () => {
       // Seller mints nft
@@ -1870,7 +2125,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillment component with out-of-range initial order on fulfillAvailableOrders", async () => {
       // Seller mints nft
@@ -1923,7 +2181,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillment component with out-of-range initial offer item on fulfillAvailableOrders", async () => {
       // Seller mints nft
@@ -2036,7 +2297,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillment component with out-of-range consideration item", async () => {
       // Seller mints nft
@@ -2078,14 +2342,20 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
 
       // Reverts on out-of-bounds fulfillment orderIndex
       await expect(
         marketplaceContract.connect(owner).matchOrders([order], fulfillments, {
           value,
         })
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on unmet consideration items", async () => {
       // Seller mints nft
@@ -2126,9 +2396,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith(
-        `ConsiderationNotMet(0, 2, ${parseEther("1").toString()}`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "ConsiderationNotMet"
+        )
+        .withArgs(0, 2, parseEther("1"));
     });
     it("Reverts on fulfillAvailableAdvancedOrders with empty fulfillment component", async () => {
       // Seller mints nft
@@ -2175,7 +2448,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation(0)");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MissingFulfillmentComponentOnAggregation"
+        )
+        .withArgs(0);
     });
     it("Reverts on fulfillAvailableAdvancedOrders with out-of-range initial offer order", async () => {
       // Seller mints nft
@@ -2231,7 +2509,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillAvailableAdvancedOrders with out-of-range offer order", async () => {
       // Seller mints nft
@@ -2287,7 +2568,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillAvailableAdvancedOrders with mismatched offer components", async () => {
       // Seller mints nft
@@ -2339,7 +2623,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillAvailableAdvancedOrders with out-of-range consideration order", async () => {
       // Seller mints nft
@@ -2388,7 +2675,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillAvailableAdvancedOrders with mismatched consideration components", async () => {
       // Seller mints nft
@@ -2442,7 +2732,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
     it("Reverts on fulfillAvailableAdvancedOrders no available components", async () => {
       // Seller mints nft
@@ -2559,7 +2852,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value: value.mul(3),
             }
           )
-      ).to.be.revertedWith("NoSpecifiedOrdersAvailable");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "NoSpecifiedOrdersAvailable"
+      );
     });
     it("Reverts on out-of-range criteria resolvers", async () => {
       // Seller mints nfts
@@ -2611,7 +2907,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("OrderCriteriaResolverOutOfRange");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "OrderCriteriaResolverOutOfRange"
+        )
+        .withArgs(0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -2629,7 +2930,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("OfferCriteriaResolverOutOfRange");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "OfferCriteriaResolverOutOfRange"
+      );
 
       criteriaResolvers = [
         buildResolver(0, 1, 5, nftId, proofs[nftId.toString()]),
@@ -2647,7 +2951,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "ConsiderationCriteriaResolverOutOfRange"
+      );
 
       criteriaResolvers = [
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -2735,7 +3042,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("OrderCriteriaResolverOutOfRange");
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "OrderCriteriaResolverOutOfRange"
+          )
+          .withArgs(0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -2752,7 +3064,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("OfferCriteriaResolverOutOfRange");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "OfferCriteriaResolverOutOfRange"
+        );
 
         criteriaResolvers = [
           buildResolver(0, 1, 5, nftId, proofs[nftId.toString()]),
@@ -2769,7 +3084,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "ConsiderationCriteriaResolverOutOfRange"
+        );
       });
     }
     it("Reverts on unresolved criteria items", async () => {
@@ -2826,7 +3144,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("UnresolvedConsiderationCriteria");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedConsiderationCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -2844,7 +3167,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("UnresolvedOfferCriteria");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedOfferCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -2942,7 +3270,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("UnresolvedConsiderationCriteria");
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedConsiderationCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -2959,7 +3292,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("UnresolvedOfferCriteria");
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedOfferCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -3019,7 +3357,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("CriteriaNotEnabledForItem");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "CriteriaNotEnabledForItem"
+      );
     });
     if (process.env.REFERENCE) {
       it("Reverts on attempts to resolve criteria for non-criteria item (match)", async () => {
@@ -3074,7 +3415,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith("CriteriaNotEnabledForItem");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "CriteriaNotEnabledForItem"
+        );
       });
     }
     it("Reverts on offer amount overflow", async () => {
@@ -3146,9 +3490,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchAdvancedOrders([order, order2], [], fulfillments)
-      ).to.be.revertedWith(
-        "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
 
     it("Reverts on offer amount overflow when another amount is 0", async () => {
@@ -3222,9 +3564,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchAdvancedOrders([order, order2], [], fulfillments)
-      ).to.be.revertedWith(
-        "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
 
       // Reverts on out-of-bounds fulfillment orderIndex
       await expect(
@@ -3235,7 +3575,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             [],
             [toFulfillment([[3, 0]], [[0, 0]])]
           )
-      ).to.be.revertedWith("InvalidFulfillmentComponentData");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
     });
 
     it("Reverts on consideration amount overflow", async () => {
@@ -3307,9 +3650,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchAdvancedOrders([order, order2], [], fulfillments)
-      ).to.be.revertedWith(
-        "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
 
     it("Reverts on consideration amount overflow when another amount is 0", async () => {
@@ -3388,9 +3729,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           [],
           fulfillments
         )
-      ).to.be.revertedWith(
-        "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
-      );
+      ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
 
     it("Reverts on invalid criteria proof", async () => {
@@ -3445,7 +3784,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidProof");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidProof");
 
       criteriaResolvers[0].identifier = criteriaResolvers[0].identifier.sub(1);
 
@@ -3509,7 +3848,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith("InvalidERC721TransferAmount");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer (basic)", async () => {
       // Seller mints nft
@@ -3547,7 +3891,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith("InvalidERC721TransferAmount");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
       const nftId = await mintAndApprove721(seller, conduitOne.address, 0);
@@ -3579,7 +3928,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith("InvalidERC721TransferAmount");
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
   });
 
@@ -3599,7 +3953,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3613,7 +3967,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (standard)", async () => {
       // Seller mints nft
@@ -3630,7 +3986,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3644,7 +4000,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (basic)", async () => {
       // Seller mints nft
@@ -3661,7 +4019,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3682,7 +4040,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (basic)", async () => {
       // Seller mints nft
@@ -3699,7 +4059,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3720,7 +4080,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (match)", async () => {
       // Seller mints nft
@@ -3737,7 +4099,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3755,7 +4117,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (match)", async () => {
       // Seller mints nft
@@ -3772,7 +4136,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3790,7 +4154,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWith("InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
   });
 
@@ -3829,7 +4195,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value: toBN(0),
           })
-      ).to.be.revertedWith("InvalidMsgValue");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidMsgValue");
 
       await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
@@ -3883,7 +4249,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value: toBN(1),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       await expect(
         marketplaceContract
@@ -3891,7 +4260,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value: value.sub(1),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
@@ -3949,7 +4321,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value: toBN(1),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       await expect(
         marketplaceContract
@@ -3957,7 +4332,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value: parseEther("9.999999"),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       await marketplaceContract
         .connect(buyer)
@@ -4007,7 +4385,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value: toBN(1),
             }
           )
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -4027,7 +4408,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value: value.sub(1),
             }
           )
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -4120,7 +4504,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value: toBN(1),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       await expect(
         marketplaceContract
@@ -4128,7 +4515,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value: value.sub(1),
           })
-      ).to.be.revertedWith("InsufficientEtherSupplied");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientEtherSupplied"
+      );
 
       const tx = marketplaceContract
         .connect(owner)
@@ -4189,7 +4579,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value: 1,
           })
-      ).to.be.revertedWith("InvalidMsgValue(1)");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidMsgValue")
+        .withArgs(1);
     });
 
     it(`Reverts when ether transfer fails (returndata)${
@@ -4265,7 +4657,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               ? baseGas.add(35000)
               : baseGas.add(1000),
           })
-      ).to.be.revertedWith("EtherTransferGenericFailure");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "EtherTransferGenericFailure"
+      );
     });
 
     it("Reverts when ether transfer fails (basic)", async () => {
@@ -4323,11 +4718,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value: parseEther("12"),
           })
-      ).to.be.revertedWith(
-        `EtherTransferGenericFailure("${
-          marketplaceContract.address
-        }", ${parseEther("1").toString()})`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        )
+        .withArgs(marketplaceContract.address, parseEther("1"));
     });
     it("Reverts when tokens are not approved", async () => {
       // Seller mints nft
@@ -4489,7 +4885,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`NOT_AUTHORIZED`);
+      ).to.be.revertedWith("NOT_AUTHORIZED");
     });
 
     // Skip this test when testing the reference contract
@@ -4585,7 +4981,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 gasLimit: baseGas.add(74000),
               }
             )
-        ).to.be.revertedWith("InvalidCallToConduit");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidCallToConduit"
+        );
       });
     }
 
@@ -4639,7 +5038,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("MissingItemAmount");
+      ).to.be.revertedWithCustomError(marketplaceContract, "MissingItemAmount");
     });
     it("Reverts when ERC20 tokens return falsey values", async () => {
       // Seller mints nft
@@ -4828,6 +5227,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       expect(await testERC20.noReturnData()).to.be.false;
     });
+
     it("Reverts when ERC20 tokens return falsey values (via conduit)", async () => {
       // Seller mints nft
       const { nftId, amount } = await mint1155(seller, 10000);
@@ -4879,8 +5279,32 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       await testERC20.blockTransfer(true);
 
       if (!process.env.REFERENCE) {
-        await expect(
-          marketplaceContract
+        const data = await marketplaceContract.interface.encodeFunctionData(
+          "fulfillAdvancedOrder",
+          [order, [], conduitKeyOne, ethers.constants.AddressZero]
+        );
+
+        const fullTx = await buyer.populateTransaction({
+          from: buyer.address,
+          to: marketplaceContract.address,
+          value,
+          data,
+          gasLimit: 30_000_000,
+        });
+
+        const returnedData = await provider.call(fullTx);
+
+        const expectedData = marketplaceContract.interface.encodeErrorResult(
+          "BadReturnValueFromERC20OnTransfer",
+          [testERC20.address, buyer.address, seller.address, amount.mul(1000)]
+        );
+
+        expect(returnedData).to.equal(expectedData);
+
+        let success = false;
+
+        try {
+          const tx = await marketplaceContract
             .connect(buyer)
             .fulfillAdvancedOrder(
               order,
@@ -4890,12 +5314,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               {
                 value,
               }
-            )
-        ).to.be.revertedWith(
-          `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
-            buyer.address
-          }", "${seller.address}", ${amount.mul(1000).toString()})`
-        );
+            );
+
+          const receipt = await tx.wait();
+          success = receipt.status === 1;
+        } catch (err) {}
+
+        expect(success).to.be.false;
       } else {
         await expect(
           marketplaceContract
@@ -4914,9 +5339,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
+      expect(orderStatus.isValidated).to.equal(false);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("0");
+      expect(orderStatus.totalSize.toString()).to.equal("0");
 
       await testERC20.blockTransfer(false);
 
@@ -4953,10 +5379,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 1, 1)
-      );
+      expect(orderStatus.isValidated).to.equal(true);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("1");
+      expect(orderStatus.totalSize.toString()).to.equal("1");
     });
+
     it("Reverts when providing non-existent conduit", async () => {
       // Seller mints nft
       const { nftId, amount } = await mint1155(seller, 10000);
@@ -5017,13 +5445,14 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith("InvalidConduit");
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidConduit");
 
       let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
+      expect(orderStatus.isValidated).to.equal(false);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("0");
+      expect(orderStatus.totalSize.toString()).to.equal("0");
 
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
@@ -5057,10 +5486,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 1, 1)
-      );
+      expect(orderStatus.isValidated).to.equal(true);
+      expect(orderStatus.isCancelled).to.equal(false);
+      expect(orderStatus.totalFilled.toString()).to.equal("1");
+      expect(orderStatus.totalSize.toString()).to.equal("1");
     });
+
     it("Reverts when 1155 tokens are not approved", async () => {
       // Seller mints first nft
       const { nftId } = await mint1155(seller);
@@ -5107,7 +5538,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("MissingItemAmount");
+      ).to.be.revertedWithCustomError(marketplaceContract, "MissingItemAmount");
     });
     it("Reverts when 1155 tokens are not approved", async () => {
       // Seller mints first nft
@@ -5272,7 +5703,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      ).to.be.revertedWith(`NoContract("${buyer.address}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "NoContract")
+        .withArgs(buyer.address);
     });
     it("Reverts when 1155 account with no code is supplied", async () => {
       const amount = toBN(randomBN(2));
@@ -5305,7 +5738,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, `NoContract`)
+        .withArgs(ethers.constants.AddressZero);
     });
     it("Reverts when 1155 account with no code is supplied (via conduit)", async () => {
       const amount = toBN(randomBN(2));
@@ -5343,7 +5778,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, `NoContract`)
+        .withArgs(ethers.constants.AddressZero);
     });
     it("Reverts when non-token account is supplied as the token", async () => {
       // Seller mints nft
@@ -5383,11 +5820,18 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(
-        `TokenTransferGenericFailure("${marketplaceContract.address}", "${
-          buyer.address
-        }", "${seller.address}", 0, ${amount.toString()})`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "TokenTransferGenericFailure"
+        )
+        .withArgs(
+          marketplaceContract.address,
+          buyer.address,
+          seller.address,
+          0,
+          amount
+        );
     });
     it("Reverts when non-token account is supplied as the token fulfilled via conduit", async () => {
       // Seller mints nft
@@ -5427,11 +5871,18 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWith(
-        `TokenTransferGenericFailure("${marketplaceContract.address}", "${
-          buyer.address
-        }", "${seller.address}", 0, ${amount.toString()})`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "TokenTransferGenericFailure"
+        )
+        .withArgs(
+          marketplaceContract.address,
+          buyer.address,
+          seller.address,
+          0,
+          amount
+        );
     });
     it("Reverts when non-1155 account is supplied as the token", async () => {
       const amount = toBN(randomBN(2));
@@ -5465,11 +5916,18 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWith(
-          `TokenTransferGenericFailure("${marketplaceContract.address}", "${
-            seller.address
-          }", "${buyer.address}", 0, ${amount.toString()})`
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "TokenTransferGenericFailure"
+          )
+          .withArgs(
+            marketplaceContract.address,
+            seller.address,
+            buyer.address,
+            0,
+            amount
+          );
       } else {
         await expect(
           marketplaceContract
@@ -5606,7 +6064,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWith("NoContract");
+      ).to.be.revertedWithCustomError(marketplaceContract, "NoContract");
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -5652,11 +6110,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWith(
-        `EtherTransferGenericFailure("${
-          marketplaceContract.address
-        }", ${parseEther("1").toString()})`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        )
+        .withArgs(marketplaceContract.address, parseEther("1"));
     });
   });
 
@@ -5706,8 +6165,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           to: marketplaceContract.address,
           data: badData,
           value,
+          gasLimit: 100_000,
         })
-      ).to.be.revertedWith("InvalidBasicOrderParameterEncoding");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidBasicOrderParameterEncoding"
+      );
     });
 
     it("Reverts if additionalRecipients has non-default offset", async () => {
@@ -5721,8 +6184,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           to: marketplaceContract.address,
           data: badData,
           value,
+          gasLimit: 100_000,
         })
-      ).to.be.revertedWith("InvalidBasicOrderParameterEncoding");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidBasicOrderParameterEncoding"
+      );
     });
 
     it("Reverts if signature has non-default offset", async () => {
@@ -5736,13 +6203,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           to: marketplaceContract.address,
           data: badData,
           value,
+          gasLimit: 100_000,
         })
-      ).to.be.revertedWith("InvalidBasicOrderParameterEncoding");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidBasicOrderParameterEncoding"
+      );
     });
   });
 
   describe("Reentrancy", async () => {
-    it("Reverts on a reentrant call", async () => {
+    it("Reverts on a reentrant call to fulfillOrder", async () => {
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
@@ -5781,13 +6252,676 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
-        ).to.be.revertedWith("NoReentrantCalls");
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
       } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
         await expect(
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
-        ).to.be.reverted;
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to fulfillBasicOrder", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        0, // EthForERC721
+        order
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillBasicOrder",
+        [basicOrderParameters]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to fulfillAdvancedOrder", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+      const consideration = [
+        getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+        getItemETH(amount.mul(10), amount.mul(10), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        1 // PARTIAL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.numerator = 2; // fill two tenths or one fifth
+      order.denominator = 10; // fill two tenths or one fifth
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillAdvancedOrder",
+        [order, [], toKey(0), ethers.constants.AddressZero]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(0),
+              ethers.constants.AddressZero,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(0),
+              ethers.constants.AddressZero,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to fulfillAvailableOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [toFulfillmentComponents([[0, 0]])];
+
+      const considerationComponents = [
+        [[0, 0]],
+        [[0, 1]],
+        [[0, 2]],
+        [[0, 3]],
+      ].map(toFulfillmentComponents);
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillAvailableOrders",
+        [[order], offerComponents, considerationComponents, toKey(0), 100]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [order],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [order],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to fulfillAvailableAdvancedOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [[{ orderIndex: 0, itemIndex: 0 }]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+        [{ orderIndex: 0, itemIndex: 3 }],
+      ];
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillAvailableAdvancedOrders",
+        [
+          [order],
+          [],
+          offerComponents,
+          considerationComponents,
+          toKey(0),
+          ethers.constants.AddressZero,
+          100,
+        ]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              100,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to matchOrders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "matchOrders",
+        [[order, mirrorOrder], fulfillments]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value,
+            })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value,
+            })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to matchAdvancedOrders", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+      const consideration = [
+        getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+        getItemETH(amount.mul(10), amount.mul(10), zone.address),
+        getItemETH(amount.mul(20), amount.mul(20), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        1 // PARTIAL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.numerator = 2; // fill two tenths or one fifth
+      order.denominator = 10; // fill two tenths or one fifth
+
+      const mirrorObject = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "matchAdvancedOrders",
+        [[order, mirrorObject.mirrorOrder], [], fulfillments]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchAdvancedOrders(
+              [order, mirrorObject.mirrorOrder],
+              [],
+              fulfillments,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchAdvancedOrders(
+              [order, mirrorObject.mirrorOrder],
+              [],
+              fulfillments,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to cancel", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderComponents, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "cancel",
+        [[orderComponents]]
+      );
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to validate", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "validate",
+        [[order]]
+      );
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth,
+        // which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
+      }
+    });
+
+    it("Reverts on a reentrant call to incrementCounter", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const callData =
+        marketplaceContract.interface.encodeFunctionData("incrementCounter");
+
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        0,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferEth,
+        // which reverts with EtherTransferGenericFailure
+        await expect(
+          marketplaceContract
+            .connect(seller)
+            .fulfillOrder(order, toKey(0), { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "EtherTransferGenericFailure"
+        );
       }
     });
   });
@@ -5822,7 +6956,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), { value })
-      ).to.be.revertedWith("InvalidNativeOfferItem");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidNativeOfferItem"
+      );
     });
 
     it("fulfillAdvancedOrder reverts if any offer item is ETH", async () => {
@@ -5840,7 +6977,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value: ethAmount,
           })
-      ).to.be.revertedWith("InvalidNativeOfferItem");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidNativeOfferItem"
+      );
     });
 
     it("fulfillAvailableOrders reverts if any offer item is ETH", async () => {
@@ -5863,7 +7003,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             100,
             { value: ethAmount }
           )
-      ).to.be.revertedWith("InvalidNativeOfferItem");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidNativeOfferItem"
+      );
     });
 
     it("fulfillAvailableAdvancedOrders reverts if any offer item is ETH", async () => {
@@ -5888,7 +7031,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             100,
             { value: ethAmount }
           )
-      ).to.be.revertedWith("InvalidNativeOfferItem");
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidNativeOfferItem"
+      );
     });
 
     it("matchOrders allows fulfilling with native offer items", async () => {
@@ -5943,6 +7089,80 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
           value: ethAmount,
         });
+    });
+  });
+
+  describe(`Changing chainId`, function () {
+    // Note: Run this test last in this file as it hacks changing the hre
+    it("Reverts on changed chainId", async () => {
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      // Buyer mints ERC20
+      const tokenAmount = minRandom(100);
+      await mintAndApproveERC20(
+        buyer,
+        marketplaceContract.address,
+        tokenAmount
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getTestItem20(
+          tokenAmount.sub(100),
+          tokenAmount.sub(100),
+          seller.address
+        ),
+        getTestItem20(50, 50, zone.address),
+        getTestItem20(50, 50, owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        2, // ERC20ForERC721
+        order
+      );
+
+      // Change chainId in-flight to test branch coverage for _deriveDomainSeparator()
+      // (hacky way, until https://github.com/NomicFoundation/hardhat/issues/3074 is added)
+      const changeChainId = () => {
+        const recurse = (obj: any) => {
+          for (const [key, value] of Object.entries(obj ?? {})) {
+            if (key === "transactions") continue;
+            if (key === "chainId") {
+              obj[key] = typeof value === "bigint" ? BigInt(1) : 1;
+            } else if (typeof value === "object") {
+              recurse(obj[key]);
+            }
+          }
+        };
+        const hreProvider = hre.network.provider as any;
+        recurse(
+          hreProvider._wrapped._wrapped._wrapped?._node?._vm ??
+            // When running coverage, there was an additional layer of wrapping
+            hreProvider._wrapped._wrapped._wrapped._wrapped._node._vm
+        );
+      };
+      changeChainId();
+
+      const expectedRevertReason = getCustomRevertSelector("InvalidSigner()");
+
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .populateTransaction.fulfillBasicOrder(basicOrderParameters);
+      tx.chainId = 1;
+      const returnData = await provider.call(tx);
+      expect(returnData).to.equal(expectedRevertReason);
     });
   });
 });

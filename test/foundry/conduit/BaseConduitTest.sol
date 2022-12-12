@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
 import {
@@ -80,10 +80,10 @@ contract BaseConduitTest is
     }
 
     ///@dev helper to coerce a fuzzed address into one that can accept tokens if necessary
-    function receiver(address addr, ConduitItemType itemType)
-        internal
-        returns (address)
-    {
+    function receiver(
+        address addr,
+        ConduitItemType itemType
+    ) internal returns (address) {
         // 0 address is not valid mint or origin address
         if (addr == address(0)) {
             return address(1);
@@ -281,8 +281,8 @@ contract BaseConduitTest is
                 TestERC20 erc20 = TestERC20(token);
                 erc20.mint(from, transfer.amount);
                 vm.startPrank(from);
-                erc20.approve(address(conduit), 2**256 - 1);
-                erc20.approve(address(referenceConduit), 2**256 - 1);
+                erc20.approve(address(conduit), 2 ** 256 - 1);
+                erc20.approve(address(referenceConduit), 2 ** 256 - 1);
                 vm.stopPrank();
             } else if (itemType == ConduitItemType.ERC1155) {
                 TestERC1155 erc1155 = TestERC1155(token);
@@ -324,11 +324,9 @@ contract BaseConduitTest is
         }
     }
 
-    function getExpectedTokenBalance(ConduitTransfer memory transfer)
-        internal
-        view
-        returns (uint256)
-    {
+    function getExpectedTokenBalance(
+        ConduitTransfer memory transfer
+    ) internal view returns (uint256) {
         return
             userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
                 transfer.identifier
@@ -349,9 +347,9 @@ contract BaseConduitTest is
         return batchTokenBalances;
     }
 
-    function updateExpectedTokenBalances(ConduitTransfer[] memory transfers)
-        internal
-    {
+    function updateExpectedTokenBalances(
+        ConduitTransfer[] memory transfers
+    ) internal {
         for (uint256 i = 0; i < transfers.length; ++i) {
             ConduitTransfer memory transfer = transfers[i];
             ConduitItemType itemType = transfer.itemType;

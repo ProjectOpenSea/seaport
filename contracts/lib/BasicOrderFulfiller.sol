@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
@@ -20,7 +20,7 @@ import {
 
 import { OrderValidator } from "./OrderValidator.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -75,6 +75,8 @@ contract BasicOrderFulfiller is OrderValidator {
         // Declare additional recipient item type to derive from the route type.
         ItemType additionalRecipientsItemType;
 
+        bytes32 orderHash;
+
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
             // Read basicOrderType from calldata.
@@ -106,7 +108,7 @@ contract BasicOrderFulfiller is OrderValidator {
             // Revert if msg.value has not been supplied as part of payable
             // routes or has been supplied as part of non-payable routes.
             if (!correctPayableStatus) {
-                revert InvalidMsgValue(msg.value);
+                _revertInvalidMsgValue(msg.value);
             }
         }
 
@@ -154,7 +156,7 @@ contract BasicOrderFulfiller is OrderValidator {
             }
 
             // Derive & validate order using parameters and update order status.
-            _prepareBasicFulfillmentFromCalldata(
+            orderHash = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
                 receivedItemType,
@@ -185,7 +187,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 (uint160(parameters.considerationToken) |
                     parameters.considerationIdentifier) != 0
             ) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
 
             // Transfer the ERC721 or ERC1155 item, bypassing the accumulator.
@@ -274,6 +276,9 @@ contract BasicOrderFulfiller is OrderValidator {
             _triggerIfArmed(accumulator);
         }
 
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(orderHash, orderType, parameters);
+
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
 
@@ -291,10 +296,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *      will ensure that other functions using Solidity's calldata accessors
      *      (which calculate pointers from the stored offsets) are reading the
      *      same data as the order hash is derived from. Also note that This
-     *      function accesses memory directly. It does not clear the expanded
-     *      memory regions used, nor does it update the free memory pointer, so
-     *      other direct memory access must not assume that unused memory is
-     *      empty.
+     *      function accesses memory directly.
      *
      * @param parameters                   The parameters of the basic order.
      * @param orderType                    The order type.
@@ -307,6 +309,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
+     * @return orderHash The calculated order hash.
      */
     function _prepareBasicFulfillmentFromCalldata(
         BasicOrderParameters calldata parameters,
@@ -315,7 +318,7 @@ contract BasicOrderFulfiller is OrderValidator {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal {
+    ) internal returns (bytes32 orderHash) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -334,9 +337,6 @@ contract BasicOrderFulfiller is OrderValidator {
             parameters.additionalRecipients.length,
             parameters.totalOriginalAdditionalRecipients
         );
-
-        // Declare stack element for the order hash.
-        bytes32 orderHash;
 
         {
             /**
@@ -500,7 +500,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     // Retrieve calldata pointer for additional recipient.
                     let additionalRecipientCdPtr := add(
                         BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
+                        mul(AdditionalRecipient_size, i)
                     )
 
                     // Copy startAmount from calldata to the ConsiderationItem
@@ -516,7 +516,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     calldatacopy(
                         BasicOrder_considerationItem_endAmount_ptr,
                         additionalRecipientCdPtr,
-                        AdditionalRecipients_size
+                        AdditionalRecipient_size
                     )
 
                     // Add 1 word to the pointer as part of each loop to reduce
@@ -605,7 +605,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     // Retrieve calldata pointer for additional recipient.
                     let additionalRecipientCdPtr := add(
                         BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
+                        mul(AdditionalRecipient_size, i)
                     )
 
                     // At this point, eventConsiderationArrPtr points to the
@@ -728,7 +728,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 // offerAmount) from OrderParameters to (token, identifier,
                 // amount) in SpentItem struct.
                 calldatacopy(
-                    add(eventConsiderationArrPtr, AdditionalRecipients_size),
+                    add(eventConsiderationArrPtr, AdditionalRecipient_size),
                     BasicOrder_offerToken_cdPtr,
                     ThreeWords
                 )
@@ -891,16 +891,10 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Restore the zero slot.
             mstore(ZeroSlot, 0)
-        }
 
-        // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
+            // Update the free memory pointer so that event data is persisted.
+            mstore(0x40, add(0x80, add(eventDataPtr, dataSize)))
+        }
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
@@ -908,6 +902,9 @@ contract BasicOrderFulfiller is OrderValidator {
             parameters.offerer,
             parameters.signature
         );
+
+        // Return the derived order hash.
+        return orderHash;
     }
 
     /**
@@ -945,7 +942,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
                 // Ensure that sufficient Ether is available.
                 if (additionalRecipientAmount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
+                    _revertInsufficientEtherSupplied();
                 }
 
                 // Transfer Ether to the additional recipient.
@@ -962,7 +959,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Ensure that sufficient Ether is still available.
         if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
+            _revertInsufficientEtherSupplied();
         }
 
         // Transfer Ether to the offerer.
@@ -1031,7 +1028,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Ensure that no identifier is supplied.
             if (identifier != 0) {
-                revert UnusedItemParameters();
+                _revertUnusedItemParameters();
             }
         }
 

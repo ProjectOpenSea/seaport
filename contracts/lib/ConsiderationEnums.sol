@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 // prettier-ignore
 enum OrderType {
@@ -13,7 +13,10 @@ enum OrderType {
     FULL_RESTRICTED,
 
     // 3: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED
+    PARTIAL_RESTRICTED,
+
+    // 4: contract order type
+    CONTRACT
 }
 
 // prettier-ignore
