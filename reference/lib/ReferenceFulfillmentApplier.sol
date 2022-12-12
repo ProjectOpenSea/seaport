@@ -25,8 +25,6 @@ import {
     FulfillmentApplicationErrors
 } from "contracts/interfaces/FulfillmentApplicationErrors.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title FulfillmentApplier
  * @author 0age
@@ -257,7 +255,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         SpentItem memory offer,
         Execution memory execution
     ) internal pure returns (bool invalidFulfillment) {
-
         return
             execution.item.identifier != offer.identifier ||
             execution.offerer != orderToExecute.offerer ||
