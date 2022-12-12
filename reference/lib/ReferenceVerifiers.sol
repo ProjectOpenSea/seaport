@@ -95,16 +95,17 @@ contract ReferenceVerifiers is
         uint256 originalSignatureLength = signature.length;
 
         bytes32 digest;
-        bytes memory bulkOrderSignature;
+        bytes memory extractedSignature;
         if (_isValidBulkOrderSize(signature)) {
             // Rederive order hash and digest using bulk order proof.
-            (orderHash, bulkOrderSignature) = _computeBulkOrderProof(
+            (orderHash, extractedSignature) = _computeBulkOrderProof(
                 signature,
                 orderHash
             );
             digest = _deriveEIP712Digest(domainSeparator, orderHash);
         } else {
             digest = originalDigest;
+            extractedSignature = signature;
         }
 
         // Ensure that the signature for the digest is valid for the offerer.
@@ -113,7 +114,7 @@ contract ReferenceVerifiers is
             digest,
             originalDigest,
             signature,
-            bulkOrderSignature
+            extractedSignature
         );
     }
 
