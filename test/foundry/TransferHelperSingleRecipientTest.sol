@@ -153,14 +153,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             erc721s[i].setApprovalForAll(address(transferHelper), true);
         }
         vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
     }
 
     function _updateConduitChannel(bool open) internal {
@@ -947,7 +939,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1017,7 +1008,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1088,7 +1078,6 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
