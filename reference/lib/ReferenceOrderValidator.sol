@@ -455,7 +455,7 @@ contract ReferenceOrderValidator is
      */
     function _cancel(
         OrderComponents[] calldata orders
-    ) internal notEntered returns (bool) {
+    ) internal returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         address offerer;
@@ -519,9 +519,7 @@ contract ReferenceOrderValidator is
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function _validate(
-        Order[] calldata orders
-    ) internal notEntered returns (bool) {
+    function _validate(Order[] calldata orders) internal returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         bytes32 orderHash;
