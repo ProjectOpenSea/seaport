@@ -2,6 +2,7 @@ import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
 
+import { deployContract } from "./utils/contracts";
 import { merkleTree } from "./utils/criteria";
 import {
   buildOrderStatus,
@@ -31,6 +32,7 @@ import type {
   EIP1271Wallet,
   EIP1271Wallet__factory,
   Reenterer,
+  TestBadContractOfferer,
   TestERC1155,
   TestERC20,
   TestERC721,
@@ -7758,6 +7760,463 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
           value: ethAmount,
         });
+    });
+  });
+
+  describe("Bad contract offerer", async () => {
+    let seller: Wallet;
+    let buyer: Wallet;
+    let offererContract: TestBadContractOfferer;
+
+    before(async () => {
+      seller = await getWalletWithEther();
+      buyer = await getWalletWithEther();
+      zone = new ethers.Wallet(randomHex(32), provider);
+
+      offererContract = await deployContract<TestBadContractOfferer>(
+        "TestBadContractOfferer",
+        owner,
+        testERC721.address
+      );
+    });
+
+    it("Fulfillment reverts if contract offerer is an EOA", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offererContractEOA = new ethers.Wallet(randomHex(32), provider);
+
+      await set721ApprovalForAll(seller, offererContractEOA.address);
+
+      const offer = [getTestItem721(nftId) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContractEOA.address) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      order.parameters.offerer = offererContractEOA.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            { value }
+          )
+      ).to.be.reverted;
+    });
+    it("Fulfillment does not revert when valid", async () => {
+      // TODO: find out why the valid test case in TestBadContractOfferer (identifier=1) is not working
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        1 // identifier 1: valid
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address);
+
+      const offer = [getTestItem721(nftId) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContract.address) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      await withBalanceChecks([order], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
+    });
+    it("Fulfillment reverts if contract offerer returns no data", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        2 // identifier 2: returns nothing
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address);
+
+      const offer = [getTestItem721(nftId) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContract.address) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            { value }
+          )
+      ).to.be.reverted;
+    });
+    it("Fulfillment reverts if contract offerer reverts", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        3 // identifier 3: reverts with IntentionalRevert()
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address);
+
+      const offer = [getTestItem721(nftId) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContract.address) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            { value }
+          )
+      ).to.be.reverted;
+    });
+    it("Fulfillment reverts if contract offerer returns with garbage data", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        4 // identifier 4: reverts with garbage data)
+      );
+
+      const offer = [getTestItem721(nftId) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContract.address) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero,
+            { value }
+          )
+      ).to.be.reverted;
+    });
+    it("Fulfillment does not revert when valid order included with invalid contract offerer order", async () => {
+      // Seller mints nft
+      const nftId10 = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        10 // identifier 10: returns garbage data
+      );
+      const nftId100 = await mintAndApprove721(
+        seller,
+        marketplaceContract.address,
+        100
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address);
+
+      const offer = [getTestItem721(nftId10) as any];
+      const offer2 = [getTestItem721(nftId100) as any];
+
+      const consideration = [
+        getItemETH(100, 100, offererContract.address) as any,
+      ];
+      const consideration2 = [getItemETH(100, 100, seller.address) as any];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const { order: order2, orderHash: orderHash2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration2,
+        0 // FULL_OPEN
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      const orderStatus2 = await marketplaceContract.getOrderStatus(orderHash2);
+
+      expect({ ...orderStatus2 }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      const offerComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+      ];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+      ];
+
+      await withBalanceChecks([order2], 0, [], async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableAdvancedOrders(
+            [order, order2],
+            [],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            ethers.constants.AddressZero,
+            2,
+            {
+              value: value.mul(2),
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: order2,
+              orderHash: orderHash2,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          []
+        );
+
+        return receipt;
+      });
     });
   });
 
