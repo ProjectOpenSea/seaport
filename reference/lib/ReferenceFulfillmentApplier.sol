@@ -25,6 +25,8 @@ import {
     FulfillmentApplicationErrors
 } from "contracts/interfaces/FulfillmentApplicationErrors.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title FulfillmentApplier
  * @author 0age
@@ -56,7 +58,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents,
         uint256 fulfillmentIndex
-    ) internal pure returns (Execution memory execution) {
+    ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -433,7 +435,15 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     function _checkMatchingConsideration(
         ReceivedItem memory consideration,
         ReceivedItem memory receivedItem
-    ) internal pure returns (bool invalidFulfillment) {
+    ) internal view returns (bool invalidFulfillment) {
+        console.log("consideration.recipient", consideration.recipient);
+        console.log("receivedItem.recipient", receivedItem.recipient);
+        console.log("consideration.itemType", uint(consideration.itemType));
+        console.log("receivedItem.itemType", uint(receivedItem.itemType));
+        console.logAddress(consideration.token);
+        console.logAddress(receivedItem.token);
+        console.log("consideration.identifier", consideration.identifier);
+        console.log("receivedItem.identifier", receivedItem.identifier);
         return
             receivedItem.recipient != consideration.recipient ||
             receivedItem.itemType != consideration.itemType ||
@@ -462,7 +472,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex
-    ) internal pure returns (ReceivedItem memory receivedItem) {
+    ) internal view returns (ReceivedItem memory receivedItem) {
         // Declare struct in memory to avoid declaring multiple local variables
         ConsiderationItemIndicesAndValidity memory potentialCandidate;
         potentialCandidate.orderIndex = considerationComponents[startIndex]
