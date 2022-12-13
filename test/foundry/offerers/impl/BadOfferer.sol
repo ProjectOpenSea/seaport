@@ -106,19 +106,12 @@ contract BadOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    )
-        external
-        pure
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return BadOfferer.ratifyOrder.selector;
     }
 

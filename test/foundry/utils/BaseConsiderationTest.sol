@@ -46,7 +46,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
-        emit log("Deploying reference from precompiled source");
         _deployAndConfigurePrecompiledReferenceConsideration();
 
         vm.label(address(conduitController), "conduitController");
@@ -188,14 +187,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    )
-        internal
-        returns (
-            bytes32,
-            bytes32,
-            uint8
-        )
-    {
+    ) internal returns (bytes32, bytes32, uint8) {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,

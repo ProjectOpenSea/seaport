@@ -126,7 +126,10 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
         return _consideration.validate(orders);
     }
 
-    function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
+    function _prepareOrder(
+        uint256 tokenId,
+        uint256 totalConsiderationItems
+    )
         internal
         returns (
             Order memory order,
@@ -380,10 +383,10 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
             );
     }
 
-    function getOrderParameters(address payable offerer, OrderType orderType)
-        internal
-        returns (OrderParameters memory)
-    {
+    function getOrderParameters(
+        address payable offerer,
+        OrderType orderType
+    ) internal returns (OrderParameters memory) {
         return
             OrderParameters(
                 offerer,
@@ -400,11 +403,10 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
             );
     }
 
-    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
-        internal
-        pure
-        returns (OrderComponents memory)
-    {
+    function toOrderComponents(
+        OrderParameters memory _params,
+        uint256 nonce
+    ) internal pure returns (OrderComponents memory) {
         return
             OrderComponents(
                 _params.offerer,
@@ -477,11 +479,10 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     }
 
     ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32,
+        bytes memory
+    ) external pure returns (bytes4) {
         return 0x1626ba7e;
     }
 
