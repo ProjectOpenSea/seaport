@@ -59,7 +59,10 @@ contract ZoneInteraction is
     ) internal {
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
-            (MemoryPointer callData, uint256 size) = abi_encode_validateOrder(orderHash, parameters);
+            (MemoryPointer callData, uint256 size) = abi_encode_validateOrder(
+                orderHash,
+                parameters
+            );
 
             _callAndCheckStatus(
                 parameters.zone,
@@ -126,13 +129,7 @@ contract ZoneInteraction is
             return;
         }
 
-        _callAndCheckStatus(
-            target,
-            orderHash,
-            callData,
-            size,
-            errorSelector
-        );
+        _callAndCheckStatus(target, orderHash, callData, size, errorSelector);
     }
 
     /**
