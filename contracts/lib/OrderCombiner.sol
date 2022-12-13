@@ -172,12 +172,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
-        // Read length of orders array and place on the stack.
-        uint256 totalOrders = advancedOrders.length;
-
-        // Track the order hash for each order being fulfilled.
-        orderHashes = new bytes32[](totalOrders);
-
         // Declare an error buffer indicating status of any native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
         // {01} == 1 => In a match function, some native offer items: allow.
@@ -204,12 +198,33 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             )
         }
 
+        // Declare variables for later use.
+        AdvancedOrder memory advancedOrder;
+        uint256 terminalMemoryOffset;
+
+        unchecked {
+            // Read length of orders array and place on the stack.
+            uint256 totalOrders = advancedOrders.length;
+
+            // Track the order hash for each order being fulfilled.
+            orderHashes = new bytes32[](totalOrders);
+
+            // Determine the memory offset to terminate on during loops.
+            terminalMemoryOffset = (totalOrders + 1) * 32;
+        }
+
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Declare inner variables.
+            OfferItem[] memory offer;
+            ConsiderationItem[] memory consideration;
+
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Retrieve the current order.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
+            for (uint256 i = 32; i < terminalMemoryOffset; i += 32) {
+                // Retrieve order using assembly to bypass out-of-range check.
+                assembly {
+                    advancedOrder := mload(add(advancedOrders, i))
+                }
 
                 // Determine if max number orders have already been fulfilled.
                 if (maximumFulfilled == 0) {
@@ -240,7 +255,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 }
 
                 // Otherwise, track the order hash in question.
-                orderHashes[i] = orderHash;
+                assembly {
+                    mstore(add(orderHashes, i), orderHash)
+                }
 
                 // Decrement the number of fulfilled orders.
                 // Skip underflow check as the condition before
@@ -254,7 +271,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 uint256 endTime = advancedOrder.parameters.endTime;
 
                 // Retrieve array of offer items for the order in question.
-                OfferItem[] memory offer = advancedOrder.parameters.offer;
+                offer = advancedOrder.parameters.offer;
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
@@ -309,9 +326,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 }
 
                 // Retrieve array of consideration items for order in question.
-                ConsiderationItem[] memory consideration = (
-                    advancedOrder.parameters.consideration
-                );
+                consideration = (advancedOrder.parameters.consideration);
 
                 // Read length of consideration array and place on the stack.
                 uint256 totalConsiderationItems = consideration.length;
@@ -414,21 +429,32 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Emit an event for each order signifying that it has been fulfilled.
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            bytes32 orderHash;
+
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ++i) {
+            for (uint256 i = 32; i < terminalMemoryOffset; i += 32) {
+                assembly {
+                    orderHash := mload(add(orderHashes, i))
+                }
+
                 // Do not emit an event if no order hash is present.
-                if (orderHashes[i] == bytes32(0)) {
+                if (orderHash == bytes32(0)) {
                     continue;
+                }
+
+                // Retrieve order using assembly to bypass out-of-range check.
+                assembly {
+                    advancedOrder := mload(add(advancedOrders, i))
                 }
 
                 // Retrieve parameters for the order in question.
                 OrderParameters memory orderParameters = (
-                    advancedOrders[i].parameters
+                    advancedOrder.parameters
                 );
 
                 // Emit an OrderFulfilled event.
                 _emitOrderFulfilledEvent(
-                    orderHashes[i],
+                    orderHash,
                     orderParameters.offerer,
                     orderParameters.zone,
                     recipient,

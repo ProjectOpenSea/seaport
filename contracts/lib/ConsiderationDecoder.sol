@@ -416,7 +416,11 @@ contract ConsiderationDecoder {
     function abi_decode_generateOrder_returndata()
         internal
         pure
-        returns (MemoryPointer offer, MemoryPointer consideration)
+        returns (
+            uint256 invalidEncoding,
+            MemoryPointer offer,
+            MemoryPointer consideration
+        )
     {
         assembly {
             // First two words of calldata are the offsets to offer and consideration
@@ -447,27 +451,28 @@ contract ConsiderationDecoder {
                     FourWords,
                     add(totalOfferSize, totalConsiderationSize)
                 )
-                // Revert if returndatasize exceeds 65535 bytes or returndatasize
+                // Don't continue if returndatasize exceeds 65535 bytes or
                 // is not equal to the calculated size.
-                if or(
+                invalidEncoding := or(
                     gt(or(offerLength, considerationLength), 0xffff),
                     xor(totalSize, returndatasize())
-                ) {
-                    mstore(0, Panic_error_selector)
-                    mstore(Panic_error_code_ptr, Panic_resource)
-                    revert(0, Panic_error_length)
-                }
+                )
+                // Set first word of scratch space to 0 so length of offer/consideration
+                // are read as 0 if encoding is invalid.
+                mstore(0, 0)
             }
 
-            offer := copySpentItemsAsOfferItems(
-                add(offsetOffer, 0x20),
-                offerLength
-            )
+            if iszero(invalidEncoding) {
+                offer := copySpentItemsAsOfferItems(
+                    add(offsetOffer, 0x20),
+                    offerLength
+                )
 
-            consideration := copyReceivedItemsAsConsiderationItems(
-                add(offsetConsideration, 0x20),
-                considerationLength
-            )
+                consideration := copyReceivedItemsAsConsiderationItems(
+                    add(offsetConsideration, 0x20),
+                    considerationLength
+                )
+            }
 
             function copySpentItemsAsOfferItems(rdPtrHead, length)
                 -> mPtrLength
@@ -550,7 +555,10 @@ contract ConsiderationDecoder {
     }
 
     function to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
-        function() internal pure returns (MemoryPointer, MemoryPointer) inFn
+        function()
+            internal
+            pure
+            returns (uint256, MemoryPointer, MemoryPointer) inFn
     )
         internal
         pure
@@ -558,7 +566,43 @@ contract ConsiderationDecoder {
             function()
                 internal
                 pure
-                returns (OfferItem[] memory, ConsiderationItem[] memory) outFn
+                returns (
+                    uint256,
+                    OfferItem[] memory,
+                    ConsiderationItem[] memory
+                ) outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
+    }
+
+    function to_OfferItem_input(
+        function(ReceivedItem memory, address, bytes32, bytes memory)
+            internal inFn
+    )
+        internal
+        pure
+        returns (
+            function(OfferItem memory, address, bytes32, bytes memory)
+                internal outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
+    }
+
+    function to_ConsiderationItem_input(
+        function(ReceivedItem memory, address, bytes32, bytes memory)
+            internal inFn
+    )
+        internal
+        pure
+        returns (
+            function(ConsiderationItem memory, address, bytes32, bytes memory)
+                internal outFn
         )
     {
         assembly {

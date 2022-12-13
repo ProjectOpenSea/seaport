@@ -27,11 +27,7 @@ contract ReferenceCounterManager is
      *
      * @return newCounter The new counter.
      */
-    function _incrementCounter()
-        internal
-        notEntered
-        returns (uint256 newCounter)
-    {
+    function _incrementCounter() internal returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.
         newCounter = ++_counters[msg.sender];
 

@@ -15,7 +15,7 @@ remappings = [
 ]
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
-optimizer_runs = 16_200
+optimizer_runs = 29_999
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },

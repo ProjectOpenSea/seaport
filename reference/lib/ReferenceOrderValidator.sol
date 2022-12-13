@@ -229,13 +229,10 @@ contract ReferenceOrderValidator is
                     _greatestCommonDivisor(filledNumerator, denominator)
                 );
 
-                // Note: this may not be necessary — need to validate.
-                uint256 safeScaleDown = scaleDown == 0 ? 1 : scaleDown;
-
                 // Scale all fractional values down by gcd.
-                numerator = numerator / safeScaleDown;
-                filledNumerator = filledNumerator / safeScaleDown;
-                denominator = denominator / safeScaleDown;
+                numerator = numerator / scaleDown;
+                filledNumerator = filledNumerator / scaleDown;
+                denominator = denominator / scaleDown;
 
                 // Perform the overflow check a second time.
                 uint256 maxOverhead = type(uint256).max - type(uint120).max;
@@ -458,7 +455,7 @@ contract ReferenceOrderValidator is
      */
     function _cancel(
         OrderComponents[] calldata orders
-    ) internal notEntered returns (bool) {
+    ) internal returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         address offerer;
@@ -522,9 +519,7 @@ contract ReferenceOrderValidator is
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function _validate(
-        Order[] calldata orders
-    ) internal notEntered returns (bool) {
+    function _validate(Order[] calldata orders) internal returns (bool) {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
         bytes32 orderHash;

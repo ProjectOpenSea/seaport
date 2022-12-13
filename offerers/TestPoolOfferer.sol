@@ -237,12 +237,12 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     /**
-    * @dev Remove outgoing tokens from the set of IDs in the pool.
-    *
-    * @param minimumReceived An array of SpentItem structs representing the
-    *                        minimum amount that the offerer is willing to
-    *                        receive.
-    */
+     * @dev Remove outgoing tokens from the set of IDs in the pool.
+     *
+     * @param minimumReceived An array of SpentItem structs representing the
+     *                        minimum amount that the offerer is willing to
+     *                        receive.
+     */
     function _processNftOffer(SpentItem[] memory minimumReceived) internal {
         // Declare a local variable to track the index of the criteria-based
         // "wildcard" items.
@@ -288,13 +288,13 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     /**
-    * @dev Preview an NFT offer by assigning concrete token IDs to any
-    *      criteria-based "wildcard" erc721 items.
-    *
-    * @param minimumReceived An array of SpentItem structs representing the
-    *                        minimum amount that the offerer is willing to
-    *                        receive.
-    */
+     * @dev Preview an NFT offer by assigning concrete token IDs to any
+     *      criteria-based "wildcard" erc721 items.
+     *
+     * @param minimumReceived An array of SpentItem structs representing the
+     *                        minimum amount that the offerer is willing to
+     *                        receive.
+     */
     function _previewNftOffer(
         SpentItem[] memory minimumReceived
     ) internal view {
@@ -320,7 +320,6 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             }
         }
     }
-
 
     /** @dev Generate offer and consideration items based on the number of
      *       ERC721 tokens offered or requested.
@@ -414,7 +413,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     /**
      * @dev Validate that the SpentItem array contains a valid type, then
      *      iterate over the items and validate them individually.
-     * 
+     *
      * @param minimumReceived An array of SpentItem structs to validate.
      * @param offer           A boolean value indicating whether the items are
      *                        part of an offer or consideration.
@@ -495,7 +494,6 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             }
         }
     }
-
 
     /**
      * @dev Converts a set of SpentItem structs representing ERC721 tokens to
