@@ -56,7 +56,7 @@ contract BadOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        return previewOrder(a, b, c, d);
+        return previewOrder(a, a, b, c, d);
     }
 
     /**
@@ -75,7 +75,7 @@ contract BadOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        if (minimumReceived[0].identifier == 1) {
+        if (maximumSpent[0].identifier == 101) {
             offer = minimumReceived;
             consideration = new ReceivedItem[](1);
             consideration[0] = ReceivedItem({
@@ -86,12 +86,12 @@ contract BadOfferer is ContractOffererInterface {
                 recipient: payable(address(this))
             });
             return (offer, consideration);
-        } else if (minimumReceived[0].identifier == 2) {
+        } else if (maximumSpent[0].identifier == 102) {
             // return nothing
             assembly {
                 return(0, 0)
             }
-        } else if (minimumReceived[0].identifier == 3) {
+        } else if (maximumSpent[0].identifier == 103) {
             revert IntentionalRevert();
         } else {
             // return garbage
