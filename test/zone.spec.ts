@@ -220,6 +220,60 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     });
   });
 
+  it("Fulfills a PARTIAL_RESTRICTED order with the caller being the offerer", async () => {
+    const pausableZoneController = await ethers.getContractFactory(
+      "PausableZoneController",
+      owner
+    );
+    const pausableZone = await pausableZoneController.deploy(owner.address);
+
+    const zoneAddr = await createZone(pausableZone);
+
+    // create basic order using pausable as zone
+    // execute basic 721 <=> ETH order
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+
+    const offer = [getTestItem721(nftId)];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const { order, orderHash, value } = await createOrder(
+      seller,
+      zoneAddr,
+      offer,
+      consideration,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    await withBalanceChecks([order], 0, undefined, async () => {
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .fulfillAdvancedOrder(
+          order,
+          [],
+          toKey(0),
+          ethers.constants.AddressZero,
+          {
+            value,
+          }
+        );
+
+      const receipt = await tx.wait();
+      await checkExpectedEvents(tx, receipt, [
+        {
+          order,
+          orderHash,
+          fulfiller: buyer.address,
+          fulfillerConduitKey: toKey(0),
+        },
+      ]);
+      return receipt;
+    });
+  });
+
   it("Fulfills an order with executeMatchOrders", async () => {
     // Create Pausable Zone Controller
     const pausableZoneControllerFactory = await ethers.getContractFactory(
