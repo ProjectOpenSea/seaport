@@ -183,12 +183,6 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         return (offer, consideration);
     }
 
-    error IncorrectValue(uint256 actual, uint256 expected);
-    error IncorrectToken(address actual, address expected);
-    error IncorrectItemType(ItemType actual, ItemType expected);
-    error IncorrectContext(bytes context);
-    error IncorrectOrderHashesLength(uint256 actual, uint256 expected);
-
     function ratifyOrder(
         SpentItem[] calldata minimumReceived /* offer */,
         ReceivedItem[] calldata maximumSpent /* consideration */,
