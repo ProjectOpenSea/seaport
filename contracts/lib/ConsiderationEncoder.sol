@@ -153,9 +153,9 @@ contract ConsiderationEncoder {
             // Write offset to `offer`
             dstHead.write(tailOffset);
             // Get pointer to orderParameters.offer.length
-            MemoryPointer srcOfferPointer = /* orderParameters.toMemoryPointer() */ src
-                    .offset(OrderParameters_offer_head_offset)
-                    .readMemoryPointer();
+            MemoryPointer srcOfferPointer = src
+                .offset(OrderParameters_offer_head_offset)
+                .readMemoryPointer();
             // Encode the offer array as SpentItem[]
             uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
                 srcOfferPointer,
@@ -169,9 +169,10 @@ contract ConsiderationEncoder {
             dstHead.offset(ratifyOrder_consideration_head_offset).write(
                 tailOffset
             );
-            MemoryPointer srcConsiderationPointer = /* orderParameters.toMemoryPointer() */ src
-                    .offset(OrderParameters_consideration_head_offset)
-                    .readMemoryPointer();
+            // Get pointer to orderParameters.consideration.length
+            MemoryPointer srcConsiderationPointer = src
+                .offset(OrderParameters_consideration_head_offset)
+                .readMemoryPointer();
             // Encode the consideration array as ReceivedItem[]
             uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
                     srcConsiderationPointer,
@@ -181,7 +182,9 @@ contract ConsiderationEncoder {
         }
 
         unchecked {
+            // Write offset to context
             dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
+            // Encode context
             uint256 contextSize = abi_encode_bytes(
                 toMemoryPointer(context),
                 dstHead.offset(tailOffset)
@@ -377,11 +380,6 @@ contract ConsiderationEncoder {
             );
             dstHead.offset(tailOffset).write(1);
             dstHead.offset(tailOffset + 32).writeBytes(orderHash);
-            /* uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
-                toMemoryPointer(orderHashes),
-                dstHead.offset(tailOffset),
-                32
-            ); */
             tailOffset += 64;
 
             size = 0x24 + tailOffset;
