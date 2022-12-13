@@ -724,7 +724,8 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             alice,
             bob,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }
@@ -753,7 +754,8 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             alice,
             bob,
             abi.encodePacked(
-                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector,
+                items[0].amount
             )
         );
     }

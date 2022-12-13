@@ -223,7 +223,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
-                revert InvalidERC721TransferAmount();
+                revert InvalidERC721TransferAmount(amount);
             }
 
             // Perform transfer via the token contract directly.

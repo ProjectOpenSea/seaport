@@ -1788,10 +1788,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], fulfillments, {
             value,
           })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "MismatchedFulfillmentOfferAndConsiderationComponents"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "MismatchedFulfillmentOfferAndConsiderationComponents"
+        )
+        .withArgs(0);
 
       fulfillments = defaultBuyNowMirrorFulfillment;
 
@@ -1957,6 +1959,403 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract
           .connect(owner)
           .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
+    });
+    it("Reverts on mismatched offer components (branch coverage 1)", async () => {
+      // Seller mints nft
+      const nftId = await mint721(seller);
+
+      const secondNFTId = await mint721(seller);
+
+      // Seller approves marketplace contract to transfer NFT
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: nftId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: secondNFTId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        [
+          [
+            [0, 1],
+            [0, 0],
+          ],
+          [[1, 0]],
+        ],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
+    });
+    it("Reverts on invalid matching offerer (branch coverage 2)", async () => {
+      // Seller mints nft
+      const nftId = await mint721(seller);
+
+      const secondNFTId = await mint721(seller);
+
+      // Seller approves marketplace contract to transfer NFT
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: nftId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: secondNFTId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offer2 = offer.map((o) => ({ ...o }));
+
+      offer2[0].identifierOrCriteria = secondNFTId;
+
+      const { order: order2 } = await createOrder(
+        owner,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        [
+          [
+            [2, 0],
+            [0, 1],
+          ],
+          [[1, 0]],
+        ],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder, order2], fulfillments, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
+    });
+    it("Reverts on invalid matching conduit key (branch coverage 3)", async () => {
+      // Seller mints nft
+      const nftId = await mint721(seller);
+
+      const secondNFTId = await mint721(seller);
+
+      // Seller approves marketplace contract to transfer NFT
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: nftId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: secondNFTId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offer2 = offer.map((o) => ({ ...o }));
+
+      offer2[0].identifierOrCriteria = secondNFTId;
+
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0,
+        [],
+        null,
+        undefined,
+        ethers.constants.HashZero,
+        conduitKeyOne
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        [
+          [
+            [2, 0],
+            [0, 1],
+          ],
+          [[1, 0]],
+        ],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder, order2], fulfillments, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
+    });
+    it("Reverts on invalid matching itemType (branch coverage 4)", async () => {
+      // Seller mints nft
+      const nftId = await mint721(seller);
+
+      const secondNFTId = await mint721(seller);
+
+      // Seller approves marketplace contract to transfer NFT
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: nftId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: secondNFTId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offer2 = offer.map((o) => ({ ...o }));
+
+      offer2[0].identifierOrCriteria = secondNFTId;
+
+      offer2[0].itemType = 1;
+
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        [
+          [
+            [2, 0],
+            [0, 1],
+          ],
+          [[1, 0]],
+        ],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder, order2], fulfillments, {
+            value,
+          })
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InvalidFulfillmentComponentData"
+      );
+    });
+    it("Reverts on invalid matching token", async () => {
+      // Seller mints nft
+      const nftId = await mint721(seller);
+
+      const secondNFTId = await mint721(seller);
+
+      // Seller approves marketplace contract to transfer NFT
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: nftId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          identifierOrCriteria: secondNFTId,
+          startAmount: toBN(1),
+          endAmount: toBN(1),
+        },
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offer2 = offer.map((o) => ({ ...o }));
+
+      offer2[0].identifierOrCriteria = secondNFTId;
+
+      offer2[0].token = testERC1155.address;
+
+      const { order: order2 } = await createOrder(
+        seller,
+        zone,
+        offer2,
+        consideration,
+        0
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        [
+          [
+            [2, 0],
+            [0, 1],
+          ],
+          [[1, 0]],
+        ],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder, order2], fulfillments, {
             value,
           })
       ).to.be.revertedWithCustomError(
@@ -2905,10 +3304,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "OrderCriteriaResolverOutOfRange"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "OrderCriteriaResolverOutOfRange"
+        )
+        .withArgs(0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -3038,10 +3439,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "OrderCriteriaResolverOutOfRange"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "OrderCriteriaResolverOutOfRange"
+          )
+          .withArgs(0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 5, nftId, proofs[nftId.toString()]),
@@ -3138,10 +3541,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "UnresolvedConsiderationCriteria"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedConsiderationCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -3159,10 +3564,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               value,
             }
           )
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "UnresolvedOfferCriteria"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "UnresolvedOfferCriteria"
+        )
+        .withArgs(0, 0);
 
       criteriaResolvers = [
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -3260,10 +3667,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "UnresolvedConsiderationCriteria"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedConsiderationCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 1, 0, secondNFTId, proofs[secondNFTId.toString()]),
@@ -3280,10 +3689,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
                 value,
               }
             )
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "UnresolvedOfferCriteria"
-        );
+        )
+          .to.be.revertedWithCustomError(
+            marketplaceContract,
+            "UnresolvedOfferCriteria"
+          )
+          .withArgs(0, 0);
 
         criteriaResolvers = [
           buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -3834,10 +4245,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer (basic)", async () => {
       // Seller mints nft
@@ -3875,10 +4288,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
     it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
       const nftId = await mintAndApprove721(seller, conduitOne.address, 0);
@@ -3910,10 +4325,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(
-        marketplaceContract,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(2);
     });
   });
 
@@ -3933,7 +4350,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3947,7 +4364,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (standard)", async () => {
       // Seller mints nft
@@ -3964,7 +4383,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -3978,7 +4397,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (basic)", async () => {
       // Seller mints nft
@@ -3995,7 +4416,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4016,7 +4437,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (basic)", async () => {
       // Seller mints nft
@@ -4033,7 +4456,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4054,7 +4477,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillBasicOrder(basicOrderParameters, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have not started (match)", async () => {
       // Seller mints nft
@@ -4071,7 +4496,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4089,7 +4514,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
     it("Reverts on orders that have expired (match)", async () => {
       // Seller mints nft
@@ -4106,7 +4533,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, value, startTime, endTime } = await createOrder(
         seller,
         zone,
         offer,
@@ -4124,7 +4551,9 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchOrders([order, mirrorOrder], defaultBuyNowMirrorFulfillment, {
             value,
           })
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidTime");
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, "InvalidTime")
+        .withArgs(startTime, endTime);
     });
   });
 

@@ -155,8 +155,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const numERC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numERC721s);
 
       const erc20Contracts = [];
       const erc20Transfers = [];
@@ -184,11 +184,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         erc20Transfers[i] = erc20Transfer;
       }
 
-      // Create numEC721s amount of ERC20 objects
-      for (let i = 0; i < numEC721s; i++) {
+      // Create numERC721s amount of ERC20 objects
+      for (let i = 0; i < numERC721s; i++) {
         // Deploy Contract
         const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
+        // Create/Approve numERC721s amount of ERC721s
         const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           sender,
@@ -289,8 +289,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const numERC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numERC721s);
 
       const erc20Contracts = [];
       const erc20Transfers = [];
@@ -318,11 +318,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         erc20Transfers[i] = erc20Transfer;
       }
 
-      // Create numEC721s amount of ERC721 objects
-      for (let i = 0; i < numEC721s; i++) {
+      // Create numERC721s amount of ERC721 objects
+      for (let i = 0; i < numERC721s; i++) {
         // Deploy Contract
         const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
+        // Create/Approve numERC721s amount of ERC721s
         const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           sender,
@@ -398,7 +398,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       for (let i = 0; i < 5; i++) {
         // Deploy Contract
         const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
+        // Create/Approve numERC721s amount of ERC721s
         const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           sender,
@@ -520,10 +520,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721Transfers, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(10);
     });
 
     it("Reverts on invalid ERC721 recipient", async () => {
@@ -1198,8 +1200,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const numERC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numERC721s);
 
       const erc20Contracts = [];
       const erc20Transfers = [];
@@ -1241,11 +1243,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           erc20Transfers[i] = erc20Transfer;
         }
 
-        // Create numEC721s amount of ERC721 objects
-        for (let i = 0; i < numEC721s; i++) {
+        // Create numERC721s amount of ERC721 objects
+        for (let i = 0; i < numERC721s; i++) {
           // Deploy Contract
           const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-          // Create/Approve numEC721s amount of  ERC721s
+          // Create/Approve numERC721s amount of ERC721s
           const erc721Transfer = await createTransferWithApproval(
             tempERC721Contract,
             sender,
@@ -1357,8 +1359,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const numERC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numERC721s);
 
       const erc20Contracts = [];
       const erc20Transfers = [];
@@ -1400,11 +1402,11 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           erc20Transfers[i] = erc20Transfer;
         }
 
-        // Create numEC721s amount of ERC721 objects
-        for (let i = 0; i < numEC721s; i++) {
+        // Create numERC721s amount of ERC721 objects
+        for (let i = 0; i < numERC721s; i++) {
           // Deploy Contract
           const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-          // Create/Approve numEC721s amount of  ERC721s
+          // Create/Approve numERC721s amount of ERC721s
           const erc721Transfer = await createTransferWithApproval(
             tempERC721Contract,
             sender,
@@ -1520,7 +1522,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         for (let j = 0; j < 5; j++) {
           // Deploy Contract
           const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-          // Create/Approve numEC721s amount of  ERC721s
+          // Create/Approve numERC721s amount of ERC721s
           const erc721Transfer = await createTransferWithApproval(
             tempERC721Contract,
             sender,
@@ -1662,10 +1664,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         tempTransferHelper
           .connect(sender)
           .bulkTransfer(erc721TransferHelperItems, tempConduitKey)
-      ).to.be.revertedWithCustomError(
-        tempTransferHelper,
-        "InvalidERC721TransferAmount"
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempTransferHelper,
+          "InvalidERC721TransferAmount"
+        )
+        .withArgs(10);
     });
 
     it("Successful ERC721 receiver contract", async () => {
@@ -1680,7 +1684,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         0
       );
 
-      // Create/Approve numEC721s amount of  ERC721s
+      // Create/Approve numERC721s amount of ERC721s
       const erc721Transfer = await createTransferWithApproval(
         tempERC721Contract,
         sender,

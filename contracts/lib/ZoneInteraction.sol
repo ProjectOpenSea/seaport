@@ -238,7 +238,6 @@ contract ZoneInteraction is
         uint256 endTime,
         bytes32 zoneHash
     ) internal view returns (bytes memory) {
-        // TODO: optimize (conversion is temporary to get it to compile)
         return
             abi.encodeWithSelector(
                 ZoneInterface.validateOrder.selector,

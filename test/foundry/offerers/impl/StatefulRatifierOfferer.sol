@@ -43,18 +43,18 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     /**
-    * @dev Generates an order with the specified minimum and maximum spent items,
-    * and the optional extra data.
-    *
-    * @param -               Fulfiller, unused here.
-    * @param minimumReceived The minimum items that the caller is willing to
-    *                        receive.
-    * @param -               maximumSent, unused here.
-    * @param -               context, unused here.
-    *
-    * @return offer         A tuple containing the offer items.
-    * @return consideration A tuple containing the consideration items.
-    */
+     * @dev Generates an order with the specified minimum and maximum spent items,
+     * and the optional extra data.
+     *
+     * @param -               Fulfiller, unused here.
+     * @param minimumReceived The minimum items that the caller is willing to
+     *                        receive.
+     * @param -               maximumSent, unused here.
+     * @param -               context, unused here.
+     *
+     * @return offer         A tuple containing the offer items.
+     * @return consideration A tuple containing the consideration items.
+     */
     function generateOrder(
         address,
         SpentItem[] calldata minimumReceived,
@@ -94,17 +94,17 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     /**
-    * @dev Generates an order in response to a minimum received set of items.
-    *
-    * @param -               caller, unused here.
-    * @param -               fulfiller, unused here.
-    * @param minimumReceived The minimum received set.
-    * @param -               maximumSpent, unused here.
-    * @param -               context, unused here.
-    *
-    * @return offer         The offer for the order.
-    * @return consideration The consideration for the order.
-    */
+     * @dev Generates an order in response to a minimum received set of items.
+     *
+     * @param -               caller, unused here.
+     * @param -               fulfiller, unused here.
+     * @param minimumReceived The minimum received set.
+     * @param -               maximumSpent, unused here.
+     * @param -               context, unused here.
+     *
+     * @return offer         The offer for the order.
+     * @return consideration The consideration for the order.
+     */
     function previewOrder(
         address,
         address,
@@ -144,7 +144,6 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         // Return the offer and consideration.
         return (offer, consideration);
     }
-
 
     error IncorrectValue(uint256 actual, uint256 expected);
     error IncorrectToken(address actual, address expected);
@@ -218,7 +217,7 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     /** @dev Returns the metadata for this contract offerer.
-    */
+     */
     function getMetadata()
         external
         pure
