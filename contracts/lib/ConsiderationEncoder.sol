@@ -493,7 +493,7 @@ contract ConsiderationEncoder {
                 )
                 mstore(
                     add(cdPtrData, ReceivedItem_recipient_offset),
-                    mload(add(mPtrTail, ConsiderationItem_recipient_offset))
+                    mload(add(mPtrTail, Common_endAmount_offset))
                 )
 
                 mPtrHead := add(mPtrHead, 0x20)
