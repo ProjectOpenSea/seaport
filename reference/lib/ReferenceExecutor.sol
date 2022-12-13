@@ -5,26 +5,28 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
-import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "../../contracts/interfaces/ConduitInterface.sol";
 
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
-} from "contracts/conduit/lib/ConduitStructs.sol";
+} from "../../contracts/conduit/lib/ConduitStructs.sol";
 
-import { ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 
-import { ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
+import { ReceivedItem } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import { AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 

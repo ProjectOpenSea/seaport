@@ -9,7 +9,7 @@ import {
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers

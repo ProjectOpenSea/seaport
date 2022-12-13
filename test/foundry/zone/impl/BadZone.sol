@@ -10,12 +10,16 @@ import {
     ZoneInterface
 } from "../../../../contracts/interfaces/ZoneInterface.sol";
 
-contract TestZone is ZoneInterface {
-    // Called by Consideration whenever any extraData is provided by the caller.
+contract BadZone is ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external returns (bytes4 validOrderMagicValue) {
-        // revert(hex"696969696969");
-        return ZoneInterface.validateOrder.selector;
+        if (zoneParameters.consideration[0].identifier == 1) {
+            return ZoneInterface.validateOrder.selector;
+        } else {
+            assembly {
+                return(0, 0)
+            }
+        }
     }
 }

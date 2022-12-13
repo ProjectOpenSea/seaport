@@ -15,15 +15,15 @@ import {
     BasicOrderParameters,
     Order,
     AdditionalRecipient
-} from "seaport/lib/ConsiderationStructs.sol";
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 import {
     OrderType,
     Side,
     BasicOrderType
-} from "seaport/lib/ConsiderationEnums.sol";
+} from "../../../contracts/lib/ConsiderationEnums.sol";
 import {
     ConsiderationInterface
-} from "seaport/interfaces/ConsiderationInterface.sol";
+} from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
 contract PostFulfillmentCheckTest is BaseOrderTest {
     TestZone zone = new TestZone();
@@ -40,10 +40,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint256 amount;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -335,10 +334,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(
-        uint8 numOriginalAdditional,
-        uint8 numTips
-    ) public {
+    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
+        public
+    {
         test(
             this.execBasicStatefulFuzz,
             Context({
