@@ -413,7 +413,9 @@ contract ConsiderationDecoder {
             .write(consideration.readUint256());
     }
 
-    function abi_decode_generateOrder_returndata()
+    function abi_decode_generateOrder_returndata(
+        bool revertOnInvalid
+    )
         internal
         pure
         returns (
@@ -423,27 +425,38 @@ contract ConsiderationDecoder {
         )
     {
         assembly {
-            // First two words of calldata are the offsets to offer and consideration
-            // array lengths. Copy these to scratch space.
-            returndatacopy(0, 0, TwoWords)
-            let offsetOffer := mload(0)
-            let offsetConsideration := mload(0x20)
+            if lt(returndatasize(), 0x80) {
+                isInvalid := 1
+            }
+            let offsetOffer
+            let offerLength
+            let offsetConsideration
+            let considerationLength
+            if iszero(isInvalid) {
+                // First two words of calldata are the offsets to offer and consideration
+                // array lengths. Copy these to scratch space.
+                returndatacopy(0, 0, TwoWords)
+                offsetOffer := mload(0)
+                offsetConsideration := mload(0x20)
+                if gt(or(offsetOffer, offsetConsideration), returndatasize()) {
+                    isInvalid := 1
+                }
+                if iszero(isInvalid) {
+                    // Copy length of offer array to scratch space
+                    returndatacopy(0, offsetOffer, 0x20)
+                    offerLength := mload(0)
 
-            // Copy length of offer array to scratch space
-            returndatacopy(0, offsetOffer, 0x20)
-            let offerLength := mload(0)
+                    // Copy length of consideration array to scratch space
+                    returndatacopy(0x20, offsetConsideration, 0x20)
+                    considerationLength := mload(0x20)
 
-            // Copy length of consideration array to scratch space
-            returndatacopy(0x20, offsetConsideration, 0x20)
-            let considerationLength := mload(0x20)
-
-            {
-                // Calculate total size of offer and consideration arrays
-                let totalOfferSize := mul(SpentItem_size, offerLength)
-                let totalConsiderationSize := mul(
-                    ReceivedItem_size,
-                    considerationLength
-                )
+                    {
+                        // Calculate total size of offer and consideration arrays
+                        let totalOfferSize := mul(SpentItem_size, offerLength)
+                        let totalConsiderationSize := mul(
+                            ReceivedItem_size,
+                            considerationLength
+                        )
 
                 // Add 4 words to total size to cover the offset and length fields of
                 // the two arrays
@@ -563,7 +576,7 @@ contract ConsiderationDecoder {
         internal
         pure
         returns (
-            function()
+            function(bool)
                 internal
                 pure
                 returns (

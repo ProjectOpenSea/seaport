@@ -56,7 +56,7 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testNormalOrder() public {
-        uint256 id = 101;
+        uint256 id = 1;
         test(
             this.execOrderWithContext,
             Context({ seaport: consideration, id: id, eoa: false })
@@ -68,7 +68,7 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testOrderNothing() public {
-        uint256 id = 102;
+        uint256 id = 2;
         test(
             this.execOrderWithContext,
             Context({ seaport: consideration, id: id, eoa: false })
@@ -80,7 +80,7 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testOrderRevert() public {
-        uint256 id = 103;
+        uint256 id = 3;
         test(
             this.execOrderWithContext,
             Context({ seaport: consideration, id: id, eoa: false })
@@ -92,7 +92,7 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testOrderGarbage() public {
-        uint256 id = 104;
+        uint256 id = 4;
         test(
             this.execOrderWithContext,
             Context({ seaport: consideration, id: id, eoa: false })
@@ -104,7 +104,7 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testOrderEoa() public {
-        uint256 id = 101;
+        uint256 id = 1;
         test(
             this.execOrderWithContext,
             Context({ seaport: consideration, id: id, eoa: true })

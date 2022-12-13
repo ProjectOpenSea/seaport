@@ -74,6 +74,8 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 abi.encode(address(conduitController))
             )
         );
+        // for debugging
+        // consideration = new Consideration(address(conduitController));
 
         //create conduit, update channel
         conduit = Conduit(
