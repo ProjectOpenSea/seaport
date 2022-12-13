@@ -19,18 +19,16 @@ import {
     OrderComponents,
     BasicOrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
-import { Test } from "forge-std/Test.sol";
+// import { Test } from "forge-std/Test.sol";
 import { DifferentialTest } from "./DifferentialTest.sol";
+
 import { StructCopier } from "./StructCopier.sol";
+
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import {
-    ReferenceConduitController
-} from "../../../reference/conduit/ReferenceConduitController.sol";
-import {
-    ReferenceConsideration
-} from "../../../reference/ReferenceConsideration.sol";
+
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
-import { Consideration } from "../../../contracts/lib/Consideration.sol";
+
+// import { Consideration } from "../../../contracts/lib/Consideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -190,7 +188,14 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes32, bytes32, uint8) {
+    )
+        internal
+        returns (
+            bytes32,
+            bytes32,
+            uint8
+        )
+    {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
