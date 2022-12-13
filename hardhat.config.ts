@@ -75,7 +75,7 @@ const config: HardhatUserConfig = {
           optimizer: {
             ...(process.env.NO_SPECIALIZER
               ? optimizerSettingsNoSpecializer
-              : { enabled: true, runs: 29_999 }),
+              : { enabled: true, runs: 4_294_967_295 }),
           },
           metadata: {
             bytecodeHash: "none",

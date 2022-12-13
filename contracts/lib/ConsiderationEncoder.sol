@@ -153,9 +153,9 @@ contract ConsiderationEncoder {
             // Write offset to `offer`
             dstHead.write(tailOffset);
             // Get pointer to orderParameters.offer.length
-            MemoryPointer srcOfferPointer = /* orderParameters.toMemoryPointer() */ src
-                    .offset(OrderParameters_offer_head_offset)
-                    .readMemoryPointer();
+            MemoryPointer srcOfferPointer = src
+                .offset(OrderParameters_offer_head_offset)
+                .readMemoryPointer();
             // Encode the offer array as SpentItem[]
             uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
                 srcOfferPointer,
@@ -169,9 +169,10 @@ contract ConsiderationEncoder {
             dstHead.offset(ratifyOrder_consideration_head_offset).write(
                 tailOffset
             );
-            MemoryPointer srcConsiderationPointer = /* orderParameters.toMemoryPointer() */ src
-                    .offset(OrderParameters_consideration_head_offset)
-                    .readMemoryPointer();
+            // Get pointer to orderParameters.consideration.length
+            MemoryPointer srcConsiderationPointer = src
+                .offset(OrderParameters_consideration_head_offset)
+                .readMemoryPointer();
             // Encode the consideration array as ReceivedItem[]
             uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
                     srcConsiderationPointer,
@@ -181,7 +182,9 @@ contract ConsiderationEncoder {
         }
 
         unchecked {
+            // Write offset to context
             dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
+            // Encode context
             uint256 contextSize = abi_encode_bytes(
                 toMemoryPointer(context),
                 dstHead.offset(tailOffset)
@@ -377,11 +380,6 @@ contract ConsiderationEncoder {
             );
             dstHead.offset(tailOffset).write(1);
             dstHead.offset(tailOffset + 32).writeBytes(orderHash);
-            /* uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
-                toMemoryPointer(orderHashes),
-                dstHead.offset(tailOffset),
-                32
-            ); */
             tailOffset += 64;
 
             size = 0x24 + tailOffset;
@@ -454,52 +452,27 @@ contract ConsiderationEncoder {
     function abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
         MemoryPointer srcLength,
         MemoryPointer dstLength
-    ) internal pure returns (uint256 size) {
-        assembly {
-            let length := mload(srcLength)
-            mstore(dstLength, length)
+    ) internal view returns (uint256 size) {
+        unchecked {
+            uint256 length = srcLength.readUint256();
+            dstLength.write(length);
 
             // Get pointer to first item's head position in the array, containing
             // the item's pointer in memory. The head pointer will be incremented
             // until it reaches the tail position (start of the array data).
-            let mPtrHead := add(srcLength, 0x20)
+            MemoryPointer srcHead = srcLength.next();
+            MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
             // Position in memory to write next item for calldata. Since ReceivedItem
-            // has a fixed length, the array elements do not contain head elements in
+            // has a fixed length, the array elements do not contain offsets in
             // calldata, they are concatenated together after the array length.
-            let cdPtrData := add(dstLength, 0x20)
-            // Pointer to end of array head in memory.
-            let mPtrHeadEnd := add(mPtrHead, mul(length, 0x20))
-
-            for {
-
-            } lt(mPtrHead, mPtrHeadEnd) {
-
-            } {
-                // Read pointer to data for the array element from its head position
-                let mPtrTail := mload(mPtrHead)
-                // Copy the itemType, token, identifier, amount from the item to calldata
-                mstore(cdPtrData, mload(mPtrTail))
-                mstore(
-                    add(cdPtrData, Common_token_offset),
-                    mload(add(mPtrTail, Common_token_offset))
-                )
-                mstore(
-                    add(cdPtrData, Common_identifier_offset),
-                    mload(add(mPtrTail, Common_identifier_offset))
-                )
-                mstore(
-                    add(cdPtrData, Common_amount_offset),
-                    mload(add(mPtrTail, Common_amount_offset))
-                )
-                mstore(
-                    add(cdPtrData, ReceivedItem_recipient_offset),
-                    mload(add(mPtrTail, Common_endAmount_offset))
-                )
-
-                mPtrHead := add(mPtrHead, 0x20)
-                cdPtrData := add(cdPtrData, ReceivedItem_size)
+            MemoryPointer dstHead = dstLength.next();
+            while (srcHead.lt(srcHeadEnd)) {
+                MemoryPointer srcTail = srcHead.pptr();
+                srcTail.copy(dstHead, ReceivedItem_size);
+                srcHead = srcHead.next();
+                dstHead = dstHead.offset(ReceivedItem_size);
             }
-            size := add(0x20, mul(length, ReceivedItem_size))
+            size = 32 + (length * ReceivedItem_size);
         }
     }
 }
