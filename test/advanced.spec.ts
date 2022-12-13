@@ -973,19 +973,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         10000
       );
 
-      // Seller mints second nft
-      const secondNftId = toBN(randomBN(4));
-      const secondAmount = toBN(randomBN(4));
-      await testERC1155Two.mint(seller.address, secondNftId, secondAmount);
-
-      await expect(
-        testERC1155Two
-          .connect(seller)
-          .setApprovalForAll(marketplaceContract.address, true)
-      )
-        .to.emit(testERC1155Two, "ApprovalForAll")
-        .withArgs(seller.address, marketplaceContract.address, true);
-
       // seller deploys offererContract and approves it for 1155 token
       const offererContract = await deployContract(
         "TestContractOfferer",
@@ -1066,19 +1053,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         marketplaceContract.address,
         10000
       );
-
-      // Seller mints second nft
-      const secondNftId = toBN(randomBN(4));
-      const secondAmount = toBN(randomBN(4));
-      await testERC1155Two.mint(seller.address, secondNftId, secondAmount);
-
-      await expect(
-        testERC1155Two
-          .connect(seller)
-          .setApprovalForAll(marketplaceContract.address, true)
-      )
-        .to.emit(testERC1155Two, "ApprovalForAll")
-        .withArgs(seller.address, marketplaceContract.address, true);
 
       // seller deploys offererContract and approves it for 1155 token
       const offererContract = await deployContract(
@@ -1164,19 +1138,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         10000
       );
 
-      // Seller mints second nft
-      const secondNftId = toBN(randomBN(4));
-      const secondAmount = toBN(randomBN(4));
-      await testERC1155Two.mint(seller.address, secondNftId, secondAmount);
-
-      await expect(
-        testERC1155Two
-          .connect(seller)
-          .setApprovalForAll(marketplaceContract.address, true)
-      )
-        .to.emit(testERC1155Two, "ApprovalForAll")
-        .withArgs(seller.address, marketplaceContract.address, true);
-
       // seller deploys offererContract and approves it for 1155 token
       const offererContract = await deployContract(
         "TestContractOfferer",
@@ -1237,6 +1198,88 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       order.signature = "0x";
 
       order.parameters.offer[0].itemType = 1;
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
+            value,
+          })
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
+    });
+    it("Reverts on contract orders where offer token address is different from generated token address", async () => {
+      // Seller mints nfts
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // seller deploys offererContract and approves it for 1155 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContract.address, true);
+
+      const offer = [
+        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
+      ];
+
+      const consideration = [
+        getItemETH(
+          amount.mul(1000),
+          amount.mul(1000),
+          offererContract.address
+        ) as any,
+      ];
+
+      offer[0].identifier = offer[0].identifierOrCriteria;
+      offer[0].amount = offer[0].endAmount;
+
+      consideration[0].identifier = consideration[0].identifierOrCriteria;
+      consideration[0].amount = consideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(offer[0], consideration[0]);
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      order.parameters.offerer = offererContract.address;
+      order.numerator = 1;
+      order.denominator = 1;
+      order.signature = "0x";
+
+      order.parameters.offer[0].token = testERC1155Two.address;
 
       await expect(
         marketplaceContract
