@@ -3059,7 +3059,8 @@ library MemoryWriters {
         }
     }
 
-    // /// @dev Writes `value` to `mPtr` in memory.
+    /// @dev Writes `value` to `mPtr` in memory.
+    /// Separate name to disambiguate literal write parameters
     function writeBytes(MemoryPointer mPtr, bytes32 value) internal pure {
         assembly {
             mstore(mPtr, value)
