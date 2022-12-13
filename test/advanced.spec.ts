@@ -37,7 +37,6 @@ import type {
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
 import type { Wallet } from "ethers";
-import { keccak256 } from "ethers/lib/utils";
 
 const { parseEther } = ethers.utils;
 
