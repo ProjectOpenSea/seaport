@@ -29,6 +29,9 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
 // import { Consideration } from "../../../contracts/lib/Consideration.sol";
+// import {
+//     ReferenceConsideration
+// } from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -101,6 +104,10 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 abi.encode(address(referenceConduitController))
             )
         );
+        // for debugging
+        // referenceConsideration = new ReferenceConsideration(
+        //     address(referenceConduitController)
+        // );
 
         //create conduit, update channel
         referenceConduit = Conduit(
