@@ -192,23 +192,6 @@ contract OrderFulfiller is
 
         // Declare a nested scope to minimize stack depth.
         unchecked {
-            // Declare a virtual function pointer taking an OfferItem argument.
-            function(OfferItem memory, address, bytes32, bytes memory)
-                internal _transferOfferItem;
-
-            {
-                // Assign _transfer function to a new function pointer (it takes
-                // a ReceivedItem as its initial argument)
-                function(ReceivedItem memory, address, bytes32, bytes memory)
-                    internal _transferReceivedItem = _transfer;
-
-                // Utilize assembly to override the virtual function pointer.
-                assembly {
-                    // Cast initial ReceivedItem type to an OfferItem type.
-                    _transferOfferItem := _transferReceivedItem
-                }
-            }
-
             // Read offer array length from memory and place on stack.
             uint256 totalOfferItems = orderParameters.offer.length;
 
@@ -254,7 +237,7 @@ contract OrderFulfiller is
                 }
 
                 // Transfer the item from the offerer to the recipient.
-                _transferOfferItem(
+                to_OfferItem_input(_transfer)(
                     offerItem,
                     orderParameters.offerer,
                     orderParameters.conduitKey,
@@ -283,22 +266,6 @@ contract OrderFulfiller is
 
         // Declare a nested scope to minimize stack depth.
         unchecked {
-            // Declare virtual function pointer with ConsiderationItem argument.
-            function(ConsiderationItem memory, address, bytes32, bytes memory)
-                internal _transferConsiderationItem;
-            {
-                // Reassign _transfer function to a new function pointer (it
-                // takes a ReceivedItem as its initial argument).
-                function(ReceivedItem memory, address, bytes32, bytes memory)
-                    internal _transferReceivedItem = _transfer;
-
-                // Utilize assembly to override the virtual function pointer.
-                assembly {
-                    // Cast ReceivedItem type to ConsiderationItem type.
-                    _transferConsiderationItem := _transferReceivedItem
-                }
-            }
-
             // Read consideration array length from memory and place on stack.
             uint256 totalConsiderationItems = orderParameters
                 .consideration
@@ -355,7 +322,7 @@ contract OrderFulfiller is
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                _transferConsiderationItem(
+                to_ConsiderationItem_input(_transfer)(
                     considerationItem,
                     msg.sender,
                     fulfillerConduitKey,

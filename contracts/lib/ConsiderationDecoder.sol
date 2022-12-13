@@ -578,6 +578,38 @@ contract ConsiderationDecoder {
         }
     }
 
+    function to_OfferItem_input(
+        function(ReceivedItem memory, address, bytes32, bytes memory)
+            internal inFn
+    )
+        internal
+        pure
+        returns (
+            function(OfferItem memory, address, bytes32, bytes memory)
+                internal outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
+    }
+
+    function to_ConsiderationItem_input(
+        function(ReceivedItem memory, address, bytes32, bytes memory)
+            internal inFn
+    )
+        internal
+        pure
+        returns (
+            function(ConsiderationItem memory, address, bytes32, bytes memory)
+                internal outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
+    }
+
     function to_OrderParameters_ReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
