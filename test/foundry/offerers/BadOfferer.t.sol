@@ -38,6 +38,7 @@ contract BadOffererTest is BaseOrderTest {
     struct Context {
         ConsiderationInterface seaport;
         uint256 id;
+        bool eoa;
     }
 
     function setUp() public override {
@@ -57,11 +58,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 101;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id })
+            Context({ seaport: consideration, id: id, eoa: false })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id })
+            Context({ seaport: referenceConsideration, id: id, eoa: false })
         );
     }
 
@@ -69,11 +70,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 102;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id })
+            Context({ seaport: consideration, id: id, eoa: false })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id })
+            Context({ seaport: referenceConsideration, id: id, eoa: false })
         );
     }
 
@@ -81,11 +82,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 103;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id })
+            Context({ seaport: consideration, id: id, eoa: false })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id })
+            Context({ seaport: referenceConsideration, id: id, eoa: false })
         );
     }
 
@@ -93,20 +94,36 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 104;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id })
+            Context({ seaport: consideration, id: id, eoa: false })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id })
+            Context({ seaport: referenceConsideration, id: id, eoa: false })
+        );
+    }
+
+    function testOrderEoa() public {
+        uint256 id = 101;
+        test(
+            this.execOrderWithContext,
+            Context({ seaport: consideration, id: id, eoa: true })
+        );
+        test(
+            this.execOrderWithContext,
+            Context({ seaport: referenceConsideration, id: id, eoa: true })
         );
     }
 
     function execOrderWithContext(Context memory context) external stateless {
-        badOfferer = new BadOfferer(
-            address(context.seaport),
-            ERC20Interface(address(token1)),
-            ERC721Interface(address(test721_1))
-        );
+        if (!context.eoa) {
+            badOfferer = new BadOfferer(
+                address(context.seaport),
+                ERC20Interface(address(token1)),
+                ERC721Interface(address(test721_1))
+            );
+        } else {
+            badOfferer = BadOfferer(makeAddr("eoa"));
+        }
 
         AdvancedOrder memory badOrder = configureBadOffererOrder(context.id);
         AdvancedOrder memory normalOrder = configureNormalOrder(context);
