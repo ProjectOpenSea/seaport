@@ -392,8 +392,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
-        uint256 errorBuffer = 0;
         (
+            uint256 errorBuffer,
             OfferItem[] memory offer,
             ConsiderationItem[] memory consideration
         ) = to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
