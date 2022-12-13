@@ -82,8 +82,15 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant Panic_arithmetic = 0x11;
 uint256 constant Panic_resource = 0x41;
 
+uint256 constant OrderParameters_offerer_offset = 0x00;
+uint256 constant OrderParameters_zone_offset = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
+uint256 constant OrderParameters_orderType_offset = 0x80;
+uint256 constant OrderParameters_startTime_offset = 0xa0;
+uint256 constant OrderParameters_endTime_offset = 0xc0;
+uint256 constant OrderParameters_zoneHash_offset = 0xe0;
+uint256 constant OrderParameters_salt_offset = 0x100;
 uint256 constant OrderParameters_conduit_offset = 0x120;
 uint256 constant OrderParameters_counter_offset = 0x140;
 
@@ -910,3 +917,30 @@ uint256 constant generateOrder_minimumReceived_head_offset = 0x20;
 uint256 constant generateOrder_maximumSpent_head_offset = 0x40;
 uint256 constant generateOrder_context_head_offset = 0x60;
 uint256 constant generateOrder_base_tail_offset = 0x80;
+
+uint256 constant ratifyOrder_selector = 0xf4dd92ce;
+uint256 constant ratifyOrder_selector_offset = 0x1c;
+uint256 constant ratifyOrder_head_offset = 0x04;
+uint256 constant ratifyOrder_offer_head_offset = 0x00;
+uint256 constant ratifyOrder_consideration_head_offset = 0x20;
+uint256 constant ratifyOrder_context_head_offset = 0x40;
+uint256 constant ratifyOrder_orderHashes_head_offset = 0x60;
+uint256 constant ratifyOrder_contractNonce_offset = 0x80;
+uint256 constant ratifyOrder_base_tail_offset = 0xa0;
+
+uint256 constant validateOrder_selector = 0x17b1f942;
+uint256 constant validateOrder_selector_offset = 0x1c;
+uint256 constant validateOrder_head_offset = 0x04;
+uint256 constant validateOrder_zoneParameters_offset = 0x20;
+
+uint256 constant ZoneParameters_orderHash_offset = 0x00;
+uint256 constant ZoneParameters_fulfiller_offset = 0x20;
+uint256 constant ZoneParameters_offerer_offset = 0x40;
+uint256 constant ZoneParameters_offer_head_offset = 0x60;
+uint256 constant ZoneParameters_consideration_head_offset = 0x80;
+uint256 constant ZoneParameters_extraData_head_offset = 0xa0;
+uint256 constant ZoneParameters_orderHashes_head_offset = 0xc0;
+uint256 constant ZoneParameters_startTime_offset = 0xe0;
+uint256 constant ZoneParameters_endTime_offset = 0x100;
+uint256 constant ZoneParameters_zoneHash_offset = 0x120;
+uint256 constant ZoneParameters_base_tail_offset = 0x140;
