@@ -45,11 +45,9 @@ contract ConsiderationDecoder {
 
     uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
 
-    function abi_decode_bytes(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_bytes(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             mPtrLength := mload(0x40)
             let size := and(
@@ -64,11 +62,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_OfferItem(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_OfferItem(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
             mPtrLength := mload(0x40)
@@ -95,11 +91,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_ConsiderationItem(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_ConsiderationItem(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
             mPtrLength := mload(0x40)
@@ -143,20 +137,16 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_OrderParameters(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_OrderParameters(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(OrderParameters_head_size);
         abi_decode_OrderParameters_to(cdPtr, mPtr);
     }
 
-    function abi_decode_Order(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_Order(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(Order_head_size);
         mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
         mPtr.offset(Order_signature_offset).write(
@@ -164,11 +154,9 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_AdvancedOrder(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_AdvancedOrder(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         // Allocate memory for AdvancedOrder head and OrderParameters head
         mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
 
@@ -199,11 +187,9 @@ contract ConsiderationDecoder {
         mPtr.write(0);
     }
 
-    function abi_decode_Order_as_AdvancedOrder(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_Order_as_AdvancedOrder(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         // Allocate memory for AdvancedOrder head and OrderParameters head
         mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
 
@@ -246,11 +232,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_bytes32(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_bytes32(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
             uint256 arrSize = (arrLength + 1) * 32;
@@ -259,11 +243,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_CriteriaResolver(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_CriteriaResolver(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(CriteriaResolver_head_size);
         cdPtr.copy(mPtr, CriteriaResolver_fixed_segment_0);
         mPtr.offset(CriteriaResolver_criteriaProof_offset).write(
@@ -273,11 +255,9 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_dyn_array_CriteriaResolver(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_CriteriaResolver(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
             uint256 tailOffset = arrLength * 32;
@@ -293,11 +273,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_Order(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_Order(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
             uint256 tailOffset = arrLength * 32;
@@ -365,11 +343,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_AdvancedOrder(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_AdvancedOrder(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
             uint256 tailOffset = arrLength * 32;
@@ -385,11 +361,9 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_Fulfillment(CalldataPointer cdPtr)
-        internal
-        pure
-        returns (MemoryPointer mPtr)
-    {
+    function abi_decode_Fulfillment(
+        CalldataPointer cdPtr
+    ) internal pure returns (MemoryPointer mPtr) {
         mPtr = malloc(Fulfillment_head_size);
         mPtr.write(abi_decode_dyn_array_FulfillmentComponent(cdPtr.pptr()));
         mPtr.offset(Fulfillment_considerationComponents_offset).write(
@@ -399,11 +373,9 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_dyn_array_Fulfillment(CalldataPointer cdPtrLength)
-        internal
-        pure
-        returns (MemoryPointer mPtrLength)
-    {
+    function abi_decode_dyn_array_Fulfillment(
+        CalldataPointer cdPtrLength
+    ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
             uint256 tailOffset = arrLength * 32;
@@ -451,43 +423,69 @@ contract ConsiderationDecoder {
         )
     {
         assembly {
-            // First two words of calldata are the offsets to offer and consideration
-            // array lengths. Copy these to scratch space.
-            returndatacopy(0, 0, TwoWords)
-            let offsetOffer := mload(0)
-            let offsetConsideration := mload(0x20)
+            // check that returndatasize is at least 80 bytes:
+            // offerOffset,considerationOffset,offerLength,considerationLength
+            invalidEncoding := lt(returndatasize(), FourWords)
 
-            // Copy length of offer array to scratch space
-            returndatacopy(0, offsetOffer, 0x20)
-            let offerLength := mload(0)
+            let offsetOffer
+            let offsetConsideration
+            let offerLength
+            let considerationLength
 
-            // Copy length of consideration array to scratch space
-            returndatacopy(0x20, offsetConsideration, 0x20)
-            let considerationLength := mload(0x20)
+            if iszero(invalidEncoding) {
+                // First two words of calldata are the offsets to offer and consideration
+                // array lengths. Copy these to scratch space. Multiply by validLength to
+                // avoid panics if returndatasize is too small.
+                returndatacopy(0, 0, TwoWords)
+                offsetOffer := mload(0)
+                offsetConsideration := mload(0x20)
 
-            {
-                // Calculate total size of offer and consideration arrays
-                let totalOfferSize := mul(SpentItem_size, offerLength)
-                let totalConsiderationSize := mul(
-                    ReceivedItem_size,
-                    considerationLength
+                // If valid length, check that the offsets are within the returndata.
+                let invalidOfferOffset := gt(offsetOffer, returndatasize())
+                let invalidConsiderationOffset := gt(
+                    offsetConsideration,
+                    returndatasize()
                 )
 
-                // Add 4 words to total size to cover the offset and length fields of
-                // the two arrays
-                let totalSize := add(
-                    FourWords,
-                    add(totalOfferSize, totalConsiderationSize)
-                )
-                // Don't continue if returndatasize exceeds 65535 bytes or
-                // is not equal to the calculated size.
+                // Only proceed if length (and thus encoding) appears to be valid so far
                 invalidEncoding := or(
-                    gt(or(offerLength, considerationLength), 0xffff),
-                    xor(totalSize, returndatasize())
+                    invalidOfferOffset,
+                    invalidConsiderationOffset
                 )
-                // Set first word of scratch space to 0 so length of offer/consideration
-                // are read as 0 if encoding is invalid.
-                mstore(0, 0)
+                if iszero(invalidEncoding) {
+                    // Copy length of offer array to scratch space
+                    returndatacopy(0, offsetOffer, 0x20)
+                    offerLength := mload(0)
+
+                    // Copy length of consideration array to scratch space
+                    returndatacopy(0x20, offsetConsideration, 0x20)
+                    considerationLength := mload(0x20)
+
+                    {
+                        // Calculate total size of offer and consideration arrays
+                        let totalOfferSize := mul(SpentItem_size, offerLength)
+                        let totalConsiderationSize := mul(
+                            ReceivedItem_size,
+                            considerationLength
+                        )
+
+                        // Add 4 words to total size to cover the offset and length fields of
+                        // the two arrays
+                        let totalSize := add(
+                            FourWords,
+                            add(totalOfferSize, totalConsiderationSize)
+                        )
+                        // Don't continue if returndatasize exceeds 65535 bytes or
+                        // is not equal to the calculated size.
+                        invalidEncoding := or(
+                            gt(or(offerLength, considerationLength), 0xffff),
+                            xor(totalSize, returndatasize())
+                        )
+                        // Set first word of scratch space to 0 so length of offer/consideration
+                        // are read as 0 if encoding is invalid.
+                        mstore(0, 0)
+                    }
+                }
             }
 
             if iszero(invalidEncoding) {
