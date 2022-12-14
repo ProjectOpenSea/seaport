@@ -441,9 +441,9 @@ contract ConsiderationDecoder {
                 offsetConsideration := mload(0x20)
 
                 // If valid length, check that the offsets are within the returndata.
-                let invalidOfferOffset := gt(offsetOffer, returndatasize())
+                let invalidOfferOffset := xor(offsetOffer, 0x40)
                 let invalidConsiderationOffset := gt(
-                    offsetConsideration,
+                    add(offsetConsideration, 0x20),
                     returndatasize()
                 )
 
@@ -458,8 +458,8 @@ contract ConsiderationDecoder {
                     offerLength := mload(0)
 
                     // Copy length of consideration array to scratch space
-                    returndatacopy(0x20, offsetConsideration, 0x20)
-                    considerationLength := mload(0x20)
+                    returndatacopy(0, offsetConsideration, 0x20)
+                    considerationLength := mload(0)
 
                     {
                         // Calculate total size of offer and consideration arrays
@@ -481,9 +481,6 @@ contract ConsiderationDecoder {
                             gt(or(offerLength, considerationLength), 0xffff),
                             xor(totalSize, returndatasize())
                         )
-                        // Set first word of scratch space to 0 so length of offer/consideration
-                        // are read as 0 if encoding is invalid.
-                        mstore(0, 0)
                     }
                 }
             }
