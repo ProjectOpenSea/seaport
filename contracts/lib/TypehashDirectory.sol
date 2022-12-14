@@ -1,11 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-contract TypehashDirectory {
-    constructor() {
-        // Construct the OfferItem type string.
-        // prettier-ignore
-        bytes memory offerItemTypeString = abi.encodePacked(
+bytes32 constant twoSubstring = 0x5B325D0000000000000000000000000000000000000000000000000000000000;
+
+uint256 constant MaxTreeHeight = 24;
+
+function getMaxTreeBrackets(uint256 maxHeight) pure returns (bytes memory) {
+    bytes memory suffixes = new bytes(3 * maxHeight);
+    assembly {
+        let ptr := add(suffixes, 0x20)
+        let endPtr := add(ptr, mul(maxHeight, 3))
+        for {
+
+        } lt(ptr, endPtr) {
+            ptr := add(ptr, 3)
+        } {
+            mstore(ptr, twoSubstring)
+        }
+    }
+    return suffixes;
+}
+
+function getTreeSubTypes() pure returns (bytes memory) {
+    // Construct the OfferItem type string.
+    // prettier-ignore
+    bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
                 "uint8 itemType,",
                 "address token,",
@@ -15,9 +34,9 @@ contract TypehashDirectory {
             ")"
         );
 
-        // Construct the ConsiderationItem type string.
-        // prettier-ignore
-        bytes memory considerationItemTypeString = abi.encodePacked(
+    // Construct the ConsiderationItem type string.
+    // prettier-ignore
+    bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
                 "uint8 itemType,",
                 "address token,",
@@ -28,9 +47,9 @@ contract TypehashDirectory {
             ")"
         );
 
-        // Construct the OrderComponents type string, not including the above.
-        // prettier-ignore
-        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
+    // Construct the OrderComponents type string, not including the above.
+    // prettier-ignore
+    bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
                 "address offerer,",
                 "address zone,",
@@ -45,43 +64,47 @@ contract TypehashDirectory {
                 "uint256 counter",
             ")"
         );
+    return
+        abi.encodePacked(
+            considerationItemTypeString,
+            offerItemTypeString,
+            orderComponentsPartialTypeString
+        );
+}
 
-        bytes32 twoSubstring = 0x5B325D0000000000000000000000000000000000000000000000000000000000;
-
-        bytes32[] memory bulkOrderTypehashes = new bytes32[](256);
-
-        for (uint256 i = 0; i < 256; ++i) {
-            uint256 totalTwos = i + 1;
-            string memory twosSubstring = new string(totalTwos * 3);
-
-            uint256 tail = (totalTwos + 1) * 3;
-            for (uint256 j = 1; j < tail; j += 3) {
-                assembly {
-                    mstore(add(twosSubstring, j), twoSubstring)
-                }
-            }
-
-            // Encode the type string for the BulkOrder struct.
-            bytes memory bulkOrderPartialTypeString = abi.encodePacked(
-                "BulkOrder(OrderComponents",
-                twosSubstring,
-                " tree)"
-            );
-
-            // Generate the keccak256 hash of the concatenated type strings for
-            // the BulkOrder, considerationItem, offerItem, and orderComponents.
-            bulkOrderTypehashes[i] = keccak256(
-                abi.encodePacked(
-                    bulkOrderPartialTypeString,
-                    considerationItemTypeString,
-                    offerItemTypeString,
-                    orderComponentsPartialTypeString
-                )
-            );
-        }
-
+contract TypehashDirectory {
+    constructor() {
+        bytes32[] memory typeHashes = new bytes32[](MaxTreeHeight);
+        bytes memory brackets = getMaxTreeBrackets(MaxTreeHeight);
+        bytes memory subTypes = getTreeSubTypes();
+        // Cache memory pointer before each loop so memory doesn't expand by the full
+        // string size on each loop
+        uint256 freeMemoryPointer;
         assembly {
-            return(add(bulkOrderTypehashes, 64), 8192)
+            freeMemoryPointer := mload(0x40)
+        }
+        for (uint256 height = 1; height < MaxTreeHeight; ++height) {
+            // Slice brackets length to size needed for `height`
+            assembly {
+                mstore(brackets, mul(3, height))
+            }
+            // Encode the type string for the BulkOrder struct.
+            bytes memory bulkOrderTypeString = abi.encodePacked(
+                "BulkOrder(OrderComponents",
+                brackets,
+                " tree)",
+                subTypes
+            );
+            // Derive EIP712 type hash
+            bytes32 typeHash = keccak256(bulkOrderTypeString);
+            typeHashes[height - 1] = typeHash;
+            // Reset free pointer
+            assembly {
+                mstore(0x40, freeMemoryPointer)
+            }
+        }
+        assembly {
+            return(add(typeHashes, 0x20), mul(sub(MaxTreeHeight, 1), 0x20))
         }
     }
 }
