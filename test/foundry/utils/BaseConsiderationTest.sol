@@ -179,7 +179,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes memory) {
+    ) internal view returns (bytes memory) {
         (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
             _consideration,
             _pkOfSigner,
@@ -192,7 +192,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes memory) {
+    ) internal view returns (bytes memory) {
         (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
             _consideration,
             _pkOfSigner,
@@ -212,7 +212,15 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes32, bytes32, uint8) {
+    )
+        internal
+        view
+        returns (
+            bytes32,
+            bytes32,
+            uint8
+        )
+    {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,

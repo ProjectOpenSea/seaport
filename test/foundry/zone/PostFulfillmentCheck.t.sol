@@ -42,10 +42,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint256 amount;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -337,10 +336,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(
-        uint8 numOriginalAdditional,
-        uint8 numTips
-    ) public {
+    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
+        public
+    {
         test(
             this.execBasicStatefulFuzz,
             Context({
@@ -476,9 +474,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         // );
     }
 
-    function execFulfillAvailableAdvancedAscending(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedAscending(Context memory context)
+        external
+        stateless
+    {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -709,7 +708,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         return order;
     }
 
-    function _sumConsiderationAmounts() internal returns (uint256 sum) {
+    function _sumConsiderationAmounts() internal view returns (uint256 sum) {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }

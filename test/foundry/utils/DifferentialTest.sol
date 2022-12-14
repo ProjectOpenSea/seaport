@@ -33,7 +33,7 @@ contract DifferentialTest is Test {
 
     ///@dev read the failure slot of the HEVM using the vm.load cheatcode
     ///     Returns true if there was an assertion failure. recorded.
-    function readHevmFailureSlot() internal returns (bool) {
+    function readHevmFailureSlot() internal view returns (bool) {
         return vm.load(address(vm), HEVM_FAILED_SLOT) == bytes32(uint256(1));
     }
 }
