@@ -132,7 +132,13 @@ uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
 uint256 constant EIP712_DigestPayload_size = 0x42;
 
-uint256 constant EIP712_BulkOrder_minSize = 0x121;
+// Minimum BulkOrder proof size
+// 64 bytes for signature + 3 for key + 32 for 1 sibling
+uint256 constant BulkOrderProof_minSize = 0x63;
+// Maximum BulkOrder proof size
+// 65 bytes for signature + 3 for key + 768 for 24 siblings
+uint256 constant BulkOrderProof_maxSize = 0x344;
+uint256 constant BulkOrderProof_excessSize = 0x345;
 uint256 constant BulkOrderProof_proofAndKeySize = 0xe1;
 
 uint256 constant receivedItemsHash_ptr = 0x60;

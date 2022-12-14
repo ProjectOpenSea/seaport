@@ -118,7 +118,13 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
             mstore(0x0, sload(bob.slot))
         }
 
-        _assertValidSignature(alice, digest, signature);
+        _assertValidSignature(
+            alice,
+            digest,
+            digest,
+            signature.length,
+            signature
+        );
     }
 }
 
@@ -160,7 +166,7 @@ contract ReferenceSignatureVerifierLogic is
             mstore(0x0, sload(bob.slot))
         }
 
-        _assertValidSignature(alice, digest, signature);
+        _assertValidSignature(alice, digest, digest, signature, signature);
     }
 }
 

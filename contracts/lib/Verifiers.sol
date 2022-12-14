@@ -78,15 +78,33 @@ contract Verifiers is Assertions, SignatureVerification {
             return;
         }
 
+        bytes32 domainSeparator = _domainSeparator();
+
+        // Derive original EIP-712 digest using domain separator and order hash.
+        bytes32 originalDigest = _deriveEIP712Digest(
+            domainSeparator,
+            orderHash
+        );
+
+        uint256 originalSignatureLength = signature.length;
+
+        bytes32 digest;
         if (_isValidBulkOrderSize(signature)) {
+            // Rederive order hash and digest using bulk order proof.
             (orderHash) = _computeBulkOrderProof(signature, orderHash);
+            digest = _deriveEIP712Digest(domainSeparator, orderHash);
+        } else {
+            digest = originalDigest;
         }
 
-        // Derive EIP-712 digest using the domain separator and the order hash.
-        bytes32 digest = _deriveEIP712Digest(_domainSeparator(), orderHash);
-
         // Ensure that the signature for the digest is valid for the offerer.
-        _assertValidSignature(offerer, digest, signature);
+        _assertValidSignature(
+            offerer,
+            digest,
+            originalDigest,
+            originalSignatureLength,
+            signature
+        );
     }
 
     /**
@@ -100,9 +118,10 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes memory signature
     ) internal pure returns (bool validLength) {
         assembly {
-            validLength := lt(
-                sub(mload(signature), EIP712_BulkOrder_minSize),
-                2
+            let length := mload(signature)
+            validLength := and(
+                lt(length, BulkOrderProof_excessSize),
+                lt(and(sub(length, BulkOrderProof_minSize), AlmostOneWord), 2)
             )
         }
     }
@@ -120,57 +139,40 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes32 leaf
     ) internal view returns (bytes32 bulkOrderHash) {
         bytes32 root;
-
+        uint256 height;
         assembly {
-            // Set length to just the size of the signature
-            let length := sub(
-                mload(proofAndSignature),
-                BulkOrderProof_proofAndKeySize
-            )
-            mstore(proofAndSignature, length)
+            let fullLength := mload(proofAndSignature)
+            // If proofAndSignature has odd length, it is
+            // a compact signature with 64 bytes.
+            let signatureLength := sub(65, and(fullLength, 1))
+            mstore(proofAndSignature, signatureLength)
 
-            let keyPtr := add(proofAndSignature, add(0x20, length))
-            let key := shr(248, mload(keyPtr))
-            let proof := add(keyPtr, 1)
+            let keyPtr := add(proofAndSignature, add(OneWord, signatureLength))
+            let key := shr(232, mload(keyPtr))
+            let proof := add(keyPtr, 3)
+            height := div(sub(fullLength, signatureLength), 0x20)
 
             // Compute level 1
-            let scratch := shl(5, and(key, 1))
-            mstore(scratch, leaf)
-            mstore(xor(scratch, OneWord), mload(proof))
+            let scratchPtr1 := shl(5, and(key, 1))
+            mstore(scratchPtr1, leaf)
+            mstore(xor(scratchPtr1, OneWord), mload(proof))
 
-            // Compute level 2
-            scratch := shl(5, and(shr(1, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0x20)))
-
-            // Compute level 3
-            scratch := shl(5, and(shr(2, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0x40)))
-
-            // Compute level 4
-            scratch := shl(5, and(shr(3, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0x60)))
-
-            // Compute level 5
-            scratch := shl(5, and(shr(4, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0x80)))
-
-            // Compute level 6
-            scratch := shl(5, and(shr(5, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0xa0)))
-
+            // Compute remaining proofs
+            for {
+                let i := 1
+            } lt(i, height) {
+                i := add(i, 1)
+            } {
+                proof := add(proof, OneWord)
+                let scratchPtr := shl(5, and(shr(i, key), 1))
+                mstore(scratchPtr, keccak256(0, TwoWords))
+                mstore(xor(scratchPtr, OneWord), mload(proof))
+            }
             // Compute root hash
-            scratch := shl(5, and(shr(6, key), 1))
-            mstore(scratch, keccak256(0, TwoWords))
-            mstore(xor(scratch, OneWord), mload(add(proof, 0xc0)))
             root := keccak256(0, TwoWords)
         }
 
-        bytes32 rootTypeHash = _BULK_ORDER_TYPEHASH;
+        bytes32 rootTypeHash = _lookupBulkOrderTypehash(height);
         assembly {
             mstore(0, rootTypeHash)
             mstore(0x20, root)

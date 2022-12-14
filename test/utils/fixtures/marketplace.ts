@@ -33,7 +33,7 @@ import type {
 import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
-const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
+// const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
 const { orderType } = require("../../../eip-712-types/order");
 
 export const marketplaceFixture = async (
@@ -147,17 +147,21 @@ export const marketplaceFixture = async (
 
   const signBulkOrder = async (
     orderComponents: OrderComponents[],
-    signer: Wallet | Contract
+    signer: Wallet | Contract,
+    startIndex = 0,
+    height?: number
   ) => {
-    const tree = getBulkOrderTree(orderComponents);
-    // console.log(domainData, bulkOrderType, bulkOrderComponents);
+    const tree = getBulkOrderTree(orderComponents, startIndex, height);
+    const bulkOrderType = tree.types;
     const chunks = tree.getDataToSign();
-
     const signature = await signer._signTypedData(domainData, bulkOrderType, {
       tree: chunks,
     });
 
-    const proofAndSignature = tree.getEncodedProofAndSignature(0, signature);
+    const proofAndSignature = tree.getEncodedProofAndSignature(
+      startIndex,
+      signature
+    );
 
     const orderHash = tree.getBulkOrderHash(); // await getAndVerifyOrderHash(orderComponents);
 
@@ -201,7 +205,9 @@ export const marketplaceFixture = async (
     zoneHash = constants.HashZero,
     conduitKey = constants.HashZero,
     extraCheap = false,
-    useBulkSignature = false
+    useBulkSignature = false,
+    bulkSignatureIndex?: number,
+    bulkSignatureHeight?: number
   ) => {
     const counter = await marketplaceContract.getCounter(offerer.address);
 
@@ -257,7 +263,12 @@ export const marketplaceFixture = async (
     };
 
     if (useBulkSignature) {
-      order.signature = signBulkOrder([orderComponents], signer ?? offerer);
+      order.signature = signBulkOrder(
+        [orderComponents],
+        signer ?? offerer,
+        bulkSignatureIndex,
+        bulkSignatureHeight
+      );
     }
 
     // How much ether (at most) needs to be supplied when fulfilling the order
