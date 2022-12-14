@@ -188,12 +188,16 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
      * if tests are run with different compiler settings (which they are by default)
      */
     function _deployAndConfigurePrecompiledTransferHelper() public {
-        transferHelper = TransferHelper(
-            deployCode(
-                "optimized-out/TransferHelper.sol/TransferHelper.json",
-                abi.encode(address(conduitController))
-            )
-        );
+        if (!coverage) {
+            transferHelper = TransferHelper(
+                deployCode(
+                    "optimized-out/TransferHelper.sol/TransferHelper.json",
+                    abi.encode(address(conduitController))
+                )
+            );
+        } else {
+            transferHelper = new TransferHelper(address(conduitController));
+        }
     }
 
     // Helper functions
