@@ -11,7 +11,10 @@ import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    ItemType,
+    Side
+} from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
@@ -23,19 +26,26 @@ interface ERC20Mintable {
 }
 
 contract StatefulRatifierOfferer is ContractOffererInterface {
+    error IncorrectValue(uint256 actual, uint256 expected);
+    error IncorrectToken(address actual, address expected);
+    error IncorrectItemType(ItemType actual, ItemType expected);
+    error IncorrectContext(bytes context);
+    error IncorrectOrderHashesLength(uint256 actual, uint256 expected);
+    error IncorrectLength(Side side, uint256 actual, uint256 expected);
+
     ERC20Interface token1;
     ERC721Interface token2;
     uint256 value;
     bool public called;
-    uint256 numToReturn;
+    uint256 numOffersToReturn;
 
     constructor(
         address seaport,
         ERC20Interface _token1,
         ERC721Interface _token2,
-        uint256 _numToReturn
+        uint256 _numOffersToReturn
     ) {
-        numToReturn = _numToReturn;
+        numOffersToReturn = _numOffersToReturn;
         _token1.approve(seaport, type(uint256).max);
         token1 = _token1;
         token2 = _token2;
@@ -68,8 +78,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     {
         // Generate an offer of ERC20 items.
         value = minimumReceived[0].amount;
-        offer = new SpentItem[](numToReturn);
-        for (uint256 i; i < numToReturn; i++) {
+        offer = new SpentItem[](numOffersToReturn);
+        for (uint256 i; i < numOffersToReturn; i++) {
             // Create a new ERC20 item with a unique value.
             offer[i] = SpentItem({
                 itemType: ItemType.ERC20,
@@ -79,8 +89,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
             });
         }
 
-        // Generate a consideration of a single ERC721 item.
-        consideration = new ReceivedItem[](1);
+        // Generate a consideration of a three ERC721 items.
+        consideration = new ReceivedItem[](3);
         consideration[0] = ReceivedItem({
             itemType: ItemType.ERC721,
             token: address(token2),
@@ -90,6 +100,20 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         });
 
         // Return the offer and consideration.
+        consideration[1] = ReceivedItem({
+            itemType: ItemType.ERC721,
+            token: address(token2),
+            identifier: 43,
+            amount: 1,
+            recipient: payable(address(this))
+        });
+        consideration[2] = ReceivedItem({
+            itemType: ItemType.ERC721,
+            token: address(token2),
+            identifier: 44,
+            amount: 1,
+            recipient: payable(address(this))
+        });
         return (offer, consideration);
     }
 
@@ -121,8 +145,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         uint256 _value = minimumReceived[0].amount;
 
         // Create an offer array and populate it with ERC20 items.
-        offer = new SpentItem[](numToReturn);
-        for (uint256 i; i < numToReturn; i++) {
+        offer = new SpentItem[](numOffersToReturn);
+        for (uint256 i; i < numOffersToReturn; i++) {
             offer[i] = SpentItem({
                 itemType: ItemType.ERC20,
                 token: address(token1),
@@ -131,8 +155,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
             });
         }
 
-        // Create a consideration array with a single ERC721 item.
-        consideration = new ReceivedItem[](1);
+        // Create a consideration array with three ERC721 items.
+        consideration = new ReceivedItem[](3);
         consideration[0] = ReceivedItem({
             itemType: ItemType.ERC721,
             token: address(token2),
@@ -142,14 +166,22 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         });
 
         // Return the offer and consideration.
+        consideration[1] = ReceivedItem({
+            itemType: ItemType.ERC721,
+            token: address(token2),
+            identifier: 43,
+            amount: 1,
+            recipient: payable(address(this))
+        });
+        consideration[2] = ReceivedItem({
+            itemType: ItemType.ERC721,
+            token: address(token2),
+            identifier: 44,
+            amount: 1,
+            recipient: payable(address(this))
+        });
         return (offer, consideration);
     }
-
-    error IncorrectValue(uint256 actual, uint256 expected);
-    error IncorrectToken(address actual, address expected);
-    error IncorrectItemType(ItemType actual, ItemType expected);
-    error IncorrectContext(bytes context);
-    error IncorrectOrderHashesLength(uint256 actual, uint256 expected);
 
     function ratifyOrder(
         SpentItem[] calldata minimumReceived /* offer */,
@@ -158,7 +190,16 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         bytes32[] calldata orderHashes /* orderHashes */,
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+        // check that the length matches what is expected
+        if (minimumReceived.length != numOffersToReturn) {
+            revert IncorrectLength(
+                Side.OFFER,
+                minimumReceived.length,
+                numOffersToReturn
+            );
+        }
         // Check that all minimumReceived items are of type ERC20.
+
         for (uint256 i = 0; i < minimumReceived.length; i++) {
             if (minimumReceived[i].itemType != ItemType.ERC20) {
                 revert IncorrectItemType(
@@ -182,6 +223,9 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
             }
         }
 
+        if (maximumSpent.length != 3) {
+            revert IncorrectLength(Side.CONSIDERATION, maximumSpent.length, 3);
+        }
         // Check that all maximumSpent items are of type ERC721, that the
         // address is correct, and that the token ID is correct.
         for (uint256 i; i < maximumSpent.length; i++) {
@@ -194,8 +238,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
             if (maximumSpent[i].token != address(token2)) {
                 revert IncorrectToken(maximumSpent[i].token, address(token2));
             }
-            if (maximumSpent[i].identifier != 42) {
-                revert IncorrectValue(maximumSpent[i].identifier, 42);
+            if (maximumSpent[i].identifier != 42 + i) {
+                revert IncorrectValue(maximumSpent[i].identifier, 42 + i);
             }
         }
 

@@ -65,7 +65,13 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);
+        addErc721ConsiderationItem(payable(address(offerer)), 43);
+        addErc721ConsiderationItem(payable(address(offerer)), 44);
+
         test721_1.mint(address(this), 42);
+        test721_1.mint(address(this), 43);
+        test721_1.mint(address(this), 44);
+
         _configureOrderParameters({
             offerer: address(offerer),
             zone: address(0),
@@ -121,7 +127,13 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);
+        addErc721ConsiderationItem(payable(address(offerer)), 43);
+        addErc721ConsiderationItem(payable(address(offerer)), 44);
+
         test721_1.mint(address(this), 42);
+        test721_1.mint(address(this), 43);
+        test721_1.mint(address(this), 44);
+
         _configureOrderParameters({
             offerer: address(offerer),
             zone: address(0),
@@ -175,6 +187,9 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);
+        addErc721ConsiderationItem(payable(address(offerer)), 43);
+        addErc721ConsiderationItem(payable(address(offerer)), 44);
+
         _configureOrderParameters({
             offerer: address(offerer),
             zone: address(0),
@@ -204,28 +219,39 @@ contract StatefulOffererTest is BaseOrderTest {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = order;
         orders[1] = mirror;
-        offerComponents.push(
-            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
-        );
 
-        considerationComponents.push(
-            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
-        );
-
-        fulfillment.offerComponents = offerComponents;
-        fulfillment.considerationComponents = considerationComponents;
-        fulfillments.push(fulfillment);
-        delete offerComponents;
-        delete considerationComponents;
-        offerComponents.push(
-            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
-        );
-        considerationComponents.push(
-            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
-        );
-        fulfillment.offerComponents = offerComponents;
-        fulfillment.considerationComponents = considerationComponents;
-        fulfillments.push(fulfillment);
+        //match first order offer to second order consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 1,
+                itemIndex: 0
+            })
+        });
+        // match second order first offer to first order first consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 0,
+                itemIndex: 0
+            })
+        });
+        // match second order second offer to first order second consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 0,
+                itemIndex: 1
+            })
+        });
+        // match second order third offer to first order third consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 0,
+                itemIndex: 2
+            })
+        });
 
         context.consideration.matchAdvancedOrders({
             orders: orders,
@@ -233,6 +259,21 @@ contract StatefulOffererTest is BaseOrderTest {
             fulfillments: fulfillments
         });
         assertTrue(offerer.called());
+    }
+
+    function createFulfillmentFromComponentsAndAddToFulfillments(
+        FulfillmentComponent memory _offer,
+        FulfillmentComponent memory _consideration
+    ) internal {
+        delete offerComponents;
+        delete considerationComponents;
+        // add second offer item from second order
+        offerComponents.push(_offer);
+        // match to first order's second consideration item
+        considerationComponents.push(_consideration);
+        fulfillment.offerComponents = offerComponents;
+        fulfillment.considerationComponents = considerationComponents;
+        fulfillments.push(fulfillment);
     }
 
     function testFulfillAvailableAdvancedOrders() public {
@@ -257,7 +298,12 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         addErc20OfferItem(1);
         addErc721ConsiderationItem(payable(address(offerer)), 42);
+        addErc721ConsiderationItem(payable(address(offerer)), 43);
+        addErc721ConsiderationItem(payable(address(offerer)), 44);
+
         test721_1.mint(address(this), 42);
+        test721_1.mint(address(this), 43);
+        test721_1.mint(address(this), 44);
         _configureOrderParameters({
             offerer: address(offerer),
             zone: address(0),
@@ -289,6 +335,16 @@ contract StatefulOffererTest is BaseOrderTest {
             FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
         );
         considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 2 })
+        );
+        considerationComponentsArray.push(considerationComponents);
 
         context.consideration.fulfillAvailableAdvancedOrders({
             advancedOrders: orders,
@@ -311,8 +367,10 @@ contract StatefulOffererTest is BaseOrderTest {
         delete considerationItems;
 
         (address _offererAddr, uint256 pkey) = makeAddrAndKey(_offerer);
-
         test721_1.mint(address(_offererAddr), 42);
+        test721_1.mint(address(_offererAddr), 43);
+        test721_1.mint(address(_offererAddr), 44);
+
         vm.prank(_offererAddr);
         test721_1.setApprovalForAll(address(context.consideration), true);
 

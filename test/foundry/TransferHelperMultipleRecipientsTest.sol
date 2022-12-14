@@ -1275,7 +1275,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1347,7 +1346,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1420,7 +1418,6 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         vm.label(address(mockConduit), "mock conduit");
 
         bytes32 conduitCodeHash = address(mockConduit).codehash;
-        emit log_named_bytes32("conduit code hash", conduitCodeHash);
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
