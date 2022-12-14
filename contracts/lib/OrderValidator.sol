@@ -412,7 +412,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
 
-            for (uint256 i; i < originalOfferLength; ) {
+            for (uint256 i = 0; i < originalOfferLength; ) {
                 MemoryPointer mPtrOriginal = orderParameters
                     .offer[i]
                     .toMemoryPointer();

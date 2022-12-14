@@ -77,18 +77,20 @@ contract TypehashDirectory {
         bytes32[] memory typeHashes = new bytes32[](MaxTreeHeight);
         bytes memory brackets = getMaxTreeBrackets(MaxTreeHeight);
         bytes memory subTypes = getTreeSubTypes();
-        // Cache memory pointer before each loop so memory doesn't expand by the full
-        // string size on each loop
+        // Cache memory pointer before each loop so memory doesn't expand by the
+        // full string size on each loop.
         uint256 freeMemoryPointer;
         assembly {
             freeMemoryPointer := mload(0x40)
         }
-        for (uint256 i; i < MaxTreeHeight; ++i) {
+
+        for (uint256 i = 0; i < MaxTreeHeight; ) {
             uint256 height = i + 1;
             // Slice brackets length to size needed for `height`
             assembly {
                 mstore(brackets, mul(3, height))
             }
+
             // Encode the type string for the BulkOrder struct.
             bytes memory bulkOrderTypeString = abi.encodePacked(
                 "BulkOrder(OrderComponents",
@@ -96,14 +98,21 @@ contract TypehashDirectory {
                 " tree)",
                 subTypes
             );
+
             // Derive EIP712 type hash
             bytes32 typeHash = keccak256(bulkOrderTypeString);
             typeHashes[i] = typeHash;
+
             // Reset free pointer
             assembly {
                 mstore(0x40, freeMemoryPointer)
             }
+
+            unchecked {
+                ++i;
+            }
         }
+
         assembly {
             // Overwrite length with zero to give the contract a STOP prefix
             // and deploy the type hashes array as a contract.
