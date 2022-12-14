@@ -309,32 +309,45 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 errorBuffer := iszero(amount)
             }
 
-            // Retrieve the received item pointer.
-            let receivedItemPtr := mload(execution)
+            // Populate the received item in memory and derive its data hash.
+            let dataHash
+            {
+                // Retrieve the received item pointer.
+                let receivedItemPtr := mload(execution)
 
-            // Set the item type on the received item.
-            mstore(receivedItemPtr, mload(offerItemPtr))
+                // Set the item type on the received item.
+                mstore(receivedItemPtr, mload(offerItemPtr))
 
-            // Set the token on the received item.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
+                // Set the token on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_token_offset),
+                    mload(add(offerItemPtr, Common_token_offset))
+                )
 
-            // Set the identifier on the received item.
-            mstore(
-                add(receivedItemPtr, Common_identifier_offset),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
+                // Set the identifier on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_identifier_offset),
+                    mload(add(offerItemPtr, Common_identifier_offset))
+                )
 
-            // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(paramsPtr))
+                // Set the offerer on returned execution using order pointer.
+                mstore(
+                    add(execution, Execution_offerer_offset),
+                    mload(paramsPtr)
+                )
 
-            // Set conduitKey on returned execution via offset of order pointer.
-            mstore(
-                add(execution, Execution_conduit_offset),
-                mload(add(paramsPtr, OrderParameters_conduit_offset))
-            )
+                // Set returned execution conduitKey via order pointer offset.
+                mstore(
+                    add(execution, Execution_conduit_offset),
+                    mload(add(paramsPtr, OrderParameters_conduit_offset))
+                )
+
+                // Calculate the hash of (itemType, token, identifier).
+                dataHash := keccak256(
+                    receivedItemPtr,
+                    ReceivedItem_CommonParams_size
+                )
+            }
 
             // Get position one word past last element in head of array.
             let endPtr := add(
@@ -455,10 +468,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         ),
                         // The itemType, token, and identifier must match.
                         eq(
-                            keccak256(
-                                receivedItemPtr,
-                                ReceivedItem_CommonParams_size
-                            ),
+                            dataHash,
                             keccak256(
                                 offerItemPtr,
                                 ReceivedItem_CommonParams_size
