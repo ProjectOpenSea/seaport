@@ -17,6 +17,9 @@ import {
     TestContractOfferer
 } from "../../contracts/test/TestContractOfferer.sol";
 import {
+    TestBadContractOfferer
+} from "../../contracts/test/TestBadContractOfferer.sol";
+import {
     TestInvalidContractOfferer
 } from "../../contracts/test/TestInvalidContractOfferer.sol";
 import {
