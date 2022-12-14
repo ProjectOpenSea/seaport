@@ -76,22 +76,30 @@ contract TestTokenMinter is
                 recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
                 recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
         );
+
         if (recipient.code.length > 0) {
-            try
-                ERC1155Recipient(recipient).onERC1155Received(
+            (bool success, bytes memory returnData) = recipient.call(
+                abi.encodeWithSelector(
+                    ERC1155Recipient.onERC1155Received.selector,
                     address(1),
                     address(1),
                     1,
                     1,
                     ""
                 )
-            returns (bytes4 response) {
+            );
+            vm.assume(success);
+            try this.decodeBytes4(returnData) returns (bytes4 response) {
                 vm.assume(response == onERC1155Received.selector);
             } catch (bytes memory reason) {
                 vm.assume(false);
             }
         }
         _;
+    }
+
+    function decodeBytes4(bytes memory data) external pure returns (bytes4) {
+        return abi.decode(data, (bytes4));
     }
 
     function setUp() public virtual override {
@@ -205,7 +213,7 @@ contract TestTokenMinter is
     }
 
     /**
-    @dev deploy test token contracts
+     * @dev deploy test token contracts
      */
     function _deployTestTokenContracts() internal {
         token1 = new TestERC20();
@@ -226,8 +234,8 @@ contract TestTokenMinter is
     }
 
     /**
-    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
-    */
+     * @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s
+     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; ++i) {
