@@ -18,9 +18,9 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
     mapping(address => uint256) private _counters;
 
     /**
-     * @dev Internal function to cancel all orders from a given offerer with a
-     *      given zone in bulk by incrementing a counter. Note that only the
-     *      offerer may increment the counter.
+     * @dev Internal function to cancel all orders from a given offerer in bulk
+     *      by incrementing a counter. Note that only the offerer may increment
+     *      the counter.
      *
      * @return newCounter The new counter.
      */
@@ -28,10 +28,26 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
-        // Skip overflow check as counter cannot be incremented that far.
-        unchecked {
-            // Increment current counter for the supplied offerer.
-            newCounter = ++_counters[msg.sender];
+        // Utilize assembly to access counters storage mapping directly. Skip
+        // overflow check as counter cannot be incremented that far.
+        assembly {
+            // Use second half of previous block hash as a quasi-random number.
+            let quasiRandomNumber := shr(128, blockhash(sub(number(), 1)))
+
+            // Write the caller to scratch space.
+            mstore(0, caller())
+
+            // Write the storage slot for _counters to scratch space.
+            mstore(0x20, _counters.slot)
+
+            // Derive the storage pointer for the counter value.
+            let storagePointer := keccak256(0, 0x40)
+
+            // Derive new counter value using random number and original value.
+            newCounter := add(quasiRandomNumber, sload(storagePointer))
+
+            // Store the updated counter value.
+            sstore(storagePointer, newCounter)
         }
 
         // Emit an event containing the new counter.
