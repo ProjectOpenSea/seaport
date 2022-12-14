@@ -28,8 +28,8 @@ contract ReferenceCounterManager is
      * @return newCounter The new counter.
      */
     function _incrementCounter() internal returns (uint256 newCounter) {
-        // Use the previous block hash as a quasi-random number.
-        uint256 quasiRandomNumber = blockhash(block.number - 1) >> 128;
+        // Use second half of the previous block hash as a quasi-random number.
+        uint256 quasiRandomNumber = uint256(blockhash(block.number - 1)) >> 128;
 
         // Retrieve the original counter value.
         uint256 originalCounter = _counters[msg.sender];

@@ -28,12 +28,12 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
-        // Use the previous block hash as a quasi-random number.
-        uint256 quasiRandomNumber = blockhash(block.number - 1) >> 128;
-
         // Utilize assembly to access counters storage mapping directly. Skip
         // overflow check as counter cannot be incremented that far.
         assembly {
+            // Use second half of previous block hash as a quasi-random number.
+            let quasiRandomNumber := shr(128, blockhash(sub(number(), 1)))
+
             // Write the caller to scratch space.
             mstore(0, caller())
 
