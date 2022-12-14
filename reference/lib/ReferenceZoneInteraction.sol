@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../../contracts/interfaces/ZoneInterface.sol";
 
 import {
     ContractOffererInterface
-} from "contracts/interfaces/ContractOffererInterface.sol";
+} from "../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -19,15 +22,15 @@ import {
     SpentItem,
     ReceivedItem,
     AdditionalRecipient
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     ZoneInteractionErrors
-} from "contracts/interfaces/ZoneInteractionErrors.sol";
+} from "../../contracts/interfaces/ZoneInteractionErrors.sol";
 
 /**
  * @title ZoneInteraction

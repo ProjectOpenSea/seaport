@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -14,7 +17,7 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
 
@@ -22,7 +25,7 @@ import { ReferenceZoneInteraction } from "./ReferenceZoneInteraction.sol";
 
 import {
     ContractOffererInterface
-} from "contracts/interfaces/ContractOffererInterface.sol";
+} from "../../contracts/interfaces/ContractOffererInterface.sol";
 
 /**
  * @title OrderValidator

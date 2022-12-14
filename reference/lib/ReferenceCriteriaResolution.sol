@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -11,15 +11,15 @@ import {
     CriteriaResolver,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     CriteriaResolutionErrors
-} from "contracts/interfaces/CriteriaResolutionErrors.sol";
+} from "../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
 /**
  * @title CriteriaResolution

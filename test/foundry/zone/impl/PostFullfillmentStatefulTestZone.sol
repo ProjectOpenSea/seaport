@@ -5,9 +5,11 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     ZoneParameters
-} from "seaport/lib/ConsiderationStructs.sol";
-import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
-import { ZoneInterface } from "seaport/interfaces/ZoneInterface.sol";
+} from "../../../../contracts/lib/ConsiderationStructs.sol";
+import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    ZoneInterface
+} from "../../../../contracts/interfaces/ZoneInterface.sol";
 
 contract PostFulfillmentStatefulTestZone is ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);
@@ -30,9 +32,10 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
      *
      * @return validOrderMagicValue The validOrder magic value.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        returns (bytes4 validOrderMagicValue)
+    {
         // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
