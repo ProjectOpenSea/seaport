@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderParameters,
@@ -14,7 +17,7 @@ import {
     ConsiderationItem,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
 
@@ -22,7 +25,10 @@ import { ReferenceZoneInteraction } from "./ReferenceZoneInteraction.sol";
 
 import {
     ContractOffererInterface
-} from "contracts/interfaces/ContractOffererInterface.sol";
+} from "../../contracts/interfaces/ContractOffererInterface.sol";
+import {
+    ReferenceGenerateOrderReturndataDecoder
+} from "./ReferenceGenerateOrderReturndataDecoder.sol";
 
 /**
  * @title OrderValidator
@@ -287,23 +293,41 @@ contract ReferenceOrderValidator is
         SpentItem[] memory offer;
         ReceivedItem[] memory consideration;
 
-        try
-            // Attempt to generate the order.
-            ContractOffererInterface(orderParameters.offerer).generateOrder(
-                msg.sender,
-                originalOfferItems,
-                originalConsiderationItems,
-                context
-            )
-        returns (
-            //  If the call succeeds, return the offer and consideration items.
-            SpentItem[] memory returnedOffer,
-            ReceivedItem[] memory ReturnedConsideration
-        ) {
-            offer = returnedOffer;
-            consideration = ReturnedConsideration;
-        } catch {
-            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+        {
+            // Do a low-level call to get success status and any return data.
+            (bool success, bytes memory returnData) = orderParameters
+                .offerer
+                .call(
+                    abi.encodeWithSelector(
+                        ContractOffererInterface.generateOrder.selector,
+                        msg.sender,
+                        originalOfferItems,
+                        originalConsiderationItems,
+                        context
+                    )
+                );
+            //  If the call succeeds, try to decode the offer and consideration items.
+
+            if (success) {
+                // Try to decode the offer and consideration items from the returndata.
+                try
+                    (new ReferenceGenerateOrderReturndataDecoder()).decode(
+                        returnData
+                    )
+                returns (
+                    SpentItem[] memory _offer,
+                    ReceivedItem[] memory _consideration
+                ) {
+                    offer = _offer;
+                    consideration = _consideration;
+                } catch {
+                    // If decoding fails, revert or return empty.
+                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                }
+            } else {
+                // If the call fails, revert or return empty.
+                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            }
         }
 
         {

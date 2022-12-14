@@ -18,8 +18,8 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     OrderType
-} from "seaport/lib/ConsiderationStructs.sol";
-import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
+} from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 struct TransferHelperItem {
     uint8 itemType;

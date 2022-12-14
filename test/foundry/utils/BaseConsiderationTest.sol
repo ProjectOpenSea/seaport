@@ -19,18 +19,19 @@ import {
     OrderComponents,
     BasicOrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
-import { Test } from "forge-std/Test.sol";
+// import { Test } from "forge-std/Test.sol";
 import { DifferentialTest } from "./DifferentialTest.sol";
+
 import { StructCopier } from "./StructCopier.sol";
+
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import {
-    ReferenceConduitController
-} from "../../../reference/conduit/ReferenceConduitController.sol";
-import {
-    ReferenceConsideration
-} from "../../../reference/ReferenceConsideration.sol";
+
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
-import { Consideration } from "../../../contracts/lib/Consideration.sol";
+
+// import { Consideration } from "../../../contracts/lib/Consideration.sol";
+// import {
+//     ReferenceConsideration
+// } from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -48,7 +49,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
-        emit log("Deploying reference from precompiled source");
         _deployAndConfigurePrecompiledReferenceConsideration();
 
         vm.label(address(conduitController), "conduitController");
@@ -77,6 +77,8 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 abi.encode(address(conduitController))
             )
         );
+        // for debugging
+        // consideration = new Consideration(address(conduitController));
 
         //create conduit, update channel
         conduit = Conduit(
@@ -102,6 +104,10 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 abi.encode(address(referenceConduitController))
             )
         );
+        // for debugging
+        // referenceConsideration = new ReferenceConsideration(
+        //     address(referenceConduitController)
+        // );
 
         //create conduit, update channel
         referenceConduit = Conduit(

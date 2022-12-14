@@ -423,43 +423,69 @@ contract ConsiderationDecoder {
         )
     {
         assembly {
-            // First two words of calldata are the offsets to offer and consideration
-            // array lengths. Copy these to scratch space.
-            returndatacopy(0, 0, TwoWords)
-            let offsetOffer := mload(0)
-            let offsetConsideration := mload(0x20)
+            // check that returndatasize is at least 80 bytes:
+            // offerOffset,considerationOffset,offerLength,considerationLength
+            invalidEncoding := lt(returndatasize(), FourWords)
 
-            // Copy length of offer array to scratch space
-            returndatacopy(0, offsetOffer, 0x20)
-            let offerLength := mload(0)
+            let offsetOffer
+            let offsetConsideration
+            let offerLength
+            let considerationLength
 
-            // Copy length of consideration array to scratch space
-            returndatacopy(0x20, offsetConsideration, 0x20)
-            let considerationLength := mload(0x20)
+            if iszero(invalidEncoding) {
+                // First two words of calldata are the offsets to offer and consideration
+                // array lengths. Copy these to scratch space. Multiply by validLength to
+                // avoid panics if returndatasize is too small.
+                returndatacopy(0, 0, TwoWords)
+                offsetOffer := mload(0)
+                offsetConsideration := mload(0x20)
 
-            {
-                // Calculate total size of offer and consideration arrays
-                let totalOfferSize := mul(SpentItem_size, offerLength)
-                let totalConsiderationSize := mul(
-                    ReceivedItem_size,
-                    considerationLength
+                // If valid length, check that the offsets are within the returndata.
+                let invalidOfferOffset := gt(offsetOffer, returndatasize())
+                let invalidConsiderationOffset := gt(
+                    offsetConsideration,
+                    returndatasize()
                 )
 
-                // Add 4 words to total size to cover the offset and length fields of
-                // the two arrays
-                let totalSize := add(
-                    FourWords,
-                    add(totalOfferSize, totalConsiderationSize)
-                )
-                // Don't continue if returndatasize exceeds 65535 bytes or
-                // is not equal to the calculated size.
+                // Only proceed if length (and thus encoding) appears to be valid so far
                 invalidEncoding := or(
-                    gt(or(offerLength, considerationLength), 0xffff),
-                    xor(totalSize, returndatasize())
+                    invalidOfferOffset,
+                    invalidConsiderationOffset
                 )
-                // Set first word of scratch space to 0 so length of offer/consideration
-                // are read as 0 if encoding is invalid.
-                mstore(0, 0)
+                if iszero(invalidEncoding) {
+                    // Copy length of offer array to scratch space
+                    returndatacopy(0, offsetOffer, 0x20)
+                    offerLength := mload(0)
+
+                    // Copy length of consideration array to scratch space
+                    returndatacopy(0x20, offsetConsideration, 0x20)
+                    considerationLength := mload(0x20)
+
+                    {
+                        // Calculate total size of offer and consideration arrays
+                        let totalOfferSize := mul(SpentItem_size, offerLength)
+                        let totalConsiderationSize := mul(
+                            ReceivedItem_size,
+                            considerationLength
+                        )
+
+                        // Add 4 words to total size to cover the offset and length fields of
+                        // the two arrays
+                        let totalSize := add(
+                            FourWords,
+                            add(totalOfferSize, totalConsiderationSize)
+                        )
+                        // Don't continue if returndatasize exceeds 65535 bytes or
+                        // is not equal to the calculated size.
+                        invalidEncoding := or(
+                            gt(or(offerLength, considerationLength), 0xffff),
+                            xor(totalSize, returndatasize())
+                        )
+                        // Set first word of scratch space to 0 so length of offer/consideration
+                        // are read as 0 if encoding is invalid.
+                        mstore(0, 0)
+                    }
+                }
             }
 
             if iszero(invalidEncoding) {

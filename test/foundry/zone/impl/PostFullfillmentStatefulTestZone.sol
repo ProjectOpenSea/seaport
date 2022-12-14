@@ -5,9 +5,11 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     ZoneParameters
-} from "seaport/lib/ConsiderationStructs.sol";
-import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
-import { ZoneInterface } from "seaport/interfaces/ZoneInterface.sol";
+} from "../../../../contracts/lib/ConsiderationStructs.sol";
+import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    ZoneInterface
+} from "../../../../contracts/interfaces/ZoneInterface.sol";
 
 contract PostFulfillmentStatefulTestZone is ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);

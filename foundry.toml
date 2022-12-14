@@ -15,7 +15,7 @@ remappings = [
 ]
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
-optimizer_runs = 29_999
+optimizer_runs = 4_294_967_295
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
@@ -32,6 +32,9 @@ test = 'reference'
 
 [profile.optimized]
 out = 'optimized-out'
+script = 'contracts'
+# no need to compile tests with via-ir since they load optimized bytecode directly by default
+test ='contracts'
 
 [profile.test]
 via_ir = false

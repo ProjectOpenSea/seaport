@@ -223,8 +223,6 @@ contract TestTokenMinter is
         vm.label(address(test721_1), "test721_1");
         vm.label(address(test1155_1), "test1155_1");
         vm.label(address(preapproved721), "preapproved721");
-
-        emit log("Deployed test token contracts");
     }
 
     /**
@@ -235,7 +233,6 @@ contract TestTokenMinter is
         for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
         }
-        emit log_named_address("Allocated tokens to", _to);
         _setApprovals(_to);
     }
 
@@ -264,13 +261,5 @@ contract TestTokenMinter is
         }
 
         vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
     }
 }

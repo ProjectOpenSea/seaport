@@ -399,6 +399,9 @@ contract OrderValidator is Executor, ZoneInteraction {
         ) = to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
                 abi_decode_generateOrder_returndata
             )();
+        if (errorBuffer != 0) {
+            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+        }
         {
             // Designate lengths.
             uint256 originalOfferLength = orderParameters.offer.length;
