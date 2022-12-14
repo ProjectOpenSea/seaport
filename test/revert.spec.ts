@@ -7776,25 +7776,23 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       offererContract = await deployContract<TestBadContractOfferer>(
         "TestBadContractOfferer",
         owner,
+        marketplaceContract.address,
         testERC721.address
       );
     });
 
     it("Fulfillment reverts if contract offerer is an EOA", async () => {
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address
-      );
+      const offererContract = new ethers.Wallet(randomHex(32), provider);
 
-      const offererContractEOA = new ethers.Wallet(randomHex(32), provider);
+      // Contract offerer mints nft
+      const nftId = await mint721(offererContract);
 
-      await set721ApprovalForAll(seller, offererContractEOA.address);
+      await set721ApprovalForAll(seller, offererContract.address);
 
       const offer = [getTestItem721(nftId) as any];
 
       const consideration = [
-        getItemETH(100, 100, offererContractEOA.address) as any,
+        getItemETH(100, 100, offererContract.address) as any,
       ];
 
       offer[0].identifier = offer[0].identifierOrCriteria;
@@ -7811,10 +7809,19 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         4 // CONTRACT
       );
 
-      order.parameters.offerer = offererContractEOA.address;
+      order.parameters.offerer = offererContract.address;
       order.numerator = 1;
       order.denominator = 1;
       order.signature = "0x";
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const orderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
 
       await expect(
         marketplaceContract
@@ -7826,24 +7833,19 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      ).to.be.reverted;
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Fulfillment does not revert when valid", async () => {
-      // TODO: find out why the valid test case in TestBadContractOfferer (identifier=1) is not working
-      const offererContract = await deployContract(
-        "TestContractOfferer",
-        owner,
-        marketplaceContract.address
-      );
-
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address,
+      // Contract offerer mints nft
+      const nftId = await mint721(
+        offererContract,
         1 // identifier 1: valid
       );
-
-      await set721ApprovalForAll(seller, offererContract.address);
 
       const offer = [getTestItem721(nftId) as any];
 
@@ -7856,10 +7858,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       consideration[0].identifier = consideration[0].identifierOrCriteria;
       consideration[0].amount = consideration[0].endAmount;
-
-      await offererContract
-        .connect(seller)
-        .activate(offer[0], consideration[0]);
 
       const { order, value } = await createOrder(
         seller,
@@ -7921,15 +7919,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       });
     });
     it("Fulfillment reverts if contract offerer returns no data", async () => {
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address,
+      // Contract offerer mints nft
+      const nftId = await mint721(
+        offererContract,
         2 // identifier 2: returns nothing
       );
 
-      await set721ApprovalForAll(seller, offererContract.address);
-
       const offer = [getTestItem721(nftId) as any];
 
       const consideration = [
@@ -7980,18 +7975,20 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      ).to.be.reverted;
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Fulfillment reverts if contract offerer reverts", async () => {
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address,
+      // Contract offerer mints nft
+      const nftId = await mint721(
+        offererContract,
         3 // identifier 3: reverts with IntentionalRevert()
       );
 
-      await set721ApprovalForAll(seller, offererContract.address);
-
       const offer = [getTestItem721(nftId) as any];
 
       const consideration = [
@@ -8042,13 +8039,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      ).to.be.reverted;
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Fulfillment reverts if contract offerer returns with garbage data", async () => {
-      // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address,
+      // Contract offerer mints nft
+      const nftId = await mint721(
+        offererContract,
         4 // identifier 4: reverts with garbage data)
       );
 
@@ -8102,22 +8103,25 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      ).to.be.reverted;
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
     it("Fulfillment does not revert when valid order included with invalid contract offerer order", async () => {
-      // Seller mints nft
-      const nftId10 = await mintAndApprove721(
-        seller,
-        marketplaceContract.address,
+      // Contract offerer mints nft
+      const nftId10 = await mint721(
+        offererContract,
         10 // identifier 10: returns garbage data
       );
+      // Seller mints nft
       const nftId100 = await mintAndApprove721(
         seller,
         marketplaceContract.address,
         100
       );
-
-      await set721ApprovalForAll(seller, offererContract.address);
 
       const offer = [getTestItem721(nftId10) as any];
       const offer2 = [getTestItem721(nftId100) as any];

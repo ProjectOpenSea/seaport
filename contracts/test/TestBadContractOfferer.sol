@@ -17,11 +17,16 @@ import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 contract TestBadContractOfferer is ContractOffererInterface {
     error IntentionalRevert();
 
+    address private immutable seaport;
     ERC721Interface token;
 
-    constructor(ERC721Interface _token) {
+    constructor(address _seaport, ERC721Interface _token) {
+        seaport = _seaport;
         token = _token;
+        ERC721Interface(token).setApprovalForAll(seaport, true);
     }
+
+    receive() external payable {}
 
     /**
      * @dev Generates an order with the specified minimum and maximum spent items,
@@ -74,23 +79,23 @@ contract TestBadContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        if (maximumSpent[0].identifier == 1) {
+        if (minimumReceived[0].identifier == 1) {
             offer = minimumReceived;
             consideration = new ReceivedItem[](1);
             consideration[0] = ReceivedItem({
-                itemType: ItemType.ERC721,
-                token: address(token),
-                identifier: 1,
-                amount: 1,
+                itemType: ItemType.NATIVE,
+                token: address(0),
+                identifier: 0,
+                amount: 100,
                 recipient: payable(address(this))
             });
             return (offer, consideration);
-        } else if (maximumSpent[0].identifier == 2) {
+        } else if (minimumReceived[0].identifier == 2) {
             // return nothing
             assembly {
                 return(0, 0)
             }
-        } else if (maximumSpent[0].identifier == 3) {
+        } else if (minimumReceived[0].identifier == 3) {
             revert IntentionalRevert();
         } else {
             // return garbage
