@@ -375,10 +375,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
 
             {
-                // Note: overflow impossible; nonce can't be incremented that high.
+                // Note: overflow impossible; nonce can't increment that high.
                 uint256 contractNonce;
                 unchecked {
-                    // Note: the nonce will be incremented even for failing orders.
+                    // Note: nonce will be incremented even for skipped orders.
                     contractNonce = _contractNonces[offerer]++;
                 }
 
@@ -412,7 +412,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
 
-            for (uint256 i; i < originalOfferLength; ++i) {
+            for (uint256 i; i < originalOfferLength; ) {
                 MemoryPointer mPtrOriginal = orderParameters
                     .offer[i]
                     .toMemoryPointer();
@@ -425,6 +425,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                             mPtrNew.offset(Common_amount_offset).readUint256()
                     ) |
                     _compareItems(mPtrOriginal, mPtrNew);
+
+                unchecked {
+                    ++i;
+                }
             }
 
             orderParameters.offer = offer;
@@ -443,7 +447,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
 
             // Loop through returned consideration, ensure existing not exceeded
-            for (uint256 i = 0; i < newConsiderationLength; ++i) {
+            for (uint256 i = 0; i < newConsiderationLength; ) {
                 ConsiderationItem
                     memory originalItem = originalConsiderationArray[i];
                 ConsiderationItem memory newItem = consideration[i];
@@ -455,6 +459,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                     originalItem.toMemoryPointer(),
                     newItem.toMemoryPointer()
                 );
+
+                unchecked {
+                    ++i;
+                }
             }
 
             orderParameters.consideration = consideration;
@@ -503,7 +511,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 address zone = order.zone;
 
                 assembly {
-                    // If caller is neither offerer nor zone of order, ensure that is flagged.
+                    // If caller is neither offerer nor zone of order, ensure
+                    // that is flagged.
                     anyInvalidCaller := or(
                         anyInvalidCaller,
                         // !(caller == offerer || caller == zone)
