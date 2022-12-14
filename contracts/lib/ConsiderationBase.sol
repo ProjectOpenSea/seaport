@@ -267,12 +267,14 @@ contract ConsiderationBase is
         orderTypehash = keccak256(orderTypeString);
     }
 
-    function _lookupBulkOrderTypehash(uint256 treeHeight) internal view returns (bytes32 typeHash) {
-      TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
-      assembly {
-        let typeHashOffset := mul(sub(treeHeight, 1), 0x20)
-        extcodecopy(directory, 0, typeHashOffset, 0x20)
-        typeHash := mload(0)
-      }
+    function _lookupBulkOrderTypehash(
+        uint256 treeHeight
+    ) internal view returns (bytes32 typeHash) {
+        TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
+        assembly {
+            let typeHashOffset := mul(sub(treeHeight, 1), 0x20)
+            extcodecopy(directory, 0, typeHashOffset, 0x20)
+            typeHash := mload(0)
+        }
     }
 }
