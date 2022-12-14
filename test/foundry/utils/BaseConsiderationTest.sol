@@ -5,6 +5,12 @@ import {
     ConduitController
 } from "../../../contracts/conduit/ConduitController.sol";
 import {
+    ReferenceConduitController
+} from "../../../reference/conduit/ReferenceConduitController.sol";
+import {
+    ConduitControllerInterface
+} from "../../../contracts/interfaces/ConduitControllerInterface.sol";
+import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
@@ -19,7 +25,6 @@ import {
     OrderComponents,
     BasicOrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
-// import { Test } from "forge-std/Test.sol";
 import { DifferentialTest } from "./DifferentialTest.sol";
 
 import { StructCopier } from "./StructCopier.sol";
@@ -40,8 +45,8 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ConsiderationInterface consideration;
     ConsiderationInterface referenceConsideration;
     bytes32 conduitKeyOne;
-    ConduitController conduitController;
-    ConduitController referenceConduitController;
+    ConduitControllerInterface conduitController;
+    ConduitControllerInterface referenceConduitController;
     Conduit referenceConduit;
     Conduit conduit;
     bool coverage;
@@ -75,13 +80,12 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ///@dev deploy optimized consideration contracts from pre-compiled source
     //      (solc-0.8.17, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
-        conduitController = ConduitController(
-            deployCode(
-                "optimized-out/ConduitController.sol/ConduitController.json"
-            )
-        );
-
         if (!coverage) {
+            conduitController = ConduitController(
+                deployCode(
+                    "optimized-out/ConduitController.sol/ConduitController.json"
+                )
+            );
             consideration = ConsiderationInterface(
                 deployCode(
                     "optimized-out/Consideration.sol/Consideration.json",
@@ -89,7 +93,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 )
             );
         } else {
-            // for debugging
+            conduitController = new ConduitController();
             consideration = new Consideration(address(conduitController));
         }
         //create conduit, update channel
@@ -105,13 +109,12 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
 
     ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
     function _deployAndConfigurePrecompiledReferenceConsideration() public {
-        referenceConduitController = ConduitController(
-            deployCode(
-                "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
-            )
-        );
-
         if (!coverage) {
+            referenceConduitController = ConduitController(
+                deployCode(
+                    "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
+                )
+            );
             referenceConsideration = ConsiderationInterface(
                 deployCode(
                     "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
@@ -119,6 +122,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 )
             );
         } else {
+            referenceConduitController = new ReferenceConduitController();
             // for debugging
             referenceConsideration = new ReferenceConsideration(
                 address(referenceConduitController)
