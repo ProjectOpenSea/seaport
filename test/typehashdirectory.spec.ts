@@ -17,7 +17,7 @@ if (!process.env.REFERENCE) {
     it("Code is equal to concatenated type hashes for heights 1-64", async () => {
       const code = await ethers.provider.getCode(address);
       const typeHashes = getBulkOrderTypeHashes(24);
-      expect(code).to.eq(hexConcat(typeHashes));
+      expect(code).to.eq(hexConcat(["0x00", ...typeHashes]));
     });
   });
 }

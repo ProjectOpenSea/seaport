@@ -272,7 +272,7 @@ contract ConsiderationBase is
     ) internal view returns (bytes32 typeHash) {
         TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
         assembly {
-            let typeHashOffset := mul(sub(treeHeight, 1), 0x20)
+            let typeHashOffset := add(1, mul(sub(treeHeight, 1), 0x20))
             extcodecopy(directory, 0, typeHashOffset, 0x20)
             typeHash := mload(0)
         }

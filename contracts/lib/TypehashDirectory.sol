@@ -105,7 +105,10 @@ contract TypehashDirectory {
             }
         }
         assembly {
-            return(add(typeHashes, 0x20), mul(MaxTreeHeight, 0x20))
+            // Overwrite length with zero to give the contract a STOP prefix
+            // and deploy the type hashes array as a contract.
+            mstore(typeHashes, 0)
+            return(add(typeHashes, 0x1f), add(mul(MaxTreeHeight, 0x20), 1))
         }
     }
 }
