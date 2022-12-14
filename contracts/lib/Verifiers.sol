@@ -144,7 +144,7 @@ contract Verifiers is Assertions, SignatureVerification {
             let fullLength := mload(proofAndSignature)
             // If proofAndSignature has odd length, it is
             // a compact signature with 64 bytes.
-            let signatureLength := sub(65, mod(fullLength, 2))
+            let signatureLength := sub(65, and(fullLength, 1))
             mstore(proofAndSignature, signatureLength)
 
             let keyPtr := add(proofAndSignature, add(OneWord, signatureLength))
