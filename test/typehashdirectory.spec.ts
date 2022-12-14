@@ -5,15 +5,19 @@ import { ethers } from "hardhat";
 import { deployContract } from "./utils/contracts";
 import { getBulkOrderTypeHashes } from "./utils/eip712/bulk-orders";
 
-describe("TypehashDirectory", () => {
-  let address: string;
-  before(async () => {
-    address = (await deployContract("TypehashDirectory")).address;
-  });
+// Reference contracts use storage for type hashes, not
+// a lookup contract.
+if (!process.env.REFERENCE) {
+  describe("TypehashDirectory", () => {
+    let address: string;
+    before(async () => {
+      address = (await deployContract("TypehashDirectory")).address;
+    });
 
-  it("Code is equal to concatenated type hashes for heights 1-64", async () => {
-    const code = await ethers.provider.getCode(address);
-    const typeHashes = getBulkOrderTypeHashes(24);
-    expect(code).to.eq(hexConcat(typeHashes));
+    it("Code is equal to concatenated type hashes for heights 1-64", async () => {
+      const code = await ethers.provider.getCode(address);
+      const typeHashes = getBulkOrderTypeHashes(24);
+      expect(code).to.eq(hexConcat(typeHashes));
+    });
   });
-});
+}
