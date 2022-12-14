@@ -12,11 +12,9 @@ import {
 
 contract TestZone is ZoneInterface {
     // Called by Consideration whenever any extraData is provided by the caller.
-    function validateOrder(ZoneParameters calldata)
-        external
-        pure
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata
+    ) external pure returns (bytes4 validOrderMagicValue) {
         return ZoneInterface.validateOrder.selector;
     }
 }

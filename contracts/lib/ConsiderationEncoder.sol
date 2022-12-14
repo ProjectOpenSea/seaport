@@ -34,22 +34,6 @@ contract ConsiderationEncoder {
         }
     }
 
-    function toMemoryPointer(
-        SpentItem[] memory obj
-    ) internal pure returns (MemoryPointer ptr) {
-        assembly {
-            ptr := obj
-        }
-    }
-
-    function toMemoryPointer(
-        ReceivedItem[] memory obj
-    ) internal pure returns (MemoryPointer ptr) {
-        assembly {
-            ptr := obj
-        }
-    }
-
     function abi_encode_bytes(
         MemoryPointer src,
         MemoryPointer dst

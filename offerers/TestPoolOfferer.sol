@@ -87,7 +87,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
      *                         consideration.
      */
     function generateOrder(
-        address, /* fulfiller */
+        address /* fulfiller */,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata
@@ -184,19 +184,12 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
      *                        function.
      */
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    )
-        external
-        pure
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
@@ -227,9 +220,9 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
      * @param maximumSpent An array of ReceivedItem structs representing the
      *                     maximum amount that the offerer is willing to spend.
      */
-    function _processNftConsideration(ReceivedItem[] memory maximumSpent)
-        internal
-    {
+    function _processNftConsideration(
+        ReceivedItem[] memory maximumSpent
+    ) internal {
         // Iterate over each item in the maximumSpent array.
         for (uint256 i = 0; i < maximumSpent.length; ++i) {
             // Retrieve the maximum spent item.
@@ -305,10 +298,9 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
      *                        minimum amount that the offerer is willing to
      *                        receive.
      */
-    function _previewNftOffer(SpentItem[] memory minimumReceived)
-        internal
-        view
-    {
+    function _previewNftOffer(
+        SpentItem[] memory minimumReceived
+    ) internal view {
         // Declare a local variable to track the index of the criteria-based
         // "wildcard" items.
         uint256 criteriaIndex;

@@ -11,40 +11,6 @@ import "./ConsiderationConstants.sol";
  */
 contract LowLevelHelpers {
     /**
-     * @dev Internal function to call an arbitrary target with given calldata.
-     *      Note that no data is written to memory and no contract size check is
-     *      performed.
-     *
-     * @param target                The account to call.
-     * @param callDataMemoryPointer The location in memory of the calldata to
-     *                              supply when calling the target.
-     * @param callDataLength        The length of the calldata.
-     *
-     * @return success The status of the staticcall to the target.
-     */
-    function _call(
-        address target,
-        uint256 callDataMemoryPointer,
-        uint256 callDataLength
-    ) internal returns (bool success) {
-        assembly {
-            // Clear the start of scratch space.
-            mstore(0, 0)
-
-            // Perform call, placing result in the first word of scratch space.
-            success := call(
-                gas(),
-                target,
-                0,
-                callDataMemoryPointer,
-                callDataLength,
-                0,
-                OneWord
-            )
-        }
-    }
-
-    /**
      * @dev Internal view function to revert and pass along the revert reason if
      *      data was returned by the last call and that the size of that data
      *      does not exceed the currently allocated memory size.
@@ -98,29 +64,6 @@ contract LowLevelHelpers {
                 }
             }
         }
-    }
-
-    /**
-     * @dev Internal pure function to determine if the first word of scratch
-     *      space matches an expected magic value.
-     *
-     * @param expected The expected magic value.
-     *
-     * @return A boolean indicating whether the expected value matches the one
-     *         located in the first word of scratch space.
-     */
-    function _doesNotMatchMagic(bytes4 expected) internal pure returns (bool) {
-        // Declare a variable for the value held in scratch space.
-        bytes4 result;
-
-        // Utilize assembly in order to read directly from scratch space.
-        assembly {
-            // Take value from scratch space and place it on the stack.
-            result := mload(0)
-        }
-
-        // Return a boolean indicating whether expected and located value match.
-        return result != expected;
     }
 
     /**
