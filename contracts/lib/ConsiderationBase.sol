@@ -14,6 +14,8 @@ import "./ConsiderationConstants.sol";
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
+import { TypehashDirectory } from "./TypehashDirectory.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
@@ -31,12 +33,14 @@ contract ConsiderationBase is
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_TYPEHASH;
-    bytes32 internal immutable _BULK_ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
+
+    // BulkOrder typehash storage
+    TypehashDirectory internal immutable _BULK_ORDER_TYPEHASH_DIRECTORY;
 
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
@@ -57,9 +61,10 @@ contract ConsiderationBase is
             _EIP_712_DOMAIN_TYPEHASH,
             _OFFER_ITEM_TYPEHASH,
             _CONSIDERATION_ITEM_TYPEHASH,
-            _ORDER_TYPEHASH,
-            _BULK_ORDER_TYPEHASH
+            _ORDER_TYPEHASH
         ) = _deriveTypehashes();
+
+        _BULK_ORDER_TYPEHASH_DIRECTORY = new TypehashDirectory();
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
@@ -171,8 +176,6 @@ contract ConsiderationBase is
      * @return considerationItemTypehash The EIP-712 typehash for
      *                                   ConsiderationItem types.
      * @return orderTypehash             The EIP-712 typehash for Order types.
-     * @return bulkOrderTypeHash         The EIP-712 typehash for bulk Order
-     *                                   types.
      */
     function _deriveTypehashes()
         internal
@@ -183,8 +186,7 @@ contract ConsiderationBase is
             bytes32 eip712DomainTypehash,
             bytes32 offerItemTypehash,
             bytes32 considerationItemTypehash,
-            bytes32 orderTypehash,
-            bytes32 bulkOrderTypeHash
+            bytes32 orderTypehash
         )
     {
         // Derive hash of the name of the contract.
@@ -263,21 +265,14 @@ contract ConsiderationBase is
 
         // Derive OrderItem type hash via combination of relevant type strings.
         orderTypehash = keccak256(orderTypeString);
+    }
 
-        // Encode the type string for the BulkOrder struct.
-        bytes memory bulkOrderPartialTypeString = abi.encodePacked(
-            "BulkOrder(OrderComponents[2][2][2][2][2][2][2] tree)"
-        );
-
-        // Generate the keccak256 hash of the concatenated type strings for the
-        // BulkOrder, considerationItem, offerItem, and orderComponents.
-        bulkOrderTypeHash = keccak256(
-            abi.encodePacked(
-                bulkOrderPartialTypeString,
-                considerationItemTypeString,
-                offerItemTypeString,
-                orderComponentsPartialTypeString
-            )
-        );
+    function _lookupBulkOrderTypehash(uint256 treeHeight) internal view returns (bytes32 typeHash) {
+      TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
+      assembly {
+        let typeHashOffset := mul(sub(treeHeight, 1), 0x20)
+        extcodecopy(directory, 0, typeHashOffset, 0x20)
+        typeHash := mload(0)
+      }
     }
 }
