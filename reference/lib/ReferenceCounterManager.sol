@@ -21,15 +21,24 @@ contract ReferenceCounterManager is
     mapping(address => uint256) private _counters;
 
     /**
-     * @dev Internal function to cancel all orders from a given offerer with a
-     *      given zone in bulk by incrementing a counter. Note that only the
-     *      offerer may increment the counter.
+     * @dev Internal function to cancel all orders from a given offerer in bulk
+     *      by incrementing a counter. Note that only the offerer may increment
+     *      the counter.
      *
      * @return newCounter The new counter.
      */
     function _incrementCounter() internal returns (uint256 newCounter) {
+        // Use the previous block hash as a quasi-random number.
+        uint256 quasiRandomNumber = blockhash(block.number - 1) >> 128;
+
+        // Retrieve the original counter value.
+        uint256 originalCounter = _counters[msg.sender];
+
         // Increment current counter for the supplied offerer.
-        newCounter = ++_counters[msg.sender];
+        newCounter = quasiRandomNumber + originalCounter;
+
+        // Update the counter with the new value.
+        _counters[msg.sender] = newCounter;
 
         // Emit an event containing the new counter.
         emit CounterIncremented(newCounter, msg.sender);
