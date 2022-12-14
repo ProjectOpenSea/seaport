@@ -4432,10 +4432,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
   describe("Bulk Signature", async () => {
     it("Can sign for a bulk signature", async () => {
-      // let n = x - 99
-
-      // equal(n, and(n, mask))
-      // n < 738 & (n & 31) < 2
       const { nftId, amount } = await mintAndApprove1155(
         seller,
         marketplaceContract.address,

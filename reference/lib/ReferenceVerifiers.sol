@@ -161,9 +161,9 @@ contract ReferenceVerifiers is
 
         // Compute the key by extracting the next three bytes from the
         // proofAndSignature.
-        uint256 key = ((uint256(uint8(proofAndSignature[length])) <<
-            (16 + uint256(uint8(proofAndSignature[length + 1])))) <<
-            (8 + uint256(uint8(proofAndSignature[length + 2]))));
+        uint256 key = (((uint256(uint8(proofAndSignature[length])) << 16) |
+            ((uint256(uint8(proofAndSignature[length + 1]))) << 8)) |
+            (uint256(uint8(proofAndSignature[length + 2]))));
 
         uint256 height = (proofAndSignature.length - length) / 32;
 
