@@ -33,7 +33,7 @@ import type {
 import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
-const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
+// const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
 const { orderType } = require("../../../eip-712-types/order");
 
 export const marketplaceFixture = async (
@@ -150,9 +150,8 @@ export const marketplaceFixture = async (
     signer: Wallet | Contract
   ) => {
     const tree = getBulkOrderTree(orderComponents);
-    // console.log(domainData, bulkOrderType, bulkOrderComponents);
+    const bulkOrderType = tree.types;
     const chunks = tree.getDataToSign();
-
     const signature = await signer._signTypedData(domainData, bulkOrderType, {
       tree: chunks,
     });

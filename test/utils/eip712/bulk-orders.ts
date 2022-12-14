@@ -3,6 +3,7 @@ import { _TypedDataEncoder, keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { Eip712MerkleTree } from "./Eip712MerkleTree";
 
 import type { OrderComponents } from "../types";
+import type { EIP712TypeDefinitions } from "./defaults";
 
 export const bulkOrderType = {
   BulkOrder: [{ name: "tree", type: "OrderComponents[2][2][2][2][2][2][2]" }],
@@ -36,21 +37,28 @@ export const bulkOrderType = {
   ],
 };
 
-export function getBulkOrderTree(orderComponents: OrderComponents[]) {
-  return new Eip712MerkleTree(
-    bulkOrderType,
-    "BulkOrder",
-    "OrderComponents",
-    orderComponents,
-    7
-  );
-}
-
-export function getBulkOrderTypeHash(height: number): string {
+function getBulkOrderTypes(height: number): EIP712TypeDefinitions {
   const types = { ...bulkOrderType };
   types.BulkOrder = [
     { name: "tree", type: `OrderComponents${`[2]`.repeat(height)}` },
   ];
+  return types;
+}
+
+export function getBulkOrderTree(orderComponents: OrderComponents[]) {
+  const height = Math.max(Math.ceil(Math.log2(orderComponents.length)), 1);
+  const types = getBulkOrderTypes(height);
+  return new Eip712MerkleTree(
+    types,
+    "BulkOrder",
+    "OrderComponents",
+    orderComponents,
+    height
+  );
+}
+
+export function getBulkOrderTypeHash(height: number): string {
+  const types = getBulkOrderTypes(height);
   const encoder = _TypedDataEncoder.from(types);
   const typeString = toUtf8Bytes(encoder._types.BulkOrder);
   return keccak256(typeString);

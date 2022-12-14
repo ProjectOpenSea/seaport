@@ -20,8 +20,9 @@ import {
 import type { OrderComponents } from "../types";
 import type { EIP712TypeDefinitions } from "./defaults";
 
-type A2<T> = [T, T];
-type BulkOrderElements = A2<A2<A2<A2<A2<A2<OrderComponents>>>>>>;
+type BulkOrderElements =
+  | [OrderComponents, OrderComponents]
+  | [BulkOrderElements, BulkOrderElements];
 
 const getTree = (leaves: string[], defaultLeafHash: string) =>
   new MerkleTree(leaves.map(hexToBuffer), bufferKeccak, {
@@ -38,9 +39,8 @@ const encodeProof = (
 ) => {
   return hexConcat([
     signature,
-    `0x${key.toString(16).padStart(2, "0")}`,
-    defaultAbiCoder.encode(["uint256[7]"], [proof]),
-    // signature,
+    `0x${key.toString(16).padStart(6, "0")}`,
+    defaultAbiCoder.encode([`uint256[${proof.length}]`], [proof]),
   ]);
 };
 
@@ -85,8 +85,7 @@ export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
   }
 
   getDataToSign(): BulkOrderElements {
-    const elements = this.getCompleteElements();
-    let layer: any = chunk(elements, 2);
+    let layer = this.getCompleteElements() as any;
     while (layer.length > 2) {
       layer = chunk(layer, 2);
     }
