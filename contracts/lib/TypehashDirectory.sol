@@ -83,7 +83,8 @@ contract TypehashDirectory {
         assembly {
             freeMemoryPointer := mload(0x40)
         }
-        for (uint256 height = 1; height < MaxTreeHeight; ++height) {
+        for (uint256 i; i < MaxTreeHeight; ++i) {
+            uint256 height = i + 1;
             // Slice brackets length to size needed for `height`
             assembly {
                 mstore(brackets, mul(3, height))
@@ -97,14 +98,14 @@ contract TypehashDirectory {
             );
             // Derive EIP712 type hash
             bytes32 typeHash = keccak256(bulkOrderTypeString);
-            typeHashes[height - 1] = typeHash;
+            typeHashes[i] = typeHash;
             // Reset free pointer
             assembly {
                 mstore(0x40, freeMemoryPointer)
             }
         }
         assembly {
-            return(add(typeHashes, 0x20), mul(sub(MaxTreeHeight, 1), 0x20))
+            return(add(typeHashes, 0x20), mul(MaxTreeHeight, 0x20))
         }
     }
 }
