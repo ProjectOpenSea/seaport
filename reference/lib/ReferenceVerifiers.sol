@@ -92,8 +92,6 @@ contract ReferenceVerifiers is
             orderHash
         );
 
-        uint256 originalSignatureLength = signature.length;
-
         bytes32 digest;
         bytes memory extractedSignature;
         if (_isValidBulkOrderSize(signature)) {
@@ -128,7 +126,10 @@ contract ReferenceVerifiers is
     function _isValidBulkOrderSize(
         bytes memory signature
     ) internal pure returns (bool validLength) {
-        validLength = signature.length == 289 || signature.length == 290;
+        validLength =
+            signature.length < 837 &&
+            signature.length > 98 &&
+            ((signature.length - 67) % 32) < 2;
     }
 
     /**
@@ -146,9 +147,8 @@ contract ReferenceVerifiers is
     ) internal view returns (bytes32 bulkOrderHash, bytes memory signature) {
         bytes32 root = leaf;
 
-        // Compute the length of the signature by subtracting the length of the
-        // proof elements.
-        uint256 length = proofAndSignature.length - 225;
+        // proofAndSignature with odd length is a compact signature (64 bytes).
+        uint256 length = proofAndSignature.length % 2 == 0 ? 65 : 64;
 
         // Create a new array of bytes equal to the length of the signature.
         signature = new bytes(length);
@@ -159,17 +159,21 @@ contract ReferenceVerifiers is
             signature[i] = proofAndSignature[i];
         }
 
-        // Compute the key by extracting the final byte from the
+        // Compute the key by extracting the next three bytes from the
         // proofAndSignature.
-        uint256 key = uint256(uint8(bytes1(proofAndSignature[length])));
+        uint256 key = ((uint256(uint8(proofAndSignature[length])) <<
+            (16 + uint256(uint8(proofAndSignature[length + 1])))) <<
+            (8 + uint256(uint8(proofAndSignature[length + 2]))));
+
+        uint256 height = (proofAndSignature.length - length) / 32;
 
         // Create an array of bytes32 to hold the proof elements.
-        bytes32[] memory proofElements = new bytes32[](7);
+        bytes32[] memory proofElements = new bytes32[](height);
 
         // Iterate over each proof element.
-        for (uint256 elementIndex = 0; elementIndex < 7; ++elementIndex) {
+        for (uint256 elementIndex = 0; elementIndex < height; ++elementIndex) {
             // Compute the starting index for the current proof element.
-            uint256 start = (length + 1) + (elementIndex * 32);
+            uint256 start = (length + 3) + (elementIndex * 32);
 
             // Create a new array of bytes to hold the current proof element.
             bytes memory buffer = new bytes(32);
@@ -205,7 +209,9 @@ contract ReferenceVerifiers is
         }
 
         // Compute the bulk order hash and return it.
-        bulkOrderHash = keccak256(abi.encodePacked(_BULK_ORDER_TYPEHASH, root));
+        bulkOrderHash = keccak256(
+            abi.encodePacked(_bulkOrderTypehashes[height], root)
+        );
 
         // Return the signature.
         return (bulkOrderHash, signature);
