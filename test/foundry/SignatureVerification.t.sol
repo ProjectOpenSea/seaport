@@ -166,13 +166,7 @@ contract ReferenceSignatureVerifierLogic is
             mstore(0x0, sload(bob.slot))
         }
 
-        _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature,
-            signature
-        );
+        _assertValidSignature(alice, digest, digest, signature, signature);
     }
 }
 
