@@ -7,6 +7,7 @@ import {
   getItemETH,
   randomBN,
   randomHex,
+  toBN,
   toKey,
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
@@ -1039,13 +1040,16 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       expect(counter).to.equal(0);
       expect(orderComponents.counter).to.equal(counter);
 
+      const latestBlockHash = (await provider.getBlock("latest")).hash;
+      const quasiRandomNumber = toBN(latestBlockHash).shr(128);
+
       // can increment the counter
       await expect(marketplaceContract.connect(seller).incrementCounter())
         .to.emit(marketplaceContract, "CounterIncremented")
-        .withArgs(1, seller.address);
+        .withArgs(quasiRandomNumber, seller.address);
 
       const newCounter = await marketplaceContract.getCounter(seller.address);
-      expect(newCounter).to.equal(1);
+      expect(newCounter).to.equal(quasiRandomNumber);
 
       if (!process.env.REFERENCE) {
         // Cannot fill order anymore
@@ -1202,13 +1206,16 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         );
       }
 
+      const latestBlockHash = (await provider.getBlock("latest")).hash;
+      const quasiRandomNumber = toBN(latestBlockHash).shr(128);
+
       // can increment the counter
       await expect(marketplaceContract.connect(seller).incrementCounter())
         .to.emit(marketplaceContract, "CounterIncremented")
-        .withArgs(1, seller.address);
+        .withArgs(quasiRandomNumber, seller.address);
 
       const newCounter = await marketplaceContract.getCounter(seller.address);
-      expect(newCounter).to.equal(1);
+      expect(newCounter).to.equal(quasiRandomNumber);
 
       if (!process.env.REFERENCE) {
         // Cannot fill order anymore
@@ -1271,7 +1278,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         return receipt;
       });
     });
-    it("Can increment the counter as the zone and implicitly cancel a validated order", async () => {
+    it("Can increment the counter as the offerer and implicitly cancel a validated order", async () => {
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
@@ -1365,13 +1372,16 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         );
       }
 
+      const latestBlockHash = (await provider.getBlock("latest")).hash;
+      const quasiRandomNumber = toBN(latestBlockHash).shr(128);
+
       // can increment the counter as the offerer
       await expect(marketplaceContract.connect(seller).incrementCounter())
         .to.emit(marketplaceContract, "CounterIncremented")
-        .withArgs(1, seller.address);
+        .withArgs(quasiRandomNumber, seller.address);
 
       const newCounter = await marketplaceContract.getCounter(seller.address);
-      expect(newCounter).to.equal(1);
+      expect(newCounter).to.equal(quasiRandomNumber);
 
       if (!process.env.REFERENCE) {
         // Cannot fill order anymore
