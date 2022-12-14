@@ -28,10 +28,10 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
-// import { Consideration } from "../../../contracts/lib/Consideration.sol";
-// import {
-//     ReferenceConsideration
-// } from "../../../reference/ReferenceConsideration.sol";
+import { Consideration } from "../../../contracts/lib/Consideration.sol";
+import {
+    ReferenceConsideration
+} from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -44,8 +44,17 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ConduitController referenceConduitController;
     Conduit referenceConduit;
     Conduit conduit;
+    bool coverage;
 
     function setUp() public virtual {
+        // conditionally deploy contracts normally or from precompiled source
+        // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
+        // deploys from precompiled source when SEAPORT_COVERAGE is false
+        try vm.envBool("SEAPORT_COVERAGE") returns (bool _coverage) {
+            coverage = _coverage;
+        } catch {
+            coverage = false;
+        }
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
@@ -71,15 +80,18 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 "optimized-out/ConduitController.sol/ConduitController.json"
             )
         );
-        consideration = ConsiderationInterface(
-            deployCode(
-                "optimized-out/Consideration.sol/Consideration.json",
-                abi.encode(address(conduitController))
-            )
-        );
-        // for debugging
-        // consideration = new Consideration(address(conduitController));
 
+        if (!coverage) {
+            consideration = ConsiderationInterface(
+                deployCode(
+                    "optimized-out/Consideration.sol/Consideration.json",
+                    abi.encode(address(conduitController))
+                )
+            );
+        } else {
+            // for debugging
+            consideration = new Consideration(address(conduitController));
+        }
         //create conduit, update channel
         conduit = Conduit(
             conduitController.createConduit(conduitKeyOne, address(this))
@@ -98,16 +110,20 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
                 "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
             )
         );
-        referenceConsideration = ConsiderationInterface(
-            deployCode(
-                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
-                abi.encode(address(referenceConduitController))
-            )
-        );
-        // for debugging
-        // referenceConsideration = new ReferenceConsideration(
-        //     address(referenceConduitController)
-        // );
+
+        if (!coverage) {
+            referenceConsideration = ConsiderationInterface(
+                deployCode(
+                    "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
+                    abi.encode(address(referenceConduitController))
+                )
+            );
+        } else {
+            // for debugging
+            referenceConsideration = new ReferenceConsideration(
+                address(referenceConduitController)
+            );
+        }
 
         //create conduit, update channel
         referenceConduit = Conduit(

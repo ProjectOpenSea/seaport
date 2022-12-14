@@ -260,12 +260,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
             )
 
-            // Read the pointer to OrderParameters from the AdvancedOrder.
-            let paramsPtr := mload(orderPtr)
-
+            // Read the pointer to OrderParameters from the AdvancedOrder;
             // Load the offer array pointer.
             let offerArrPtr := mload(
-                add(paramsPtr, OrderParameters_offer_head_offset)
+                add(mload(orderPtr), OrderParameters_offer_head_offset)
             )
 
             // Retrieve item index using an offset of the fulfillment pointer.
@@ -308,40 +306,46 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Buffer indicating whether issues were found.
                 errorBuffer := iszero(amount)
             }
+            let dataHash
+            // Block-scope to avoid stack-too-deep errors when compiling without
+            // optimizer for Forge coverage reporting
+            {
+                // Retrieve the received item pointer.
+                let receivedItemPtr := mload(execution)
 
-            // Retrieve the received item pointer.
-            let receivedItemPtr := mload(execution)
+                // Set the item type on the received item.
+                mstore(receivedItemPtr, mload(offerItemPtr))
 
-            // Set the item type on the received item.
-            mstore(receivedItemPtr, mload(offerItemPtr))
+                // Set the token on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_token_offset),
+                    mload(add(offerItemPtr, Common_token_offset))
+                )
 
-            // Set the token on the received item.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
+                // Set the identifier on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_identifier_offset),
+                    mload(add(offerItemPtr, Common_identifier_offset))
+                )
 
-            // Set the identifier on the received item.
-            mstore(
-                add(receivedItemPtr, Common_identifier_offset),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
+                // Set the offerer on returned execution using order pointer.
+                mstore(
+                    add(execution, Execution_offerer_offset),
+                    mload(mload(orderPtr))
+                )
 
-            // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(paramsPtr))
+                // Set conduitKey on returned execution via offset of order pointer.
+                mstore(
+                    add(execution, Execution_conduit_offset),
+                    mload(add(mload(orderPtr), OrderParameters_conduit_offset))
+                )
 
-            // Set conduitKey on returned execution via offset of order pointer.
-            mstore(
-                add(execution, Execution_conduit_offset),
-                mload(add(paramsPtr, OrderParameters_conduit_offset))
-            )
-
-            // Calculate the hash of (itemType, token, identifier).
-            let dataHash := keccak256(
-                receivedItemPtr,
-                ReceivedItem_CommonParams_size
-            )
-
+                // Calculate the hash of (itemType, token, identifier).
+                dataHash := keccak256(
+                    receivedItemPtr,
+                    ReceivedItem_CommonParams_size
+                )
+            }
             // Get position one word past last element in head of array.
             let endPtr := add(
                 offerComponents,
@@ -377,13 +381,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                   continue
                 }
 
-                // Read the pointer to OrderParameters from the AdvancedOrder.
-                paramsPtr := mload(orderPtr)
-
+                // Read the pointer to OrderParameters from the AdvancedOrder;
                 // Load offer array pointer.
                 offerArrPtr := mload(
                     add(
-                        paramsPtr,
+                        mload(orderPtr),
                         OrderParameters_offer_head_offset
                     )
                 )
@@ -438,7 +440,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         and(
                           // The offerer must match on both items.
                           eq(
-                              mload(paramsPtr),
+                              mload(mload(orderPtr)),
                               mload(
                                   add(execution, Execution_offerer_offset)
                               )
@@ -447,7 +449,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                           eq(
                               mload(
                                   add(
-                                      paramsPtr,
+                                      mload(orderPtr),
                                       OrderParameters_conduit_offset
                                   )
                               ),
