@@ -462,7 +462,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         // The itemType, token, and identifier must match.
                         eq(
                             keccak256(
-                                receivedItemPtr,
+                                mload(execution),
                                 ReceivedItem_CommonParams_size
                             ),
                             keccak256(
