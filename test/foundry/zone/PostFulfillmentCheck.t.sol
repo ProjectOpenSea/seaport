@@ -42,10 +42,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint256 amount;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -94,7 +93,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -158,7 +157,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -229,7 +228,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -303,7 +302,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -337,10 +336,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(
-        uint8 numOriginalAdditional,
-        uint8 numTips
-    ) public {
+    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
+        public
+    {
         test(
             this.execBasicStatefulFuzz,
             Context({
@@ -420,7 +418,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         // configure order components for signing
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -476,9 +474,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         // );
     }
 
-    function execFulfillAvailableAdvancedAscending(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedAscending(Context memory context)
+        external
+        stateless
+    {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -495,7 +494,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -573,7 +572,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     //     });
     //     baseOrderParameters.orderType = OrderType.CONTRACT;
 
-    //     _configureOrderComponents(0);
+    //     configureOrderComponents(0);
 
     //     AdvancedOrder memory order = AdvancedOrder({
     //         parameters: baseOrderParameters,
@@ -688,7 +687,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             useConduit: false
         });
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );

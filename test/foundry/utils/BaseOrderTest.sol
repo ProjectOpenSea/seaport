@@ -26,11 +26,11 @@ import {
     OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
-import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
+import { OrderSigner } from "./OrderSigner.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
-contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
+contract BaseOrderTest is OrderSigner, AmountDeriver {
     using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
@@ -123,13 +123,17 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     ) internal returns (bool) {
         Order[] memory orders = new Order[](1);
         orders[0] = order;
+        return _validateOrders(orders, _consideration);
+    }
+
+    function _validateOrders(
+        Order[] memory orders,
+        ConsiderationInterface _consideration
+    ) internal returns (bool) {
         return _consideration.validate(orders);
     }
 
-    function _prepareOrder(
-        uint256 tokenId,
-        uint256 totalConsiderationItems
-    )
+    function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
         internal
         returns (
             Order memory order,
@@ -288,13 +292,15 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     }
 
     function configureOrderParameters(address offerer) internal {
-        _configureOrderParameters(
-            offerer,
-            address(0),
-            bytes32(0),
-            globalSalt++,
-            false
-        );
+        configureOrderParametersWithZone(offerer, address(0), bytes32(0));
+    }
+
+    function configureOrderParametersWithZone(
+        address offerer,
+        address zone,
+        bytes32 zoneHash
+    ) internal {
+        _configureOrderParameters(offerer, zone, zoneHash, globalSalt++, false);
     }
 
     function _configureOrderParameters(
@@ -334,7 +340,7 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     /**
     @dev configures order components based on order parameters in storage and counter param
      */
-    function _configureOrderComponents(uint256 counter) internal {
+    function configureOrderComponents(uint256 counter) internal {
         baseOrderComponents.offerer = baseOrderParameters.offerer;
         baseOrderComponents.zone = baseOrderParameters.zone;
         baseOrderComponents.offer = baseOrderParameters.offer;
@@ -383,10 +389,10 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
             );
     }
 
-    function getOrderParameters(
-        address payable offerer,
-        OrderType orderType
-    ) internal returns (OrderParameters memory) {
+    function getOrderParameters(address payable offerer, OrderType orderType)
+        internal
+        returns (OrderParameters memory)
+    {
         return
             OrderParameters(
                 offerer,
@@ -403,10 +409,11 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
             );
     }
 
-    function toOrderComponents(
-        OrderParameters memory _params,
-        uint256 nonce
-    ) internal pure returns (OrderComponents memory) {
+    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
+        internal
+        pure
+        returns (OrderComponents memory)
+    {
         return
             OrderComponents(
                 _params.offerer,
@@ -479,10 +486,11 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     }
 
     ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
-    function isValidSignature(
-        bytes32,
-        bytes memory
-    ) external pure returns (bytes4) {
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        returns (bytes4)
+    {
         return 0x1626ba7e;
     }
 

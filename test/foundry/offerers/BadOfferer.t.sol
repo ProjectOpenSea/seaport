@@ -46,10 +46,9 @@ contract BadOffererTest is BaseOrderTest {
         token1.mint(address(this), 100000);
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -175,9 +174,10 @@ contract BadOffererTest is BaseOrderTest {
         );
     }
 
-    function configureBadOffererOrder(
-        uint256 id
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureBadOffererOrder(uint256 id)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         test721_1.mint(address(this), id);
 
         OfferItem[] memory offer = new OfferItem[](1);
@@ -219,9 +219,10 @@ contract BadOffererTest is BaseOrderTest {
         });
     }
 
-    function configureNormalOrder(
-        Context memory context
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureNormalOrder(Context memory context)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         (address offerer, uint256 pkey) = makeAddrAndKey("normal offerer");
         vm.prank(offerer);
         test721_1.setApprovalForAll(address(context.seaport), true);
@@ -229,7 +230,7 @@ contract BadOffererTest is BaseOrderTest {
         addErc20ConsiderationItem(payable(offerer), 100);
         addErc721OfferItem(201);
         configureOrderParameters(offerer);
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.seaport.getOrderHash(baseOrderComponents);
         bytes memory signature = signOrder(context.seaport, pkey, orderHash);
 

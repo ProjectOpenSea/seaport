@@ -36,10 +36,9 @@ contract StatefulOffererTest is BaseOrderTest {
         uint8 numToAdd;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -81,7 +80,7 @@ contract StatefulOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -143,7 +142,7 @@ contract StatefulOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -176,9 +175,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execMatchAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execMatchAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -199,7 +199,7 @@ contract StatefulOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -287,9 +287,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAvailableAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -313,7 +314,7 @@ contract StatefulOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -413,7 +414,7 @@ contract StatefulOffererTest is BaseOrderTest {
             useConduit: false
         });
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );

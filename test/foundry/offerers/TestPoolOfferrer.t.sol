@@ -100,7 +100,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -164,7 +164,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -228,7 +228,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -304,7 +304,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -362,7 +362,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -426,7 +426,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 
@@ -490,7 +490,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        _configureOrderComponents(
+        configureOrderComponents(
             referenceConsideration.getCounter(address(offerer))
         );
 

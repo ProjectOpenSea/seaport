@@ -61,10 +61,9 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -157,7 +156,7 @@ contract FulfillOrderTest is BaseOrderTest {
     function noNativeOfferItems(Context memory context) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -196,9 +195,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function nullAddressSpendReverts(
-        Context memory context
-    ) external stateless {
+    function nullAddressSpendReverts(Context memory context)
+        external
+        stateless
+    {
         // create a bad signature
         bytes memory signature = abi.encodePacked(
             bytes32(0),
@@ -214,9 +214,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillAscendingDescendingOffer(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillAscendingDescendingOffer(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
         inputs.warpAmount %= 1000;
         test(
@@ -229,9 +231,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillAscendingDescendingOffer(
-        Context memory context
-    ) external stateless {
+    function fulfillAscendingDescendingOffer(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -305,9 +308,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillAscendingDescendingConsideration(
-        Context memory context
-    ) external stateless {
+    function fulfillAscendingDescendingConsideration(Context memory context)
+        external
+        stateless
+    {
         context.args.warpAmount %= 1000;
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -365,9 +369,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillOrderEthToErc721(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillOrderEthToErc721(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         test(
             this.fulfillOrderEthToErc721,
             Context(referenceConsideration, inputs, 0, 0, 0)
@@ -637,9 +643,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillOrder64And65Byte1271Signatures(
-        Context memory context
-    ) external stateless {
+    function fulfillOrder64And65Byte1271Signatures(Context memory context)
+        external
+        stateless
+    {
         test1155_1.mint(address(this), 1, 1);
         addErc1155OfferItem(1, 1);
         addEthConsiderationItem(payable(this), 1);
@@ -677,7 +684,7 @@ contract FulfillOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(bob));
+        configureOrderComponents(context.consideration.getCounter(bob));
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -734,9 +741,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillOrderEthToErc721(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -822,9 +830,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -911,9 +920,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderSingleErc20ToSingleErc1155(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderSingleErc20ToSingleErc1155(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1002,9 +1012,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721WithSingleEthTip(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithSingleEthTip(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1105,9 +1116,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155WithSingleEthTip(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithSingleEthTip(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1210,9 +1222,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721WithMultipleEthTips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithMultipleEthTips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1320,9 +1333,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155WithMultipleEthTips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithMultipleEthTips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1433,9 +1447,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721WithErc721Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithErc721Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1542,9 +1557,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155WithErc721Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc721Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1652,9 +1668,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721WithErc1155Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithErc1155Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1761,9 +1778,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155WithErc1155Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc1155Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -1869,9 +1887,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721WithErc20Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithErc20Tips(Context memory context)
+        external
+        stateless
+    {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1975,9 +1994,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc1155WithErc20Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc20Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
         bytes32 conduitKey = context.args.useConduit
@@ -2083,9 +2103,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function fulfillOrderEthToErc721FullRestricted(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721FullRestricted(Context memory context)
+        external
+        stateless
+    {
         context.args.zone = address(
             uint160(bound(uint160(context.args.zone), 1, type(uint160).max))
         );
