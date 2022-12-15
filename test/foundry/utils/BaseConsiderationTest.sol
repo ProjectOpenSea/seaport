@@ -49,17 +49,49 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ConduitControllerInterface referenceConduitController;
     Conduit referenceConduit;
     Conduit conduit;
-    bool coverage;
+    bool coverage_or_debug;
+
+    function tryEnvBool(string memory envVar) internal returns (bool) {
+        try vm.envBool(envVar) returns (bool _value) {
+            return _value;
+        } catch {
+            return false;
+        }
+    }
+
+    function tryEnvString(string memory envVar)
+        internal
+        returns (string memory)
+    {
+        try vm.envString(envVar) returns (string memory _value) {
+            return _value;
+        } catch {
+            return "";
+        }
+    }
+
+    function stringEq(string memory a, string memory b)
+        internal
+        pure
+        returns (bool)
+    {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    }
+
+    function debugEnabled() internal returns (bool) {
+        return
+            tryEnvBool("SEAPORT_COVERAGE") ||
+            stringEq(tryEnvString("FOUNDRY_PROFILE"), "debug");
+    }
 
     function setUp() public virtual {
         // conditionally deploy contracts normally or from precompiled source
         // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
-        // deploys from precompiled source when SEAPORT_COVERAGE is false
-        try vm.envBool("SEAPORT_COVERAGE") returns (bool _coverage) {
-            coverage = _coverage;
-        } catch {
-            coverage = false;
-        }
+        // or when FOUNDRY_PROFILE is "debug" for debugging with source maps
+        // deploys from precompiled source when both are false
+        coverage_or_debug = debugEnabled();
+        emit log_named_uint("coverage_or_debug", coverage_or_debug ? 1 : 0);
+
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
@@ -78,9 +110,9 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source
-    //      (solc-0.8.17, IR pipeline enabled)
+    //      (solc-0.8.17, IR pipeline enabled, unless running coverage or debug)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
-        if (!coverage) {
+        if (!coverage_or_debug) {
             conduitController = ConduitController(
                 deployCode(
                     "optimized-out/ConduitController.sol/ConduitController.json"
@@ -107,9 +139,10 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         );
     }
 
-    ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
+    ///@dev deploy reference consideration contracts from pre-compiled source
+    /// (solc-0.8.7, IR pipeline disabled,  unless running coverage or debug)
     function _deployAndConfigurePrecompiledReferenceConsideration() public {
-        if (!coverage) {
+        if (!coverage_or_debug) {
             referenceConduitController = ConduitController(
                 deployCode(
                     "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
@@ -216,7 +249,15 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal view returns (bytes32, bytes32, uint8) {
+    )
+        internal
+        view
+        returns (
+            bytes32,
+            bytes32,
+            uint8
+        )
+    {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
