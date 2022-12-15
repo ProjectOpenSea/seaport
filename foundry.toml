@@ -7,10 +7,9 @@ test = 'test/foundry'
 remappings = [
     'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
-    '@rari-capital/solmate/=lib/solmate/',
+    '@rari-capital/=node_modules/@rari-capital/',
     'murky/=lib/murky/src/',
-    'openzeppelin-contracts/=lib/openzeppelin-contracts/',
-    'seaport/=contracts/',
+    'openzeppelin-contracts/=lib/openzeppelin-contracts/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [

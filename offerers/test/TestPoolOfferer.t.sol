@@ -5,15 +5,18 @@ import { Test } from "forge-std/Test.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "seaport/interfaces/ContractOffererInterface.sol";
+} from "../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "seaport/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 
-import { SpentItem, ReceivedItem } from "seaport/lib/ConsiderationStructs.sol";
+import {
+    SpentItem,
+    ReceivedItem
+} from "../../contracts/lib/ConsiderationStructs.sol";
 import {
     EnumerableSet
 } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
@@ -23,8 +26,8 @@ import {
 import {
     IERC20
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { TestERC20 } from "seaport/test/TestERC20.sol";
-import { TestERC721 } from "seaport/test/TestERC721.sol";
+import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestPoolOfferer } from "offerers/TestPoolOfferer.sol";
 import { TestPoolFactory } from "offerers/TestPoolFactory.sol";
 

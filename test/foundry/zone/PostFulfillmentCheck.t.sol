@@ -42,9 +42,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint256 amount;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -336,9 +337,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
-        public
-    {
+    function testBasicStateful(
+        uint8 numOriginalAdditional,
+        uint8 numTips
+    ) public {
         test(
             this.execBasicStatefulFuzz,
             Context({
@@ -474,10 +476,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         // );
     }
 
-    function execFulfillAvailableAdvancedAscending(Context memory context)
-        external
-        stateless
-    {
+    function execFulfillAvailableAdvancedAscending(
+        Context memory context
+    ) external stateless {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -712,20 +713,5 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }
-    }
-
-    function createFulfillmentFromComponentsAndAddToFulfillments(
-        FulfillmentComponent memory _offer,
-        FulfillmentComponent memory _consideration
-    ) internal {
-        delete offerComponents;
-        delete considerationComponents;
-        // add second offer item from second order
-        offerComponents.push(_offer);
-        // match to first order's second consideration item
-        considerationComponents.push(_consideration);
-        fulfillment.offerComponents = offerComponents;
-        fulfillment.considerationComponents = considerationComponents;
-        fulfillments.push(fulfillment);
     }
 }
