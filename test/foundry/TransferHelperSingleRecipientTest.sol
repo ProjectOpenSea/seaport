@@ -916,13 +916,20 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             uint256(uint160(address(alice))) << 96
         );
 
-        // Deploy mock transfer helper that takes in the mock conduit controller
-        TransferHelper mockTransferHelper = TransferHelper(
-            deployCode(
-                "optimized-out/TransferHelper.sol/TransferHelper.json",
-                abi.encode(address(mockConduitController))
-            )
-        );
+        TransferHelper mockTransferHelper;
+        if (!coverage_or_debug) {
+            // Deploy mock transfer helper that takes in the mock conduit controller
+            mockTransferHelper = TransferHelper(
+                deployCode(
+                    "optimized-out/TransferHelper.sol/TransferHelper.json",
+                    abi.encode(address(mockConduitController))
+                )
+            );
+        } else {
+            mockTransferHelper = new TransferHelper(
+                address(mockConduitController)
+            );
+        }
         vm.label(address(mockTransferHelper), "mock transfer helper");
 
         vm.startPrank(alice);
