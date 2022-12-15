@@ -83,14 +83,17 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
-            mPtrLength := mload(0x40)
+
+            // Get the current free memory pointer.
+            mPtrLength := mload(FreeMemoryPointerSlot)
+
             mstore(mPtrLength, arrLength)
-            let mPtrHead := add(mPtrLength, 32)
-            let mPtrTail := add(mPtrHead, mul(arrLength, 0x20))
+            let mPtrHead := add(mPtrLength, OneWord)
+            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
             let mPtrTailNext := mPtrTail
             calldatacopy(
                 mPtrTail,
-                add(cdPtrLength, 0x20),
+                add(cdPtrLength, OneWord),
                 mul(arrLength, OfferItem_size)
             )
             let mPtrHeadNext := mPtrHead
@@ -100,10 +103,12 @@ contract ConsiderationDecoder {
 
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
-                mPtrHeadNext := add(mPtrHeadNext, 0x20)
+                mPtrHeadNext := add(mPtrHeadNext, OneWord)
                 mPtrTailNext := add(mPtrTailNext, OfferItem_size)
             }
-            mstore(0x40, mPtrTailNext)
+
+            // Update the free memory pointer.
+            mstore(FreeMemoryPointerSlot, mPtrTailNext)
         }
     }
 
@@ -112,14 +117,17 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
-            mPtrLength := mload(0x40)
+
+            // Get the current free memory pointer.
+            mPtrLength := mload(FreeMemoryPointerSlot)
+
             mstore(mPtrLength, arrLength)
-            let mPtrHead := add(mPtrLength, 32)
-            let mPtrTail := add(mPtrHead, mul(arrLength, 0x20))
+            let mPtrHead := add(mPtrLength, OneWord)
+            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
             let mPtrTailNext := mPtrTail
             calldatacopy(
                 mPtrTail,
-                add(cdPtrLength, 0x20),
+                add(cdPtrLength, OneWord),
                 mul(arrLength, ConsiderationItem_size)
             )
             let mPtrHeadNext := mPtrHead
@@ -129,10 +137,10 @@ contract ConsiderationDecoder {
 
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
-                mPtrHeadNext := add(mPtrHeadNext, 0x20)
+                mPtrHeadNext := add(mPtrHeadNext, OneWord)
                 mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
             }
-            mstore(0x40, mPtrTailNext)
+            mstore(FreeMemoryPointerSlot, mPtrTailNext)
         }
     }
 
@@ -209,7 +217,7 @@ contract ConsiderationDecoder {
         pure
         returns (MemoryPointer mPtr)
     {
-        mPtr = malloc(32);
+        mPtr = malloc(OneWord);
         mPtr.write(0);
     }
 
@@ -245,12 +253,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_Order_as_AdvancedOrder(cdPtrHead.pptr(offset))
                 );
@@ -263,7 +271,7 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 arrSize = (arrLength + 1) * 32;
+            uint256 arrSize = (arrLength + 1) * OneWord;
             mPtrLength = malloc(arrSize);
             cdPtrLength.copy(mPtrLength, arrSize);
         }
@@ -286,12 +294,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_CriteriaResolver(cdPtrHead.pptr(offset))
                 );
@@ -304,12 +312,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_Order(cdPtrHead.pptr(offset))
                 );
@@ -322,14 +330,17 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
-            mPtrLength := mload(0x40)
+
+            // Get the current free memory pointer.
+            mPtrLength := mload(FreeMemoryPointerSlot)
+
             mstore(mPtrLength, arrLength)
-            let mPtrHead := add(mPtrLength, 32)
-            let mPtrTail := add(mPtrHead, mul(arrLength, 0x20))
+            let mPtrHead := add(mPtrLength, OneWord)
+            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
             let mPtrTailNext := mPtrTail
             calldatacopy(
                 mPtrTail,
-                add(cdPtrLength, 0x20),
+                add(cdPtrLength, OneWord),
                 mul(arrLength, FulfillmentComponent_mem_tail_size)
             )
             let mPtrHeadNext := mPtrHead
@@ -339,13 +350,15 @@ contract ConsiderationDecoder {
 
             } {
                 mstore(mPtrHeadNext, mPtrTailNext)
-                mPtrHeadNext := add(mPtrHeadNext, 0x20)
+                mPtrHeadNext := add(mPtrHeadNext, OneWord)
                 mPtrTailNext := add(
                     mPtrTailNext,
                     FulfillmentComponent_mem_tail_size
                 )
             }
-            mstore(0x40, mPtrTailNext)
+
+            // Update the free memory pointer.
+            mstore(FreeMemoryPointerSlot, mPtrTailNext)
         }
     }
 
@@ -354,12 +367,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_dyn_array_FulfillmentComponent(
                         cdPtrHead.pptr(offset)
@@ -374,12 +387,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_AdvancedOrder(cdPtrHead.pptr(offset))
                 );
@@ -404,12 +417,12 @@ contract ConsiderationDecoder {
     ) internal pure returns (MemoryPointer mPtrLength) {
         unchecked {
             uint256 arrLength = cdPtrLength.readMaskedUint256();
-            uint256 tailOffset = arrLength * 32;
-            mPtrLength = malloc(tailOffset + 32);
+            uint256 tailOffset = arrLength * OneWord;
+            mPtrLength = malloc(tailOffset + OneWord);
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += 32) {
+            for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_Fulfillment(cdPtrHead.pptr(offset))
                 );
@@ -474,7 +487,7 @@ contract ConsiderationDecoder {
                 // validLength to avoid panics if returndatasize is too small.
                 returndatacopy(0, 0, TwoWords)
                 offsetOffer := mload(0)
-                offsetConsideration := mload(0x20)
+                offsetConsideration := mload(OneWord)
 
                 // If valid length, check that offsets are within returndata.
                 let invalidOfferOffset := gt(offsetOffer, returndatasize())
@@ -490,12 +503,12 @@ contract ConsiderationDecoder {
                 )
                 if iszero(invalidEncoding) {
                     // Copy length of offer array to scratch space.
-                    returndatacopy(0, offsetOffer, 0x20)
+                    returndatacopy(0, offsetOffer, OneWord)
                     offerLength := mload(0)
 
                     // Copy length of consideration array to scratch space.
-                    returndatacopy(0x20, offsetConsideration, 0x20)
-                    considerationLength := mload(0x20)
+                    returndatacopy(OneWord, offsetConsideration, OneWord)
+                    considerationLength := mload(OneWord)
 
                     {
                         // Calculate total size of offer & consideration arrays.
@@ -526,12 +539,12 @@ contract ConsiderationDecoder {
 
             if iszero(invalidEncoding) {
                 offer := copySpentItemsAsOfferItems(
-                    add(offsetOffer, 0x20),
+                    add(offsetOffer, OneWord),
                     offerLength
                 )
 
                 consideration := copyReceivedItemsAsConsiderationItems(
-                    add(offsetConsideration, 0x20),
+                    add(offsetConsideration, OneWord),
                     considerationLength
                 )
             }
@@ -545,16 +558,16 @@ contract ConsiderationDecoder {
                     FreeMemoryPointerSlot,
                     add(
                         mPtrLength,
-                        add(32, mul(length, add(OfferItem_size, 32)))
+                        add(OneWord, mul(length, add(OfferItem_size, OneWord)))
                     )
                 )
                 // Write length
                 mstore(mPtrLength, length)
 
                 // Use offset from length to minimize stack depth
-                let headOffsetFromLength := 32
+                let headOffsetFromLength := OneWord
 
-                let headSizeWithLength := mul(add(1, length), 32)
+                let headSizeWithLength := mul(add(1, length), OneWord)
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
                 for {
 
@@ -570,7 +583,7 @@ contract ConsiderationDecoder {
                     )
                     rdPtrHead := add(rdPtrHead, SpentItem_size)
                     mPtrTailNext := add(mPtrTailNext, OfferItem_size)
-                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                    headOffsetFromLength := add(headOffsetFromLength, OneWord)
                 }
             }
 
@@ -583,16 +596,19 @@ contract ConsiderationDecoder {
                     FreeMemoryPointerSlot,
                     add(
                         mPtrLength,
-                        add(32, mul(length, add(ConsiderationItem_size, 32)))
+                        add(
+                            OneWord,
+                            mul(length, add(ConsiderationItem_size, OneWord))
+                        )
                     )
                 )
                 // Write length
                 mstore(mPtrLength, length)
 
                 // Use offset from length to minimize stack depth
-                let headOffsetFromLength := 32
+                let headOffsetFromLength := OneWord
 
-                let headSizeWithLength := mul(add(1, length), 32)
+                let headSizeWithLength := mul(add(1, length), OneWord)
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
                 for {
 
@@ -610,7 +626,7 @@ contract ConsiderationDecoder {
                     )
                     rdPtrHead := add(rdPtrHead, ReceivedItem_size)
                     mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
-                    headOffsetFromLength := add(headOffsetFromLength, 0x20)
+                    headOffsetFromLength := add(headOffsetFromLength, OneWord)
                 }
             }
         }
