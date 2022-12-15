@@ -168,6 +168,25 @@ contract ReferenceSignatureVerifierLogic is
 
         _assertValidSignature(alice, digest, digest, signature, signature);
     }
+
+    function referenceSignatureVerificationCompleteGarbageTooLong() external {
+        addErc721OfferItem(1);
+        addEthConsiderationItem(alice, 1);
+
+        // create order where alice is offerer, but signature is too long.
+        configureOrderParameters(alice);
+        _configureOrderComponents(consideration.getCounter(alice));
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature = new bytes(69);
+
+        bytes32 domainSeparator = getterAndDeriver.domainSeparator();
+        bytes32 digest = getterAndDeriver.deriveEIP712Digest(
+            domainSeparator,
+            orderHash
+        );
+
+        _assertValidSignature(alice, digest, digest, signature, signature);
+    }
 }
 
 contract SignatureVerificationTest is BaseOrderTest {
@@ -190,5 +209,7 @@ contract SignatureVerificationTest is BaseOrderTest {
             );
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
+        vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
+        referenceLogic.referenceSignatureVerificationTooLong();
     }
 }
