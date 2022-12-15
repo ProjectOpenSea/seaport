@@ -237,7 +237,7 @@ contract OrderFulfiller is
                 }
 
                 // Transfer the item from the offerer to the recipient.
-                to_OfferItem_input(_transfer)(
+                _toOfferItemInput(_transfer)(
                     offerItem,
                     orderParameters.offerer,
                     orderParameters.conduitKey,
@@ -322,7 +322,7 @@ contract OrderFulfiller is
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                to_ConsiderationItem_input(_transfer)(
+                _toConsiderationItemInput(_transfer)(
                     considerationItem,
                     msg.sender,
                     fulfillerConduitKey,

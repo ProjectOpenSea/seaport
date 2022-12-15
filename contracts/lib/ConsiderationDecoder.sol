@@ -624,7 +624,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_OfferItem_input(
+    /**
+     * @dev Converts a function taking ReceivedItem, address, bytes32, and bytes
+     *      types (e.g. the _transfer function) into a function taking
+     *      OfferItem, address, bytes32, and bytes types.
+     *
+     * @param inFn The input function, taking ReceivedItem, address, bytes32,
+     *             and bytes types (e.g. the _transfer function).
+     *
+     * @return outFn The output function, taking OfferItem, address, bytes32,
+     *               and bytes types.
+     */
+    function _toOfferItemInput(
         function(ReceivedItem memory, address, bytes32, bytes memory)
             internal inFn
     )
@@ -640,7 +651,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_ConsiderationItem_input(
+    /**
+     * @dev Converts a function taking ReceivedItem, address, bytes32, and bytes
+     *      types (e.g. the _transfer function) into a function taking
+     *      ConsiderationItem, address, bytes32, and bytes types.
+     *
+     * @param inFn The input function, taking ReceivedItem, address, bytes32,
+     *             and bytes types (e.g. the _transfer function).
+     *
+     * @return outFn The output function, taking ConsiderationItem, address,
+     *               bytes32, and bytes types.
+     */
+    function _toConsiderationItemInput(
         function(ReceivedItem memory, address, bytes32, bytes memory)
             internal inFn
     )
