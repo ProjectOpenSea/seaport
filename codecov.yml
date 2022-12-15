@@ -33,3 +33,8 @@ flag_management:
         - type: patch
           target: 100%
           threshold: 0%
+
+ignore:
+  - offerers
+  - script
+  - test
