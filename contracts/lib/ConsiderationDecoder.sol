@@ -656,7 +656,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_OrderParameters_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      an OrderParameters type.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning an OrderParameters type.
+     */
+    function _toOrderParametersReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
@@ -701,7 +712,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_dyn_array_CriteriaResolver_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      a dynamic array of CriteriaResolver types.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning a dynamic array of CriteriaResolver types.
+     */
+    function _toCriteriaResolversReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
@@ -718,7 +740,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_dyn_array_Order_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      a dynamic array of Order types.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning a dynamic array of Order types.
+     */
+    function _toOrdersReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
@@ -735,7 +768,20 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      a nested dynamic array of dynamic arrays of FulfillmentComponent
+     *      types.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning a nested dynamic array of dynamic arrays of
+     *               FulfillmentComponent types.
+     */
+    function _toSideFulfillmentComponentsReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
@@ -752,7 +798,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_dyn_array_AdvancedOrder_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      a dynamic array of AdvancedOrder types.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning a dynamic array of AdvancedOrder types.
+     */
+    function _toAdvancedOrdersReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
@@ -769,7 +826,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_dyn_array_Fulfillment_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      a dynamic array of Fulfillment types.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning a dynamic array of Fulfillment types.
+     */
+    function _toFulfillmentsReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal
