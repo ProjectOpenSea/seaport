@@ -1,6 +1,5 @@
 [profile.default]
 solc = '0.8.17'
-via_ir = true
 src = 'contracts'
 out = 'out'
 libs = ["node_modules", "lib"]
@@ -13,17 +12,18 @@ remappings = [
     'openzeppelin-contracts/=lib/openzeppelin-contracts/',
     'seaport/=contracts/',
 ]
-fuzz_runs = 5000
-fuzz_max_global_rejects = 2_000_000
 optimizer_runs = 4_294_967_295
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
 ]
 
+[fuzz]
+runs = 1_000
+max_test_rejects = 1_000_000
+
 [profile.reference]
 solc = '0.8.13'
-via_ir = false
 src = 'reference'
 out = 'reference-out'
 script = 'reference'
@@ -31,33 +31,29 @@ script = 'reference'
 test = 'reference'
 
 [profile.optimized]
+via_ir = true
 out = 'optimized-out'
 script = 'contracts'
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 
 [profile.test]
-via_ir = false
 src = 'test/foundry'
+
+[profile.test.fuzz]
+runs = 5_000
 
 [profile.lite]
 out = 'optimized-out'
-via_ir = false
-fuzz_runs = 1000
 
-[profile.local]
-via_ir = false
-fuzz_runs = 1000
-src = 'reference'
-out = 'reference-out'
+[profile.debug]
+src = 'contracts'
 
 [profile.offerers]
 src='offerers'
 test='offerers'
 out = 'offerers-out'
 script = 'offerers'
-via_ir = false
-fuzz_runs = 1000
 
 [fmt]
 line_length = 80
