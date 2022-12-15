@@ -396,12 +396,12 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 errorBuffer,
             OfferItem[] memory offer,
             ConsiderationItem[] memory consideration
-        ) = to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
-                abi_decode_generateOrder_returndata
-            )();
+        ) = _convertGetGeneratedOrderResult(_decodeGenerateOrderReturndata)();
+
         if (errorBuffer != 0) {
             return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
+
         {
             // Designate lengths.
             uint256 originalOfferLength = orderParameters.offer.length;

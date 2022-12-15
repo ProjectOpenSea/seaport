@@ -580,7 +580,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
+    /**
+     * @dev Converts a function taking the return values of
+     *      _decodeGenerateOrderReturndata into a function returning offer and
+     *      consideration types.
+     *
+     * @param inFn The input function, taking an error buffer, spent item array,
+     *             and received item array.
+     *
+     * @return outFn The output function, taking an error buffer, offer array,
+     *               and consideration array.
+     */
+    function _convertGetGeneratedOrderResult(
         function()
             internal
             pure
