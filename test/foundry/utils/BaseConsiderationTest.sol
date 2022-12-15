@@ -52,7 +52,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     Conduit conduit;
     bool coverage_or_debug;
 
-    function tryEnvBool(string memory envVar) internal returns (bool) {
+    function tryEnvBool(string memory envVar) internal view returns (bool) {
         try vm.envBool(envVar) returns (bool _value) {
             return _value;
         } catch {
@@ -60,10 +60,9 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         }
     }
 
-    function tryEnvString(string memory envVar)
-        internal
-        returns (string memory)
-    {
+    function tryEnvString(
+        string memory envVar
+    ) internal view returns (string memory) {
         try vm.envString(envVar) returns (string memory _value) {
             return _value;
         } catch {
@@ -71,15 +70,14 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         }
     }
 
-    function stringEq(string memory a, string memory b)
-        internal
-        pure
-        returns (bool)
-    {
+    function stringEq(
+        string memory a,
+        string memory b
+    ) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function debugEnabled() internal returns (bool) {
+    function debugEnabled() internal view returns (bool) {
         return
             tryEnvBool("SEAPORT_COVERAGE") ||
             stringEq(tryEnvString("FOUNDRY_PROFILE"), "debug");
@@ -250,15 +248,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    )
-        internal
-        view
-        returns (
-            bytes32,
-            bytes32,
-            uint8
-        )
-    {
+    ) internal view returns (bytes32, bytes32, uint8) {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
