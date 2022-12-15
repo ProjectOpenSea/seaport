@@ -13,7 +13,7 @@ import {
 contract BadZone is ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
-    ) external returns (bytes4 validOrderMagicValue) {
+    ) external pure returns (bytes4 validOrderMagicValue) {
         if (zoneParameters.consideration[0].identifier == 1) {
             return ZoneInterface.validateOrder.selector;
         } else {

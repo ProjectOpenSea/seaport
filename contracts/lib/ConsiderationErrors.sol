@@ -197,22 +197,6 @@ function _revertInvalidProof() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidRestrictedOrder" error
- *      message.
- *
- * @param orderHash The hash of the restricted order that caused the error.
- */
-function _revertInvalidRestrictedOrder(bytes32 orderHash) pure {
-    assembly {
-        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-        mstore(0, InvalidRestrictedOrder_error_selector)
-        mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
-        // revert(abi.encodeWithSignature("InvalidRestrictedOrder(bytes32)", orderHash))
-        revert(Error_selector_offset, InvalidRestrictedOrder_error_length)
-    }
-}
-
-/**
  * @dev Reverts the current transaction with an "InvalidContractOrder" error
  *      message.
  *

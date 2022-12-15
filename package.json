@@ -79,6 +79,7 @@
     "profile:nospec": "yarn clean; NO_SPECIALIZER=true REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "yarn clean; hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
+    "coverage:forge": "SEAPORT_COVERAGE=true forge coverage --report summary",
     "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
     "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
     "lint:check:format": "prettier --check **.{sol,js,ts}",

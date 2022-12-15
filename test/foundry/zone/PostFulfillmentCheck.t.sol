@@ -709,7 +709,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         return order;
     }
 
-    function _sumConsiderationAmounts() internal returns (uint256 sum) {
+    function _sumConsiderationAmounts() internal view returns (uint256 sum) {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }

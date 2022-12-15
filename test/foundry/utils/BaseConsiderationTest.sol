@@ -5,6 +5,12 @@ import {
     ConduitController
 } from "../../../contracts/conduit/ConduitController.sol";
 import {
+    ReferenceConduitController
+} from "../../../reference/conduit/ReferenceConduitController.sol";
+import {
+    ConduitControllerInterface
+} from "../../../contracts/interfaces/ConduitControllerInterface.sol";
+import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
@@ -19,7 +25,6 @@ import {
     OrderComponents,
     BasicOrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
-// import { Test } from "forge-std/Test.sol";
 import { DifferentialTest } from "./DifferentialTest.sol";
 
 import { StructCopier } from "./StructCopier.sol";
@@ -28,10 +33,10 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
-// import { Consideration } from "../../../contracts/lib/Consideration.sol";
-// import {
-//     ReferenceConsideration
-// } from "../../../reference/ReferenceConsideration.sol";
+import { Consideration } from "../../../contracts/lib/Consideration.sol";
+import {
+    ReferenceConsideration
+} from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -40,12 +45,21 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ConsiderationInterface consideration;
     ConsiderationInterface referenceConsideration;
     bytes32 conduitKeyOne;
-    ConduitController conduitController;
-    ConduitController referenceConduitController;
+    ConduitControllerInterface conduitController;
+    ConduitControllerInterface referenceConduitController;
     Conduit referenceConduit;
     Conduit conduit;
+    bool coverage;
 
     function setUp() public virtual {
+        // conditionally deploy contracts normally or from precompiled source
+        // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
+        // deploys from precompiled source when SEAPORT_COVERAGE is false
+        try vm.envBool("SEAPORT_COVERAGE") returns (bool _coverage) {
+            coverage = _coverage;
+        } catch {
+            coverage = false;
+        }
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
@@ -66,20 +80,22 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     ///@dev deploy optimized consideration contracts from pre-compiled source
     //      (solc-0.8.17, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
-        conduitController = ConduitController(
-            deployCode(
-                "optimized-out/ConduitController.sol/ConduitController.json"
-            )
-        );
-        consideration = ConsiderationInterface(
-            deployCode(
-                "optimized-out/Consideration.sol/Consideration.json",
-                abi.encode(address(conduitController))
-            )
-        );
-        // for debugging
-        // consideration = new Consideration(address(conduitController));
-
+        if (!coverage) {
+            conduitController = ConduitController(
+                deployCode(
+                    "optimized-out/ConduitController.sol/ConduitController.json"
+                )
+            );
+            consideration = ConsiderationInterface(
+                deployCode(
+                    "optimized-out/Consideration.sol/Consideration.json",
+                    abi.encode(address(conduitController))
+                )
+            );
+        } else {
+            conduitController = new ConduitController();
+            consideration = new Consideration(address(conduitController));
+        }
         //create conduit, update channel
         conduit = Conduit(
             conduitController.createConduit(conduitKeyOne, address(this))
@@ -93,21 +109,25 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
 
     ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
     function _deployAndConfigurePrecompiledReferenceConsideration() public {
-        referenceConduitController = ConduitController(
-            deployCode(
-                "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
-            )
-        );
-        referenceConsideration = ConsiderationInterface(
-            deployCode(
-                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
-                abi.encode(address(referenceConduitController))
-            )
-        );
-        // for debugging
-        // referenceConsideration = new ReferenceConsideration(
-        //     address(referenceConduitController)
-        // );
+        if (!coverage) {
+            referenceConduitController = ConduitController(
+                deployCode(
+                    "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
+                )
+            );
+            referenceConsideration = ConsiderationInterface(
+                deployCode(
+                    "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
+                    abi.encode(address(referenceConduitController))
+                )
+            );
+        } else {
+            referenceConduitController = new ReferenceConduitController();
+            // for debugging
+            referenceConsideration = new ReferenceConsideration(
+                address(referenceConduitController)
+            );
+        }
 
         //create conduit, update channel
         referenceConduit = Conduit(
@@ -163,7 +183,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes memory) {
+    ) internal view returns (bytes memory) {
         (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
             _consideration,
             _pkOfSigner,
@@ -176,7 +196,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes memory) {
+    ) internal view returns (bytes memory) {
         (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
             _consideration,
             _pkOfSigner,
@@ -196,7 +216,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
-    ) internal returns (bytes32, bytes32, uint8) {
+    ) internal view returns (bytes32, bytes32, uint8) {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,

@@ -309,38 +309,38 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 errorBuffer := iszero(amount)
             }
 
-            // Retrieve the received item pointer.
-            let receivedItemPtr := mload(execution)
+            // Populate the received item in memory for later comparison.
+            {
+                // Retrieve the received item pointer.
+                let receivedItemPtr := mload(execution)
 
-            // Set the item type on the received item.
-            mstore(receivedItemPtr, mload(offerItemPtr))
+                // Set the item type on the received item.
+                mstore(receivedItemPtr, mload(offerItemPtr))
 
-            // Set the token on the received item.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
+                // Set the token on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_token_offset),
+                    mload(add(offerItemPtr, Common_token_offset))
+                )
 
-            // Set the identifier on the received item.
-            mstore(
-                add(receivedItemPtr, Common_identifier_offset),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
+                // Set the identifier on the received item.
+                mstore(
+                    add(receivedItemPtr, Common_identifier_offset),
+                    mload(add(offerItemPtr, Common_identifier_offset))
+                )
 
-            // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(paramsPtr))
+                // Set the offerer on returned execution using order pointer.
+                mstore(
+                    add(execution, Execution_offerer_offset),
+                    mload(paramsPtr)
+                )
 
-            // Set conduitKey on returned execution via offset of order pointer.
-            mstore(
-                add(execution, Execution_conduit_offset),
-                mload(add(paramsPtr, OrderParameters_conduit_offset))
-            )
-
-            // Calculate the hash of (itemType, token, identifier).
-            let dataHash := keccak256(
-                receivedItemPtr,
-                ReceivedItem_CommonParams_size
-            )
+                // Set returned execution conduitKey via order pointer offset.
+                mstore(
+                    add(execution, Execution_conduit_offset),
+                    mload(add(paramsPtr, OrderParameters_conduit_offset))
+                )
+            }
 
             // Get position one word past last element in head of array.
             let endPtr := add(
@@ -461,7 +461,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         ),
                         // The itemType, token, and identifier must match.
                         eq(
-                            dataHash,
+                            keccak256(
+                                mload(execution),
+                                ReceivedItem_CommonParams_size
+                            ),
                             keccak256(
                                 offerItemPtr,
                                 ReceivedItem_CommonParams_size
@@ -473,6 +476,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     throwInvalidFulfillmentComponentData()
                 }
             }
+
             // Write final amount to execution.
             mstore(add(mload(execution), Common_amount_offset), amount)
 
@@ -480,7 +484,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             if errorBuffer {
                 // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
-                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    // Store left-padded selector with push4 (reduces bytecode)
+                    // mem[28:32] = selector
                     mstore(0, MissingItemAmount_error_selector)
                     // revert(abi.encodeWithSignature("MissingItemAmount()"))
                     revert(0x1c, MissingItemAmount_error_length)

@@ -188,12 +188,16 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
      * if tests are run with different compiler settings (which they are by default)
      */
     function _deployAndConfigurePrecompiledTransferHelper() public {
-        transferHelper = TransferHelper(
-            deployCode(
-                "optimized-out/TransferHelper.sol/TransferHelper.json",
-                abi.encode(address(conduitController))
-            )
-        );
+        if (!coverage) {
+            transferHelper = TransferHelper(
+                deployCode(
+                    "optimized-out/TransferHelper.sol/TransferHelper.json",
+                    abi.encode(address(conduitController))
+                )
+            );
+        } else {
+            transferHelper = new TransferHelper(address(conduitController));
+        }
     }
 
     // Helper functions
@@ -281,7 +285,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     function _unsafeGetTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
         TransferHelperItem[] memory items,
         address[10] memory recipients
-    ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
+    ) internal pure returns (TransferHelperItemsWithRecipient[] memory) {
         TransferHelperItemsWithRecipient[]
             memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
                 recipients.length
@@ -561,11 +565,11 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     }
 
     function _getFuzzedERC721TransferItemWithAmountGreaterThan1(
-        address from,
+        address,
         uint256 fuzzAmount,
         uint256 fuzzIndex,
         uint256 fuzzIdentifier,
-        address fuzzRecipient
+        address
     ) internal view returns (TransferHelperItem memory) {
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
@@ -1012,13 +1016,12 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             );
 
         items[0] = item;
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
-                alice,
-                items,
-                inputs.recipients
-            );
+
+        _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
+            alice,
+            items,
+            inputs.recipients
+        );
 
         _performSingleItemTransferAndCheckBalances(
             item,
@@ -1054,13 +1057,11 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             false
         );
 
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
-                alice,
-                items,
-                inputs.recipients
-            );
+        _getTransferHelperItemsWithMultipleRecipientsFromTransferHelperItems(
+            alice,
+            items,
+            inputs.recipients
+        );
 
         _performMultiItemTransferAndCheckBalances(
             items,
@@ -1274,7 +1275,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1345,7 +1346,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1417,7 +1418,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key

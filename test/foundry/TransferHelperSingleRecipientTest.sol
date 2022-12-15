@@ -195,7 +195,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
     function _getTransferHelperItemsWithRecipientFromTransferHelperItems(
         TransferHelperItem[] memory items,
         address to
-    ) internal view returns (TransferHelperItemsWithRecipient[] memory) {
+    ) internal pure returns (TransferHelperItemsWithRecipient[] memory) {
         TransferHelperItemsWithRecipient[]
             memory itemsWithRecipient = new TransferHelperItemsWithRecipient[](
                 1
@@ -704,12 +704,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
             );
 
         items[0] = item;
-        bytes memory returnedData;
-        TransferHelperItemsWithRecipient[]
-            memory itemsWithRecipient = _getTransferHelperItemsWithRecipientFromTransferHelperItems(
-                items,
-                bob
-            );
+        _getTransferHelperItemsWithRecipientFromTransferHelperItems(items, bob);
 
         _performSingleItemTransferAndCheckBalances(
             item,
@@ -938,7 +933,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1007,7 +1002,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key
@@ -1077,7 +1072,7 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         );
         vm.label(address(mockConduit), "mock conduit");
 
-        bytes32 conduitCodeHash = address(mockConduit).codehash;
+        address(mockConduit).codehash;
 
         // Assert the conduit key derived from the conduit address
         // matches alice's conduit key

@@ -104,9 +104,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -170,9 +168,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -236,9 +232,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -314,9 +308,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -374,9 +366,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -440,9 +430,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -506,9 +494,7 @@ contract TestPoolOfferrerTest is BaseOrderTest {
             referenceConsideration.getCounter(address(offerer))
         );
 
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            baseOrderComponents
-        );
+        referenceConsideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,

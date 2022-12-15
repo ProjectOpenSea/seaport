@@ -51,7 +51,7 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         uint256[] memory _tokenIds,
         address _erc20,
         uint256 amount,
-        address initialOwner
+        address
     ) {
         // Set immutable values and storage variables.
         _SEAPORT = seaport;
