@@ -41,7 +41,7 @@ test ='contracts'
 src = 'test/foundry'
 
 [profile.test.fuzz]
-runs = 5_000
+runs = 1_000
 
 [profile.lite]
 out = 'optimized-out'
