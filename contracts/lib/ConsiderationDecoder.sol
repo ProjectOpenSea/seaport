@@ -416,7 +416,7 @@ contract ConsiderationDecoder {
     /**
      * @dev Decodes the returndata from a call to generateOrder, or returns
      *      empty arrays and a boolean signifying that the returndata does not
-     *      adhere to a valid encoding scheme.
+     *      adhere to a valid encoding scheme if it cannot be decoded.
      *
      * @return invalidEncoding A boolean signifying whether the returndata has
      *                         an invalid encoding.
@@ -591,15 +591,14 @@ contract ConsiderationDecoder {
     }
 
     /**
-     * @dev Converts a function taking the return values of
-     *      _decodeGenerateOrderReturndata into a function returning offer and
-     *      consideration types.
+     * @dev Converts a function returning _decodeGenerateOrderReturndata types
+     *      into a function returning offer and consideration types.
      *
-     * @param inFn The input function, taking an error buffer, spent item array,
-     *             and received item array.
+     * @param inFn The input function, taking no arguments and returning an
+     *             error buffer, spent item array, and received item array.
      *
-     * @return outFn The output function, taking an error buffer, offer array,
-     *               and consideration array.
+     * @return outFn The output function, taking no arguments and returning an
+     *               error buffer, offer array, and consideration array.
      */
     function _convertGetGeneratedOrderResult(
         function()
@@ -674,7 +673,18 @@ contract ConsiderationDecoder {
         }
     }
 
-    function to_AdvancedOrder_ReturnType(
+    /**
+     * @dev Converts a function taking a calldata pointer and returning a memory
+     *      pointer into a function taking that calldata pointer and returning
+     *      an AdvancedOrder type.
+     *
+     * @param inFn The input function, taking an arbitrary calldata pointer and
+     *             returning an arbitrary memory pointer.
+     *
+     * @return outFn The output function, taking an arbitrary calldata pointer
+     *               and returning an AdvancedOrder type.
+     */
+    function _toAdvancedOrderReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal

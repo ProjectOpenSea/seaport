@@ -108,7 +108,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            to_AdvancedOrder_ReturnType(abi_decode_Order_as_AdvancedOrder)(
+            _toAdvancedOrderReturnType(abi_decode_Order_as_AdvancedOrder)(
                 CalldataStart.pptr()
             ),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -165,7 +165,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            to_AdvancedOrder_ReturnType(abi_decode_AdvancedOrder)(
+            _toAdvancedOrderReturnType(abi_decode_AdvancedOrder)(
                 CalldataStart.pptr()
             ),
             to_dyn_array_CriteriaResolver_ReturnType(
