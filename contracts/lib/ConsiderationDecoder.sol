@@ -715,21 +715,41 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_OrderComponents_as_OrderParameters(
+    /**
+     * @dev Takes a calldata pointer to an OrderComponents struct and copies the
+     *      decoded struct to memory as an OrderParameters struct (with the
+     *      totalOriginalConsiderationItems value set equal to the length of the
+     *      supplied consideration array).
+     *
+     * @param cdPtr A calldata pointer for the OrderComponents struct.
+     *
+     * @return mPtr A memory pointer to the OrderParameters struct head.
+     */
+    function _decodeOrderComponentsAsOrderParameters(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
+        // Allocate memory for the OrderParameters head.
         mPtr = malloc(OrderParameters_head_size);
+
+        // Copy the full OrderComponents head from calldata to memory.
         cdPtr.copy(mPtr, OrderComponents_OrderParameters_common_head_size);
+
+        // Resolve the offer calldata offset, use that to decode and copy offer
+        // from calldata, and write resultant memory offset to head in memory.
         mPtr.offset(OrderParameters_offer_head_offset).write(
             _decodeOffer(cdPtr.pptr(OrderParameters_offer_head_offset))
         );
+
+        // Resolve consideration calldata offset, use that to copy consideration
+        // from calldata, and write resultant memory offset to head in memory.
         MemoryPointer consideration = _decodeConsideration(
             cdPtr.pptr(OrderParameters_consideration_head_offset)
         );
         mPtr.offset(OrderParameters_consideration_head_offset).write(
             consideration
         );
-        // Write totalOriginalConsiderationItems
+
+        // Write masked consideration length to totalOriginalConsiderationItems.
         mPtr
             .offset(OrderParameters_totalOriginalConsiderationItems_offset)
             .write(consideration.readUint256());

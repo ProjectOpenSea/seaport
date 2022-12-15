@@ -522,7 +522,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 bytes32 orderHash = _deriveOrderHash(
                     _toOrderParametersReturnType(
-                        abi_decode_OrderComponents_as_OrderParameters
+                        _decodeOrderComponentsAsOrderParameters
                     )(order.toCalldataPointer()),
                     order.counter
                 );

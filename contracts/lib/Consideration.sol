@@ -521,7 +521,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             _toOrderParametersReturnType(
-                abi_decode_OrderComponents_as_OrderParameters
+                _decodeOrderComponentsAsOrderParameters
             )(orderPointer),
             // Read order counter
             orderPointer.offset(OrderParameters_counter_offset).readUint256()
