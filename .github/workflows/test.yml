@@ -1,6 +1,11 @@
 name: Seaport Test CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, 1.*, 2.*]
+    tags: ["*"]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
@@ -167,8 +172,13 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Run coverage summary
-        run: SEAPORT_COVERAGE=true forge coverage
+      - name: Run coverage with lcov output
+        run: SEAPORT_COVERAGE=true forge coverage --report lcov
+
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./lcov.info
+          flags: foundry
 
   coverage:
     name: Run Coverage Tests
