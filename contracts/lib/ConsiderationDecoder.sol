@@ -560,7 +560,19 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_FulfillmentComponent(
+    /**
+     * @dev Takes an array of fulfillment components from calldata and copies it
+     *      into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the fulfillment
+     *                    components array in calldata which contains the length
+     *                    of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the fulfillment
+     *                    components array in memory which contains the length
+     *                    of the array.
+     */
+    function _decodeFulfillmentComponents(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
@@ -597,21 +609,44 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_dyn_array_FulfillmentComponent(
+    /**
+     * @dev Takes a nested array of fulfillment components from calldata and
+     *      copies it into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the nested
+     *                    fulfillment components array in calldata which
+     *                    contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the nested
+     *                    fulfillment components array in memory which
+     *                    contains the length of the array.
+     */
+    function _decodeNestedFulfillmentComponents(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
+
+            // Iterate over each pointer, word by word, until tail is reached.
             for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve FulfillmentComponents array calldata offset, use it
+                // to decode and copy from calldata, and write memory offset.
                 mPtrHead.offset(offset).write(
-                    abi_decode_dyn_array_FulfillmentComponent(
-                        cdPtrHead.pptr(offset)
-                    )
+                    _decodeFulfillmentComponents(cdPtrHead.pptr(offset))
                 );
             }
         }
@@ -660,13 +695,29 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_Fulfillment(
+    /**
+     * @dev Takes a calldata pointer to a Fulfillment struct and copies the
+     *      decoded struct to memory.
+     *
+     * @param cdPtr A calldata pointer for the Fulfillment struct.
+     *
+     * @return mPtr A memory pointer to the Fulfillment struct head.
+     */
+    function _decodeFulfillment(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
+        // Allocate required memory for the Fulfillment head (the fulfillment
+        // components arrays are allocated independently).
         mPtr = malloc(Fulfillment_head_size);
-        mPtr.write(abi_decode_dyn_array_FulfillmentComponent(cdPtr.pptr()));
+
+        // Resolve offerComponents calldata offset, use it to decode and copy
+        // from calldata, and write resultant memory offset to head in memory.
+        mPtr.write(_decodeFulfillmentComponents(cdPtr.pptr()));
+
+        // Resolve considerationComponents calldata offset, use it to decode and
+        // copy from calldata, and write resultant memory offset to memory head.
         mPtr.offset(Fulfillment_considerationComponents_offset).write(
-            abi_decode_dyn_array_FulfillmentComponent(
+            _decodeFulfillmentComponents(
                 cdPtr.pptr(Fulfillment_considerationComponents_offset)
             )
         );
@@ -709,7 +760,7 @@ contract ConsiderationDecoder {
                 // Resolve Fulfillment calldata offset, use it to decode and
                 // copy from calldata, and write resultant memory offset.
                 mPtrHead.offset(offset).write(
-                    abi_decode_Fulfillment(cdPtrHead.pptr(offset))
+                    _decodeFulfillment(cdPtrHead.pptr(offset))
                 );
             }
         }
@@ -1148,7 +1199,7 @@ contract ConsiderationDecoder {
      *               and returning a nested dynamic array of dynamic arrays of
      *               FulfillmentComponent types.
      */
-    function _toSideFulfillmentComponentsReturnType(
+    function _toNestedFulfillmentComponentsReturnType(
         function(CalldataPointer) internal pure returns (MemoryPointer) inFn
     )
         internal

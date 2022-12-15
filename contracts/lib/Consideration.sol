@@ -241,11 +241,11 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                     CalldataStart.pptr()
                 ), // Convert to advanced orders.
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                _toSideFulfillmentComponentsReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x20)),
-                _toSideFulfillmentComponentsReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x40)),
                 fulfillerConduitKey,
                 msg.sender,
@@ -343,11 +343,11 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
                     CalldataStart.pptr(0x20)
                 ),
-                _toSideFulfillmentComponentsReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x40)),
-                _toSideFulfillmentComponentsReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x60)),
                 fulfillerConduitKey,
                 _substituteCallerForEmptyRecipient(recipient),
