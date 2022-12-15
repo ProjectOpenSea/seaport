@@ -337,7 +337,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                _toAdvancedOrdersReturnType(abi_decode_dyn_array_AdvancedOrder)(
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
                     CalldataStart.pptr()
                 ),
                 _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
@@ -390,7 +390,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                     CalldataStart.pptr()
                 ),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                _toFulfillmentsReturnType(abi_decode_dyn_array_Fulfillment)(
+                _toFulfillmentsReturnType(_decodeFulfillments)(
                     CalldataStart.pptr(0x20)
                 )
             );
@@ -440,13 +440,13 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
-                _toAdvancedOrdersReturnType(abi_decode_dyn_array_AdvancedOrder)(
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
                     CalldataStart.pptr()
                 ),
                 _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
                     CalldataStart.pptr(0x20)
                 ),
-                _toFulfillmentsReturnType(abi_decode_dyn_array_Fulfillment)(
+                _toFulfillmentsReturnType(_decodeFulfillments)(
                     CalldataStart.pptr(0x40)
                 )
             );
@@ -488,7 +488,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function validate(
         Order[] calldata
     ) external override returns (bool validated) {
-        Order[] memory orders = _toOrdersReturnType(abi_decode_dyn_array_Order)(
+        Order[] memory orders = _toOrdersReturnType(_decodeOrders)(
             CalldataStart.pptr()
         );
         validated = _validate(orders);

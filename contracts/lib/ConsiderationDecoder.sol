@@ -478,8 +478,8 @@ contract ConsiderationDecoder {
     }
 
     /**
-     * @dev Takes a criteria resolver array from calldata and copies it into
-     *      memory.
+     * @dev Takes an array of criteria resolvers from calldata and copies it
+     *      into memory.
      *
      * @param cdPtrLength A calldata pointer to the start of the criteria
      *                    resolver array in calldata which contains the length
@@ -520,17 +520,39 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_Order(
+    /**
+     * @dev Takes an array of orders from calldata and copies it into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the orders array in
+     *                    calldata which contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the orders array
+     *                    in memory which contains the length of the array.
+     */
+    function _decodeOrders(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
+
+            // Iterate over each pointer, word by word, until tail is reached.
             for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve Order calldata offset, use it to decode and copy
+                // from calldata, and write resultant memory offset.
                 mPtrHead.offset(offset).write(
                     _decodeOrder(cdPtrHead.pptr(offset))
                 );
@@ -595,17 +617,42 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_AdvancedOrder(
+    /**
+     * @dev Takes an array of advanced orders from calldata and copies it into
+     *      memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the advanced orders
+     *                    array in calldata which contains the length of the
+     *                    array.
+     *
+     * @return mPtrLength A memory pointer to the start of the advanced orders
+     *                    array in memory which contains the length of the
+     *                    array.
+     */
+    function _decodeAdvancedOrders(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
+
+            // Iterate over each pointer, word by word, until tail is reached.
             for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve AdvancedOrder calldata offset, use it to decode and
+                // copy from calldata, and write resultant memory offset.
                 mPtrHead.offset(offset).write(
                     _decodeAdvancedOrder(cdPtrHead.pptr(offset))
                 );
@@ -625,17 +672,42 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_dyn_array_Fulfillment(
+    /**
+     * @dev Takes an array of fulfillments from calldata and copies it into
+     *      memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the fulfillments
+     *                    array in calldata which contains the length of the
+     *                    array.
+     *
+     * @return mPtrLength A memory pointer to the start of the fulfillments
+     *                    array in memory which contains the length of the
+     *                    array.
+     */
+    function _decodeFulfillments(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
+
+            // Iterate over each pointer, word by word, until tail is reached.
             for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve Fulfillment calldata offset, use it to decode and
+                // copy from calldata, and write resultant memory offset.
                 mPtrHead.offset(offset).write(
                     abi_decode_Fulfillment(cdPtrHead.pptr(offset))
                 );
