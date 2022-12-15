@@ -1,6 +1,11 @@
 name: Seaport Test CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, 1.*, 2.*]
+    tags: ["*"]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
