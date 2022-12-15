@@ -169,7 +169,7 @@ contract ReferenceSignatureVerifierLogic is
         _assertValidSignature(alice, digest, digest, signature, signature);
     }
 
-    function referenceSignatureVerificationCompleteGarbageTooLong() external {
+    function referenceSignatureVerificationTooLong() external {
         addErc721OfferItem(1);
         addEthConsiderationItem(alice, 1);
 
