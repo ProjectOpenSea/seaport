@@ -29,6 +29,7 @@ contract ConsiderationDecoder {
     uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
         0x0140
     );
+    uint256 constant AdvancedOrderPlusOrderParameters_head_size = 0x0200;
 
     uint256 constant Order_signature_offset = 0x20;
     uint256 constant Order_head_size = 0x40;
@@ -206,14 +207,29 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_OrderParameters_to(
+    /**
+     * @dev Takes a calldata pointer and memory pointer and copies a referenced
+     *      OrderParameters struct and associated offer and consideration data
+     *      to memory.
+     *
+     * @param cdPtr A calldata pointer for the OrderParameters struct.
+     * @param mPtr A memory pointer to the OrderParameters struct head.
+     */
+    function _decodeOrderParametersTo(
         CalldataPointer cdPtr,
         MemoryPointer mPtr
     ) internal pure {
+        // Copy the full OrderParameters head from calldata to memory.
         cdPtr.copy(mPtr, OrderParameters_head_size);
+
+        // Resolve the offer calldata offset, use that to decode and copy offer
+        // from calldata, and write resultant memory offset to head in memory.
         mPtr.offset(OrderParameters_offer_head_offset).write(
             _decodeOffer(cdPtr.pptr(OrderParameters_offer_head_offset))
         );
+
+        // Resolve consideration calldata offset, use that to copy consideration
+        // from calldata, and write resultant memory offset to head in memory.
         mPtr.offset(OrderParameters_consideration_head_offset).write(
             _decodeConsideration(
                 cdPtr.pptr(OrderParameters_consideration_head_offset)
@@ -221,46 +237,89 @@ contract ConsiderationDecoder {
         );
     }
 
-    function abi_decode_OrderParameters(
+    /**
+     * @dev Takes a calldata pointer to an OrderParameters struct and copies the
+     *      decoded struct to memory.
+     *
+     * @param cdPtr A calldata pointer for the OrderParameters struct.
+     *
+     * @return mPtr A memory pointer to the OrderParameters struct head.
+     */
+    function _decodeOrderParameters(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
+        // Allocate required memory for the OrderParameters head (offer and
+        // consideration are allocated independently).
         mPtr = malloc(OrderParameters_head_size);
-        abi_decode_OrderParameters_to(cdPtr, mPtr);
+
+        // Decode and copy the order parameters to the newly allocated memory.
+        _decodeOrderParametersTo(cdPtr, mPtr);
     }
 
-    function abi_decode_Order(
+    /**
+     * @dev Takes a calldata pointer to an Order struct and copies the decoded
+     *      struct to memory.
+     *
+     * @param cdPtr A calldata pointer for the Order struct.
+     *
+     * @return mPtr A memory pointer to the Order struct head.
+     */
+    function _decodeOrder(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
+        // Allocate required memory for the Order head (OrderParameters and
+        // signature are allocated independently).
         mPtr = malloc(Order_head_size);
-        mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
+
+        // Resolve OrderParameters calldata offset, use it to decode and copy
+        // from calldata, and write resultant memory offset to head in memory.
+        mPtr.write(_decodeOrderParameters(cdPtr.pptr()));
+
+        // Resolve signature calldata offset, use that to decode and copy from
+        // calldata, and write resultant memory offset to head in memory.
         mPtr.offset(Order_signature_offset).write(
             _decodeBytes(cdPtr.pptr(Order_signature_offset))
         );
     }
 
-    function abi_decode_AdvancedOrder(
+    /**
+     * @dev Takes a calldata pointer to an AdvancedOrder struct and copies the
+     *      decoded struct to memory.
+     *
+     * @param cdPtr A calldata pointer for the AdvancedOrder struct.
+     *
+     * @return mPtr A memory pointer to the AdvancedOrder struct head.
+     */
+    function _decodeAdvancedOrder(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
-        // Allocate memory for AdvancedOrder head and OrderParameters head
-        mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
+        // Allocate memory for AdvancedOrder head and OrderParameters head.
+        mPtr = malloc(AdvancedOrderPlusOrderParameters_head_size);
 
-        // Copy order numerator and denominator
+        // Use numerator + denominator calldata offset to decode and copy
+        // from calldata and write resultant memory offset to head in memory.
         cdPtr.offset(AdvancedOrder_numerator_offset).copy(
             mPtr.offset(AdvancedOrder_numerator_offset),
             AdvancedOrder_fixed_segment_0
         );
 
-        // Get pointer to memory immediately after advanced order
+        // Get pointer to memory immediately after advanced order.
         MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
-        // Write pptr for advanced order parameters
-        mPtr.write(mPtrParameters);
-        // Copy order parameters to allocated region
-        abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
 
-        // mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
+        // Write pptr for advanced order parameters to memory.
+        mPtr.write(mPtrParameters);
+
+        // Resolve OrderParameters calldata pointer & write to allocated region.
+        _decodeOrderParametersTo(cdPtr.pptr(), mPtrParameters);
+
+        // Resolve signature calldata offset, use that to decode and copy from
+        // calldata, and write resultant memory offset to head in memory.
         mPtr.offset(AdvancedOrder_signature_offset).write(
             _decodeBytes(cdPtr.pptr(AdvancedOrder_signature_offset))
         );
+
+        // Resolve extraData calldata offset, use that to decode and copy from
+        // calldata, and write resultant memory offset to head in memory.
         mPtr.offset(AdvancedOrder_extraData_offset).write(
             _decodeBytes(cdPtr.pptr(AdvancedOrder_extraData_offset))
         );
@@ -292,7 +351,7 @@ contract ConsiderationDecoder {
         // Write pptr for advanced order parameters
         mPtr.write(mPtrParameters);
         // Copy order parameters to allocated region
-        abi_decode_OrderParameters_to(cdPtr.pptr(), mPtrParameters);
+        _decodeOrderParametersTo(cdPtr.pptr(), mPtrParameters);
 
         mPtr.offset(AdvancedOrder_numerator_offset).write(1);
         mPtr.offset(AdvancedOrder_denominator_offset).write(1);
@@ -379,7 +438,7 @@ contract ConsiderationDecoder {
             CalldataPointer cdPtrHead = cdPtrLength.next();
             for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
-                    abi_decode_Order(cdPtrHead.pptr(offset))
+                    _decodeOrder(cdPtrHead.pptr(offset))
                 );
             }
         }
@@ -454,7 +513,7 @@ contract ConsiderationDecoder {
             CalldataPointer cdPtrHead = cdPtrLength.next();
             for (uint256 offset; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
-                    abi_decode_AdvancedOrder(cdPtrHead.pptr(offset))
+                    _decodeAdvancedOrder(cdPtrHead.pptr(offset))
                 );
             }
         }
