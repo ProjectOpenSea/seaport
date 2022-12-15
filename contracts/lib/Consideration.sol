@@ -165,7 +165,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            _toAdvancedOrderReturnType(abi_decode_AdvancedOrder)(
+            _toAdvancedOrderReturnType(_decodeAdvancedOrder)(
                 CalldataStart.pptr()
             ),
             _toCriteriaResolversReturnType(
