@@ -45,11 +45,23 @@ contract ConsiderationDecoder {
 
     uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
 
-    function abi_decode_bytes(
+    /**
+     * @dev Takes a bytes array from calldata and copies it into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the bytes array in
+     *                    calldata which contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the bytes array in
+     *                    memory which contains the length of the array.
+     */
+    function _decodeBytes(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
-            mPtrLength := mload(0x40)
+            // Get the current free memory pointer.
+            mPtrLength := mload(FreeMemoryPointerSlot)
+
+            // Derive the size of the bytes array, rounding up to nearest word.
             let size := and(
                 add(
                     and(calldataload(cdPtrLength), OffsetOrLengthMask),
@@ -57,8 +69,12 @@ contract ConsiderationDecoder {
                 ),
                 OnlyFullWordMask
             )
+
+            // Copy bytes from calldata into memory based on pointers and size.
             calldatacopy(mPtrLength, cdPtrLength, size)
-            mstore(0x40, add(mPtrLength, size))
+
+            // Update free memory pointer based on the size of the bytes array.
+            mstore(FreeMemoryPointerSlot, add(mPtrLength, size))
         }
     }
 
@@ -150,7 +166,7 @@ contract ConsiderationDecoder {
         mPtr = malloc(Order_head_size);
         mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
         mPtr.offset(Order_signature_offset).write(
-            abi_decode_bytes(cdPtr.pptr(Order_signature_offset))
+            _decodeBytes(cdPtr.pptr(Order_signature_offset))
         );
     }
 
@@ -175,14 +191,24 @@ contract ConsiderationDecoder {
 
         // mPtr.write(abi_decode_OrderParameters(cdPtr.pptr()));
         mPtr.offset(AdvancedOrder_signature_offset).write(
-            abi_decode_bytes(cdPtr.pptr(AdvancedOrder_signature_offset))
+            _decodeBytes(cdPtr.pptr(AdvancedOrder_signature_offset))
         );
         mPtr.offset(AdvancedOrder_extraData_offset).write(
-            abi_decode_bytes(cdPtr.pptr(AdvancedOrder_extraData_offset))
+            _decodeBytes(cdPtr.pptr(AdvancedOrder_extraData_offset))
         );
     }
 
-    function getEmptyBytesOrArray() internal pure returns (MemoryPointer mPtr) {
+    /**
+     * @dev Allocates a single word of empty bytes in memory and returns the
+     *      pointer to that memory region.
+     *
+     * @return mPtr The memory pointer to the new empty word in memory.
+     */
+    function _getEmptyBytesOrArray()
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         mPtr = malloc(32);
         mPtr.write(0);
     }
@@ -205,12 +231,12 @@ contract ConsiderationDecoder {
 
         // Copy order signature to advanced order signature
         mPtr.offset(AdvancedOrder_signature_offset).write(
-            abi_decode_bytes(cdPtr.pptr(Order_signature_offset))
+            _decodeBytes(cdPtr.pptr(Order_signature_offset))
         );
 
         // Set empty bytes for advanced order extraData
         mPtr.offset(AdvancedOrder_extraData_offset).write(
-            getEmptyBytesOrArray()
+            _getEmptyBytesOrArray()
         );
     }
 
