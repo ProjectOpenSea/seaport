@@ -340,46 +340,82 @@ contract ConsiderationDecoder {
         mPtr.write(0);
     }
 
-    function abi_decode_Order_as_AdvancedOrder(
+    /**
+     * @dev Takes a calldata pointer to an Order struct and copies the decoded
+     *      struct to memory as an AdvancedOrder.
+     *
+     * @param cdPtr A calldata pointer for the Order struct.
+     *
+     * @return mPtr A memory pointer to the AdvancedOrder struct head.
+     */
+    function _decodeOrderAsAdvancedOrder(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
-        // Allocate memory for AdvancedOrder head and OrderParameters head
-        mPtr = malloc(AdvancedOrder_head_size + OrderParameters_head_size);
+        // Allocate memory for AdvancedOrder head and OrderParameters head.
+        mPtr = malloc(AdvancedOrderPlusOrderParameters_head_size);
 
-        // Get pointer to memory immediately after advanced order
+        // Get pointer to memory immediately after advanced order.
         MemoryPointer mPtrParameters = mPtr.offset(AdvancedOrder_head_size);
-        // Write pptr for advanced order parameters
+
+        // Write pptr for advanced order parameters.
         mPtr.write(mPtrParameters);
-        // Copy order parameters to allocated region
+
+        // Resolve OrderParameters calldata pointer & write to allocated region.
         _decodeOrderParametersTo(cdPtr.pptr(), mPtrParameters);
 
+        // Write default Order numerator and denominator values (e.g. 1/1).
         mPtr.offset(AdvancedOrder_numerator_offset).write(1);
         mPtr.offset(AdvancedOrder_denominator_offset).write(1);
 
-        // Copy order signature to advanced order signature
+        // Resolve signature calldata offset, use that to decode and copy from
+        // calldata, and write resultant memory offset to head in memory.
         mPtr.offset(AdvancedOrder_signature_offset).write(
             _decodeBytes(cdPtr.pptr(Order_signature_offset))
         );
 
-        // Set empty bytes for advanced order extraData
+        // Resolve extraData calldata offset, use that to decode and copy from
+        // calldata, and write resultant memory offset to head in memory.
         mPtr.offset(AdvancedOrder_extraData_offset).write(
             _getEmptyBytesOrArray()
         );
     }
 
-    function abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder(
+    /**
+     * @dev Takes a calldata pointer to an array of Order structs and copies the
+     *      decoded array to memory as an array of AdvancedOrder structs.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the orders array in
+     *                    calldata which contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the array of advanced
+     *                    orders in memory which contains length of the array.
+     */
+    function _decodeOrdersAsAdvancedOrders(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+
+            // Iterate over each pointer, word by word, until tail is reached.
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve Order calldata offset, use it to decode and copy from
+                // calldata, and write resultant AdvancedOrder offset to memory.
                 mPtrHead.offset(offset).write(
-                    abi_decode_Order_as_AdvancedOrder(cdPtrHead.pptr(offset))
+                    _decodeOrderAsAdvancedOrder(cdPtrHead.pptr(offset))
                 );
             }
         }
@@ -418,7 +454,7 @@ contract ConsiderationDecoder {
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_CriteriaResolver(cdPtrHead.pptr(offset))
                 );
@@ -436,7 +472,7 @@ contract ConsiderationDecoder {
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     _decodeOrder(cdPtrHead.pptr(offset))
                 );
@@ -491,7 +527,7 @@ contract ConsiderationDecoder {
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_dyn_array_FulfillmentComponent(
                         cdPtrHead.pptr(offset)
@@ -511,7 +547,7 @@ contract ConsiderationDecoder {
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     _decodeAdvancedOrder(cdPtrHead.pptr(offset))
                 );
@@ -541,7 +577,7 @@ contract ConsiderationDecoder {
             mPtrLength.write(arrLength);
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
-            for (uint256 offset; offset < tailOffset; offset += OneWord) {
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
                 mPtrHead.offset(offset).write(
                     abi_decode_Fulfillment(cdPtrHead.pptr(offset))
                 );

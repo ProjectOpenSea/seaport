@@ -108,7 +108,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            _toAdvancedOrderReturnType(abi_decode_Order_as_AdvancedOrder)(
+            _toAdvancedOrderReturnType(_decodeOrderAsAdvancedOrder)(
                 CalldataStart.pptr()
             ),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -237,9 +237,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Convert orders to "advanced" orders and fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                _toAdvancedOrdersReturnType(
-                    abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()), // Convert to advanced orders.
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ), // Convert to advanced orders.
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
                 _toSideFulfillmentComponentsReturnType(
                     abi_decode_dyn_array_dyn_array_FulfillmentComponent
@@ -386,9 +386,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
-                _toAdvancedOrdersReturnType(
-                    abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()),
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
                 _toFulfillmentsReturnType(abi_decode_dyn_array_Fulfillment)(
                     CalldataStart.pptr(0x20)
