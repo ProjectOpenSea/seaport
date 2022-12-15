@@ -421,42 +421,100 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_bytes32(
+    /**
+     * @dev Takes a calldata pointer to a criteria proof, or an array bytes32
+     *      types, and copies the decoded proof to memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the criteria proof
+     *                    in calldata which contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the criteria proof
+     *                    in memory which contains length of the array.
+     */
+    function _decodeCriteriaProof(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive array size based on one word per array element and length.
             uint256 arrSize = (arrLength + 1) * OneWord;
+
+            // Allocate memory equal to the array size.
             mPtrLength = malloc(arrSize);
+
+            // Copy the array from calldata into memory.
             cdPtrLength.copy(mPtrLength, arrSize);
         }
     }
 
-    function abi_decode_CriteriaResolver(
+    /**
+     * @dev Takes a calldata pointer to a CriteriaResolver struct and copies the
+     *      decoded struct to memory.
+     *
+     * @param cdPtr A calldata pointer for the CriteriaResolver struct.
+     *
+     * @return mPtr A memory pointer to the CriteriaResolver struct head.
+     */
+    function _decodeCriteriaResolver(
         CalldataPointer cdPtr
     ) internal pure returns (MemoryPointer mPtr) {
+        // Allocate required memory for the CriteriaResolver head (the criteria
+        // proof bytes32 array is allocated independently).
         mPtr = malloc(CriteriaResolver_head_size);
+
+        // Decode and copy order index, side, index, and identifier from
+        // calldata and write resultant memory offset to head in memory.
         cdPtr.copy(mPtr, CriteriaResolver_fixed_segment_0);
+
+        // Resolve criteria proof calldata offset, use it to decode and copy
+        // from calldata, and write resultant memory offset to head in memory.
         mPtr.offset(CriteriaResolver_criteriaProof_offset).write(
-            abi_decode_dyn_array_bytes32(
+            _decodeCriteriaProof(
                 cdPtr.pptr(CriteriaResolver_criteriaProof_offset)
             )
         );
     }
 
-    function abi_decode_dyn_array_CriteriaResolver(
+    /**
+     * @dev Takes a criteria resolver array from calldata and copies it into
+     *      memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the criteria
+     *                    resolver array in calldata which contains the length
+     *                    of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the criteria resolver
+     *                    array in memory which contains the length of the
+     *                    array.
+     */
+    function _decodeCriteriaResolvers(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
+        // Retrieve length of array, masking to prevent potential overflow.
+        uint256 arrLength = cdPtrLength.readMaskedUint256();
+
         unchecked {
-            uint256 arrLength = cdPtrLength.readMaskedUint256();
+            // Derive offset to the tail based on one word per array element.
             uint256 tailOffset = arrLength * OneWord;
+
+            // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
+
+            // Write the length of the array to memory.
             mPtrLength.write(arrLength);
+
+            // Advance to first memory & calldata pointers (e.g. after length).
             MemoryPointer mPtrHead = mPtrLength.next();
             CalldataPointer cdPtrHead = cdPtrLength.next();
+
+            // Iterate over each pointer, word by word, until tail is reached.
             for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve CriteriaResolver calldata offset, use it to decode
+                // and copy from calldata, and write resultant memory offset.
                 mPtrHead.offset(offset).write(
-                    abi_decode_CriteriaResolver(cdPtrHead.pptr(offset))
+                    _decodeCriteriaResolver(cdPtrHead.pptr(offset))
                 );
             }
         }
