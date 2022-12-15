@@ -12,7 +12,6 @@ coverage:
 
 flag_management:
   default_rules: # the rules that will be followed for any flag added, generally
-    carryforward: true
     statuses:
       - type: project
         target: 100%
@@ -22,10 +21,6 @@ flag_management:
         threshold: 0%
   individual_flags: # exceptions to the default rules above, stated flag by flag
     - name: foundry
-      paths:
-        - contracts
-        - reference
-      carryforward: true
       statuses:
         - type: project
           target: 100%
@@ -34,7 +29,9 @@ flag_management:
           target: 100%
           threshold: 0%
 
+# Ignore folders that forge coverage is reporting on
 ignore:
   - offerers
   - script
   - test
+  - contracts/test
