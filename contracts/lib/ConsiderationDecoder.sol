@@ -413,7 +413,17 @@ contract ConsiderationDecoder {
             .write(consideration.readUint256());
     }
 
-    function abi_decode_generateOrder_returndata()
+    /**
+     * @dev Decodes the returndata from a call to generateOrder, or returns
+     *      empty arrays and a boolean signifying that the returndata does not
+     *      adhere to a valid encoding scheme.
+     *
+     * @return invalidEncoding A boolean signifying whether the returndata has
+     *                         an invalid encoding.
+     * @return offer           The decoded offer array.
+     * @return consideration   The decoded consideration array.
+     */
+    function _decodeGenerateOrderReturndata()
         internal
         pure
         returns (
@@ -433,56 +443,56 @@ contract ConsiderationDecoder {
             let considerationLength
 
             if iszero(invalidEncoding) {
-                // First two words of calldata are the offsets to offer and consideration
-                // array lengths. Copy these to scratch space. Multiply by validLength to
-                // avoid panics if returndatasize is too small.
+                // Copy first two words of calldata (the offsets to offer and
+                // consideration array lengths) to scratch space. Multiply by
+                // validLength to avoid panics if returndatasize is too small.
                 returndatacopy(0, 0, TwoWords)
                 offsetOffer := mload(0)
                 offsetConsideration := mload(0x20)
 
-                // If valid length, check that the offsets are within the returndata.
+                // If valid length, check that offsets are within returndata.
                 let invalidOfferOffset := gt(offsetOffer, returndatasize())
                 let invalidConsiderationOffset := gt(
                     offsetConsideration,
                     returndatasize()
                 )
 
-                // Only proceed if length (and thus encoding) appears to be valid so far
+                // Only proceed if length (and thus encoding) is valid so far.
                 invalidEncoding := or(
                     invalidOfferOffset,
                     invalidConsiderationOffset
                 )
                 if iszero(invalidEncoding) {
-                    // Copy length of offer array to scratch space
+                    // Copy length of offer array to scratch space.
                     returndatacopy(0, offsetOffer, 0x20)
                     offerLength := mload(0)
 
-                    // Copy length of consideration array to scratch space
+                    // Copy length of consideration array to scratch space.
                     returndatacopy(0x20, offsetConsideration, 0x20)
                     considerationLength := mload(0x20)
 
                     {
-                        // Calculate total size of offer and consideration arrays
+                        // Calculate total size of offer & consideration arrays.
                         let totalOfferSize := mul(SpentItem_size, offerLength)
                         let totalConsiderationSize := mul(
                             ReceivedItem_size,
                             considerationLength
                         )
 
-                        // Add 4 words to total size to cover the offset and length fields of
-                        // the two arrays
+                        // Add 4 words to total size to cover the offset and
+                        // length fields of the two arrays.
                         let totalSize := add(
                             FourWords,
                             add(totalOfferSize, totalConsiderationSize)
                         )
-                        // Don't continue if returndatasize exceeds 65535 bytes or
-                        // is not equal to the calculated size.
+                        // Don't continue if returndatasize exceeds 65535 bytes
+                        // or is not equal to the calculated size.
                         invalidEncoding := or(
                             gt(or(offerLength, considerationLength), 0xffff),
                             xor(totalSize, returndatasize())
                         )
-                        // Set first word of scratch space to 0 so length of offer/consideration
-                        // are read as 0 if encoding is invalid.
+                        // Set first word of scratch space to 0 so length of
+                        // offer/consideration are set to 0 on invalid encoding.
                         mstore(0, 0)
                     }
                 }
