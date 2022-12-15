@@ -78,68 +78,130 @@ contract ConsiderationDecoder {
         }
     }
 
-    function abi_decode_dyn_array_OfferItem(
+    /**
+     * @dev Takes an offer array from calldata and copies it into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the offer array
+     *                    in calldata which contains the length of the array.
+     *
+     * @return mPtrLength A memory pointer to the start of the offer array in
+     *                    memory which contains the length of the array.
+     */
+    function _decodeOffer(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
+            // Retrieve length of array, masking to prevent potential overflow.
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
 
             // Get the current free memory pointer.
             mPtrLength := mload(FreeMemoryPointerSlot)
 
+            // Write the array length to memory.
             mstore(mPtrLength, arrLength)
+
+            // Derive the head by adding one word to the length pointer.
             let mPtrHead := add(mPtrLength, OneWord)
+
+            // Derive the tail by adding one word per element (note that structs
+            // are written to memory with an offset per struct element).
             let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
+
+            // Track the next tail, beginning with the initial tail value.
             let mPtrTailNext := mPtrTail
+
+            // Copy all offer array data into memory at the tail pointer.
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, OneWord),
                 mul(arrLength, OfferItem_size)
             )
+
+            // Track the next head pointer, starting with initial head value.
             let mPtrHeadNext := mPtrHead
+
+            // Iterate over each head pointer until it reaches the tail.
             for {
 
             } lt(mPtrHeadNext, mPtrTail) {
 
             } {
+                // Write the next tail pointer to next head pointer in memory.
                 mstore(mPtrHeadNext, mPtrTailNext)
+
+                // Increment the next head pointer by one word.
                 mPtrHeadNext := add(mPtrHeadNext, OneWord)
+
+                // Increment the next tail pointer by the size of an offer item.
                 mPtrTailNext := add(mPtrTailNext, OfferItem_size)
             }
 
-            // Update the free memory pointer.
+            // Update free memory pointer to allocate memory up to end of tail.
             mstore(FreeMemoryPointerSlot, mPtrTailNext)
         }
     }
 
-    function abi_decode_dyn_array_ConsiderationItem(
+    /**
+     * @dev Takes a consideration array from calldata and copies it into memory.
+     *
+     * @param cdPtrLength A calldata pointer to the start of the consideration
+     *                    array in calldata which contains the length of the
+     *                    array.
+     *
+     * @return mPtrLength A memory pointer to the start of the consideration
+     *                    array in memory which contains the length of the
+     *                    array.
+     */
+    function _decodeConsideration(
         CalldataPointer cdPtrLength
     ) internal pure returns (MemoryPointer mPtrLength) {
         assembly {
+            // Retrieve length of array, masking to prevent potential overflow.
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
 
             // Get the current free memory pointer.
             mPtrLength := mload(FreeMemoryPointerSlot)
 
+            // Write the array length to memory.
             mstore(mPtrLength, arrLength)
+
+            // Derive the head by adding one word to the length pointer.
             let mPtrHead := add(mPtrLength, OneWord)
+
+            // Derive the tail by adding one word per element (note that structs
+            // are written to memory with an offset per struct element).
             let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
+
+            // Track the next tail, beginning with the initial tail value.
             let mPtrTailNext := mPtrTail
+
+            // Copy all consideration array data into memory at tail pointer.
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, OneWord),
                 mul(arrLength, ConsiderationItem_size)
             )
+
+            // Track the next head pointer, starting with initial head value.
             let mPtrHeadNext := mPtrHead
+
+            // Iterate over each head pointer until it reaches the tail.
             for {
 
             } lt(mPtrHeadNext, mPtrTail) {
 
             } {
+                // Write the next tail pointer to next head pointer in memory.
                 mstore(mPtrHeadNext, mPtrTailNext)
+
+                // Increment the next head pointer by one word.
                 mPtrHeadNext := add(mPtrHeadNext, OneWord)
+
+                // Increment next tail pointer by size of a consideration item.
                 mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
             }
+
+            // Update free memory pointer to allocate memory up to end of tail.
             mstore(FreeMemoryPointerSlot, mPtrTailNext)
         }
     }
@@ -150,12 +212,10 @@ contract ConsiderationDecoder {
     ) internal pure {
         cdPtr.copy(mPtr, OrderParameters_head_size);
         mPtr.offset(OrderParameters_offer_head_offset).write(
-            abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_head_offset)
-            )
+            _decodeOffer(cdPtr.pptr(OrderParameters_offer_head_offset))
         );
         mPtr.offset(OrderParameters_consideration_head_offset).write(
-            abi_decode_dyn_array_ConsiderationItem(
+            _decodeConsideration(
                 cdPtr.pptr(OrderParameters_consideration_head_offset)
             )
         );
@@ -436,11 +496,9 @@ contract ConsiderationDecoder {
         mPtr = malloc(OrderParameters_head_size);
         cdPtr.copy(mPtr, OrderComponents_OrderParameters_common_head_size);
         mPtr.offset(OrderParameters_offer_head_offset).write(
-            abi_decode_dyn_array_OfferItem(
-                cdPtr.pptr(OrderParameters_offer_head_offset)
-            )
+            _decodeOffer(cdPtr.pptr(OrderParameters_offer_head_offset))
         );
-        MemoryPointer consideration = abi_decode_dyn_array_ConsiderationItem(
+        MemoryPointer consideration = _decodeConsideration(
             cdPtr.pptr(OrderParameters_consideration_head_offset)
         );
         mPtr.offset(OrderParameters_consideration_head_offset).write(
