@@ -59,7 +59,7 @@ contract ZoneInteraction is
     ) internal {
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
-            (MemoryPointer callData, uint256 size) = _encodeValidateOrder(
+            (MemoryPointer callData, uint256 size) = _encodeValidateBasicOrder(
                 orderHash,
                 parameters
             );

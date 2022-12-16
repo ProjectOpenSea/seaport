@@ -429,7 +429,7 @@ contract ConsiderationEncoder {
         }
     }
 
-    function abi_encode_validateOrder(
+    function _encodeValidateBasicOrder(
         bytes32 orderHash,
         BasicOrderParameters calldata parameters
     ) internal view returns (MemoryPointer dst, uint256 size) {
