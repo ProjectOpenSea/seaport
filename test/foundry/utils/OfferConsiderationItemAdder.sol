@@ -107,9 +107,10 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         );
     }
 
-    function addErc20OfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
+    function addErc20OfferItem(
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
         addOfferItem(
             ItemType.ERC20,
             address(token1),
@@ -146,9 +147,9 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
     }
 
     ///@dev add a considerationItem to the considerationItems array
-    function addConsiderationItem(ConsiderationItem memory _considerationItem)
-        internal
-    {
+    function addConsiderationItem(
+        ConsiderationItem memory _considerationItem
+    ) internal {
         considerationItems.push(_considerationItem);
     }
 
