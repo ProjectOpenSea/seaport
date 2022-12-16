@@ -1,4 +1,4 @@
-@rari-capital/=node_modules/@rari-capital/
+@rari-capital/solmate=lib/solmate/
 ds-test/=lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 murky/=lib/murky/src/
