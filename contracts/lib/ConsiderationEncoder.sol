@@ -18,6 +18,13 @@ import {
 import "./PointerLibraries.sol";
 
 contract ConsiderationEncoder {
+    /**
+     * @dev Takes a bytes array and casts it to a memory pointer.
+     *
+     * @param obj A bytes array in memory.
+     *
+     * @return ptr A memory pointer to the start of the bytes array in memory.
+     */
     function toMemoryPointer(
         bytes memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -26,6 +33,14 @@ contract ConsiderationEncoder {
         }
     }
 
+    /**
+     * @dev Takes an array of bytes32 types and casts it to a memory pointer.
+     *
+     * @param obj An array of bytes32 types in memory.
+     *
+     * @return ptr A memory pointer to the start of the array of bytes32 types
+     *             in memory.
+     */
     function toMemoryPointer(
         bytes32[] memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -34,77 +49,125 @@ contract ConsiderationEncoder {
         }
     }
 
-    function abi_encode_bytes(
+    /**
+     * @dev Takes a bytes array in memory and copies it to a new location in
+     *      memory.
+     *
+     * @param src A memory pointer referencing the bytes array to be copied (and
+     *            pointing to the length of the bytes array).
+     * @param src A memory pointer referencing the location in memory to copy
+     *            the bytes array to (and pointing to the length of the copied
+     *            bytes array).
+     *
+     * @return size The size of the bytes array.
+     */
+    function _encodeBytes(
         MemoryPointer src,
         MemoryPointer dst
     ) internal view returns (uint256 size) {
         unchecked {
+            // Mask the length of the bytes array to protect against overflow
+            // and round up to the nearest word.
             size =
                 ((src.readUint256() & OffsetOrLengthMask) + AlmostTwoWords) &
                 OnlyFullWordMask;
+
+            // Copy the bytes array to the new memory location.
             src.copy(dst, size);
         }
     }
 
-    function abi_encode_generateOrder(
+    /**
+     * @dev Takes an OrderParameters struct and a context bytes array in memory
+     *      and encodes it as `generateOrder` calldata.
+     *
+     * @param orderParameters The OrderParameters struct used to construct the
+     *                        encoded `generateOrder` calldata.
+     * @param context         The context bytes array used to construct the
+     *                        encoded `generateOrder` calldata.
+     *
+     * @return dst  A memory pointer referencing the encoded `generateOrder`
+     *              calldata.
+     * @return size The size of the bytes array.
+     */
+    function _encodeGenerateOrder(
         OrderParameters memory orderParameters,
         bytes memory context
     ) internal view returns (MemoryPointer dst, uint256 size) {
+        // Get the memory pointer for the OrderParameters struct.
         MemoryPointer src = orderParameters.toMemoryPointer();
 
-        // Get free memory pointer to write calldata to
+        // Get free memory pointer to write calldata to.
         dst = getFreeMemoryPointer();
 
-        // Write generateOrder selector and get pointer to start of calldata
+        // Write generateOrder selector and get pointer to start of calldata.
         dst.write(generateOrder_selector);
         dst = dst.offset(generateOrder_selector_offset);
 
-        // Get pointer to the beginning of the encoded data
+        // Get pointer to the beginning of the encoded data.
         MemoryPointer dstHead = dst.offset(generateOrder_head_offset);
 
-        // Write `fulfiller` to calldata
+        // Write `fulfiller` to calldata.
         dstHead.write(msg.sender);
+
+        // Initialize tail offset, used to populate the minimumReceived array.
         uint256 tailOffset = generateOrder_base_tail_offset;
 
+        // Write offset to minimumReceived.
+        dstHead.offset(generateOrder_minimumReceived_head_offset).write(
+            tailOffset
+        );
+
+        // Get memory pointer to orderParameters.offer.length
+        MemoryPointer srcOfferPointer = src
+            .offset(OrderParameters_offer_head_offset)
+            .readMemoryPointer();
+
+        // Encode the offer array as SpentItem[]
+        uint256 minimumReceivedSize = abi_encode_as_dyn_array_SpentItem(
+            srcOfferPointer,
+            dstHead.offset(tailOffset)
+        );
+
         unchecked {
-            // Write offset to minimumReceived
-            dstHead.offset(generateOrder_minimumReceived_head_offset).write(
-                tailOffset
-            );
-            // Get pointer to orderParameters.offer.length
-            MemoryPointer srcOfferPointer = src
-                .offset(OrderParameters_offer_head_offset)
-                .readMemoryPointer();
-            // Encode the offer array as SpentItem[]
-            uint256 minimumReceivedSize = abi_encode_as_dyn_array_SpentItem(
-                srcOfferPointer,
-                dstHead.offset(tailOffset)
-            );
+            // Increment tail offset, now used to populate maximumSpent array.
             tailOffset += minimumReceivedSize;
 
-            // Write offset to maximumSpent
+            // Write offset to maximumSpent.
             dstHead.offset(generateOrder_maximumSpent_head_offset).write(
                 tailOffset
             );
+
+            // Get memory pointer to orderParameters.consideration.length
             MemoryPointer srcConsiderationPointer = src
                 .offset(OrderParameters_consideration_head_offset)
                 .readMemoryPointer();
+
             // Encode the consideration array as SpentItem[]
             uint256 maximumSpentSize = abi_encode_as_dyn_array_SpentItem(
                 srcConsiderationPointer,
                 dstHead.offset(tailOffset)
             );
+
+            // Increment tail offset, now used to populate context array.
             tailOffset += maximumSpentSize;
 
-            // Write offset to context
+            // Write offset to context.
             dstHead.offset(generateOrder_context_head_offset).write(tailOffset);
+
+            // Get memory pointer to context.
             MemoryPointer srcContext = toMemoryPointer(context);
-            uint256 contextSize = abi_encode_bytes(
+
+            // Encode context as a bytes array.
+            uint256 contextSize = _encodeBytes(
                 srcContext,
                 dstHead.offset(tailOffset)
             );
+
+            // Increment the tail offset, now used to determine final size.
             tailOffset += contextSize;
 
+            // Derive the final size by including the selector.
             size = 4 + tailOffset;
         }
     }
@@ -169,7 +232,7 @@ contract ConsiderationEncoder {
             // Write offset to context
             dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
             // Encode context
-            uint256 contextSize = abi_encode_bytes(
+            uint256 contextSize = _encodeBytes(
                 toMemoryPointer(context),
                 dstHead.offset(tailOffset)
             );
@@ -270,7 +333,7 @@ contract ConsiderationEncoder {
                 tailOffset
             );
             // Copy extraData
-            uint256 extraDataSize = abi_encode_bytes(
+            uint256 extraDataSize = _encodeBytes(
                 toMemoryPointer(extraData),
                 dstHead.offset(tailOffset)
             );
