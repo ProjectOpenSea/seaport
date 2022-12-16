@@ -13,7 +13,8 @@ import {
 } from "./ConsiderationStructs.sol";
 
 import "./ConsiderationErrors.sol";
-import "./PointerLibraries.sol";
+
+import "../helpers/PointerLibraries.sol";
 
 import {
     CriteriaResolutionErrors

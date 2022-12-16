@@ -28,7 +28,9 @@ import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 import "./ConsiderationConstants.sol";
 
 import "./ConsiderationErrors.sol";
-import "./PointerLibraries.sol";
+
+import "../helpers/PointerLibraries.sol";
+
 import "./ConsiderationEncoder.sol";
 
 /**

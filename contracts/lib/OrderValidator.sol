@@ -26,7 +26,10 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
-import { MemoryPointer, getFreeMemoryPointer } from "./PointerLibraries.sol";
+import {
+    MemoryPointer,
+    getFreeMemoryPointer
+} from "../helpers/PointerLibraries.sol";
 
 /**
  * @title OrderValidator

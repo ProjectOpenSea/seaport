@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "./ConsiderationConstants.sol";
+
 import {
     BasicOrderParameters,
     Order,
@@ -15,7 +16,8 @@ import {
     SpentItem,
     ReceivedItem
 } from "./ConsiderationStructs.sol";
-import "./PointerLibraries.sol";
+
+import "../helpers/PointerLibraries.sol";
 
 contract ConsiderationEncoder {
     /**

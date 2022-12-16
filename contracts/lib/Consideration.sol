@@ -20,7 +20,8 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
-import "./PointerLibraries.sol";
+import "../helpers/PointerLibraries.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
