@@ -9,7 +9,10 @@ import {
     BasicOrderParameters,
     Order,
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    Fulfillment,
+    OrderParameters,
+    FulfillmentComponent
 } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BasicOrderType } from "../../contracts/lib/ConsiderationEnums.sol";
 
@@ -27,10 +30,9 @@ contract TestNewHelpersTest is BaseOrderTest {
      * this call with its relevant Context struct, and then asserts that the
      * revert bytes indicate no assertions failed.
      */
-    function test(
-        function(Context memory) external f,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external f, Context memory context)
+        internal
+    {
         try f(context) {
             fail("Test logic should have reverted with assertion status");
         } catch (bytes memory reason) {
@@ -94,18 +96,19 @@ contract TestNewHelpersTest is BaseOrderTest {
 
     function testFulfillAdvancedOrder() public {
         test(
-            this.execFulfillAdvancedorder,
+            this.execFulfillAdvancedOrder,
             Context({ seaport: consideration })
         );
         test(
-            this.execFulfillAdvancedorder,
+            this.execFulfillAdvancedOrder,
             Context({ seaport: referenceConsideration })
         );
     }
 
-    function execFulfillAdvancedorder(
-        Context memory context
-    ) external stateless {
+    function execFulfillAdvancedOrder(Context memory context)
+        external
+        stateless
+    {
         string memory label = "offerer";
         _setUpSingleOrderOfferConsiderationItems(label);
         // create a signed order - this will configure baseOrderParameters and baseOrderComponents
@@ -120,17 +123,118 @@ contract TestNewHelpersTest is BaseOrderTest {
         });
     }
 
+    function testMatchOrders() public {
+        test(this.execMatchOrders, Context({ seaport: consideration }));
+        test(
+            this.execMatchOrders,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchOrders(Context memory context) external stateless {
+        string memory label = "offerer";
+        _setUpMatchOrderOfferConsiderationItems(label);
+        // create a signed order - this will configure baseOrderParameters and baseOrderComponents
+        // we will use BaseOrderComponents to configure the BaseOrderParameters and re-use the signature
+        Order memory order = createSignedOrder(context.seaport, label);
+        (
+            Order memory mirror,
+            Fulfillment[] memory matchFulfillments
+        ) = createMirrorOrderAndFulfillments(context.seaport, order.parameters);
+
+        Order[] memory orders = new Order[](2);
+
+        orders[0] = order;
+        orders[1] = mirror;
+
+        context.seaport.matchOrders({
+            orders: orders,
+            fulfillments: matchFulfillments
+        });
+    }
+
+    function testFulfillAvailableOrders() public {
+        test(
+            this.execFulfillAvailableOrders,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execFulfillAvailableOrders,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execFulfillAvailableOrders(Context memory context)
+        external
+        stateless
+    {
+        string memory label1 = "offerer";
+        string memory label2 = "offerer 2";
+        _setUpSingleOrderOfferConsiderationItems(label1, 1);
+        // caveat: need to create order explicitly after configuring since it relies on storage that may not be cleared
+        Order memory order = createSignedOrder(context.seaport, label1);
+
+        _setUpSingleOrderOfferConsiderationItems(label2, 2);
+        Order memory order2 = createSignedOrder(context.seaport, label2);
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = order;
+        orders[1] = order2;
+        OrderParameters[] memory parameters = new OrderParameters[](2);
+        parameters[0] = order.parameters;
+        parameters[1] = order2.parameters;
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = createFulfillments(parameters);
+
+        context.seaport.fulfillAvailableOrders({
+            orders: orders,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(0),
+            maximumFulfilled: 2
+        });
+    }
+
+    function _setUpSingleOrderOfferConsiderationItems(string memory label)
+        internal
+    {
+        _setUpSingleOrderOfferConsiderationItems(label, 1);
+    }
+
     function _setUpSingleOrderOfferConsiderationItems(
-        string memory label
+        string memory label,
+        uint256 id
     ) internal {
         // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
         address offerer = makeAddrWithAllocationsAndApprovals(label);
 
-        // add a single erc20 offer item - start/end a mounts the same, defaults to token1
+        // add a single erc20 offer item - start/end amounts the same, defaults to token1
+        addErc20OfferItem({ amount: 100 });
+
+        // add a single considerationitem - defaults to test721_1
+        addErc721ConsiderationItem({
+            recipient: payable(offerer),
+            tokenId: id
+        });
+        test721_1.mint(address(this), id);
+    }
+
+    function _setUpMatchOrderOfferConsiderationItems(string memory label)
+        internal
+    {
+        // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
+        address offerer = makeAddrWithAllocationsAndApprovals(label);
+        address mirror = makeAddrWithAllocationsAndApprovals("mirror offerer");
+
+        // add a single erc20 offer item - start/end amounts the same, defaults to token1
         addErc20OfferItem({ amount: 100 });
 
         // add a single considerationitem - defaults to test721_1
         addErc721ConsiderationItem({ recipient: payable(offerer), tokenId: 1 });
-        test721_1.mint(address(this), 1);
+        test721_1.mint(mirror, 1);
     }
+
+    // function _setUpFulfillAvailableOfferConsiderationItems(string)
 }

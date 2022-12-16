@@ -28,8 +28,8 @@ import {
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestPoolOfferer } from "offerers/TestPoolOfferer.sol";
-import { TestPoolFactory } from "offerers/TestPoolFactory.sol";
+import { TestPoolOfferer } from "../TestPoolOfferer.sol";
+import { TestPoolFactory } from "../TestPoolFactory.sol";
 
 contract TestPoolFactoryImpl {
     address immutable seaport;

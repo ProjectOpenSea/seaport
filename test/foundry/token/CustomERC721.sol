@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @notice modified for testing purposes
-abstract contract ERC721 {
+abstract contract CustomERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
