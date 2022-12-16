@@ -64,7 +64,7 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
         )
     {
         // Ensure this function cannot be triggered during a reentrant call.
-        _assertNonReentrant();
+        _setReentrancyGuard();
 
         // Put the number of Seaport contracts on the stack.
         uint256 seaportContractsLength = params.seaportContracts.length;
@@ -80,9 +80,7 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
         for (uint256 i = 0; i < seaportContractsLength; ) {
             address seaport = params.seaportContracts[i];
             // Ensure the provided Seaport contract is allowed.
-            if (seaport != _SEAPORT_V1_1 && seaport != _SEAPORT_V1_2) {
-                revert SeaportNotAllowed(seaport);
-            }
+            _assertSeaportAllowed(seaport);
 
             // Put the order params on the stack.
             AdvancedOrderParams calldata orderParams = params
@@ -131,10 +129,13 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
             }
         }
 
-        // Return excess ether that may not have been used.
+        // Return excess ether that may not have been used or was sent back.
         if (address(this).balance > 0) {
             _returnExcessEther();
         }
+
+        // Clear the reentrancy guard.
+        _clearReentrancyGuard();
     }
 
     /**
@@ -142,8 +143,8 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
      *      ether sent is more than the amount required to fulfill the order.
      */
     receive() external payable {
-        // Return excess ether in the same transaction.
-        _returnExcessEther();
+        // Ensure we only receive ether from Seaport.
+        _assertSeaportAllowed(msg.sender);
     }
 
     /**
@@ -151,18 +152,15 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
      *      ether sent is more than the amount required to fulfill the order.
      */
     fallback() external payable {
-        // Return excess ether in the same transaction.
-        _returnExcessEther();
+        // Ensure we only receive ether from Seaport.
+        _assertSeaportAllowed(msg.sender);
     }
 
     /**
-     * @dev Fallback function to return excess ether, in case total amount of
+     * @dev Function to return excess ether, in case total amount of
      *      ether sent is more than the amount required to fulfill the order.
      */
     function _returnExcessEther() private {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
         // Send received funds back to msg.sender.
         (bool success, bytes memory data) = payable(msg.sender).call{
             value: address(this).balance
@@ -176,8 +174,30 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
                 data
             );
         }
+    }
 
-        // Clear the reentrancy guard.
-        _clearReentrancyGuard();
+    /**
+     * @dev Reverts if the provided Seaport contract is not allowed.
+     */
+    function _assertSeaportAllowed(address seaport) internal view {
+        if (
+            _cast(seaport == _SEAPORT_V1_1) | _cast(seaport == _SEAPORT_V1_2) ==
+            0
+        ) {
+            revert SeaportNotAllowed(seaport);
+        }
+    }
+
+    /**
+     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
+     *
+     * @param b The `bool` value to cast.
+     *
+     * @return u The `uint256` value.
+     */
+    function _cast(bool b) internal pure returns (uint256 u) {
+        assembly {
+            u := b
+        }
     }
 }

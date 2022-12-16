@@ -9,7 +9,7 @@ interface SeaportRouterErrors {
      * @dev Revert with an error if a Seaport contract is not allowed
      *      to be used through the router.
      */
-    error SeaportNotAllowed(address eaport);
+    error SeaportNotAllowed(address seaport);
 
     /**
      * @dev Revert with an error if a Seaport contract is already allowed

@@ -627,5 +627,31 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
           marketplaceContract.interface.getSighash("NoReentrantCalls")
         );
     });
+    it("Should not be able to receive ether from a non-Seaport address", async () => {
+      // Test receive(), which is triggered when set eth with no data
+      const txReceive = await owner.signTransaction({
+        to: router.address,
+        value: 1,
+        nonce: await owner.getTransactionCount(),
+        gasPrice: await provider.getGasPrice(),
+        gasLimit: 50_000,
+      });
+      await expect(provider.sendTransaction(txReceive))
+        .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
+        .withArgs(owner.address);
+
+      // Test fallback(), which is triggered when set eth with data
+      const txFallback = await owner.signTransaction({
+        to: router.address,
+        value: 1,
+        data: "0x12",
+        nonce: await owner.getTransactionCount(),
+        gasPrice: await provider.getGasPrice(),
+        gasLimit: 50_000,
+      });
+      await expect(provider.sendTransaction(txFallback))
+        .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
+        .withArgs(owner.address);
+    });
   });
 });
