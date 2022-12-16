@@ -11,6 +11,8 @@ import {
 
 import "../../contracts/lib/ConsiderationConstants.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title SignatureVerification
  * @author 0age
@@ -59,10 +61,13 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
+            // Decode signature into r, vs.
             (r, vs) = abi.decode(signature, (bytes32, bytes32));
 
+            // Decompose vs into s and v.
             s = vs & EIP2098_allButHighestBitMask;
 
+            // If the highest bit is set, v = 28, otherwise v = 27.
             v = uint8(uint256(vs >> 255)) + 27;
         } else if (signature.length == 65) {
             (r, s) = abi.decode(signature, (bytes32, bytes32));

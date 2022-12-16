@@ -482,7 +482,7 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     function isValidSignature(
         bytes32,
         bytes memory
-    ) external pure returns (bytes4) {
+    ) external pure virtual returns (bytes4) {
         return 0x1626ba7e;
     }
 
