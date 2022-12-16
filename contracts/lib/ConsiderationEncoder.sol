@@ -118,12 +118,12 @@ contract ConsiderationEncoder {
             tailOffset
         );
 
-        // Get memory pointer to orderParameters.offer.length
+        // Get memory pointer to `orderParameters.offer.length`.
         MemoryPointer srcOfferPointer = src
             .offset(OrderParameters_offer_head_offset)
             .readMemoryPointer();
 
-        // Encode the offer array as SpentItem[]
+        // Encode the offer array as a `SpentItem[]`.
         uint256 minimumReceivedSize = abi_encode_as_dyn_array_SpentItem(
             srcOfferPointer,
             dstHead.offset(tailOffset)
@@ -132,38 +132,42 @@ contract ConsiderationEncoder {
         unchecked {
             // Increment tail offset, now used to populate maximumSpent array.
             tailOffset += minimumReceivedSize;
+        }
 
-            // Write offset to maximumSpent.
-            dstHead.offset(generateOrder_maximumSpent_head_offset).write(
-                tailOffset
-            );
+        // Write offset to maximumSpent.
+        dstHead.offset(generateOrder_maximumSpent_head_offset).write(
+            tailOffset
+        );
 
-            // Get memory pointer to orderParameters.consideration.length
-            MemoryPointer srcConsiderationPointer = src
-                .offset(OrderParameters_consideration_head_offset)
-                .readMemoryPointer();
+        // Get memory pointer to `orderParameters.consideration.length`.
+        MemoryPointer srcConsiderationPointer = src
+            .offset(OrderParameters_consideration_head_offset)
+            .readMemoryPointer();
 
-            // Encode the consideration array as SpentItem[]
-            uint256 maximumSpentSize = abi_encode_as_dyn_array_SpentItem(
-                srcConsiderationPointer,
-                dstHead.offset(tailOffset)
-            );
+        // Encode the consideration array as a `SpentItem[]`.
+        uint256 maximumSpentSize = abi_encode_as_dyn_array_SpentItem(
+            srcConsiderationPointer,
+            dstHead.offset(tailOffset)
+        );
 
+        unchecked {
             // Increment tail offset, now used to populate context array.
             tailOffset += maximumSpentSize;
+        }
 
-            // Write offset to context.
-            dstHead.offset(generateOrder_context_head_offset).write(tailOffset);
+        // Write offset to context.
+        dstHead.offset(generateOrder_context_head_offset).write(tailOffset);
 
-            // Get memory pointer to context.
-            MemoryPointer srcContext = toMemoryPointer(context);
+        // Get memory pointer to context.
+        MemoryPointer srcContext = toMemoryPointer(context);
 
-            // Encode context as a bytes array.
-            uint256 contextSize = _encodeBytes(
-                srcContext,
-                dstHead.offset(tailOffset)
-            );
+        // Encode context as a bytes array.
+        uint256 contextSize = _encodeBytes(
+            srcContext,
+            dstHead.offset(tailOffset)
+        );
 
+        unchecked {
             // Increment the tail offset, now used to determine final size.
             tailOffset += contextSize;
 
@@ -172,117 +176,171 @@ contract ConsiderationEncoder {
         }
     }
 
-    function abi_encode_ratifyOrder(
+    /**
+     * @dev Takes an order hash (e.g. offerer + contract nonce in the case of
+     *      contract orders), OrderParameters struct, context bytes array, and
+     *      array of order hashes for each order included as part of the current
+     *      fulfillment and encodes it as `ratifyOrder` calldata.
+     *
+     * @param orderHash       The order hash (e.g. offerer + contract nonce).
+     * @param orderParameters The OrderParameters struct used to construct the
+     *                        encoded `ratifyOrder` calldata.
+     * @param context         The context bytes array used to construct the
+     *                        encoded `ratifyOrder` calldata.
+     * @param orderHashes     An array of bytes32 values representing the order
+     *                        hashes of all orders included as part of the
+     *                        current fulfillment.
+     *
+     * @return dst  A memory pointer referencing the encoded `ratifyOrder`
+     *              calldata.
+     * @return size The size of the bytes array.
+     */
+    function _encodeRatifyOrder(
         bytes32 orderHash, // e.g. offerer + contract nonce
         OrderParameters memory orderParameters,
         bytes memory context, // encoded based on the schemaID
         bytes32[] memory orderHashes
     ) internal view returns (MemoryPointer dst, uint256 size) {
-        // Get free memory pointer to write calldata to
+        // Get free memory pointer to write calldata to. This isn't allocated as
+        // it is only used for a single function call.
         dst = getFreeMemoryPointer();
 
-        // Write ratifyOrder selector and get pointer to start of calldata
+        // Write ratifyOrder selector and get pointer to start of calldata.
         dst.write(ratifyOrder_selector);
         dst = dst.offset(ratifyOrder_selector_offset);
 
-        // Get pointer to the beginning of the encoded data
+        // Get pointer to the beginning of the encoded data.
         MemoryPointer dstHead = dst.offset(ratifyOrder_head_offset);
 
-        // Write contractNonce to calldata
+        // Write contractNonce to calldata.
         dstHead.offset(ratifyOrder_contractNonce_offset).write(
             uint96(uint256(orderHash))
         );
 
+        // Initialize tail offset, used to populate the offer array.
         uint256 tailOffset = ratifyOrder_base_tail_offset;
         MemoryPointer src = orderParameters.toMemoryPointer();
 
+        // Write offset to `offer`.
+        dstHead.write(tailOffset);
+
+        // Get memory pointer to `orderParameters.offer.length`.
+        MemoryPointer srcOfferPointer = src
+            .offset(OrderParameters_offer_head_offset)
+            .readMemoryPointer();
+
+        // Encode the offer array as a `SpentItem[]`.
+        uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
+            srcOfferPointer,
+            dstHead.offset(tailOffset)
+        );
+
         unchecked {
-            // Write offset to `offer`
-            dstHead.write(tailOffset);
-            // Get pointer to orderParameters.offer.length
-            MemoryPointer srcOfferPointer = src
-                .offset(OrderParameters_offer_head_offset)
-                .readMemoryPointer();
-            // Encode the offer array as SpentItem[]
-            uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
-                srcOfferPointer,
-                dstHead.offset(tailOffset)
-            );
+            // Increment tail offset, now used to populate consideration array.
             tailOffset += offerSize;
         }
 
-        unchecked {
-            // Write offset to consideration
-            dstHead.offset(ratifyOrder_consideration_head_offset).write(
-                tailOffset
+        // Write offset to consideration.
+        dstHead.offset(ratifyOrder_consideration_head_offset).write(tailOffset);
+
+        // Get pointer to `orderParameters.consideration.length`.
+        MemoryPointer srcConsiderationPointer = src
+            .offset(OrderParameters_consideration_head_offset)
+            .readMemoryPointer();
+
+        // Encode the consideration array as a `ReceivedItem[]`.
+        uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
+                srcConsiderationPointer,
+                dstHead.offset(tailOffset)
             );
-            // Get pointer to orderParameters.consideration.length
-            MemoryPointer srcConsiderationPointer = src
-                .offset(OrderParameters_consideration_head_offset)
-                .readMemoryPointer();
-            // Encode the consideration array as ReceivedItem[]
-            uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
-                    srcConsiderationPointer,
-                    dstHead.offset(tailOffset)
-                );
+
+        unchecked {
+            // Increment tail offset, now used to populate context array.
             tailOffset += considerationSize;
         }
 
+        // Write offset to context.
+        dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
+
+        // Encode context.
+        uint256 contextSize = _encodeBytes(
+            toMemoryPointer(context),
+            dstHead.offset(tailOffset)
+        );
+
         unchecked {
-            // Write offset to context
-            dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
-            // Encode context
-            uint256 contextSize = _encodeBytes(
-                toMemoryPointer(context),
-                dstHead.offset(tailOffset)
-            );
+            // Increment tail offset, now used to populate orderHashes array.
             tailOffset += contextSize;
         }
 
+        // Write offset to orderHashes.
+        dstHead.offset(ratifyOrder_orderHashes_head_offset).write(tailOffset);
+
+        // Encode orderHashes.
+        uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
+            toMemoryPointer(orderHashes),
+            dstHead.offset(tailOffset),
+            32
+        );
+
         unchecked {
-            dstHead.offset(ratifyOrder_orderHashes_head_offset).write(
-                tailOffset
-            );
-            uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
-                toMemoryPointer(orderHashes),
-                dstHead.offset(tailOffset),
-                32
-            );
+            // Increment the tail offset, now used to determine final size.
             tailOffset += orderHashesSize;
 
+            // Derive the final size by including the selector.
             size = 4 + tailOffset;
         }
     }
 
-    function abi_encode_validateOrder(
+    /**
+     * @dev Takes an order hash, OrderParameters struct, extraData bytes array,
+     *      and array of order hashes for each order included as part of the
+     *      current fulfillment and encodes it as `validateOrder` calldata.
+     *
+     * @param orderHash       The order hash.
+     * @param orderParameters The OrderParameters struct used to construct the
+     *                        encoded `validateOrder` calldata.
+     * @param extraData       The extraData bytes array used to construct the
+     *                        encoded `validateOrder` calldata.
+     * @param orderHashes     An array of bytes32 values representing the order
+     *                        hashes of all orders included as part of the
+     *                        current fulfillment.
+     *
+     * @return dst  A memory pointer referencing the encoded `validateOrder`
+     *              calldata.
+     * @return size The size of the bytes array.
+     */
+    function _encodeValidateOrder(
         bytes32 orderHash,
         OrderParameters memory orderParameters,
         bytes memory extraData,
         bytes32[] memory orderHashes
     ) internal view returns (MemoryPointer dst, uint256 size) {
-        // @todo Dedupe some of this
-        // Get free memory pointer to write calldata to
-        // This isn't allocated as it is only used for a single function call
+        // Get free memory pointer to write calldata to. This isn't allocated as
+        // it is only used for a single function call.
         dst = getFreeMemoryPointer();
 
-        // Write ratifyOrder selector and get pointer to start of calldata
+        // Write ratifyOrder selector and get pointer to start of calldata.
         dst.write(validateOrder_selector);
         dst = dst.offset(validateOrder_selector_offset);
 
-        // Get pointer to the beginning of the encoded data
+        // Get pointer to the beginning of the encoded data.
         MemoryPointer dstHead = dst.offset(validateOrder_head_offset);
-        // Write offset to zoneParameters to start of calldata
+
+        // Write offset to zoneParameters to start of calldata.
         dstHead.write(validateOrder_zoneParameters_offset);
-        // Reuse `dstHead` as pointer to zoneParameters
+
+        // Reuse `dstHead` as pointer to zoneParameters.
         dstHead = dstHead.offset(validateOrder_zoneParameters_offset);
 
-        // Write orderHash and fulfiller to zoneParameters
+        // Write orderHash and fulfiller to zoneParameters.
         dstHead.writeBytes(orderHash);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
 
+        // Get the memory pointer to the order paramaters struct.
         MemoryPointer src = orderParameters.toMemoryPointer();
 
-        // Copy offerer, startTime, endTime and zoneHash to zoneParameters
+        // Copy offerer, startTime, endTime and zoneHash to zoneParameters.
         dstHead.offset(ZoneParameters_offerer_offset).write(src.readUint256());
         dstHead.offset(ZoneParameters_startTime_offset).write(
             src.offset(OrderParameters_startTime_offset).readUint256()
@@ -294,64 +352,79 @@ contract ConsiderationEncoder {
             src.offset(OrderParameters_zoneHash_offset).readUint256()
         );
 
+        // Initialize tail offset, used to populate the offer array.
         uint256 tailOffset = ZoneParameters_base_tail_offset;
 
+        // Write offset to `offer`.
+        dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
+
+        // Get pointer to `orderParameters.offer.length`.
+        MemoryPointer srcOfferPointer = src
+            .offset(OrderParameters_offer_head_offset)
+            .readMemoryPointer();
+
+        // Encode the offer array as a `SpentItem[]`.
+        uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
+            srcOfferPointer,
+            dstHead.offset(tailOffset)
+        );
+
         unchecked {
-            // Write offset to `offer`
-            dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
-            // Get pointer to orderParameters.offer.length
-            MemoryPointer srcOfferPointer = src
-                .offset(OrderParameters_offer_head_offset)
-                .readMemoryPointer();
-            // Encode the offer array as SpentItem[]
-            uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
-                srcOfferPointer,
-                dstHead.offset(tailOffset)
-            );
+            // Increment tail offset, now used to populate consideration array.
             tailOffset += offerSize;
         }
 
-        unchecked {
-            // Write offset to consideration
-            dstHead.offset(ZoneParameters_consideration_head_offset).write(
-                tailOffset
+        // Write offset to consideration.
+        dstHead.offset(ZoneParameters_consideration_head_offset).write(
+            tailOffset
+        );
+
+        // Get pointer to `orderParameters.consideration.length`.
+        MemoryPointer srcConsiderationPointer = src
+            .offset(OrderParameters_consideration_head_offset)
+            .readMemoryPointer();
+
+        // Encode the consideration array as a `ReceivedItem[]`.
+        uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
+                srcConsiderationPointer,
+                dstHead.offset(tailOffset)
             );
-            MemoryPointer srcConsiderationPointer = src
-                .offset(OrderParameters_consideration_head_offset)
-                .readMemoryPointer();
-            // Encode the consideration array as ReceivedItem[]
-            uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
-                    srcConsiderationPointer,
-                    dstHead.offset(tailOffset)
-                );
+
+        unchecked {
+            // Increment tail offset, now used to populate extraData array.
             tailOffset += considerationSize;
         }
 
+        // Write offset to extraData.
+        dstHead.offset(ZoneParameters_extraData_head_offset).write(tailOffset);
+        // Copy extraData.
+        uint256 extraDataSize = _encodeBytes(
+            toMemoryPointer(extraData),
+            dstHead.offset(tailOffset)
+        );
+
         unchecked {
-            // Write offset to extraData
-            dstHead.offset(ZoneParameters_extraData_head_offset).write(
-                tailOffset
-            );
-            // Copy extraData
-            uint256 extraDataSize = _encodeBytes(
-                toMemoryPointer(extraData),
-                dstHead.offset(tailOffset)
-            );
+            // Increment tail offset, now used to populate orderHashes array.
             tailOffset += extraDataSize;
         }
+
+        // Write offset to orderHashes.
+        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
+            tailOffset
+        );
+
+        // Encode the order hashes array.
+        uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
+            toMemoryPointer(orderHashes),
+            dstHead.offset(tailOffset),
+            32
+        );
+
         unchecked {
-            // Write offset to orderHashes
-            dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
-                tailOffset
-            );
-            // Encode the consideration array as ReceivedItem[]
-            uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
-                toMemoryPointer(orderHashes),
-                dstHead.offset(tailOffset),
-                32
-            );
+            // Increment the tail offset, now used to determine final size.
             tailOffset += orderHashesSize;
 
+            // Derive final size including selector and ZoneParameters pointer.
             size = 0x24 + tailOffset;
         }
     }

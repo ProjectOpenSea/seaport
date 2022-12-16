@@ -59,7 +59,7 @@ contract ZoneInteraction is
     ) internal {
         // Order type 2-3 require zone be caller or zone to approve.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
-            (MemoryPointer callData, uint256 size) = abi_encode_validateOrder(
+            (MemoryPointer callData, uint256 size) = _encodeValidateOrder(
                 orderHash,
                 parameters
             );
@@ -107,7 +107,7 @@ contract ZoneInteraction is
         if (
             _isRestrictedAndCallerNotZone(parameters.orderType, parameters.zone)
         ) {
-            (callData, size) = abi_encode_validateOrder(
+            (callData, size) = _encodeValidateOrder(
                 orderHash,
                 parameters,
                 advancedOrder.extraData,
@@ -116,7 +116,7 @@ contract ZoneInteraction is
             target = parameters.zone;
             errorSelector = InvalidRestrictedOrder_error_selector;
         } else if (parameters.orderType == OrderType.CONTRACT) {
-            (callData, size) = abi_encode_ratifyOrder(
+            (callData, size) = _encodeRatifyOrder(
                 orderHash,
                 parameters,
                 advancedOrder.extraData,
