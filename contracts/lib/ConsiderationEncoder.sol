@@ -429,80 +429,110 @@ contract ConsiderationEncoder {
         }
     }
 
+    /**
+     * @dev Takes an order hash and BasicOrderParameters struct (from calldata)
+     *      and encodes it as `validateOrder` calldata.
+     *
+     * @param orderHash  The order hash.
+     * @param parameters The BasicOrderParameters struct used to construct the
+     *                   encoded `validateOrder` calldata.
+     *
+     * @return dst  A memory pointer referencing the encoded `validateOrder`
+     *              calldata.
+     * @return size The size of the bytes array.
+     */
     function _encodeValidateBasicOrder(
         bytes32 orderHash,
         BasicOrderParameters calldata parameters
     ) internal view returns (MemoryPointer dst, uint256 size) {
-        // @todo Dedupe some of this
-        // Get free memory pointer to write calldata to
-        // This isn't allocated as it is only used for a single function call
+        // Get free memory pointer to write calldata to. This isn't allocated as
+        // it is only used for a single function call.
         dst = getFreeMemoryPointer();
 
-        // Write ratifyOrder selector and get pointer to start of calldata
+        // Write ratifyOrder selector and get pointer to start of calldata.
         dst.write(validateOrder_selector);
         dst = dst.offset(validateOrder_selector_offset);
 
-        // Get pointer to the beginning of the encoded data
+        // Get pointer to the beginning of the encoded data.
         MemoryPointer dstHead = dst.offset(validateOrder_head_offset);
-        // Write offset to zoneParameters to start of calldata
+
+        // Write offset to zoneParameters to start of calldata.
         dstHead.write(validateOrder_zoneParameters_offset);
-        // Reuse `dstHead` as pointer to zoneParameters
+
+        // Reuse `dstHead` as pointer to zoneParameters.
         dstHead = dstHead.offset(validateOrder_zoneParameters_offset);
 
-        // Write offerer, orderHash and fulfiller to zoneParameters
+        // Write offerer, orderHash and fulfiller to zoneParameters.
         dstHead.writeBytes(orderHash);
         dstHead.offset(ZoneParameters_offerer_offset).write(parameters.offerer);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
 
-        // Copy startTime, endTime and zoneHash to zoneParameters
+        // Copy startTime, endTime and zoneHash to zoneParameters.
         CalldataPointer.wrap(BasicOrder_startTime_cdPtr).copy(
             dstHead.offset(ZoneParameters_startTime_offset),
             0x60
         );
 
+        // Initialize tail offset, used for the offer + consideration arrays.
         uint256 tailOffset = ZoneParameters_base_tail_offset;
 
+        // Write offset to offer from event data into target calldata.
+        dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
+
+        // Write consideration offset next (located 5 words after offer).
+        dstHead.offset(ZoneParameters_consideration_head_offset).write(
+            tailOffset + 0xa0
+        );
+
+        // Retrieve the offset to the length of additional recipients.
+        uint256 additionalRecipientsLength = CalldataPointer
+            .wrap(BasicOrder_additionalRecipients_length_cdPtr)
+            .readUint256();
+
         unchecked {
-            uint256 additionalRecipientsLength = CalldataPointer
-                .wrap(BasicOrder_additionalRecipients_length_cdPtr)
-                .readUint256();
-            // Copy offer & consideration from event data into target callData.
-            // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
-            uint256 offerAndConsiderationSize = OrderFulfilled_baseDataSize +
-                (additionalRecipientsLength * ReceivedItem_size);
-            dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
-            // Consideration is 5 words after offer
-            dstHead.offset(ZoneParameters_consideration_head_offset).write(
-                tailOffset + 0xa0
-            );
+            // Derive offset to event data using base offset & total recipients.
             uint256 offerDataOffset = OrderFulfilled_offer_length_baseOffset +
                 additionalRecipientsLength *
                 OneWord;
+
+            // Derive size of offer and consideration data.
+            // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
+            uint256 offerAndConsiderationSize = OrderFulfilled_baseDataSize +
+                (additionalRecipientsLength * ReceivedItem_size);
+
+            // Copy offer and consideration data from event data to calldata.
             MemoryPointer.wrap(offerDataOffset).copy(
                 dstHead.offset(tailOffset),
                 offerAndConsiderationSize
             );
+
+            // Increment tail offset, now used to populate extraData array.
             tailOffset += offerAndConsiderationSize;
         }
+
+        // Write empty bytes for extraData.
+        dstHead.offset(ZoneParameters_extraData_head_offset).write(tailOffset);
+        dstHead.offset(tailOffset).write(0);
+
         unchecked {
-            // Write empty bytes for extraData
-            dstHead.offset(ZoneParameters_extraData_head_offset).write(
-                tailOffset
-            );
-            dstHead.offset(tailOffset).write(0);
+            // Increment tail offset, now used to populate orderHashes array.
             tailOffset += 32;
         }
 
-        unchecked {
-            // Write offset to orderHashes
-            dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
-                tailOffset
-            );
-            dstHead.offset(tailOffset).write(1);
-            dstHead.offset(tailOffset + 32).writeBytes(orderHash);
-            tailOffset += 64;
+        // Write offset to orderHashes.
+        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
+            tailOffset
+        );
 
-            size = 0x24 + tailOffset;
+        // Write length = 1 to the orderHashes array.
+        dstHead.offset(tailOffset).write(1);
+
+        unchecked {
+            // Write the single order hash to the orderHashes array.
+            dstHead.offset(tailOffset + 32).writeBytes(orderHash);
+
+            // Final size: selector, ZoneParameters pointer, orderHashes & tail.
+            size = 0x64 + tailOffset;
         }
     }
 
