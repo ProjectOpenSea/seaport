@@ -366,7 +366,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         {
             address offerer = orderParameters.offerer;
             bool success;
-            (MemoryPointer cdPtr, uint256 size) = abi_encode_generateOrder(
+            (MemoryPointer cdPtr, uint256 size) = _encodeGenerateOrder(
                 orderParameters,
                 context
             );
