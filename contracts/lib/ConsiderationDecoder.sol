@@ -16,8 +16,10 @@ import {
     ConsiderationItem,
     ReceivedItem
 } from "./ConsiderationStructs.sol";
+
 import "./ConsiderationConstants.sol";
-import "./PointerLibraries.sol";
+
+import "../helpers/PointerLibraries.sol";
 
 contract ConsiderationDecoder {
     uint256 constant BasicOrderParameters_head_size = 0x0240;
