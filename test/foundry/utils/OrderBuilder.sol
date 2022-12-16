@@ -53,6 +53,20 @@ contract OrderBuilder is OfferConsiderationItemAdder {
             });
     }
 
+    function toAdvancedOrder(
+        Order memory order,
+        bytes memory extraData
+    ) internal pure returns (AdvancedOrder memory) {
+        return
+            AdvancedOrder({
+                parameters: order.parameters,
+                numerator: 1,
+                denominator: 1,
+                signature: order.signature,
+                extraData: extraData
+            });
+    }
+
     function createMirrorOrderAndFulfillments(
         ConsiderationInterface _consideration,
         OrderParameters memory order1
@@ -211,8 +225,11 @@ contract OrderBuilder is OfferConsiderationItemAdder {
             );
         baseOrderParameters.offerer = offerer;
         baseOrderParameters.zone = originalParameters.zone;
-        baseOrderParameters.offer = newOffer;
-        baseOrderParameters.consideration = newConsideration;
+        setOfferItems(baseOrderParameters.offer, newOffer);
+        setConsiderationItems(
+            baseOrderParameters.consideration,
+            newConsideration
+        );
         baseOrderParameters.orderType = originalParameters.orderType;
         baseOrderParameters.startTime = originalParameters.startTime;
         baseOrderParameters.endTime = originalParameters.endTime;
