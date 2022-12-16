@@ -237,7 +237,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -300,7 +300,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -360,7 +360,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -427,7 +427,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -489,7 +489,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -532,7 +532,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicErc20To1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -560,7 +560,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicEthTo1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -590,7 +590,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicEthTo721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -617,7 +617,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicErc20To721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -711,7 +711,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             .ERC20_TO_ERC721_FULL_OPEN;
     }
 
-    function _configureOrderComponents(
+    function configureOrderComponents(
         address zone,
         bytes32 zoneHash,
         uint256 salt,

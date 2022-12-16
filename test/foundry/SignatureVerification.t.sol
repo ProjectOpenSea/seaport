@@ -103,7 +103,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
 
         // create order where alice is offerer, but signer is *BOB*
         configureOrderParameters(alice);
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
         bytes memory signature = signOrder(consideration, bobPk, orderHash);
 
@@ -151,7 +151,7 @@ contract ReferenceSignatureVerifierLogic is
 
         // create order where alice is offerer, but signer is *BOB*
         configureOrderParameters(alice);
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
         bytes memory signature = signOrder(consideration, bobPk, orderHash);
 
@@ -175,7 +175,7 @@ contract ReferenceSignatureVerifierLogic is
 
         // create order where alice is offerer, but signature is too long.
         configureOrderParameters(alice);
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
         bytes memory signature = new bytes(69);
 

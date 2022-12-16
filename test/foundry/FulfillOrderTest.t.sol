@@ -157,7 +157,7 @@ contract FulfillOrderTest is BaseOrderTest {
     function noNativeOfferItems(Context memory context) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -677,7 +677,7 @@ contract FulfillOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(bob));
+        configureOrderComponents(context.consideration.getCounter(bob));
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );

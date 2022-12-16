@@ -128,6 +128,14 @@ contract TestTokenMinter is
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
     }
 
+    function makeAddrWithAllocationsAndApprovals(
+        string memory label
+    ) internal returns (address) {
+        address addr = makeAddr(label);
+        allocateTokensAndApprovals(addr, uint128(MAX_INT));
+        return addr;
+    }
+
     function mintErc721TokenTo(address to, uint256 id) internal {
         mintErc721TokenTo(to, test721_1, id);
     }

@@ -94,7 +94,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -158,7 +158,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -229,7 +229,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -303,7 +303,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -420,7 +420,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         // configure order components for signing
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -495,7 +495,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.endTime = 101;
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -573,7 +573,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     //     });
     //     baseOrderParameters.orderType = OrderType.CONTRACT;
 
-    //     _configureOrderComponents(0);
+    //     configureOrderComponents(0);
 
     //     AdvancedOrder memory order = AdvancedOrder({
     //         parameters: baseOrderParameters,
@@ -688,7 +688,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             useConduit: false
         });
 
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -713,20 +713,5 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }
-    }
-
-    function createFulfillmentFromComponentsAndAddToFulfillments(
-        FulfillmentComponent memory _offer,
-        FulfillmentComponent memory _consideration
-    ) internal {
-        delete offerComponents;
-        delete considerationComponents;
-        // add second offer item from second order
-        offerComponents.push(_offer);
-        // match to first order's second consideration item
-        considerationComponents.push(_consideration);
-        fulfillment.offerComponents = offerComponents;
-        fulfillment.considerationComponents = considerationComponents;
-        fulfillments.push(fulfillment);
     }
 }

@@ -147,15 +147,6 @@ contract BadOffererTest is BaseOrderTest {
         });
     }
 
-    function addSingleFulfillmentComponentsTo(
-        FulfillmentComponent memory component,
-        FulfillmentComponent[][] storage target
-    ) internal {
-        delete fulfillmentComponents;
-        fulfillmentComponents.push(component);
-        target.push(fulfillmentComponents);
-    }
-
     function configureFulfillmentComponents() internal {
         addSingleFulfillmentComponentsTo(
             FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
@@ -229,7 +220,7 @@ contract BadOffererTest is BaseOrderTest {
         addErc20ConsiderationItem(payable(offerer), 100);
         addErc721OfferItem(201);
         configureOrderParameters(offerer);
-        _configureOrderComponents(0);
+        configureOrderComponents(0);
         bytes32 orderHash = context.seaport.getOrderHash(baseOrderComponents);
         bytes memory signature = signOrder(context.seaport, pkey, orderHash);
 

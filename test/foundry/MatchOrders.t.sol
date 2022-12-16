@@ -123,7 +123,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         test(
             this.matchOrdersSingleErc721OfferSingleEthConsideration,
             Context(consideration, inputs)
@@ -197,7 +197,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -226,7 +226,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -255,7 +255,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -284,7 +284,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -312,7 +312,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.salt,
             context.args.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(bob));
+        configureOrderComponents(consideration.getCounter(bob));
         bytes memory baseSignature = signOrder(
             context.consideration,
             bobPk,
