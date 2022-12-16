@@ -124,7 +124,7 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 minimumReceivedSize = abi_encode_as_dyn_array_SpentItem(
+        uint256 minimumReceivedSize = _encodeSpentItems(
             srcOfferPointer,
             dstHead.offset(tailOffset)
         );
@@ -145,7 +145,7 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the consideration array as a `SpentItem[]`.
-        uint256 maximumSpentSize = abi_encode_as_dyn_array_SpentItem(
+        uint256 maximumSpentSize = _encodeSpentItems(
             srcConsiderationPointer,
             dstHead.offset(tailOffset)
         );
@@ -230,7 +230,7 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
+        uint256 offerSize = _encodeSpentItems(
             srcOfferPointer,
             dstHead.offset(tailOffset)
         );
@@ -249,10 +249,10 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the consideration array as a `ReceivedItem[]`.
-        uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
-                srcConsiderationPointer,
-                dstHead.offset(tailOffset)
-            );
+        uint256 considerationSize = _encodeConsiderationAsReceivedItems(
+            srcConsiderationPointer,
+            dstHead.offset(tailOffset)
+        );
 
         unchecked {
             // Increment tail offset, now used to populate context array.
@@ -277,10 +277,9 @@ contract ConsiderationEncoder {
         dstHead.offset(ratifyOrder_orderHashes_head_offset).write(tailOffset);
 
         // Encode orderHashes.
-        uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
+        uint256 orderHashesSize = _encodeOrderHashes(
             toMemoryPointer(orderHashes),
-            dstHead.offset(tailOffset),
-            32
+            dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -364,7 +363,7 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 offerSize = abi_encode_as_dyn_array_SpentItem(
+        uint256 offerSize = _encodeSpentItems(
             srcOfferPointer,
             dstHead.offset(tailOffset)
         );
@@ -385,10 +384,10 @@ contract ConsiderationEncoder {
             .readMemoryPointer();
 
         // Encode the consideration array as a `ReceivedItem[]`.
-        uint256 considerationSize = abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
-                srcConsiderationPointer,
-                dstHead.offset(tailOffset)
-            );
+        uint256 considerationSize = _encodeConsiderationAsReceivedItems(
+            srcConsiderationPointer,
+            dstHead.offset(tailOffset)
+        );
 
         unchecked {
             // Increment tail offset, now used to populate extraData array.
@@ -414,10 +413,9 @@ contract ConsiderationEncoder {
         );
 
         // Encode the order hashes array.
-        uint256 orderHashesSize = abi_encode_dyn_array_fixed_member(
+        uint256 orderHashesSize = _encodeOrderHashes(
             toMemoryPointer(orderHashes),
-            dstHead.offset(tailOffset),
-            32
+            dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -536,37 +534,79 @@ contract ConsiderationEncoder {
         }
     }
 
-    function abi_encode_dyn_array_fixed_member(
+    /**
+     * @dev Takes a memory pointer to an array of bytes32 values representing
+     *      the order hashes included as part of the fulfillment and a memory
+     *      pointer to a location to copy it to, and copies the source data to
+     *      the destination in memory.
+     *
+     * @param srcLength A memory pointer referencing the order hashes array to
+     *                  be copied (and pointing to the length of the array).
+     * @param dstLength A memory pointer referencing the location in memory to
+     *                  copy the orderHashes array to (and pointing to the
+     *                  length of the copied array).
+     *
+     * @return size The size of the order hashes array (including the length).
+     */
+    function _encodeOrderHashes(
         MemoryPointer srcLength,
-        MemoryPointer dstLength,
-        uint256 calldataStride
+        MemoryPointer dstLength
     ) internal view returns (uint256 size) {
+        // Read length of the array from source and write to destination.
         uint256 length = srcLength.readUint256();
         dstLength.write(length);
+
         unchecked {
-            uint256 headSize = length * 32;
-            uint256 tailSize = calldataStride * length;
-            srcLength.next().offset(headSize).copy(dstLength.next(), tailSize);
-            size = tailSize + 32;
+            // Determine head & tail size as one word per element in the array.
+            uint256 headAndTailSize = length * 32;
+
+            // Copy the tail starting from the next element of the source to the
+            // next element of the destination.
+            srcLength.next().offset(headAndTailSize).copy(
+                dstLength.next(),
+                headAndTailSize
+            );
+
+            // Set size to the length of the tail plus one word for length.
+            size = headAndTailSize + 32;
         }
     }
 
-    function abi_encode_as_dyn_array_SpentItem(
+    /**
+     * @dev Takes a memory pointer to an offer or consideration array and a
+     *      memory pointer to a location to copy it to, and copies the source
+     *      data to the destination in memory as a SpentItem array.
+     *
+     * @param srcLength A memory pointer referencing the offer or consideration
+     *                  array to be copied as a SpentItem array (and pointing to
+     *                  the length of the original array).
+     * @param dstLength A memory pointer referencing the location in memory to
+     *                  copy the offer array to (and pointing to the length of
+     *                  the copied array).
+     *
+     * @return size The size of the SpentItem array (including the length).
+     */
+    function _encodeSpentItems(
         MemoryPointer srcLength,
         MemoryPointer dstLength
     ) internal pure returns (uint256 size) {
         assembly {
+            // Read length of the array from source and write to destination.
             let length := mload(srcLength)
             mstore(dstLength, length)
 
-            // Get pointer to first item's head position in the array, containing
-            // the item's pointer in memory. The head pointer will be incremented
-            // until it reaches the tail position (start of the array data).
+            // Get pointer to first item's head position in the array,
+            // containing the item's pointer in memory. The head pointer will be
+            // incremented until it reaches the tail position (start of the
+            // array data).
             let mPtrHead := add(srcLength, 0x20)
-            // Position in memory to write next item for calldata. Since SpentItem
-            // has a fixed length, the array elements do not contain head elements in
-            // calldata, they are concatenated together after the array length.
+
+            // Position in memory to write next item for calldata. Since
+            // SpentItem has a fixed length, the array elements do not contain
+            // head elements in calldata, they are concatenated together after
+            // the array length.
             let cdPtrData := add(dstLength, 0x20)
+
             // Pointer to end of array head in memory.
             let mPtrHeadEnd := add(mPtrHead, mul(length, 0x20))
 
@@ -575,9 +615,10 @@ contract ConsiderationEncoder {
             } lt(mPtrHead, mPtrHeadEnd) {
 
             } {
-                // Read pointer to data for the array element from its head position
+                // Read pointer to data for array element from head position.
                 let mPtrTail := mload(mPtrHead)
-                // Copy the itemType, token, identifier, amount from the item to calldata
+
+                // Copy itemType, token, identifier, amount to calldata.
                 mstore(cdPtrData, mload(mPtrTail))
                 mstore(
                     add(cdPtrData, Common_token_offset),
@@ -595,26 +636,45 @@ contract ConsiderationEncoder {
                 mPtrHead := add(mPtrHead, 0x20)
                 cdPtrData := add(cdPtrData, SpentItem_size)
             }
+
             size := add(0x20, mul(length, SpentItem_size))
         }
     }
 
-    function abi_encode_dyn_array_ConsiderationItem_as_dyn_array_ReceivedItem(
+    /**
+     * @dev Takes a memory pointer to an consideration array and a memory
+     *      pointer to a location to copy it to, and copies the source data to
+     *      the destination in memory as a ReceivedItem array.
+     *
+     * @param srcLength A memory pointer referencing the consideration array to
+     *                  be copied as a ReceivedItem array (and pointing to the
+     *                  length of the original array).
+     * @param dstLength A memory pointer referencing the location in memory to
+     *                  copy the consideration array to as a ReceivedItem array
+     *                  (and pointing to the length of the new array).
+     *
+     * @return size The size of the ReceivedItem array (including the length).
+     */
+    function _encodeConsiderationAsReceivedItems(
         MemoryPointer srcLength,
         MemoryPointer dstLength
     ) internal view returns (uint256 size) {
         unchecked {
+            // Read length of the array from source and write to destination.
             uint256 length = srcLength.readUint256();
             dstLength.write(length);
 
-            // Get pointer to first item's head position in the array, containing
-            // the item's pointer in memory. The head pointer will be incremented
-            // until it reaches the tail position (start of the array data).
+            // Get pointer to first item's head position in the array,
+            // containing the item's pointer in memory. The head pointer will be
+            // incremented until it reaches the tail position (start of the
+            // array data).
             MemoryPointer srcHead = srcLength.next();
             MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
-            // Position in memory to write next item for calldata. Since ReceivedItem
-            // has a fixed length, the array elements do not contain offsets in
-            // calldata, they are concatenated together after the array length.
+
+            // Position in memory to write next item for calldata. Since
+            // ReceivedItem has a fixed length, the array elements do not
+            // contain offsets in calldata, they are concatenated together after
+            // the array length.
             MemoryPointer dstHead = dstLength.next();
             while (srcHead.lt(srcHeadEnd)) {
                 MemoryPointer srcTail = srcHead.pptr();
@@ -622,6 +682,7 @@ contract ConsiderationEncoder {
                 srcHead = srcHead.next();
                 dstHead = dstHead.offset(ReceivedItem_size);
             }
+
             size = 32 + (length * ReceivedItem_size);
         }
     }
