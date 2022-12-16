@@ -17,7 +17,6 @@ import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
 
-
 interface GetterAndDeriver {
     function deriveOrderHash(
         OrderParameters memory orderParameters,

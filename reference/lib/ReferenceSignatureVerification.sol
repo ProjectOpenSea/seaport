@@ -11,8 +11,6 @@ import {
 
 import "../../contracts/lib/ConsiderationConstants.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title SignatureVerification
  * @author 0age
