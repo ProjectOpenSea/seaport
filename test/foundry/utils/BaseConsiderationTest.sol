@@ -89,7 +89,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         // or when FOUNDRY_PROFILE is "debug" for debugging with source maps
         // deploys from precompiled source when both are false
         coverage_or_debug = debugEnabled();
-        emit log_named_uint("coverage_or_debug", coverage_or_debug ? 1 : 0);
 
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         _deployAndConfigurePrecompiledOptimizedConsideration();

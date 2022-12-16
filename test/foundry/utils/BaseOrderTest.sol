@@ -26,11 +26,11 @@ import {
     OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
-import { OrderSigner } from "./OrderSigner.sol";
+import { OrderBuilder } from "./OrderBuilder.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
-contract BaseOrderTest is OrderSigner, AmountDeriver {
+contract BaseOrderTest is OrderBuilder, AmountDeriver {
     using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;

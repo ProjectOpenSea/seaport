@@ -11,7 +11,8 @@ import {
     OfferItem,
     ConsiderationItem,
     Fulfillment,
-    FulfillmentComponent
+    FulfillmentComponent,
+    AdvancedOrder
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 import {
     OrderType,
@@ -21,7 +22,7 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
-contract OrderSigner is OfferConsiderationItemAdder {
+contract OrderBuilder is OfferConsiderationItemAdder {
     uint256 internal globalSalt;
 
     FulfillmentComponent[] offerComponents;
@@ -38,6 +39,19 @@ contract OrderSigner is OfferConsiderationItemAdder {
 
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
+
+    function toAdvancedOrder(
+        Order memory order
+    ) internal pure returns (AdvancedOrder memory) {
+        return
+            AdvancedOrder({
+                parameters: order.parameters,
+                numerator: 1,
+                denominator: 1,
+                signature: order.signature,
+                extraData: ""
+            });
+    }
 
     function createMirrorOrderAndFulfillments(
         ConsiderationInterface _consideration,
@@ -388,6 +402,17 @@ contract OrderSigner is OfferConsiderationItemAdder {
         Order memory _order,
         BasicOrderType basicOrderType
     ) internal pure returns (BasicOrderParameters memory) {
+        AdditionalRecipient[]
+            memory additionalRecipients = new AdditionalRecipient[](
+                _order.parameters.consideration.length - 1
+            );
+        for (uint256 i = 1; i < _order.parameters.consideration.length; i++) {
+            additionalRecipients[i - 1] = AdditionalRecipient({
+                recipient: _order.parameters.consideration[i].recipient,
+                amount: _order.parameters.consideration[i].startAmount
+            });
+        }
+
         return
             BasicOrderParameters(
                 _order.parameters.consideration[0].token,
@@ -405,8 +430,8 @@ contract OrderSigner is OfferConsiderationItemAdder {
                 _order.parameters.salt,
                 _order.parameters.conduitKey,
                 _order.parameters.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
+                _order.parameters.totalOriginalConsiderationItems - 1,
+                additionalRecipients,
                 _order.signature
             );
     }
