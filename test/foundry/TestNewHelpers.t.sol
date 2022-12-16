@@ -207,8 +207,6 @@ contract TestNewHelpersTest is BaseOrderTest {
         string memory label,
         uint256 id
     ) internal {
-        delete offerItems;
-        delete considerationItems;
         // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
         address offerer = makeAddrWithAllocationsAndApprovals(label);
 
