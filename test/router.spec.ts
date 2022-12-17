@@ -628,20 +628,20 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         );
     });
     it("Should not be able to receive ether from a non-Seaport address", async () => {
-      // Test receive(), which is triggered when set eth with no data
-      const txReceive = await owner.signTransaction({
+      // Test receive(), which is triggered when sent eth with no data
+      const txTriggerReceive = await owner.signTransaction({
         to: router.address,
         value: 1,
         nonce: await owner.getTransactionCount(),
         gasPrice: await provider.getGasPrice(),
         gasLimit: 50_000,
       });
-      await expect(provider.sendTransaction(txReceive))
+      await expect(provider.sendTransaction(txTriggerReceive))
         .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
         .withArgs(owner.address);
 
-      // Test fallback(), which is triggered when set eth with data
-      const txFallback = await owner.signTransaction({
+      // Test fallback(), which is triggered when sent eth with data
+      const txTriggerFallback = await owner.signTransaction({
         to: router.address,
         value: 1,
         data: "0x12",
@@ -649,9 +649,33 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         gasPrice: await provider.getGasPrice(),
         gasLimit: 50_000,
       });
-      await expect(provider.sendTransaction(txFallback))
+      await expect(provider.sendTransaction(txTriggerFallback))
         .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
         .withArgs(owner.address);
+
+      // Test receive() and fallback() impersonating as Seaport
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [marketplaceContract.address],
+      });
+
+      const seaportSigner = await ethers.getSigner(marketplaceContract.address);
+      await faucet(marketplaceContract.address, provider);
+
+      await seaportSigner.sendTransaction({ to: router.address, value: 1 });
+      expect((await provider.getBalance(router.address)).toNumber()).to.eq(1);
+
+      await seaportSigner.sendTransaction({
+        to: router.address,
+        value: 1,
+        data: "0x12",
+      });
+      expect((await provider.getBalance(router.address)).toNumber()).to.eq(2);
+
+      await network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [marketplaceContract.address],
+      });
     });
   });
 });
