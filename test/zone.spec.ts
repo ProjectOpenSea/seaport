@@ -1,3 +1,4 @@
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
@@ -70,20 +71,20 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
   let buyer: Wallet;
   let seller: Wallet;
 
-  let buyerContract: EIP1271Wallet;
-  let sellerContract: EIP1271Wallet;
-
-  beforeEach(async () => {
+  async function setupFixture() {
     // Setup basic buyer/seller wallets with ETH
-    seller = new ethers.Wallet(randomHex(32), provider);
-    buyer = new ethers.Wallet(randomHex(32), provider);
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
 
-    sellerContract = await EIP1271WalletFactory.deploy(seller.address);
-    buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
-
-    for (const wallet of [seller, buyer, sellerContract, buyerContract]) {
+    for (const wallet of [seller, buyer]) {
       await faucet(wallet.address, provider);
     }
+
+    return { seller, buyer };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer } = await loadFixture(setupFixture));
   });
 
   /** Create zone and get zone address */
