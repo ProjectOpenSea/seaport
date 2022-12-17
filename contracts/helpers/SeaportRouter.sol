@@ -148,15 +148,6 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
     }
 
     /**
-     * @dev Fallback function to receive excess ether, in case total amount of
-     *      ether sent is more than the amount required to fulfill the order.
-     */
-    fallback() external payable {
-        // Ensure we only receive ether from Seaport.
-        _assertSeaportAllowed(msg.sender);
-    }
-
-    /**
      * @dev Function to return excess ether, in case total amount of
      *      ether sent is more than the amount required to fulfill the order.
      */

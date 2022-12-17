@@ -640,20 +640,7 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
         .withArgs(owner.address);
 
-      // Test fallback(), which is triggered when sent eth with data
-      const txTriggerFallback = await owner.signTransaction({
-        to: router.address,
-        value: 1,
-        data: "0x12",
-        nonce: await owner.getTransactionCount(),
-        gasPrice: await provider.getGasPrice(),
-        gasLimit: 50_000,
-      });
-      await expect(provider.sendTransaction(txTriggerFallback))
-        .to.be.revertedWithCustomError(router, "SeaportNotAllowed")
-        .withArgs(owner.address);
-
-      // Test receive() and fallback() impersonating as Seaport
+      // Test receive() impersonating as Seaport
       await network.provider.request({
         method: "hardhat_impersonateAccount",
         params: [marketplaceContract.address],
@@ -664,13 +651,6 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
 
       await seaportSigner.sendTransaction({ to: router.address, value: 1 });
       expect((await provider.getBalance(router.address)).toNumber()).to.eq(1);
-
-      await seaportSigner.sendTransaction({
-        to: router.address,
-        value: 1,
-        data: "0x12",
-      });
-      expect((await provider.getBalance(router.address)).toNumber()).to.eq(2);
 
       await network.provider.request({
         method: "hardhat_stopImpersonatingAccount",
