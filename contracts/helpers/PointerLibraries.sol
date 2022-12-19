@@ -23,18 +23,18 @@ uint256 constant OffsetOrLengthMask = 0xffffffff;
 
 /// @dev Allocates `size` bytes in memory by increasing the free memory pointer
 ///    and returns the memory pointer to the first byte of the allocated region.
-function malloc(uint256 size) internal pure returns (MemoryPointer mPtr) {
+function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
     assembly {
         mPtr := mload(0x40)
         mstore(0x40, add(mPtr, size))
     }
 }
 
-function getFreeMemoryPointer() internal pure returns (MemoryPointer mPtr) {
+function getFreeMemoryPointer() pure returns (MemoryPointer mPtr) {
     mPtr = FreeMemoryPPtr.readMemoryPointer();
 }
 
-function setFreeMemoryPointer(MemoryPointer mPtr) internal pure {
+function setFreeMemoryPointer(MemoryPointer mPtr) pure {
     FreeMemoryPPtr.write(mPtr);
 }
 
