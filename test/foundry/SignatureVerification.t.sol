@@ -494,9 +494,7 @@ contract SignatureVerificationTest is BaseOrderTest {
         logic.signatureVerification65ByteJunkWithBadSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         logic.signatureVerification65ByteJunkWithAcceptableSignatureV();
-        // Inconsistency between the reference and the implementation.
-        // vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
-        vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         logic.signatureVerification64ByteJunk();
         vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
         logic.signatureVerificationTooLong();
@@ -508,6 +506,7 @@ contract SignatureVerificationTest is BaseOrderTest {
             );
         // Inconsistency between the reference and the implementation.
         // vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        // Might be better to have reference do `BadContractSignature()`, too.
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Override.signatureVerification1271Invalid();
 
