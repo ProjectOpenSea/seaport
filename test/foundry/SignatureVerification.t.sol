@@ -173,9 +173,6 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         );
     }
     
-
-    // THIS IS A WEIRD ONE.  I EXPECT TO GET `InvalidSigner` LIKE IN THE
-    // REFERENCE CONTRACT, BUT I GET `BadSignatureV` INSTEAD.  I'M NOT SURE WHY.
     function signatureVerification64ByteJunk() external {
         orderHash = consideration.getOrderHash(baseOrderComponents);
         signature = abi.encodePacked(bytes32(0), bytes32(0));
