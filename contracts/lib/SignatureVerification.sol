@@ -229,15 +229,21 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         }
 
                         // Check if v was invalid.
-                        if iszero(
-                            byte(
+                        if and(
+                            eq(signatureLength, ECDSA_MaxLength),
+                            iszero(
                                 byte(
-                                    0,
-                                    mload(
-                                        add(signature, ECDSA_signature_v_offset)
-                                    )
-                                ),
-                                ECDSA_twentySeventhAndTwentyEighthBytesSet
+                                    byte(
+                                        0,
+                                        mload(
+                                            add(
+                                                signature,
+                                                ECDSA_signature_v_offset
+                                            )
+                                        )
+                                    ),
+                                    ECDSA_twentySeventhAndTwentyEighthBytesSet
+                                )
                             )
                         ) {
                             // Revert with invalid v value.
