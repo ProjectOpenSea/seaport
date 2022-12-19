@@ -23,18 +23,18 @@ uint256 constant OffsetOrLengthMask = 0xffffffff;
 
 /// @dev Allocates `size` bytes in memory by increasing the free memory pointer
 ///    and returns the memory pointer to the first byte of the allocated region.
-function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
+function malloc(uint256 size) internal pure returns (MemoryPointer mPtr) {
     assembly {
         mPtr := mload(0x40)
         mstore(0x40, add(mPtr, size))
     }
 }
 
-function getFreeMemoryPointer() pure returns (MemoryPointer mPtr) {
+function getFreeMemoryPointer() internal pure returns (MemoryPointer mPtr) {
     mPtr = FreeMemoryPPtr.readMemoryPointer();
 }
 
-function setFreeMemoryPointer(MemoryPointer mPtr) pure {
+function setFreeMemoryPointer(MemoryPointer mPtr) internal pure {
     FreeMemoryPPtr.write(mPtr);
 }
 
@@ -66,9 +66,9 @@ library CalldataPointerLib {
         }
     }
 
-    /// @dev Resolves an offset stored at `cdPtr + headOffset` to a calldata pointer.
-    ///    `cdPtr` must point to some parent object with a dynamic type's head stored at
-    ///    `cdPtr + headOffset`.
+    /// @dev Resolves an offset stored at `cdPtr + headOffset` to a calldata.
+    ///      pointer `cdPtr` must point to some parent object with a dynamic
+    ///      type's head stored at `cdPtr + headOffset`.
     function pptr(
         CalldataPointer cdPtr,
         uint256 headOffset
@@ -79,8 +79,8 @@ library CalldataPointerLib {
     }
 
     /// @dev Resolves an offset stored at `cdPtr` to a calldata pointer.
-    ///    `cdPtr` must point to some parent object with a dynamic type as its first
-    ///    member, e.g. `struct { bytes data; }`
+    ///      `cdPtr` must point to some parent object with a dynamic type as its
+    ///      first member, e.g. `struct { bytes data; }`
     function pptr(
         CalldataPointer cdPtr
     ) internal pure returns (CalldataPointer cdPtrChild) {
@@ -106,7 +106,8 @@ library CalldataPointerLib {
         }
     }
 
-    /// @dev Copies `size` bytes from calldata starting at `src` to memory at `dst`.
+    /// @dev Copies `size` bytes from calldata starting at `src` to memory at
+    ///      `dst`.
     function copy(
         CalldataPointer src,
         MemoryPointer dst,
@@ -146,9 +147,9 @@ library ReturndataPointerLib {
         }
     }
 
-    /// @dev Resolves an offset stored at `rdPtr + headOffset` to a returndata pointer.
-    ///    `rdPtr` must point to some parent object with a dynamic type's head stored at
-    ///    `rdPtr + headOffset`.
+    /// @dev Resolves an offset stored at `rdPtr + headOffset` to a returndata
+    ///      pointer. `rdPtr` must point to some parent object with a dynamic
+    ///      type's head stored at `rdPtr + headOffset`.
     function pptr(
         ReturndataPointer rdPtr,
         uint256 headOffset
@@ -1177,7 +1178,7 @@ library CalldataReaders {
 }
 
 library ReturndataReaders {
-    /// @dev Reads the value at `rdPtr` and applies a mask to return only the last 4 bytes
+    /// @dev Reads value at `rdPtr` & applies a mask to return only last 4 bytes
     function readMaskedUint256(
         ReturndataPointer rdPtr
     ) internal pure returns (uint256 value) {
@@ -2175,7 +2176,7 @@ library MemoryReaders {
         }
     }
 
-    /// @dev Reads the value at `mPtr` and applies a mask to return only the last 4 bytes
+    /// @dev Reads value at `mPtr` & applies a mask to return only last 4 bytes
     function readMaskedUint256(
         MemoryPointer mPtr
     ) internal pure returns (uint256 value) {
