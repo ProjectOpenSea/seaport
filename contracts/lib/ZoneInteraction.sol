@@ -46,9 +46,9 @@ contract ZoneInteraction is
     /**
      * @dev Internal function to determine if an order has a restricted order
      *      type and, if so, to ensure that either the offerer or the zone are
-     *      the fulfiller or that a staticcall to `isValidOrder` on the zone
-     *      returns a magic value indicating that the order is currently valid.
-     *      Note that contract orders are not accessible via basic fulfillments.
+     *      the fulfiller or that a call to `validateOrder` on the zone returns
+     *      a magic value indicating that the order is currently valid. Note
+     *      that contract orders are not accessible via basic fulfillments.
      *
      * @param orderHash   The hash of the order.
      * @param orderType   The order type.
@@ -80,9 +80,7 @@ contract ZoneInteraction is
      * @dev Internal function to determine whether an order is a restricted
      *      order and, if so, to ensure that it was either submitted by the
      *      offerer or the zone for the order, or that the zone returns the
-     *      expected magic value upon performing a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` depending on whether the order
-     *      fulfillment specifies extra data or criteria resolvers.
+     *      expected magic value upon performing a call to `validateOrder`.
      *
      * @param advancedOrder     The advanced order in question.
      * @param orderHashes       The order hashes of each order supplied prior to
@@ -162,12 +160,12 @@ contract ZoneInteraction is
      *      otherwise reverting calls will throw a generic error based on the
      *      supplied error handler.
      *
-     * @param target       The address of the contract to call.
-     * @param orderHash    The hash of the order associated with the call.
-     * @param callData     The data to pass to the contract call.
-     * @param size          The size of calldata
-     * @param errorSelector The error handling function to call if the call fails
-     *                     or the magic value does not match.
+     * @param target        The address of the contract to call.
+     * @param orderHash     The hash of the order associated with the call.
+     * @param callData      The data to pass to the contract call.
+     * @param size          The size of calldata.
+     * @param errorSelector The error handling function to call if the call
+     *                      fails or the magic value does not match.
      */
     function _callAndCheckStatus(
         address target,
@@ -181,15 +179,23 @@ contract ZoneInteraction is
         assembly {
             // Clear the start of scratch space.
             mstore(0, 0)
-            // let magicValue := shr(224, mload(callData))
+
             // Perform call, placing result in the first word of scratch space.
             success := call(gas(), target, 0, callData, size, 0, OneWord)
+
+            // Get magic value from the selector at start of provided calldata.
             let magic := shr(224, mload(callData))
+
+            // Determine if the magic value matches the selector from calldata.
             magicMatch := eq(magic, shr(224, mload(0)))
         }
+
+        // Revert if the call was not successful.
         if (!success) {
             // Revert and pass reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
+
+            // If no reason was returned, revert with supplied error selector.
             assembly {
                 mstore(0, errorSelector)
                 mstore(0x20, orderHash)
@@ -197,8 +203,9 @@ contract ZoneInteraction is
             }
         }
 
+        // Revert if the correct magic value was not returned.
         if (!magicMatch) {
-            // Otherwise, revert with a generic error message.
+            // Revert with a generic error message.
             assembly {
                 mstore(0, errorSelector)
                 mstore(0x20, orderHash)
