@@ -26,7 +26,10 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
-import { MemoryPointer, getFreeMemoryPointer } from "./PointerLibraries.sol";
+import {
+    MemoryPointer,
+    getFreeMemoryPointer
+} from "../helpers/PointerLibraries.sol";
 
 /**
  * @title OrderValidator
@@ -366,7 +369,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         {
             address offerer = orderParameters.offerer;
             bool success;
-            (MemoryPointer cdPtr, uint256 size) = abi_encode_generateOrder(
+            (MemoryPointer cdPtr, uint256 size) = _encodeGenerateOrder(
                 orderParameters,
                 context
             );
@@ -396,12 +399,12 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 errorBuffer,
             OfferItem[] memory offer,
             ConsiderationItem[] memory consideration
-        ) = to_tuple_dyn_array_OfferItem_dyn_array_ConsiderationItem(
-                abi_decode_generateOrder_returndata
-            )();
+        ) = _convertGetGeneratedOrderResult(_decodeGenerateOrderReturndata)();
+
         if (errorBuffer != 0) {
             return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
+
         {
             // Designate lengths.
             uint256 originalOfferLength = orderParameters.offer.length;
@@ -521,8 +524,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 }
 
                 bytes32 orderHash = _deriveOrderHash(
-                    to_OrderParameters_ReturnType(
-                        abi_decode_OrderComponents_as_OrderParameters
+                    _toOrderParametersReturnType(
+                        _decodeOrderComponentsAsOrderParameters
                     )(order.toCalldataPointer()),
                     order.counter
                 );

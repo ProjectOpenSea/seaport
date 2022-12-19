@@ -20,7 +20,8 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
-import "./PointerLibraries.sol";
+import "../helpers/PointerLibraries.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -108,7 +109,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            to_AdvancedOrder_ReturnType(abi_decode_Order_as_AdvancedOrder)(
+            _toAdvancedOrderReturnType(_decodeOrderAsAdvancedOrder)(
                 CalldataStart.pptr()
             ),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -165,12 +166,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
-            to_AdvancedOrder_ReturnType(abi_decode_AdvancedOrder)(
+            _toAdvancedOrderReturnType(_decodeAdvancedOrder)(
                 CalldataStart.pptr()
             ),
-            to_dyn_array_CriteriaResolver_ReturnType(
-                abi_decode_dyn_array_CriteriaResolver
-            )(CalldataStart.pptr(0x20)),
+            _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
+                CalldataStart.pptr(0x20)
+            ),
             fulfillerConduitKey,
             _substituteCallerForEmptyRecipient(recipient)
         );
@@ -237,15 +238,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Convert orders to "advanced" orders and fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                to_dyn_array_AdvancedOrder_ReturnType(
-                    abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()), // Convert to advanced orders.
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ), // Convert to advanced orders.
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x20)),
-                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x40)),
                 fulfillerConduitKey,
                 msg.sender,
@@ -337,17 +338,17 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                to_dyn_array_AdvancedOrder_ReturnType(
-                    abi_decode_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()),
-                to_dyn_array_CriteriaResolver_ReturnType(
-                    abi_decode_dyn_array_CriteriaResolver
-                )(CalldataStart.pptr(0x20)),
-                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
+                _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
+                    CalldataStart.pptr(0x20)
+                ),
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x40)),
-                to_dyn_array_dyn_array_FulfillmentComponent_ReturnType(
-                    abi_decode_dyn_array_dyn_array_FulfillmentComponent
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x60)),
                 fulfillerConduitKey,
                 _substituteCallerForEmptyRecipient(recipient),
@@ -386,13 +387,13 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
-                to_dyn_array_AdvancedOrder_ReturnType(
-                    abi_decode_dyn_array_Order_as_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()),
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                to_dyn_array_Fulfillment_ReturnType(
-                    abi_decode_dyn_array_Fulfillment
-                )(CalldataStart.pptr(0x20))
+                _toFulfillmentsReturnType(_decodeFulfillments)(
+                    CalldataStart.pptr(0x20)
+                )
             );
     }
 
@@ -440,15 +441,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
-                to_dyn_array_AdvancedOrder_ReturnType(
-                    abi_decode_dyn_array_AdvancedOrder
-                )(CalldataStart.pptr()),
-                to_dyn_array_CriteriaResolver_ReturnType(
-                    abi_decode_dyn_array_CriteriaResolver
-                )(CalldataStart.pptr(0x20)),
-                to_dyn_array_Fulfillment_ReturnType(
-                    abi_decode_dyn_array_Fulfillment
-                )(CalldataStart.pptr(0x40))
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
+                _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
+                    CalldataStart.pptr(0x20)
+                ),
+                _toFulfillmentsReturnType(_decodeFulfillments)(
+                    CalldataStart.pptr(0x40)
+                )
             );
     }
 
@@ -488,9 +489,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function validate(
         Order[] calldata
     ) external override returns (bool validated) {
-        Order[] memory orders = to_dyn_array_Order_ReturnType(
-            abi_decode_dyn_array_Order
-        )(CalldataStart.pptr());
+        Order[] memory orders = _toOrdersReturnType(_decodeOrders)(
+            CalldataStart.pptr()
+        );
         validated = _validate(orders);
     }
 
@@ -520,8 +521,8 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
 
         // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
-            to_OrderParameters_ReturnType(
-                abi_decode_OrderComponents_as_OrderParameters
+            _toOrderParametersReturnType(
+                _decodeOrderComponentsAsOrderParameters
             )(orderPointer),
             // Read order counter
             orderPointer.offset(OrderParameters_counter_offset).readUint256()

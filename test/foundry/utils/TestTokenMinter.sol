@@ -8,12 +8,12 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
-import { ERC721 } from "../token/ERC721.sol";
+import { CustomERC721 } from "../token/CustomERC721.sol";
 
-contract PreapprovedERC721 is ERC721 {
+contract PreapprovedERC721 is CustomERC721 {
     mapping(address => bool) public preapprovals;
 
-    constructor(address[] memory preapproved) ERC721("", "") {
+    constructor(address[] memory preapproved) CustomERC721("", "") {
         for (uint256 i = 0; i < preapproved.length; i++) {
             preapprovals[preapproved[i]] = true;
         }
@@ -126,6 +126,14 @@ contract TestTokenMinter is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+    }
+
+    function makeAddrWithAllocationsAndApprovals(
+        string memory label
+    ) internal returns (address) {
+        address addr = makeAddr(label);
+        allocateTokensAndApprovals(addr, uint128(MAX_INT));
+        return addr;
     }
 
     function mintErc721TokenTo(address to, uint256 id) internal {

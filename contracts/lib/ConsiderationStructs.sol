@@ -7,7 +7,11 @@ import {
     ItemType,
     Side
 } from "./ConsiderationEnums.sol";
-import { CalldataPointer, MemoryPointer } from "./PointerLibraries.sol";
+
+import {
+    CalldataPointer,
+    MemoryPointer
+} from "../helpers/PointerLibraries.sol";
 
 /**
  * @dev An order contains eleven components: an offerer, a zone (or account that

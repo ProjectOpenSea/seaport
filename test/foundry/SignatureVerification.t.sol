@@ -108,7 +108,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
 
         // create order where alice is offerer, but signer is *BOB*
         configureOrderParameters(alice);
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         orderHash = consideration.getOrderHash(baseOrderComponents);
         signature = signOrder(consideration, bobPk, orderHash);
 
@@ -316,7 +316,7 @@ contract ReferenceSignatureVerifierLogic is
 
         // create order where alice is offerer, but signer is *BOB*
         configureOrderParameters(alice);
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         orderHash = consideration.getOrderHash(baseOrderComponents);
         signature = signOrder(consideration, bobPk, orderHash);
 
@@ -427,7 +427,7 @@ contract ReferenceSignatureVerifierLogic is
     //     // addErc721OfferItem(1);
     //     // addEthConsiderationItem(alice, 1);
     //     configureOrderParameters(alice);
-    //     _configureOrderComponents(consideration.getCounter(alice));
+    //     configureOrderComponents(consideration.getCounter(alice));
     //     orderHash = consideration.getOrderHash(baseOrderComponents);
     //     signature = signOrder(consideration, alicePk, orderHash);
 

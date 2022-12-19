@@ -14,21 +14,31 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
 
-    function addConsiderationItem(
-        address payable recipient,
+    ///@dev Add an offer item to the offer items array
+    function addOfferItem(OfferItem memory _offerItem) internal {
+        offerItems.push(_offerItem);
+    }
+
+    ///@dev reset the offer items array
+    function resetOfferItems() internal {
+        delete offerItems;
+    }
+
+    ///@dev Construct and an offer item to the offer items array
+    function addOfferItem(
         ItemType itemType,
+        address token,
         uint256 identifier,
-        uint256 amt
+        uint256 startAmount,
+        uint256 endAmount
     ) internal {
-        if (itemType == ItemType.NATIVE) {
-            addEthConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC20) {
-            addErc20ConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC1155) {
-            addErc1155ConsiderationItem(recipient, identifier, amt);
-        } else {
-            addErc721ConsiderationItem(recipient, identifier);
-        }
+        offerItem.itemType = itemType;
+        offerItem.token = token;
+        offerItem.identifierOrCriteria = identifier;
+        offerItem.startAmount = startAmount;
+        offerItem.endAmount = endAmount;
+        addOfferItem(offerItem);
+        delete offerItem;
     }
 
     function addOfferItem(
@@ -136,6 +146,54 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         addEthOfferItem(paymentAmount, paymentAmount);
     }
 
+    ///@dev add a considerationItem to the considerationItems array
+    function addConsiderationItem(
+        ConsiderationItem memory _considerationItem
+    ) internal {
+        considerationItems.push(_considerationItem);
+    }
+
+    ///@dev reset the considerationItems array
+    function resetConsiderationItems() internal {
+        delete considerationItems;
+    }
+
+    ///@dev construct a considerationItem and add it to the considerationItems array
+    function addConsiderationItem(
+        address payable recipient,
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        considerationItem.itemType = itemType;
+        considerationItem.token = token;
+        considerationItem.identifierOrCriteria = identifier;
+        considerationItem.startAmount = startAmount;
+        considerationItem.endAmount = endAmount;
+        considerationItem.recipient = recipient;
+        addConsiderationItem(considerationItem);
+        delete considerationItem;
+    }
+
+    function addConsiderationItem(
+        address payable recipient,
+        ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        if (itemType == ItemType.NATIVE) {
+            addEthConsiderationItem(recipient, amt);
+        } else if (itemType == ItemType.ERC20) {
+            addErc20ConsiderationItem(recipient, amt);
+        } else if (itemType == ItemType.ERC1155) {
+            addErc1155ConsiderationItem(recipient, identifier, amt);
+        } else {
+            addErc721ConsiderationItem(recipient, identifier);
+        }
+    }
+
     function addEthConsiderationItem(
         address payable recipient,
         uint256 paymentAmount
@@ -214,37 +272,5 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
             amount,
             amount
         );
-    }
-
-    function addOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
-    }
-
-    function addConsiderationItem(
-        address payable recipient,
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
     }
 }

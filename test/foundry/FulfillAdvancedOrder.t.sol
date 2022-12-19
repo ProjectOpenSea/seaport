@@ -133,7 +133,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );

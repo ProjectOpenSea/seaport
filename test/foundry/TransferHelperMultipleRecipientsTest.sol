@@ -188,7 +188,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
      * if tests are run with different compiler settings (which they are by default)
      */
     function _deployAndConfigurePrecompiledTransferHelper() public {
-        if (!coverage) {
+        if (!coverage_or_debug) {
             transferHelper = TransferHelper(
                 deployCode(
                     "optimized-out/TransferHelper.sol/TransferHelper.json",
