@@ -422,23 +422,6 @@ contract ReferenceSignatureVerifierLogic is
             signature1271
         );
     }
-
-    // function referenceSignatureVerificationValid() external {
-    //     // addErc721OfferItem(1);
-    //     // addEthConsiderationItem(alice, 1);
-    //     configureOrderParameters(alice);
-    //     configureOrderComponents(consideration.getCounter(alice));
-    //     orderHash = consideration.getOrderHash(baseOrderComponents);
-    //     signature = signOrder(consideration, alicePk, orderHash);
-
-    //     domainSeparator = getterAndDeriver.domainSeparator();
-    //     digest = getterAndDeriver.deriveEIP712Digest(
-    //         domainSeparator,
-    //         orderHash
-    //     );
-
-    //     _assertValidSignature(alice, digest, digest, signature, signature);
-    // }
 }
 
 contract ReferenceSignatureVerifierLogicWith1271Override is
@@ -543,7 +526,6 @@ contract SignatureVerificationTest is BaseOrderTest {
         vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
         referenceLogic.referenceSignatureVerificationTooLong();
         referenceLogic.referenceSignatureVerification1271Valid();
-        // referenceLogic.referenceSignatureVerificationValid();
 
         ReferenceSignatureVerifierLogicWith1271Override referenceLogicWith1271Override = new ReferenceSignatureVerifierLogicWith1271Override(
                 address(referenceConduitController),
