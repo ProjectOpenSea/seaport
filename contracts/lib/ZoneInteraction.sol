@@ -44,9 +44,9 @@ contract ZoneInteraction is
     LowLevelHelpers
 {
     /**
-     * @dev Internal view function to determine if an order has a restricted
-     *      order type and, if so, to ensure that either the offerer or the zone
-     *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
+     * @dev Internal function to determine if an order has a restricted order
+     *      type and, if so, to ensure that either the offerer or the zone are
+     *      the fulfiller or that a staticcall to `isValidOrder` on the zone
      *      returns a magic value indicating that the order is currently valid.
      *      Note that contract orders are not accessible via basic fulfillments.
      *
@@ -77,7 +77,7 @@ contract ZoneInteraction is
     }
 
     /**
-     * @dev Internal view function to determine whether an order is a restricted
+     * @dev Internal function to determine whether an order is a restricted
      *      order and, if so, to ensure that it was either submitted by the
      *      offerer or the zone for the order, or that the zone returns the
      *      expected magic value upon performing a staticcall to `isValidOrder`
