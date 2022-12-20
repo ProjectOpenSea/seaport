@@ -495,9 +495,6 @@ contract SignatureVerificationTest is BaseOrderTest {
                 address(conduitController),
                 consideration
             );
-        // Inconsistency between the reference and the implementation.
-        // vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
-        // Might be better to have reference do `BadContractSignature()`, too.
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Override.signatureVerification1271Invalid();
 
@@ -521,7 +518,7 @@ contract SignatureVerificationTest is BaseOrderTest {
                 address(referenceConduitController),
                 referenceConsideration
             );
-        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         referenceLogicWith1271Override.referenceSignatureVerification1271Invalid();
     }
 }
