@@ -19,8 +19,6 @@ import { VERSION } from "./utils/helpers";
 
 import type {
   ConsiderationInterface,
-  EIP1271Wallet,
-  EIP1271Wallet__factory,
   TestERC721,
   TestZone,
 } from "../typechain-types";
@@ -33,7 +31,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
-  let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
   let stubZone: TestZone;
   let testERC721: TestERC721;
@@ -57,7 +54,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     ({
       checkExpectedEvents,
       createOrder,
-      EIP1271WalletFactory,
       getTestItem721,
       getTestItem721WithCriteria,
       marketplaceContract,
