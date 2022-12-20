@@ -10,6 +10,7 @@
     "node": ">=16.15.1"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.12.1-ir.0",

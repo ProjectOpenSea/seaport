@@ -1,3 +1,4 @@
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
@@ -31,8 +32,6 @@ import type {
   ConduitInterface,
   Conduit__factory,
   ConsiderationInterface,
-  EIP1271Wallet,
-  EIP1271Wallet__factory,
   TestERC1155,
   TestERC20,
   TestERC721,
@@ -50,7 +49,6 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   let conduitImplementation: Conduit__factory;
   let conduitKeyOne: string;
   let conduitOne: ConduitInterface;
-  let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
   let testERC1155: TestERC1155;
   let testERC1155Two: TestERC1155;
@@ -86,7 +84,6 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       createOrder,
       createTransferWithApproval,
       deployNewConduit,
-      EIP1271WalletFactory,
       getTestItem1155,
       marketplaceContract,
       mint1155,
@@ -105,26 +102,26 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   let buyer: Wallet;
   let zone: Wallet;
 
-  let sellerContract: EIP1271Wallet;
-  let buyerContract: EIP1271Wallet;
-
   let tempConduit: ConduitInterface;
 
-  beforeEach(async () => {
+  async function setupFixture() {
     // Setup basic buyer/seller wallets with ETH
-    seller = new ethers.Wallet(randomHex(32), provider);
-    buyer = new ethers.Wallet(randomHex(32), provider);
-    zone = new ethers.Wallet(randomHex(32), provider);
-
-    sellerContract = await EIP1271WalletFactory.deploy(seller.address);
-    buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
+    const zone = new ethers.Wallet(randomHex(32), provider);
 
     // Deploy a new conduit
-    tempConduit = await deployNewConduit(owner);
+    const tempConduit = await deployNewConduit(owner);
 
-    for (const wallet of [seller, buyer, zone, sellerContract, buyerContract]) {
+    for (const wallet of [seller, buyer, zone]) {
       await faucet(wallet.address, provider);
     }
+
+    return { seller, buyer, zone, tempConduit };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer, zone, tempConduit } = await loadFixture(setupFixture));
   });
 
   it("Adds a channel, and executes transfers (ERC1155 with batch)", async () => {
