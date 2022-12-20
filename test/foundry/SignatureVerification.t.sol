@@ -111,7 +111,6 @@ contract SignatureVerifierLogicWith1271Override is
     BaseOrderTest,
     SignatureVerification
 {
-    bytes signature;
     bytes signature1271;
     bytes32 digest;
 
@@ -127,6 +126,39 @@ contract SignatureVerifierLogicWith1271Override is
     }
 
     function signatureVerification1271Invalid() external {
+        digest = bytes32(uint256(69420));
+        signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
+
+        _assertValidSignature(
+            // A contract address is the signer.
+            address(this),
+            digest,
+            digest,
+            signature1271.length,
+            signature1271
+        );
+    }
+}
+
+contract SignatureVerifierLogicWith1271Fail is
+    BaseOrderTest,
+    SignatureVerification
+{
+    bytes signature1271;
+    bytes32 digest;
+
+    ///@dev This overrides the hardcoded `isValidSignature` magic value response
+    ///     in the BaseOrderTest.
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
+        revert();
+    }
+
+    function signatureVerification1271Fail() external {
         digest = bytes32(uint256(69420));
         signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
 
@@ -228,7 +260,6 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
     BaseOrderTest,
     ReferenceSignatureVerification
 {
-    bytes signature;
     bytes signature1271;
     bytes32 digest;
 
@@ -284,6 +315,11 @@ contract SignatureVerificationTest is BaseOrderTest {
             new SignatureVerifierLogicWith1271Override();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Override.signatureVerification1271Invalid();
+
+        SignatureVerifierLogicWith1271Fail logicWith1271Fail =
+            new SignatureVerifierLogicWith1271Fail();
+        vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
+        logicWith1271Fail.signatureVerification1271Fail();
 
         ReferenceSignatureVerifierLogic referenceLogic =
             new ReferenceSignatureVerifierLogic();
