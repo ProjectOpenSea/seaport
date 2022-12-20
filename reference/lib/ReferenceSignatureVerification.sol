@@ -107,7 +107,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             EIP1271Interface(signer).isValidSignature(digest, signature) !=
             EIP1271Interface.isValidSignature.selector
         ) {
-            revert InvalidSigner();
+            revert BadContractSignature();
         }
     }
 }
