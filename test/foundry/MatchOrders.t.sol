@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,
@@ -69,7 +69,7 @@ contract MatchOrders is BaseOrderTest {
             uint256(context.args.paymentAmts[0]) +
                 uint256(context.args.paymentAmts[1]) +
                 uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+                2 ** 128 - 1
         );
         _;
     }
@@ -78,14 +78,15 @@ contract MatchOrders is BaseOrderTest {
         ContextAscendingDescending memory context
     ) {
         vm.assume(context.args.amount > 100);
-        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
+        vm.assume(uint256(context.args.amount) * 2 <= 2 ** 128 - 1);
         vm.assume(context.args.warp > 10 && context.args.warp < 1000);
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -122,7 +123,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         test(
             this.matchOrdersSingleErc721OfferSingleEthConsideration,
             Context(consideration, inputs)
@@ -133,10 +134,9 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
-    function testMatchOrdersOverflowOfferSide(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs))
-    {
+    function testMatchOrdersOverflowOfferSide(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs)) {
         for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
@@ -197,7 +197,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -226,7 +226,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -255,7 +255,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -284,7 +284,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(alice));
+        configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -312,7 +312,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.salt,
             context.args.useConduit
         );
-        _configureOrderComponents(consideration.getCounter(bob));
+        configureOrderComponents(consideration.getCounter(bob));
         bytes memory baseSignature = signOrder(
             context.consideration,
             bobPk,
@@ -322,7 +322,7 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        addOfferItem(itemType, 1, 2**256 - 1);
+        addOfferItem(itemType, 1, 2 ** 256 - 1);
         addErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -471,7 +471,7 @@ contract MatchOrders is BaseOrderTest {
 
         test721_1.mint(bob, 2);
         addErc721OfferItem(2);
-        addConsiderationItem(alice, itemType, 1, 2**256 - 1);
+        addConsiderationItem(alice, itemType, 1, 2 ** 256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),

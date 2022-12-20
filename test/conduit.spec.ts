@@ -643,7 +643,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
           },
         ]
       )
-    ).to.be.revertedWith("NoContract");
+    ).to.be.revertedWithCustomError(tempConduit, "NoContract");
   });
 
   it("Reverts on calls to only batch transfer 1155 items with no contract on a conduit", async () => {
@@ -670,7 +670,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
           amounts: [amount, secondAmount],
         },
       ])
-    ).to.be.revertedWith("NoContract");
+    ).to.be.revertedWithCustomError(tempConduit, "NoContract");
   });
 
   it("ERC1155 batch transfer reverts with revert data if it has sufficient gas", async () => {
@@ -759,9 +759,12 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
             },
           ]
         )
-      ).to.be.revertedWith(
-        `ERC1155BatchTransferGenericFailure("${receiver.address}", "${seller.address}", "${receiver.address}", [1], [1])`
-      );
+      )
+        .to.be.revertedWithCustomError(
+          tempConduit,
+          "ERC1155BatchTransferGenericFailure"
+        )
+        .withArgs(receiver.address, seller.address, receiver.address, [1], [1]);
     });
   }
 
@@ -1070,7 +1073,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitOne
         .connect(owner)
         .updateChannel(ethers.constants.AddressZero, true)
-    ).to.be.revertedWith("InvalidController");
+    ).to.be.revertedWithCustomError(conduitOne, "InvalidController");
   });
 
   it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
@@ -1088,13 +1091,13 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
     await expect(
       conduitOne.connect(owner).executeWithBatch1155([], [])
-    ).to.be.revertedWith("ChannelClosed");
+    ).to.be.revertedWithCustomError(conduitOne, "ChannelClosed");
   });
 
   it("Reverts when attempting to execute batch 1155 transfers on a conduit when not called from a channel", async () => {
     await expect(
       conduitOne.connect(owner).executeBatch1155([])
-    ).to.be.revertedWith("ChannelClosed");
+    ).to.be.revertedWithCustomError(conduitOne, "ChannelClosed");
   });
 
   it("Retrieves the owner of a conduit", async () => {
@@ -1103,7 +1106,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(owner).ownerOf(buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
   });
 
   it("Retrieves the key of a conduit", async () => {
@@ -1112,7 +1115,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(owner).getKey(buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
   });
 
   it("Retrieves the status of a conduit channel", async () => {
@@ -1132,7 +1135,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .getChannelStatus(buyer.address, seller.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
   });
 
   it("Retrieves conduit channels from the controller", async () => {
@@ -1143,7 +1146,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(owner).getTotalChannels(buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
 
     const firstChannel = await conduitController.getChannel(
       conduitOne.address,
@@ -1155,15 +1158,15 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .getChannel(buyer.address, +totalChannels - 1)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
 
     await expect(
       conduitController.connect(owner).getChannel(conduitOne.address, 1)
-    ).to.be.revertedWith("ChannelOutOfRange");
+    ).to.be.revertedWithCustomError(conduitController, "ChannelOutOfRange");
 
     await expect(
       conduitController.connect(owner).getChannel(conduitOne.address, 2)
-    ).to.be.revertedWith("ChannelOutOfRange");
+    ).to.be.revertedWithCustomError(conduitController, "ChannelOutOfRange");
 
     const channels = await conduitController.getChannels(conduitOne.address);
     expect(channels.length).to.equal(1);
@@ -1171,7 +1174,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(owner).getChannels(buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
   });
 
   it("Adds and removes channels", async () => {
@@ -1328,7 +1331,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
         ],
         []
       )
-    ).to.be.revertedWith("InvalidItemType");
+    ).to.be.revertedWithCustomError(conduitOne, "InvalidItemType");
   });
 
   it("Reverts when attempting to create a conduit not scoped to the creator", async () => {
@@ -1336,7 +1339,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .createConduit(ethers.constants.HashZero, owner.address)
-    ).to.be.revertedWith("InvalidCreator");
+    ).to.be.revertedWithCustomError(conduitController, "InvalidCreator");
   });
 
   it("Reverts when attempting to create a conduit that already exists", async () => {
@@ -1344,7 +1347,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .createConduit(conduitKeyOne, owner.address)
-    ).to.be.revertedWith(`ConduitAlreadyExists("${conduitOne.address}")`);
+    )
+      .to.be.revertedWithCustomError(conduitController, "ConduitAlreadyExists")
+      .withArgs(conduitOne.address);
   });
 
   it("Reverts when attempting to update a channel for an unowned conduit", async () => {
@@ -1352,7 +1357,9 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(buyer)
         .updateChannel(conduitOne.address, buyer.address, true)
-    ).to.be.revertedWith(`CallerIsNotOwner("${conduitOne.address}")`);
+    )
+      .to.be.revertedWithCustomError(conduitController, "CallerIsNotOwner")
+      .withArgs(conduitOne.address);
   });
 
   it("Retrieves no initial potential owner for new conduit", async () => {
@@ -1363,7 +1370,7 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(owner).getPotentialOwner(buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
   });
 
   it("Lets the owner transfer ownership via a two-stage process", async () => {
@@ -1371,19 +1378,22 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(buyer)
         .transferOwnership(conduitOne.address, buyer.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(conduitController, "CallerIsNotOwner");
 
     await expect(
       conduitController
         .connect(owner)
         .transferOwnership(conduitOne.address, ethers.constants.AddressZero)
-    ).to.be.revertedWith("NewPotentialOwnerIsZeroAddress");
+    ).to.be.revertedWithCustomError(
+      conduitController,
+      "NewPotentialOwnerIsZeroAddress"
+    );
 
     await expect(
       conduitController
         .connect(owner)
         .transferOwnership(seller.address, buyer.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
 
     let potentialOwner = await conduitController.getPotentialOwner(
       conduitOne.address
@@ -1404,17 +1414,20 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .transferOwnership(conduitOne.address, buyer.address)
-    ).to.be.revertedWith("NewPotentialOwnerAlreadySet");
+    ).to.be.revertedWithCustomError(
+      conduitController,
+      "NewPotentialOwnerAlreadySet"
+    );
 
     await expect(
       conduitController
         .connect(buyer)
         .cancelOwnershipTransfer(conduitOne.address)
-    ).to.be.revertedWith("CallerIsNotOwner");
+    ).to.be.revertedWithCustomError(conduitController, "CallerIsNotOwner");
 
     await expect(
       conduitController.connect(owner).cancelOwnershipTransfer(seller.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
 
     await conduitController.cancelOwnershipTransfer(conduitOne.address);
 
@@ -1427,7 +1440,10 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
       conduitController
         .connect(owner)
         .cancelOwnershipTransfer(conduitOne.address)
-    ).to.be.revertedWith("NoPotentialOwnerCurrentlySet");
+    ).to.be.revertedWithCustomError(
+      conduitController,
+      "NoPotentialOwnerCurrentlySet"
+    );
 
     await conduitController.transferOwnership(
       conduitOne.address,
@@ -1441,11 +1457,14 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
 
     await expect(
       conduitController.connect(buyer).acceptOwnership(seller.address)
-    ).to.be.revertedWith("NoConduit");
+    ).to.be.revertedWithCustomError(conduitController, "NoConduit");
 
     await expect(
       conduitController.connect(seller).acceptOwnership(conduitOne.address)
-    ).to.be.revertedWith("CallerIsNotNewPotentialOwner");
+    ).to.be.revertedWithCustomError(
+      conduitController,
+      "CallerIsNotNewPotentialOwner"
+    );
 
     await conduitController.connect(buyer).acceptOwnership(conduitOne.address);
 

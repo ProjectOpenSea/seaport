@@ -1,30 +1,31 @@
 {
   "name": "seaport",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
   "main": "contracts/Seaport.sol",
   "author": "0age",
   "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.15.1"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
-    "hardhat": "https://github.com/0age/hardhat/releases/download/viaIR-2.9.3/hardhat-v2.9.3.tgz"
+    "hardhat": "^2.12.1-ir.0",
+    "merkletreejs": "^0.3.9"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
-    "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@rari-capital/solmate": "^6.2.0",
     "@typechain/ethers-v5": "^10.0.0",
     "@typechain/hardhat": "^6.0.0",
     "@types/chai": "^4.3.0",
-    "@types/mocha": "^9.0.0",
-    "@types/node": "^17.0.8",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^18.11.11",
     "@typescript-eslint/eslint-plugin": "^5.9.1",
     "@typescript-eslint/parser": "^5.9.1",
     "chai": "^4.3.4",
@@ -36,7 +37,6 @@
     "eslint-plugin-n": "^15.2.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
-    "ethereum-waffle": "^3.4.0",
     "hardhat-gas-reporter": "^1.0.7",
     "husky": ">=6",
     "lint-staged": ">=10",
@@ -44,7 +44,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "scuffed-abi": "^1.0.4",
     "solhint": "^3.3.6",
-    "solidity-coverage": "^0.7.0",
+    "solidity-coverage": "^0.8.2",
     "ts-node": "^10.4.0",
     "typechain": "^8.0.0",
     "typescript": "^4.5.4"
@@ -69,13 +69,19 @@
     "minimatch": ">=3.0.5"
   },
   "scripts": {
-    "build": "hardhat compile --config ./hardhat.config.ts",
+    "build": "yarn clean; hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
     "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
-    "test": "hardhat test --config ./hardhat.config.ts",
+    "build:nospec": "yarn clean; NO_SPECIALIZER=true hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
+    "clean": "hardhat clean; hardhat clean --config ./hardhat-reference.config.ts; forge clean; rm -rf coverage coverage.json hh-cache hh-cache-ref",
+    "test": "yarn clean; hardhat test --config ./hardhat.config.ts",
+    "test:nospec": "NO_SPECIALIZER=true hardhat test --config ./hardhat.config.ts",
     "test:ref": "REFERENCE=true hardhat test --config ./hardhat-reference.config.ts",
-    "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
-    "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
+    "profile": "yarn clean; REPORT_GAS=true hardhat test --config ./hardhat.config.ts; hardhat compare-reports",
+    "profile:nospec": "yarn clean; NO_SPECIALIZER=true REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
+    "coverage": "yarn clean; hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
+    "coverage:forge": "SEAPORT_COVERAGE=true forge coverage --report summary",
+    "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
     "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
     "lint:check:format": "prettier --check **.{sol,js,ts}",
     "lint:check:solhint": "yarn build && solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore contracts/**/*.sol",
@@ -83,6 +89,7 @@
     "lint:fix": "yarn lint:fix:format && yarn lint:fix:eslint",
     "lint:fix:format": "prettier --write **.{sol,js,ts}",
     "lint:fix:eslint": "eslint --fix . --ext js,ts",
+    "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "prepare": "husky install"

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ReentrancyErrors } from "../interfaces/ReentrancyErrors.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title ReentrancyGuard
@@ -51,7 +51,7 @@ contract ReentrancyGuard is ReentrancyErrors {
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.
         if (_reentrancyGuard != _NOT_ENTERED) {
-            revert NoReentrantCalls();
+            _revertNoReentrantCalls();
         }
     }
 }

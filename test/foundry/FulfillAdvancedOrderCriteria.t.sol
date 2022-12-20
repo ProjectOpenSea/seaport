@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { Merkle } from "murky/Merkle.sol";
@@ -29,9 +29,10 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         FuzzArgs args;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -48,9 +49,9 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
     }
 
-    function testFulfillAdvancedOrderWithCriteriaPreimage(FuzzArgs memory args)
-        public
-    {
+    function testFulfillAdvancedOrderWithCriteriaPreimage(
+        FuzzArgs memory args
+    ) public {
         test(
             this.fulfillAdvancedOrderWithCriteriaPreimage,
             Context(consideration, args)
@@ -61,7 +62,9 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
     }
 
-    function prepareCriteriaOfferOrder(Context memory context)
+    function prepareCriteriaOfferOrder(
+        Context memory context
+    )
         internal
         returns (
             bytes32[] memory hashedIdentifiers,
@@ -99,10 +102,9 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         advancedOrder = AdvancedOrder(baseOrderParameters, 1, 1, signature, "");
     }
 
-    function fulfillAdvancedOrderWithCriteria(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAdvancedOrderWithCriteria(
+        Context memory context
+    ) external stateless {
         // pick a "random" index in the array of identifiers; use that identifier
         context.args.index = context.args.index % 8;
         uint256 identifier = context.args.identifiers[context.args.index];
@@ -132,10 +134,9 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         assertEq(address(this), test721_1.ownerOf(identifier));
     }
 
-    function fulfillAdvancedOrderWithCriteriaPreimage(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAdvancedOrderWithCriteriaPreimage(
+        Context memory context
+    ) external stateless {
         context.args.index = context.args.index % 8;
         (
             bytes32[] memory hashedIdentifiers,
@@ -177,9 +178,10 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
     }
 
-    function addOfferItem721Criteria(address token, uint256 identifierHash)
-        internal
-    {
+    function addOfferItem721Criteria(
+        address token,
+        uint256 identifierHash
+    ) internal {
         addOfferItem721Criteria(token, identifierHash, 1, 1);
     }
 

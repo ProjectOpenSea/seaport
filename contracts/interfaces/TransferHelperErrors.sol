@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 /**
  * @title TransferHelperErrors
@@ -14,8 +14,10 @@ interface TransferHelperErrors {
     /**
      * @dev Revert with an error when an ERC721 transfer with amount other than
      *      one is attempted.
+     *
+     * @param amount The amount of the ERC721 tokens to transfer.
      */
-    error InvalidERC721TransferAmount();
+    error InvalidERC721TransferAmount(uint256 amount);
 
     /**
      * @dev Revert with an error when attempting to execute an ERC721 transfer

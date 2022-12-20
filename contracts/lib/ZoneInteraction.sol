@@ -1,171 +1,216 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import {
+    ContractOffererInterface
+} from "../interfaces/ContractOffererInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver } from "./ConsiderationStructs.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    AdvancedOrder,
+    OrderParameters,
+    BasicOrderParameters,
+    AdditionalRecipient,
+    ZoneParameters,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem
+} from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
+
+import "./ConsiderationConstants.sol";
+
+import "./ConsiderationErrors.sol";
+
+import "../helpers/PointerLibraries.sol";
+
+import "./ConsiderationEncoder.sol";
 
 /**
  * @title ZoneInteraction
  * @author 0age
  * @notice ZoneInteraction contains logic related to interacting with zones.
  */
-contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
+contract ZoneInteraction is
+    ConsiderationEncoder,
+    ZoneInteractionErrors,
+    LowLevelHelpers
+{
     /**
-     * @dev Internal view function to determine if an order has a restricted
-     *      order type and, if so, to ensure that either the offerer or the zone
-     *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
-     *      returns a magic value indicating that the order is currently valid.
+     * @dev Internal function to determine if an order has a restricted order
+     *      type and, if so, to ensure that either the offerer or the zone are
+     *      the fulfiller or that a call to `validateOrder` on the zone returns
+     *      a magic value indicating that the order is currently valid. Note
+     *      that contract orders are not accessible via basic fulfillments.
      *
-     * @param orderHash The hash of the order.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     * @param orderType The type of the order.
-     * @param offerer   The offerer in question.
-     * @param zone      The zone in question.
+     * @param orderHash   The hash of the order.
+     * @param orderType   The order type.
+     * @param parameters  The parameters of the basic order.
      */
     function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
-        bytes32 zoneHash,
         OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // Perform minimal staticcall to the zone.
-            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
+        BasicOrderParameters calldata parameters
+    ) internal {
+        // Order type 2-3 require zone be caller or zone to approve.
+        if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
+            (MemoryPointer callData, uint256 size) = _encodeValidateBasicOrder(
+                orderHash,
+                parameters
+            );
+
+            _callAndCheckStatus(
+                parameters.zone,
+                orderHash,
+                callData,
+                size,
+                InvalidRestrictedOrder_error_selector
+            );
         }
     }
 
-    function _callIsValidOrder(
-        address zone,
-        bytes32 orderHash,
-        address offerer,
-        bytes32 zoneHash
-    ) internal view {
-        // Perform minimal staticcall to the zone.
-        bool success = _staticcall(
-            zone,
-            abi.encodeWithSelector(
-                ZoneInterface.isValidOrder.selector,
-                orderHash,
-                msg.sender,
-                offerer,
-                zoneHash
-            )
-        );
-
-        // Ensure call was successful and returned the correct magic value.
-        _assertIsValidOrderStaticcallSuccess(success, orderHash);
-    }
-
     /**
-     * @dev Internal view function to determine whether an order is a restricted
+     * @dev Internal function to determine whether an order is a restricted
      *      order and, if so, to ensure that it was either submitted by the
      *      offerer or the zone for the order, or that the zone returns the
-     *      expected magic value upon performing a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` depending on whether the order
-     *      fulfillment specifies extra data or criteria resolvers.
+     *      expected magic value upon performing a call to `validateOrder`.
      *
      * @param advancedOrder     The advanced order in question.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     * @param orderHashes       The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety
      *                          of order fulfillment (e.g. this array will be
      *                          empty for single or "fulfill available").
      * @param orderHash         The hash of the order.
-     * @param zoneHash          The hash to provide upon calling the zone.
-     * @param orderType         The type of the order.
-     * @param offerer           The offerer in question.
-     * @param zone              The zone in question.
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bytes32[] memory priorOrderHashes,
-        bytes32 orderHash,
-        bytes32 zoneHash,
-        OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // If no extraData or criteria resolvers are supplied...
-            if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
-            ) {
-                // Perform minimal staticcall to the zone.
-                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-            } else {
-                // Otherwise, extra data or criteria resolvers were supplied; in
-                // that event, perform a more verbose staticcall to the zone.
-                bool success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrderIncludingExtraData.selector,
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
-                    )
-                );
+        bytes32[] memory orderHashes,
+        bytes32 orderHash
+    ) internal {
+        // bytes memory callData;
+        address target;
+        uint256 errorSelector;
+        // function(bytes32) internal view errorHandler;
+        MemoryPointer callData;
+        uint256 size;
 
-                // Ensure call was successful and returned correct magic value.
-                _assertIsValidOrderStaticcallSuccess(success, orderHash);
-            }
+        OrderParameters memory parameters = advancedOrder.parameters;
+
+        // OrderType 2-3 require zone to be caller or approve via validateOrder.
+        if (
+            _isRestrictedAndCallerNotZone(parameters.orderType, parameters.zone)
+        ) {
+            (callData, size) = _encodeValidateOrder(
+                orderHash,
+                parameters,
+                advancedOrder.extraData,
+                orderHashes
+            );
+            target = parameters.zone;
+            errorSelector = InvalidRestrictedOrder_error_selector;
+        } else if (parameters.orderType == OrderType.CONTRACT) {
+            (callData, size) = _encodeRatifyOrder(
+                orderHash,
+                parameters,
+                advancedOrder.extraData,
+                orderHashes
+            );
+
+            target = parameters.offerer;
+            errorSelector = InvalidContractOrder_error_selector;
+        } else {
+            return;
+        }
+
+        _callAndCheckStatus(target, orderHash, callData, size, errorSelector);
+    }
+
+    /**
+     * @dev Determines whether the specified order type is restricted and the
+     *      caller is not the specified zone.
+     *
+     * @param orderType     The type of the order to check.
+     * @param zone          The address of the zone to check against.
+     *
+     * @return mustValidate True if the order type is restricted and the caller
+     *                      is not the specified zone, false otherwise.
+     */
+    function _isRestrictedAndCallerNotZone(
+        OrderType orderType,
+        address zone
+    ) internal view returns (bool mustValidate) {
+        assembly {
+            mustValidate := and(
+                or(eq(orderType, 2), eq(orderType, 3)),
+                iszero(eq(caller(), zone))
+            )
         }
     }
 
     /**
-     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
+     * @dev Calls the specified target with the given data and checks the status
+     *      of the call. Revert reasons will be "bubbled up" if one is returned,
+     *      otherwise reverting calls will throw a generic error based on the
+     *      supplied error handler.
      *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
+     * @param target        The address of the contract to call.
+     * @param orderHash     The hash of the order associated with the call.
+     * @param callData      The data to pass to the contract call.
+     * @param size          The size of calldata.
+     * @param errorSelector The error handling function to call if the call
+     *                      fails or the magic value does not match.
      */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
-        // If the call failed...
+    function _callAndCheckStatus(
+        address target,
+        bytes32 orderHash,
+        MemoryPointer callData,
+        uint256 size,
+        uint256 errorSelector
+    ) internal {
+        bool success;
+        bool magicMatch;
+        assembly {
+            // Clear the start of scratch space.
+            mstore(0, 0)
+
+            // Perform call, placing result in the first word of scratch space.
+            success := call(gas(), target, 0, callData, size, 0, OneWord)
+
+            // Get magic value from the selector at start of provided calldata.
+            let magic := shr(224, mload(callData))
+
+            // Determine if the magic value matches the selector from calldata.
+            magicMatch := eq(magic, shr(224, mload(0)))
+        }
+
+        // Revert if the call was not successful.
         if (!success) {
             // Revert and pass reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
 
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
+            // If no reason was returned, revert with supplied error selector.
+            assembly {
+                mstore(0, errorSelector)
+                mstore(0x20, orderHash)
+                revert(Error_selector_offset, 0x24)
+            }
         }
 
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
-            revert InvalidRestrictedOrder(orderHash);
+        // Revert if the correct magic value was not returned.
+        if (!magicMatch) {
+            // Revert with a generic error message.
+            assembly {
+                mstore(0, errorSelector)
+                mstore(0x20, orderHash)
+                revert(Error_selector_offset, 0x24)
+            }
         }
     }
 }

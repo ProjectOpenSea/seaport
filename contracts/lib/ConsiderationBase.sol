@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     ConduitControllerInterface
@@ -11,12 +11,21 @@ import {
 
 import "./ConsiderationConstants.sol";
 
+import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
+
+import { TypehashDirectory } from "./TypehashDirectory.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
  * @notice ConsiderationBase contains immutable constants and constructor logic.
  */
-contract ConsiderationBase is ConsiderationEventsAndErrors {
+contract ConsiderationBase is
+    ConsiderationDecoder,
+    ConsiderationEncoder,
+    ConsiderationEventsAndErrors
+{
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
@@ -29,6 +38,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
+
+    // BulkOrder typehash storage
+    TypehashDirectory internal immutable _BULK_ORDER_TYPEHASH_DIRECTORY;
 
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
@@ -52,6 +64,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             _ORDER_TYPEHASH
         ) = _deriveTypehashes();
 
+        _BULK_ORDER_TYPEHASH_DIRECTORY = new TypehashDirectory();
+
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
@@ -68,19 +82,48 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     /**
      * @dev Internal view function to derive the EIP-712 domain separator.
      *
-     * @return The derived domain separator.
+     * @return domainSeparator The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                address(this)
-            )
-        );
+    function _deriveDomainSeparator()
+        internal
+        view
+        returns (bytes32 domainSeparator)
+    {
+        bytes32 typehash = _EIP_712_DOMAIN_TYPEHASH;
+        bytes32 nameHash = _NAME_HASH;
+        bytes32 versionHash = _VERSION_HASH;
+
+        // Leverage scratch space and other memory to perform an efficient hash.
+        assembly {
+            // Retrieve the free memory pointer; it will be replaced afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
+
+            // Retrieve value at 0x80; it will also be replaced afterwards.
+            let slot0x80 := mload(Slot0x80)
+
+            // Place typehash, name hash, and version hash at start of memory.
+            mstore(0, typehash)
+            mstore(OneWord, nameHash)
+            mstore(TwoWords, versionHash)
+
+            // Place chainId in the next memory location.
+            mstore(ThreeWords, chainid())
+
+            // Place the address of this contract in the next memory location.
+            mstore(FourWords, address())
+
+            // Hash relevant region of memory to derive the domain separator.
+            domainSeparator := keccak256(0, FiveWords)
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
+
+            // Restore the value at 0x80.
+            mstore(Slot0x80, slot0x80)
+        }
     }
 
     /**
@@ -150,7 +193,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.1"));
+        versionHash = keccak256(bytes("1.2"));
 
         // Construct the OfferItem type string.
         // prettier-ignore
@@ -214,13 +257,24 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         // Derive ConsiderationItem type hash using corresponding type string.
         considerationItemTypehash = keccak256(considerationItemTypeString);
 
-        // Derive OrderItem type hash via combination of relevant type strings.
-        orderTypehash = keccak256(
-            abi.encodePacked(
-                orderComponentsPartialTypeString,
-                considerationItemTypeString,
-                offerItemTypeString
-            )
+        bytes memory orderTypeString = abi.encodePacked(
+            orderComponentsPartialTypeString,
+            considerationItemTypeString,
+            offerItemTypeString
         );
+
+        // Derive OrderItem type hash via combination of relevant type strings.
+        orderTypehash = keccak256(orderTypeString);
+    }
+
+    function _lookupBulkOrderTypehash(
+        uint256 treeHeight
+    ) internal view returns (bytes32 typeHash) {
+        TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
+        assembly {
+            let typeHashOffset := add(1, mul(sub(treeHeight, 1), 0x20))
+            extcodecopy(directory, 0, typeHashOffset, 0x20)
+            typeHash := mload(0)
+        }
     }
 }

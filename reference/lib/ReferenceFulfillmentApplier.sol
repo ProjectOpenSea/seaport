@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -12,18 +12,18 @@ import {
     Execution,
     FulfillmentComponent,
     SpentItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationItemIndicesAndValidity,
     OrderToExecute
 } from "./ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     FulfillmentApplicationErrors
-} from "contracts/interfaces/FulfillmentApplicationErrors.sol";
+} from "../../contracts/interfaces/FulfillmentApplicationErrors.sol";
 
 /**
  * @title FulfillmentApplier
@@ -46,13 +46,16 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
+     * @param fulfillmentIndex        The index of the fulfillment component that
+     *                                does not match the initial offer item.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _applyFulfillment(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
+        FulfillmentComponent[] calldata considerationComponents,
+        uint256 fulfillmentIndex
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
@@ -97,7 +100,9 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             execution.item.token != considerationItem.token ||
             execution.item.identifier != considerationItem.identifier
         ) {
-            revert MismatchedFulfillmentOfferAndConsiderationComponents();
+            revert MismatchedFulfillmentOfferAndConsiderationComponents(
+                fulfillmentIndex
+            );
         }
 
         // If total consideration amount exceeds the offer amount...
@@ -239,8 +244,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *      matches original item.
      *
      * @param orderToExecute  The order to compare.
-     * @param offer The offer to compare
-     * @param execution  The aggregated offer item
+     * @param offer The offer to compare.
+     * @param execution  The aggregated offer item.
      *
      * @return invalidFulfillment A boolean indicating whether the
      *                            fulfillment is invalid.
