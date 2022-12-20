@@ -121,16 +121,12 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         );
     }
 
-    function signatureVerification65ByteJunkWithBadSignatureV() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0), bytes1(0));
+    function signatureVerification65ByteWithBadSignatureV() external {
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        v = 0;
+        signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -143,15 +139,11 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
 
 
     function signatureVerification65ByteJunkWithAcceptableSignatureV() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0), bytes1(uint8(27)));
+        digest = bytes32(uint256(69420));
+        // Note that Bob is signing but we're passing in Alice's address below.
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
+        signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -163,15 +155,11 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
     }
     
     function signatureVerification64ByteJunk() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0));
+        digest = bytes32(uint256(69420));
+        // Note that Bob is signing but we're passing in Alice's address below.
+        (, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
+        signature = abi.encodePacked(r, s);
         assertEq(signature.length, 64);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -183,14 +171,8 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
     }
 
     function signatureVerificationTooLong() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
+        digest = bytes32(uint256(69420));
         signature = new bytes(69);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice, 
@@ -210,14 +192,10 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
     }
 
     function signatureVerification1271Valid() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
+        digest = bytes32(uint256(69420));
+        // This is valid because we hardcoded the `isValidSignature` magic value
+        // response in the BaseOrderTest.
         signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             // A contract address is the signer.
@@ -262,14 +240,8 @@ contract SignatureVerifierLogicWith1271Override is
     }
 
     function signatureVerification1271Invalid() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature1271 = abi.encodePacked(bytes32(0), bytes32(0), bytes1(0));
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        digest = bytes32(uint256(69420));
+        signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
 
         _assertValidSignature(
             // A contract address is the signer.
@@ -317,15 +289,12 @@ contract ReferenceSignatureVerifierLogic is
         _assertValidSignature(alice, digest, digest, signature, signature);
     }
 
-    function referenceSignatureVerification65ByteJunkWithBadSignatureV() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0), bytes1(0));
+    function referenceSignatureVerification65ByteWithBadSignatureV() external {
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        v = 0;
+        signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -338,14 +307,11 @@ contract ReferenceSignatureVerifierLogic is
 
 
     function referenceSignatureVerification65ByteJunkWithAcceptableSignatureV() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0), bytes1(uint8(27)));
+        digest = bytes32(uint256(69420));
+        // Note that Bob is signing but we're passing in Alice's address below.
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
+        signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -357,14 +323,11 @@ contract ReferenceSignatureVerifierLogic is
     }
 
     function referenceSignatureVerification64ByteJunk() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = abi.encodePacked(bytes32(0), bytes32(0));
+        digest = bytes32(uint256(69420));
+        // Note that Bob is signing but we're passing in Alice's address below.
+        (, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
+        signature = abi.encodePacked(r, s);
         assertEq(signature.length, 64);
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(
             alice,
@@ -376,13 +339,8 @@ contract ReferenceSignatureVerifierLogic is
     }
 
     function referenceSignatureVerificationTooLong() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
+        digest = bytes32(uint256(69420));
         signature = new bytes(69);
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
 
         _assertValidSignature(alice, digest, digest, signature, signature);
     }
@@ -396,13 +354,8 @@ contract ReferenceSignatureVerifierLogic is
     }
 
     function referenceSignatureVerification1271Valid() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature1271 = abi.encodePacked(bytes32(0), bytes32(0), bytes1(0));
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        digest = bytes32(uint256(69420));
+        signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
 
         _assertValidSignature(
             // A contract address is the signer.
@@ -447,14 +400,8 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
     }
 
     function referenceSignatureVerification1271Invalid() external {
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature1271 = abi.encodePacked(bytes32(0), bytes32(0), bytes1(0));
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        digest = bytes32(uint256(69420));
+        signature1271 = abi.encodePacked(bytes32(0), bytes32(0));
 
         _assertValidSignature(
             // A contract address is the signer.
@@ -481,7 +428,7 @@ contract SignatureVerificationTest is BaseOrderTest {
         );
         logic.signatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
-        logic.signatureVerification65ByteJunkWithBadSignatureV();
+        logic.signatureVerification65ByteWithBadSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         logic.signatureVerification65ByteJunkWithAcceptableSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
@@ -504,7 +451,7 @@ contract SignatureVerificationTest is BaseOrderTest {
             );
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
-        referenceLogic.referenceSignatureVerification65ByteJunkWithBadSignatureV();
+        referenceLogic.referenceSignatureVerification65ByteWithBadSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         referenceLogic.referenceSignatureVerification65ByteJunkWithAcceptableSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
