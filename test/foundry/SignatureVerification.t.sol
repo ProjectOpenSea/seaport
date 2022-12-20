@@ -103,20 +103,9 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
     }
 
     function signatureVerificationDirtyScratchSpace() external {
-        addErc721OfferItem(1);
-        addEthConsiderationItem(alice, 1);
-
-        // create order where alice is offerer, but signer is *BOB*
-        configureOrderParameters(alice);
-        configureOrderComponents(consideration.getCounter(alice));
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = signOrder(consideration, bobPk, orderHash);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        signature = abi.encodePacked(r, s, v);
 
         // store bob's address in scratch space
         assembly {
@@ -210,6 +199,14 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
             signature.length, 
             signature
         );
+    }
+
+    function signatureVerificationValid() external {
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        signature = abi.encodePacked(r, s, v);
+
+        _assertValidSignature(alice, digest, digest, signature.length, signature);
     }
 
     function signatureVerification1271Valid() external {
@@ -308,20 +305,9 @@ contract ReferenceSignatureVerifierLogic is
     }
 
     function referenceSignatureVerificationDirtyScratchSpace() external {
-        addErc721OfferItem(1);
-        addEthConsiderationItem(alice, 1);
-
-        // create order where alice is offerer, but signer is *BOB*
-        configureOrderParameters(alice);
-        configureOrderComponents(consideration.getCounter(alice));
-        orderHash = consideration.getOrderHash(baseOrderComponents);
-        signature = signOrder(consideration, bobPk, orderHash);
-
-        domainSeparator = getterAndDeriver.domainSeparator();
-        digest = getterAndDeriver.deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        signature = abi.encodePacked(r, s, v);
 
         // store bob's address in scratch space
         assembly {
@@ -397,6 +383,14 @@ contract ReferenceSignatureVerifierLogic is
             domainSeparator,
             orderHash
         );
+
+        _assertValidSignature(alice, digest, digest, signature, signature);
+    }
+
+    function referenceSignatureVerificationValid() external {
+        digest = bytes32(uint256(69420));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
+        signature = abi.encodePacked(r, s, v);
 
         _assertValidSignature(alice, digest, digest, signature, signature);
     }
@@ -485,7 +479,6 @@ contract SignatureVerificationTest is BaseOrderTest {
             address(conduitController),
             consideration
         );
-        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         logic.signatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
         logic.signatureVerification65ByteJunkWithBadSignatureV();
@@ -495,6 +488,7 @@ contract SignatureVerificationTest is BaseOrderTest {
         logic.signatureVerification64ByteJunk();
         vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
         logic.signatureVerificationTooLong();
+        logic.signatureVerificationValid();
         logic.signatureVerification1271Valid();
 
         SignatureVerifierLogicWith1271Override logicWith1271Override = new SignatureVerifierLogicWith1271Override(
@@ -511,7 +505,6 @@ contract SignatureVerificationTest is BaseOrderTest {
                 address(referenceConduitController),
                 referenceConsideration
             );
-        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
         referenceLogic.referenceSignatureVerification65ByteJunkWithBadSignatureV();
@@ -521,6 +514,7 @@ contract SignatureVerificationTest is BaseOrderTest {
         referenceLogic.referenceSignatureVerification64ByteJunk();
         vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
         referenceLogic.referenceSignatureVerificationTooLong();
+        referenceLogic.referenceSignatureVerificationValid();
         referenceLogic.referenceSignatureVerification1271Valid();
 
         ReferenceSignatureVerifierLogicWith1271Override referenceLogicWith1271Override = new ReferenceSignatureVerifierLogicWith1271Override(
