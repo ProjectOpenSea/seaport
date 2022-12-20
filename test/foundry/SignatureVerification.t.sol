@@ -1,106 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    SignatureVerification
-} from "../../contracts/lib/SignatureVerification.sol";
-import {
-    ReferenceSignatureVerification
-} from "../../reference/lib/ReferenceSignatureVerification.sol";
+import { SignatureVerification } from
+    "../../contracts/lib/SignatureVerification.sol";
+import { ReferenceSignatureVerification } from
+    "../../reference/lib/ReferenceSignatureVerification.sol";
 import { GettersAndDerivers } from "../../contracts/lib/GettersAndDerivers.sol";
-import {
-    ReferenceGettersAndDerivers
-} from "../../reference/lib/ReferenceGettersAndDerivers.sol";
+import { ReferenceGettersAndDerivers } from
+    "../../reference/lib/ReferenceGettersAndDerivers.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
-import {
-    ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
-
-interface GetterAndDeriver {
-    function deriveOrderHash(
-        OrderParameters memory orderParameters,
-        uint256 counter
-    ) external returns (bytes32 orderHash);
-
-    function domainSeparator() external returns (bytes32);
-
-    function deriveEIP712Digest(
-        bytes32 _domainSeparator_,
-        bytes32 orderHash
-    ) external returns (bytes32 value);
-}
-
-contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
-    constructor(
-        address conduitController
-    ) GettersAndDerivers(conduitController) {}
-
-    function deriveOrderHash(
-        OrderParameters memory orderParameters,
-        uint256 counter
-    ) public view returns (bytes32 orderHash) {
-        return _deriveOrderHash(orderParameters, counter);
-    }
-
-    function domainSeparator() public view returns (bytes32) {
-        return _domainSeparator();
-    }
-
-    function deriveEIP712Digest(
-        bytes32 _domainSeparator_,
-        bytes32 orderHash
-    ) public pure returns (bytes32 value) {
-        return _deriveEIP712Digest(_domainSeparator_, orderHash);
-    }
-}
-
-contract ReferenceGettersAndDeriversImpl is
-    GetterAndDeriver,
-    ReferenceGettersAndDerivers
-{
-    constructor(
-        address conduitController
-    ) ReferenceGettersAndDerivers(conduitController) {}
-
-    function deriveOrderHash(
-        OrderParameters memory orderParameters,
-        uint256 counter
-    ) public view returns (bytes32 orderHash) {
-        return _deriveOrderHash(orderParameters, counter);
-    }
-
-    function domainSeparator() public view returns (bytes32) {
-        return _domainSeparator();
-    }
-
-    function deriveEIP712Digest(
-        bytes32 _domainSeparator_,
-        bytes32 orderHash
-    ) public pure returns (bytes32 value) {
-        return _deriveEIP712Digest(_domainSeparator_, orderHash);
-    }
-}
+import { ConsiderationInterface } from
+    "../../contracts/interfaces/ConsiderationInterface.sol";
 
 contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
-    GetterAndDeriver getterAndDeriver;
-    bytes32 orderHash;
     bytes signature;
     bytes signature1271;
-    bytes32 domainSeparator;
     bytes32 digest;
-
-    constructor(
-        address _conduitController,
-        ConsiderationInterface _consideration
-    ) {
-        getterAndDeriver = GetterAndDeriver(
-            new GettersAndDeriversImpl(address(_conduitController))
-        );
-
-        vm.label(address(getterAndDeriver), "getterAndDeriver");
-        consideration = _consideration;
-    }
 
     function signatureVerificationDirtyScratchSpace() external {
         digest = bytes32(uint256(69420));
@@ -113,11 +29,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         }
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -129,16 +41,13 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 65);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
-
-    function signatureVerification65ByteJunkWithAcceptableSignatureV() external {
+    function signatureVerification65ByteJunkWithAcceptableSignatureV()
+        external
+    {
         digest = bytes32(uint256(69420));
         // Note that Bob is signing but we're passing in Alice's address below.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
@@ -146,14 +55,10 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 65);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
-    
+
     function signatureVerification64ByteJunk() external {
         digest = bytes32(uint256(69420));
         // Note that Bob is signing but we're passing in Alice's address below.
@@ -162,11 +67,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 64);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -175,11 +76,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         signature = new bytes(69);
 
         _assertValidSignature(
-            alice, 
-            digest, 
-            digest, 
-            signature.length, 
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -188,7 +85,9 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePk, digest);
         signature = abi.encodePacked(r, s, v);
 
-        _assertValidSignature(alice, digest, digest, signature.length, signature);
+        _assertValidSignature(
+            alice, digest, digest, signature.length, signature
+        );
     }
 
     function signatureVerification1271Valid() external {
@@ -212,30 +111,18 @@ contract SignatureVerifierLogicWith1271Override is
     BaseOrderTest,
     SignatureVerification
 {
-    GetterAndDeriver getterAndDeriver;
-    bytes32 orderHash;
     bytes signature;
     bytes signature1271;
-    bytes32 domainSeparator;
     bytes32 digest;
-    
-    constructor(
-        address _conduitController,
-        ConsiderationInterface _consideration
-    ) {
-        getterAndDeriver = GetterAndDeriver(
-            new GettersAndDeriversImpl(address(_conduitController))
-        );
-        vm.label(address(getterAndDeriver), "getterAndDeriver");
-        consideration = _consideration;
-    }
 
     ///@dev This overrides the hardcoded `isValidSignature` magic value response
     ///     in the BaseOrderTest.
-    function isValidSignature(
-        bytes32,
-        bytes memory
-    ) external pure override returns (bytes4) {
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
         return 0xDEAFBEEF;
     }
 
@@ -258,23 +145,9 @@ contract ReferenceSignatureVerifierLogic is
     BaseOrderTest,
     ReferenceSignatureVerification
 {
-    GetterAndDeriver getterAndDeriver;
-    bytes32 orderHash;
     bytes signature;
     bytes signature1271;
-    bytes32 domainSeparator;
     bytes32 digest;
-    
-    constructor(
-        address _conduitController,
-        ConsiderationInterface _consideration
-    ) {
-        getterAndDeriver = GetterAndDeriver(
-            new ReferenceGettersAndDeriversImpl(address(_conduitController))
-        );
-        vm.label(address(getterAndDeriver), "referenceGetterAndDeriver");
-        consideration = _consideration;
-    }
 
     function referenceSignatureVerificationDirtyScratchSpace() external {
         digest = bytes32(uint256(69420));
@@ -296,30 +169,19 @@ contract ReferenceSignatureVerifierLogic is
         signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
 
-        _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature,
-            signature
-        );
+        _assertValidSignature(alice, digest, digest, signature, signature);
     }
 
-
-    function referenceSignatureVerification65ByteJunkWithAcceptableSignatureV() external {
+    function referenceSignatureVerification65ByteJunkWithAcceptableSignatureV()
+        external
+    {
         digest = bytes32(uint256(69420));
         // Note that Bob is signing but we're passing in Alice's address below.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPk, digest);
         signature = abi.encodePacked(r, s, v);
         assertEq(signature.length, 65);
 
-        _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature,
-            signature
-        );
+        _assertValidSignature(alice, digest, digest, signature, signature);
     }
 
     function referenceSignatureVerification64ByteJunk() external {
@@ -329,13 +191,7 @@ contract ReferenceSignatureVerifierLogic is
         signature = abi.encodePacked(r, s);
         assertEq(signature.length, 64);
 
-        _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature,
-            signature
-        );
+        _assertValidSignature(alice, digest, digest, signature, signature);
     }
 
     function referenceSignatureVerificationTooLong() external {
@@ -372,30 +228,18 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
     BaseOrderTest,
     ReferenceSignatureVerification
 {
-    GetterAndDeriver getterAndDeriver;
-    bytes32 orderHash;
     bytes signature;
     bytes signature1271;
-    bytes32 domainSeparator;
     bytes32 digest;
-    
-    constructor(
-        address _conduitController,
-        ConsiderationInterface _consideration
-    ) {
-        getterAndDeriver = GetterAndDeriver(
-            new ReferenceGettersAndDeriversImpl(address(_conduitController))
-        );
-        vm.label(address(getterAndDeriver), "referenceGetterAndDeriver");
-        consideration = _consideration;
-    }
 
     ///@dev This overrides the hardcoded `isValidSignature` magic value response
     ///     in the BaseOrderTest.
-    function isValidSignature(
-        bytes32,
-        bytes memory
-    ) external pure override returns (bytes4) {
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
         return 0xDEAFBEEF;
     }
 
@@ -416,16 +260,14 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
 
 contract SignatureVerificationTest is BaseOrderTest {
     function test(function() external fn) internal {
-        try fn() {} catch (bytes memory reason) {
+        try fn() { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
     function testSignatureVerification() public {
-        SignatureVerifierLogic logic = new SignatureVerifierLogic(
-            address(conduitController),
-            consideration
-        );
+        SignatureVerifierLogic logic = new SignatureVerifierLogic();
         logic.signatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
         logic.signatureVerification65ByteWithBadSignatureV();
@@ -438,22 +280,19 @@ contract SignatureVerificationTest is BaseOrderTest {
         logic.signatureVerificationValid();
         logic.signatureVerification1271Valid();
 
-        SignatureVerifierLogicWith1271Override logicWith1271Override = new SignatureVerifierLogicWith1271Override(
-                address(conduitController),
-                consideration
-            );
+        SignatureVerifierLogicWith1271Override logicWith1271Override =
+            new SignatureVerifierLogicWith1271Override();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Override.signatureVerification1271Invalid();
 
-        ReferenceSignatureVerifierLogic referenceLogic = new ReferenceSignatureVerifierLogic(
-                address(referenceConduitController),
-                referenceConsideration
-            );
+        ReferenceSignatureVerifierLogic referenceLogic =
+            new ReferenceSignatureVerifierLogic();
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
         referenceLogic.referenceSignatureVerification65ByteWithBadSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
-        referenceLogic.referenceSignatureVerification65ByteJunkWithAcceptableSignatureV();
+        referenceLogic
+            .referenceSignatureVerification65ByteJunkWithAcceptableSignatureV();
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         referenceLogic.referenceSignatureVerification64ByteJunk();
         vm.expectRevert(abi.encodeWithSignature("InvalidSignature()"));
@@ -461,11 +300,11 @@ contract SignatureVerificationTest is BaseOrderTest {
         referenceLogic.referenceSignatureVerificationValid();
         referenceLogic.referenceSignatureVerification1271Valid();
 
-        ReferenceSignatureVerifierLogicWith1271Override referenceLogicWith1271Override = new ReferenceSignatureVerifierLogicWith1271Override(
-                address(referenceConduitController),
-                referenceConsideration
-            );
+        ReferenceSignatureVerifierLogicWith1271Override
+            referenceLogicWith1271Override =
+                new ReferenceSignatureVerifierLogicWith1271Override();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
-        referenceLogicWith1271Override.referenceSignatureVerification1271Invalid();
+        referenceLogicWith1271Override.referenceSignatureVerification1271Invalid(
+        );
     }
 }
