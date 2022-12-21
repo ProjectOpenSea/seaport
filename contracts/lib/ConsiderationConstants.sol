@@ -138,7 +138,7 @@ uint256 constant EIP712_DigestPayload_size = 0x42;
 
 uint256 constant BulkOrderProof_minSize = 0x63;
 uint256 constant BulkOrderProof_rangeSize = 0x2e2;
-uint256 constant BulkOrderProof_lengthAdjustmentBeforeMask = 0x1a;
+uint256 constant BulkOrderProof_lengthAdjustmentBeforeMask = 0x1d;
 uint256 constant BulkOrderProof_lengthRangeAfterMask = 0x2;
 uint256 constant BulkOrderProof_keyShift = 0xe8;
 uint256 constant BulkOrderProof_keySize = 0x3;

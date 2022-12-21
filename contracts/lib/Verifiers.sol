@@ -89,7 +89,7 @@ contract Verifiers is Assertions, SignatureVerification {
         uint256 originalSignatureLength = signature.length;
 
         bytes32 digest;
-        if (_isValidBulkOrderSize(signature)) {
+        if (_isValidBulkOrderSize(originalSignatureLength)) {
             // Rederive order hash and digest using bulk order proof.
             (orderHash) = _computeBulkOrderProof(signature, orderHash);
             digest = _deriveEIP712Digest(domainSeparator, orderHash);
@@ -110,25 +110,27 @@ contract Verifiers is Assertions, SignatureVerification {
     /**
      * @dev Determines whether the specified bulk order size is valid.
      *
-     * @param signature    The signature of the bulk order to check.
+     * @param signatureLength The signature length of the bulk order to check.
      *
-     * @return validLength True if the bulk order size is valid, false otherwise.
+     * @return validLength True if bulk order size is valid, false otherwise.
      */
     function _isValidBulkOrderSize(
-        bytes memory signature
+        uint256 signatureLength
     ) internal pure returns (bool validLength) {
         // Utilize assembly to validate the length; the equivalent logic is
         // (64 + x) + 3 + 32y where (0 <= x <= 1) and (1 <= y <= 24).
         assembly {
-            let length := mload(signature)
             validLength := and(
                 lt(
-                    sub(length, BulkOrderProof_minSize),
+                    sub(signatureLength, BulkOrderProof_minSize),
                     BulkOrderProof_rangeSize
                 ),
                 lt(
                     and(
-                        add(length, BulkOrderProof_lengthAdjustmentBeforeMask),
+                        add(
+                            signatureLength,
+                            BulkOrderProof_lengthAdjustmentBeforeMask
+                        ),
                         AlmostOneWord
                     ),
                     BulkOrderProof_lengthRangeAfterMask
