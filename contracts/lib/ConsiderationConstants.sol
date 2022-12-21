@@ -110,7 +110,7 @@ uint256 constant FourWords = 0x80;
 uint256 constant FiveWords = 0xa0;
 
 uint256 constant AlmostTwoWords = 0x3f;
-uint256 constant OnlyFullWordMask = 0xffffe0;
+uint256 constant OnlyFullWordMask = 0xffffffe0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
