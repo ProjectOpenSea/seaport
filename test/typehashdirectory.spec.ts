@@ -14,10 +14,10 @@ if (!process.env.REFERENCE) {
       address = (await deployContract("TypehashDirectory")).address;
     });
 
-    it("Code is equal to concatenated type hashes for heights 1-64", async () => {
+    it("Code is equal to concatenated type hashes for heights 1-24", async () => {
       const code = await ethers.provider.getCode(address);
       const typeHashes = getBulkOrderTypeHashes(24);
-      expect(code).to.eq(hexConcat(["0x00", ...typeHashes]));
+      expect(code).to.eq(hexConcat(["0xfe", ...typeHashes]));
     });
   });
 }
