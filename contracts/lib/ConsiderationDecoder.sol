@@ -64,13 +64,14 @@ contract ConsiderationDecoder {
             // Get the current free memory pointer.
             mPtrLength := mload(FreeMemoryPointerSlot)
 
-            // Derive the size of the bytes array, rounding up to nearest word.
-            let size := and(
-                add(
-                    and(calldataload(cdPtrLength), OffsetOrLengthMask),
-                    AlmostTwoWords
+            // Derive the size of the bytes array, rounding up to nearest word
+            // and adding a word for the length field.
+            let size := add(
+                and(
+                    add(calldataload(cdPtrLength), AlmostOneWord),
+                    OnlyFullWordMask
                 ),
-                OnlyFullWordMask
+                OneWord
             )
 
             // Copy bytes from calldata into memory based on pointers and size.
