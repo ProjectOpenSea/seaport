@@ -123,6 +123,13 @@ uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 uint256 constant BasicOrder_common_params_size = 0xa0;
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 
+uint256 constant BasicOrder_receivedItemByteMap = (
+    0x0000010102030000000000000000000000000000000000000000000000000000
+);
+uint256 constant BasicOrder_offeredItemByteMap = (
+    0x0203020301010000000000000000000000000000000000000000000000000000
+);
+
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
