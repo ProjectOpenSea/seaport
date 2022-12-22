@@ -13,8 +13,11 @@ import { TestERC721Revert } from "../../contracts/test/TestERC721Revert.sol";
 import { TestERC1155Revert } from "../../contracts/test/TestERC1155Revert.sol";
 import { BaseConduitTest } from "./conduit/BaseConduitTest.sol";
 import { Conduit } from "../../contracts/conduit/Conduit.sol";
+import {
+    TokenTransferrerErrors
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
-contract TokenTransferrerTest is BaseConduitTest {
+contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
     struct Context {
         Conduit conduit;
         ConduitTransfer[] transfers;
@@ -121,11 +124,9 @@ contract TokenTransferrerTest is BaseConduitTest {
             1
         );
 
-        // I thought I'd be getting the TokenTransferGenericFailure for both
-        // this test and the notOkTransfer test below, but I'm not.
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "TokenTransferGenericFailure(address, address, address, uint256, uint256)",
+            abi.encodeWithSelector(
+                TokenTransferGenericFailure.selector,
                 address(tokenRevert),
                 address(alice),
                 address(bob),
@@ -133,8 +134,6 @@ contract TokenTransferrerTest is BaseConduitTest {
                 1
             )
         );
-        // No bubbling up in the reference contract.
-        // vm.expectRevert();
         this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
@@ -166,11 +165,27 @@ contract TokenTransferrerTest is BaseConduitTest {
             1
         );
 
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BadReturnValueFromERC20OnTransfer.selector,
+                address(tokenNotOk),
+                address(alice),
+                address(bob),
+                1
+            )
+        );
         this.execute(
             Context(referenceConduit, notOkTransfer, noCodeBatchTransfer)
         );
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BadReturnValueFromERC20OnTransfer.selector,
+                address(tokenNotOk),
+                address(alice),
+                address(bob),
+                1
+            )
+        );
         this.execute(Context(conduit, notOkTransfer, noCodeBatchTransfer));
 
         // Test the ERC721 revert case.
@@ -187,8 +202,7 @@ contract TokenTransferrerTest is BaseConduitTest {
             1
         );
 
-        // No bubbling up in the reference contract.
-        vm.expectRevert();
+        vm.expectRevert("Some ERC721 revert message");
         this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
@@ -209,8 +223,7 @@ contract TokenTransferrerTest is BaseConduitTest {
             1
         );
 
-        // No bubbling up in the reference contract.
-        vm.expectRevert();
+        vm.expectRevert("Some ERC1155 revert message");
         this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
@@ -229,8 +242,7 @@ contract TokenTransferrerTest is BaseConduitTest {
             new uint256[](0)
         );
 
-        // No bubbling up in the reference contract.
-        vm.expectRevert();
+        vm.expectRevert("Some ERC1155 revert message for batch transfers");
         this.executeBatch(
             Context(referenceConduit, revertTransfer, revertBatchTransfer)
         );
