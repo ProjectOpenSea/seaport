@@ -7,13 +7,10 @@ import {
     ConduitBatch1155Transfer,
     ConduitItemType
 } from "../../contracts/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC20Revert } from "../../contracts/test/TestERC20Revert.sol";
 import { TestERC20NotOk } from "../../contracts/test/TestERC20NotOk.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { ERC721Recipient } from "./utils/ERC721Recipient.sol";
-import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
+import { TestERC721Revert } from "../../contracts/test/TestERC721Revert.sol";
+import { TestERC1155Revert } from "../../contracts/test/TestERC1155Revert.sol";
 import { BaseConduitTest } from "./conduit/BaseConduitTest.sol";
 import { Conduit } from "../../contracts/conduit/Conduit.sol";
 
@@ -150,12 +147,13 @@ contract TokenTransferrerTest is BaseConduitTest {
         //         1
         //     )
         // );
+        // No bubbling up in the reference contract.
         vm.expectRevert();
         test(
             this.execute,
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
-        vm.expectRevert();
+        vm.expectRevert("Some ERC20 revert message");
         test(
             this.execute,
             Context(conduit, revertTransfer, noCodeBatchTransfer)
@@ -195,6 +193,82 @@ contract TokenTransferrerTest is BaseConduitTest {
         test(
             this.execute,
             Context(conduit, notOkTransfer, noCodeBatchTransfer)
+        );
+
+        // Test the ERC721 revert case.
+        TestERC721Revert nonfungibleTokenRevert;
+        nonfungibleTokenRevert = new TestERC721Revert();
+        vm.label(address(nonfungibleTokenRevert), "nonfungibleTokenRevert");
+
+        revertTransfer[0] = ConduitTransfer(
+            ConduitItemType.ERC721,
+            address(nonfungibleTokenRevert),
+            address(alice),
+            address(bob),
+            0,
+            1
+        );
+
+        // No bubbling up in the reference contract.
+        vm.expectRevert();
+        test(
+            this.execute,
+            Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
+        );
+        vm.expectRevert("Some ERC721 revert message");
+        test(
+            this.execute,
+            Context(conduit, revertTransfer, noCodeBatchTransfer)
+        );
+
+        // Test the ERC1155 revert case.
+        TestERC1155Revert semifungibleTokenRevert;
+        semifungibleTokenRevert = new TestERC1155Revert();
+        vm.label(address(semifungibleTokenRevert), "semifungibleTokenRevert");
+
+        revertTransfer[0] = ConduitTransfer(
+            ConduitItemType.ERC1155,
+            address(semifungibleTokenRevert),
+            address(alice),
+            address(bob),
+            0,
+            1
+        );
+
+        // No bubbling up in the reference contract.
+        vm.expectRevert();
+        test(
+            this.execute,
+            Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
+        );
+        vm.expectRevert("Some ERC1155 revert message");
+        test(
+            this.execute,
+            Context(conduit, revertTransfer, noCodeBatchTransfer)
+        );
+
+        // Test the ERC1155 batch transfer revert case.
+        ConduitBatch1155Transfer[] memory revertBatchTransfer;
+        revertBatchTransfer = new ConduitBatch1155Transfer[](1);
+
+        revertBatchTransfer[0] = ConduitBatch1155Transfer(
+            address(semifungibleTokenRevert),
+            address(alice),
+            address(bob),
+            new uint256[](0),
+            new uint256[](0)
+        );
+
+        // No bubbling up in the reference contract.
+        vm.expectRevert();
+        test(
+            this.executeBatch,
+            Context(referenceConduit, revertTransfer, revertBatchTransfer)
+        );
+        vm.expectRevert("Some ERC1155 revert message for batch transfers");
+        test(
+            this.executeBatch,
+            Context(conduit, revertTransfer, revertBatchTransfer)
         );
     }
 }
