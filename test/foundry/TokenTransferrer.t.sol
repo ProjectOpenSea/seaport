@@ -21,14 +21,6 @@ contract TokenTransferrerTest is BaseConduitTest {
         ConduitBatch1155Transfer[] batchTransfers;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
-        try fn(context) {} catch (bytes memory reason) {
-            assertPass(reason);
-        }
-    }
-
     function execute(Context memory context) external stateless {
         context.conduit.execute(context.transfers);
     }
@@ -49,10 +41,10 @@ contract TokenTransferrerTest is BaseConduitTest {
         address noCodeTokenAddress;
         noCodeTokenAddress = address(0xabc);
 
-        uint256 alicePk = 0xa11ce;
-        uint256 bobPk = 0xb0b;
-        address payable alice = payable(vm.addr(alicePk));
-        address payable bob = payable(vm.addr(bobPk));
+        address alice;
+        address bob;
+        alice = makeAddr("alice");
+        bob = makeAddr("bob");
 
         ConduitTransfer[] memory noCodeTransfer;
         noCodeTransfer = new ConduitTransfer[](1);
@@ -78,8 +70,7 @@ contract TokenTransferrerTest is BaseConduitTest {
                     noCodeTokenAddress
                 )
             );
-            test(
-                this.execute,
+            this.execute(
                 Context(referenceConduit, noCodeTransfer, noCodeBatchTransfer)
             );
             vm.expectRevert(
@@ -88,10 +79,7 @@ contract TokenTransferrerTest is BaseConduitTest {
                     noCodeTokenAddress
                 )
             );
-            test(
-                this.execute,
-                Context(conduit, noCodeTransfer, noCodeBatchTransfer)
-            );
+            this.execute(Context(conduit, noCodeTransfer, noCodeBatchTransfer));
         }
 
         // Test the 1155 batch transfer no code revert.
@@ -106,15 +94,13 @@ contract TokenTransferrerTest is BaseConduitTest {
         vm.expectRevert(
             abi.encodeWithSignature("NoContract(address)", noCodeTokenAddress)
         );
-        test(
-            this.executeBatch,
+        this.executeBatch(
             Context(referenceConduit, noCodeTransfer, noCodeBatchTransfer)
         );
         vm.expectRevert(
             abi.encodeWithSignature("NoContract(address)", noCodeTokenAddress)
         );
-        test(
-            this.executeBatch,
+        this.executeBatch(
             Context(conduit, noCodeTransfer, noCodeBatchTransfer)
         );
 
@@ -137,27 +123,23 @@ contract TokenTransferrerTest is BaseConduitTest {
 
         // I thought I'd be getting the TokenTransferGenericFailure for both
         // this test and the notOkTransfer test below, but I'm not.
-        // vm.expectRevert(
-        //     abi.encodeWithSignature(
-        //         "TokenTransferGenericFailure(address, address, address, uint256, uint256)",
-        //         address(tokenRevert),
-        //         address(alice),
-        //         address(bob),
-        //         0,
-        //         1
-        //     )
-        // );
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "TokenTransferGenericFailure(address, address, address, uint256, uint256)",
+                address(tokenRevert),
+                address(alice),
+                address(bob),
+                0,
+                1
+            )
+        );
         // No bubbling up in the reference contract.
-        vm.expectRevert();
-        test(
-            this.execute,
+        // vm.expectRevert();
+        this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
         vm.expectRevert("Some ERC20 revert message");
-        test(
-            this.execute,
-            Context(conduit, revertTransfer, noCodeBatchTransfer)
-        );
+        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
 
         // Test the generic failure case where the token contract returns not OK but does not revert.
         ConduitTransfer[] memory notOkTransfer;
@@ -185,15 +167,11 @@ contract TokenTransferrerTest is BaseConduitTest {
         );
 
         vm.expectRevert();
-        test(
-            this.execute,
+        this.execute(
             Context(referenceConduit, notOkTransfer, noCodeBatchTransfer)
         );
         vm.expectRevert();
-        test(
-            this.execute,
-            Context(conduit, notOkTransfer, noCodeBatchTransfer)
-        );
+        this.execute(Context(conduit, notOkTransfer, noCodeBatchTransfer));
 
         // Test the ERC721 revert case.
         TestERC721Revert nonfungibleTokenRevert;
@@ -211,15 +189,11 @@ contract TokenTransferrerTest is BaseConduitTest {
 
         // No bubbling up in the reference contract.
         vm.expectRevert();
-        test(
-            this.execute,
+        this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
         vm.expectRevert("Some ERC721 revert message");
-        test(
-            this.execute,
-            Context(conduit, revertTransfer, noCodeBatchTransfer)
-        );
+        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
 
         // Test the ERC1155 revert case.
         TestERC1155Revert semifungibleTokenRevert;
@@ -237,15 +211,11 @@ contract TokenTransferrerTest is BaseConduitTest {
 
         // No bubbling up in the reference contract.
         vm.expectRevert();
-        test(
-            this.execute,
+        this.execute(
             Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
         );
         vm.expectRevert("Some ERC1155 revert message");
-        test(
-            this.execute,
-            Context(conduit, revertTransfer, noCodeBatchTransfer)
-        );
+        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
 
         // Test the ERC1155 batch transfer revert case.
         ConduitBatch1155Transfer[] memory revertBatchTransfer;
@@ -261,13 +231,11 @@ contract TokenTransferrerTest is BaseConduitTest {
 
         // No bubbling up in the reference contract.
         vm.expectRevert();
-        test(
-            this.executeBatch,
+        this.executeBatch(
             Context(referenceConduit, revertTransfer, revertBatchTransfer)
         );
         vm.expectRevert("Some ERC1155 revert message for batch transfers");
-        test(
-            this.executeBatch,
+        this.executeBatch(
             Context(conduit, revertTransfer, revertBatchTransfer)
         );
     }
