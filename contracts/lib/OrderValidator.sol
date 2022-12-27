@@ -330,7 +330,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
 
             // Update order status and fill amount, packing struct values.
-            // [denominator: 15 bytes] [numerator: 15 bytes] [isCanecelled: 1 byte] [isValidated: 1 byte] 
+            // [denominator: 15 bytes] [numerator: 15 bytes] [isCancelled: 1 byte] [isValidated: 1 byte] 
             sstore(orderStatusSlot, 
                 or(
                     OrderStatus_ValidatedAndNotCancelled,
