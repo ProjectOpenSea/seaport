@@ -186,14 +186,14 @@ There are three Foundry profiles for running the test suites, which bypass the I
 ```bash
 FOUNDRY_PROFILE=test forge test # with 5000 fuzz runs
 FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
-FOUNDRY_PROFILE=local-ffi forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
+FOUNDRY_PROFILE=local forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
 ```
 
 You may wish to include a `.env` file that `export`s a specific profile when developing locally.
 
-**Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local-ffi` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
+**Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
 
-**Note** the `local-ffi` profile uses Forge's `ffi` flag. `ffi` can potentially be unsafe, as it allows Forge to execute arbitrary code. Use with caution, and always ensure you trust the code in this repository, especially when working on third-party forks.
+**Note** the `local` profile uses Forge's `ffi` flag. `ffi` can potentially be unsafe, as it allows Forge to execute arbitrary code. Use with caution, and always ensure you trust the code in this repository, especially when working on third-party forks.
 
 The following modifiers are also available:
 
