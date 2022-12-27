@@ -12,8 +12,7 @@ remappings = [
     'contracts/=contracts/',
     'murky/=lib/murky/src/',
 ]
-fuzz_runs = 5000
-fuzz_max_global_rejects = 2_000_000
+fuzz = { max_global_rejects = 2_000_000, runs = 5_000 }
 optimizer_runs = 19_066
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
@@ -38,11 +37,11 @@ src = 'test/foundry'
 [profile.lite]
 out = 'optimized-out'
 via_ir = false
-fuzz_runs = 1000
+fuzz = { runs = 1_000 }
 
 [profile.local]
 via_ir = false
-fuzz_runs = 1000
+fuzz = { runs = 1_000 }
 src = 'reference'
 out = 'reference-out'
 # See more config options https://github.com/gakonst/foundry/tree/master/config
