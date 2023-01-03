@@ -56,6 +56,8 @@ uint256 constant _ENTERED = 2;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
+uint256 constant Selector_length = 4;
+
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;

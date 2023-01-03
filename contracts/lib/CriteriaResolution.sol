@@ -84,39 +84,51 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 );
 
                 {
-                    // Get a pointer to the list of items to give to _updateCriteriaItem.
-                    // If the resolver refers to a consideration item, this array pointer will be
-                    // replaced with the consideration array.
+                    // Get a pointer to the list of items to give to
+                    // _updateCriteriaItem. If the resolver refers to a
+                    // consideration item, this array pointer will be replaced
+                    // with the consideration array.
                     OfferItem[] memory items = orderParameters.offer;
 
-                    // Read component index from memory and place it on the stack.
+                    // Read component index from memory and place it on stack.
                     uint256 componentIndex = criteriaResolver.index;
 
-                    // Get the error selector for OfferCriteriaResolverOutOfRange
-                    uint256 errorSelector = OfferCriteriaResolverOutOfRange_error_selector;
+                    // Get error selector for `OfferCriteriaResolverOutOfRange`.
+                    uint256 errorSelector = (
+                        OfferCriteriaResolverOutOfRange_error_selector
+                    );
 
                     // If the resolver refers to a consideration item...
                     if (criteriaResolver.side != Side.OFFER) {
                         // Get the pointer to `orderParameters.consideration`
-                        // Using the array directly has a significant impact on the optimized compiler output.
+                        // Using the array directly has a significant impact on
+                        // the optimized compiler output.
                         MemoryPointer considerationPtr = orderParameters
                             .toMemoryPointer()
                             .pptr(OrderParameters_consideration_head_offset);
-                        // replace the items pointer with a pointer to the considerations array
+
+                        // Replace the items pointer with a pointer to the
+                        // consideration array.
                         assembly {
                             items := considerationPtr
                         }
-                        // replace the error selector with the selector for ConsiderationCriteriaResolverOutOfRange
-                        errorSelector = ConsiderationCriteriaResolverOutOfRange_error_selector;
+
+                        // Replace the error selector with the selector for
+                        // `ConsiderationCriteriaResolverOutOfRange`.
+                        errorSelector = (
+                            ConsiderationCriteriaResolverOutOfRange_err_selector
+                        );
                     }
 
                     // Ensure that the component index is in range.
                     if (componentIndex >= items.length) {
                         assembly {
                             mstore(0, errorSelector)
-                            revert(Error_selector_offset, 4)
+                            revert(Error_selector_offset, Selector_length)
                         }
                     }
+
+                    // Apply the criteria resolver to the item in question.
                     _updateCriteriaItem(
                         items,
                         componentIndex,
@@ -181,7 +193,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
     function _updateCriteriaItem(
         OfferItem[] memory offer,
         uint256 componentIndex,
-        CriteriaResolver memory criteriaResolver // function() internal pure errorHandler
+        CriteriaResolver memory criteriaResolver
     ) internal pure {
         // Retrieve relevant item using the component index.
         OfferItem memory offerItem = offer[componentIndex];
@@ -263,7 +275,6 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Derive the hash of the leaf to use as the initial proof element.
             let computedHash := keccak256(0, OneWord)
 
-            // Based on: https://github.com/Rari-Capital/solmate/blob/v7/src/utils/MerkleProof.sol
             // Get memory start location of the first element in proof array.
             let data := add(proof, OneWord)
 
