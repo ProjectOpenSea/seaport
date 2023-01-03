@@ -56,6 +56,8 @@ uint256 constant _ENTERED = 2;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
+uint256 constant Selector_length = 4;
+
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
@@ -308,6 +310,11 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 uint256 constant BasicOrder_order_counter_ptr = 0x1e0;
 uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
 uint256 constant BasicOrder_signature_ptr = 0x260;
+uint256 constant BasicOrder_startTimeThroughZoneHash_size = 0x60;
+
+uint256 constant ContractOrder_orderHash_offerer_shift = 0x60;
+
+uint256 constant Counter_blockhash_shift = 0x80;
 
 // Signature-related
 bytes32 constant EIP2098_allButHighestBitMask = (
@@ -426,7 +433,9 @@ uint256 constant Error_selector_offset = 0x1c;
  *    - 0x20: side
  * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = 0x375c24c1;
+uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = (
+    0x375c24c1
+);
 uint256 constant MissingFulfillmentComponentOnAggregation_error_side_ptr = 0x20;
 uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
 
@@ -437,11 +446,15 @@ uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = 0x98e9db6e;
+uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = (
+    0x98e9db6e
+);
 uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
 
 /*
- *  error MismatchedFulfillmentOfferAndConsiderationComponents(uint256 fulfillmentIndex)
+ *  error MismatchedFulfillmentOfferAndConsiderationComponents(
+ *      uint256 fulfillmentIndex
+ *  )
  *    - Defined in FulfillmentApplicationErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -530,6 +543,7 @@ uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
  * Revert buffer is memory[0x1c:0x20]
  */
 uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = 0x6088d7de;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector = 0x6088d7de;
 uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
 
 /*
@@ -959,3 +973,32 @@ uint256 constant ZoneParameters_startTime_offset = 0xe0;
 uint256 constant ZoneParameters_endTime_offset = 0x100;
 uint256 constant ZoneParameters_zoneHash_offset = 0x120;
 uint256 constant ZoneParameters_base_tail_offset = 0x140;
+uint256 constant ZoneParameters_selectorAndPointer_length = 0x24;
+uint256 constant ZoneParameters_basicOrderFixedElements_length = 0x64;
+
+// ConsiderationDecoder Constants
+uint256 constant BasicOrderParameters_head_size = 0x0240;
+uint256 constant BasicOrderParameters_fixed_segment_0 = 0x0200;
+uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
+uint256 constant BasicOrderParameters_signature_offset = 0x0220;
+
+uint256 constant OrderParameters_head_size = 0x0160;
+uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
+    0x0140
+);
+uint256 constant AdvancedOrderPlusOrderParameters_head_size = 0x0200;
+
+uint256 constant Order_signature_offset = 0x20;
+uint256 constant Order_head_size = 0x40;
+
+uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
+
+uint256 constant CriteriaResolver_head_size = 0xa0;
+uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
+uint256 constant CriteriaResolver_criteriaProof_offset = 0x80;
+
+uint256 constant FulfillmentComponent_mem_tail_size = 0x40;
+uint256 constant Fulfillment_head_size = 0x40;
+uint256 constant Fulfillment_considerationComponents_offset = 0x20;
+
+uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
