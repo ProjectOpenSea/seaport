@@ -7,6 +7,8 @@ import {
 
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
 
+import "./ConsiderationConstants.sol";
+
 /**
  * @title CounterManager
  * @author 0age
@@ -19,8 +21,8 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
 
     /**
      * @dev Internal function to cancel all orders from a given offerer in bulk
-     *      by incrementing a counter. Note that only the offerer may increment
-     *      the counter.
+     *      by incrementing a counter by a large, quasi-random interval. Note
+     *      that only the offerer may increment the counter.
      *
      * @return newCounter The new counter.
      */
