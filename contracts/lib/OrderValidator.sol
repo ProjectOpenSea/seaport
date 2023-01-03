@@ -133,21 +133,11 @@ contract OrderValidator is Executor, ZoneInteraction {
             return (bytes32(0), 0, 0);
         }
 
-        // If the order is a contract order, return the generated order.
-        if (orderParameters.orderType == OrderType.CONTRACT) {
-            // Return the generated order based on the order params and the
-            // provided extra data. If revertOnInvalid is true, the function
-            // will revert if the input is invalid.
-            return
-                _getGeneratedOrder(
-                    orderParameters,
-                    advancedOrder.extraData,
-                    revertOnInvalid
-                );
-        }
-
         // Read numerator and denominator from memory and place on the stack.
-        // Overflowed values would be masked
+        // Note that overflowed values are masked.
+        uint256 numerator;
+        uint256 denominator;
+
         assembly {
             numerator := and(
                 mload(add(advancedOrder, AdvancedOrder_numerator_offset)),
@@ -160,15 +150,51 @@ contract OrderValidator is Executor, ZoneInteraction {
             )
         }
 
-        // Ensure that the supplied numerator and denominator are valid.
-        if (numerator > denominator || numerator == 0) {
+        // Declare variable for tracking the validity of the supplied fraction.
+        bool validFraction;
+
+        // If the order is a contract order, return the generated order.
+        if (orderParameters.orderType == OrderType.CONTRACT) {
+            // Ensure that the numerator and denominator are both equal to 1.
+            assembly {
+                validFraction := and(eq(numerator, 1), eq(denominator, 1))
+            }
+
+            // Revert if the supplied numerator and denominator are not valid.
+            if (!validFraction) {
+                _revertBadFraction();
+            }
+
+            // Return the generated order based on the order params and the
+            // provided extra data. If revertOnInvalid is true, the function
+            // will revert if the input is invalid.
+            return
+                _getGeneratedOrder(
+                    orderParameters,
+                    advancedOrder.extraData,
+                    revertOnInvalid
+                );
+        }
+
+        // Ensure numerator does not exceed denominator and is not zero.
+        assembly {
+            validFraction := iszero(
+                or(gt(numerator, denominator), eq(numerator, 0))
+            )
+        }
+
+        // Revert if the supplied numerator and denominator are not valid.
+        if (!validFraction) {
             _revertBadFraction();
         }
 
         // If attempting partial fill (n < d) check order type & ensure support.
         if (
-            numerator < denominator &&
-            _doesNotSupportPartialFills(orderParameters.orderType)
+            _doesNotSupportPartialFills(
+                orderParameters.orderType,
+                numerator,
+                denominator
+            )
         ) {
             // Revert if partial fill was attempted on an unsupported order.
             _revertPartialFillsNotEnabledForOrder();
@@ -218,7 +244,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     break
                 }
 
-                // shift and mask to calculate the the current filled numerator
+                // shift and mask to calculate the the current filled numerator.
                 filledNumerator := and(
                     shr(OrderStatus_filledNumerator_offset, filledNumerator),
                     MaxUint120
@@ -233,7 +259,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     break
                 }
 
-                // If supplied denominator equals to the current one
+                // If supplied denominator equals to the current one:
                 if eq(denominator, filledDenominator) {
                     // Increment the filled numerator by the new numerator.
                     filledNumerator := add(numerator, filledNumerator)
@@ -333,7 +359,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
 
             // Update order status and fill amount, packing struct values.
-            // [denominator: 15 bytes] [numerator: 15 bytes] [isCancelled: 1 byte] [isValidated: 1 byte] 
+            // [denominator: 15 bytes] [numerator: 15 bytes]
+            // [isCancelled: 1 byte] [isValidated: 1 byte] 
             sstore(orderStatusSlot, 
                 or(
                     OrderStatus_ValidatedAndNotCancelled,
@@ -348,10 +375,10 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     /**
      * @dev Internal pure function to check the compatibility of two offer
-     * or consideration items.
+     *      or consideration items for contract orders.
      *
-     * @param originalItem    The original offer or consideration item.
-     * @param newItem         The new offer or consideration item.
+     * @param originalItem The original offer or consideration item.
+     * @param newItem      The new offer or consideration item.
      *
      * @return isInvalid Error buffer indicating if items are incompatible.
      */
@@ -394,6 +421,30 @@ contract OrderValidator is Executor, ZoneInteraction {
                             mload(add(originalItem, Common_endAmount_offset))
                         )
                     )
+                )
+            )
+        }
+    }
+
+    /**
+     * @dev Internal pure function to check the compatibility of two recipients
+     *      on consideration items for contract orders. This check is skipped if
+     *      no recipient is originally supplied.
+     *
+     * @param originalRecipient The original consideration item recipient.
+     * @param newRecipient      The new consideration item recipient.
+     *
+     * @return isInvalid Error buffer indicating if recipients are incompatible.
+     */
+    function _checkRecipients(
+        address originalRecipient,
+        address newRecipient
+    ) internal pure returns (uint256 isInvalid) {
+        assembly {
+            isInvalid := iszero(
+                or(
+                    iszero(originalRecipient),
+                    eq(newRecipient, originalRecipient)
                 )
             )
         }
@@ -533,6 +584,12 @@ contract OrderValidator is Executor, ZoneInteraction {
                 errorBuffer |= _compareItems(
                     originalItem.toMemoryPointer(),
                     newItem.toMemoryPointer()
+                );
+
+                // Ensure that the recipients are equal when provided.
+                errorBuffer |= _checkRecipients(
+                    originalItem.recipient,
+                    newItem.recipient
                 );
 
                 // Increment the array (cannot overflow as index starts at 0).
@@ -804,19 +861,27 @@ contract OrderValidator is Executor, ZoneInteraction {
      *      that partial fills are not supported (e.g. only "full fills" are
      *      allowed for the order in question).
      *
-     * @param orderType The order type in question.
+     * @param orderType   The order type in question.
+     * @param numerator   The numerator in question.
+     * @param denominator The denominator in question.
      *
      * @return isFullOrder A boolean indicating whether the order type only
      *                     supports full fills.
      */
     function _doesNotSupportPartialFills(
-        OrderType orderType
+        OrderType orderType,
+        uint256 numerator,
+        uint256 denominator
     ) internal pure returns (bool isFullOrder) {
         // The "full" order types are even, while "partial" order types are odd.
-        // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
+        // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper. The
+        // check is only necessary if numerator is less than denominator.
         assembly {
             // Equivalent to `uint256(orderType) & 1 == 0`.
-            isFullOrder := iszero(and(orderType, 1))
+            isFullOrder := and(
+                lt(numerator, denominator),
+                iszero(and(orderType, 1))
+            )
         }
     }
 }

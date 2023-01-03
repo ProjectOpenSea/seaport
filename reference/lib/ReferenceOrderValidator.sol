@@ -137,8 +137,17 @@ contract ReferenceOrderValidator is
             return (bytes32(0), 0, 0);
         }
 
+        // Read numerator and denominator from memory and place on the stack.
+        uint256 numerator = uint256(advancedOrder.numerator);
+        uint256 denominator = uint256(advancedOrder.denominator);
+
         // If the order is a contract order, return the generated order.
         if (orderParameters.orderType == OrderType.CONTRACT) {
+            // Ensure that numerator and denominator are both equal to 1.
+            if (numerator != 1 || denominator != 1) {
+                revert BadFraction();
+            }
+
             return
                 _getGeneratedOrder(
                     orderParameters,
@@ -146,10 +155,6 @@ contract ReferenceOrderValidator is
                     revertOnInvalid
                 );
         }
-
-        // Read numerator and denominator from memory and place on the stack.
-        uint256 numerator = uint256(advancedOrder.numerator);
-        uint256 denominator = uint256(advancedOrder.denominator);
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0) {
@@ -429,6 +434,9 @@ contract ReferenceOrderValidator is
                         .identifierOrCriteria = newConsideration.identifier;
                 }
 
+                // All fields must match the originally supplied fields except
+                // for the amount (which may be reduced by the contract offerer)
+                // and the recipient if not provided by the recipient.
                 if (
                     originalConsideration.startAmount !=
                     originalConsideration.endAmount ||
@@ -437,9 +445,10 @@ contract ReferenceOrderValidator is
                     newConsideration.itemType ||
                     originalConsideration.token != newConsideration.token ||
                     originalConsideration.identifierOrCriteria !=
-                    newConsideration.identifier
-                    // TODO: should we check recipient if supplied by fulfiller?
-                    // Should we allow empty args to be skipped in other cases?
+                    newConsideration.identifier ||
+                    (originalConsideration.recipient != address(0) &&
+                        originalConsideration.recipient !=
+                        (newConsideration.recipient))
                 ) {
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }
