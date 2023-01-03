@@ -22,32 +22,6 @@ import "./ConsiderationConstants.sol";
 import "../helpers/PointerLibraries.sol";
 
 contract ConsiderationDecoder {
-    uint256 constant BasicOrderParameters_head_size = 0x0240;
-    uint256 constant BasicOrderParameters_fixed_segment_0 = 0x0200;
-    uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
-    uint256 constant BasicOrderParameters_signature_offset = 0x0220;
-
-    uint256 constant OrderParameters_head_size = 0x0160;
-    uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
-        0x0140
-    );
-    uint256 constant AdvancedOrderPlusOrderParameters_head_size = 0x0200;
-
-    uint256 constant Order_signature_offset = 0x20;
-    uint256 constant Order_head_size = 0x40;
-
-    uint256 constant AdvancedOrder_fixed_segment_0 = 0x40;
-
-    uint256 constant CriteriaResolver_head_size = 0xa0;
-    uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
-    uint256 constant CriteriaResolver_criteriaProof_offset = 0x80;
-
-    uint256 constant FulfillmentComponent_mem_tail_size = 0x40;
-    uint256 constant Fulfillment_head_size = 0x40;
-    uint256 constant Fulfillment_considerationComponents_offset = 0x20;
-
-    uint256 constant OrderComponents_OrderParameters_common_head_size = 0x0140;
-
     /**
      * @dev Takes a bytes array from calldata and copies it into memory.
      *

@@ -213,19 +213,31 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         // Revert with bad 1271 signature if signer has code.
                         if extcodesize(signer) {
                             // Bad contract signature.
-                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            // Store left-padded selector with push4, mem[28:32]
                             mstore(0, BadContractSignature_error_selector)
-                            // revert(abi.encodeWithSignature("BadContractSignature()"))
-                            revert(0x1c, BadContractSignature_error_length)
+
+                            // revert(abi.encodeWithSignature(
+                            //     "BadContractSignature()"
+                            // ))
+                            revert(
+                                Error_selector_offset,
+                                BadContractSignature_error_length
+                            )
                         }
 
                         // Check if signature length was invalid.
                         if gt(sub(ECDSA_MaxLength, signatureLength), 1) {
                             // Revert with generic invalid signature error.
-                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            // Store left-padded selector with push4, mem[28:32]
                             mstore(0, InvalidSignature_error_selector)
-                            // revert(abi.encodeWithSignature("InvalidSignature()"))
-                            revert(0x1c, InvalidSignature_error_length)
+
+                            // revert(abi.encodeWithSignature(
+                            //     "InvalidSignature()"
+                            // ))
+                            revert(
+                                Error_selector_offset,
+                                InvalidSignature_error_length
+                            )
                         }
 
                         // Check if v was invalid.
@@ -247,7 +259,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             )
                         ) {
                             // Revert with invalid v value.
-                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            // Store left-padded selector with push4, mem[28:32]
                             mstore(0, BadSignatureV_error_selector)
                             mstore(
                                 BadSignatureV_error_v_ptr,
@@ -258,15 +270,25 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                                     )
                                 )
                             )
-                            // revert(abi.encodeWithSignature("BadSignatureV(uint8)", v))
-                            revert(0x1c, BadSignatureV_error_length)
+
+                            // revert(abi.encodeWithSignature(
+                            //     "BadSignatureV(uint8)", v
+                            // ))
+                            revert(
+                                Error_selector_offset,
+                                BadSignatureV_error_length
+                            )
                         }
 
                         // Revert with generic invalid signer error message.
-                        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                        // Store left-padded selector with push4, mem[28:32]
                         mstore(0, InvalidSigner_error_selector)
+
                         // revert(abi.encodeWithSignature("InvalidSigner()"))
-                        revert(0x1c, InvalidSigner_error_length)
+                        revert(
+                            Error_selector_offset,
+                            InvalidSigner_error_length
+                        )
                     }
                 }
 
@@ -291,10 +313,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // Otherwise, revert with error indicating bad contract signature.
             assembly {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, BadContractSignature_error_selector)
                 // revert(abi.encodeWithSignature("BadContractSignature()"))
-                revert(0x1c, BadContractSignature_error_length)
+                revert(Error_selector_offset, BadContractSignature_error_length)
             }
         }
     }

@@ -423,7 +423,7 @@ contract ConsiderationEncoder {
             tailOffset += orderHashesSize;
 
             // Derive final size including selector and ZoneParameters pointer.
-            size = 0x24 + tailOffset;
+            size = ZoneParameters_selectorAndPointer_length + tailOffset;
         }
     }
 
@@ -468,7 +468,7 @@ contract ConsiderationEncoder {
         // Copy startTime, endTime and zoneHash to zoneParameters.
         CalldataPointer.wrap(BasicOrder_startTime_cdPtr).copy(
             dstHead.offset(ZoneParameters_startTime_offset),
-            0x60
+            BasicOrder_startTimeThroughZoneHash_size
         );
 
         // Initialize tail offset, used for the offer + consideration arrays.
@@ -477,17 +477,17 @@ contract ConsiderationEncoder {
         // Write offset to offer from event data into target calldata.
         dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
 
-        // Write consideration offset next (located 5 words after offer).
-        dstHead.offset(ZoneParameters_consideration_head_offset).write(
-            tailOffset + 0xa0
-        );
-
-        // Retrieve the offset to the length of additional recipients.
-        uint256 additionalRecipientsLength = CalldataPointer
-            .wrap(BasicOrder_additionalRecipients_length_cdPtr)
-            .readUint256();
-
         unchecked {
+            // Write consideration offset next (located 5 words after offer).
+            dstHead.offset(ZoneParameters_consideration_head_offset).write(
+                tailOffset + BasicOrder_common_params_size
+            );
+
+            // Retrieve the offset to the length of additional recipients.
+            uint256 additionalRecipientsLength = CalldataPointer
+                .wrap(BasicOrder_additionalRecipients_length_cdPtr)
+                .readUint256();
+
             // Derive offset to event data using base offset & total recipients.
             uint256 offerDataOffset = OrderFulfilled_offer_length_baseOffset +
                 additionalRecipientsLength *
@@ -530,7 +530,7 @@ contract ConsiderationEncoder {
             dstHead.offset(tailOffset + OneWord).writeBytes32(orderHash);
 
             // Final size: selector, ZoneParameters pointer, orderHashes & tail.
-            size = 0x64 + tailOffset;
+            size = ZoneParameters_basicOrderFixedElements_length + tailOffset;
         }
     }
 

@@ -227,10 +227,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
-                // Store left-padded selector (uses push4 and reduces code size), mem[28:32] = selector
+                // Store left-padded selector (uses push4 and reduces code size)
                 mstore(0, InvalidFulfillmentComponentData_error_selector)
-                // revert(abi.encodeWithSignature("InvalidFulfillmentComponentData()"))
-                revert(0x1c, InvalidFulfillmentComponentData_error_length)
+
+                // revert(abi.encodeWithSignature(
+                //     "InvalidFulfillmentComponentData()"
+                // ))
+                revert(
+                    Error_selector_offset,
+                    InvalidFulfillmentComponentData_error_length
+                )
             }
 
             // Declare function for reverts due to arithmetic overflows.
@@ -240,7 +246,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Store the arithmetic (0x11) panic code.
                 mstore(Panic_error_code_ptr, Panic_arithmetic)
                 // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
-                revert(0x1c, Panic_error_length)
+                revert(Error_selector_offset, Panic_error_length)
             }
 
             // Get position in offerComponents head.
@@ -487,8 +493,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     // Store left-padded selector with push4 (reduces bytecode)
                     // mem[28:32] = selector
                     mstore(0, MissingItemAmount_error_selector)
+
                     // revert(abi.encodeWithSignature("MissingItemAmount()"))
-                    revert(0x1c, MissingItemAmount_error_length)
+                    revert(
+                        Error_selector_offset,
+                        MissingItemAmount_error_length
+                    )
                 }
 
                 // If errorBuffer is not 1 or 0, the sum overflowed.
@@ -524,7 +534,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 mstore(0, InvalidFulfillmentComponentData_error_selector)
 
                 // Return, supplying InvalidFulfillmentComponentData signature.
-                revert(0x1c, InvalidFulfillmentComponentData_error_length)
+                revert(
+                    Error_selector_offset,
+                    InvalidFulfillmentComponentData_error_length
+                )
             }
 
             // Declare function for reverts due to arithmetic overflows.
@@ -534,7 +547,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Store the arithmetic (0x11) panic code.
                 mstore(Panic_error_code_ptr, Panic_arithmetic)
                 // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
-                revert(0x1c, Panic_error_length)
+                revert(Error_selector_offset, Panic_error_length)
             }
 
             // Get position in considerationComponents head.
@@ -760,10 +773,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             if errorBuffer {
                 // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
-                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    // Store left-padded selector with push4, mem[28:32]
                     mstore(0, MissingItemAmount_error_selector)
+
                     // revert(abi.encodeWithSignature("MissingItemAmount()"))
-                    revert(0x1c, MissingItemAmount_error_length)
+                    revert(
+                        Error_selector_offset,
+                        MissingItemAmount_error_length
+                    )
                 }
 
                 // If errorBuffer is not 1 or 0, the sum overflowed.

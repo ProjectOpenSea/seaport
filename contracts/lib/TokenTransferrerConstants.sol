@@ -119,6 +119,7 @@ uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x20;
 uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x40;
 uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x60;
 uint256 constant TokenTransferGenericFailure_error_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_err_identifier_ptr = 0x80;
 uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
 uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 
