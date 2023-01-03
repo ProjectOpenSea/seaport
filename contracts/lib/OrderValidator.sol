@@ -103,20 +103,16 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                          order is invalid due to the time or status.
      *
      * @return orderHash      The order hash.
-     * @return newNumerator   A value indicating the portion of the order that
+     * @return numerator      A value indicating the portion of the order that
      *                        will be filled.
-     * @return newDenominator A value indicating the total size of the order.
+     * @return denominator    A value indicating the total size of the order.
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
         bool revertOnInvalid
     )
         internal
-        returns (
-            bytes32 orderHash,
-            uint256 newNumerator,
-            uint256 newDenominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
@@ -134,8 +130,18 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Read numerator and denominator from memory and place on the stack.
-        uint256 numerator = uint256(advancedOrder.numerator);
-        uint256 denominator = uint256(advancedOrder.denominator);
+        // Note that overflowed values are masked.
+        assembly {
+            numerator := and(
+                mload(add(advancedOrder, AdvancedOrder_numerator_offset)),
+                MaxUint120
+            )
+
+            denominator := and(
+                mload(add(advancedOrder, AdvancedOrder_denominator_offset)),
+                MaxUint120
+            )
+        }
 
         // Declare variable for tracking the validity of the supplied fraction.
         bool validFraction;
@@ -215,43 +221,79 @@ contract OrderValidator is Executor, ZoneInteraction {
             );
         }
 
-        // Read filled amount as numerator and denominator and put on the stack.
-        uint256 filledNumerator = orderStatus.numerator;
-        uint256 filledDenominator = orderStatus.denominator;
+        assembly {
+            let orderStatusSlot := orderStatus.slot
+            // Read filled amount as numerator and denominator and put on stack.
+            let filledNumerator := sload(orderStatusSlot)
+            let filledDenominator := shr(
+                OrderStatus_filledDenominator_offset,
+                filledNumerator
+            )
 
-        // If order (orderStatus) currently has a non-zero denominator it is
-        // partially filled.
-        if (filledDenominator != 0) {
-            // If denominator of 1 supplied, fill all remaining amount on order.
-            if (denominator == 1) {
-                // Scale numerator & denominator to match current denominator.
-                numerator = filledDenominator;
-                denominator = filledDenominator;
-            }
-            // Otherwise, if supplied denominator differs from current one...
-            else if (filledDenominator != denominator) {
-                // scale current numerator by the supplied denominator, then...
-                filledNumerator *= denominator;
+            for {
 
-                // the supplied numerator & denominator by current denominator.
-                numerator *= filledDenominator;
-                denominator *= filledDenominator;
-            }
+            } 1 {
 
-            // Once adjusted, if current+supplied numerator exceeds denominator:
-            if (filledNumerator + numerator > denominator) {
-                // Skip underflow check: denominator >= orderStatus.numerator
-                unchecked {
-                    // Reduce current numerator so it + supplied = denominator.
-                    numerator = denominator - filledNumerator;
+            } {
+                if iszero(filledDenominator) {
+                    filledNumerator := numerator
+
+                    break
                 }
-            }
 
-            // Increment the filled numerator by the new numerator.
-            filledNumerator += numerator;
+                // shift and mask to calculate the the current filled numerator.
+                filledNumerator := and(
+                    shr(OrderStatus_filledNumerator_offset, filledNumerator),
+                    MaxUint120
+                )
 
-            // Use assembly to ensure fractional amounts are below max uint120.
-            assembly {
+                // If denominator of 1 supplied, fill entire remaining amount.
+                if eq(denominator, 1) {
+                    numerator := sub(filledDenominator, filledNumerator)
+                    denominator := filledDenominator
+                    filledNumerator := filledDenominator
+
+                    break
+                }
+
+                // If supplied denominator equals to the current one:
+                if eq(denominator, filledDenominator) {
+                    // Increment the filled numerator by the new numerator.
+                    filledNumerator := add(numerator, filledNumerator)
+
+                    // Once adjusted, if current + supplied numerator exceeds
+                    // the denominator:
+                    let carry := mul(
+                        sub(filledNumerator, denominator),
+                        gt(filledNumerator, denominator)
+                    )
+
+                    numerator := sub(numerator, carry)
+
+                    filledNumerator := sub(filledNumerator, carry)
+
+                    break
+                }
+
+                // Otherwise, if supplied denominator differs from current one:
+                filledNumerator := mul(filledNumerator, denominator)
+                numerator := mul(numerator, filledDenominator)
+                denominator := mul(denominator, filledDenominator)
+
+                // Increment the filled numerator by the new numerator.
+                filledNumerator := add(numerator, filledNumerator)
+
+                // Once adjusted, if current + supplied numerator exceeds
+                // denominator:
+                let carry := mul(
+                    sub(filledNumerator, denominator),
+                    gt(filledNumerator, denominator)
+                )
+
+                numerator := sub(numerator, carry)
+
+                filledNumerator := sub(filledNumerator, carry)
+
                 // Check filledNumerator and denominator for uint120 overflow.
                 if or(
                     gt(filledNumerator, MaxUint120),
@@ -299,25 +341,27 @@ contract OrderValidator is Executor, ZoneInteraction {
                         revert(Error_selector_offset, Panic_error_length)
                     }
                 }
-            }
-            // Skip overflow check: checked above unless numerator is reduced.
-            unchecked {
-                // Update order status and fill amount, packing struct values.
-                orderStatus.isValidated = true;
-                orderStatus.isCancelled = false;
-                orderStatus.numerator = uint120(filledNumerator);
-                orderStatus.denominator = uint120(denominator);
-            }
-        } else {
-            // Update order status and fill amount, packing struct values.
-            orderStatus.isValidated = true;
-            orderStatus.isCancelled = false;
-            orderStatus.numerator = uint120(numerator);
-            orderStatus.denominator = uint120(denominator);
-        }
 
-        // Return order hash, a modified numerator, and a modified denominator.
-        return (orderHash, numerator, denominator);
+                break
+            }
+
+            // Update order status and fill amount, packing struct values.
+            // [denominator: 15 bytes] [numerator: 15 bytes]
+            // [isCancelled: 1 byte] [isValidated: 1 byte]
+            sstore(
+                orderStatusSlot,
+                or(
+                    OrderStatus_ValidatedAndNotCancelled,
+                    or(
+                        shl(
+                            OrderStatus_filledNumerator_offset,
+                            filledNumerator
+                        ),
+                        shl(OrderStatus_filledDenominator_offset, denominator)
+                    )
+                )
+            )
+        }
     }
 
     /**
@@ -337,7 +381,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             let itemType := mload(originalItem)
             let identifier := mload(add(originalItem, Common_identifier_offset))
 
-            // Set returned identifier for criteria-based items with criteria = 0.
+            // Set returned identifier for criteria-based items w/ criteria = 0.
             if and(gt(itemType, 3), iszero(identifier)) {
                 // replace item type
                 itemType := sub(3, eq(itemType, 4))
@@ -349,7 +393,8 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             isInvalid := iszero(
                 and(
-                    // originalItem.token == newItem.token && originalItem.itemType == newItem.itemType
+                    // originalItem.token == newItem.token &&
+                    // originalItem.itemType == newItem.itemType
                     and(
                         eq(
                             mload(add(originalItem, Common_token_offset)),
@@ -357,7 +402,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                         ),
                         eq(itemType, mload(newItem))
                     ),
-                    // originalItem.identifier == newItem.identifier && originalItem.startAmount == originalItem.endAmount
+                    // originalItem.identifier == newItem.identifier &&
+                    // originalItem.startAmount == originalItem.endAmount
                     and(
                         eq(
                             identifier,
