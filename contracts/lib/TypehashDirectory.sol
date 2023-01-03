@@ -18,7 +18,7 @@ contract TypehashDirectory {
     uint256 internal constant MaxTreeHeight = 24;
 
     /**
-     * @dev Derive and 24 bulk order EIP-712 typehashes, one for each supported
+     * @dev Derive 24 bulk order EIP-712 typehashes, one for each supported
      *      tree height from 1 to 24, and write them to runtime code.
      */
     constructor() {

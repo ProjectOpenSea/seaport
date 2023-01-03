@@ -163,7 +163,7 @@ export const marketplaceFixture = async (
       signature
     );
 
-    const orderHash = tree.getBulkOrderHash(); // await getAndVerifyOrderHash(orderComponents);
+    const orderHash = tree.getBulkOrderHash();
 
     const { domainSeparator } = await marketplaceContract.information();
     const digest = keccak256(
@@ -173,17 +173,20 @@ export const marketplaceFixture = async (
 
     expect(recoveredAddress).to.equal(signer.address);
 
-    /// / TODO: verify each order or a subset of the orders?
-    //
-    // const orderHash = await getAndVerifyOrderHash(orderComponents);
-    //
-    // const { domainSeparator } = await marketplaceContract.information();
-    // const digest = keccak256(
-    //   `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
-    // );
-    // const recoveredAddress = recoverAddress(digest, signature);
-    //
-    // expect(recoveredAddress).to.equal(signer.address);
+    // Verify each individual order
+    for (const components of orderComponents) {
+      const individualOrderHash = await getAndVerifyOrderHash(components);
+      const digest = keccak256(
+        `0x1901${domainSeparator.slice(2)}${individualOrderHash.slice(2)}`
+      );
+      const individualOrderSignature = await signer._signTypedData(
+        domainData,
+        orderType,
+        components
+      );
+      const recoveredAddress = recoverAddress(digest, individualOrderSignature);
+      expect(recoveredAddress).to.equal(signer.address);
+    }
 
     return proofAndSignature;
   };
@@ -263,12 +266,24 @@ export const marketplaceFixture = async (
     };
 
     if (useBulkSignature) {
-      order.signature = signBulkOrder(
+      order.signature = await signBulkOrder(
         [orderComponents],
         signer ?? offerer,
         bulkSignatureIndex,
         bulkSignatureHeight
       );
+
+      // Verify bulk signature length
+      expect(
+        order.signature.slice(2).length / 2,
+        "bulk signature length should be valid (98 < length < 837)"
+      )
+        .to.be.gt(98)
+        .and.lt(837);
+      expect(
+        (order.signature.slice(2).length / 2 - 67) % 32,
+        "bulk signature length should be valid ((length - 67) % 32 < 2)"
+      ).to.be.lt(2);
     }
 
     // How much ether (at most) needs to be supplied when fulfilling the order

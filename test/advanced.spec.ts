@@ -4467,7 +4467,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         undefined,
         true
       );
-      if ((order.signature.length - 1) / 2 < 288) throw Error("");
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -4545,7 +4544,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         9,
         5
       );
-      if ((order.signature.length - 1) / 2 < 288) throw Error("");
 
       const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
