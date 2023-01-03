@@ -434,6 +434,9 @@ contract ReferenceOrderValidator is
                         .identifierOrCriteria = newConsideration.identifier;
                 }
 
+                // All fields must match the originally supplied fields except
+                // for the amount (which may be reduced by the contract offerer)
+                // and the recipient if not provided by the recipient.
                 if (
                     originalConsideration.startAmount !=
                     originalConsideration.endAmount ||
@@ -442,7 +445,10 @@ contract ReferenceOrderValidator is
                     newConsideration.itemType ||
                     originalConsideration.token != newConsideration.token ||
                     originalConsideration.identifierOrCriteria !=
-                    newConsideration.identifier
+                    newConsideration.identifier ||
+                    (originalConsideration.recipient != address(0) &&
+                        originalConsideration.recipient !=
+                        (newConsideration.recipient))
                 ) {
                     return _revertOrReturnEmpty(revertOnInvalid, orderHash);
                 }

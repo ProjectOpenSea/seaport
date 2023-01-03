@@ -322,10 +322,10 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     /**
      * @dev Internal pure function to check the compatibility of two offer
-     * or consideration items.
+     *      or consideration items for contract orders.
      *
-     * @param originalItem    The original offer or consideration item.
-     * @param newItem         The new offer or consideration item.
+     * @param originalItem The original offer or consideration item.
+     * @param newItem      The new offer or consideration item.
      *
      * @return isInvalid Error buffer indicating if items are incompatible.
      */
@@ -369,6 +369,28 @@ contract OrderValidator is Executor, ZoneInteraction {
                         )
                     )
                 )
+            )
+        }
+    }
+
+    /**
+     * @dev Internal pure function to check the compatibility of two recipients
+     *      on consideration items for contract orders. This check is skipped if
+     *      no recipient is originally supplied.
+     *
+     * @param originalRecipient The original consideration item recipient.
+     * @param newRecipient      The new consideration item recipient.
+     *
+     * @return isInvalid Error buffer indicating if recipients are incompatible.
+     */
+    function _checkRecipients(
+        address originalRecipient,
+        address newRecipient
+    ) internal pure returns (uint256 isInvalid) {
+        assembly {
+            isInvalid := and(
+                not(iszero(originalRecipient)),
+                not(eq(newRecipient, originalRecipient))
             )
         }
     }
@@ -507,6 +529,12 @@ contract OrderValidator is Executor, ZoneInteraction {
                 errorBuffer |= _compareItems(
                     originalItem.toMemoryPointer(),
                     newItem.toMemoryPointer()
+                );
+
+                // Ensure that the recipients are equal when provided.
+                errorBuffer |= _checkRecipients(
+                    originalItem.recipient,
+                    newItem.recipient
                 );
 
                 // Increment the array (cannot overflow as index starts at 0).
