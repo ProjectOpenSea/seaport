@@ -388,9 +388,11 @@ contract OrderValidator is Executor, ZoneInteraction {
         address newRecipient
     ) internal pure returns (uint256 isInvalid) {
         assembly {
-            isInvalid := and(
-                not(iszero(originalRecipient)),
-                not(eq(newRecipient, originalRecipient))
+            isInvalid := iszero(
+                or(
+                    iszero(originalRecipient),
+                    eq(newRecipient, originalRecipient)
+                )
             )
         }
     }
