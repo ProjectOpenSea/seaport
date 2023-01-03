@@ -646,7 +646,7 @@ contract ReferenceOrderCombiner is
         // Initialize array for tracking available orders.
         availableOrders = new bool[](ordersToExecute.length);
 
-        // Iterate over orders to ensure all considerations are met.
+        // Iterate over orders to ensure all consideration items are met.
         for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
             OrderToExecute memory orderToExecute = ordersToExecute[i];

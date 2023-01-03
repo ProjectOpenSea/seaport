@@ -382,7 +382,7 @@ contract ReferenceOrderFulfiller is
             spentItemOriginalAmounts[i] = offerItem.startAmount;
         }
 
-        // Retrieve the advanced orders considerations.
+        // Retrieve the consideration array from the advanced order.
         ConsiderationItem[] memory consideration = advancedOrder
             .parameters
             .consideration;

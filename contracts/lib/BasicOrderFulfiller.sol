@@ -453,9 +453,9 @@ contract BasicOrderFulfiller is OrderValidator {
                  * 3. Calculate EIP712 ConsiderationItem hashes for original
                  * additional recipients and add a ReceivedItem for each to the
                  * consideration array in the OrderFulfilled event. The original
-                 * additional recipients are all the considerations signed by
-                 * the offerer aside from the primary consideration of the
-                 * order. Uses memory region from 0x80-0x160 as a buffer for
+                 * additional recipients are all the consideration items signed
+                 * by the offerer aside from the primary consideration items of
+                 * the order. Uses memory region from 0x80-0x160 as a buffer for
                  * calculating EIP712 ConsiderationItem hashes.
                  */
 

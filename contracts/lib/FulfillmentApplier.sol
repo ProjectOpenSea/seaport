@@ -581,7 +581,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
             )
 
-            // Ensure that the order index is not out of range.
+            // Ensure that the consideration item index is not out of range.
             if iszero(lt(itemIndex, mload(considerationArrPtr))) {
                 throwInvalidFulfillmentComponentData()
             }

@@ -718,7 +718,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
-            // Iterate over orders to ensure all considerations are met.
+            // Iterate over orders to ensure all consideration items are met.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order in question.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
