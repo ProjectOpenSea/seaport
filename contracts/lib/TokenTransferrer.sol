@@ -182,7 +182,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                             //     )", token, from, to, identifier, amount
                             // ))
                             revert(
-                                Error_selector_offset,
+                                Generic_error_selector_offset,
                                 TokenTransferGenericFailure_error_length
                             )
                         }
@@ -218,7 +218,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         //     )", token, from, to, amount
                         // ))
                         revert(
-                            Error_selector_offset,
+                            Generic_error_selector_offset,
                             BadReturnValueFromERC20OnTransfer_error_length
                         )
                     }
@@ -231,7 +231,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // revert(abi.encodeWithSignature(
                     //      "NoContract(address)", account
                     // ))
-                    revert(Error_selector_offset, NoContract_error_length)
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Otherwise, the token just returned no data despite the call
@@ -276,7 +279,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // revert(abi.encodeWithSignature(
                 //     "NoContract(address)", account
                 // ))
-                revert(Error_selector_offset, NoContract_error_length)
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The free memory pointer memory slot will be used when populating
@@ -372,7 +375,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 //     )", token, from, to, identifier, amount
                 // ))
                 revert(
-                    Error_selector_offset,
+                    Generic_error_selector_offset,
                     TokenTransferGenericFailure_error_length
                 )
             }
@@ -416,7 +419,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // revert(abi.encodeWithSignature(
                 //     "NoContract(address)", account
                 // ))
-                revert(Error_selector_offset, NoContract_error_length)
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The following memory slots will be used when populating call data
@@ -525,7 +528,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 //     )", token, from, to, identifier, amount
                 // ))
                 revert(
-                    Error_selector_offset,
+                    Generic_error_selector_offset,
                     TokenTransferGenericFailure_error_length
                 )
             }
@@ -606,7 +609,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // revert(abi.encodeWithSignature(
                     //     "NoContract(address)", account
                     // ))
-                    revert(Error_selector_offset, NoContract_error_length)
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Get the total number of supplied ids.
