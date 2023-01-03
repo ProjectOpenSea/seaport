@@ -160,8 +160,8 @@ library ReturndataPointerLib {
     }
 
     /// @dev Resolves an offset stored at `rdPtr` to a returndata pointer.
-    ///    `rdPtr` must point to some parent object with a dynamic type as its first
-    ///    member, e.g. `struct { bytes data; }`
+    ///    `rdPtr` must point to some parent object with a dynamic type as its
+    ///    first member, e.g. `struct { bytes data; }`
     function pptr(
         ReturndataPointer rdPtr
     ) internal pure returns (ReturndataPointer rdPtrChild) {
@@ -187,7 +187,8 @@ library ReturndataPointerLib {
         }
     }
 
-    /// @dev Copies `size` bytes from returndata starting at `src` to memory at `dst`.
+    /// @dev Copies `size` bytes from returndata starting at `src` to memory at
+    /// `dst`.
     function copy(
         ReturndataPointer src,
         MemoryPointer dst,
@@ -246,9 +247,9 @@ library MemoryPointerLib {
         }
     }
 
-    /// @dev Resolves a pointer pointer at `mPtr + headOffset` to a memory pointer.
-    ///    `mPtr` must point to some parent object with a dynamic type's pointer stored at
-    ///    `mPtr + headOffset`.
+    /// @dev Resolves a pointer pointer at `mPtr + headOffset` to a memory
+    ///    pointer. `mPtr` must point to some parent object with a dynamic
+    ///    type's pointer stored at `mPtr + headOffset`.
     function pptr(
         MemoryPointer mPtr,
         uint256 headOffset
@@ -257,8 +258,8 @@ library MemoryPointerLib {
     }
 
     /// @dev Resolves a pointer pointer stored at `mPtr` to a memory pointer.
-    ///    `mPtr` must point to some parent object with a dynamic type as its first
-    ///    member, e.g. `struct { bytes data; }`
+    ///    `mPtr` must point to some parent object with a dynamic type as its
+    ///    first member, e.g. `struct { bytes data; }`
     function pptr(
         MemoryPointer mPtr
     ) internal pure returns (MemoryPointer mPtrChild) {
@@ -287,7 +288,8 @@ library MemoryPointerLib {
 }
 
 library CalldataReaders {
-    /// @dev Reads the value at `cdPtr` and applies a mask to return only the last 4 bytes
+    /// @dev Reads the value at `cdPtr` and applies a mask to return only the
+    ///    last 4 bytes.
     function readMaskedUint256(
         CalldataPointer cdPtr
     ) internal pure returns (uint256 value) {
@@ -3046,37 +3048,37 @@ library MemoryWriters {
         }
     }
 
-    /// @dev Writes `value` to `mPtr` in memory.
+    /// @dev Writes a boolean `value` to `mPtr` in memory.
     function write(MemoryPointer mPtr, bool value) internal pure {
         assembly {
             mstore(mPtr, value)
         }
     }
 
-    /// @dev Writes `value` to `mPtr` in memory.
+    /// @dev Writes an address `value` to `mPtr` in memory.
     function write(MemoryPointer mPtr, address value) internal pure {
         assembly {
             mstore(mPtr, value)
         }
     }
 
-    /// @dev Writes `value` to `mPtr` in memory.
-    /// Separate name to disambiguate literal write parameters
-    function writeBytes(MemoryPointer mPtr, bytes32 value) internal pure {
+    /// @dev Writes a bytes32 `value` to `mPtr` in memory.
+    /// Separate name to disambiguate literal write parameters.
+    function writeBytes32(MemoryPointer mPtr, bytes32 value) internal pure {
         assembly {
             mstore(mPtr, value)
         }
     }
 
-    /// @dev Writes `value` to `mPtr` in memory.
+    /// @dev Writes a uint256 `value` to `mPtr` in memory.
     function write(MemoryPointer mPtr, uint256 value) internal pure {
         assembly {
             mstore(mPtr, value)
         }
     }
 
-    /// @dev Writes `value` to `mPtr` in memory.
-    /// Separate name to disambiguate literal write parameters
+    /// @dev Writes an int256 `value` to `mPtr` in memory.
+    /// Separate name to disambiguate literal write parameters.
     function writeInt(MemoryPointer mPtr, int256 value) internal pure {
         assembly {
             mstore(mPtr, value)

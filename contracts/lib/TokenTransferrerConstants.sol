@@ -46,6 +46,8 @@ uint256 constant Slot0x80 = 0x80;
 uint256 constant Slot0xA0 = 0xa0;
 uint256 constant Slot0xC0 = 0xc0;
 
+uint256 constant Generic_error_selector_offset = 0x1c;
+
 // abi.encodeWithSignature("transferFrom(address,address,uint256)")
 uint256 constant ERC20_transferFrom_signature = (
     0x23b872dd00000000000000000000000000000000000000000000000000000000
@@ -119,6 +121,7 @@ uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x20;
 uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x40;
 uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x60;
 uint256 constant TokenTransferGenericFailure_error_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_err_identifier_ptr = 0x80;
 uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
 uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 

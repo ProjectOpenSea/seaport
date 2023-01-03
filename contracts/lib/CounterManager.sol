@@ -7,6 +7,8 @@ import {
 
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
 
+import "./ConsiderationConstants.sol";
+
 /**
  * @title CounterManager
  * @author 0age
@@ -19,8 +21,8 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
 
     /**
      * @dev Internal function to cancel all orders from a given offerer in bulk
-     *      by incrementing a counter. Note that only the offerer may increment
-     *      the counter.
+     *      by incrementing a counter by a large, quasi-random interval. Note
+     *      that only the offerer may increment the counter.
      *
      * @return newCounter The new counter.
      */
@@ -32,16 +34,19 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
         // overflow check as counter cannot be incremented that far.
         assembly {
             // Use second half of previous block hash as a quasi-random number.
-            let quasiRandomNumber := shr(128, blockhash(sub(number(), 1)))
+            let quasiRandomNumber := shr(
+                Counter_blockhash_shift,
+                blockhash(sub(number(), 1))
+            )
 
             // Write the caller to scratch space.
             mstore(0, caller())
 
             // Write the storage slot for _counters to scratch space.
-            mstore(0x20, _counters.slot)
+            mstore(OneWord, _counters.slot)
 
             // Derive the storage pointer for the counter value.
-            let storagePointer := keccak256(0, 0x40)
+            let storagePointer := keccak256(0, TwoWords)
 
             // Derive new counter value using random number and original value.
             newCounter := add(quasiRandomNumber, sload(storagePointer))

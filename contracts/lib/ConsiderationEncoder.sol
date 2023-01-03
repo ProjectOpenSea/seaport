@@ -172,7 +172,7 @@ contract ConsiderationEncoder {
             tailOffset += contextSize;
 
             // Derive the final size by including the selector.
-            size = 4 + tailOffset;
+            size = Selector_length + tailOffset;
         }
     }
 
@@ -287,7 +287,7 @@ contract ConsiderationEncoder {
             tailOffset += orderHashesSize;
 
             // Derive the final size by including the selector.
-            size = 4 + tailOffset;
+            size = Selector_length + tailOffset;
         }
     }
 
@@ -333,7 +333,7 @@ contract ConsiderationEncoder {
         dstHead = dstHead.offset(validateOrder_zoneParameters_offset);
 
         // Write orderHash and fulfiller to zoneParameters.
-        dstHead.writeBytes(orderHash);
+        dstHead.writeBytes32(orderHash);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
 
         // Get the memory pointer to the order paramaters struct.
@@ -423,7 +423,7 @@ contract ConsiderationEncoder {
             tailOffset += orderHashesSize;
 
             // Derive final size including selector and ZoneParameters pointer.
-            size = 0x24 + tailOffset;
+            size = ZoneParameters_selectorAndPointer_length + tailOffset;
         }
     }
 
@@ -461,14 +461,14 @@ contract ConsiderationEncoder {
         dstHead = dstHead.offset(validateOrder_zoneParameters_offset);
 
         // Write offerer, orderHash and fulfiller to zoneParameters.
-        dstHead.writeBytes(orderHash);
+        dstHead.writeBytes32(orderHash);
         dstHead.offset(ZoneParameters_offerer_offset).write(parameters.offerer);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
 
         // Copy startTime, endTime and zoneHash to zoneParameters.
         CalldataPointer.wrap(BasicOrder_startTime_cdPtr).copy(
             dstHead.offset(ZoneParameters_startTime_offset),
-            0x60
+            BasicOrder_startTimeThroughZoneHash_size
         );
 
         // Initialize tail offset, used for the offer + consideration arrays.
@@ -477,17 +477,17 @@ contract ConsiderationEncoder {
         // Write offset to offer from event data into target calldata.
         dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
 
-        // Write consideration offset next (located 5 words after offer).
-        dstHead.offset(ZoneParameters_consideration_head_offset).write(
-            tailOffset + 0xa0
-        );
-
-        // Retrieve the offset to the length of additional recipients.
-        uint256 additionalRecipientsLength = CalldataPointer
-            .wrap(BasicOrder_additionalRecipients_length_cdPtr)
-            .readUint256();
-
         unchecked {
+            // Write consideration offset next (located 5 words after offer).
+            dstHead.offset(ZoneParameters_consideration_head_offset).write(
+                tailOffset + BasicOrder_common_params_size
+            );
+
+            // Retrieve the offset to the length of additional recipients.
+            uint256 additionalRecipientsLength = CalldataPointer
+                .wrap(BasicOrder_additionalRecipients_length_cdPtr)
+                .readUint256();
+
             // Derive offset to event data using base offset & total recipients.
             uint256 offerDataOffset = OrderFulfilled_offer_length_baseOffset +
                 additionalRecipientsLength *
@@ -514,7 +514,7 @@ contract ConsiderationEncoder {
 
         unchecked {
             // Increment tail offset, now used to populate orderHashes array.
-            tailOffset += 32;
+            tailOffset += OneWord;
         }
 
         // Write offset to orderHashes.
@@ -527,10 +527,10 @@ contract ConsiderationEncoder {
 
         unchecked {
             // Write the single order hash to the orderHashes array.
-            dstHead.offset(tailOffset + 32).writeBytes(orderHash);
+            dstHead.offset(tailOffset + OneWord).writeBytes32(orderHash);
 
             // Final size: selector, ZoneParameters pointer, orderHashes & tail.
-            size = 0x64 + tailOffset;
+            size = ZoneParameters_basicOrderFixedElements_length + tailOffset;
         }
     }
 
@@ -558,7 +558,7 @@ contract ConsiderationEncoder {
 
         unchecked {
             // Determine head & tail size as one word per element in the array.
-            uint256 headAndTailSize = length * 32;
+            uint256 headAndTailSize = length * OneWord;
 
             // Copy the tail starting from the next element of the source to the
             // next element of the destination.
@@ -568,7 +568,7 @@ contract ConsiderationEncoder {
             );
 
             // Set size to the length of the tail plus one word for length.
-            size = headAndTailSize + 32;
+            size = headAndTailSize + OneWord;
         }
     }
 
@@ -599,16 +599,16 @@ contract ConsiderationEncoder {
             // containing the item's pointer in memory. The head pointer will be
             // incremented until it reaches the tail position (start of the
             // array data).
-            let mPtrHead := add(srcLength, 0x20)
+            let mPtrHead := add(srcLength, OneWord)
 
             // Position in memory to write next item for calldata. Since
             // SpentItem has a fixed length, the array elements do not contain
             // head elements in calldata, they are concatenated together after
             // the array length.
-            let cdPtrData := add(dstLength, 0x20)
+            let cdPtrData := add(dstLength, OneWord)
 
             // Pointer to end of array head in memory.
-            let mPtrHeadEnd := add(mPtrHead, mul(length, 0x20))
+            let mPtrHeadEnd := add(mPtrHead, mul(length, OneWord))
 
             for {
 
@@ -633,11 +633,11 @@ contract ConsiderationEncoder {
                     mload(add(mPtrTail, Common_amount_offset))
                 )
 
-                mPtrHead := add(mPtrHead, 0x20)
+                mPtrHead := add(mPtrHead, OneWord)
                 cdPtrData := add(cdPtrData, SpentItem_size)
             }
 
-            size := add(0x20, mul(length, SpentItem_size))
+            size := add(OneWord, mul(length, SpentItem_size))
         }
     }
 
@@ -683,7 +683,7 @@ contract ConsiderationEncoder {
                 dstHead = dstHead.offset(ReceivedItem_size);
             }
 
-            size = 32 + (length * ReceivedItem_size);
+            size = OneWord + (length * ReceivedItem_size);
         }
     }
 }

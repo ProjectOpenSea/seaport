@@ -136,12 +136,10 @@ contract SignatureVerifierLogicWith1271Override is
 
     ///@dev This overrides the hardcoded `isValidSignature` magic value response
     ///     in the BaseOrderTest.
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32,
+        bytes memory
+    ) external pure override returns (bytes4) {
         return 0xDEAFBEEF;
     }
 
@@ -169,12 +167,10 @@ contract SignatureVerifierLogicWith1271Fail is
 
     ///@dev This overrides the hardcoded `isValidSignature` magic value response
     ///     in the BaseOrderTest.
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32,
+        bytes memory
+    ) external pure override returns (bytes4) {
         revert();
     }
 
@@ -285,12 +281,10 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
 
     ///@dev This overrides the hardcoded `isValidSignature` magic value response
     ///     in the BaseOrderTest.
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32,
+        bytes memory
+    ) external pure override returns (bytes4) {
         return 0xDEAFBEEF;
     }
 

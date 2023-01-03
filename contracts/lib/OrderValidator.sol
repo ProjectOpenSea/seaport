@@ -321,7 +321,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                         mstore(0, Panic_error_selector)
                         // Store the arithmetic (0x11) panic code.
                         mstore(Panic_error_code_ptr, Panic_arithmetic)
-                        // revert(abi.encodeWithSignature("Panic(uint256)", 0x11))
+
+                        // revert(abi.encodeWithSignature(
+                        //     "Panic(uint256)", 0x11
+                        // ))
                         revert(Error_selector_offset, Panic_error_length)
                     }
                 }
@@ -435,21 +438,28 @@ contract OrderValidator is Executor, ZoneInteraction {
                 }
 
                 assembly {
-                    orderHash := or(contractNonce, shl(0x60, offerer))
+                    // Shift offerer address up 96 bytes and combine with nonce.
+                    orderHash := or(
+                        contractNonce,
+                        shl(ContractOrder_orderHash_offerer_shift, offerer)
+                    )
                 }
             }
 
+            // Revert or skip if the call to generate the contract order failed.
             if (!success) {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
         }
 
+        // Decode the returned contract order and/or update the error buffer.
         (
             uint256 errorBuffer,
             OfferItem[] memory offer,
             ConsiderationItem[] memory consideration
         ) = _convertGetGeneratedOrderResult(_decodeGenerateOrderReturndata)();
 
+        // Revert or skip if the returndata could not be decoded correctly.
         if (errorBuffer != 0) {
             return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
@@ -464,11 +474,17 @@ contract OrderValidator is Executor, ZoneInteraction {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
 
+            // Iterate over each specified offer (e.g. minimumReceived) item.
             for (uint256 i = 0; i < originalOfferLength; ) {
+                // Retrieve the pointer to the originally supplied item.
                 MemoryPointer mPtrOriginal = orderParameters
                     .offer[i]
                     .toMemoryPointer();
+
+                // Retrieve the pointer to the newly returned item.
                 MemoryPointer mPtrNew = offer[i].toMemoryPointer();
+
+                // Compare the items and update the error buffer accordingly.
                 errorBuffer |=
                     _cast(
                         mPtrOriginal
@@ -478,11 +494,13 @@ contract OrderValidator is Executor, ZoneInteraction {
                     ) |
                     _compareItems(mPtrOriginal, mPtrNew);
 
+                // Increment the array (cannot overflow as index starts at 0).
                 unchecked {
                     ++i;
                 }
             }
 
+            // Assign the returned offer item in place of the original item.
             orderParameters.offer = offer;
         }
 
@@ -498,12 +516,17 @@ contract OrderValidator is Executor, ZoneInteraction {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
 
-            // Loop through returned consideration, ensure existing not exceeded
+            // Iterate over returned consideration & do not exceed maximumSpent.
             for (uint256 i = 0; i < newConsiderationLength; ) {
-                ConsiderationItem
-                    memory originalItem = originalConsiderationArray[i];
+                // Retrieve the originally supplied item.
+                ConsiderationItem memory originalItem = (
+                    originalConsiderationArray[i]
+                );
+
+                // Retrieve the newly returned item.
                 ConsiderationItem memory newItem = consideration[i];
 
+                // Compare the items and update the error buffer accordingly.
                 errorBuffer |= _cast(
                     newItem.startAmount > originalItem.startAmount
                 );
@@ -512,18 +535,22 @@ contract OrderValidator is Executor, ZoneInteraction {
                     newItem.toMemoryPointer()
                 );
 
+                // Increment the array (cannot overflow as index starts at 0).
                 unchecked {
                     ++i;
                 }
             }
 
+            // Assign returned consideration item in place of the original item.
             orderParameters.consideration = consideration;
         }
 
+        // Revert or skip if any item comparison failed.
         if (errorBuffer != 0) {
             return _revertOrReturnEmpty(revertOnInvalid, orderHash);
         }
 
+        // Return order hash and full fill amount (numerator & denominator = 1).
         return (orderHash, 1, 1);
     }
 

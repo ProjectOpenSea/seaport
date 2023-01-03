@@ -153,7 +153,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 }
                             }
 
-                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            // Store left-padded selector with push4, mem[28:32]
                             mstore(
                                 0,
                                 TokenTransferGenericFailure_error_selector
@@ -168,16 +168,21 @@ contract TokenTransferrer is TokenTransferrerErrors {
                             )
                             mstore(TokenTransferGenericFailure_error_to_ptr, to)
                             mstore(
-                                TokenTransferGenericFailure_error_identifier_ptr,
+                                TokenTransferGenericFailure_err_identifier_ptr,
                                 0
                             )
                             mstore(
                                 TokenTransferGenericFailure_error_amount_ptr,
                                 amount
                             )
-                            // revert(abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)", token, from, to, identifier, amount))
+
+                            // revert(abi.encodeWithSignature(
+                            //     "TokenTransferGenericFailure(
+                            //         address,address,address,uint256,uint256
+                            //     )", token, from, to, identifier, amount
+                            // ))
                             revert(
-                                0x1c,
+                                Generic_error_selector_offset,
                                 TokenTransferGenericFailure_error_length
                             )
                         }
@@ -185,7 +190,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // Otherwise revert with a message about the token
                         // returning false or non-compliant return values.
 
-                        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                        // Store left-padded selector with push4, mem[28:32]
                         mstore(
                             0,
                             BadReturnValueFromERC20OnTransfer_error_selector
@@ -206,19 +211,30 @@ contract TokenTransferrer is TokenTransferrerErrors {
                             BadReturnValueFromERC20OnTransfer_error_amount_ptr,
                             amount
                         )
-                        // revert(abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)", token, from, to, amount))
+
+                        // revert(abi.encodeWithSignature(
+                        //     "BadReturnValueFromERC20OnTransfer(
+                        //         address,address,address,uint256
+                        //     )", token, from, to, amount
+                        // ))
                         revert(
-                            0x1c,
+                            Generic_error_selector_offset,
                             BadReturnValueFromERC20OnTransfer_error_length
                         )
                     }
 
                     // Otherwise, revert with error about token not having code:
-                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    // Store left-padded selector with push4, mem[28:32]
                     mstore(0, NoContract_error_selector)
                     mstore(NoContract_error_account_ptr, token)
-                    // revert(abi.encodeWithSignature("NoContract(address)", account))
-                    revert(0x1c, NoContract_error_length)
+
+                    // revert(abi.encodeWithSignature(
+                    //      "NoContract(address)", account
+                    // ))
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Otherwise, the token just returned no data despite the call
@@ -256,11 +272,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, NoContract_error_selector)
                 mstore(NoContract_error_account_ptr, token)
-                // revert(abi.encodeWithSignature("NoContract(address)", account))
-                revert(0x1c, NoContract_error_length)
+
+                // revert(abi.encodeWithSignature(
+                //     "NoContract(address)", account
+                // ))
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The free memory pointer memory slot will be used when populating
@@ -339,7 +358,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 }
 
                 // Otherwise revert with a generic error message.
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, TokenTransferGenericFailure_error_selector)
                 mstore(TokenTransferGenericFailure_error_token_ptr, token)
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
@@ -349,8 +368,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     identifier
                 )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, 1)
-                // revert(abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)", token, from, to, identifier, amount))
-                revert(0x1c, TokenTransferGenericFailure_error_length)
+
+                // revert(abi.encodeWithSignature(
+                //     "TokenTransferGenericFailure(
+                //         address,address,address,uint256,uint256
+                //     )", token, from, to, identifier, amount
+                // ))
+                revert(
+                    Generic_error_selector_offset,
+                    TokenTransferGenericFailure_error_length
+                )
             }
 
             // Restore the original free memory pointer.
@@ -385,11 +412,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, NoContract_error_selector)
                 mstore(NoContract_error_account_ptr, token)
-                // revert(abi.encodeWithSignature("NoContract(address)", account))
-                revert(0x1c, NoContract_error_length)
+
+                // revert(abi.encodeWithSignature(
+                //     "NoContract(address)", account
+                // ))
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The following memory slots will be used when populating call data
@@ -481,7 +511,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Otherwise revert with a generic error message.
 
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, TokenTransferGenericFailure_error_selector)
                 mstore(TokenTransferGenericFailure_error_token_ptr, token)
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
@@ -491,8 +521,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     identifier
                 )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
-                // revert(abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)", token, from, to, identifier, amount))
-                revert(0x1c, TokenTransferGenericFailure_error_length)
+
+                // revert(abi.encodeWithSignature(
+                //     "TokenTransferGenericFailure(
+                //         address,address,address,uint256,uint256
+                //     )", token, from, to, identifier, amount
+                // ))
+                revert(
+                    Generic_error_selector_offset,
+                    TokenTransferGenericFailure_error_length
+                )
             }
 
             mstore(Slot0x80, slot0x80) // Restore slot 0x80.
@@ -564,11 +602,17 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
-                    // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                    // Store left-padded selector with push4, mem[28:32]
                     mstore(0, NoContract_error_selector)
                     mstore(NoContract_error_account_ptr, token)
-                    // revert(abi.encodeWithSignature("NoContract(address)", account))
-                    revert(0x1c, NoContract_error_length)
+
+                    // revert(abi.encodeWithSignature(
+                    //     "NoContract(address)", account
+                    // ))
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Get the total number of supplied ids.

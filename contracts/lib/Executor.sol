@@ -249,10 +249,14 @@ contract Executor is Verifiers, TokenTransferrer {
                 mstore(0, EtherTransferGenericFailure_error_selector)
                 mstore(EtherTransferGenericFailure_error_account_ptr, to)
                 mstore(EtherTransferGenericFailure_error_amount_ptr, amount)
+
                 // revert(abi.encodeWithSignature(
                 //   "EtherTransferGenericFailure(address,uint256)", to, amount)
                 // )
-                revert(0x1c, EtherTransferGenericFailure_error_length)
+                revert(
+                    Error_selector_offset,
+                    EtherTransferGenericFailure_error_length
+                )
             }
         }
     }

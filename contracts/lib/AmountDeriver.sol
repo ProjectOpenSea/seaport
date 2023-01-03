@@ -122,10 +122,11 @@ contract AmountDeriver is AmountDerivationErrors {
             // Ensure new value contains no remainder via mulmod operator.
             // Credit to @hrkrshnn + @axic for proposing this optimal solution.
             if mulmod(value, numerator, denominator) {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, InexactFraction_error_selector)
+
                 // revert(abi.encodeWithSignature("InexactFraction()"))
-                revert(0x1c, InexactFraction_error_length)
+                revert(Error_selector_offset, InexactFraction_error_length)
             }
         }
 
