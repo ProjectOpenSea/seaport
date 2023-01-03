@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { OrderParameters } from "contracts/lib/ConsiderationStructs.sol";
+import { OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceGettersAndDerivers } from "./ReferenceGettersAndDerivers.sol";
 
 import {
     TokenTransferrerErrors
-} from "contracts/interfaces/TokenTransferrerErrors.sol";
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title Assertions
@@ -32,9 +32,9 @@ contract ReferenceAssertions is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceGettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceGettersAndDerivers(conduitController) {}
 
     /**
      * @dev Internal view function to to ensure that the supplied consideration

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import {
+    SpentItem,
+    ReceivedItem,
+    OrderParameters
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors
@@ -51,15 +55,10 @@ interface ConsiderationEventsAndErrors {
      *      this event will not be emitted on partial fills even though they do
      *      validate the order as part of partial fulfillment.
      *
-     * @param orderHash The hash of the validated order.
-     * @param offerer   The offerer of the validated order.
-     * @param zone      The zone of the validated order.
+     * @param orderHash        The hash of the validated order.
+     * @param orderParameters  The parameters of the validated order.
      */
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone
-    );
+    event OrderValidated(bytes32 orderHash, OrderParameters orderParameters);
 
     /**
      * @dev Emit an event whenever a counter for a given offerer is incremented.
@@ -80,8 +79,11 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when attempting to fill an order outside the
      *      specified start time and end time.
+     *
+     * @param startTime       The time at which the order becomes active.
+     * @param endTime         The time at which the order becomes inactive.
      */
-    error InvalidTime();
+    error InvalidTime(uint256 startTime, uint256 endTime);
 
     /**
      * @dev Revert with an error when attempting to fill an order referencing an
@@ -94,6 +96,13 @@ interface ConsiderationEventsAndErrors {
      *      a consideration array that is shorter than the original array.
      */
     error MissingOriginalConsiderationItems();
+
+    /**
+     * @dev Revert with an error when an order is validated when the length of
+     *      the consideration array exceeds the supplied total original
+     *      consideration items value.
+     */
+    error ConsiderationLengthExceedsTotalOriginal();
 
     /**
      * @dev Revert with an error when a call to a conduit fails with revert data

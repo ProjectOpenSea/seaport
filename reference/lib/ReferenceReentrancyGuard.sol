@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
+import {
+    ReentrancyErrors
+} from "../../contracts/interfaces/ReentrancyErrors.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title ReentrancyGuard
@@ -24,16 +26,6 @@ contract ReferenceReentrancyGuard is ReentrancyErrors {
     }
 
     /**
-     * @dev Modifier to set the reentrancy guard sentinel value for the duration
-     *      of the call.
-     */
-    modifier nonReentrant() {
-        _reentrancyGuard = _ENTERED;
-        _;
-        _reentrancyGuard = _NOT_ENTERED;
-    }
-
-    /**
      * @dev Modifier to check that the sentinel value for the reentrancy guard
      *      is not currently set by a previous call.
      */
@@ -42,5 +34,18 @@ contract ReferenceReentrancyGuard is ReentrancyErrors {
             revert NoReentrantCalls();
         }
         _;
+    }
+
+    /**
+     * @dev Modifier to set the reentrancy guard sentinel value for the duration
+     *      of the call and check if it is already set by a previous call.
+     */
+    modifier nonReentrant() {
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+        _reentrancyGuard = _ENTERED;
+        _;
+        _reentrancyGuard = _NOT_ENTERED;
     }
 }

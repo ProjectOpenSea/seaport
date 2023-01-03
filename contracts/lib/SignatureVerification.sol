@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
@@ -9,7 +9,7 @@ import {
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title SignatureVerification
@@ -23,14 +23,19 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      *      is not 64 or 65 bytes or if the recovered signer does not match the
      *      supplied signer.
      *
-     * @param signer    The signer for the order.
-     * @param digest    The digest to verify the signature against.
-     * @param signature A signature from the signer indicating that the order
-     *                  has been approved.
+     * @param signer                  The signer for the order.
+     * @param digest                  The digest to verify signature against.
+     * @param originalDigest          The original digest to verify signature
+     *                                against.
+     * @param originalSignatureLength The original signature length.
+     * @param signature               A signature from the signer indicating
+     *                                that the order has been approved.
      */
     function _assertValidSignature(
         address signer,
         bytes32 digest,
+        bytes32 originalDigest,
+        uint256 originalSignatureLength,
         bytes memory signature
     ) internal view {
         // Declare value for ecrecover equality or 1271 call success status.
@@ -40,9 +45,6 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         assembly {
             // Ensure that first word of scratch space is empty.
             mstore(0, 0)
-
-            // Declare value for v signature parameter.
-            let v
 
             // Get the length of the signature.
             let signatureLength := mload(signature)
@@ -78,7 +80,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     // signature is 65 bytes, this will be the real `v` value.
                     // If not, it will need to be modified - doing it this way
                     // saves an extra condition.
-                    v := byte(
+                    let v := byte(
                         0,
                         mload(add(signature, ECDSA_signature_v_offset))
                     )
@@ -150,6 +152,9 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // If the signature was not verified with ecrecover, try EIP1271.
             if iszero(success) {
+                // Reset the original signature length.
+                mstore(signature, originalSignatureLength)
+
                 // Temporarily overwrite the word before the signature length
                 // and use it as the head of the signature input to
                 // `isValidSignature`, which has a value of 64.
@@ -167,20 +172,25 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Cache the value currently stored at the selector pointer.
                 let cachedWordOverwrittenBySelector := mload(selectorPtr)
 
-                // Get pointer to use for `digest` input to `isValidSignature`.
-                let digestPtr := sub(
-                    signature,
-                    EIP1271_isValidSignature_digest_negativeOffset
-                )
-
                 // Cache the value currently stored at the digest pointer.
-                let cachedWordOverwrittenByDigest := mload(digestPtr)
+                let cachedWordOverwrittenByDigest := mload(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    )
+                )
 
                 // Write the selector first, since it overlaps the digest.
                 mstore(selectorPtr, EIP1271_isValidSignature_selector)
 
-                // Next, write the digest.
-                mstore(digestPtr, digest)
+                // Next, write the original digest.
+                mstore(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    ),
+                    originalDigest
+                )
 
                 // Call signer with `isValidSignature` to validate signature.
                 success := staticcall(
@@ -188,7 +198,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     signer,
                     selectorPtr,
                     add(
-                        signatureLength,
+                        originalSignatureLength,
                         EIP1271_isValidSignature_calldata_baseLength
                     ),
                     0,
@@ -203,30 +213,60 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         // Revert with bad 1271 signature if signer has code.
                         if extcodesize(signer) {
                             // Bad contract signature.
-                            mstore(0, BadContractSignature_error_signature)
-                            revert(0, BadContractSignature_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, BadContractSignature_error_selector)
+                            // revert(abi.encodeWithSignature("BadContractSignature()"))
+                            revert(0x1c, BadContractSignature_error_length)
                         }
 
                         // Check if signature length was invalid.
                         if gt(sub(ECDSA_MaxLength, signatureLength), 1) {
                             // Revert with generic invalid signature error.
-                            mstore(0, InvalidSignature_error_signature)
-                            revert(0, InvalidSignature_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, InvalidSignature_error_selector)
+                            // revert(abi.encodeWithSignature("InvalidSignature()"))
+                            revert(0x1c, InvalidSignature_error_length)
                         }
 
                         // Check if v was invalid.
-                        if iszero(
-                            byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
+                        if and(
+                            eq(signatureLength, ECDSA_MaxLength),
+                            iszero(
+                                byte(
+                                    byte(
+                                        0,
+                                        mload(
+                                            add(
+                                                signature,
+                                                ECDSA_signature_v_offset
+                                            )
+                                        )
+                                    ),
+                                    ECDSA_twentySeventhAndTwentyEighthBytesSet
+                                )
+                            )
                         ) {
                             // Revert with invalid v value.
-                            mstore(0, BadSignatureV_error_signature)
-                            mstore(BadSignatureV_error_offset, v)
-                            revert(0, BadSignatureV_error_length)
+                            // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                            mstore(0, BadSignatureV_error_selector)
+                            mstore(
+                                BadSignatureV_error_v_ptr,
+                                byte(
+                                    0,
+                                    mload(
+                                        add(signature, ECDSA_signature_v_offset)
+                                    )
+                                )
+                            )
+                            // revert(abi.encodeWithSignature("BadSignatureV(uint8)", v))
+                            revert(0x1c, BadSignatureV_error_length)
                         }
 
                         // Revert with generic invalid signer error message.
-                        mstore(0, InvalidSigner_error_signature)
-                        revert(0, InvalidSigner_error_length)
+                        // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                        mstore(0, InvalidSigner_error_selector)
+                        // revert(abi.encodeWithSignature("InvalidSigner()"))
+                        revert(0x1c, InvalidSigner_error_length)
                     }
                 }
 
@@ -234,7 +274,13 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // signature head.
                 mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
                 mstore(selectorPtr, cachedWordOverwrittenBySelector)
-                mstore(digestPtr, cachedWordOverwrittenByDigest)
+                mstore(
+                    sub(
+                        signature,
+                        EIP1271_isValidSignature_digest_negativeOffset
+                    ),
+                    cachedWordOverwrittenByDigest
+                )
             }
         }
 
@@ -245,8 +291,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // Otherwise, revert with error indicating bad contract signature.
             assembly {
-                mstore(0, BadContractSignature_error_signature)
-                revert(0, BadContractSignature_error_length)
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, BadContractSignature_error_selector)
+                // revert(abi.encodeWithSignature("BadContractSignature()"))
+                revert(0x1c, BadContractSignature_error_length)
             }
         }
     }

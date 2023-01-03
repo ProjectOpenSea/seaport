@@ -9,3 +9,29 @@ coverage:
         threshold: 0%
         base: auto
         if_ci_failed: error
+
+flag_management:
+  default_rules: # the rules that will be followed for any flag added, generally
+    statuses:
+      - type: project
+        target: 100%
+        threshold: 0%
+      - type: patch
+        target: 100%
+        threshold: 0%
+  individual_flags: # exceptions to the default rules above, stated flag by flag
+    - name: foundry
+      statuses:
+        - type: project
+          target: 100%
+          threshold: 0%
+        - type: patch
+          target: 100%
+          threshold: 0%
+
+# Ignore folders that forge coverage is reporting on
+ignore:
+  - offerers
+  - script
+  - test
+  - contracts/test

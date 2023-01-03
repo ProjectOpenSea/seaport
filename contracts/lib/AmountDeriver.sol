@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     AmountDerivationErrors
@@ -122,8 +122,10 @@ contract AmountDeriver is AmountDerivationErrors {
             // Ensure new value contains no remainder via mulmod operator.
             // Credit to @hrkrshnn + @axic for proposing this optimal solution.
             if mulmod(value, numerator, denominator) {
-                mstore(0, InexactFraction_error_signature)
-                revert(0, InexactFraction_error_len)
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, InexactFraction_error_selector)
+                // revert(abi.encodeWithSignature("InexactFraction()"))
+                revert(0x1c, InexactFraction_error_length)
             }
         }
 

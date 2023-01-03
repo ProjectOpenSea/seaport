@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { ReferenceConduit } from "./ReferenceConduit.sol";
 
 import {
     ConduitControllerInterface
-} from "contracts/interfaces/ConduitControllerInterface.sol";
+} from "../../contracts/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "../../contracts/interfaces/ConduitInterface.sol";
 
 /**
  * @title ConduitController
@@ -55,11 +57,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return conduit The address of the newly deployed conduit.
      */
-    function createConduit(bytes32 conduitKey, address initialOwner)
-        external
-        override
-        returns (address conduit)
-    {
+    function createConduit(
+        bytes32 conduitKey,
+        address initialOwner
+    ) external override returns (address conduit) {
         // Ensure that an initial owner has been supplied.
         if (initialOwner == address(0)) {
             revert InvalidInitialOwner();
@@ -198,10 +199,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      * @param conduit The conduit for which to initiate ownership transfer.
      * @param newPotentialOwner The new potential owner of the conduit.
      */
-    function transferOwnership(address conduit, address newPotentialOwner)
-        external
-        override
-    {
+    function transferOwnership(
+        address conduit,
+        address newPotentialOwner
+    ) external override {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
@@ -287,12 +288,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return owner The owner of the supplied conduit.
      */
-    function ownerOf(address conduit)
-        external
-        view
-        override
-        returns (address owner)
-    {
+    function ownerOf(
+        address conduit
+    ) external view override returns (address owner) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -309,12 +307,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return conduitKey The conduit key used to deploy the supplied conduit.
      */
-    function getKey(address conduit)
-        external
-        view
-        override
-        returns (bytes32 conduitKey)
-    {
+    function getKey(
+        address conduit
+    ) external view override returns (bytes32 conduitKey) {
         // Attempt to retrieve a conduit key for the conduit in question.
         conduitKey = _conduits[conduit].key;
 
@@ -335,12 +330,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      * @return exists  A boolean indicating whether the derived conduit has been
      *                 deployed or not.
      */
-    function getConduit(bytes32 conduitKey)
-        external
-        view
-        override
-        returns (address conduit, bool exists)
-    {
+    function getConduit(
+        bytes32 conduitKey
+    ) external view override returns (address conduit, bool exists) {
         // Derive address from deployer, conduit key and creation code hash.
         conduit = address(
             uint160(
@@ -371,12 +363,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return potentialOwner The potential owner, if any, for the conduit.
      */
-    function getPotentialOwner(address conduit)
-        external
-        view
-        override
-        returns (address potentialOwner)
-    {
+    function getPotentialOwner(
+        address conduit
+    ) external view override returns (address potentialOwner) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -393,12 +382,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return isOpen The status of the channel on the given conduit.
      */
-    function getChannelStatus(address conduit, address channel)
-        external
-        view
-        override
-        returns (bool isOpen)
-    {
+    function getChannelStatus(
+        address conduit,
+        address channel
+    ) external view override returns (bool isOpen) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -414,12 +401,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return totalChannels The total number of open channels for the conduit.
      */
-    function getTotalChannels(address conduit)
-        external
-        view
-        override
-        returns (uint256 totalChannels)
-    {
+    function getTotalChannels(
+        address conduit
+    ) external view override returns (uint256 totalChannels) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -437,12 +421,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return channel The open channel, if any, at the specified channel index.
      */
-    function getChannel(address conduit, uint256 channelIndex)
-        external
-        view
-        override
-        returns (address channel)
-    {
+    function getChannel(
+        address conduit,
+        uint256 channelIndex
+    ) external view override returns (address channel) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -467,12 +449,9 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return channels An array of open channels on the given conduit.
      */
-    function getChannels(address conduit)
-        external
-        view
-        override
-        returns (address[] memory channels)
-    {
+    function getChannels(
+        address conduit
+    ) external view override returns (address[] memory channels) {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 

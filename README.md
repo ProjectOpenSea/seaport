@@ -187,6 +187,7 @@ There are three Foundry profiles for running the test suites, which bypass the I
 FOUNDRY_PROFILE=test forge test # with 5000 fuzz runs
 FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
 FOUNDRY_PROFILE=local forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
+FOUNDRY_PROFILE=debug forge test # compiles and deploys Consideration and ReferenceConsideration using default profile solc settings, not from precompiled source, with 1000 fuzz runs
 ```
 
 You may wish to include a `.env` file that `export`s a specific profile when developing locally.

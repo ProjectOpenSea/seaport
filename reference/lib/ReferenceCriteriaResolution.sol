@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -11,15 +11,15 @@ import {
     CriteriaResolver,
     SpentItem,
     ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import {
     CriteriaResolutionErrors
-} from "contracts/interfaces/CriteriaResolutionErrors.sol";
+} from "../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
 /**
  * @title CriteriaResolution
@@ -59,7 +59,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
 
             // Ensure that the order index is in range.
             if (orderIndex >= ordersToExecute.length) {
-                revert OrderCriteriaResolverOutOfRange();
+                revert OrderCriteriaResolverOutOfRange(criteriaResolver.side);
             }
 
             // Skip criteria resolution for order if not fulfilled.
@@ -170,7 +170,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 if (
                     _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
                 ) {
-                    revert UnresolvedOfferCriteria();
+                    revert UnresolvedOfferCriteria(i, j);
                 }
             }
 
@@ -185,7 +185,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                         orderToExecute.receivedItems[j].itemType
                     )
                 ) {
-                    revert UnresolvedConsiderationCriteria();
+                    revert UnresolvedConsiderationCriteria(i, j);
                 }
             }
         }
@@ -224,7 +224,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             uint256 orderIndex = criteriaResolver.orderIndex;
 
             if (orderIndex != 0) {
-                revert OrderCriteriaResolverOutOfRange();
+                revert OrderCriteriaResolverOutOfRange(criteriaResolver.side);
             }
 
             // Read component index from memory and place it on the stack.
@@ -317,7 +317,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     advancedOrder.parameters.consideration[i].itemType
                 )
             ) {
-                revert UnresolvedConsiderationCriteria();
+                revert UnresolvedConsiderationCriteria(0, i);
             }
         }
 
@@ -330,7 +330,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             if (
                 _isItemWithCriteria(advancedOrder.parameters.offer[i].itemType)
             ) {
-                revert UnresolvedOfferCriteria();
+                revert UnresolvedOfferCriteria(0, i);
             }
         }
     }
@@ -346,11 +346,9 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
      * @return withCriteria A boolean indicating that the item type in question
      *                      represents a criteria-based item.
      */
-    function _isItemWithCriteria(ItemType itemType)
-        internal
-        pure
-        returns (bool withCriteria)
-    {
+    function _isItemWithCriteria(
+        ItemType itemType
+    ) internal pure returns (bool withCriteria) {
         // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
         // 5.
         withCriteria = uint256(itemType) > 3;

@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 interface ERC20Interface {
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) external returns (bool);
+    function transferFrom(address, address, uint256) external returns (bool);
+
+    function approve(address, uint256) external returns (bool);
 }
 
 interface ERC721Interface {
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) external;
+    function transferFrom(address, address, uint256) external;
+
+    function setApprovalForAll(address, bool) external;
+
+    function ownerOf(uint256) external view returns (address);
 }
 
 interface ERC1155Interface {
@@ -33,4 +31,6 @@ interface ERC1155Interface {
         uint256[] calldata amounts,
         bytes calldata data
     ) external;
+
+    function setApprovalForAll(address, bool) external;
 }

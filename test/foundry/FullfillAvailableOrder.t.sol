@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,
@@ -59,22 +59,23 @@ contract FulfillAvailableOrder is BaseOrderTest {
         vm.assume(
             inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
                 inputs.paymentAmts[2]
-            ) <= 2**128 - 1
+            ) <= 2 ** 128 - 1
         );
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testNoNativeOffersFulfillAvailable(uint8[8] memory itemTypes)
-        public
-    {
+    function testNoNativeOffersFulfillAvailable(
+        uint8[8] memory itemTypes
+    ) public {
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
             ItemType itemType = ItemType(itemTypes[i] % 4);
@@ -107,13 +108,12 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAvailable(Context memory context)
-        external
-        stateless
-    {
+    function noNativeOfferItemsFulfillAvailable(
+        Context memory context
+    ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -138,7 +138,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         addEthConsiderationItem(alice, 1);
         configureOrderParameters(alice);
         counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash2 = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -237,10 +237,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableOrdersOverflowOfferSide(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAvailableOrdersOverflowOfferSide(
+        Context memory context
+    ) external stateless {
         // mint consideration nfts to the test contract
         test721_1.mint(address(this), 1);
         test721_1.mint(address(this), 2);
