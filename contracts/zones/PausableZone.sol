@@ -29,7 +29,8 @@ import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
  * @author cupOJoseph, BCLeFevre, ryanio
  * @notice PausableZone is a simple zone implementation that approves every
  *         order. It can be self-destructed by its controller to pause
- *         restricted orders that have it set as their zone.
+ *         restricted orders that have it set as their zone. Note that this zone
+ *         cannot execute orders that return native tokens to the fulfiller.
  */
 contract PausableZone is
     PausableZoneEventsAndErrors,
@@ -135,7 +136,8 @@ contract PausableZone is
      * @notice Execute an arbitrary number of matched orders, each with
      *         an arbitrary number of items for offer and consideration
      *         along with a set of fulfillments allocating offer components
-     *         to consideration components.
+     *         to consideration components. Note that this call will revert if
+     *         excess native tokens are returned by Seaport.
      *
      * @param seaport      The Seaport address.
      * @param orders       The orders to match.
@@ -169,7 +171,8 @@ contract PausableZone is
      * @notice Execute an arbitrary number of matched advanced orders,
      *         each with an arbitrary number of items for offer and
      *         consideration along with a set of fulfillments allocating
-     *         offer components to consideration components.
+     *         offer components to consideration components. Note that this call
+     *         will revert if excess native tokens are returned by Seaport.
      *
      * @param seaport           The Seaport address.
      * @param orders            The orders to match.
