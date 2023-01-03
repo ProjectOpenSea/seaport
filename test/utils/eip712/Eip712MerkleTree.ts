@@ -1,4 +1,5 @@
 import { _TypedDataEncoder as TypedDataEncoder } from "@ethersproject/hash";
+import { expect } from "chai";
 import {
   defaultAbiCoder,
   hexConcat,
@@ -104,9 +105,11 @@ export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
     const rootHash = bufferToHex(getRoot(leaves, false));
     const typeHash = keccak256(toUtf8Bytes(this.encoder._types.BulkOrder));
     const bulkOrderHash = keccak256(hexConcat([typeHash, rootHash]));
-    if (bulkOrderHash !== structHash) {
-      throw Error("Bad hash");
-    }
+
+    expect(bulkOrderHash, "derived bulk order hash should match").to.equal(
+      structHash
+    );
+
     return structHash;
   }
 

@@ -50,7 +50,7 @@ export function compareReports(report1: GasReport[], report2: GasReport[]) {
     if (r1.contract !== "Seaport") return;
     const r2 = report2[i];
     if (r1.contract !== r2.contract || r1.method !== r2.method) {
-      throw Error();
+      throw new Error("contract and method for comparison do not match");
     }
     rows.push([
       r1.contract,
