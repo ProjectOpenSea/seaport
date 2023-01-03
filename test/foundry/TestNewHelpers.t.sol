@@ -30,9 +30,10 @@ contract TestNewHelpersTest is BaseOrderTest {
      * this call with its relevant Context struct, and then asserts that the
      * revert bytes indicate no assertions failed.
      */
-    function test(function(Context memory) external f, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external f,
+        Context memory context
+    ) internal {
         try f(context) {
             fail("Test logic should have reverted with assertion status");
         } catch (bytes memory reason) {
@@ -105,10 +106,9 @@ contract TestNewHelpersTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAdvancedOrder(Context memory context)
-        external
-        stateless
-    {
+    function execFulfillAdvancedOrder(
+        Context memory context
+    ) external stateless {
         string memory label = "offerer";
         _setUpSingleOrderOfferConsiderationItems(label);
         // create a signed order - this will configure baseOrderParameters and baseOrderComponents
@@ -164,10 +164,9 @@ contract TestNewHelpersTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAvailableOrders(Context memory context)
-        external
-        stateless
-    {
+    function execFulfillAvailableOrders(
+        Context memory context
+    ) external stateless {
         string memory label1 = "offerer";
         string memory label2 = "offerer 2";
         _setUpSingleOrderOfferConsiderationItems(label1, 1);
@@ -197,9 +196,9 @@ contract TestNewHelpersTest is BaseOrderTest {
         });
     }
 
-    function _setUpSingleOrderOfferConsiderationItems(string memory label)
-        internal
-    {
+    function _setUpSingleOrderOfferConsiderationItems(
+        string memory label
+    ) internal {
         _setUpSingleOrderOfferConsiderationItems(label, 1);
     }
 
@@ -221,9 +220,9 @@ contract TestNewHelpersTest is BaseOrderTest {
         test721_1.mint(address(this), id);
     }
 
-    function _setUpMatchOrderOfferConsiderationItems(string memory label)
-        internal
-    {
+    function _setUpMatchOrderOfferConsiderationItems(
+        string memory label
+    ) internal {
         // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
         address offerer = makeAddrWithAllocationsAndApprovals(label);
         address mirror = makeAddrWithAllocationsAndApprovals("mirror offerer");

@@ -70,9 +70,7 @@ contract ConsiderationEncoder {
         unchecked {
             // Mask the length of the bytes array to protect against overflow
             // and round up to the nearest word.
-            size =
-                ((src.readUint256() & OffsetOrLengthMask) + AlmostTwoWords) &
-                OnlyFullWordMask;
+            size = (src.readUint256() + AlmostTwoWords) & OnlyFullWordMask;
 
             // Copy the bytes array to the new memory location.
             src.copy(dst, size);

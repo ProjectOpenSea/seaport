@@ -1,4 +1,5 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
 
@@ -118,27 +119,29 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let reenterer: Reenterer;
 
   let sellerContract: EIP1271Wallet;
-  let buyerContract: EIP1271Wallet;
 
-  beforeEach(async () => {
+  async function setupFixture() {
     // Setup basic buyer/seller wallets with ETH
-    seller = new ethers.Wallet(randomHex(32), provider);
-    buyer = new ethers.Wallet(randomHex(32), provider);
-    zone = new ethers.Wallet(randomHex(32), provider);
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
+    const zone = new ethers.Wallet(randomHex(32), provider);
 
-    sellerContract = await EIP1271WalletFactory.deploy(seller.address);
-    buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+    const sellerContract = await EIP1271WalletFactory.deploy(seller.address);
 
-    for (const wallet of [
+    for (const wallet of [seller, buyer, zone, sellerContract, reenterer]) {
+      await faucet(wallet.address, provider);
+    }
+
+    return {
       seller,
       buyer,
       zone,
       sellerContract,
-      buyerContract,
-      reenterer,
-    ]) {
-      await faucet(wallet.address, provider);
-    }
+    };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer, zone, sellerContract } = await loadFixture(setupFixture));
   });
 
   describe("Misconfigured orders", async () => {
@@ -7605,7 +7608,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     let seller: Wallet;
     let buyer: Wallet;
 
-    before(async () => {
+    beforeEach(async () => {
       ethAmount = parseEther("1");
       seller = await getWalletWithEther();
       buyer = await getWalletWithEther();
@@ -7768,7 +7771,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     let buyer: Wallet;
     let offererContract: TestBadContractOfferer;
 
-    before(async () => {
+    beforeEach(async () => {
       seller = await getWalletWithEther();
       buyer = await getWalletWithEther();
       zone = new ethers.Wallet(randomHex(32), provider);

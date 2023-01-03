@@ -1,4 +1,5 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
@@ -117,14 +118,20 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let buyer: Wallet;
   let zone: Wallet;
 
-  beforeEach(async () => {
+  async function setupFixture() {
     // Setup basic buyer/seller wallets with ETH
-    seller = new ethers.Wallet(randomHex(32), provider);
-    buyer = new ethers.Wallet(randomHex(32), provider);
-    zone = new ethers.Wallet(randomHex(32), provider);
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
+    const zone = new ethers.Wallet(randomHex(32), provider);
     for (const wallet of [seller, buyer, zone]) {
       await faucet(wallet.address, provider);
     }
+
+    return { seller, buyer, zone };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer, zone } = await loadFixture(setupFixture));
   });
 
   describe("Contract Orders", async () => {

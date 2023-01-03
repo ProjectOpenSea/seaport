@@ -89,7 +89,7 @@ contract Verifiers is Assertions, SignatureVerification {
         uint256 originalSignatureLength = signature.length;
 
         bytes32 digest;
-        if (_isValidBulkOrderSize(signature)) {
+        if (_isValidBulkOrderSize(originalSignatureLength)) {
             // Rederive order hash and digest using bulk order proof.
             (orderHash) = _computeBulkOrderProof(signature, orderHash);
             digest = _deriveEIP712Digest(domainSeparator, orderHash);
@@ -110,18 +110,31 @@ contract Verifiers is Assertions, SignatureVerification {
     /**
      * @dev Determines whether the specified bulk order size is valid.
      *
-     * @param signature    The signature of the bulk order to check.
+     * @param signatureLength The signature length of the bulk order to check.
      *
-     * @return validLength True if the bulk order size is valid, false otherwise.
+     * @return validLength True if bulk order size is valid, false otherwise.
      */
     function _isValidBulkOrderSize(
-        bytes memory signature
+        uint256 signatureLength
     ) internal pure returns (bool validLength) {
+        // Utilize assembly to validate the length; the equivalent logic is
+        // (64 + x) + 3 + 32y where (0 <= x <= 1) and (1 <= y <= 24).
         assembly {
-            let length := mload(signature)
             validLength := and(
-                lt(length, BulkOrderProof_excessSize),
-                lt(and(sub(length, BulkOrderProof_minSize), AlmostOneWord), 2)
+                lt(
+                    sub(signatureLength, BulkOrderProof_minSize),
+                    BulkOrderProof_rangeSize
+                ),
+                lt(
+                    and(
+                        add(
+                            signatureLength,
+                            BulkOrderProof_lengthAdjustmentBeforeMask
+                        ),
+                        AlmostOneWord
+                    ),
+                    BulkOrderProof_lengthRangeAfterMask
+                )
             )
         }
     }
@@ -138,26 +151,41 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes memory proofAndSignature,
         bytes32 leaf
     ) internal view returns (bytes32 bulkOrderHash) {
+        // Declare arguments for the root hash and the height of the proof.
         bytes32 root;
         uint256 height;
+
+        // Utilize assembly to efficiently derive the root hash using the proof.
         assembly {
+            // Retrieve the length of the proof, key, and signature combined.
             let fullLength := mload(proofAndSignature)
-            // If proofAndSignature has odd length, it is
-            // a compact signature with 64 bytes.
-            let signatureLength := sub(65, and(fullLength, 1))
+
+            // If proofAndSignature has odd length, it is a compact signature
+            // with 64 bytes.
+            let signatureLength := sub(ECDSA_MaxLength, and(fullLength, 1))
+
+            // Derive height (or depth of tree) with signature and proof length.
+            height := div(sub(fullLength, signatureLength), OneWord)
+
+            // Update the length in memory to only include the signature.
             mstore(proofAndSignature, signatureLength)
 
+            // Derive the pointer for the key using the signature length.
             let keyPtr := add(proofAndSignature, add(OneWord, signatureLength))
-            let key := shr(232, mload(keyPtr))
-            let proof := add(keyPtr, 3)
-            height := div(sub(fullLength, signatureLength), 0x20)
 
-            // Compute level 1
+            // Retrieve the three-byte key using the derived pointer.
+            let key := shr(BulkOrderProof_keyShift, mload(keyPtr))
+
+            /// Retrieve pointer to first proof element by applying a constant
+            // for the key size to the derived key pointer.
+            let proof := add(keyPtr, BulkOrderProof_keySize)
+
+            // Compute level 1.
             let scratchPtr1 := shl(5, and(key, 1))
             mstore(scratchPtr1, leaf)
             mstore(xor(scratchPtr1, OneWord), mload(proof))
 
-            // Compute remaining proofs
+            // Compute remaining proofs.
             for {
                 let i := 1
             } lt(i, height) {
@@ -168,15 +196,19 @@ contract Verifiers is Assertions, SignatureVerification {
                 mstore(scratchPtr, keccak256(0, TwoWords))
                 mstore(xor(scratchPtr, OneWord), mload(proof))
             }
-            // Compute root hash
+
+            // Compute root hash.
             root := keccak256(0, TwoWords)
         }
 
+        // Retrieve appropriate typehash from runtime storage based on height.
         bytes32 rootTypeHash = _lookupBulkOrderTypehash(height);
+
+        // Use the typehash and the root hash to derive final bulk order hash.
         assembly {
             mstore(0, rootTypeHash)
-            mstore(0x20, root)
-            bulkOrderHash := keccak256(0, 0x40)
+            mstore(OneWord, root)
+            bulkOrderHash := keccak256(0, TwoWords)
         }
     }
 

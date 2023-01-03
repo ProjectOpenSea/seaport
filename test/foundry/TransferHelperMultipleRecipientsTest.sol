@@ -73,7 +73,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
     uint256 constant TOTAL_FUNGIBLE_TOKENS = 1e6;
     // Total number of token identifiers to mint tokens for for ERC721s and ERC1155s.
-    uint256 constant TOTAL_TOKEN_IDENTIFERS = 10;
+    uint256 constant TOTAL_TOKEN_IDENTIFIERS = 10;
     // Constant bytes used for expecting revert with no message.
     bytes constant REVERT_DATA_NO_MSG = "revert no message";
     ERC721ReceiverMock validERC721Receiver;
@@ -136,10 +136,10 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
             erc20s[tokenIdx].mint(alice, TOTAL_FUNGIBLE_TOKENS);
         }
 
-        // Mint ERC721 and ERC1155 with token IDs 0 to TOTAL_TOKEN_IDENTIFERS - 1 to alice
+        // Mint ERC721 and ERC1155 with token IDs 0 to TOTAL_TOKEN_IDENTIFIERS - 1 to alice
         for (
             uint256 identifier = 0;
-            identifier < TOTAL_TOKEN_IDENTIFERS;
+            identifier < TOTAL_TOKEN_IDENTIFIERS;
             identifier++
         ) {
             for (uint256 tokenIdx = 0; tokenIdx < erc721s.length; tokenIdx++) {
@@ -527,7 +527,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         bool useStub
     ) internal view returns (TransferHelperItem memory) {
         uint256 amount = fuzzAmount % (TOTAL_FUNGIBLE_TOKENS / 10);
-        uint256 identifier = fuzzIdentifier % TOTAL_TOKEN_IDENTIFERS;
+        uint256 identifier = fuzzIdentifier % TOTAL_TOKEN_IDENTIFIERS;
         if (itemType == ConduitItemType.ERC20) {
             address erc20;
             if (useStub) {
