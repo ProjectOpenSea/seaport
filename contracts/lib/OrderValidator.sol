@@ -112,11 +112,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         bool revertOnInvalid
     )
         internal
-        returns (
-            bytes32 orderHash,
-            uint256 numerator,
-            uint256 denominator
-        )
+        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
@@ -135,9 +131,6 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Read numerator and denominator from memory and place on the stack.
         // Note that overflowed values are masked.
-        uint256 numerator;
-        uint256 denominator;
-
         assembly {
             numerator := and(
                 mload(add(advancedOrder, AdvancedOrder_numerator_offset)),
@@ -230,14 +223,18 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         assembly {
             let orderStatusSlot := orderStatus.slot
-            // Read filled amount as numerator and denominator and put on the stack.
+            // Read filled amount as numerator and denominator and put on stack.
             let filledNumerator := sload(orderStatusSlot)
             let filledDenominator := shr(
-                OrderStatus_filledDenominator_offset, 
+                OrderStatus_filledDenominator_offset,
                 filledNumerator
             )
 
-            for {} 1 {} {
+            for {
+
+            } 1 {
+
+            } {
                 if iszero(filledDenominator) {
                     filledNumerator := numerator
 
@@ -250,7 +247,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     MaxUint120
                 )
 
-                // If denominator of 1 supplied, fill all remaining amount on order.
+                // If denominator of 1 supplied, fill entire remaining amount.
                 if eq(denominator, 1) {
                     numerator := sub(filledDenominator, filledNumerator)
                     denominator := filledDenominator
@@ -264,26 +261,21 @@ contract OrderValidator is Executor, ZoneInteraction {
                     // Increment the filled numerator by the new numerator.
                     filledNumerator := add(numerator, filledNumerator)
 
-                    // Once adjusted, if current+supplied numerator exceeds denominator:
-                    let _carry := mul(
+                    // Once adjusted, if current + supplied numerator exceeds
+                    // the denominator:
+                    let carry := mul(
                         sub(filledNumerator, denominator),
                         gt(filledNumerator, denominator)
                     )
 
-                    numerator := sub(
-                        numerator,
-                        _carry
-                    )
+                    numerator := sub(numerator, carry)
 
-                    filledNumerator := sub(
-                        filledNumerator,
-                        _carry
-                    )
+                    filledNumerator := sub(filledNumerator, carry)
 
                     break
                 }
 
-                // Otherwise, if supplied denominator differs from current one...
+                // Otherwise, if supplied denominator differs from current one:
                 filledNumerator := mul(filledNumerator, denominator)
                 numerator := mul(numerator, filledDenominator)
                 denominator := mul(denominator, filledDenominator)
@@ -291,21 +283,16 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Increment the filled numerator by the new numerator.
                 filledNumerator := add(numerator, filledNumerator)
 
-                // Once adjusted, if current+supplied numerator exceeds denominator:
-                let _carry := mul(
+                // Once adjusted, if current + supplied numerator exceeds
+                // denominator:
+                let carry := mul(
                     sub(filledNumerator, denominator),
                     gt(filledNumerator, denominator)
                 )
 
-                numerator := sub(
-                    numerator,
-                    _carry
-                )
+                numerator := sub(numerator, carry)
 
-                filledNumerator := sub(
-                    filledNumerator,
-                    _carry
-                )
+                filledNumerator := sub(filledNumerator, carry)
 
                 // Check filledNumerator and denominator for uint120 overflow.
                 if or(
@@ -360,12 +347,16 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Update order status and fill amount, packing struct values.
             // [denominator: 15 bytes] [numerator: 15 bytes]
-            // [isCancelled: 1 byte] [isValidated: 1 byte] 
-            sstore(orderStatusSlot, 
+            // [isCancelled: 1 byte] [isValidated: 1 byte]
+            sstore(
+                orderStatusSlot,
                 or(
                     OrderStatus_ValidatedAndNotCancelled,
                     or(
-                        shl(OrderStatus_filledNumerator_offset, filledNumerator),
+                        shl(
+                            OrderStatus_filledNumerator_offset,
+                            filledNumerator
+                        ),
                         shl(OrderStatus_filledDenominator_offset, denominator)
                     )
                 )
@@ -390,7 +381,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             let itemType := mload(originalItem)
             let identifier := mload(add(originalItem, Common_identifier_offset))
 
-            // Set returned identifier for criteria-based items with criteria = 0.
+            // Set returned identifier for criteria-based items w/ criteria = 0.
             if and(gt(itemType, 3), iszero(identifier)) {
                 // replace item type
                 itemType := sub(3, eq(itemType, 4))
@@ -402,7 +393,8 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             isInvalid := iszero(
                 and(
-                    // originalItem.token == newItem.token && originalItem.itemType == newItem.itemType
+                    // originalItem.token == newItem.token &&
+                    // originalItem.itemType == newItem.itemType
                     and(
                         eq(
                             mload(add(originalItem, Common_token_offset)),
@@ -410,7 +402,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                         ),
                         eq(itemType, mload(newItem))
                     ),
-                    // originalItem.identifier == newItem.identifier && originalItem.startAmount == originalItem.endAmount
+                    // originalItem.identifier == newItem.identifier &&
+                    // originalItem.startAmount == originalItem.endAmount
                     and(
                         eq(
                             identifier,
