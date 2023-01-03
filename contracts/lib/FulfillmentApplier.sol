@@ -395,7 +395,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(mload(fulfillmentHeadPtr), OneWord))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset))
 
                 // Throw if itemIndex is out of the range of array.
                 if iszero(
@@ -693,7 +693,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(mload(fulfillmentHeadPtr), OneWord))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset))
 
                 // Check if itemIndex is within the range of array.
                 if iszero(lt(itemIndex, mload(considerationArrPtr))) {
