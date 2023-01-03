@@ -888,10 +888,7 @@ contract BasicOrderFulfiller is OrderValidator {
             mstore(ZeroSlot, 0)
 
             // Update the free memory pointer so that event data is persisted.
-            mstore(
-                FreeMemoryPointerSlot,
-                add(BasicOrder_order_typeHash_ptr, add(eventDataPtr, dataSize))
-            )
+            mstore(FreeMemoryPointerSlot, add(eventDataPtr, dataSize))
         }
 
         // Verify and update the status of the derived order.
