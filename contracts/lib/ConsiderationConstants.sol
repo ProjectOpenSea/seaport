@@ -428,7 +428,9 @@ uint256 constant Error_selector_offset = 0x1c;
  *    - 0x20: side
  * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = 0x375c24c1;
+uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = (
+    0x375c24c1
+);
 uint256 constant MissingFulfillmentComponentOnAggregation_error_side_ptr = 0x20;
 uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
 
@@ -439,11 +441,15 @@ uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = 0x98e9db6e;
+uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = (
+    0x98e9db6e
+);
 uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
 
 /*
- *  error MismatchedFulfillmentOfferAndConsiderationComponents(uint256 fulfillmentIndex)
+ *  error MismatchedFulfillmentOfferAndConsiderationComponents(
+ *      uint256 fulfillmentIndex
+ *  )
  *    - Defined in FulfillmentApplicationErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -532,6 +538,7 @@ uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
  * Revert buffer is memory[0x1c:0x20]
  */
 uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = 0x6088d7de;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector = 0x6088d7de;
 uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
 
 /*
