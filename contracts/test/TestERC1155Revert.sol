@@ -22,4 +22,3 @@ contract TestERC1155Revert {
         revert("Some ERC1155 revert message for batch transfers");
     }
 }
-
