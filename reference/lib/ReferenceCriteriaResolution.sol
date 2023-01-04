@@ -137,7 +137,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 revert CriteriaNotEnabledForItem();
             }
 
-            // If criteria is not 0 (i.e. a collection-wide offer)...
+            // If criteria is not 0 (i.e. a collection-wide criteria item)...
             if (identifierOrCriteria != uint256(0)) {
                 // Verify identifier inclusion in criteria root using proof.
                 _verifyProof(
@@ -145,6 +145,9 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     identifierOrCriteria,
                     criteriaResolver.criteriaProof
                 );
+            } else if (criteriaResolver.criteriaProof.length != 0) {
+                // Revert if a proof is supplied for a collection-wide item.
+                revert InvalidProof();
             }
         }
 

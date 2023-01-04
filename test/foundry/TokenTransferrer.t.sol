@@ -37,9 +37,10 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         context.conduit.executeBatch1155(context.batchTransfers);
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }

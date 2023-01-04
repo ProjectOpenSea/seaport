@@ -655,7 +655,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(seller).validate([order])
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "ConsiderationLengthExceedsTotalOriginal"
+        "ConsiderationLengthNotEqualToTotalOriginal"
       );
     });
   });
