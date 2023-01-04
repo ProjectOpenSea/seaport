@@ -4,7 +4,8 @@ pragma solidity ^0.8.17;
 import {
     ConsiderationItem,
     OfferItem,
-    ItemType
+    ItemType,
+    SpentItem
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { TestTokenMinter } from "./TestTokenMinter.sol";
 
@@ -13,6 +14,8 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
     ConsiderationItem considerationItem;
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
+    SpentItem[] minimumReceived;
+    SpentItem[] maximumSpent;
 
     ///@dev Add an offer item to the offer items array
     function addOfferItem(OfferItem memory _offerItem) internal {
@@ -39,6 +42,21 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         offerItem.endAmount = endAmount;
         addOfferItem(offerItem);
         delete offerItem;
+    }
+
+    function addOfferItem(
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 amount
+    ) internal {
+        addOfferItem({
+            itemType: itemType,
+            token: token,
+            identifier: identifier,
+            startAmount: amount,
+            endAmount: amount
+        });
     }
 
     function addOfferItem(
