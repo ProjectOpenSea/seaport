@@ -532,6 +532,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Decode the returned contract order and/or update the error buffer.
+        // TODO: extend returned consideration array up to total original value.
         (
             uint256 errorBuffer,
             OfferItem[] memory offer,
@@ -629,7 +630,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 }
             }
 
-            // Assign returned consideration item in place of the original item.
+            // Assign returned consideration in place of the original items.
             orderParameters.consideration = consideration;
         }
 
