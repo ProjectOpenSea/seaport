@@ -374,8 +374,16 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                     considerationItem.startAmount = currentAmount;
 
-                    // Utilize assembly to manually "shift" the recipient value.
+                    // Utilize assembly to manually "shift" the recipient value,
+                    // then to to copy the start amount to the recipient.
                     assembly {
+                        // Derive the pointer to the recipient using the item
+                        // pointer along with the offset to the recipient.
+                        let considerationItemRecipient := add(
+                            considerationItem,
+                            ConsiderationItem_recipient_offset // recipient
+                        )
+
                         // Write recipient to endAmount, as endAmount is not
                         // used from this point on and can be repurposed to fit
                         // the layout of a ReceivedItem.
@@ -384,25 +392,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                                 considerationItem,
                                 ReceivedItem_recipient_offset // old endAmount
                             ),
-                            mload(
-                                add(
-                                    considerationItem,
-                                    ConsiderationItem_recipient_offset
-                                )
-                            )
+                            mload(considerationItemRecipient)
                         )
-                    }
 
-                    // Utilize assembly to copy the start amount to recipient.
-                    assembly {
                         // Write startAmount to recipient, as recipient is not
                         // used from this point on and can be repurposed to
                         // track received amounts.
                         mstore(
-                            add(
-                                considerationItem,
-                                ConsiderationItem_recipient_offset // recipient
-                            ),
+                            considerationItemRecipient,
                             mload(
                                 add(
                                     considerationItem,
