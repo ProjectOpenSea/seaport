@@ -194,6 +194,8 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         undefined,
         undefined,
         undefined,
+        undefined,
+        undefined,
         marketplaceContract2
       );
 
@@ -362,6 +364,8 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         undefined,
         undefined,
         undefined,
+        undefined,
+        undefined,
         marketplaceContract2
       );
 
@@ -438,6 +442,8 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         offer2,
         consideration,
         0, // FULL_OPEN
+        undefined,
+        undefined,
         undefined,
         undefined,
         undefined,

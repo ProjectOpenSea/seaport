@@ -6,6 +6,10 @@ import {
     FulfillAvailableAdvancedOrdersParams
 } from "./SeaportRouterStructs.sol";
 
+import {
+    SeaportRouterInterface
+} from "../interfaces/SeaportRouterInterface.sol";
+
 import { SeaportRouterErrors } from "../interfaces/SeaportRouterErrors.sol";
 
 import { Execution } from "../lib/ConsiderationStructs.sol";
@@ -19,45 +23,49 @@ import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
  * @author ryanio
  * @notice A utility contract for interacting with multiple Seaport versions.
  */
-contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
-    /**
-     *  @dev The allowed Seaport contracts usable through this router.
-     */
+contract SeaportRouter is
+    SeaportRouterInterface,
+    SeaportRouterErrors,
+    ReentrancyGuard
+{
+    /// @dev The allowed Seaport v1.1 contract usable through this router.
     address private immutable _SEAPORT_V1_1;
+    /// @dev The allowed Seaport v1.2 contract usable through this router.
     address private immutable _SEAPORT_V1_2;
 
     /**
      * @dev Deploy contract with the supported Seaport contracts.
+     *
+     * @param seaportV1point1 The address of the Seaport v1.1 contract.
+     * @param seaportV1point2 The address of the Seaport v1.2 contract.
      */
-    constructor(address SEAPORT_V1_1, address SEAPORT_V1_2) {
-        _SEAPORT_V1_1 = SEAPORT_V1_1;
-        _SEAPORT_V1_2 = SEAPORT_V1_2;
+    constructor(address seaportV1point1, address seaportV1point2) {
+        _SEAPORT_V1_1 = seaportV1point1;
+        _SEAPORT_V1_2 = seaportV1point2;
     }
 
     /**
-     * @notice Returns the Seaport contracts allowed to be used through this
-     *         router.
+     * @dev Fallback function to receive excess ether, in case total amount of
+     *      ether sent is more than the amount required to fulfill the order.
      */
-    function getAllowedSeaportContracts()
-        public
-        view
-        returns (address[] memory seaportContracts)
-    {
-        seaportContracts = new address[](2);
-        seaportContracts[0] = _SEAPORT_V1_1;
-        seaportContracts[1] = _SEAPORT_V1_2;
+    receive() external payable override {
+        // Ensure we only receive ether from Seaport.
+        _assertSeaportAllowed(msg.sender);
     }
 
     /**
      * @notice Fulfill available advanced orders through multiple Seaport
      *         versions.
      *         See {SeaportInterface-fulfillAvailableAdvancedOrders}
+     *
+     * @param params The parameters for fulfilling available advanced orders.
      */
     function fulfillAvailableAdvancedOrders(
         FulfillAvailableAdvancedOrdersParams calldata params
     )
         external
         payable
+        override
         returns (
             bool[][] memory availableOrders,
             Execution[][] memory executions
@@ -86,9 +94,10 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
             AdvancedOrderParams calldata orderParams = params
                 .advancedOrderParams[i];
 
-            // Execute the orders, collecting the availableOrders and executions.
-            // This is wrapped in a try/catch in case a single order is executed that
-            // is no longer available, leading to a revert with NoSpecifiedOrdersAvailable().
+            // Execute the orders, collecting availableOrders and executions.
+            // This is wrapped in a try/catch in case a single order is
+            // executed that is no longer available, leading to a revert
+            // with `NoSpecifiedOrdersAvailable()`.
             try
                 SeaportInterface(seaport).fulfillAvailableAdvancedOrders{
                     value: orderParams.value
@@ -139,32 +148,18 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
     }
 
     /**
-     * @dev Fallback function to receive excess ether, in case total amount of
-     *      ether sent is more than the amount required to fulfill the order.
+     * @notice Returns the Seaport contracts allowed to be used through this
+     *         router.
      */
-    receive() external payable {
-        // Ensure we only receive ether from Seaport.
-        _assertSeaportAllowed(msg.sender);
-    }
-
-    /**
-     * @dev Function to return excess ether, in case total amount of
-     *      ether sent is more than the amount required to fulfill the order.
-     */
-    function _returnExcessEther() private {
-        // Send received funds back to msg.sender.
-        (bool success, bytes memory data) = payable(msg.sender).call{
-            value: address(this).balance
-        }("");
-
-        // Revert with an error if the ether transfer failed.
-        if (!success) {
-            revert EtherReturnTransferFailed(
-                msg.sender,
-                address(this).balance,
-                data
-            );
-        }
+    function getAllowedSeaportContracts()
+        external
+        view
+        override
+        returns (address[] memory seaportContracts)
+    {
+        seaportContracts = new address[](2);
+        seaportContracts[0] = _SEAPORT_V1_1;
+        seaportContracts[1] = _SEAPORT_V1_2;
     }
 
     /**
@@ -189,6 +184,26 @@ contract SeaportRouter is SeaportRouterErrors, ReentrancyGuard {
     function _cast(bool b) internal pure returns (uint256 u) {
         assembly {
             u := b
+        }
+    }
+
+    /**
+     * @dev Function to return excess ether, in case total amount of
+     *      ether sent is more than the amount required to fulfill the order.
+     */
+    function _returnExcessEther() private {
+        // Send received funds back to msg.sender.
+        (bool success, bytes memory data) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+
+        // Revert with an error if the ether transfer failed.
+        if (!success) {
+            revert EtherReturnTransferFailed(
+                msg.sender,
+                address(this).balance,
+                data
+            );
         }
     }
 }
