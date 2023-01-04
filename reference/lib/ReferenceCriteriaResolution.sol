@@ -304,6 +304,9 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     identifierOrCriteria,
                     criteriaResolver.criteriaProof
                 );
+            } else if (criteriaResolver.criteriaProof.length != 0) {
+                // Revert if a proof is supplied for a collection-wide item.
+                revert InvalidProof();
             }
         }
 
@@ -349,9 +352,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
      * @return withCriteria A boolean indicating that the item type in question
      *                      represents a criteria-based item.
      */
-    function _isItemWithCriteria(
-        ItemType itemType
-    ) internal pure returns (bool withCriteria) {
+    function _isItemWithCriteria(ItemType itemType)
+        internal
+        pure
+        returns (bool withCriteria)
+    {
         // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
         // 5.
         withCriteria = uint256(itemType) > 3;
