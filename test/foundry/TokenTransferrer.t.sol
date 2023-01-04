@@ -18,18 +18,31 @@ import {
 } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
+    bytes expectedRevert;
+
     struct Context {
         Conduit conduit;
+        bytes expectedRevert;
         ConduitTransfer[] transfers;
         ConduitBatch1155Transfer[] batchTransfers;
     }
 
     function execute(Context memory context) external stateless {
+        vm.expectRevert(context.expectedRevert);
         context.conduit.execute(context.transfers);
     }
 
     function executeBatch(Context memory context) external stateless {
+        vm.expectRevert(context.expectedRevert);
         context.conduit.executeBatch1155(context.batchTransfers);
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testTokenTransferrer() public {
@@ -42,7 +55,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         ConduitItemType itemType;
 
         address noCodeTokenAddress;
-        noCodeTokenAddress = address(0xabc);
+        noCodeTokenAddress = makeAddr("noCodeTokenAddress");
 
         address alice;
         address bob;
@@ -67,22 +80,29 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
                 1
             );
 
-            vm.expectRevert(
-                abi.encodeWithSignature(
-                    "NoContract(address)",
-                    noCodeTokenAddress
+            expectedRevert = abi.encodeWithSelector(
+                NoContract.selector,
+                noCodeTokenAddress
+            );
+
+            test(
+                this.execute,
+                Context(
+                    referenceConduit,
+                    expectedRevert,
+                    noCodeTransfer,
+                    noCodeBatchTransfer
                 )
             );
-            this.execute(
-                Context(referenceConduit, noCodeTransfer, noCodeBatchTransfer)
-            );
-            vm.expectRevert(
-                abi.encodeWithSignature(
-                    "NoContract(address)",
-                    noCodeTokenAddress
+            test(
+                this.execute,
+                Context(
+                    conduit,
+                    expectedRevert,
+                    noCodeTransfer,
+                    noCodeBatchTransfer
                 )
             );
-            this.execute(Context(conduit, noCodeTransfer, noCodeBatchTransfer));
         }
 
         // Test the 1155 batch transfer no code revert.
@@ -94,17 +114,23 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             new uint256[](0)
         );
 
-        vm.expectRevert(
-            abi.encodeWithSignature("NoContract(address)", noCodeTokenAddress)
+        test(
+            this.executeBatch,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                noCodeTransfer,
+                noCodeBatchTransfer
+            )
         );
-        this.executeBatch(
-            Context(referenceConduit, noCodeTransfer, noCodeBatchTransfer)
-        );
-        vm.expectRevert(
-            abi.encodeWithSignature("NoContract(address)", noCodeTokenAddress)
-        );
-        this.executeBatch(
-            Context(conduit, noCodeTransfer, noCodeBatchTransfer)
+        test(
+            this.executeBatch,
+            Context(
+                conduit,
+                expectedRevert,
+                noCodeTransfer,
+                noCodeBatchTransfer
+            )
         );
 
         // Test the generic failure case where the token contract reverts.
@@ -124,21 +150,36 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             1
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenTransferGenericFailure.selector,
-                address(tokenRevert),
-                address(alice),
-                address(bob),
-                0,
-                1
+        expectedRevert = abi.encodeWithSelector(
+            TokenTransferGenericFailure.selector,
+            address(tokenRevert),
+            address(alice),
+            address(bob),
+            0,
+            1
+        );
+
+        test(
+            this.execute,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
             )
         );
-        this.execute(
-            Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
+
+        expectedRevert = bytes("Some ERC20 revert message");
+
+        test(
+            this.execute,
+            Context(
+                conduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
+            )
         );
-        vm.expectRevert("Some ERC20 revert message");
-        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
 
         // Test the generic failure case where the token contract returns not OK but does not revert.
         ConduitTransfer[] memory notOkTransfer;
@@ -165,28 +206,27 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             1
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                BadReturnValueFromERC20OnTransfer.selector,
-                address(tokenNotOk),
-                address(alice),
-                address(bob),
-                1
+        expectedRevert = abi.encodeWithSelector(
+            BadReturnValueFromERC20OnTransfer.selector,
+            address(tokenNotOk),
+            address(alice),
+            address(bob),
+            1
+        );
+
+        test(
+            this.execute,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                notOkTransfer,
+                noCodeBatchTransfer
             )
         );
-        this.execute(
-            Context(referenceConduit, notOkTransfer, noCodeBatchTransfer)
+        test(
+            this.execute,
+            Context(conduit, expectedRevert, notOkTransfer, noCodeBatchTransfer)
         );
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                BadReturnValueFromERC20OnTransfer.selector,
-                address(tokenNotOk),
-                address(alice),
-                address(bob),
-                1
-            )
-        );
-        this.execute(Context(conduit, notOkTransfer, noCodeBatchTransfer));
 
         // Test the ERC721 revert case.
         TestERC721Revert nonfungibleTokenRevert;
@@ -202,12 +242,26 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             1
         );
 
-        vm.expectRevert("Some ERC721 revert message");
-        this.execute(
-            Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
+        expectedRevert = bytes("Some ERC721 revert message");
+
+        test(
+            this.execute,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
+            )
         );
-        vm.expectRevert("Some ERC721 revert message");
-        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
+        test(
+            this.execute,
+            Context(
+                conduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
+            )
+        );
 
         // Test the ERC1155 revert case.
         TestERC1155Revert semifungibleTokenRevert;
@@ -223,12 +277,26 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             1
         );
 
-        vm.expectRevert("Some ERC1155 revert message");
-        this.execute(
-            Context(referenceConduit, revertTransfer, noCodeBatchTransfer)
+        expectedRevert = bytes("Some ERC1155 revert message");
+
+        test(
+            this.execute,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
+            )
         );
-        vm.expectRevert("Some ERC1155 revert message");
-        this.execute(Context(conduit, revertTransfer, noCodeBatchTransfer));
+        test(
+            this.execute,
+            Context(
+                conduit,
+                expectedRevert,
+                revertTransfer,
+                noCodeBatchTransfer
+            )
+        );
 
         // Test the ERC1155 batch transfer revert case.
         ConduitBatch1155Transfer[] memory revertBatchTransfer;
@@ -242,13 +310,27 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             new uint256[](0)
         );
 
-        vm.expectRevert("Some ERC1155 revert message for batch transfers");
-        this.executeBatch(
-            Context(referenceConduit, revertTransfer, revertBatchTransfer)
+        expectedRevert = bytes(
+            "Some ERC1155 revert message for batch transfers"
         );
-        vm.expectRevert("Some ERC1155 revert message for batch transfers");
-        this.executeBatch(
-            Context(conduit, revertTransfer, revertBatchTransfer)
+
+        test(
+            this.executeBatch,
+            Context(
+                referenceConduit,
+                expectedRevert,
+                revertTransfer,
+                revertBatchTransfer
+            )
+        );
+        test(
+            this.executeBatch,
+            Context(
+                conduit,
+                expectedRevert,
+                revertTransfer,
+                revertBatchTransfer
+            )
         );
     }
 }
