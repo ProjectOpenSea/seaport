@@ -444,7 +444,12 @@ contract OrderValidator is Executor, ZoneInteraction {
     }
 
     /**
-     * @dev Internal function to generate a contract order.
+     * @dev Internal function to generate a contract order. Note that the total
+     *      original consideration items parameter for the order designates how
+     *      many consideration items should be supplied to the contract offerer
+     *      as "maximum spent" directives, returned, and compared against, while
+     *      consideration items beyond the total original consideration items
+     *      are at the discretion of the fulfiller (e.g. "tips").
      *
      * @param orderParameters The parameters for the order.
      * @param context         The context for generating the order.
@@ -465,12 +470,42 @@ contract OrderValidator is Executor, ZoneInteraction {
         {
             address offerer = orderParameters.offerer;
             bool success;
-            (MemoryPointer cdPtr, uint256 size) = _encodeGenerateOrder(
-                orderParameters,
-                context
-            );
-            assembly {
-                success := call(gas(), offerer, 0, cdPtr, size, 0, 0)
+
+            {
+                // Cache the initial length of the consideration array.
+                uint256 considerationLength = (
+                    orderParameters.consideration.length
+                );
+
+                // Get the supplied total original consideration items value.
+                uint256 totalOriginalConsiderationItems = (
+                    orderParameters.totalOriginalConsiderationItems
+                );
+
+                // Ensure consideration array is no shorter than total original.
+                _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+                    considerationLength,
+                    totalOriginalConsiderationItems
+                );
+
+                // Set consideration length to the total original items value.
+                orderParameters.consideration.length = (
+                    totalOriginalConsiderationItems
+                );
+
+                // Encode the calldata for the call to the contract offerer.
+                (MemoryPointer cdPtr, uint256 size) = _encodeGenerateOrder(
+                    orderParameters,
+                    context
+                );
+
+                // Perform the call using the encoded calldata.
+                assembly {
+                    success := call(gas(), offerer, 0, cdPtr, size, 0, 0)
+                }
+
+                // Restore the initial consideration array length.
+                orderParameters.consideration.length = considerationLength;
             }
 
             {
@@ -556,7 +591,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 newConsiderationLength = consideration.length;
 
             // New consideration items cannot be created.
-            if (newConsiderationLength > originalConsiderationArray.length) {
+            if (
+                newConsiderationLength >
+                orderParameters.totalOriginalConsiderationItems
+            ) {
                 return _revertOrReturnEmpty(revertOnInvalid, orderHash);
             }
 
@@ -744,7 +782,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
-                    // Ensure that consideration array length is equal to the total
+                    // Ensure consideration array length is equal to the total
                     // original consideration items value.
                     if (
                         orderParameters.consideration.length !=
