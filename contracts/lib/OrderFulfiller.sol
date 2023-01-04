@@ -349,7 +349,7 @@ contract OrderFulfiller is
      * @param orderHash     The order hash.
      * @param offerer       The offerer for the order.
      * @param zone          The zone for the order.
-     * @param fulfiller     The fulfiller of the order, or the null address if
+     * @param recipient     The recipient of the order, or the null address if
      *                      the order was fulfilled via order matching.
      * @param offer         The offer items for the order.
      * @param consideration The consideration items for the order.
@@ -358,7 +358,7 @@ contract OrderFulfiller is
         bytes32 orderHash,
         address offerer,
         address zone,
-        address fulfiller,
+        address recipient,
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration
     ) internal {
@@ -379,7 +379,7 @@ contract OrderFulfiller is
             orderHash,
             offerer,
             zone,
-            fulfiller,
+            recipient,
             spentItems,
             receivedItems
         );
