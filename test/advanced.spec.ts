@@ -4435,6 +4435,50 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
+    it("Criteria-based offer item with junk criteria proof", async () => {
+      // Seller mints nfts
+      const { nftId } = await mint1155(seller);
+
+      // Seller approves marketplace contract to transfer NFTs
+      await set1155ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const offer = [getTestItem1155WithCriteria(toBN(0), toBN(1), toBN(1))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const criteriaResolvers = [
+        buildResolver(0, 0, 0, nftId, [
+          "0xDEAFBEEF00000000000000000000000000000000000000000000000000000000",
+        ]),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0, // FULL_OPEN
+        criteriaResolvers
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            criteriaResolvers,
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          )
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidProof");
+    });
   });
 
   describe("Bulk Signature", async () => {

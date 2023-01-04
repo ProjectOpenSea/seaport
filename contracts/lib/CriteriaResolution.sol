@@ -216,6 +216,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 identifierOrCriteria,
                 criteriaResolver.criteriaProof
             );
+        } else if (criteriaResolver.criteriaProof.length != 0) {
+            // If criteria is 0, ensure that no proof was supplied.
+            _revertInvalidProof();
         }
 
         // Update item type to remove criteria usage.
@@ -242,9 +245,11 @@ contract CriteriaResolution is CriteriaResolutionErrors {
      * @return withCriteria A boolean indicating that the item type in question
      *                      represents a criteria-based item.
      */
-    function _isItemWithCriteria(
-        ItemType itemType
-    ) internal pure returns (bool withCriteria) {
+    function _isItemWithCriteria(ItemType itemType)
+        internal
+        pure
+        returns (bool withCriteria)
+    {
         // ERC721WithCriteria is ItemType 4. ERC1155WithCriteria is ItemType 5.
         assembly {
             withCriteria := gt(itemType, 3)
