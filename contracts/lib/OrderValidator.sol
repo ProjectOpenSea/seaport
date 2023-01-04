@@ -483,7 +483,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 assembly {
                     // Shift offerer address up 96 bytes and combine with nonce.
-                    orderHash := or(
+                    orderHash := xor(
                         contractNonce,
                         shl(ContractOrder_orderHash_offerer_shift, offerer)
                     )

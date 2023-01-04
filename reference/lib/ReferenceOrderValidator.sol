@@ -280,7 +280,7 @@ contract ReferenceOrderValidator is
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
             // Derive order hash from contract nonce and offerer address.
             orderHash = bytes32(
-                contractNonce |
+                contractNonce ^
                     (uint256(uint160(orderParameters.offerer)) << 96)
             );
         }
