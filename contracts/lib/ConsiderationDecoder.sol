@@ -883,8 +883,10 @@ contract ConsiderationDecoder {
             function copySpentItemsAsOfferItems(rdPtrHead, length)
                 -> mPtrLength
             {
+                // Retrieve the current free memory pointer.
                 mPtrLength := mload(FreeMemoryPointerSlot)
-                // allocate memory for array
+
+                // Allocate memory for the array.
                 mstore(
                     FreeMemoryPointerSlot,
                     add(
@@ -892,26 +894,34 @@ contract ConsiderationDecoder {
                         add(OneWord, mul(length, add(OfferItem_size, OneWord)))
                     )
                 )
-                // Write length
+
+                // Write the length of the array to the start of free memory.
                 mstore(mPtrLength, length)
 
-                // Use offset from length to minimize stack depth
+                // Use offset from length to minimize stack depth.
                 let headOffsetFromLength := OneWord
-
                 let headSizeWithLength := mul(add(1, length), OneWord)
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+
+                // Iterate over each element.
                 for {
 
                 } lt(headOffsetFromLength, headSizeWithLength) {
 
                 } {
+                    // Write the memory pointer to the accompanying head offset.
                     mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
+
+                    // Copy itemType, token, identifier and amount.
                     returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
-                    // Copy amount to endAmount
+
+                    // Copy amount to endAmount.
                     mstore(
                         add(mPtrTailNext, Common_endAmount_offset),
                         mload(add(mPtrTailNext, Common_amount_offset))
                     )
+
+                    // Update read pointer, next tail pointer, and head offset.
                     rdPtrHead := add(rdPtrHead, SpentItem_size)
                     mPtrTailNext := add(mPtrTailNext, OfferItem_size)
                     headOffsetFromLength := add(headOffsetFromLength, OneWord)
@@ -921,8 +931,10 @@ contract ConsiderationDecoder {
             function copyReceivedItemsAsConsiderationItems(rdPtrHead, length)
                 -> mPtrLength
             {
+                // Retrieve the current free memory pointer.
                 mPtrLength := mload(FreeMemoryPointerSlot)
-                // allocate memory for array
+
+                // Allocate memory for the array.
                 mstore(
                     FreeMemoryPointerSlot,
                     add(
@@ -933,28 +945,39 @@ contract ConsiderationDecoder {
                         )
                     )
                 )
-                // Write length
+
+                // Write the length of the array to the start of free memory.
                 mstore(mPtrLength, length)
 
-                // Use offset from length to minimize stack depth
+                // Use offset from length to minimize stack depth.
                 let headOffsetFromLength := OneWord
-
                 let headSizeWithLength := mul(add(1, length), OneWord)
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
+
+                // Iterate over each element.
                 for {
 
                 } lt(headOffsetFromLength, headSizeWithLength) {
 
                 } {
+                    // Write the memory pointer to the accompanying head offset.
                     mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
-                    // Copy itemType, token, identifier and amount
-                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
-                    // Copy amount and recipient
+
+                    // Copy itemType, token, identifier and amount.
+                    returndatacopy(
+                        mPtrTailNext,
+                        rdPtrHead,
+                        Common_endAmount_offset
+                    )
+
+                    // Copy amount and recipient.
                     returndatacopy(
                         add(mPtrTailNext, Common_endAmount_offset),
                         add(rdPtrHead, Common_amount_offset),
                         TwoWords
                     )
+
+                    // Update read pointer, next tail pointer, and head offset.
                     rdPtrHead := add(rdPtrHead, ReceivedItem_size)
                     mPtrTailNext := add(mPtrTailNext, ConsiderationItem_size)
                     headOffsetFromLength := add(headOffsetFromLength, OneWord)
