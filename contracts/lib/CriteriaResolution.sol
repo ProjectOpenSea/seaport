@@ -208,7 +208,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
         uint256 identifierOrCriteria = offerItem.identifierOrCriteria;
 
-        // If criteria is not 0 (i.e. a collection-wide offer)...
+        // If criteria is not 0 (i.e. a collection-wide criteria-based item)...
         if (identifierOrCriteria != uint256(0)) {
             // Verify identifier inclusion in criteria root using proof.
             _verifyProof(
@@ -217,7 +217,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 criteriaResolver.criteriaProof
             );
         } else if (criteriaResolver.criteriaProof.length != 0) {
-            // If criteria is 0, ensure that no proof was supplied.
+            // Revert if non-empty proof is supplied for a collection-wide item.
             _revertInvalidProof();
         }
 

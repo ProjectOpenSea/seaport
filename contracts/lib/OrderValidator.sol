@@ -462,6 +462,15 @@ contract OrderValidator is Executor, ZoneInteraction {
         internal
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
+        // Ensure that consideration array length is equal to the total original
+        // consideration items value.
+        if (
+            orderParameters.consideration.length !=
+            orderParameters.totalOriginalConsiderationItems
+        ) {
+            _revertConsiderationLengthNotEqualToTotalOriginal();
+        }
+
         {
             address offerer = orderParameters.offerer;
             bool success;
@@ -483,7 +492,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 assembly {
                     // Shift offerer address up 96 bytes and combine with nonce.
-                    orderHash := or(
+                    orderHash := xor(
                         contractNonce,
                         shl(ContractOrder_orderHash_offerer_shift, offerer)
                     )
@@ -562,28 +571,31 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Iterate over returned consideration & do not exceed maximumSpent.
             for (uint256 i = 0; i < newConsiderationLength; ) {
-                // Retrieve the originally supplied item.
-                ConsiderationItem memory originalItem = (
-                    originalConsiderationArray[i]
-                );
+                // Retrieve the pointer to the originally supplied item.
+                MemoryPointer mPtrOriginal = originalConsiderationArray[i]
+                    .toMemoryPointer();
 
-                // Retrieve the newly returned item.
-                ConsiderationItem memory newItem = consideration[i];
+                // Retrieve the pointer to the newly returned item.
+                MemoryPointer mPtrNew = consideration[i].toMemoryPointer();
 
-                // Compare the items and update the error buffer accordingly.
-                errorBuffer |= _cast(
-                    newItem.startAmount > originalItem.startAmount
-                );
-                errorBuffer |= _compareItems(
-                    originalItem.toMemoryPointer(),
-                    newItem.toMemoryPointer()
-                );
-
-                // Ensure that the recipients are equal when provided.
-                errorBuffer |= _checkRecipients(
-                    originalItem.recipient,
-                    newItem.recipient
-                );
+                // Compare the items and update the error buffer accordingly
+                // and ensure that the recipients are equal when provided.
+                errorBuffer |=
+                    _cast(
+                        mPtrNew.offset(Common_amount_offset).readUint256() >
+                            mPtrOriginal
+                                .offset(Common_amount_offset)
+                                .readUint256()
+                    ) |
+                    _compareItems(mPtrOriginal, mPtrNew) |
+                    _checkRecipients(
+                        mPtrOriginal
+                            .offset(ConsiderItem_recipient_offset)
+                            .readAddress(),
+                        mPtrNew
+                            .offset(ConsiderItem_recipient_offset)
+                            .readAddress()
+                    );
 
                 // Increment the array (cannot overflow as index starts at 0).
                 unchecked {
@@ -744,13 +756,13 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
-                    // Ensure that consideration array length is equal to the total
-                    // original consideration items value.
+                    // Ensure that consideration array length is equal to the
+                    // total original consideration items value.
                     if (
                         orderParameters.consideration.length !=
                         orderParameters.totalOriginalConsiderationItems
                     ) {
-                        _revertConsiderationLengthExceedsTotalOriginal();
+                        _revertConsiderationLengthNotEqualToTotalOriginal();
                     }
 
                     // Verify the supplied signature.

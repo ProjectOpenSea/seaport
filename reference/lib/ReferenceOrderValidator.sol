@@ -275,12 +275,21 @@ contract ReferenceOrderValidator is
         internal
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
+        // Ensure that consideration array length is equal to the total original
+        // consideration items value.
+        if (
+            orderParameters.consideration.length !=
+            orderParameters.totalOriginalConsiderationItems
+        ) {
+            revert ConsiderationLengthNotEqualToTotalOriginal();
+        }
+
         {
             // Increment contract nonce and use it to derive order hash.
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
             // Derive order hash from contract nonce and offerer address.
             orderHash = bytes32(
-                contractNonce |
+                contractNonce ^
                     (uint256(uint160(orderParameters.offerer)) << 96)
             );
         }
@@ -601,7 +610,7 @@ contract ReferenceOrderValidator is
                     orderParameters.consideration.length !=
                     orderParameters.totalOriginalConsiderationItems
                 ) {
-                    revert ConsiderationLengthExceedsTotalOriginal();
+                    revert ConsiderationLengthNotEqualToTotalOriginal();
                 }
 
                 // Verify the supplied signature.

@@ -916,10 +916,17 @@ uint256 constant NoSpecifiedOrdersAvailable_error_length = 0x04;
 uint256 constant InvalidNativeOfferItem_error_selector = 0x12d3f5a3;
 uint256 constant InvalidNativeOfferItem_error_length = 0x04;
 
-uint256 constant ConsiderationLengthExceedsTotalOriginal_error_selector = (
-    0xba832fdd
+/*
+ *  error ConsiderationLengthNotEqualToTotalOriginal()
+ *    - Defined in ConsiderationEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant ConsiderationLengthNotEqualToTotalOriginal_error_selector = (
+    0x2165628a
 );
-uint256 constant ConsiderationLengthExceedsTotalOriginal_error_length = 0x04;
+uint256 constant ConsiderationLengthNotEqualToTotalOriginal_error_length = 0x04;
 
 /*
  *  error Panic(uint256 code)
