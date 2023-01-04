@@ -62,7 +62,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
      *         specified recipients.
      *
      * @param items      The items to transfer to an intended recipient.
-     * @param conduitKey An optional conduit key referring to a conduit through
+     * @param conduitKey A mandatory conduit key referring to a conduit through
      *                   which the bulk transfer should occur.
      *
      * @return magicValue A value indicating that the transfers were successful.
