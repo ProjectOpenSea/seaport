@@ -14,8 +14,8 @@ The `PausableZone` contract can be used by its controller to cancel orders, exec
 New zones can be permissionlessly deployed and utilized to extend the feature set of the core Seaport marketplace. Examples include:
 
 - Helping to prevent sales of compromised items
-- Pausing orders in case of an emergency without invalidating users' approvals
+- Pausing orders in case of an emergency without invalidating approvals
 - Limiting the number of NFTs from a particular collection that can be sold in a given amount of time
 - Enforcing a particular floor or ceiling price for certain items
-- Make other arbitrary calls to outside data sources
-- Track extra incentives for users completing valid orders
+- Making arbitrary calls to outside data sources
+- Tracking additional incentives for completing valid orders
