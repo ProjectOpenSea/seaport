@@ -13,6 +13,6 @@ contract TestERC20Revert is ERC20("TestRevert", "REVERT", 18) {
         address /* to */,
         uint256 /* amount */
     ) public pure override returns (bool) {
-        revert();
+        revert("Some ERC20 revert message");
     }
 }
