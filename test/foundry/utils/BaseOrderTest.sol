@@ -315,23 +315,23 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     }
 
     function getOrderParameters(
-        address payable offerer,
+        address offerer,
         OrderType orderType
     ) internal returns (OrderParameters memory) {
         return
-            OrderParameters(
-                offerer,
-                address(0),
-                offerItems,
-                considerationItems,
-                orderType,
-                block.timestamp,
-                block.timestamp + 1,
-                bytes32(0),
-                globalSalt++,
-                bytes32(0),
-                considerationItems.length
-            );
+            OrderParameters({
+                offerer: offerer,
+                zone: address(0),
+                offer: offerItems,
+                consideration: considerationItems,
+                orderType: orderType,
+                startTime: block.timestamp,
+                endTime: block.timestamp + 1,
+                zoneHash: bytes32(0),
+                salt: globalSalt++,
+                conduitKey: bytes32(0),
+                totalOriginalConsiderationItems: considerationItems.length
+            });
     }
 
     function toOrderComponents(

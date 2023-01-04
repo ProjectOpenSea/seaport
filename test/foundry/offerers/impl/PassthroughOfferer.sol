@@ -21,12 +21,15 @@ import {
 
 contract PassthroughOfferer is ContractOffererInterface {
     constructor(
-        address seaport,
+        address[] memory seaports,
         ERC20Interface _token1,
         ERC721Interface _token2
     ) {
-        _token1.approve(seaport, type(uint256).max);
-        _token2.setApprovalForAll(seaport, true);
+        for (uint256 i = 0; i < seaports.length; ++i) {
+            address seaport = seaports[i];
+            _token1.approve(seaport, type(uint256).max);
+            _token2.setApprovalForAll(seaport, true);
+        }
     }
 
     /**
@@ -64,7 +67,7 @@ contract PassthroughOfferer is ContractOffererInterface {
         return (a, _convertSpentToReceived(b));
     }
 
-    function _convertSpentToReceived(SpentItem[] memory spentItems)
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
         internal
         view
         returns (ReceivedItem[] memory)
@@ -77,7 +80,7 @@ contract PassthroughOfferer is ContractOffererInterface {
         return receivedItems;
     }
 
-    function _convertSpentToReceived(SpentItem memory spentItem)
+    function _convertSpentToReceived(SpentItem calldata spentItem)
         internal
         view
         returns (ReceivedItem memory)
@@ -114,6 +117,6 @@ contract PassthroughOfferer is ContractOffererInterface {
             bytes memory metadata // decoded based on the schemaID
         )
     {
-        return (1337, "BadOffer", "");
+        return (1337, "PassthroughOffererfb", "");
     }
 }

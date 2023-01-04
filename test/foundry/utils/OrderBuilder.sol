@@ -7,6 +7,8 @@ import {
     OrderComponents,
     Order,
     BasicOrderParameters,
+    SpentItem,
+    ReceivedItem,
     AdditionalRecipient,
     OfferItem,
     ConsiderationItem,
@@ -39,6 +41,62 @@ contract OrderBuilder is OfferConsiderationItemAdder {
 
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
+
+    function toSpentItem(
+        OfferItem memory _offerItem
+    ) internal pure returns (SpentItem memory) {
+        return
+            SpentItem({
+                itemType: _offerItem.itemType,
+                token: _offerItem.token,
+                identifier: _offerItem.identifierOrCriteria,
+                amount: _offerItem.startAmount
+            });
+    }
+
+    function toSpentItem(
+        ConsiderationItem memory _considerationItem
+    ) internal pure returns (SpentItem memory) {
+        return
+            SpentItem({
+                itemType: _considerationItem.itemType,
+                token: _considerationItem.token,
+                identifier: _considerationItem.identifierOrCriteria,
+                amount: _considerationItem.startAmount
+            });
+    }
+
+    function toSpentItems(
+        OfferItem[] memory _offerItems
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](_offerItems.length);
+        for (uint256 i; i < _offerItems.length; ++i) {
+            spentItems[i] = toSpentItem(_offerItems[i]);
+        }
+        return spentItems;
+    }
+
+    function toSpentItems(
+        ConsiderationItem[] memory _considerationItems
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](
+            _considerationItems.length
+        );
+        for (uint256 i; i < _considerationItems.length; ++i) {
+            spentItems[i] = toSpentItem(_considerationItems[i]);
+        }
+        return spentItems;
+    }
+
+    function toHashedLeaves(
+        uint256[] memory identifiers
+    ) internal pure returns (bytes32[] memory) {
+        bytes32[] memory hashedLeaves = new bytes32[](identifiers.length);
+        for (uint256 i; i < identifiers.length; ++i) {
+            hashedLeaves[i] = keccak256(abi.encode(identifiers[i]));
+        }
+        return hashedLeaves;
+    }
 
     function toAdvancedOrder(
         Order memory order
@@ -392,7 +450,7 @@ contract OrderBuilder is OfferConsiderationItemAdder {
     }
 
     /**
-    @dev configures order components based on order parameters in storage and counter param
+     * @dev configures order components based on order parameters in storage and counter param
      */
     function configureOrderComponents(uint256 counter) internal {
         baseOrderComponents.offerer = baseOrderParameters.offerer;
