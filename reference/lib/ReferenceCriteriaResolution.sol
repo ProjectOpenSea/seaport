@@ -147,7 +147,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 );
             } else if (criteriaResolver.criteriaProof.length != 0) {
                 // Revert if a proof is supplied for a collection-wide item.
-                _revertInvalidProof();
+                revert InvalidProof();
             }
         }
 
