@@ -487,12 +487,10 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   been successfully validated.
      */
     function validate(
-        Order[] calldata
-    ) external override returns (bool validated) {
-        Order[] memory orders = _toOrdersReturnType(_decodeOrders)(
-            CalldataStart.pptr()
-        );
-        validated = _validate(orders);
+        Order[] calldata /* orders */
+    ) external override returns (bool /* validated */) {
+        return
+            _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
     }
 
     /**
