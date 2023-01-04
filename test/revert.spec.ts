@@ -4405,7 +4405,91 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         )
       ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
+    it("Reverts on supplying a criteria proof to a collection-wide criteria item", async () => {
+      // Seller mints nfts
+      const nftId = randomBN();
+      const secondNFTId = randomBN();
+      const thirdNFTId = randomBN();
 
+      await testERC721.mint(seller.address, nftId);
+      await testERC721.mint(seller.address, secondNFTId);
+      await testERC721.mint(seller.address, thirdNFTId);
+
+      const tokenIds = [nftId, secondNFTId, thirdNFTId];
+
+      // Seller approves marketplace contract to transfer NFTs
+      await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+      const { proofs } = merkleTree(tokenIds);
+
+      const offer = [getTestItem721WithCriteria(0, toBN(1), toBN(1))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const criteriaResolvers = [
+        buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0, // FULL_OPEN
+        criteriaResolvers
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            criteriaResolvers,
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          )
+      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidProof");
+
+      criteriaResolvers[0].criteriaProof = [];
+
+      await withBalanceChecks([order], 0, criteriaResolvers, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            criteriaResolvers,
+            toKey(0),
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ],
+          undefined,
+          criteriaResolvers
+        );
+
+        return receipt;
+      });
+    });
     it("Reverts on invalid criteria proof", async () => {
       // Seller mints nfts
       const nftId = randomBN();
