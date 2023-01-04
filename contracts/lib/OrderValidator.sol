@@ -579,7 +579,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Retrieve the pointer to the newly returned item.
                 MemoryPointer mPtrNew = consideration[i].toMemoryPointer();
 
-                // Compare the items and update the error buffer accordingly.
+                // Compare the items and update the error buffer accordingly
                 // and ensure that the recipients are equal when provided.
                 errorBuffer |=
                     _cast(
