@@ -10,4 +10,3 @@ contract TestERC721Revert {
         revert("Some ERC721 revert message");
     }
 }
-
