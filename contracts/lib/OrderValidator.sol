@@ -112,7 +112,11 @@ contract OrderValidator is Executor, ZoneInteraction {
         bool revertOnInvalid
     )
         internal
-        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
     {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
@@ -373,10 +377,11 @@ contract OrderValidator is Executor, ZoneInteraction {
      *
      * @return isInvalid Error buffer indicating if items are incompatible.
      */
-    function _compareItems(
-        MemoryPointer originalItem,
-        MemoryPointer newItem
-    ) internal pure returns (uint256 isInvalid) {
+    function _compareItems(MemoryPointer originalItem, MemoryPointer newItem)
+        internal
+        pure
+        returns (uint256 isInvalid)
+    {
         assembly {
             let itemType := mload(originalItem)
             let identifier := mload(add(originalItem, Common_identifier_offset))
@@ -429,10 +434,11 @@ contract OrderValidator is Executor, ZoneInteraction {
      *
      * @return isInvalid Error buffer indicating if recipients are incompatible.
      */
-    function _checkRecipients(
-        address originalRecipient,
-        address newRecipient
-    ) internal pure returns (uint256 isInvalid) {
+    function _checkRecipients(address originalRecipient, address newRecipient)
+        internal
+        pure
+        returns (uint256 isInvalid)
+    {
         assembly {
             isInvalid := iszero(
                 or(
@@ -460,7 +466,11 @@ contract OrderValidator is Executor, ZoneInteraction {
         bool revertOnInvalid
     )
         internal
-        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
     {
         {
             address offerer = orderParameters.offerer;
@@ -562,28 +572,31 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Iterate over returned consideration & do not exceed maximumSpent.
             for (uint256 i = 0; i < newConsiderationLength; ) {
-                // Retrieve the originally supplied item.
-                ConsiderationItem memory originalItem = (
-                    originalConsiderationArray[i]
-                );
+                // Retrieve the pointer to the originally supplied item.
+                MemoryPointer mPtrOriginal = originalConsiderationArray[i]
+                    .toMemoryPointer();
 
-                // Retrieve the newly returned item.
-                ConsiderationItem memory newItem = consideration[i];
+                // Retrieve the pointer to the newly returned item.
+                MemoryPointer mPtrNew = consideration[i].toMemoryPointer();
 
                 // Compare the items and update the error buffer accordingly.
-                errorBuffer |= _cast(
-                    newItem.startAmount > originalItem.startAmount
-                );
-                errorBuffer |= _compareItems(
-                    originalItem.toMemoryPointer(),
-                    newItem.toMemoryPointer()
-                );
-
-                // Ensure that the recipients are equal when provided.
-                errorBuffer |= _checkRecipients(
-                    originalItem.recipient,
-                    newItem.recipient
-                );
+                // and ensure that the recipients are equal when provided.
+                errorBuffer |=
+                    _cast(
+                        mPtrNew.offset(Common_amount_offset).readUint256() >
+                            mPtrOriginal
+                                .offset(Common_amount_offset)
+                                .readUint256()
+                    ) |
+                    _compareItems(mPtrOriginal, mPtrNew) |
+                    _checkRecipients(
+                        mPtrOriginal
+                            .offset(ConsiderItem_recipient_offset)
+                            .readAddress(),
+                        mPtrNew
+                            .offset(ConsiderItem_recipient_offset)
+                            .readAddress()
+                    );
 
                 // Increment the array (cannot overflow as index starts at 0).
                 unchecked {
@@ -615,9 +628,10 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return cancelled A boolean indicating whether the supplied orders were
      *                   successfully cancelled.
      */
-    function _cancel(
-        OrderComponents[] calldata orders
-    ) internal returns (bool cancelled) {
+    function _cancel(OrderComponents[] calldata orders)
+        internal
+        returns (bool cancelled)
+    {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -694,9 +708,10 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return validated A boolean indicating whether the supplied orders were
      *                   successfully validated.
      */
-    function _validate(
-        Order[] memory orders
-    ) internal returns (bool validated) {
+    function _validate(Order[] memory orders)
+        internal
+        returns (bool validated)
+    {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -786,9 +801,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function _getOrderStatus(
-        bytes32 orderHash
-    )
+    function _getOrderStatus(bytes32 orderHash)
         internal
         view
         returns (
@@ -840,7 +853,11 @@ contract OrderValidator is Executor, ZoneInteraction {
     )
         internal
         pure
-        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator
+        )
     {
         if (!revertOnInvalid) {
             return (contractOrderHash, 0, 0);
