@@ -33,7 +33,7 @@ contract GettersAndDerivers is ConsiderationBase {
      *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
-     * @param counter           The counter of the order to hash.
+     * @param counter         The counter of the order to hash.
      *
      * @return orderHash The hash.
      */

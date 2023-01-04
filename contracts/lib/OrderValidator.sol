@@ -462,6 +462,15 @@ contract OrderValidator is Executor, ZoneInteraction {
         internal
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
+        // Ensure that consideration array length is equal to the total original
+        // consideration items value.
+        if (
+            orderParameters.consideration.length !=
+            orderParameters.totalOriginalConsiderationItems
+        ) {
+            _revertConsiderationLengthNotEqualToTotalOriginal();
+        }
+
         {
             address offerer = orderParameters.offerer;
             bool success;
@@ -744,13 +753,13 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
-                    // Ensure that consideration array length is equal to the total
-                    // original consideration items value.
+                    // Ensure that consideration array length is equal to the
+                    // total original consideration items value.
                     if (
                         orderParameters.consideration.length !=
                         orderParameters.totalOriginalConsiderationItems
                     ) {
-                        _revertConsiderationLengthExceedsTotalOriginal();
+                        _revertConsiderationLengthNotEqualToTotalOriginal();
                     }
 
                     // Verify the supplied signature.
