@@ -490,11 +490,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         Order[] calldata /* orders */
     ) external override returns (bool /* validated */) {
         return
-            _validate(
-                to_dyn_array_Order_ReturnType(abi_decode_dyn_array_Order)(
-                    CalldataStart.pptr()
-                )
-            );
+            _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
     }
 
     /**
