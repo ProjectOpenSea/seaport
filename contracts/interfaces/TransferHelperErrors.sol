@@ -26,7 +26,7 @@ interface TransferHelperErrors {
     error InvalidERC721Recipient(address recipient);
 
     /**
-     * @dev Revert with an error when a call to a ERC721 receiver reverts with
+     * @dev Revert with an error when a call to an ERC721 receiver reverts with
      *      bytes data.
      */
     error ERC721ReceiverErrorRevertBytes(
@@ -37,7 +37,7 @@ interface TransferHelperErrors {
     );
 
     /**
-     * @dev Revert with an error when a call to a ERC721 receiver reverts with
+     * @dev Revert with an error when a call to an ERC721 receiver reverts with
      *      string reason.
      */
     error ERC721ReceiverErrorRevertString(
