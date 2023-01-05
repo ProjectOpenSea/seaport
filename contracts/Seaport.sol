@@ -16,6 +16,7 @@ import { Consideration } from "./lib/Consideration.sol";
  * @custom:contributor Aspyn Palatnick (stuckinaboot.eth)
  * @custom:contributor Stephan Min (stephanm.eth)
  * @custom:contributor Ryan Ghods (ralxz.eth)
+ * @custom:contributor Daniel Viau (snotrocket.eth)
  * @custom:contributor hack3r-0m (hack3r-0m.eth)
  * @custom:contributor Diego Estevez (antidiego.eth)
  * @custom:contributor Chomtana (chomtana.eth)
