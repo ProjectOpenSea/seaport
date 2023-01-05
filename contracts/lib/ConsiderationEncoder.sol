@@ -319,7 +319,7 @@ contract ConsiderationEncoder {
         // it is only used for a single function call.
         dst = getFreeMemoryPointer();
 
-        // Write ratifyOrder selector and get pointer to start of calldata.
+        // Write validateOrder selector and get pointer to start of calldata.
         dst.write(validateOrder_selector);
         dst = dst.offset(validateOrder_selector_offset);
 
@@ -447,7 +447,7 @@ contract ConsiderationEncoder {
         // it is only used for a single function call.
         dst = getFreeMemoryPointer();
 
-        // Write ratifyOrder selector and get pointer to start of calldata.
+        // Write validateOrder selector and get pointer to start of calldata.
         dst.write(validateOrder_selector);
         dst = dst.offset(validateOrder_selector_offset);
 
