@@ -9,7 +9,6 @@ import {
     Execution,
     Order,
     AdvancedOrder,
-    OrderStatus,
     CriteriaResolver
 } from "../lib/ConsiderationStructs.sol";
 
