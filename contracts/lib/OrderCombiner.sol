@@ -400,12 +400,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // track received amounts.
                         mstore(
                             considerationItemRecipient,
-                            mload(
-                                add(
-                                    considerationItem,
-                                    ReceivedItem_amount_offset
-                                )
-                            )
+                            currentAmount
                         )
                     }
                 }
