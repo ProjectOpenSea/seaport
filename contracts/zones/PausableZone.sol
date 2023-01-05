@@ -117,9 +117,11 @@ contract PausableZone is
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(
-        address operatorToAssign
-    ) external override isController {
+    function assignOperator(address operatorToAssign)
+        external
+        override
+        isController
+    {
         // Ensure the operator being assigned is not the null address.
         if (operatorToAssign == address(0)) {
             revert PauserCanNotBeSetAsZero();
@@ -215,12 +217,17 @@ contract PausableZone is
      * @dev This function is called by Seaport whenever any extraData is
      *      provided by the caller.
      *
+     * @ param zoneParameters       A struct that provides context about the
+     *                              order fulfillment and any supplied
+     *                              extraData, as well as all order hashes
+     *                              fulfilled in a call to a match or
+     *                              fulfillAvailable method.
      *
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
     function validateOrder(
-        ZoneParameters calldata
+        ZoneParameters calldata /* zoneParameters */
     ) external pure override returns (bytes4 validOrderMagicValue) {
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
