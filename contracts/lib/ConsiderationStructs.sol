@@ -167,9 +167,9 @@ struct Order {
  * @dev Advanced orders include a numerator (i.e. a fraction to attempt to fill)
  *      and a denominator (the total size of the order) in addition to the
  *      signature and other order parameters. It also supports an optional field
- *      for supplying extra data; this data will be validated or ratifyied on
- *      the zone for the order if the order type is restricted and the offerer
- *      or zone are not the caller.
+ *      for supplying extra data; this data will be provided to the zone if the
+ *      order type is restricted and the zone is not the caller, or will be
+ *      provided to the offerer as context for contract order types.
  */
 struct AdvancedOrder {
     OrderParameters parameters;
