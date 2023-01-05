@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { PausableZone } from "../PausableZone.sol";
-
-import { PausableZoneEventsAndErrors } from "./PausableZoneEventsAndErrors.sol";
-
 import {
     Order,
     Fulfillment,
