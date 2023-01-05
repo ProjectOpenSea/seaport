@@ -462,8 +462,8 @@ contract ConsiderationEncoder {
 
         // Write offerer, orderHash and fulfiller to zoneParameters.
         dstHead.writeBytes32(orderHash);
-        dstHead.offset(ZoneParameters_offerer_offset).write(parameters.offerer);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
+        dstHead.offset(ZoneParameters_offerer_offset).write(parameters.offerer);
 
         // Copy startTime, endTime and zoneHash to zoneParameters.
         CalldataPointer.wrap(BasicOrder_startTime_cdPtr).copy(
