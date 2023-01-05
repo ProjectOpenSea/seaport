@@ -181,20 +181,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Use assembly to set the value for the second bit of the error buffer.
         assembly {
-            // Use the second bit of the error buffer to indicate whether the
-            // current function is not matchAdvancedOrders or matchOrders.
-            invalidNativeOfferItemErrorBuffer := shl(
-                1,
-                gt(
-                    // Take the remainder of the selector modulo a magic value.
-                    mod(
-                        shr(NumBitsAfterSelector, calldataload(0)),
-                        NonMatchSelector_MagicModulus
-                    ),
-                    // Check if remainder is higher than the greatest remainder
-                    // of the two match selectors modulo the magic value.
-                    NonMatchSelector_MagicRemainder
-                )
+            /** 
+             * Use the 232th bit of the error buffer to indicate whether the
+             * current function is not matchAdvancedOrders or matchOrders.
+             *
+             * sig				                        func
+             * ------------------------------------------------------------------------
+             * 0b10101000000101110100010 00 0000100		matchOrders
+             * 0b01010101100101000100101 00 1000010		matchAdvancedOrders
+             * 0b11101101100110001010010 10 1110100		fulfillAvailableOrders
+             * 0b10000111001000000001101 10 1000001		fulfillAvailableAdvancedOrders
+             *                           ^ 9th bit
+             */ 
+            invalidNativeOfferItemErrorBuffer := and(
+                NonMatchSelector_MagicMask,
+                calldataload(0)
             )
         }
 
@@ -416,7 +417,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == 3) {
+        if (invalidNativeOfferItemErrorBuffer == NonMatchSelector_InvalidErrorValue) {
             _revertInvalidNativeOfferItem();
         }
 
