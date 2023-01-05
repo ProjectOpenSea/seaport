@@ -530,7 +530,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Retrieve the status of a given order by hash, including whether
      *         the order has been cancelled or validated and the fraction of the
-     *         order that has been filled.
+     *         order that has been filled. Since the _orderStatus[orderHash]
+     *         does not get set for contract orders, getOrderStatus will always
+     *         return (false, false, 0, 0) for those hashes.
      *
      * @ param orderHash The order hash in question.
      *
