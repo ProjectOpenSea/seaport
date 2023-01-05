@@ -34,10 +34,6 @@ function getFreeMemoryPointer() pure returns (MemoryPointer mPtr) {
     mPtr = FreeMemoryPPtr.readMemoryPointer();
 }
 
-function setFreeMemoryPointer(MemoryPointer mPtr) pure {
-    FreeMemoryPPtr.write(mPtr);
-}
-
 library CalldataPointerLib {
     function lt(
         CalldataPointer a,
@@ -184,18 +180,6 @@ library ReturndataPointerLib {
     ) internal pure returns (ReturndataPointer rdPtrNext) {
         assembly {
             rdPtrNext := add(rdPtr, _offset)
-        }
-    }
-
-    /// @dev Copies `size` bytes from returndata starting at `src` to memory at
-    /// `dst`.
-    function copy(
-        ReturndataPointer src,
-        MemoryPointer dst,
-        uint256 size
-    ) internal pure {
-        assembly {
-            returndatacopy(dst, src, size)
         }
     }
 }
@@ -3072,14 +3056,6 @@ library MemoryWriters {
 
     /// @dev Writes a uint256 `value` to `mPtr` in memory.
     function write(MemoryPointer mPtr, uint256 value) internal pure {
-        assembly {
-            mstore(mPtr, value)
-        }
-    }
-
-    /// @dev Writes an int256 `value` to `mPtr` in memory.
-    /// Separate name to disambiguate literal write parameters.
-    function writeInt(MemoryPointer mPtr, int256 value) internal pure {
         assembly {
             mstore(mPtr, value)
         }
