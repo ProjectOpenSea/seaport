@@ -1,35 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-
-import {
-    ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
-
-import { ItemType, OrderType } from "./ConsiderationEnums.sol";
+import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
     OrderParameters,
-    BasicOrderParameters,
-    AdditionalRecipient,
-    ZoneParameters,
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem
+    BasicOrderParameters
 } from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
-
-import "./ConsiderationConstants.sol";
-
-import "./ConsiderationErrors.sol";
-
-import "../helpers/PointerLibraries.sol";
 
 import "./ConsiderationEncoder.sol";
 
