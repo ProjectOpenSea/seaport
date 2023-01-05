@@ -501,7 +501,8 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @ return newCounter The new counter.
      */
     function incrementCounter() external override returns (uint256 newCounter) {
-        // Increment current counter for the supplied offerer.
+        // Increment current counter for the supplied offerer.  Note that the
+        // counter is incremented by a large, quasi-random interval.
         newCounter = _incrementCounter();
     }
 

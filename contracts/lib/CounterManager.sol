@@ -22,7 +22,11 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
     /**
      * @dev Internal function to cancel all orders from a given offerer in bulk
      *      by incrementing a counter by a large, quasi-random interval. Note
-     *      that only the offerer may increment the counter.
+     *      that only the offerer may increment the counter. Note that the
+     *      counter is incremented by a large, quasi-random interval, which
+     *      makes it infeasible to "activate" signed orders by incrementing the
+     *      counter.  This activation functionality can be achieved instead with
+     *      restricted orders or contract orders.
      *
      * @return newCounter The new counter.
      */
