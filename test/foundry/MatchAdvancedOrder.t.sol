@@ -317,7 +317,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -480,7 +481,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -617,7 +619,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: context.args.amount }(
             advancedOrders,
             new CriteriaResolver[](0), // no criteria resolvers
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -765,7 +768,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders(
             orders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
         uint256 balanceAfterOrder = token1.balanceOf(bob);
         // check the difference in alice's balance is equal to partial fill of current amount
@@ -924,7 +928,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders(
             orders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
         uint256 balanceAfterOrder = token1.balanceOf(alice);
         // check the difference in alice's balance is equal to partial fill of current amount

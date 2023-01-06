@@ -256,7 +256,8 @@ contract StatefulOffererTest is BaseOrderTest {
         context.consideration.matchAdvancedOrders({
             orders: orders,
             criteriaResolvers: criteriaResolvers,
-            fulfillments: fulfillments
+            fulfillments: fulfillments,
+            recipient: address(0)
         });
         assertTrue(offerer.called());
     }

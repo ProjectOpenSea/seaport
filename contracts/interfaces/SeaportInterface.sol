@@ -158,7 +158,9 @@ interface SeaportInterface {
      *                         returned boolean was fulfillable or not.
      * @return executions      An array of elements indicating the sequence of
      *                         transfers performed as part of matching the given
-     *                         orders.
+     *                         orders. Note that unspent offer item amounts or
+     *                         native tokens will not be reflected as part of
+     *                         this array.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -233,7 +235,9 @@ interface SeaportInterface {
      *                         returned boolean was fulfillable or not.
      * @return executions      An array of elements indicating the sequence of
      *                         transfers performed as part of matching the given
-     *                         orders.
+     *                         orders. Note that unspent offer item amounts or
+     *                         native tokens will not be reflected as part of
+     *                         this array.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] calldata advancedOrders,
@@ -250,11 +254,13 @@ interface SeaportInterface {
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
-     *         number of items for offer and consideration along with as set of
+     *         number of items for offer and consideration along with a set of
      *         fulfillments allocating offer components to consideration
      *         components. Note that this function does not support
      *         criteria-based or partial filling of orders (though filling the
-     *         remainder of a partially-filled order is supported).
+     *         remainder of a partially-filled order is supported). Any unspent
+     *         offer item amounts or native tokens will be transferred to the
+     *         caller.
      *
      * @param orders       The orders to match. Note that both the offerer and
      *                     fulfiller on each order must first approve this
@@ -269,7 +275,9 @@ interface SeaportInterface {
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
-     *                    orders.
+     *                    orders. Note that unspent offer item amounts or
+     *                    native tokens will not be reflected as part of this
+     *                    array.
      */
     function matchOrders(
         Order[] calldata orders,
@@ -281,7 +289,10 @@ interface SeaportInterface {
      *         arbitrary number of items for offer and consideration, supplying
      *         criteria resolvers containing specific token identifiers and
      *         associated proofs as well as fulfillments allocating offer
-     *         components to consideration components.
+     *         components to consideration components. Any unspent offer item
+     *         amounts will be transferred to the designated recipient (with the
+     *         null address signifying to use the caller) and any unspent native
+     *         tokens will be returned to the caller.
      *
      * @param orders            The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
@@ -307,15 +318,20 @@ interface SeaportInterface {
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
+     * @param recipient         The intended recipient for all unspent offer
+     *                          item amounts, or the caller if the null address
+     *                          is supplied.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
-     *                    orders.
+     *                    orders. Note that unspent offer item amounts or native
+     *                    tokens will not be reflected as part of this array.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        address recipient
     ) external payable returns (Execution[] memory executions);
 
     /**

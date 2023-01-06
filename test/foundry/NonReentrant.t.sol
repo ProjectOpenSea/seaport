@@ -223,7 +223,8 @@ contract NonReentrantTest is BaseOrderTest {
             currentConsideration.matchAdvancedOrders{ value: 1 }(
                 _orders,
                 criteriaResolvers,
-                _fulfillments
+                _fulfillments,
+                address(0)
             );
         }
     }

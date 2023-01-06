@@ -1114,12 +1114,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: zone.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: zone.address,
           },
         ],
         executions
@@ -1744,12 +1744,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -1825,12 +1825,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3712,6 +3712,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -3734,6 +3735,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -3754,6 +3756,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -3940,6 +3943,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -3962,6 +3966,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -4085,6 +4090,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorOrder],
               criteriaResolvers,
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -4163,7 +4169,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(owner)
-          .matchAdvancedOrders([order, order2], [], fulfillments)
+          .matchAdvancedOrders(
+            [order, order2],
+            [],
+            fulfillments,
+            ethers.constants.AddressZero
+          )
       ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
 
@@ -4237,7 +4248,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(owner)
-          .matchAdvancedOrders([order, order2], [], fulfillments)
+          .matchAdvancedOrders(
+            [order, order2],
+            [],
+            fulfillments,
+            ethers.constants.AddressZero
+          )
       ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
 
       // Reverts on out-of-bounds fulfillment orderIndex
@@ -4247,7 +4263,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .matchAdvancedOrders(
             [order, order2],
             [],
-            [toFulfillment([[3, 0]], [[0, 0]])]
+            [toFulfillment([[3, 0]], [[0, 0]])],
+            ethers.constants.AddressZero
           )
       ).to.be.revertedWithCustomError(
         marketplaceContract,
@@ -4323,7 +4340,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(owner)
-          .matchAdvancedOrders([order, order2], [], fulfillments)
+          .matchAdvancedOrders(
+            [order, order2],
+            [],
+            fulfillments,
+            ethers.constants.AddressZero
+          )
       ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
 
@@ -4401,7 +4423,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         marketplaceContract.matchAdvancedOrders(
           [order, order2],
           [],
-          fulfillments
+          fulfillments,
+          ethers.constants.AddressZero
         )
       ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
     });
@@ -5296,12 +5319,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -6388,12 +6411,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -7451,7 +7474,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       const callData = marketplaceContract.interface.encodeFunctionData(
         "matchAdvancedOrders",
-        [[order, mirrorObject.mirrorOrder], [], fulfillments]
+        [
+          [order, mirrorObject.mirrorOrder],
+          [],
+          fulfillments,
+          ethers.constants.AddressZero,
+        ]
       );
       const tx = await reenterer.prepare(
         marketplaceContract.address,
@@ -7468,6 +7496,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorObject.mirrorOrder],
               [],
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -7485,6 +7514,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               [order, mirrorObject.mirrorOrder],
               [],
               fulfillments,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -7849,9 +7879,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       await marketplaceContract
         .connect(owner)
-        .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
-          value: ethAmount,
-        });
+        .matchAdvancedOrders(
+          [order, mirrorOrder],
+          [],
+          fulfillments,
+          ethers.constants.AddressZero,
+          {
+            value: ethAmount,
+          }
+        );
     });
   });
 

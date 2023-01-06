@@ -54,7 +54,10 @@ contract ConsiderationDecoder {
             // Store the masked value in memory.
             // Note: the value of `size` is at least 32.
             // So the previous line will at least write to `[mPtrLength, mPtrLength + 32)`.
-            mstore(mPtrLength, and(calldataload(cdPtrLength), OffsetOrLengthMask))
+            mstore(
+                mPtrLength,
+                and(calldataload(cdPtrLength), OffsetOrLengthMask)
+            )
 
             // Update free memory pointer based on the size of the bytes array.
             mstore(FreeMemoryPointerSlot, add(mPtrLength, size))
@@ -1274,6 +1277,25 @@ contract ConsiderationDecoder {
     {
         assembly {
             outFn := inFn
+        }
+    }
+
+    /**
+     * @dev Converts an offer item into a received item, applying a given
+     *      recipient.
+     *
+     * @param offerItem The offer item.
+     * @param recipient The recipient.
+     *
+     * @return receivedItem The received item.
+     */
+    function _convertOfferItemToReceivedItemWithRecipient(
+        OfferItem memory offerItem,
+        address recipient
+    ) internal pure returns (ReceivedItem memory receivedItem) {
+        assembly {
+            receivedItem := offerItem
+            mstore(add(receivedItem, ReceivedItem_recipient_offset), recipient)
         }
     }
 }

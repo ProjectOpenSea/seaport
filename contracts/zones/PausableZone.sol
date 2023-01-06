@@ -117,11 +117,9 @@ contract PausableZone is
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(address operatorToAssign)
-        external
-        override
-        isController
-    {
+    function assignOperator(
+        address operatorToAssign
+    ) external override isController {
         // Ensure the operator being assigned is not the null address.
         if (operatorToAssign == address(0)) {
             revert PauserCanNotBeSetAsZero();
@@ -207,7 +205,8 @@ contract PausableZone is
         executions = seaport.matchAdvancedOrders{ value: msg.value }(
             orders,
             criteriaResolvers,
-            fulfillments
+            fulfillments,
+            msg.sender
         );
     }
 
