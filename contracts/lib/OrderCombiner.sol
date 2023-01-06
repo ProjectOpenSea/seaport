@@ -375,7 +375,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     considerationItem.startAmount = currentAmount;
 
                     // Utilize assembly to manually "shift" the recipient value,
-                    // then to to copy the start amount to the recipient.
+                    // then to copy the start amount to the recipient.
                     assembly {
                         // Derive the pointer to the recipient using the item
                         // pointer along with the offset to the recipient.
