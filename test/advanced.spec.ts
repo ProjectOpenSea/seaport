@@ -3284,6 +3284,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         [order, mirrorObject.mirrorOrder],
         [], // no criteria resolvers
         fulfillments,
+        ethers.constants.AddressZero,
         {
           value,
         }
@@ -3339,6 +3340,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         [order, mirrorObject.mirrorOrder],
         [], // no criteria resolvers
         fulfillments,
+        ethers.constants.AddressZero,
         {
           value,
         }
@@ -3387,6 +3389,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         [order, mirrorObject.mirrorOrder],
         [], // no criteria resolvers
         fulfillments,
+        ethers.constants.AddressZero,
         {
           value,
         }
@@ -3852,6 +3855,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [order, mirrorOrder],
           criteriaResolvers,
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value,
           }
@@ -3949,6 +3953,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [order, mirrorOrder],
           criteriaResolvers,
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value,
           }
@@ -4050,6 +4055,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [order, mirrorOrder],
           criteriaResolvers,
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value,
           }
@@ -4379,6 +4385,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [order, mirrorOrder],
           criteriaResolvers,
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value,
           }
@@ -4495,6 +4502,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [order, mirrorOrder],
           criteriaResolvers,
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value,
           }
@@ -5089,6 +5097,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [orderOne, orderTwo, orderThree],
           [],
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value: 0,
           }
@@ -5232,6 +5241,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [orderOne, orderTwo, orderThree],
           [],
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value: 0,
           }
@@ -5362,6 +5372,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [orderOne, orderTwo, orderThree],
           [],
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value: 0,
           }
@@ -5490,6 +5501,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [orderOne, orderTwo, orderThree],
           [],
           fulfillments,
+          ethers.constants.AddressZero,
           {
             value: 0,
           }

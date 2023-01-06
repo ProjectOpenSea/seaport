@@ -125,7 +125,12 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
       it("Bob is able to match Alice's order with his malicious one", async () => {
         await marketplaceContract
           .connect(bob)
-          .matchAdvancedOrders([order, maliciousOrder], [], fulfillments);
+          .matchAdvancedOrders(
+            [order, maliciousOrder],
+            [],
+            fulfillments,
+            constants.AddressZero
+          );
       });
 
       it("Bob receives Alice's NFT, having paid 1 DAI", async () => {
@@ -141,7 +146,12 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
         await expect(
           marketplaceContract
             .connect(bob)
-            .matchAdvancedOrders([order, maliciousOrder], [], fulfillments)
+            .matchAdvancedOrders(
+              [order, maliciousOrder],
+              [],
+              fulfillments,
+              constants.AddressZero
+            )
         ).to.be.revertedWithPanic(PANIC_CODES.ARITHMETIC_UNDER_OR_OVERFLOW);
       });
     }
