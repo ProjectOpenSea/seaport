@@ -1435,12 +1435,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1502,12 +1502,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1567,12 +1567,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2181,12 +2181,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2258,12 +2258,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2934,12 +2934,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3094,12 +3094,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3351,12 +3351,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3422,12 +3422,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3726,12 +3726,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3807,12 +3807,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -4125,12 +4125,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -4204,12 +4204,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
