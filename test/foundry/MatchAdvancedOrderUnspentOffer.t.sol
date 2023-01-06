@@ -49,7 +49,7 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
      *      ie: offer nft1, nft2 for erc20
      *          fulfiller matches to erc20 offer, nft1 consideration
      *          specifies original offerer as recipient of unspent considerations
-     *          tx does not result in nf2 being transferred at all
+     *          fulfilling does not result in nft2 being transferred at all
      */
     function testFilterOfferItemBySpecifyingOffererAsRecipient() public {
         test(
