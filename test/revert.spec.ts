@@ -1114,12 +1114,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: zone.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: zone.address,
           },
         ],
         executions
@@ -1744,12 +1744,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -1825,12 +1825,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5319,12 +5319,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -6411,12 +6411,12 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions

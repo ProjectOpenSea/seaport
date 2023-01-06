@@ -3297,7 +3297,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3310,7 +3310,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3353,12 +3353,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3402,12 +3402,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3868,7 +3868,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions,
@@ -3882,7 +3882,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -3966,7 +3966,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions,
@@ -3980,7 +3980,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -4068,7 +4068,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions,
@@ -4082,7 +4082,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -4398,7 +4398,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions,
@@ -4412,7 +4412,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -4515,7 +4515,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions,
@@ -4529,7 +4529,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -4959,12 +4959,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5110,7 +5110,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5123,7 +5123,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5135,7 +5135,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5254,17 +5254,17 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5385,17 +5385,17 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
         ],
         executions,
@@ -5514,17 +5514,17 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: buyer.address,
           },
         ],
         executions,
@@ -5605,12 +5605,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5690,12 +5690,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5773,12 +5773,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5835,12 +5835,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
@@ -5908,12 +5908,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: ethers.constants.AddressZero,
+            fulfiller: owner.address,
           },
         ],
         executions
