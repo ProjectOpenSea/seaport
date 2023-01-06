@@ -679,21 +679,24 @@ contract ReferenceOrderCombiner is
 
                 // Iterate over each offer item to restore it.
                 for (uint256 j = 0; j < totalOfferItems; ++j) {
-                    OfferItem memory offerItem = offer[j];
+                    SpentItem memory offerSpentItem = orderToExecute.spentItems[
+                        j
+                    ];
 
                     // Retrieve remaining amount on the offer item.
-                    uint256 unspentAmount = offerItem.startAmount;
+                    uint256 unspentAmount = offerSpentItem.amount;
 
                     // Retrieve original amount on the offer item.
-                    uint256 originalAmount = offerItem.endAmount;
+                    uint256 originalAmount = orderToExecute
+                        .spentItemOriginalAmounts[j];
 
                     // Transfer to recipient if unspent amount is not zero.
                     // Note that the transfer will not be reflected in the
                     // executions array.
                     if (unspentAmount != 0) {
                         _transfer(
-                            _convertOfferItemToReceivedItemWithRecipient(
-                                offerItem,
+                            _convertSpentItemToReceivedItemWithRecipient(
+                                offerSpentItem,
                                 _recipient
                             ),
                             parameters.offerer,
@@ -703,7 +706,7 @@ contract ReferenceOrderCombiner is
                     }
 
                     // Restore original amount on the offer item.
-                    offerItem.startAmount = originalAmount;
+                    offerSpentItem.amount = originalAmount;
                 }
             }
 
@@ -767,10 +770,20 @@ contract ReferenceOrderCombiner is
         return availableOrders;
     }
 
-    // TODO: @dan where should this go? Is it even necessary?
-    // TODO: @dan NatSpec this if it survives.
-    function _convertOfferItemToReceivedItemWithRecipient(
-        OfferItem memory offerItem,
+    /**
+     * @dev Internal function to convert a spent item to an equivalent
+     *      ReceivedItem with a specified recipient.
+     *
+     * @param offerItem          The "offerItem" represented by a SpentItem
+     *                           struct.
+     * @param recipient          The intended recipient of the converted
+     *                           ReceivedItem
+     *
+     * @return ReceivedItem      The derived ReceivedItem including the
+     *                           specified recipient.
+     */
+    function _convertSpentItemToReceivedItemWithRecipient(
+        SpentItem memory offerItem,
         address recipient
     ) internal pure returns (ReceivedItem memory) {
         address payable _recipient;
@@ -780,10 +793,8 @@ contract ReferenceOrderCombiner is
             ReceivedItem(
                 offerItem.itemType,
                 offerItem.token,
-                // TODO: @dan do I need to do anything to handle the `OrCriteria` part?
-                offerItem.identifierOrCriteria,
-                // TODO: @dan should this be endAmount? Or something else?
-                offerItem.startAmount,
+                offerItem.identifier,
+                offerItem.amount,
                 _recipient
             );
     }
