@@ -646,6 +646,8 @@ contract ReferenceOrderCombiner is
             _triggerIfArmed(accumulatorStruct);
         }
 
+        // duplicate recipient onto stack to avoid stack-too-deep
+        address _recipient = recipient;
         // Iterate over orders to ensure all consideration items are met.
         for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
@@ -692,7 +694,7 @@ contract ReferenceOrderCombiner is
                         _transfer(
                             _convertOfferItemToReceivedItemWithRecipient(
                                 offerItem,
-                                recipient
+                                _recipient
                             ),
                             parameters.offerer,
                             parameters.conduitKey,
@@ -774,15 +776,16 @@ contract ReferenceOrderCombiner is
         address payable _recipient;
         _recipient = payable(recipient);
 
-        return ReceivedItem(
-            offerItem.itemType,
-            offerItem.token,
-            // TODO: @dan do I need to do anything to handle the `OrCriteria` part?
-            offerItem.identifierOrCriteria, 
-            // TODO: @dan should this be endAmount? Or something else?
-            offerItem.startAmount, 
-            _recipient
-        );
+        return
+            ReceivedItem(
+                offerItem.itemType,
+                offerItem.token,
+                // TODO: @dan do I need to do anything to handle the `OrCriteria` part?
+                offerItem.identifierOrCriteria,
+                // TODO: @dan should this be endAmount? Or something else?
+                offerItem.startAmount,
+                _recipient
+            );
     }
 
     /**

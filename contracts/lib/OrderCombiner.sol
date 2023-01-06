@@ -704,6 +704,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // duplicate recipient address to stack to avoid stack-too-deep
+            address _recipient = recipient;
+
             // Iterate over orders to ensure all consideration items are met.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order in question.
@@ -731,12 +734,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     // Iterate over each offer item to restore it.
                     for (uint256 j = 0; j < totalOfferItems; ++j) {
                         OfferItem memory offerItem = offer[j];
-
-                        // Retrieve remaining amount on the offer item.
-                        uint256 unspentAmount = offerItem.startAmount;
-
                         // Retrieve original amount on the offer item.
                         uint256 originalAmount = offerItem.endAmount;
+                        // Retrieve remaining amount on the offer item.
+                        uint256 unspentAmount = offerItem.startAmount;
 
                         // Transfer to recipient if unspent amount is not zero.
                         // Note that the transfer will not be reflected in the
@@ -745,7 +746,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             _transfer(
                                 _convertOfferItemToReceivedItemWithRecipient(
                                     offerItem,
-                                    recipient
+                                    _recipient
                                 ),
                                 parameters.offerer,
                                 parameters.conduitKey,
