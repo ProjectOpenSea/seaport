@@ -225,9 +225,7 @@ contract OrderBuilder is OfferConsiderationItemAdder {
     ) internal {
         delete offerComponents;
         delete considerationComponents;
-        // add second offer item from second order
         offerComponents.push(_offer);
-        // match to first order's second consideration item
         considerationComponents.push(_consideration);
         fulfillment.offerComponents = offerComponents;
         fulfillment.considerationComponents = considerationComponents;
