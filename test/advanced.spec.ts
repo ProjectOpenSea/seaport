@@ -5690,6 +5690,283 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
+    it("ERC1155 <=> ETH (match, initial OOR offer/consideration items skipped)", async () => {
+      // Seller mints first nft
+      const { nftId, amount } = await mint1155(seller);
+
+      // Seller mints second nft
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        seller
+      );
+
+      // Seller mints third nft
+      const { nftId: thirdNftId, amount: thirdAmount } =
+        await mintAndApprove1155(seller, marketplaceContract.address);
+
+      const offer = [
+        getTestItem1155(nftId, amount, amount, undefined),
+        getTestItem1155(secondNftId, secondAmount, secondAmount),
+        getTestItem1155(thirdNftId, thirdAmount, thirdAmount),
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+        buyer,
+        zone,
+        order
+      );
+
+      const fulfillments = [
+        [
+          [
+            [0, 5], // OOR offer item
+            [0, 0],
+          ],
+          [
+            [0, 5], // OOR consideration itemx
+            [1, 0],
+          ],
+        ],
+        [[[0, 1]], [[1, 1]]],
+        [[[0, 2]], [[1, 2]]],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      const executions = await simulateMatchOrders(
+        marketplaceContract,
+        [order, mirrorOrder],
+        fulfillments,
+        owner,
+        value
+      );
+
+      expect(executions.length).to.equal(6);
+
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
+    });
+    it("ERC1155 <=> ETH (match, subsequent OOR offer/consideration items skipped)", async () => {
+      // Seller mints first nft
+      const { nftId, amount } = await mint1155(seller);
+
+      // Seller mints second nft
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        seller
+      );
+
+      // Seller mints third nft
+      const { nftId: thirdNftId, amount: thirdAmount } =
+        await mintAndApprove1155(seller, marketplaceContract.address);
+
+      const offer = [
+        getTestItem1155(nftId, amount, amount, undefined),
+        getTestItem1155(secondNftId, secondAmount, secondAmount),
+        getTestItem1155(thirdNftId, thirdAmount, thirdAmount),
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+        buyer,
+        zone,
+        order
+      );
+
+      const fulfillments = [
+        [
+          [
+            [0, 0],
+            [0, 5],
+          ],
+          [
+            [1, 0],
+            [0, 5],
+          ],
+        ],
+        [[[0, 0]], [[0, 5]]],
+        [[[0, 1]], [[1, 1]]],
+        [[[0, 2]], [[1, 2]]],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      const executions = await simulateMatchOrders(
+        marketplaceContract,
+        [order, mirrorOrder],
+        fulfillments,
+        owner,
+        value
+      );
+
+      expect(executions.length).to.equal(6);
+
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
+    });
+    it("ERC1155 <=> ETH (match, offer aggregation skipped if no available consideration items)", async () => {
+      // Seller mints first nft
+      const { nftId, amount } = await mint1155(seller);
+
+      // Seller mints second nft
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        seller
+      );
+
+      // Seller mints third nft
+      const { nftId: thirdNftId, amount: thirdAmount } =
+        await mintAndApprove1155(seller, marketplaceContract.address);
+
+      const offer = [
+        getTestItem1155(nftId, amount, amount, undefined),
+        getTestItem1155(secondNftId, secondAmount, secondAmount),
+        getTestItem1155(thirdNftId, thirdAmount, thirdAmount),
+      ];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+        buyer,
+        zone,
+        order
+      );
+
+      const fulfillments = [
+        // Order index invalid for offer, but will be skipped because no available considerations
+        [[[5, 5]], [[0, 5]]],
+        [[[0, 0]], [[1, 0]]],
+        [[[0, 0]], [[0, 5]]],
+        [[[0, 1]], [[1, 1]]],
+        [[[0, 2]], [[1, 2]]],
+        [[[1, 0]], [[0, 0]]],
+        [[[1, 0]], [[0, 1]]],
+        [[[1, 0]], [[0, 2]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      const executions = await simulateMatchOrders(
+        marketplaceContract,
+        [order, mirrorOrder],
+        fulfillments,
+        owner,
+        value
+      );
+
+      expect(executions.length).to.equal(6);
+
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: ethers.constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      return receipt;
+    });
     it("ERC1155 <=> ETH (match via conduit)", async () => {
       // Seller mints first nft
       const { nftId, amount } = await mint1155(seller);
