@@ -1,6 +1,7 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import { constants } from "ethers";
 import { ethers, network } from "hardhat";
 
 import { deployContract } from "./utils/contracts";
@@ -70,6 +71,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
+  let signOrder: SeaportFixtures["signOrder"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
   let invalidContractOfferer: SeaportFixtures["invalidContractOfferer"];
   let invalidContractOffererRatifyOrder: SeaportFixtures["invalidContractOffererRatifyOrder"];
@@ -104,6 +106,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       mintAndApproveERC20,
       set1155ApprovalForAll,
       set721ApprovalForAll,
+      signOrder,
       testERC1155,
       testERC1155Two,
       testERC20,
@@ -5533,6 +5536,118 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       );
 
       // TODO: include balance checks on the duplicate ERC20 transfers
+
+      return receipt;
+    });
+  });
+
+  describe("Match Orders, sweep excess offer items", async () => {
+    it("Return unspent offer items to caller", async () => {
+      // Mint 1155
+      const { nftId, amount } = await mint1155(seller);
+
+      // Seller approves marketplace contract to transfer NFTs
+      await set1155ApprovalForAll(buyer, marketplaceContract.address, true);
+
+      const offer = [getTestItem1155(nftId, amount, amount, undefined)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const counter = await marketplaceContract.getCounter(buyer.address);
+      const salt = randomHex();
+      const startTime = order.parameters.startTime;
+      const endTime = order.parameters.endTime;
+
+      const mirrorOrderParameters = {
+        offerer: buyer.address,
+        zone: zone.address,
+        offer: [getItemETH(parseEther("12"), parseEther("12"))],
+        consideration: [
+          getTestItem1155(
+            nftId,
+            amount.sub(1),
+            amount.sub(1),
+            undefined,
+            buyer.address
+          ),
+        ],
+        totalOriginalConsiderationItems: 1,
+        orderType: order.parameters.orderType, // FULL_OPEN
+        zoneHash: "0x".padEnd(66, "0"),
+        salt,
+        conduitKey: constants.HashZero,
+        startTime,
+        endTime,
+      };
+
+      const mirrorOrderComponents = {
+        ...mirrorOrderParameters,
+        counter,
+      };
+
+      const flatSig = await signOrder(mirrorOrderComponents, buyer);
+
+      const mirrorOrderHash = await marketplaceContract.getOrderHash(
+        mirrorOrderComponents
+      );
+
+      const mirrorOrder = {
+        parameters: mirrorOrderParameters,
+        signature: flatSig,
+        numerator: order.numerator, // only used for advanced orders
+        denominator: order.denominator, // only used for advanced orders
+        extraData: "0x", // only used for advanced orders
+      };
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      const executions = await simulateMatchOrders(
+        marketplaceContract,
+        [order, mirrorOrder],
+        fulfillments,
+        owner,
+        value
+      );
+      expect(executions.length).to.equal(4);
+
+      const tx = marketplaceContract
+        .connect(owner)
+        .matchOrders([order, mirrorOrder], fulfillments, {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: owner.address,
+          },
+          {
+            order: mirrorOrder,
+            orderHash: mirrorOrderHash,
+            fulfiller: owner.address,
+          },
+        ],
+        executions
+      );
+
+      // Check that unspent offer item is sent back to offerer.
+      expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(1);
 
       return receipt;
     });
