@@ -70,6 +70,15 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         // Retrieve the consideration item from the execution struct.
         ReceivedItem memory considerationItem = considerationExecution.item;
 
+        // Skip aggregating offer items if no consideration items are available.
+        if (considerationItem.amount == 0) {
+            // Set the offerer and recipient to null address if execution
+            // amount is zero. This will cause the execution item to be skipped.
+            considerationExecution.offerer = address(0);
+            considerationExecution.item.recipient = payable(0);
+            return considerationExecution;
+        }
+
         // Recipient does not need to be specified because it will always be set
         // to that of the consideration.
         // Validate & aggregate offer items to Execution object.
@@ -336,6 +345,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         receivedItem,
                         ReceivedItem_CommonParams_size
                     )
+
+                    // If component index > 0, swap component pointer with pointer
+                    // to first component.
+                    let firstFulfillmentHeadPtr := add(offerComponents, OneWord)
+                    if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
+                      let firstFulfillmentPtr := mload(firstFulfillmentHeadPtr)
+                      let fulfillmentPtr := mload(fulfillmentHeadPtr)
+                      mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
+                      mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
+                    }
                 }
                 default {
                     // Compare every subsequent item to the first
@@ -418,7 +437,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Panic!
                 throwOverflow()
             }
-
 
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
