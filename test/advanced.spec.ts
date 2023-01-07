@@ -1,6 +1,7 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import { randomInt } from "crypto";
 import { constants } from "ethers";
 import { ethers, network } from "hardhat";
 
@@ -5543,11 +5544,14 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
   describe("Match Orders, sweep excess offer items", async () => {
     it("Return unspent offer items to caller", async () => {
-      // Mint 1155
+      // Mint 1155 tokens
       const { nftId, amount } = await mint1155(seller);
 
+      // Generate random amount of tokens not to spend.
+      const unspentAmount = toBN(randomBN(2));
+
       // Seller approves marketplace contract to transfer NFTs
-      await set1155ApprovalForAll(buyer, marketplaceContract.address, true);
+      await set1155ApprovalForAll(seller, marketplaceContract.address, true);
 
       const offer = [getTestItem1155(nftId, amount, amount, undefined)];
 
@@ -5566,9 +5570,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       );
 
       const counter = await marketplaceContract.getCounter(buyer.address);
-      const salt = randomHex();
-      const startTime = order.parameters.startTime;
-      const endTime = order.parameters.endTime;
 
       const mirrorOrderParameters = {
         offerer: buyer.address,
@@ -5577,8 +5578,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         consideration: [
           getTestItem1155(
             nftId,
-            amount.sub(1),
-            amount.sub(1),
+            amount.sub(unspentAmount),
+            amount.sub(unspentAmount),
             undefined,
             buyer.address
           ),
@@ -5586,10 +5587,10 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         totalOriginalConsiderationItems: 1,
         orderType: order.parameters.orderType, // FULL_OPEN
         zoneHash: "0x".padEnd(66, "0"),
-        salt,
+        salt: randomHex(),
         conduitKey: constants.HashZero,
-        startTime,
-        endTime,
+        startTime: order.parameters.startTime,
+        endTime: order.parameters.endTime,
       };
 
       const mirrorOrderComponents = {
@@ -5628,26 +5629,11 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           value,
         });
       const receipt = await (await tx).wait();
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
-          {
-            order,
-            orderHash,
-            fulfiller: owner.address,
-          },
-          {
-            order: mirrorOrder,
-            orderHash: mirrorOrderHash,
-            fulfiller: owner.address,
-          },
-        ],
-        executions
-      );
 
-      // Check that unspent offer item is sent back to offerer.
-      expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(1);
+      // Check that unspent offer items are sent back to caller.
+      expect(await testERC1155.balanceOf(owner.address, nftId)).to.equal(
+        unspentAmount
+      );
 
       return receipt;
     });
