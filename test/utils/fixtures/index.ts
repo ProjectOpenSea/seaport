@@ -490,6 +490,7 @@ export const seaportFixture = async (owner: Wallet) => {
 
       const marketplaceContractEvents = (receipt.events as any[])
         .filter((x) => x.address === marketplaceContract.address)
+        .filter((x) => x.event === "OrderFulfilled")
         .map((x) => ({
           eventName: x.event,
           eventSignature: x.eventSignature,
