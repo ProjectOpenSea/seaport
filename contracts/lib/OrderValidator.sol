@@ -144,17 +144,21 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Declare variable for tracking the validity of the supplied fraction.
-        bool validFraction;
+        bool invalidFraction;
 
         // If the order is a contract order, return the generated order.
         if (orderParameters.orderType == OrderType.CONTRACT) {
             // Ensure that the numerator and denominator are both equal to 1.
             assembly {
-                validFraction := and(eq(numerator, 1), eq(denominator, 1))
+                // (1 ^ nd =/= 0) => (nd =/= 1) => (n =/= 1) || (d =/= 1)
+                // It's important that the values are 120-bit masked before
+                // multiplication is applied. Otherwise, the last implication
+                // above is not correct (mod 2^256).
+                invalidFraction := xor(mul(numerator, denominator), 1)
             }
 
             // Revert if the supplied numerator and denominator are not valid.
-            if (!validFraction) {
+            if (invalidFraction) {
                 _revertBadFraction();
             }
 
@@ -171,13 +175,13 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Ensure numerator does not exceed denominator and is not zero.
         assembly {
-            validFraction := iszero(
-                or(gt(numerator, denominator), eq(numerator, 0))
+            invalidFraction := or(
+                gt(numerator, denominator), iszero(numerator)
             )
         }
 
         // Revert if the supplied numerator and denominator are not valid.
-        if (!validFraction) {
+        if (invalidFraction) {
             _revertBadFraction();
         }
 
