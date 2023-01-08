@@ -61,10 +61,18 @@ interface ConsiderationEventsAndErrors {
     event OrderValidated(bytes32 orderHash, OrderParameters orderParameters);
 
     /**
+     * @dev Emit an event whenever one or more orders are matched using either
+     *      matchOrders or matchAdvancedOrders.
+     *
+     * @param orderHashes The order hashes of the matched orders.
+     */
+    event OrdersMatched(bytes32[] orderHashes);
+
+    /**
      * @dev Emit an event whenever a counter for a given offerer is incremented.
      *
      * @param newCounter The new counter for the offerer.
-     * @param offerer  The offerer in question.
+     * @param offerer    The offerer in question.
      */
     event CounterIncremented(uint256 newCounter, address indexed offerer);
 
@@ -80,8 +88,8 @@ interface ConsiderationEventsAndErrors {
      * @dev Revert with an error when attempting to fill an order outside the
      *      specified start time and end time.
      *
-     * @param startTime       The time at which the order becomes active.
-     * @param endTime         The time at which the order becomes inactive.
+     * @param startTime The time at which the order becomes active.
+     * @param endTime   The time at which the order becomes inactive.
      */
     error InvalidTime(uint256 startTime, uint256 endTime);
 
