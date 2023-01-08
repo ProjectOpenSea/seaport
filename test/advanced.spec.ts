@@ -5403,8 +5403,17 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         true
       );
 
+      // Check ERC-1155 event `TransferSingle(address,address,address,uint256,uint256)`
+      // amount is amount.mul(2)
+      const transferSingleEventTopic0 =
+        "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62";
       expect(
-        toBN("0x" + receipt.events![3].data.slice(66)).toString()
+        toBN(
+          "0x" +
+            receipt.events
+              ?.find((x) => x.topics[0] === transferSingleEventTopic0)
+              ?.data.slice(66)
+        ).toString()
       ).to.equal(amount.mul(2).toString());
 
       return receipt;
