@@ -366,19 +366,19 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         offer item amounts or native tokens will be transferred to the
      *         caller.
      *
-     * @param orders       The orders to match. Note that both the offerer and
+     * @param orders        The orders to match. Note that both the offerer and
      *                      fulfiller on each order must first approve this
      *                      contract (or their conduit if indicated by the
      *                      order) to transfer any relevant tokens on their
      *                      behalf and each consideration recipient must
      *                      implement `onERC1155Received` in order to receive
      *                      ERC1155 tokens.
-     * @param fulfillments An array of elements allocating offer components to
+     * @param fulfillments  An array of elements allocating offer components to
      *                      consideration components. Note that each
      *                      consideration component must be fully met in order
      *                      for the match operation to be valid.
      *
-     * @return executions An array of elements indicating the sequence of
+     * @return executions  An array of elements indicating the sequence of
      *                     transfers performed as part of matching the given
      *                     orders. Note that unspent offer item amounts or
      *                     native tokens will not be reflected as part of this
@@ -412,7 +412,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         null address signifying to use the caller) and any unspent native
      *         tokens will be returned to the caller.
      *
-     * @param advancedOrders    The advanced orders to match. Note that both
+     * @param advancedOrders     The advanced orders to match. Note that both
      *                           the offerer and fulfiller on each order must
      *                           first approve this contract (or their conduit
      *                           if indicated by the order) to transfer any
@@ -425,7 +425,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                           respective amount with the supplied fraction in
      *                           order for the group of partial fills to be
      *                           considered valid.
-     * @param criteriaResolvers An array where each element contains a
+     * @param criteriaResolvers  An array where each element contains a
      *                           reference to a specific order as well as that
      *                           order's offer or consideration, a token
      *                           identifier, and a proof that the supplied token
@@ -434,7 +434,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                           any (transferable) token identifier is valid
      *                           and that no associated proof needs to be
      *                           supplied.
-     * @param fulfillments      An array of elements allocating offer
+     * @param fulfillments       An array of elements allocating offer
      *                           components to consideration components. Note
      *                           that each consideration component must be fully
      *                           met in order for the match operation to be
@@ -443,7 +443,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                           item amounts, or the caller if the null address
      *                           is supplied.
      *
-     * @return executions An array of elements indicating the sequence of
+     * @return executions  An array of elements indicating the sequence of
      *                     transfers performed as part of matching the given
      *                     orders. Note that unspent offer item amounts or
      *                     native tokens will not be reflected as part of this
