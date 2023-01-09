@@ -5481,7 +5481,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getItemETH(
           parseEther("1"),
           parseEther("1"),
-          TestERC20.address
+          testERC20.address
         ),
       ];
 
@@ -6862,7 +6862,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
-        TestERC20.address
+        testERC20.address
       );
 
       const offer = [getTestItem721(nftId)];
