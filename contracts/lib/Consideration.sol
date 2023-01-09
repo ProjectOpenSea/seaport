@@ -49,6 +49,17 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     constructor(address conduitController) OrderCombiner(conduitController) {}
 
     /**
+     * @notice Accept native token transfers during execution that may then be
+     *         used to facilitate native token transfers, where any tokens that
+     *         remain will be transferred to the caller. Native tokens are only
+     *         acceptable mid-fulfillment (and not during basic fulfillment).
+     */
+    receive() external payable {
+        // Ensure the reentrancy guard is currently set to accept native tokens.
+        _assertAcceptingNativeTokens();
+    }
+
+    /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
      *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
      *         item, or an ERC1155 item as consideration. Six permutations are

@@ -172,7 +172,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         address recipient
     ) internal returns (bytes32[] memory orderHashes) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Declare an error buffer indicating status of any native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
@@ -650,8 +650,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         bytes32[] memory orderHashes,
         address recipient
     ) internal returns (bool[] memory /* availableOrders */) {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Declare a variable for the available native token balance.
+        uint256 nativeTokenBalance;
 
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
@@ -677,14 +677,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
             // If execution transfers native tokens, reduce value available.
             if (item.itemType == ItemType.NATIVE) {
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > etherRemaining) {
-                    _revertInsufficientEtherSupplied();
+                // Get the current available balance of native tokens.
+                assembly {
+                    nativeTokenBalance := selfbalance()
                 }
 
-                // Skip underflow check as amount is less than ether remaining.
-                unchecked {
-                    etherRemaining -= item.amount;
+                // Ensure that sufficient native tokens are still available.
+                if (item.amount > nativeTokenBalance) {
+                    _revertInsufficientEtherSupplied();
                 }
             }
 
@@ -813,9 +813,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // If any ether remains after fulfillments, return it to the caller.
-        if (etherRemaining != 0) {
-            _transferEth(payable(msg.sender), etherRemaining);
+        // Determine whether any native token balance remains.
+        assembly {
+            nativeTokenBalance := selfbalance()
+        }
+
+        // Return any remaining native token balance to the caller.
+        if (nativeTokenBalance != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
         }
 
         // Clear the reentrancy guard.

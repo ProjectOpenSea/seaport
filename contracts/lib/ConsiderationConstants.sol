@@ -51,6 +51,7 @@ uint256 constant information_length = 0xa0;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
+uint256 constant _ENTERED_AND_ACCEPTING_NATIVE_TOKENS = 3;
 
 // Common Offsets
 // Offsets for identically positioned fields shared by:

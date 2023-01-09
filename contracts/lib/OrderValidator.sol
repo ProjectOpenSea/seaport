@@ -175,9 +175,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Ensure numerator does not exceed denominator and is not zero.
         assembly {
-            invalidFraction := or(
-                gt(numerator, denominator), iszero(numerator)
-            )
+            invalidFraction := or(gt(numerator, denominator), iszero(numerator))
         }
 
         // Revert if the supplied numerator and denominator are not valid.
@@ -837,19 +835,6 @@ contract OrderValidator is Executor, ZoneInteraction {
             orderStatus.numerator,
             orderStatus.denominator
         );
-    }
-
-    /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
-        }
     }
 
     /**

@@ -193,7 +193,7 @@ contract BasicOrderFulfiller is OrderValidator {
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(
+            _transferNativeTokensAndFinalize(
                 parameters.considerationAmount,
                 parameters.offerer
             );
@@ -310,7 +310,7 @@ contract BasicOrderFulfiller is OrderValidator {
         ItemType offeredItemType
     ) internal returns (bytes32 orderHash) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(false); // Native tokens rejected during execution.
 
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
@@ -913,12 +913,12 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param amount The amount to transfer.
      * @param to     The recipient of the native token transfer.
      */
-    function _transferEthAndFinalize(
+    function _transferNativeTokensAndFinalize(
         uint256 amount,
         address payable to
     ) internal {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Put native token value supplied by the caller on the stack.
+        uint256 nativeTokensRemaining = msg.value;
 
         // Retrieve total size of additional recipients data and place on stack.
         uint256 totalAdditionalRecipientsDataSize;
@@ -955,34 +955,37 @@ contract BasicOrderFulfiller is OrderValidator {
                     )
                 }
 
-                // Ensure that sufficient Ether is available.
-                if (additionalRecipientAmount > etherRemaining) {
+                // Ensure that sufficient native tokens are available.
+                if (additionalRecipientAmount > nativeTokensRemaining) {
                     _revertInsufficientEtherSupplied();
                 }
 
-                // Reduce ether value available. Skip underflow check as
+                // Reduce native token value available. Skip underflow check as
                 // subtracted value is confirmed above as less than remaining.
-                etherRemaining -= additionalRecipientAmount;
+                nativeTokensRemaining -= additionalRecipientAmount;
 
-                // Transfer Ether to the additional recipient.
-                _transferEth(recipient, additionalRecipientAmount);
+                // Transfer native tokens to the additional recipient.
+                _transferNativeTokens(recipient, additionalRecipientAmount);
             }
         }
 
-        // Ensure that sufficient Ether is still available.
-        if (amount > etherRemaining) {
+        // Ensure that sufficient native tokens are still available.
+        if (amount > nativeTokensRemaining) {
             _revertInsufficientEtherSupplied();
         }
 
-        // Transfer Ether to the offerer.
-        _transferEth(to, amount);
+        // Transfer native tokens to the offerer.
+        _transferNativeTokens(to, amount);
 
-        // If any Ether remains after transfers, return it to the caller.
-        if (etherRemaining > amount) {
-            // Skip underflow check as etherRemaining > amount.
+        // If any native tokens remain after transfers, return to the caller.
+        if (nativeTokensRemaining > amount) {
+            // Skip underflow check as nativeTokensRemaining > amount.
             unchecked {
-                // Transfer remaining Ether to the caller.
-                _transferEth(payable(msg.sender), etherRemaining - amount);
+                // Transfer remaining native tokens to the caller.
+                _transferNativeTokens(
+                    payable(msg.sender),
+                    nativeTokensRemaining - amount
+                );
             }
         }
     }

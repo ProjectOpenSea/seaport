@@ -79,7 +79,7 @@ contract OrderFulfiller is
         address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Validate order, update status, and determine fraction to fill.
         (
@@ -246,8 +246,8 @@ contract OrderFulfiller is
             }
         }
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Declare a variable for the available native token balance.
+        uint256 nativeTokenBalance;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
@@ -312,13 +312,15 @@ contract OrderFulfiller is
 
                 // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        _revertInsufficientEtherSupplied();
+                    // Get the current available balance of native tokens.
+                    assembly {
+                        nativeTokenBalance := selfbalance()
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    etherRemaining -= amount;
+                    // Ensure that sufficient native tokens are still available.
+                    if (amount > nativeTokenBalance) {
+                        _revertInsufficientEtherSupplied();
+                    }
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -334,10 +336,14 @@ contract OrderFulfiller is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // If any ether remains after fulfillments...
-        if (etherRemaining != 0) {
-            // return it to the caller.
-            _transferEth(payable(msg.sender), etherRemaining);
+        // Determine whether any native token balance remains.
+        assembly {
+            nativeTokenBalance := selfbalance()
+        }
+
+        // Return any remaining native token balance to the caller.
+        if (nativeTokenBalance != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
         }
     }
 
