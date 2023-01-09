@@ -189,14 +189,16 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         });
         Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
         // ensure that token2 was not transferred at any point
-        assertEq(recordedLogs.length, 4);
+        assertEq(recordedLogs.length, 5);
         // first two are OrderFulfilled events
         assertEq(recordedLogs[0].emitter, address(context.seaport));
         assertEq(recordedLogs[1].emitter, address(context.seaport));
+        // next is OrdersMatched event
+        assertEq(recordedLogs[2].emitter, address(context.seaport));
         // next is 721_1 transfer
-        assertEq(recordedLogs[2].emitter, address(test721_1));
+        assertEq(recordedLogs[3].emitter, address(test721_1));
         // last is ERC20 transfer
-        assertEq(recordedLogs[3].emitter, address(token1));
+        assertEq(recordedLogs[4].emitter, address(token1));
     }
 
     function testSweepRemaining() public {

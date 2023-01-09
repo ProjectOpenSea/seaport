@@ -878,6 +878,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             recipient
         );
 
+        // Emit OrdersMatched event.
+        emit OrdersMatched(orderHashes);
+
         // Fulfill the orders using the supplied fulfillments.
         return
             _fulfillAdvancedOrders(

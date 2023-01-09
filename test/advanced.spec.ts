@@ -5403,8 +5403,18 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         true
       );
 
+      // Check ERC1155 event `TransferSingle` amount is amount.mul(2)
       expect(
-        toBN("0x" + receipt.events![3].data.slice(66)).toString()
+        toBN(
+          "0x" +
+            receipt.events
+              ?.find(
+                (x) =>
+                  x.topics[0] ===
+                  testERC1155.interface.getEventTopic("TransferSingle")
+              )
+              ?.data.slice(66)
+        ).toString()
       ).to.equal(amount.mul(2).toString());
 
       return receipt;

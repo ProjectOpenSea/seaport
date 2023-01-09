@@ -859,6 +859,9 @@ contract ReferenceOrderCombiner is
             recipient
         );
 
+        // Emit OrdersMatched event.
+        emit OrdersMatched(orderHashes);
+
         // Fulfill the orders using the supplied fulfillments.
         return
             _fulfillAdvancedOrders(
