@@ -370,7 +370,12 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     /**
      * @dev Internal pure function to check the compatibility of two offer
-     *      or consideration items for contract orders.
+     *      or consideration items for contract orders.  Note that the itemType
+     *      and identifier are reset in cases where criteria = 0 (collection-
+     *      wide offers), which means that a contract offerer has full latitude
+     *      to choose any identifier it wants mid-flight, in contrast to the
+     *      normal behavior, where the fulfiller can pick which identifier to
+     *      receive by providing a CriteriaResolver.
      *
      * @param originalItem The original offer or consideration item.
      * @param newItem      The new offer or consideration item.
@@ -448,7 +453,15 @@ contract OrderValidator is Executor, ZoneInteraction {
     }
 
     /**
-     * @dev Internal function to generate a contract order.
+     * @dev Internal function to generate a contract order. When a
+     *      collection-wide criteria-based item (criteria = 0) is provided as an
+     *      input to a contract order, the contract offerer has full latitude to
+     *      choose any identifier it wants mid-flight, which differs from the
+     *      usual behavior.  For regular criteria-based orders with
+     *      identifierOrCriteria = 0, the fulfiller can pick which identifier to
+     *      receive by providing a CriteriaResolver. For contract offers with
+     *      identifierOrCriteria = 0, Seaport does not expect a corresponding
+     *      CriteriaResolver, and will revert if one is provided.
      *
      * @param orderParameters The parameters for the order.
      * @param context         The context for generating the order.
