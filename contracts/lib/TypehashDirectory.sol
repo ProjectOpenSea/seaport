@@ -49,7 +49,7 @@ contract TypehashDirectory {
             }
 
             // Encode the type string for the BulkOrder struct.
-            bytes memory bulkOrderTypeString = abi.encodePacked(
+            bytes memory bulkOrderTypeString = bytes.concat(
                 "BulkOrder(OrderComponents",
                 brackets,
                 " tree)",
@@ -121,44 +121,44 @@ contract TypehashDirectory {
     function getTreeSubTypes() internal pure returns (bytes memory) {
         // Construct the OfferItem type string.
         // prettier-ignore
-        bytes memory offerItemTypeString = abi.encodePacked(
-                "OfferItem(",
-                    "uint8 itemType,",
-                    "address token,",
-                    "uint256 identifierOrCriteria,",
-                    "uint256 startAmount,",
-                    "uint256 endAmount",
+        bytes memory offerItemTypeString = bytes(
+                "OfferItem("
+                    "uint8 itemType,"
+                    "address token,"
+                    "uint256 identifierOrCriteria,"
+                    "uint256 startAmount,"
+                    "uint256 endAmount"
                 ")"
             );
 
         // Construct the ConsiderationItem type string.
         // prettier-ignore
-        bytes memory considerationItemTypeString = abi.encodePacked(
-                "ConsiderationItem(",
-                    "uint8 itemType,",
-                    "address token,",
-                    "uint256 identifierOrCriteria,",
-                    "uint256 startAmount,",
-                    "uint256 endAmount,",
-                    "address recipient",
+        bytes memory considerationItemTypeString = bytes(
+                "ConsiderationItem("
+                    "uint8 itemType,"
+                    "address token,"
+                    "uint256 identifierOrCriteria,"
+                    "uint256 startAmount,"
+                    "uint256 endAmount,"
+                    "address recipient"
                 ")"
             );
 
         // Construct the OrderComponents type string, not including the above.
         // prettier-ignore
-        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
-                "OrderComponents(",
-                    "address offerer,",
-                    "address zone,",
-                    "OfferItem[] offer,",
-                    "ConsiderationItem[] consideration,",
-                    "uint8 orderType,",
-                    "uint256 startTime,",
-                    "uint256 endTime,",
-                    "bytes32 zoneHash,",
-                    "uint256 salt,",
-                    "bytes32 conduitKey,",
-                    "uint256 counter",
+        bytes memory orderComponentsPartialTypeString = bytes(
+                "OrderComponents("
+                    "address offerer,"
+                    "address zone,"
+                    "OfferItem[] offer,"
+                    "ConsiderationItem[] consideration,"
+                    "uint8 orderType,"
+                    "uint256 startTime,"
+                    "uint256 endTime,"
+                    "bytes32 zoneHash,"
+                    "uint256 salt,"
+                    "bytes32 conduitKey,"
+                    "uint256 counter"
                 ")"
             );
 

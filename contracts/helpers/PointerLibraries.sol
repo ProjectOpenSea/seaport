@@ -23,6 +23,8 @@ uint256 constant OffsetOrLengthMask = 0xffffffff;
 
 /// @dev Allocates `size` bytes in memory by increasing the free memory pointer
 ///    and returns the memory pointer to the first byte of the allocated region.
+// (Free functions cannot have visibility.)
+// solhint-disable-next-line func-visibility
 function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
     assembly {
         mPtr := mload(0x40)
@@ -30,10 +32,14 @@ function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
     }
 }
 
+// (Free functions cannot have visibility.)
+// solhint-disable-next-line func-visibility
 function getFreeMemoryPointer() pure returns (MemoryPointer mPtr) {
     mPtr = FreeMemoryPPtr.readMemoryPointer();
 }
 
+// (Free functions cannot have visibility.)
+// solhint-disable-next-line func-visibility
 function setFreeMemoryPointer(MemoryPointer mPtr) pure {
     FreeMemoryPPtr.write(mPtr);
 }
@@ -201,6 +207,26 @@ library ReturndataPointerLib {
 }
 
 library MemoryPointerLib {
+    function copy(
+        MemoryPointer src,
+        MemoryPointer dst,
+        uint256 size
+    ) internal view {
+        assembly {
+            let success := staticcall(
+                gas(),
+                IdentityPrecompileAddress,
+                src,
+                size,
+                dst,
+                size
+            )
+            if or(iszero(success), iszero(returndatasize())) {
+                revert(0, 0)
+            }
+        }
+    }
+
     function lt(
         MemoryPointer a,
         MemoryPointer b
@@ -264,26 +290,6 @@ library MemoryPointerLib {
         MemoryPointer mPtr
     ) internal pure returns (MemoryPointer mPtrChild) {
         mPtrChild = mPtr.readMemoryPointer();
-    }
-
-    function copy(
-        MemoryPointer src,
-        MemoryPointer dst,
-        uint256 size
-    ) internal view {
-        assembly {
-            let success := staticcall(
-                gas(),
-                IdentityPrecompileAddress,
-                src,
-                size,
-                dst,
-                size
-            )
-            if or(iszero(success), iszero(returndatasize())) {
-                revert(0, 0)
-            }
-        }
     }
 }
 

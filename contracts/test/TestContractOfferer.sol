@@ -49,6 +49,45 @@ contract TestContractOfferer is ContractOffererInterface {
 
     receive() external payable {}
 
+    /// In case of criteria based orders and non-wildcard items, the member
+    /// `available.identifier` would correspond to the `identifierOrCriteria`
+    /// i.e., the merkle-root.
+    /// @param identifier corresponds to the actual token-id that gets transferred.
+    function activateWithCriteria(
+        SpentItem memory available,
+        SpentItem memory required,
+        uint256 identifier
+    ) public {
+        if (ready || fulfilled) {
+            revert OrderUnavailable();
+        }
+
+        if (available.itemType == ItemType.ERC721_WITH_CRITERIA) {
+            ERC721Interface token = ERC721Interface(available.token);
+
+            token.transferFrom(msg.sender, address(this), identifier);
+
+            token.setApprovalForAll(_SEAPORT, true);
+        } else if (available.itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            ERC1155Interface token = ERC1155Interface(available.token);
+
+            token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                identifier,
+                available.amount,
+                ""
+            );
+
+            token.setApprovalForAll(_SEAPORT, true);
+        }
+
+        // Set storage variables.
+        _available = available;
+        _required = required;
+        ready = true;
+    }
+
     function activate(
         SpentItem memory available,
         SpentItem memory required

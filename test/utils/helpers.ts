@@ -37,10 +37,17 @@ export const simulateAdvancedMatchOrders = async (
   criteriaResolvers: CriteriaResolver[],
   fulfillments: Fulfillment[],
   caller: ethers.Wallet,
-  value: ethers.BigNumberish
+  value: ethers.BigNumberish,
+  recipient: string = ethers.constants.AddressZero
 ) =>
   marketplaceContract
     .connect(caller)
-    .callStatic.matchAdvancedOrders(orders, criteriaResolvers, fulfillments, {
-      value,
-    });
+    .callStatic.matchAdvancedOrders(
+      orders,
+      criteriaResolvers,
+      fulfillments,
+      recipient,
+      {
+        value,
+      }
+    );

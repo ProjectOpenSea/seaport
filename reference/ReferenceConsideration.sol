@@ -363,21 +363,23 @@ contract ReferenceConsideration is
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders            The orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
+     * @param orders        The orders to match. Note that both the offerer and
+     *                      fulfiller on each order must first approve this
+     *                      contract (or their conduit if indicated by the
+     *                      order) to transfer any relevant tokens on their
+     *                      behalf and each consideration recipient must
+     *                      implement `onERC1155Received` in order to receive
+     *                      ERC1155 tokens.
+     * @param fulfillments  An array of elements allocating offer components to
+     *                      consideration components. Note that each
+     *                      consideration component must be fully met in order
+     *                      for the match operation to be valid.
      *
-     * @return executions An array of elements indicating the sequence of
-     *                    transfers performed as part of matching the given
-     *                    orders.
+     * @return executions  An array of elements indicating the sequence of
+     *                     transfers performed as part of matching the given
+     *                     orders. Note that unspent offer item amounts or
+     *                     native tokens will not be reflected as part of this
+     *                     array.
      */
     function matchOrders(
         Order[] calldata orders,
@@ -394,7 +396,8 @@ contract ReferenceConsideration is
             _matchAdvancedOrders(
                 _convertOrdersToAdvanced(orders),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillments
+                fulfillments,
+                msg.sender
             );
     }
 
@@ -429,15 +432,21 @@ contract ReferenceConsideration is
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
+     * @param recipient         The intended recipient for all unspent offer
+     *                          item amounts, or the caller if the null address
+     *                          is supplied.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
-     *                    orders.
+     *                    orders. Note that unspent offer item amounts or
+     *                    native tokens will not be reflected as part of this
+     *                    array.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        address recipient
     )
         external
         payable
@@ -450,7 +459,8 @@ contract ReferenceConsideration is
             _matchAdvancedOrders(
                 advancedOrders,
                 criteriaResolvers,
-                fulfillments
+                fulfillments,
+                recipient == address(0) ? msg.sender : recipient
             );
     }
 

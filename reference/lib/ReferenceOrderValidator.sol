@@ -267,6 +267,25 @@ contract ReferenceOrderValidator is
         return (orderHash, uint120(numerator), uint120(denominator));
     }
 
+    /**
+     * @dev Internal function to generate a contract order. When a
+     *      collection-wide criteria-based item (criteria = 0) is provided as an
+     *      input to a contract order, the contract offerer has full latitude to
+     *      choose any identifier it wants mid-flight, which differs from the
+     *      usual behavior.  For regular criteria-based orders with
+     *      identifierOrCriteria = 0, the fulfiller can pick which identifier to
+     *      receive by providing a CriteriaResolver. For contract offers with
+     *      identifierOrCriteria = 0, Seaport does not expect a corresponding
+     *      CriteriaResolver, and will revert if one is provided.
+     *
+     * @param orderParameters The parameters for the order.
+     * @param context         The context for generating the order.
+     * @param revertOnInvalid Whether to revert on invalid input.
+     *
+     * @return orderHash   The order hash.
+     * @return numerator   The numerator.
+     * @return denominator The denominator.
+     */
     function _getGeneratedOrder(
         OrderParameters memory orderParameters,
         bytes memory context,
@@ -320,8 +339,8 @@ contract ReferenceOrderValidator is
                         context
                     )
                 );
-            //  If the call succeeds, try to decode the offer and consideration items.
 
+            //  If the call succeeds, try to decode the offer and consideration items.
             if (success) {
                 // Try to decode the offer and consideration items from the returndata.
                 try
@@ -373,7 +392,11 @@ contract ReferenceOrderValidator is
                 SpentItem memory newOffer = offer[i];
 
                 // Set returned identifier for criteria-based items with
-                // criteria = 0.
+                // criteria = 0. Note that this reset means that a contract
+                // offerer has full latitude to choose any identifier it wants
+                // mid-flight, in contrast to the normal behavior, where the
+                // fulfiller can pick which identifier to receive by providing a
+                // CriteriaResolver.
                 if (
                     uint256(originalOffer.itemType) > 3 &&
                     originalOffer.identifierOrCriteria == 0
