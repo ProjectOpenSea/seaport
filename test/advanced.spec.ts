@@ -1,7 +1,6 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { randomInt } from "crypto";
 import { constants } from "ethers";
 import { ethers, network } from "hardhat";
 
@@ -5561,7 +5560,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const { order, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -5599,10 +5598,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       };
 
       const flatSig = await signOrder(mirrorOrderComponents, buyer);
-
-      const mirrorOrderHash = await marketplaceContract.getOrderHash(
-        mirrorOrderComponents
-      );
 
       const mirrorOrder = {
         parameters: mirrorOrderParameters,
@@ -5656,7 +5651,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const { order, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -5694,10 +5689,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       };
 
       const flatSig = await signOrder(mirrorOrderComponents, buyer);
-
-      const mirrorOrderHash = await marketplaceContract.getOrderHash(
-        mirrorOrderComponents
-      );
 
       const mirrorOrder = {
         parameters: mirrorOrderParameters,
