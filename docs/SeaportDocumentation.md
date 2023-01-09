@@ -59,7 +59,7 @@ While the standard method can technically be used for fulfilling any order, it s
 - It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 items for an ERC721 or ERC1155 item and also includes consideration items with the same ERC20 item type for paying fees).
 - It can result in unnecessary transfers, whereas in the "match" case those transfers can be reduced to a more minimal set.
 
-> Note: If you supply a collection-wide criteria-based item (criteria = 0) as an input to a contract order, the contract offerer has full latitude to choose any identifier they want mid-flight, which differs from the usual behavior.  For regular criteria-based orders with identifierOrCriteria = 0, the fulfiller can pick which identifier to receive by providing a CriteriaResolver. For contract offers with identifierOrCriteria = 0, Seaport does not expect a corresponding CriteriaResolver, and will revert if one is provided.  See `_getGeneratedOrder` and `_compareItems` for more detail.
+> Note: When a collection-wide criteria-based item (criteria = 0) is provided as an input to a contract order, the contract offerer has full latitude to choose any identifier they want mid-flight, which differs from the usual behavior.  For regular criteria-based orders with identifierOrCriteria = 0, the fulfiller can pick which identifier to receive by providing a CriteriaResolver. For contract offers with identifierOrCriteria = 0, Seaport does not expect a corresponding CriteriaResolver, and will revert if one is provided.  See `_getGeneratedOrder` and `_compareItems` for more detail.
 
 ### Balance and Approval Requirements
 
