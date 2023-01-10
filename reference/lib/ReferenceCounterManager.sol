@@ -29,7 +29,6 @@ contract ReferenceCounterManager is
      *      functionality can be achieved instead with restricted orders or
      *      contract orders.
      *
-     *
      * @return newCounter The new counter.
      */
     function _incrementCounter() internal returns (uint256 newCounter) {
