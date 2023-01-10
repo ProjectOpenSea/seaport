@@ -195,12 +195,9 @@ contract OrderFulfiller is
             // Read offer array length from memory and place on stack.
             uint256 totalOfferItems = orderParameters.offer.length;
 
-            uint256 isNonContractOrder;
-            uint256 invalidNativeOfferItemErrorBuffer;
-            OrderType orderType = orderParameters.orderType;
-            assembly {
-                isNonContractOrder := lt(orderType, 4)
-            }
+            // Create a variable to indicate whether the order has any
+            // native offer items
+            uint256 anyNativeItems;
 
             // Iterate over each offer on the order.
             // Skip overflow check as for loop is indexed starting at zero.
@@ -213,10 +210,7 @@ contract OrderFulfiller is
                 {
                     ItemType itemType = offerItem.itemType;
                     assembly {
-                        invalidNativeOfferItemErrorBuffer := or(
-                            invalidNativeOfferItemErrorBuffer,
-                            lt(itemType, isNonContractOrder)
-                        )
+                        anyNativeItems := or(anyNativeItems, iszero(itemType))
                     }
                 }
 
@@ -258,10 +252,19 @@ contract OrderFulfiller is
                 );
             }
 
-            // If any non-contract orders had native offer items,
-            // throw InvalidNativeOfferItem error.
-            if (invalidNativeOfferItemErrorBuffer == 1) {
-                _revertInvalidNativeOfferItem();
+            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            {
+                OrderType orderType = orderParameters.orderType;
+                uint256 invalidNativeOfferItem;
+                assembly {
+                    invalidNativeOfferItem := and(
+                        lt(orderType, 4),
+                        anyNativeItems
+                    )
+                }
+                if (invalidNativeOfferItem != 0) {
+                    _revertInvalidNativeOfferItem();
+                }
             }
         }
 
