@@ -203,6 +203,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Declare variables for later use.
         AdvancedOrder memory advancedOrder;
+        OrderParameters memory orderParameters;
         uint256 terminalMemoryOffset;
 
         unchecked {
@@ -218,10 +219,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
-            // Declare inner variables.
-            OfferItem[] memory offer;
-            ConsiderationItem[] memory consideration;
-
             // Iterate over each order.
             for (uint256 i = 32; i < terminalMemoryOffset; i += 32) {
                 // Retrieve order using assembly to bypass out-of-range check.
@@ -267,75 +264,77 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // implies that maximumFulfilled > 0.
                 maximumFulfilled--;
 
-                // Place the start time for the order on the stack.
-                uint256 startTime = advancedOrder.parameters.startTime;
+                orderParameters = advancedOrder.parameters;
 
-                // Place the end time for the order on the stack.
-                uint256 endTime = advancedOrder.parameters.endTime;
-
-                // Retrieve array of offer items for the order in question.
-                offer = advancedOrder.parameters.offer;
-
-                // Read length of offer array and place on the stack.
-                uint256 totalOfferItems = offer.length;
                 uint256 isNonContract;
                 {
-                    OrderType orderType = advancedOrder.parameters.orderType;
+                    OrderType orderType = orderParameters.orderType;
                     assembly {
                         isNonContract := lt(orderType, 4)
                     }
                 }
-                // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < totalOfferItems; ++j) {
-                    // Retrieve the offer item.
-                    OfferItem memory offerItem = offer[j];
 
-                    assembly {
-                        // If the offer item is for the native token, set the
-                        // first bit of the error buffer to true.
-                        invalidNativeOfferItemErrorBuffer := or(
-                            invalidNativeOfferItemErrorBuffer,
-                            lt(mload(offerItem), isNonContract)
-                        )
-                    }
+                {
+                    // Retrieve array of offer items for the order in question.
+                    OfferItem[] memory offer = orderParameters.offer;
 
-                    // Apply order fill fraction to offer item end amount.
-                    uint256 endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        offerItem.endAmount
-                    );
+                    // Read length of offer array and place on the stack.
+                    uint256 totalOfferItems = offer.length;
 
-                    // Reuse same fraction if start and end amounts are equal.
-                    if (offerItem.startAmount == offerItem.endAmount) {
-                        // Apply derived amount to both start and end amount.
-                        offerItem.startAmount = endAmount;
-                    } else {
-                        // Apply order fill fraction to offer item start amount.
-                        offerItem.startAmount = _getFraction(
+                    // Iterate over each offer item on the order.
+                    for (uint256 j = 0; j < totalOfferItems; ++j) {
+                        // Retrieve the offer item.
+                        OfferItem memory offerItem = offer[j];
+
+                        assembly {
+                            // If the offer item is for the native token, set
+                            // the first bit of the error buffer to true.
+                            invalidNativeOfferItemErrorBuffer := or(
+                                invalidNativeOfferItemErrorBuffer,
+                                lt(mload(offerItem), isNonContract)
+                            )
+                        }
+
+                        // Apply order fill fraction to offer item end amount.
+                        uint256 endAmount = _getFraction(
                             numerator,
                             denominator,
-                            offerItem.startAmount
+                            offerItem.endAmount
                         );
+
+                        // Reuse same fraction if start & end amounts are equal.
+                        if (offerItem.startAmount == offerItem.endAmount) {
+                            // Apply derived amount to both start & end amount.
+                            offerItem.startAmount = endAmount;
+                        } else {
+                            // Apply fill fraction to offer item start amount.
+                            offerItem.startAmount = _getFraction(
+                                numerator,
+                                denominator,
+                                offerItem.startAmount
+                            );
+                        }
+
+                        // Adjust offer amount using current time; round down.
+                        uint256 currentAmount = _locateCurrentAmount(
+                            offerItem.startAmount,
+                            endAmount,
+                            orderParameters.startTime,
+                            orderParameters.endTime,
+                            false // round down
+                        );
+
+                        // Update amounts in memory to match the current amount.
+                        // Note that end amount is used to track spent amounts.
+                        offerItem.startAmount = currentAmount;
+                        offerItem.endAmount = currentAmount;
                     }
-
-                    // Adjust offer amount using current time; round down.
-                    uint256 currentAmount = _locateCurrentAmount(
-                        offerItem.startAmount,
-                        endAmount,
-                        startTime,
-                        endTime,
-                        false // round down
-                    );
-
-                    // Update amounts in memory to match the current amount.
-                    // Note that the end amount is used to track spent amounts.
-                    offerItem.startAmount = currentAmount;
-                    offerItem.endAmount = currentAmount;
                 }
 
                 // Retrieve array of consideration items for order in question.
-                consideration = (advancedOrder.parameters.consideration);
+                ConsiderationItem[] memory consideration = (
+                    orderParameters.consideration
+                );
 
                 // Read length of consideration array and place on the stack.
                 uint256 totalConsiderationItems = consideration.length;
@@ -347,39 +346,42 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         consideration[j]
                     );
 
-                    // Apply fraction to consideration item end amount.
-                    uint256 endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        considerationItem.endAmount
-                    );
-
-                    // Reuse same fraction if start and end amounts are equal.
-                    if (
-                        considerationItem.startAmount ==
-                        considerationItem.endAmount
-                    ) {
-                        // Apply derived amount to both start and end amount.
-                        considerationItem.startAmount = endAmount;
-                    } else {
-                        // Apply fraction to consideration item start amount.
-                        considerationItem.startAmount = _getFraction(
+                    uint256 currentAmount;
+                    {
+                        // Apply fraction to consideration item end amount.
+                        uint256 endAmount = _getFraction(
                             numerator,
                             denominator,
-                            considerationItem.startAmount
+                            considerationItem.endAmount
+                        );
+
+                        // Reuse same fraction if start & end amounts are equal.
+                        if (
+                            considerationItem.startAmount ==
+                            considerationItem.endAmount
+                        ) {
+                            // Apply derived amount to both start & end amount.
+                            considerationItem.startAmount = endAmount;
+                        } else {
+                            // Apply consideration item start amount fraction.
+                            considerationItem.startAmount = _getFraction(
+                                numerator,
+                                denominator,
+                                considerationItem.startAmount
+                            );
+                        }
+
+                        // Adjust item amount using current time; round up.
+                        currentAmount = (
+                            _locateCurrentAmount(
+                                considerationItem.startAmount,
+                                endAmount,
+                                orderParameters.startTime,
+                                orderParameters.endTime,
+                                true // round up
+                            )
                         );
                     }
-
-                    // Adjust consideration amount using current time; round up.
-                    uint256 currentAmount = (
-                        _locateCurrentAmount(
-                            considerationItem.startAmount,
-                            endAmount,
-                            startTime,
-                            endTime,
-                            true // round up
-                        )
-                    );
 
                     considerationItem.startAmount = currentAmount;
 
@@ -449,9 +451,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 }
 
                 // Retrieve parameters for the order in question.
-                OrderParameters memory orderParameters = (
-                    advancedOrder.parameters
-                );
+                orderParameters = advancedOrder.parameters;
 
                 // Emit an OrderFulfilled event.
                 _emitOrderFulfilledEvent(
