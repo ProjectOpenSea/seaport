@@ -627,6 +627,18 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         considerationItemPtr,
                         ReceivedItem_size
                     )
+
+                    // If component index > 0, swap component pointer with pointer
+                    // to first component.
+                    let firstFulfillmentHeadPtr := add(considerationComponents, OneWord)
+                    if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
+                        let firstFulfillmentPtr := mload(
+                            firstFulfillmentHeadPtr
+                        )
+                        let fulfillmentPtr := mload(fulfillmentHeadPtr)
+                        mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
+                        mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
+                    }
                 }
                 default {
                     // Compare every subsequent item to the first
