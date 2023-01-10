@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "./ConsiderationEnums.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
