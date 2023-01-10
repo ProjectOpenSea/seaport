@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Side, ItemType } from "./ConsiderationEnums.sol";
+import { Side, ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -175,6 +175,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Declare an error buffer indicating status of any native offer items.
+        // Note that contract orders may still designate native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
         // {01} == 1 => In a match function, some native offer items: allow.
         // {10} == 2 => Not in a match function, no native offer items: allow.
@@ -183,20 +184,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Use assembly to set the value for the second bit of the error buffer.
         assembly {
-            // Use the second bit of the error buffer to indicate whether the
-            // current function is not matchAdvancedOrders or matchOrders.
-            invalidNativeOfferItemErrorBuffer := shl(
-                1,
-                gt(
-                    // Take the remainder of the selector modulo a magic value.
-                    mod(
-                        shr(NumBitsAfterSelector, calldataload(0)),
-                        NonMatchSelector_MagicModulus
-                    ),
-                    // Check if remainder is higher than the greatest remainder
-                    // of the two match selectors modulo the magic value.
-                    NonMatchSelector_MagicRemainder
-                )
+            /**
+             * Use the 248th bit of the error buffer to indicate whether the
+             * current function is not matchAdvancedOrders or matchOrders.
+             *
+             * sig                                func
+             * -----------------------------------------------------------------
+             * 10101000000101110100010 00 0000100 matchOrders
+             * 01010101100101000100101 00 1000010 matchAdvancedOrders
+             * 11101101100110001010010 10 1110100 fulfillAvailableOrders
+             * 10000111001000000001101 10 1000001 fulfillAvailableAdvancedOrders
+             *                         ^ 9th bit
+             */
+            invalidNativeOfferItemErrorBuffer := and(
+                NonMatchSelector_MagicMask,
+                calldataload(0)
             )
         }
 
@@ -283,13 +285,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
 
-                    assembly {
-                        // If the offer item is for the native token, set the
-                        // first bit of the error buffer to true.
-                        invalidNativeOfferItemErrorBuffer := or(
-                            invalidNativeOfferItemErrorBuffer,
-                            iszero(mload(offerItem))
-                        )
+                    {
+                        // Retrieve the order type.
+                        OrderType orderType = (
+                            advancedOrder.parameters.orderType
+                        );
+
+                        assembly {
+                            // If the offer item is for the native token and the
+                            // order type is not a contract order type, set the
+                            // first bit of the error buffer to true.
+                            invalidNativeOfferItemErrorBuffer := or(
+                                invalidNativeOfferItemErrorBuffer,
+                                lt(mload(offerItem), lt(orderType, 4))
+                            )
+                        }
                     }
 
                     // Apply order fill fraction to offer item end amount.

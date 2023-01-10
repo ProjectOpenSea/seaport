@@ -408,15 +408,16 @@ uint256 constant Ecrecover_precompile = 1;
 uint256 constant Ecrecover_args_size = 0x80;
 uint256 constant Signature_lower_v = 27;
 
-uint256 constant NumBitsAfterSelector = 0xe0;
+// Bitmask that only gives a non-zero value if masked with a non-match selector.
+uint256 constant NonMatchSelector_MagicMask = (
+    0x0100000000000000000000000000000000000000000000000000000000000000
+);
 
-// 69 is the lowest modulus for which the remainder
-// of every selector other than the two match functions
-// is greater than those of the match functions.
-uint256 constant NonMatchSelector_MagicModulus = 69;
-// Of the two match function selectors, the highest
-// remainder modulo 69 is 29.
-uint256 constant NonMatchSelector_MagicRemainder = 0x1d;
+// First bit indicates that a NATIVE offer items has been used and the 248th bit
+// indicates that a non match selector has been called.
+uint256 constant NonMatchSelector_InvalidErrorValue = (
+    0x0100000000000000000000000000000000000000000000000000000000000001
+);
 
 uint256 constant IsValidOrder_signature = (
     0x0e1d31dc00000000000000000000000000000000000000000000000000000000
