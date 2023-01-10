@@ -116,9 +116,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     .startAmount = (considerationItem.amount -
                     execution.item.amount);
             }
-
-            // Reduce total consideration amount to equal the offer amount.
-            considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = offerComponents[0];
