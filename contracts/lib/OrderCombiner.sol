@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Side, ItemType } from "./ConsiderationEnums.sol";
+import { Side, ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -183,20 +183,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Use assembly to set the value for the second bit of the error buffer.
         assembly {
-            // Use the second bit of the error buffer to indicate whether the
-            // current function is not matchAdvancedOrders or matchOrders.
-            invalidNativeOfferItemErrorBuffer := shl(
-                1,
-                gt(
-                    // Take the remainder of the selector modulo a magic value.
-                    mod(
-                        shr(NumBitsAfterSelector, calldataload(0)),
-                        NonMatchSelector_MagicModulus
-                    ),
-                    // Check if remainder is higher than the greatest remainder
-                    // of the two match selectors modulo the magic value.
-                    NonMatchSelector_MagicRemainder
-                )
+            /**
+             * Use the 248th bit of the error buffer to indicate whether the
+             * current function is not matchAdvancedOrders or matchOrders.
+             *
+             * sig				                        func
+             * ------------------------------------------------------------------------
+             * 0b10101000000101110100010 00 0000100		matchOrders
+             * 0b01010101100101000100101 00 1000010		matchAdvancedOrders
+             * 0b11101101100110001010010 10 1110100		fulfillAvailableOrders
+             * 0b10000111001000000001101 10 1000001		fulfillAvailableAdvancedOrders
+             *                           ^ 9th bit
+             */
+            invalidNativeOfferItemErrorBuffer := and(
+                NonMatchSelector_MagicMask,
+                calldataload(0)
             )
         }
 
@@ -277,7 +278,13 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
-
+                uint256 isNonContract;
+                {
+                    OrderType orderType = advancedOrder.parameters.orderType;
+                    assembly {
+                        isNonContract := lt(orderType, 4)
+                    }
+                }
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < totalOfferItems; ++j) {
                     // Retrieve the offer item.
@@ -288,7 +295,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // first bit of the error buffer to true.
                         invalidNativeOfferItemErrorBuffer := or(
                             invalidNativeOfferItemErrorBuffer,
-                            iszero(mload(offerItem))
+                            lt(mload(offerItem), isNonContract)
                         )
                     }
 
@@ -410,7 +417,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == 3) {
+        if (
+            invalidNativeOfferItemErrorBuffer ==
+            NonMatchSelector_InvalidErrorValue
+        ) {
             _revertInvalidNativeOfferItem();
         }
 
