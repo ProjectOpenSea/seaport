@@ -71,10 +71,18 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ReceivedItem memory considerationItem = (
             _aggregateValidFulfillmentConsiderationItems(
                 ordersToExecute,
-                considerationComponents,
-                0
+                considerationComponents
             )
         );
+
+        // Skip aggregating offer items if no consideration items are available.
+        if (considerationItem.amount == 0) {
+            // Set the offerer and recipient to null address if execution
+            // amount is zero. This will cause the execution item to be skipped.
+            execution.offerer = address(0);
+            execution.item.recipient = payable(0);
+            return execution;
+        }
 
         // Validate & aggregate offer items and store result as an Execution.
         (
@@ -90,7 +98,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ) = _aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             offerComponents,
-            0,
             address(0) // unused
         );
 
@@ -222,7 +229,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             return _aggregateValidFulfillmentOfferItems(
                 ordersToExecute,
                 fulfillmentComponents,
-                nextComponentIndex - 1,
                 recipient
             );
         } else {
@@ -233,7 +239,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             return _aggregateConsiderationItems(
                 ordersToExecute,
                 fulfillmentComponents,
-                nextComponentIndex - 1,
                 fulfillerConduitKey
             );
         }
@@ -243,9 +248,9 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      * @dev Internal pure function to check the indicated offer item
      *      matches original item.
      *
-     * @param orderToExecute  The order to compare.
-     * @param offer The offer to compare.
-     * @param execution  The aggregated offer item.
+     * @param orderToExecute The order to compare.
+     * @param offer          The offer to compare.
+     * @param execution      The aggregated offer item.
      *
      * @return invalidFulfillment A boolean indicating whether the
      *                            fulfillment is invalid.
@@ -272,104 +277,90 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      * @param offerComponents An array of FulfillmentComponent structs
      *                        indicating the order index and item index of each
      *                        candidate offer item for aggregation.
-     * @param startIndex      The initial order index to begin iteration on when
-     *                        searching for offer items to aggregate.
+     * @param recipient       The recipient for the aggregated offer items.
      *
      * @return execution The aggregated offer items.
      */
     function _aggregateValidFulfillmentOfferItems(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex,
         address recipient
     ) internal pure returns (Execution memory execution) {
+        bool foundItem = false;
+
         // Get the order index and item index of the offer component.
-        uint256 orderIndex = offerComponents[startIndex].orderIndex;
-        uint256 itemIndex = offerComponents[startIndex].itemIndex;
+        uint256 orderIndex;
+        uint256 itemIndex;
+
+        OrderToExecute memory orderToExecute;
 
         // Declare a variable indicating whether the aggregation is invalid.
         // Ensure that the order index is not out of range.
-        bool invalidFulfillment = (orderIndex >= ordersToExecute.length);
-        if (!invalidFulfillment) {
-            // Get the order based on offer components order index.
-            OrderToExecute memory orderToExecute = ordersToExecute[orderIndex];
-            // Ensure that the item index is not out of range.
-            invalidFulfillment =
-                invalidFulfillment ||
-                (itemIndex >= orderToExecute.spentItems.length);
+        bool invalidFulfillment;
 
-            if (!invalidFulfillment) {
+        // Loop through the offer components, checking for validity.
+        for (uint256 i = 0; i < offerComponents.length; ++i) {
+            // Get the order index and item index of the offer
+            // component.
+            orderIndex = offerComponents[i].orderIndex;
+            itemIndex = offerComponents[i].itemIndex;
+
+            // Ensure that the order index is not out of range.
+            invalidFulfillment = orderIndex >= ordersToExecute.length;
+            // Break if invalid
+            if (invalidFulfillment) {
+                break;
+            }
+            // Get the order based on offer components order index.
+            orderToExecute = ordersToExecute[orderIndex];
+            if (
+                orderToExecute.numerator != 0 &&
+                itemIndex < orderToExecute.spentItems.length
+            ) {
                 // Get the spent item based on the offer components item index.
                 SpentItem memory offer = orderToExecute.spentItems[itemIndex];
 
-                // Create the Execution.
-                execution = Execution(
-                    ReceivedItem(
-                        offer.itemType,
-                        offer.token,
-                        offer.identifier,
-                        offer.amount,
-                        payable(recipient)
-                    ),
-                    orderToExecute.offerer,
-                    orderToExecute.conduitKey
-                );
+                if (!foundItem) {
+                    foundItem = true;
 
-                // Zero out amount on original offerItem to indicate it is spent
+                    // Create the Execution.
+                    execution = Execution(
+                        ReceivedItem(
+                            offer.itemType,
+                            offer.token,
+                            offer.identifier,
+                            offer.amount,
+                            payable(recipient)
+                        ),
+                        orderToExecute.offerer,
+                        orderToExecute.conduitKey
+                    );
+                } else {
+                    // Update the Received Item Amount.
+                    execution.item.amount =
+                        execution.item.amount +
+                        offer.amount;
+
+                    // Ensure the indicated offer item matches original
+                    // item.
+                    invalidFulfillment = _checkMatchingOffer(
+                        orderToExecute,
+                        offer,
+                        execution
+                    );
+                }
+
+                // Zero out amount on original offerItem to indicate
+                // it is spent,
                 offer.amount = 0;
 
-                // Loop through the offer components, checking for validity.
-                for (
-                    uint256 i = startIndex + 1;
-                    i < offerComponents.length;
-                    ++i
-                ) {
-                    // Get the order index and item index of the offer
-                    // component.
-                    orderIndex = offerComponents[i].orderIndex;
-                    itemIndex = offerComponents[i].itemIndex;
-
-                    // Ensure that the order index is not out of range.
-                    invalidFulfillment = orderIndex >= ordersToExecute.length;
-                    // Break if invalid
-                    if (invalidFulfillment) {
-                        break;
-                    }
-                    // Get the order based on offer components order index.
-                    orderToExecute = ordersToExecute[orderIndex];
-                    if (orderToExecute.numerator != 0) {
-                        // Ensure that the item index is not out of range.
-                        invalidFulfillment = (itemIndex >=
-                            orderToExecute.spentItems.length);
-                        // Break if invalid
-                        if (invalidFulfillment) {
-                            break;
-                        }
-                        // Get the spent item based on the offer components
-                        // item index.
-                        offer = orderToExecute.spentItems[itemIndex];
-                        // Update the Received Item Amount.
-                        execution.item.amount =
-                            execution.item.amount +
-                            offer.amount;
-                        // Zero out amount on original offerItem to indicate
-                        // it is spent,
-                        offer.amount = 0;
-                        // Ensure the indicated offer item matches original
-                        // item.
-                        invalidFulfillment = _checkMatchingOffer(
-                            orderToExecute,
-                            offer,
-                            execution
-                        );
-                        // Break if invalid
-                        if (invalidFulfillment) {
-                            break;
-                        }
-                    }
+                // Break if invalid
+                if (invalidFulfillment) {
+                    break;
                 }
             }
         }
+
         // Revert if an order/item was out of range or was not aggregatable.
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
@@ -386,8 +377,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      * @param considerationComponents An array designating consideration
      *                                components to aggregate if part of an
      *                                available order.
-     * @param nextComponentIndex      The index of the next potential
-     *                                consideration component.
      * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
      *                                if any, to source the fulfiller's token
      *                                approvals from. The zero hash signifies
@@ -399,7 +388,6 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     function _aggregateConsiderationItems(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory considerationComponents,
-        uint256 nextComponentIndex,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
         // Validate and aggregate consideration items on available orders and
@@ -407,8 +395,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ReceivedItem memory receiveConsiderationItem = (
             _aggregateValidFulfillmentConsiderationItems(
                 ordersToExecute,
-                considerationComponents,
-                nextComponentIndex
+                considerationComponents
             )
         );
 
@@ -452,113 +439,85 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *                                indicating the order index and item index
      *                                of each candidate consideration item for
      *                                aggregation.
-     * @param startIndex              The initial order index to begin iteration
-     *                                on when searching for consideration items
-     *                                to aggregate.
      *
      * @return receivedItem The aggregated consideration items.
      */
     function _aggregateValidFulfillmentConsiderationItems(
         OrderToExecute[] memory ordersToExecute,
-        FulfillmentComponent[] memory considerationComponents,
-        uint256 startIndex
+        FulfillmentComponent[] memory considerationComponents
     ) internal pure returns (ReceivedItem memory receivedItem) {
+        bool foundItem = false;
+
         // Declare struct in memory to avoid declaring multiple local variables
         ConsiderationItemIndicesAndValidity memory potentialCandidate;
-        potentialCandidate.orderIndex = considerationComponents[startIndex]
-            .orderIndex;
-        potentialCandidate.itemIndex = considerationComponents[startIndex]
-            .itemIndex;
-        // Ensure that order index is in range.
-        potentialCandidate.invalidFulfillment = (potentialCandidate
-            .orderIndex >= ordersToExecute.length);
 
-        if (!potentialCandidate.invalidFulfillment) {
-            // Retrieve relevant item using order index.
-            OrderToExecute memory orderToExecute = ordersToExecute[
-                potentialCandidate.orderIndex
-            ];
-            // Ensure that the item index is not out of range.
+        ReceivedItem memory consideration;
+
+        OrderToExecute memory orderToExecute;
+
+        // Loop through the consideration components and validate
+        // their fulfillment.
+        for (uint256 i = 0; i < considerationComponents.length; ++i) {
+            // Get the order index and item index of the consideration
+            // component.
+            potentialCandidate.orderIndex = considerationComponents[i]
+                .orderIndex;
+            potentialCandidate.itemIndex = considerationComponents[i].itemIndex;
+
+            /// Ensure that the order index is not out of range.
             potentialCandidate.invalidFulfillment =
-                potentialCandidate.invalidFulfillment ||
-                (potentialCandidate.itemIndex >=
-                    orderToExecute.receivedItems.length);
-            if (!potentialCandidate.invalidFulfillment) {
+                potentialCandidate.orderIndex >= ordersToExecute.length;
+            // Break if invalid
+            if (potentialCandidate.invalidFulfillment) {
+                break;
+            }
+            // Get the order based on consideration components order
+            // index.
+            orderToExecute = ordersToExecute[potentialCandidate.orderIndex];
+            // Confirm this is a fulfilled order.
+            if (
+                orderToExecute.numerator != 0 &&
+                potentialCandidate.itemIndex <
+                orderToExecute.receivedItems.length
+            ) {
                 // Retrieve relevant item using item index.
-                ReceivedItem memory consideration = orderToExecute
-                    .receivedItems[potentialCandidate.itemIndex];
+                consideration = orderToExecute.receivedItems[
+                    potentialCandidate.itemIndex
+                ];
 
-                // Create the received item.
-                receivedItem = ReceivedItem(
-                    consideration.itemType,
-                    consideration.token,
-                    consideration.identifier,
-                    consideration.amount,
-                    consideration.recipient
-                );
+                if (!foundItem) {
+                    foundItem = true;
 
-                // Zero out amount on original offerItem to indicate it is spent
+                    // Create the received item.
+                    receivedItem = ReceivedItem(
+                        consideration.itemType,
+                        consideration.token,
+                        consideration.identifier,
+                        consideration.amount,
+                        consideration.recipient
+                    );
+                } else {
+                    // Updating Received Item Amount
+                    receivedItem.amount =
+                        receivedItem.amount +
+                        consideration.amount;
+
+                    // Ensure the indicated consideration item matches
+                    // original item.
+                    potentialCandidate
+                        .invalidFulfillment = _checkMatchingConsideration(
+                        consideration,
+                        receivedItem
+                    );
+                }
+
+                // Zero out amount on original consideration item to
+                // indicate it is spent
                 consideration.amount = 0;
 
-                // Loop through the consideration components and validate
-                // their fulfillment.
-                for (
-                    uint256 i = startIndex + 1;
-                    i < considerationComponents.length;
-                    ++i
-                ) {
-                    // Get the order index and item index of the consideration
-                    // component.
-                    potentialCandidate.orderIndex = considerationComponents[i]
-                        .orderIndex;
-                    potentialCandidate.itemIndex = considerationComponents[i]
-                        .itemIndex;
-
-                    /// Ensure that the order index is not out of range.
-                    potentialCandidate.invalidFulfillment =
-                        potentialCandidate.orderIndex >= ordersToExecute.length;
-                    // Break if invalid
-                    if (potentialCandidate.invalidFulfillment) {
-                        break;
-                    }
-                    // Get the order based on consideration components order
-                    // index.
-                    orderToExecute = ordersToExecute[
-                        potentialCandidate.orderIndex
-                    ];
-                    // Confirm this is a fulfilled order.
-                    if (orderToExecute.numerator != 0) {
-                        // Ensure that the item index is not out of range.
-                        potentialCandidate
-                            .invalidFulfillment = (potentialCandidate
-                            .itemIndex >= orderToExecute.receivedItems.length);
-                        // Break if invalid
-                        if (potentialCandidate.invalidFulfillment) {
-                            break;
-                        }
-                        // Retrieve relevant item using item index.
-                        consideration = orderToExecute.receivedItems[
-                            potentialCandidate.itemIndex
-                        ];
-                        // Updating Received Item Amount
-                        receivedItem.amount =
-                            receivedItem.amount +
-                            consideration.amount;
-                        // Zero out amount on original consideration item to
-                        // indicate it is spent
-                        consideration.amount = 0;
-                        // Ensure the indicated consideration item matches
-                        // original item.
-                        potentialCandidate
-                            .invalidFulfillment = _checkMatchingConsideration(
-                            consideration,
-                            receivedItem
-                        );
-                        // Break if invalid
-                        if (potentialCandidate.invalidFulfillment) {
-                            break;
-                        }
-                    }
+                // Break if invalid
+                if (potentialCandidate.invalidFulfillment) {
+                    break;
                 }
             }
         }
