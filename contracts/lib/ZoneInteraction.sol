@@ -42,6 +42,8 @@ contract ZoneInteraction is
         BasicOrderParameters calldata parameters
     ) internal {
         // Order type 2-3 require zone be caller or zone to approve.
+        // Note that in cases where fulfiller == zone, the restricted order
+        // validation will be skipped.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
             // Encode the `validateOrder` call in memory.
             (MemoryPointer callData, uint256 size) = _encodeValidateBasicOrder(
