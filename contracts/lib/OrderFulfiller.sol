@@ -201,10 +201,23 @@ contract OrderFulfiller is
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // Offer items for the native token can not be received
-                // outside of a match order function.
-                if (offerItem.itemType == ItemType.NATIVE) {
-                    _revertInvalidNativeOfferItem();
+                // Offer items for the native token can not be received outside
+                // of a match order function except as part of a contract order.
+                {
+                    ItemType itemType = offerItem.itemType;
+                    OrderType orderType = orderParameters.orderType;
+
+                    bool invalidNativeOfferItem;
+                    assembly {
+                        invalidNativeOfferItem := and(
+                            iszero(itemType),
+                            lt(orderType, 4)
+                        )
+                    }
+
+                    if (invalidNativeOfferItem) {
+                        _revertInvalidNativeOfferItem();
+                    }
                 }
 
                 // Declare an additional nested scope to minimize stack depth.
