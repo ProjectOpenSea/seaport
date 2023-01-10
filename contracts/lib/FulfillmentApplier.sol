@@ -272,34 +272,39 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Read the pointer to OrderParameters from the AdvancedOrder.
                 let paramsPtr := mload(orderPtr)
 
-                // Load the offer array pointer.
-                let offerArrPtr := mload(
-                    add(paramsPtr, OrderParameters_offer_head_offset)
-                )
-
-                // Retrieve item index using an offset of the fulfillment pointer.
+                // Retrieve item index using an offset of fulfillment pointer.
                 let itemIndex := mload(
                     add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
                 )
 
-                // If the offer item index is out of range or the numerator
-                // is zero, skip this item.
-                if or(
-                    iszero(lt(itemIndex, mload(offerArrPtr))),
-                    iszero(mload(add(orderPtr, AdvancedOrder_numerator_offset)))
-                ) {
-                    continue
-                }
-
-                // Retrieve offer item pointer using the item index.
-                let offerItemPtr := mload(
-                    add(
-                        // Get pointer to beginning of receivedItem.
-                        add(offerArrPtr, OneWord),
-                        // Calculate offset to pointer for desired order.
-                        mul(itemIndex, OneWord)
+                let offerItemPtr
+                {
+                    // Load the offer array pointer.
+                    let offerArrPtr := mload(
+                        add(paramsPtr, OrderParameters_offer_head_offset)
                     )
-                )
+
+                    // If the offer item index is out of range or the numerator
+                    // is zero, skip this item.
+                    if or(
+                        iszero(lt(itemIndex, mload(offerArrPtr))),
+                        iszero(
+                            mload(add(orderPtr, AdvancedOrder_numerator_offset))
+                        )
+                    ) {
+                        continue
+                    }
+
+                    // Retrieve offer item pointer using the item index.
+                    offerItemPtr := mload(
+                        add(
+                            // Get pointer to beginning of receivedItem.
+                            add(offerArrPtr, OneWord),
+                            // Calculate offset to pointer for desired order.
+                            mul(itemIndex, OneWord)
+                        )
+                    )
+                }
 
                 // Declare a separate scope for the amount update.
                 {
@@ -350,13 +355,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         mload(add(offerItemPtr, Common_identifier_offset))
                     )
 
-                    // Set the offerer on returned execution using order pointer.
+                    // Set offerer on returned execution using order pointer.
                     mstore(
                         add(execution, Execution_offerer_offset),
                         mload(paramsPtr)
                     )
 
-                    // Set returned execution conduitKey via order pointer offset.
+                    // Set execution conduitKey via order pointer offset.
                     mstore(
                         add(execution, Execution_conduit_offset),
                         mload(add(paramsPtr, OrderParameters_conduit_offset))
@@ -368,9 +373,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         ReceivedItem_CommonParams_size
                     )
 
-                    // If component index > 0, swap component pointer with pointer
-                    // to first component so that any remainder after fulfillment
-                    // can be added back to the first item.
+                    // If component index > 0, swap component pointer with
+                    // pointer to first component so that any remainder after
+                    // fulfillment can be added back to the first item.
                     let firstFulfillmentHeadPtr := add(offerComponents, OneWord)
                     if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
                         let firstFulfillmentPtr := mload(
@@ -529,38 +534,43 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
                 )
 
-                // Load consideration array pointer.
-                let considerationArrPtr := mload(
-                    add(
-                        // Read pointer to OrderParameters from the AdvancedOrder.
-                        mload(orderPtr),
-                        OrderParameters_consideration_head_offset
-                    )
-                )
-
-                // Retrieve item index using an offset of the fulfillment pointer.
+                // Retrieve item index using an offset of fulfillment pointer.
                 let itemIndex := mload(
                     add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
                 )
 
-                // If the consideration item index is out of range or the numerator
-                // is zero, skip this item.
-                if or(
-                    iszero(lt(itemIndex, mload(considerationArrPtr))),
-                    iszero(mload(add(orderPtr, AdvancedOrder_numerator_offset)))
-                ) {
-                    continue
-                }
-
-                // Retrieve consideration item pointer using the item index.
-                let considerationItemPtr := mload(
-                    add(
-                        // Get pointer to beginning of receivedItem.
-                        add(considerationArrPtr, OneWord),
-                        // Calculate offset to pointer for desired order.
-                        mul(itemIndex, OneWord)
+                let considerationItemPtr
+                {
+                    // Load consideration array pointer.
+                    let considerationArrPtr := mload(
+                        add(
+                            // Read OrderParameters pointer from AdvancedOrder.
+                            mload(orderPtr),
+                            OrderParameters_consideration_head_offset
+                        )
                     )
-                )
+
+                    // If the consideration item index is out of range or the
+                    // numerator is zero, skip this item.
+                    if or(
+                        iszero(lt(itemIndex, mload(considerationArrPtr))),
+                        iszero(
+                            mload(add(orderPtr, AdvancedOrder_numerator_offset))
+                        )
+                    ) {
+                        continue
+                    }
+
+                    // Retrieve consideration item pointer using the item index.
+                    considerationItemPtr := mload(
+                        add(
+                            // Get pointer to beginning of receivedItem.
+                            add(considerationArrPtr, OneWord),
+                            // Calculate offset to pointer for desired order.
+                            mul(itemIndex, OneWord)
+                        )
+                    )
+                }
 
                 // Declare a separate scope for the amount update
                 {
