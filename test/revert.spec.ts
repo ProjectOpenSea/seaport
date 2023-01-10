@@ -6641,7 +6641,10 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     });
     it("Reverts when non-payable ether recipient is supplied", async () => {
       // Seller mints nft
-      const nftId = await mintAndApprove721(seller, testERC20.address);
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
 
       const offer = [getTestItem721(nftId)];
 
