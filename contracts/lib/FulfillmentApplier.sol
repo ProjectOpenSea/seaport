@@ -358,36 +358,34 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 }
                 default {
                     // Compare every subsequent item to the first
-                    if iszero(
-                        and(
-                            and(
-                                // The offerer must match on both items.
-                                eq(
-                                    mload(paramsPtr),
-                                    mload(
-                                        add(execution, Execution_offerer_offset)
-                                    )
-                                ),
-                                // The conduit key must match on both items.
-                                eq(
-                                    mload(
-                                        add(
-                                            paramsPtr,
-                                            OrderParameters_conduit_offset
-                                        )
-                                    ),
-                                    mload(
-                                        add(execution, Execution_conduit_offset)
-                                    )
+                    if or(
+                        or(
+                            // The offerer must match on both items.
+                            xor(
+                                mload(paramsPtr),
+                                mload(
+                                    add(execution, Execution_offerer_offset)
                                 )
                             ),
-                            // The itemType, token, and identifier must match.
-                            eq(
-                                dataHash,
-                                keccak256(
-                                    offerItemPtr,
-                                    ReceivedItem_CommonParams_size
+                            // The conduit key must match on both items.
+                            xor(
+                                mload(
+                                    add(
+                                        paramsPtr,
+                                        OrderParameters_conduit_offset
+                                    )
+                                ),
+                                mload(
+                                    add(execution, Execution_conduit_offset)
                                 )
+                            )
+                        ),
+                        // The itemType, token, and identifier must match.
+                        xor(
+                            dataHash,
+                            keccak256(
+                                offerItemPtr,
+                                ReceivedItem_CommonParams_size
                             )
                         )
                     ) {
