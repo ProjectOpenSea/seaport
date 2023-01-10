@@ -714,6 +714,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Skip consideration item checks for order if not fulfilled.
                 if (advancedOrder.numerator == 0) {
+                    // This is required because the current memory region, which
+                    // was previously used by the accumulator, might be dirty.
                     availableOrders[i] = false;
                     continue;
                 }
