@@ -24,6 +24,9 @@ import "../../contracts/lib/ConsiderationConstants.sol";
 import {
     FulfillmentApplicationErrors
 } from "../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+import {
+    TokenTransferrerErrors
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 /**
  * @title FulfillmentApplier
@@ -33,7 +36,10 @@ import {
  *         consideration items) as well as fulfilling available orders (where
  *         order items and consideration items are independently aggregated).
  */
-contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
+contract ReferenceFulfillmentApplier is
+    FulfillmentApplicationErrors,
+    TokenTransferrerErrors
+{
     /**
      * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
@@ -294,9 +300,11 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
 
         OrderToExecute memory orderToExecute;
 
-        // Declare a variable indicating whether the aggregation is invalid.
+        // Declare variables indicating whether the aggregation is invalid.
         // Ensure that the order index is not out of range.
         bool invalidFulfillment;
+        // Ensure that no available items have missing amounts.
+        bool missingItemAmount;
 
         // Loop through the offer components, checking for validity.
         for (uint256 i = 0; i < offerComponents.length; ++i) {
@@ -360,6 +368,10 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     );
                 }
 
+                // Ensure the item has a nonzero amount.
+                missingItemAmount = offer.amount == 0;
+                invalidFulfillment = invalidFulfillment || missingItemAmount;
+
                 // Zero out amount on original offerItem to indicate
                 // it is spent,
                 offer.amount = 0;
@@ -373,6 +385,9 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
 
         // Revert if an order/item was out of range or was not aggregatable.
         if (invalidFulfillment) {
+            if (missingItemAmount) {
+                revert MissingItemAmount();
+            }
             revert InvalidFulfillmentComponentData();
         }
     }
@@ -531,6 +546,13 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     );
                 }
 
+                // Ensure the item has a nonzero amount.
+                potentialCandidate.missingItemAmount =
+                    consideration.amount == 0;
+                potentialCandidate.invalidFulfillment =
+                    potentialCandidate.invalidFulfillment ||
+                    potentialCandidate.missingItemAmount;
+
                 // Zero out amount on original consideration item to
                 // indicate it is spent
                 consideration.amount = 0;
@@ -544,6 +566,9 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
 
         // Revert if an order/item was out of range or was not aggregatable.
         if (potentialCandidate.invalidFulfillment) {
+            if (potentialCandidate.missingItemAmount) {
+                revert MissingItemAmount();
+            }
             revert InvalidFulfillmentComponentData();
         }
     }
