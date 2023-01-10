@@ -175,9 +175,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Ensure numerator does not exceed denominator and is not zero.
         assembly {
-            invalidFraction := or(
-                gt(numerator, denominator), iszero(numerator)
-            )
+            invalidFraction := or(gt(numerator, denominator), iszero(numerator))
         }
 
         // Revert if the supplied numerator and denominator are not valid.

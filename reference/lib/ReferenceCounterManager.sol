@@ -28,7 +28,7 @@ contract ReferenceCounterManager is
      *      signed orders by incrementing the counter.  This activation
      *      functionality can be achieved instead with restricted orders or
      *      contract orders.
-     *      
+     *
      *
      * @return newCounter The new counter.
      */
