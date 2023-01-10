@@ -279,6 +279,17 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
+                
+                {
+                    // Create a variable indicating if the order is not a
+                    // contract order. Cache in scratch space to avoid stack
+                    // depth errors.
+                    OrderType orderType = advancedOrder.parameters.orderType;
+                    assembly {
+                        let isNonContract := lt(orderType, 4)
+                        mstore(0, isNonContract)
+                    }
+                }
 
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < totalOfferItems; ++j) {
@@ -297,7 +308,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             // first bit of the error buffer to true.
                             invalidNativeOfferItemErrorBuffer := or(
                                 invalidNativeOfferItemErrorBuffer,
-                                lt(mload(offerItem), lt(orderType, 4))
+                                lt(mload(offerItem), mload(0))
                             )
                         }
                     }
@@ -420,7 +431,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == 3) {
+        if (invalidNativeOfferItemErrorBuffer == NonMatchSelector_InvalidErrorValue) {
             _revertInvalidNativeOfferItem();
         }
 
