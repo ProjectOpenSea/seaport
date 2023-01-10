@@ -5664,6 +5664,151 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       return receipt;
     });
+    it("Multiple consideration components at once, various OOR offer/consideration items", async () => {
+      // Seller mints NFTs
+      const { nftId, amount } = await mint1155(seller, 2);
+
+      // Seller approves marketplace contract to transfer NFT
+
+      await set1155ApprovalForAll(seller, marketplaceContract.address, true);
+
+      // Buyer mints ERC20s
+      const tokenAmount = toBN(random128());
+      await mintAndApproveERC20(
+        buyer,
+        marketplaceContract.address,
+        tokenAmount.mul(2)
+      );
+
+      const offerOne = [
+        getTestItem1155(nftId, amount.mul(2), amount.mul(2), undefined),
+      ];
+
+      const considerationOne = [
+        getTestItem20(tokenAmount.mul(2), tokenAmount.mul(2), seller.address),
+      ];
+
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        0 // FULL_OPEN
+      );
+
+      const offerTwo = [getTestItem20(tokenAmount, tokenAmount)];
+
+      const considerationTwo = [
+        getTestItem1155(nftId, amount, amount, undefined, buyer.address),
+      ];
+
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        buyer,
+        zone,
+        offerTwo,
+        considerationTwo,
+        0 // FULL_OPEN
+      );
+
+      const offerThree = [getTestItem20(tokenAmount, tokenAmount)];
+
+      const considerationThree = [
+        getTestItem1155(nftId, amount, amount, undefined, buyer.address),
+      ];
+
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(
+          buyer,
+          zone,
+          offerThree,
+          considerationThree,
+          0 // FULL_OPEN
+        );
+
+      const fulfillments = [
+        [
+          [
+            [0, 5], // OOR first offer item
+            [0, 0],
+          ],
+          [
+            [1, 0],
+            [2, 0],
+          ],
+        ],
+        [
+          [[1, 0]],
+          [
+            [0, 5], // OOR first consideration item
+            [0, 0],
+          ],
+        ],
+        [
+          [
+            [2, 0],
+            [0, 5], // OOR last offer item
+          ],
+          [
+            [0, 0],
+            [0, 5], // OOR last consideration item
+          ],
+        ],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      const executions = await simulateAdvancedMatchOrders(
+        marketplaceContract,
+        [orderOne, orderTwo, orderThree],
+        [], // no criteria resolvers
+        fulfillments,
+        owner,
+        0 // no value
+      );
+
+      expect(executions.length).to.equal(fulfillments.length);
+
+      const tx = marketplaceContract
+        .connect(buyer)
+        .matchAdvancedOrders(
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments,
+          ethers.constants.AddressZero,
+          {
+            value: 0,
+          }
+        );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: buyer.address,
+          },
+          {
+            order: orderTwo,
+            orderHash: orderHashTwo,
+            fulfiller: buyer.address,
+          },
+          {
+            order: orderThree,
+            orderHash: orderHashThree,
+            fulfiller: buyer.address,
+          },
+        ],
+        executions,
+        [],
+        true
+      );
+
+      // TODO: include balance checks on the duplicate ERC20 transfers
+
+      return receipt;
+    });
   });
 
   describe("Complex ERC1155 transfers", async () => {
@@ -6795,6 +6940,216 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           [1, 1],
         ],
         [
+          [0, 2],
+          [1, 2],
+        ],
+      ].map(toFulfillmentComponents);
+
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [orderOne, orderTwo],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              {
+                value: value.mul(2),
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
+    });
+    it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders with OOR offer / consideration items", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        1,
+        1,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const {
+        order: orderOne,
+        orderHash: orderHashOne,
+        value,
+      } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [
+        toFulfillmentComponents([
+          [0, 0],
+          [1, 0],
+          [1, 5],
+        ]),
+      ];
+
+      const considerationComponents = [
+        [
+          [0, 0],
+          [1, 0],
+        ],
+        [
+          [0, 1],
+          [1, 1],
+        ],
+        [
+          [0, 2],
+          [1, 2],
+          [1, 5],
+        ],
+      ].map(toFulfillmentComponents);
+
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [orderOne, orderTwo],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              100,
+              {
+                value: value.mul(2),
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
+    });
+    it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders with OOR initial offer / consideration items", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        1,
+        1,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const {
+        order: orderOne,
+        orderHash: orderHashOne,
+        value,
+      } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [
+        toFulfillmentComponents([
+          [1, 5],
+          [0, 0],
+          [1, 0],
+        ]),
+      ];
+
+      const considerationComponents = [
+        [
+          [0, 0],
+          [1, 0],
+        ],
+        [
+          [0, 1],
+          [1, 1],
+        ],
+        [
+          [1, 5],
           [0, 2],
           [1, 2],
         ],
