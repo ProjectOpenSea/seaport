@@ -5478,11 +5478,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
         getItemETH(parseEther("1"), parseEther("1"), zone.address),
-        getItemETH(
-          parseEther("1"),
-          parseEther("1"),
-          testERC20.address
-        ),
+        getItemETH(parseEther("1"), parseEther("1"), conduitOne.address),
       ];
 
       const { order } = await createOrder(
@@ -5509,7 +5505,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract,
           "EtherTransferGenericFailure"
         )
-        .withArgs(marketplaceContract.address, parseEther("1"));
+        .withArgs(conduitOne.address, parseEther("1"));
     });
     it("Reverts when tokens are not approved", async () => {
       // Seller mints nft
@@ -6860,20 +6856,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     });
     it("Reverts when non-payable ether recipient is supplied", async () => {
       // Seller mints nft
-      const nftId = await mintAndApprove721(
-        seller,
-        testERC20.address
-      );
+      const nftId = await mintAndApprove721(seller, testERC20.address);
 
       const offer = [getTestItem721(nftId)];
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(
-          parseEther("1"),
-          parseEther("1"),
-          marketplaceContract.address
-        ),
+        getItemETH(parseEther("1"), parseEther("1"), conduitOne.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -6901,7 +6890,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           marketplaceContract,
           "EtherTransferGenericFailure"
         )
-        .withArgs(marketplaceContract.address, parseEther("1"));
+        .withArgs(conduitOne.address, parseEther("1"));
     });
   });
 
