@@ -195,6 +195,13 @@ contract OrderFulfiller is
             // Read offer array length from memory and place on stack.
             uint256 totalOfferItems = orderParameters.offer.length;
 
+            uint256 isNonContractOrder;
+            uint256 invalidNativeOfferItemErrorBuffer;
+            OrderType orderType = orderParameters.orderType;
+            assembly {
+                isNonContractOrder := lt(orderType, 4)
+            }
+
             // Iterate over each offer on the order.
             // Skip overflow check as for loop is indexed starting at zero.
             for (uint256 i = 0; i < totalOfferItems; ++i) {
@@ -205,18 +212,11 @@ contract OrderFulfiller is
                 // of a match order function except as part of a contract order.
                 {
                     ItemType itemType = offerItem.itemType;
-                    OrderType orderType = orderParameters.orderType;
-
-                    bool invalidNativeOfferItem;
                     assembly {
-                        invalidNativeOfferItem := and(
-                            iszero(itemType),
-                            lt(orderType, 4)
+                        invalidNativeOfferItemErrorBuffer := or(
+                            invalidNativeOfferItemErrorBuffer,
+                            lt(itemType, isNonContractOrder)
                         )
-                    }
-
-                    if (invalidNativeOfferItem) {
-                        _revertInvalidNativeOfferItem();
                     }
                 }
 
@@ -256,6 +256,12 @@ contract OrderFulfiller is
                     orderParameters.conduitKey,
                     accumulator
                 );
+            }
+
+            // If any non-contract orders had native offer items,
+            // throw InvalidNativeOfferItem error.
+            if (invalidNativeOfferItemErrorBuffer == 1) {
+                _revertInvalidNativeOfferItem();
             }
         }
 
