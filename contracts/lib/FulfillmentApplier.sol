@@ -365,7 +365,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
 
                     // If component index > 0, swap component pointer with pointer
-                    // to first component.
+                    // to first component so that any remainder after fulfillment
+                    // can be added back to the first item.
                     let firstFulfillmentHeadPtr := add(offerComponents, OneWord)
                     if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
                         let firstFulfillmentPtr := mload(
@@ -629,7 +630,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
 
                     // If component index > 0, swap component pointer with pointer
-                    // to first component.
+                    // to first component so that any remainder after fulfillment
+                    // can be added back to the first item.
                     let firstFulfillmentHeadPtr := add(considerationComponents, OneWord)
                     if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
                         let firstFulfillmentPtr := mload(
