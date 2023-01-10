@@ -297,10 +297,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     OfferItem memory offerItem = offer[j];
 
                     {
-                        // Retrieve the order type.
-                        OrderType orderType = (
-                            advancedOrder.parameters.orderType
-                        );
 
                         assembly {
                             // If the offer item is for the native token and the
