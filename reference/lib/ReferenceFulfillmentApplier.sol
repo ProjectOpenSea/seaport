@@ -53,8 +53,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      */
     function _applyFulfillment(
         OrderToExecute[] memory ordersToExecute,
-        FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents,
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent[] memory considerationComponents,
         uint256 fulfillmentIndex
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
@@ -335,6 +335,16 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         orderToExecute.offerer,
                         orderToExecute.conduitKey
                     );
+
+                    // If component index > 0, swap component pointer with pointer
+                    // to first component so that any remainder after fulfillment
+                    // can be added back to the first item.
+                    if (i != 0) {
+                        FulfillmentComponent
+                            memory firstComponent = offerComponents[0];
+                        offerComponents[0] = offerComponents[i];
+                        offerComponents[i] = firstComponent;
+                    }
                 } else {
                     // Update the Received Item Amount.
                     execution.item.amount =
@@ -496,6 +506,16 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         consideration.amount,
                         consideration.recipient
                     );
+
+                    // If component index > 0, swap component pointer with pointer
+                    // to first component so that any remainder after fulfillment
+                    // can be added back to the first item.
+                    if (i != 0) {
+                        FulfillmentComponent
+                            memory firstComponent = considerationComponents[0];
+                        considerationComponents[0] = considerationComponents[i];
+                        considerationComponents[i] = firstComponent;
+                    }
                 } else {
                     // Updating Received Item Amount
                     receivedItem.amount =
