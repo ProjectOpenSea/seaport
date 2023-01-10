@@ -291,7 +291,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     continue
                 }
 
-                // Retrieve consideration item pointer using the item index.
+                // Retrieve offer item pointer using the item index.
                 let offerItemPtr := mload(
                     add(
                         // Get pointer to beginning of receivedItem.
@@ -303,6 +303,27 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
                 // Retrieve ReceivedItem pointer from Execution.
                 let receivedItem := mload(execution)
+
+                // Retrieve amount pointer using consideration item pointer.
+                let amountPtr := add(offerItemPtr, Common_amount_offset)
+
+                // Retrieve original amount using amount pointer.
+                let originalAmount := mload(amountPtr)
+
+                // Add offer item amount to execution amount.
+                let newAmount := add(amount, originalAmount)
+
+                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
+                errorBuffer := or(
+                    errorBuffer,
+                    or(shl(1, lt(newAmount, amount)), iszero(originalAmount))
+                )
+
+                // Update the amount to the new, summed amount.
+                amount := newAmount
+
+                // Zero out amount on original item to indicate it is credited.
+                mstore(amountPtr, 0)
 
                 // Check if this is the first valid fulfillment item
                 switch iszero(dataHash)
@@ -347,42 +368,46 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     // to first component.
                     let firstFulfillmentHeadPtr := add(offerComponents, OneWord)
                     if xor(firstFulfillmentHeadPtr, fulfillmentHeadPtr) {
-                      let firstFulfillmentPtr := mload(firstFulfillmentHeadPtr)
-                      let fulfillmentPtr := mload(fulfillmentHeadPtr)
-                      mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
-                      mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
+                        let firstFulfillmentPtr := mload(
+                            firstFulfillmentHeadPtr
+                        )
+                        let fulfillmentPtr := mload(fulfillmentHeadPtr)
+                        mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
+                        mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
                     }
                 }
                 default {
                     // Compare every subsequent item to the first
-                    if or(
-                        or(
-                            // The offerer must match on both items.
-                            xor(
-                                mload(paramsPtr),
-                                mload(
-                                    add(execution, Execution_offerer_offset)
-                                )
-                            ),
-                            // The conduit key must match on both items.
-                            xor(
-                                mload(
-                                    add(
-                                        paramsPtr,
-                                        OrderParameters_conduit_offset
+                    if iszero(
+                        and(
+                            and(
+                                // The offerer must match on both items.
+                                eq(
+                                    mload(paramsPtr),
+                                    mload(
+                                        add(execution, Execution_offerer_offset)
                                     )
                                 ),
-                                mload(
-                                    add(execution, Execution_conduit_offset)
+                                // The conduit key must match on both items.
+                                eq(
+                                    mload(
+                                        add(
+                                            paramsPtr,
+                                            OrderParameters_conduit_offset
+                                        )
+                                    ),
+                                    mload(
+                                        add(execution, Execution_conduit_offset)
+                                    )
                                 )
-                            )
-                        ),
-                        // The itemType, token, and identifier must match.
-                        xor(
-                            dataHash,
-                            keccak256(
-                                offerItemPtr,
-                                ReceivedItem_CommonParams_size
+                            ),
+                            // The itemType, token, and identifier must match.
+                            eq(
+                                dataHash,
+                                keccak256(
+                                    offerItemPtr,
+                                    ReceivedItem_CommonParams_size
+                                )
                             )
                         )
                     ) {
@@ -390,24 +415,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         throwInvalidFulfillmentComponentData()
                     }
                 }
-
-                // Retrieve amount pointer using consideration item pointer.
-                let amountPtr := add(offerItemPtr, Common_amount_offset)
-
-                // Add offer amount to execution amount.
-                let newAmount := add(amount, mload(amountPtr))
-
-                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
-                errorBuffer := or(
-                    errorBuffer,
-                    or(shl(1, lt(newAmount, amount)), iszero(mload(amountPtr)))
-                )
-
-                // Update the amount to the new, summed amount.
-                amount := newAmount
-
-                // Zero out amount on original item to indicate it is credited.
-                mstore(amountPtr, 0)
             }
 
             // Write final amount to execution.
@@ -558,7 +565,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         Common_amount_offset
                     )
 
-                    // Add offer amount to execution amount.
+                    // Add consideration item amount to execution amount.
                     let newAmount := add(amount, mload(amountPtr))
 
                     // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both
