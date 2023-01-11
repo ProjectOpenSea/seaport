@@ -279,7 +279,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
-                
+
                 {
                     // Create a variable indicating if the order is not a
                     // contract order. Cache in scratch space to avoid stack
@@ -297,7 +297,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     OfferItem memory offerItem = offer[j];
 
                     {
-
                         assembly {
                             // If the offer item is for the native token and the
                             // order type is not a contract order type, set the
@@ -427,7 +426,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == NonMatchSelector_InvalidErrorValue) {
+        if (
+            invalidNativeOfferItemErrorBuffer ==
+            NonMatchSelector_InvalidErrorValue
+        ) {
             _revertInvalidNativeOfferItem();
         }
 

@@ -165,7 +165,7 @@ contract Verifiers is Assertions, SignatureVerification {
             let signatureLength := sub(ECDSA_MaxLength, and(fullLength, 1))
 
             // Derive height (or depth of tree) with signature and proof length.
-            height := div(sub(fullLength, signatureLength), OneWord)
+            height := shr(OneWordShift, sub(fullLength, signatureLength))
 
             // Update the length in memory to only include the signature.
             mstore(proofAndSignature, signatureLength)
@@ -181,7 +181,7 @@ contract Verifiers is Assertions, SignatureVerification {
             let proof := add(keyPtr, BulkOrderProof_keySize)
 
             // Compute level 1.
-            let scratchPtr1 := shl(5, and(key, 1))
+            let scratchPtr1 := shl(OneWordShift, and(key, 1))
             mstore(scratchPtr1, leaf)
             mstore(xor(scratchPtr1, OneWord), mload(proof))
 
@@ -192,7 +192,7 @@ contract Verifiers is Assertions, SignatureVerification {
                 i := add(i, 1)
             } {
                 proof := add(proof, OneWord)
-                let scratchPtr := shl(5, and(shr(i, key), 1))
+                let scratchPtr := shl(OneWordShift, and(shr(i, key), 1))
                 mstore(scratchPtr, keccak256(0, TwoWords))
                 mstore(xor(scratchPtr, OneWord), mload(proof))
             }

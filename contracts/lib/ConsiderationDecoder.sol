@@ -91,7 +91,7 @@ contract ConsiderationDecoder {
 
             // Derive the tail by adding one word per element (note that structs
             // are written to memory with an offset per struct element).
-            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
+            let mPtrTail := add(mPtrHead, shl(OneWordShift, arrLength))
 
             // Track the next tail, beginning with the initial tail value.
             let mPtrTailNext := mPtrTail
@@ -156,7 +156,7 @@ contract ConsiderationDecoder {
 
             // Derive the tail by adding one word per element (note that structs
             // are written to memory with an offset per struct element).
-            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
+            let mPtrTail := add(mPtrHead, shl(OneWordShift, arrLength))
 
             // Track the next tail, beginning with the initial tail value.
             let mPtrTailNext := mPtrTail
@@ -568,12 +568,12 @@ contract ConsiderationDecoder {
 
             mstore(mPtrLength, arrLength)
             let mPtrHead := add(mPtrLength, OneWord)
-            let mPtrTail := add(mPtrHead, mul(arrLength, OneWord))
+            let mPtrTail := add(mPtrHead, shl(OneWordShift, arrLength))
             let mPtrTailNext := mPtrTail
             calldatacopy(
                 mPtrTail,
                 add(cdPtrLength, OneWord),
-                mul(arrLength, FulfillmentComponent_mem_tail_size)
+                shl(FulfillmentComponent_mem_tail_size_shift, arrLength)
             )
             let mPtrHeadNext := mPtrHead
             for {
@@ -851,7 +851,10 @@ contract ConsiderationDecoder {
 
                     {
                         // Calculate total size of offer & consideration arrays.
-                        let totalOfferSize := mul(SpentItem_size, offerLength)
+                        let totalOfferSize := shl(
+                            SpentItem_size_shift,
+                            offerLength
+                        )
                         let totalConsiderationSize := mul(
                             ReceivedItem_size,
                             considerationLength
@@ -899,7 +902,7 @@ contract ConsiderationDecoder {
                     FreeMemoryPointerSlot,
                     add(
                         mPtrLength,
-                        add(OneWord, mul(length, add(OfferItem_size, OneWord)))
+                        add(OneWord, mul(length, OfferItem_size_with_length))
                     )
                 )
 
@@ -908,7 +911,7 @@ contract ConsiderationDecoder {
 
                 // Use offset from length to minimize stack depth.
                 let headOffsetFromLength := OneWord
-                let headSizeWithLength := mul(add(1, length), OneWord)
+                let headSizeWithLength := shl(OneWordShift, add(1, length))
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
 
                 // Iterate over each element.
@@ -949,7 +952,7 @@ contract ConsiderationDecoder {
                         mPtrLength,
                         add(
                             OneWord,
-                            mul(length, add(ConsiderationItem_size, OneWord))
+                            mul(length, ConsiderationItem_size_with_length)
                         )
                     )
                 )
@@ -959,7 +962,7 @@ contract ConsiderationDecoder {
 
                 // Use offset from length to minimize stack depth.
                 let headOffsetFromLength := OneWord
-                let headSizeWithLength := mul(add(1, length), OneWord)
+                let headSizeWithLength := shl(OneWordShift, add(1, length))
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
 
                 // Iterate over each element.
@@ -1304,9 +1307,11 @@ contract ConsiderationDecoder {
      *
      * @return criteriaResolvers The empty CriteriaResolver[] array.
      */
-    function _getEmptyCriteriaResolvers() internal pure returns (
-        CriteriaResolver[] memory criteriaResolvers
-    ) {
+    function _getEmptyCriteriaResolvers()
+        internal
+        pure
+        returns (CriteriaResolver[] memory criteriaResolvers)
+    {
         assembly {
             criteriaResolvers := ZeroSlot
         }

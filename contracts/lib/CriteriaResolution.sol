@@ -284,7 +284,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Iterate over each proof element to compute the root hash.
             for {
                 // Left shift by 5 is equivalent to multiplying by 0x20.
-                let end := add(data, shl(5, mload(proof)))
+                let end := add(data, shl(OneWordShift, mload(proof)))
             } lt(data, end) {
                 // Increment by one word at a time.
                 data := add(data, OneWord)
@@ -295,7 +295,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Sort proof elements and place them in scratch space.
                 // Slot of `computedHash` in scratch space.
                 // If the condition is true: 0x20, otherwise: 0x00.
-                let scratch := shl(5, gt(computedHash, loadedData))
+                let scratch := shl(OneWordShift, gt(computedHash, loadedData))
 
                 // Store elements to hash contiguously in scratch space. Scratch
                 // space is 64 bytes (0x00 - 0x3f) & both elements are 32 bytes.

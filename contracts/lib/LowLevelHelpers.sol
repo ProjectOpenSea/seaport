@@ -23,15 +23,18 @@ contract LowLevelHelpers {
                 // Ensure that sufficient gas is available to copy returndata
                 // while expanding memory where necessary. Start by computing
                 // the word size of returndata and allocated memory.
-                let returnDataWords := div(
-                    add(returndatasize(), AlmostOneWord),
-                    OneWord
+                let returnDataWords := shr(
+                    OneWordShift,
+                    add(returndatasize(), AlmostOneWord)
                 )
 
                 // Note: use the free memory pointer in place of msize() to work
                 // around a Yul warning that prevents accessing msize directly
                 // when the IR pipeline is activated.
-                let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
+                let msizeWords := shr(
+                    OneWordShift,
+                    mload(FreeMemoryPointerSlot)
+                )
 
                 // Next, compute the cost of the returndatacopy.
                 let cost := mul(CostPerWord, returnDataWords)
@@ -42,12 +45,12 @@ contract LowLevelHelpers {
                         cost,
                         add(
                             mul(sub(returnDataWords, msizeWords), CostPerWord),
-                            div(
+                            shr(
+                                MemoryExpansionCoefficientShift,
                                 sub(
                                     mul(returnDataWords, returnDataWords),
                                     mul(msizeWords, msizeWords)
-                                ),
-                                MemoryExpansionCoefficient
+                                )
                             )
                         )
                     )
