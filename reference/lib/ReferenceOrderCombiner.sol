@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { Side, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import {
+    Side,
+    ItemType,
+    OrderType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -208,7 +212,7 @@ contract ReferenceOrderCombiner is
         bool nonMatchFn = msg.sig !=
             SeaportInterface.matchAdvancedOrders.selector &&
             msg.sig != SeaportInterface.matchOrders.selector;
-        bool anyNativeOfferItems;
+        bool anyNativeOfferItemsOnNonContractOrders;
 
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
@@ -268,9 +272,11 @@ contract ReferenceOrderCombiner is
                 // Retrieve the offer item.
                 OfferItem memory offerItem = offer[j];
 
-                anyNativeOfferItems =
-                    anyNativeOfferItems ||
-                    offerItem.itemType == ItemType.NATIVE;
+                anyNativeOfferItemsOnNonContractOrders =
+                    anyNativeOfferItemsOnNonContractOrders ||
+                    (offerItem.itemType == ItemType.NATIVE &&
+                        advancedOrder.parameters.orderType !=
+                        OrderType.CONTRACT);
 
                 // Apply order fill fraction to offer item end amount.
                 uint256 endAmount = _getFraction(
@@ -360,7 +366,7 @@ contract ReferenceOrderCombiner is
             }
         }
 
-        if (anyNativeOfferItems && nonMatchFn) {
+        if (anyNativeOfferItemsOnNonContractOrders && nonMatchFn) {
             revert InvalidNativeOfferItem();
         }
 

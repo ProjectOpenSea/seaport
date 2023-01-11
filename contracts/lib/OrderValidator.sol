@@ -844,19 +844,6 @@ contract OrderValidator is Executor, ZoneInteraction {
     }
 
     /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
-        }
-    }
-
-    /**
      * @dev Internal pure function to either revert or return an empty tuple
      *      depending on the value of `revertOnInvalid`.
      *

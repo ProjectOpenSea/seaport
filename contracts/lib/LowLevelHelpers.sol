@@ -86,6 +86,19 @@ contract LowLevelHelpers {
     }
 
     /**
+     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
+     *
+     * @param b The `bool` value to cast.
+     *
+     * @return u The `uint256` value.
+     */
+    function _cast(bool b) internal pure returns (uint256 u) {
+        assembly {
+            u := b
+        }
+    }
+
+    /**
      * @dev Internal pure function to compare two addresses without first
      *      masking them. Note that dirty upper bits will cause otherwise equal
      *      addresses to be recognized as unequal.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Side, ItemType } from "./ConsiderationEnums.sol";
+import { Side, ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -172,9 +172,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         address recipient
     ) internal returns (bytes32[] memory orderHashes) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Declare an error buffer indicating status of any native offer items.
+        // Note that contract orders may still designate native offer items.
         // {00} == 0 => In a match function, no native offer items: allow.
         // {01} == 1 => In a match function, some native offer items: allow.
         // {10} == 2 => Not in a match function, no native offer items: allow.
@@ -183,20 +184,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Use assembly to set the value for the second bit of the error buffer.
         assembly {
-            // Use the second bit of the error buffer to indicate whether the
-            // current function is not matchAdvancedOrders or matchOrders.
-            invalidNativeOfferItemErrorBuffer := shl(
-                1,
-                gt(
-                    // Take the remainder of the selector modulo a magic value.
-                    mod(
-                        shr(NumBitsAfterSelector, calldataload(0)),
-                        NonMatchSelector_MagicModulus
-                    ),
-                    // Check if remainder is higher than the greatest remainder
-                    // of the two match selectors modulo the magic value.
-                    NonMatchSelector_MagicRemainder
-                )
+            /**
+             * Use the 248th bit of the error buffer to indicate whether the
+             * current function is not matchAdvancedOrders or matchOrders.
+             *
+             * sig                                func
+             * -----------------------------------------------------------------
+             * 10101000000101110100010 00 0000100 matchOrders
+             * 01010101100101000100101 00 1000010 matchAdvancedOrders
+             * 11101101100110001010010 10 1110100 fulfillAvailableOrders
+             * 10000111001000000001101 10 1000001 fulfillAvailableAdvancedOrders
+             *                         ^ 9th bit
+             */
+            invalidNativeOfferItemErrorBuffer := and(
+                NonMatchSelector_MagicMask,
+                calldataload(0)
             )
         }
 
@@ -277,19 +279,34 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
+                
+                {
+                    // Create a variable indicating if the order is not a
+                    // contract order. Cache in scratch space to avoid stack
+                    // depth errors.
+                    OrderType orderType = advancedOrder.parameters.orderType;
+                    assembly {
+                        let isNonContract := lt(orderType, 4)
+                        mstore(0, isNonContract)
+                    }
+                }
 
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < totalOfferItems; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
 
-                    assembly {
-                        // If the offer item is for the native token, set the
-                        // first bit of the error buffer to true.
-                        invalidNativeOfferItemErrorBuffer := or(
-                            invalidNativeOfferItemErrorBuffer,
-                            iszero(mload(offerItem))
-                        )
+                    {
+
+                        assembly {
+                            // If the offer item is for the native token and the
+                            // order type is not a contract order type, set the
+                            // first bit of the error buffer to true.
+                            invalidNativeOfferItemErrorBuffer := or(
+                                invalidNativeOfferItemErrorBuffer,
+                                lt(mload(offerItem), mload(0))
+                            )
+                        }
                     }
 
                     // Apply order fill fraction to offer item end amount.
@@ -410,7 +427,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == 3) {
+        if (invalidNativeOfferItemErrorBuffer == NonMatchSelector_InvalidErrorValue) {
             _revertInvalidNativeOfferItem();
         }
 
@@ -650,8 +667,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         bytes32[] memory orderHashes,
         address recipient
     ) internal returns (bool[] memory /* availableOrders */) {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Declare a variable for the available native token balance.
+        uint256 nativeTokenBalance;
 
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
@@ -677,14 +694,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
             // If execution transfers native tokens, reduce value available.
             if (item.itemType == ItemType.NATIVE) {
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > etherRemaining) {
-                    _revertInsufficientEtherSupplied();
+                // Get the current available balance of native tokens.
+                assembly {
+                    nativeTokenBalance := selfbalance()
                 }
 
-                // Skip underflow check as amount is less than ether remaining.
-                unchecked {
-                    etherRemaining -= item.amount;
+                // Ensure that sufficient native tokens are still available.
+                if (item.amount > nativeTokenBalance) {
+                    _revertInsufficientEtherSupplied();
                 }
             }
 
@@ -815,9 +832,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // If any ether remains after fulfillments, return it to the caller.
-        if (etherRemaining != 0) {
-            _transferEth(payable(msg.sender), etherRemaining);
+        // Determine whether any native token balance remains.
+        assembly {
+            nativeTokenBalance := selfbalance()
+        }
+
+        // Return any remaining native token balance to the caller.
+        if (nativeTokenBalance != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
         }
 
         // Clear the reentrancy guard.
