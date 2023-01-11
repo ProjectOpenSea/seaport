@@ -426,13 +426,13 @@ uint256 constant Signature_lower_v = 27;
 
 // Bitmask that only gives a non-zero value if masked with a non-match selector.
 uint256 constant NonMatchSelector_MagicMask = (
-    0x0100000000000000000000000000000000000000000000000000000000000000
+    0x4000000000000000000000000000000000000000000000000000000000
 );
 
-// First bit indicates that a NATIVE offer items has been used and the 248th bit
+// First bit indicates that a NATIVE offer items has been used and the 231th bit
 // indicates that a non match selector has been called.
 uint256 constant NonMatchSelector_InvalidErrorValue = (
-    0x0100000000000000000000000000000000000000000000000000000000000001
+    0x4000000000000000000000000000000000000000000000000000000001
 );
 
 uint256 constant IsValidOrder_signature = (
