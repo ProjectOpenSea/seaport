@@ -1301,19 +1301,4 @@ contract ConsiderationDecoder {
             mstore(add(receivedItem, ReceivedItem_recipient_offset), recipient)
         }
     }
-
-    /**
-     * @dev Returns an empty CriteriaResolver[] array.
-     *
-     * @return criteriaResolvers The empty CriteriaResolver[] array.
-     */
-    function _getEmptyCriteriaResolvers()
-        internal
-        pure
-        returns (CriteriaResolver[] memory criteriaResolvers)
-    {
-        assembly {
-            criteriaResolvers := ZeroSlot
-        }
-    }
 }
