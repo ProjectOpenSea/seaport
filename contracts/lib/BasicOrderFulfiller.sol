@@ -166,7 +166,7 @@ contract BasicOrderFulfiller is OrderValidator {
             conduitKey := calldataload(
                 add(
                     BasicOrder_offererConduit_cdPtr,
-                    mul(offerTypeIsAdditionalRecipientsType, OneWord)
+                    shl(OneWordShift, offerTypeIsAdditionalRecipientsType)
                 )
             )
         }
@@ -420,7 +420,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 // array.
                 let eventConsiderationArrPtr := add(
                     OrderFulfilled_consideration_length_baseOffset,
-                    mul(totalAdditionalRecipients, OneWord)
+                    shl(OneWordShift, totalAdditionalRecipients)
                 )
 
                 // Set the length of the consideration array to the number of
@@ -578,7 +578,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     receivedItemsHash_ptr,
                     keccak256(
                         BasicOrder_considerationHashesArray_ptr,
-                        mul(add(totalAdditionalRecipients, 1), OneWord)
+                        shl(OneWordShift, add(totalAdditionalRecipients, 1))
                     )
                 )
 
@@ -705,11 +705,11 @@ contract BasicOrderFulfiller is OrderValidator {
                  */
                 let eventConsiderationArrPtr := add(
                     OrderFulfilled_offer_length_baseOffset,
-                    mul(
+                    shl(
+                        OneWordShift,
                         calldataload(
                             BasicOrder_additionalRecipients_length_cdPtr
-                        ),
-                        OneWord
+                        )
                     )
                 )
 
@@ -834,9 +834,9 @@ contract BasicOrderFulfiller is OrderValidator {
             // Derive pointer to start of OrderFulfilled event data
             let eventDataPtr := add(
                 OrderFulfilled_baseOffset,
-                mul(
-                    calldataload(BasicOrder_additionalRecipients_length_cdPtr),
-                    OneWord
+                shl(
+                    OneWordShift,
+                    calldataload(BasicOrder_additionalRecipients_length_cdPtr)
                 )
             )
 
@@ -923,9 +923,9 @@ contract BasicOrderFulfiller is OrderValidator {
         // Retrieve total size of additional recipients data and place on stack.
         uint256 totalAdditionalRecipientsDataSize;
         assembly {
-            totalAdditionalRecipientsDataSize := mul(
-                calldataload(BasicOrder_additionalRecipients_length_cdPtr),
-                AdditionalRecipient_size
+            totalAdditionalRecipientsDataSize := shl(
+                AdditionalRecipient_size_shift,
+                calldataload(BasicOrder_additionalRecipients_length_cdPtr)
             )
         }
 
@@ -1058,7 +1058,7 @@ contract BasicOrderFulfiller is OrderValidator {
             conduitKey := calldataload(
                 sub(
                     BasicOrder_fulfillerConduit_cdPtr,
-                    mul(fromOfferer, OneWord)
+                    shl(OneWordShift, fromOfferer)
                 )
             )
         }
@@ -1066,9 +1066,9 @@ contract BasicOrderFulfiller is OrderValidator {
         // Retrieve total size of additional recipients data and place on stack.
         uint256 totalAdditionalRecipientsDataSize;
         assembly {
-            totalAdditionalRecipientsDataSize := mul(
-                calldataload(BasicOrder_additionalRecipients_length_cdPtr),
-                AdditionalRecipient_size
+            totalAdditionalRecipientsDataSize := shl(
+                AdditionalRecipient_size_shift,
+                calldataload(BasicOrder_additionalRecipients_length_cdPtr)
             )
         }
 

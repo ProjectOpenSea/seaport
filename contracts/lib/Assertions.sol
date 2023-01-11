@@ -145,13 +145,13 @@ contract Assertions is
                     // Derive expected offset as start of recipients + len * 64.
                     add(
                         BasicOrder_signature_ptr,
-                        mul(
+                        shl(
+                            // Each additional recipient has a length of 0x40.
+                            AdditionalRecipient_size_shift,
                             // Additional recipients length at calldata 0x264.
                             calldataload(
                                 BasicOrder_additionalRecipients_length_cdPtr
-                            ),
-                            // Each additional recipient has a length of 0x40.
-                            AdditionalRecipient_size
+                            )
                         )
                     )
                 )

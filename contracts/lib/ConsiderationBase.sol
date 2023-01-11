@@ -103,17 +103,17 @@ contract ConsiderationBase is
 
             // Place typehash, name hash, and version hash at start of memory.
             mstore(0, typehash)
-            mstore(OneWord, nameHash)
-            mstore(TwoWords, versionHash)
+            mstore(EIP712_domainData_nameHash_offset, nameHash)
+            mstore(EIP712_domainData_versionHash_offset, versionHash)
 
             // Place chainId in the next memory location.
-            mstore(ThreeWords, chainid())
+            mstore(EIP712_domainData_chainId_offset, chainid())
 
             // Place the address of this contract in the next memory location.
-            mstore(FourWords, address())
+            mstore(EIP712_domainData_verifyingContract_offset, address())
 
             // Hash relevant region of memory to derive the domain separator.
-            domainSeparator := keccak256(0, FiveWords)
+            domainSeparator := keccak256(0, EIP712_domainData_size)
 
             // Restore the free memory pointer.
             mstore(FreeMemoryPointerSlot, freeMemoryPointer)
@@ -272,8 +272,8 @@ contract ConsiderationBase is
     ) internal view returns (bytes32 typeHash) {
         TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
         assembly {
-            let typeHashOffset := add(1, mul(sub(treeHeight, 1), 0x20))
-            extcodecopy(directory, 0, typeHashOffset, 0x20)
+            let typeHashOffset := add(1, shl(OneWordShift, sub(treeHeight, 1)))
+            extcodecopy(directory, 0, typeHashOffset, OneWord)
             typeHash := mload(0)
         }
     }

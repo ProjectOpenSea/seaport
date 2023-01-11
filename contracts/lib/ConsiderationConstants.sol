@@ -65,8 +65,10 @@ uint256 constant Common_amount_offset = 0x60;
 uint256 constant Common_endAmount_offset = 0x80;
 
 uint256 constant SpentItem_size = 0x80;
+uint256 constant SpentItem_size_shift = 7;
 
 uint256 constant OfferItem_size = 0xa0;
+uint256 constant OfferItem_size_with_length = 0xc0;
 
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
@@ -75,6 +77,8 @@ uint256 constant ReceivedItem_recipient_offset = 0x80;
 uint256 constant ReceivedItem_CommonParams_size = 0x60;
 
 uint256 constant ConsiderationItem_size = 0xc0;
+uint256 constant ConsiderationItem_size_with_length = 0xe0;
+
 uint256 constant ConsiderationItem_recipient_offset = 0xa0;
 // Store the same constant in an abbreviated format for a line length fix.
 uint256 constant ConsiderItem_recipient_offset = 0xa0;
@@ -116,6 +120,9 @@ uint256 constant ThreeWords = 0x60;
 uint256 constant FourWords = 0x80;
 uint256 constant FiveWords = 0xa0;
 
+uint256 constant OneWordShift = 5;
+uint256 constant TwoWordsShift = 6;
+
 uint256 constant AlmostTwoWords = 0x3f;
 uint256 constant OnlyFullWordMask = 0xffffffe0;
 
@@ -141,10 +148,17 @@ uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipient_size = 0x40;
+uint256 constant AdditionalRecipient_size_shift = 6;
 
 uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
 uint256 constant EIP712_DigestPayload_size = 0x42;
+
+uint256 constant EIP712_domainData_nameHash_offset = 0x20;
+uint256 constant EIP712_domainData_versionHash_offset = 0x40;
+uint256 constant EIP712_domainData_chainId_offset = 0x60;
+uint256 constant EIP712_domainData_verifyingContract_offset = 0x80;
+uint256 constant EIP712_domainData_size = 0xa0;
 
 // Minimum BulkOrder proof size: 64 bytes for signature + 3 for key + 32 for 1
 // sibling. Maximum BulkOrder proof size: 65 bytes for signature + 3 for key +
@@ -348,7 +362,7 @@ uint256 constant EIP_712_PREFIX = (
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficient = 0x200; // 512
+uint256 constant MemoryExpansionCoefficientShift = 9;
 
 uint256 constant Create2AddressDerivation_ptr = 0x0b;
 uint256 constant Create2AddressDerivation_length = 0x55;
@@ -1011,6 +1025,7 @@ uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
 uint256 constant CriteriaResolver_criteriaProof_offset = 0x80;
 
 uint256 constant FulfillmentComponent_mem_tail_size = 0x40;
+uint256 constant FulfillmentComponent_mem_tail_size_shift = 6;
 uint256 constant Fulfillment_head_size = 0x40;
 uint256 constant Fulfillment_considerationComponents_offset = 0x20;
 

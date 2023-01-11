@@ -38,6 +38,9 @@ uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 
+uint256 constant OneWordShift = 5;
+uint256 constant TwoWordsShift = 6;
+
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
 uint256 constant DefaultFreeMemoryPointer = 0x80;
@@ -127,7 +130,7 @@ uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficient = 0x200;
+uint256 constant MemoryExpansionCoefficientShift = 9;
 
 // Values are offset by 32 bytes in order to write the token to the beginning
 // in the event of a revert

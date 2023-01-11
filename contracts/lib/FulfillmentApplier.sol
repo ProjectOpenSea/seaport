@@ -247,7 +247,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Get position one word past last element in head of array.
                 let endPtr := add(
                     offerComponents,
-                    mul(mload(offerComponents), OneWord)
+                    shl(OneWordShift, mload(offerComponents))
                 )
             } lt(fulfillmentHeadPtr, endPtr) {
 
@@ -266,7 +266,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Read advancedOrders[orderIndex] pointer from its array head.
                 let orderPtr := mload(
                     // Calculate head position of advancedOrders[orderIndex].
-                    add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
+                    add(
+                        add(advancedOrders, OneWord),
+                        shl(OneWordShift, orderIndex)
+                    )
                 )
 
                 // Read the pointer to OrderParameters from the AdvancedOrder.
@@ -301,7 +304,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                             // Get pointer to beginning of receivedItem.
                             add(offerArrPtr, OneWord),
                             // Calculate offset to pointer for desired order.
-                            mul(itemIndex, OneWord)
+                            shl(OneWordShift, itemIndex)
                         )
                     )
                 }
@@ -512,7 +515,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Get position one word past last element in head of array.
                 let endPtr := add(
                     considerationComponents,
-                    mul(mload(considerationComponents), OneWord)
+                    shl(OneWordShift, mload(considerationComponents))
                 )
             } lt(fulfillmentHeadPtr, endPtr) {
 
@@ -531,7 +534,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Read advancedOrders[orderIndex] pointer from its array head.
                 let orderPtr := mload(
                     // Calculate head position of advancedOrders[orderIndex].
-                    add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
+                    add(
+                        add(advancedOrders, OneWord),
+                        shl(OneWordShift, orderIndex)
+                    )
                 )
 
                 // Retrieve item index using an offset of fulfillment pointer.
@@ -567,7 +573,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                             // Get pointer to beginning of receivedItem.
                             add(considerationArrPtr, OneWord),
                             // Calculate offset to pointer for desired order.
-                            mul(itemIndex, OneWord)
+                            shl(OneWordShift, itemIndex)
                         )
                     )
                 }
