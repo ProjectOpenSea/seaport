@@ -194,9 +194,13 @@ contract ReferenceOrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
-                // Offer items for the native token can not be received
-                // outside of a match order function.
-                if (offerItem.itemType == ItemType.NATIVE) {
+
+                // Offer items for the native token can not be received outside
+                // of a match order function except as part of a contract order.
+                if (
+                    offerItem.itemType == ItemType.NATIVE &&
+                    orderParameters.orderType != OrderType.CONTRACT
+                ) {
                     revert InvalidNativeOfferItem();
                 }
 

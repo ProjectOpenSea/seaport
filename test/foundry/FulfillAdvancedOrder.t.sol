@@ -144,7 +144,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
 
         vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
-        context.consideration.fulfillAdvancedOrder(
+        context.consideration.fulfillAdvancedOrder{ value: 1 ether }(
             AdvancedOrder(baseOrderParameters, 1, 1, signature, ""),
             new CriteriaResolver[](0),
             bytes32(0),

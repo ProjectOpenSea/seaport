@@ -24,6 +24,7 @@ struct ConsiderationItemIndicesAndValidity {
     uint256 orderIndex;
     uint256 itemIndex;
     bool invalidFulfillment;
+    bool missingItemAmount;
 }
 
 /**

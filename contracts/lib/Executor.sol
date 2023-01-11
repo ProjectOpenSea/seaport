@@ -62,7 +62,7 @@ contract Executor is Verifiers, TokenTransferrer {
             }
 
             // transfer the native tokens to the recipient.
-            _transferEth(item.recipient, item.amount);
+            _transferNativeTokens(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
             // Ensure that no identifier is supplied.
             if (item.identifier != 0) {
@@ -226,7 +226,10 @@ contract Executor is Verifiers, TokenTransferrer {
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
      */
-    function _transferEth(address payable to, uint256 amount) internal {
+    function _transferNativeTokens(
+        address payable to,
+        uint256 amount
+    ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 

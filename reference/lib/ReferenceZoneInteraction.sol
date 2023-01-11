@@ -71,6 +71,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
             );
 
         // Order type 2-3 require zone or offerer be caller or zone to approve.
+        // Note that in cases where fulfiller == zone, the restricted order
+        // validation will be skipped.
         if (
             (orderType == OrderType.FULL_RESTRICTED ||
                 orderType == OrderType.PARTIAL_RESTRICTED) &&

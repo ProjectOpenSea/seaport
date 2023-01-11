@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "./ConsiderationEnums.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -79,7 +79,7 @@ contract OrderFulfiller is
         address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Validate order, update status, and determine fraction to fill.
         (
@@ -195,16 +195,23 @@ contract OrderFulfiller is
             // Read offer array length from memory and place on stack.
             uint256 totalOfferItems = orderParameters.offer.length;
 
+            // Create a variable to indicate whether the order has any
+            // native offer items
+            uint256 anyNativeItems;
+
             // Iterate over each offer on the order.
             // Skip overflow check as for loop is indexed starting at zero.
             for (uint256 i = 0; i < totalOfferItems; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // Offer items for the native token can not be received
-                // outside of a match order function.
-                if (offerItem.itemType == ItemType.NATIVE) {
-                    _revertInvalidNativeOfferItem();
+                // Offer items for the native token can not be received outside
+                // of a match order function except as part of a contract order.
+                {
+                    ItemType itemType = offerItem.itemType;
+                    assembly {
+                        anyNativeItems := or(anyNativeItems, iszero(itemType))
+                    }
                 }
 
                 // Declare an additional nested scope to minimize stack depth.
@@ -244,10 +251,25 @@ contract OrderFulfiller is
                     accumulator
                 );
             }
+
+            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            {
+                OrderType orderType = orderParameters.orderType;
+                uint256 invalidNativeOfferItem;
+                assembly {
+                    invalidNativeOfferItem := and(
+                        lt(orderType, 4),
+                        anyNativeItems
+                    )
+                }
+                if (invalidNativeOfferItem != 0) {
+                    _revertInvalidNativeOfferItem();
+                }
+            }
         }
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Declare a variable for the available native token balance.
+        uint256 nativeTokenBalance;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
@@ -312,13 +334,15 @@ contract OrderFulfiller is
 
                 // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        _revertInsufficientEtherSupplied();
+                    // Get the current available balance of native tokens.
+                    assembly {
+                        nativeTokenBalance := selfbalance()
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    etherRemaining -= amount;
+                    // Ensure that sufficient native tokens are still available.
+                    if (amount > nativeTokenBalance) {
+                        _revertInsufficientEtherSupplied();
+                    }
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -334,10 +358,14 @@ contract OrderFulfiller is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // If any ether remains after fulfillments...
-        if (etherRemaining != 0) {
-            // return it to the caller.
-            _transferEth(payable(msg.sender), etherRemaining);
+        // Determine whether any native token balance remains.
+        assembly {
+            nativeTokenBalance := selfbalance()
+        }
+
+        // Return any remaining native token balance to the caller.
+        if (nativeTokenBalance != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
         }
     }
 

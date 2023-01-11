@@ -663,6 +663,12 @@ contract OrderValidator is Executor, ZoneInteraction {
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
+
+                // Skip contract orders.
+                if (order.orderType == OrderType.CONTRACT) {
+                    continue;
+                }
+
                 address offerer = order.offerer;
                 address zone = order.zone;
 
@@ -835,19 +841,6 @@ contract OrderValidator is Executor, ZoneInteraction {
             orderStatus.numerator,
             orderStatus.denominator
         );
-    }
-
-    /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
-        }
     }
 
     /**
