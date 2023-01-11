@@ -79,7 +79,10 @@ contract OrderFulfiller is
         address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard(true); // Native tokens accepted during execution.
+        _setReentrancyGuard(
+            // Native tokens accepted during execution for contract order types.
+            advancedOrder.parameters.orderType == OrderType.CONTRACT
+        );
 
         // Validate order, update status, and determine fraction to fill.
         (
