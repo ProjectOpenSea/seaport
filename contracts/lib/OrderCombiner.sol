@@ -279,7 +279,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Read length of offer array and place on the stack.
                 uint256 totalOfferItems = offer.length;
-                
+
                 {
                     // Create a variable indicating if the order is not a
                     // contract order. Cache in scratch space to avoid stack
@@ -297,7 +297,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     OfferItem memory offerItem = offer[j];
 
                     {
-
                         assembly {
                             // If the offer item is for the native token and the
                             // order type is not a contract order type, set the
@@ -427,7 +426,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // second bit is set in the error buffer, the current function is not
         // matchOrders or matchAdvancedOrders. If the value is three, both the
         // first and second bits were set; in that case, revert with an error.
-        if (invalidNativeOfferItemErrorBuffer == NonMatchSelector_InvalidErrorValue) {
+        if (
+            invalidNativeOfferItemErrorBuffer ==
+            NonMatchSelector_InvalidErrorValue
+        ) {
             _revertInvalidNativeOfferItem();
         }
 
@@ -848,6 +850,35 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     }
 
     /**
+     * @dev Internal function to emit an OrdersMatched event
+     * using the same memory region as the existing order hash
+     * array.
+     */
+    function _emitOrdersMatched(bytes32[] memory orderHashes) internal {
+        // Get topic0 for the OrdersMatched event.
+        bytes32 topic0 = OrdersMatched.selector;
+
+        assembly {
+            // Load the array length from memory
+            let length := mload(orderHashes)
+            // Get the full size of the event data - one word for
+            // the offset, one for the array length and one per hash.
+            let dataSize := add(TwoWords, mul(OneWord, length))
+            // Get pointer to start of data, reusing word before array
+            // length for the offset.
+            let dataPointer := sub(orderHashes, OneWord)
+            // Cache the existing word in memory at the offset pointer.
+            let cache := mload(dataPointer)
+            // Write an offset of 32
+            mstore(dataPointer, OneWord)
+            // Emit the OrdersMatched event
+            log1(dataPointer, dataSize, topic0)
+            // Restore the cached word
+            mstore(dataPointer, cache)
+        }
+    }
+
+    /**
      * @dev Internal function to match an arbitrary number of full or partial
      *      orders, each with an arbitrary number of items for offer and
      *      consideration, supplying criteria resolvers containing specific
@@ -900,8 +931,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             recipient
         );
 
-        // Emit OrdersMatched event.
-        emit OrdersMatched(orderHashes);
+        // Emit orders matched event
+        _emitOrdersMatched(orderHashes);
 
         // Fulfill the orders using the supplied fulfillments.
         return
