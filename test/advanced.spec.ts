@@ -3417,14 +3417,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
@@ -3988,22 +3980,14 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions,
-        criteriaResolvers
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions,
+        criteriaResolvers
       );
       return receipt;
     });
@@ -4086,22 +4070,14 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions,
-        criteriaResolvers
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions,
+        criteriaResolvers
       );
       return receipt;
     });
@@ -4188,22 +4164,14 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions,
-        criteriaResolvers
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions,
+        criteriaResolvers
       );
       return receipt;
     });
@@ -4518,22 +4486,14 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions,
-        criteriaResolvers
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions,
+        criteriaResolvers
       );
       return receipt;
     });
@@ -4635,23 +4595,28 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash,
             fulfiller: owner.address,
           },
-        ],
-        executions,
-        criteriaResolvers
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions,
+        criteriaResolvers
       );
+
+      // await checkExpectedEvents(
+      //   tx,
+      //   receipt,
+      //   [
+      //     {
+      //       order: mirrorOrder,
+      //       orderHash: mirrorOrderHash,
+      //       fulfiller: owner.address,
+      //     },
+      //   ],
+      //   executions
+      // );
       return receipt;
     });
     it("Criteria-based offer item with junk criteria proof", async () => {
@@ -5221,6 +5186,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           }
         );
       const receipt = await (await tx).wait();
+
       await checkExpectedEvents(
         tx,
         receipt,
@@ -5230,26 +5196,11 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             orderHash: orderHashOne,
             fulfiller: owner.address,
           },
-        ],
-        executions
-      );
-
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: orderTwo,
             orderHash: orderHashTwo,
             fulfiller: owner.address,
           },
-        ],
-        executions
-      );
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
           {
             order: orderThree,
             orderHash: orderHashThree,
