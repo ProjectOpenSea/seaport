@@ -472,6 +472,18 @@ export const seaportFixture = async (owner: Wallet) => {
       }
     }
 
+    const txMethod = (await tx).data.slice(0, 10);
+    const matchMethods = [
+      marketplaceContract.interface.getSighash("matchOrders"),
+      marketplaceContract.interface.getSighash("matchAdvancedOrders"),
+    ];
+    const isMatchMethod = matchMethods.includes(txMethod);
+    if (isMatchMethod) {
+      await expect(Promise.resolve(tx))
+        .to.emit(marketplaceContract, "OrdersMatched")
+        .withArgs(orderGroups.map((o) => o.orderHash));
+    }
+
     for (let {
       order,
       orderHash,
