@@ -663,6 +663,12 @@ contract OrderValidator is Executor, ZoneInteraction {
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
+
+                // Skip contract orders.
+                if (order.orderType == OrderType.CONTRACT) {
+                    continue;
+                }
+
                 address offerer = order.offerer;
                 address zone = order.zone;
 

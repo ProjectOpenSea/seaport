@@ -99,16 +99,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // necessary. Start by computing the word size
                                 // of returndata and allocated memory. Round up
                                 // to the nearest full word.
-                                let returnDataWords := div(
-                                    add(returndatasize(), AlmostOneWord),
-                                    OneWord
+                                let returnDataWords := shr(
+                                    OneWordShift,
+                                    add(returndatasize(), AlmostOneWord)
                                 )
 
                                 // Note: use the free memory pointer in place of
                                 // msize() to work around a Yul warning that
                                 // prevents accessing msize directly when the IR
                                 // pipeline is activated.
-                                let msizeWords := div(memPointer, OneWord)
+                                let msizeWords := shr(OneWordShift, memPointer)
 
                                 // Next, compute the cost of the returndatacopy.
                                 let cost := mul(CostPerWord, returnDataWords)
@@ -125,15 +125,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                                 ),
                                                 CostPerWord
                                             ),
-                                            div(
+                                            shr(
+                                                MemoryExpansionCoefficientShift,
                                                 sub(
                                                     mul(
                                                         returnDataWords,
                                                         returnDataWords
                                                     ),
                                                     mul(msizeWords, msizeWords)
-                                                ),
-                                                MemoryExpansionCoefficient
+                                                )
                                             )
                                         )
                                     )
@@ -312,15 +312,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := div(
-                        add(returndatasize(), AlmostOneWord),
-                        OneWord
+                    let returnDataWords := shr(
+                        OneWordShift,
+                        add(returndatasize(), AlmostOneWord)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(memPointer, OneWord)
+                    let msizeWords := shr(OneWordShift, memPointer)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -334,12 +334,12 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                     sub(returnDataWords, msizeWords),
                                     CostPerWord
                                 ),
-                                div(
+                                shr(
+                                    MemoryExpansionCoefficientShift,
                                     sub(
                                         mul(returnDataWords, returnDataWords),
                                         mul(msizeWords, msizeWords)
-                                    ),
-                                    MemoryExpansionCoefficient
+                                    )
                                 )
                             )
                         )
@@ -464,15 +464,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := div(
-                        add(returndatasize(), AlmostOneWord),
-                        OneWord
+                    let returnDataWords := shr(
+                        OneWordShift,
+                        add(returndatasize(), AlmostOneWord)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(memPointer, OneWord)
+                    let msizeWords := shr(OneWordShift, memPointer)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -486,12 +486,12 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                     sub(returnDataWords, msizeWords),
                                     CostPerWord
                                 ),
-                                div(
+                                shr(
+                                    MemoryExpansionCoefficientShift,
                                     sub(
                                         mul(returnDataWords, returnDataWords),
                                         mul(msizeWords, msizeWords)
-                                    ),
-                                    MemoryExpansionCoefficient
+                                    )
                                 )
                             )
                         )
@@ -623,7 +623,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // Determine the expected offset for the amounts array.
                 let expectedAmountsOffset := add(
                     ConduitBatch1155Transfer_amounts_length_baseOffset,
-                    mul(idsLength, OneWord)
+                    shl(OneWordShift, idsLength)
                 )
 
                 // Validate struct encoding.
@@ -683,7 +683,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Determine size of calldata required for ids and amounts. Note
                 // that the size includes both lengths as well as the data.
-                let idsAndAmountsSize := add(TwoWords, mul(idsLength, TwoWords))
+                let idsAndAmountsSize := add(
+                    TwoWords,
+                    shl(TwoWordsShift, idsLength)
+                )
 
                 // Update the offset for the data array in memory.
                 mstore(
@@ -736,9 +739,9 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // returndata while expanding memory where necessary.
                         // Start by computing word size of returndata and
                         // allocated memory. Round up to the nearest full word.
-                        let returnDataWords := div(
-                            add(returndatasize(), AlmostOneWord),
-                            OneWord
+                        let returnDataWords := shr(
+                            OneWordShift,
+                            add(returndatasize(), AlmostOneWord)
                         )
 
                         // Note: use transferDataSize in place of msize() to
@@ -749,7 +752,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // manually and does not update it, and transferDataSize
                         // should be the largest memory value used (unless a
                         // previous batch was larger).
-                        let msizeWords := div(transferDataSize, OneWord)
+                        let msizeWords := shr(OneWordShift, transferDataSize)
 
                         // Next, compute the cost of the returndatacopy.
                         let cost := mul(CostPerWord, returnDataWords)
@@ -763,15 +766,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                         sub(returnDataWords, msizeWords),
                                         CostPerWord
                                     ),
-                                    div(
+                                    shr(
+                                        MemoryExpansionCoefficientShift,
                                         sub(
                                             mul(
                                                 returnDataWords,
                                                 returnDataWords
                                             ),
                                             mul(msizeWords, msizeWords)
-                                        ),
-                                        MemoryExpansionCoefficient
+                                        )
                                     )
                                 )
                             )

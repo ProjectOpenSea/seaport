@@ -104,7 +104,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // Derive the offer hash using the hashes of each item.
             offerHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(offerLength, OneWord)
+                shl(OneWordShift, offerLength)
             )
         }
 
@@ -162,7 +162,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // Derive the consideration hash using the hashes of each item.
             considerationHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, OneWord)
+                shl(OneWordShift, originalConsiderationLength)
             )
         }
 

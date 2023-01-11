@@ -17,6 +17,12 @@ contract TypehashDirectory {
     // Dictates maximum bulk order group size; 24 => 2^24 => 16,777,216 orders.
     uint256 internal constant MaxTreeHeight = 24;
 
+    uint256 internal constant InvalidOpcode = 0xfe;
+    uint256 internal constant OneWord = 0x20;
+    uint256 internal constant OneWordShift = 5;
+    uint256 internal constant AlmostOneWord = 0x1f;
+    uint256 internal constant FreeMemoryPointerSlot = 0x40;
+
     /**
      * @dev Derive 24 bulk order EIP-712 typehashes, one for each supported
      *      tree height from 1 to 24, and write them to runtime code.
@@ -35,7 +41,7 @@ contract TypehashDirectory {
         // full string size on each loop.
         uint256 freeMemoryPointer;
         assembly {
-            freeMemoryPointer := mload(0x40)
+            freeMemoryPointer := mload(FreeMemoryPointerSlot)
         }
 
         // Iterate over each tree height.
@@ -45,7 +51,7 @@ contract TypehashDirectory {
 
             // Slice brackets length to size needed for `height`.
             assembly {
-                mstore(brackets, mul(3, height))
+                mstore(brackets, mul(twoSubstringLength, height))
             }
 
             // Encode the type string for the BulkOrder struct.
@@ -62,7 +68,7 @@ contract TypehashDirectory {
 
             // Reset the free memory pointer.
             assembly {
-                mstore(0x40, freeMemoryPointer)
+                mstore(FreeMemoryPointerSlot, freeMemoryPointer)
             }
 
             unchecked {
@@ -73,8 +79,12 @@ contract TypehashDirectory {
         assembly {
             // Overwrite length with zero to give the contract an INVALID prefix
             // and deploy the type hashes array as a contract.
-            mstore(typeHashes, 0xfe)
-            return(add(typeHashes, 0x1f), add(mul(MaxTreeHeight, 0x20), 1))
+            mstore(typeHashes, InvalidOpcode)
+
+            return(
+                add(typeHashes, AlmostOneWord),
+                add(shl(OneWordShift, MaxTreeHeight), 1)
+            )
         }
     }
 
@@ -92,7 +102,7 @@ contract TypehashDirectory {
         bytes memory suffixes = new bytes(twoSubstringLength * maxHeight);
         assembly {
             // Retrieve the pointer to the array head.
-            let ptr := add(suffixes, 0x20)
+            let ptr := add(suffixes, OneWord)
 
             // Derive the terminal pointer.
             let endPtr := add(ptr, mul(maxHeight, twoSubstringLength))

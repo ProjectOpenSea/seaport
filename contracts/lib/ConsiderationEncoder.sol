@@ -608,7 +608,7 @@ contract ConsiderationEncoder {
             let cdPtrData := add(dstLength, OneWord)
 
             // Pointer to end of array head in memory.
-            let mPtrHeadEnd := add(mPtrHead, mul(length, OneWord))
+            let mPtrHeadEnd := add(mPtrHead, shl(OneWordShift, length))
 
             for {
 
@@ -637,7 +637,7 @@ contract ConsiderationEncoder {
                 cdPtrData := add(cdPtrData, SpentItem_size)
             }
 
-            size := add(OneWord, mul(length, SpentItem_size))
+            size := add(OneWord, shl(SpentItem_size_shift, length))
         }
     }
 
