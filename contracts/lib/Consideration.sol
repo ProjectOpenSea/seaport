@@ -123,7 +123,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
             _toAdvancedOrderReturnType(_decodeOrderAsAdvancedOrder)(
                 CalldataStart.pptr()
             ),
-            _getEmptyCriteriaResolvers(),
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey,
             msg.sender
         );
@@ -252,7 +252,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
                     CalldataStart.pptr()
                 ), // Convert to advanced orders.
-                _getEmptyCriteriaResolvers(),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
                 _toNestedFulfillmentComponentsReturnType(
                     _decodeNestedFulfillmentComponents
                 )(CalldataStart.pptr(0x20)),
@@ -405,7 +405,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
                     CalldataStart.pptr()
                 ),
-                _getEmptyCriteriaResolvers(),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
                 _toFulfillmentsReturnType(_decodeFulfillments)(
                     CalldataStart.pptr(0x20)
                 ),
