@@ -852,6 +852,40 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     }
 
     /**
+     * @dev Internal function to emit an OrdersMatched event using the same
+     *      memory region as the existing order hash array.
+     *
+     * @param orderHashes An array of order hashes to include as an argument for
+     *                    the OrdersMatched event.
+     */
+    function _emitOrdersMatched(bytes32[] memory orderHashes) internal {
+        assembly {
+            // Load the array length from memory.
+            let length := mload(orderHashes)
+
+            // Get the full size of the event data - one word for the offset,
+            // one for the array length and one per hash.
+            let dataSize := add(TwoWords, shl(OneWordShift, length))
+
+            // Get pointer to start of data, reusing word before array length
+            // for the offset.
+            let dataPointer := sub(orderHashes, OneWord)
+
+            // Cache the existing word in memory at the offset pointer.
+            let cache := mload(dataPointer)
+
+            // Write an offset of 32.
+            mstore(dataPointer, OneWord)
+
+            // Emit the OrdersMatched event.
+            log1(dataPointer, dataSize, OrdersMatchedTopic0)
+
+            // Restore the cached word.
+            mstore(dataPointer, cache)
+        }
+    }
+
+    /**
      * @dev Internal function to match an arbitrary number of full or partial
      *      orders, each with an arbitrary number of items for offer and
      *      consideration, supplying criteria resolvers containing specific
@@ -904,10 +938,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             recipient
         );
 
-        // Emit OrdersMatched event.
-        emit OrdersMatched(orderHashes);
+        // Emit OrdersMatched event, providing an array of matched order hashes.
+        _emitOrdersMatched(orderHashes);
 
-        // Fulfill the orders using the supplied fulfillments.
+        // Fulfill the orders using the supplied fulfillments and recipient.
         return
             _fulfillAdvancedOrders(
                 advancedOrders,

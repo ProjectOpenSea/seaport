@@ -125,7 +125,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",

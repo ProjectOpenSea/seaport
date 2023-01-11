@@ -144,6 +144,8 @@ uint256 constant BasicOrder_offeredItemByteMap = (
     0x0203020301010000000000000000000000000000000000000000000000000000
 );
 
+bytes32 constant OrdersMatchedTopic0 = 0x4b9f2d36e1b4c93de62cc077b00b1a91d84b6c31b4a14e012718dcca230689e7;
+
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
