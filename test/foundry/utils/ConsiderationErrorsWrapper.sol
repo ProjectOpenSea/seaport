@@ -7,7 +7,7 @@ contract ConsiderationErrorsWrapper {
     /**
      * @dev Reverts the current transaction with a "BadFraction" error message.
      */
-    function __revertBadFraction() public pure {
+    function __revertBadFraction() external pure {
         _revertBadFraction();
     }
 
@@ -27,7 +27,7 @@ contract ConsiderationErrorsWrapper {
         uint256 orderIndex,
         uint256 considerationIndex,
         uint256 shortfallAmount
-    ) public pure {
+    ) external pure {
         _revertConsiderationNotMet(
             orderIndex,
             considerationIndex,
@@ -39,7 +39,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem" error
      *      message.
      */
-    function __revertCriteriaNotEnabledForItem() public pure {
+    function __revertCriteriaNotEnabledForItem() external pure {
         _revertCriteriaNotEnabledForItem();
     }
 
@@ -47,7 +47,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts the current transaction with an "InsufficientEtherSupplied"
      *      error message.
      */
-    function __revertInsufficientEtherSupplied() public pure {
+    function __revertInsufficientEtherSupplied() external pure {
         _revertInsufficientEtherSupplied();
     }
 
@@ -55,7 +55,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts the current transaction with an
      *      "InvalidBasicOrderParameterEncoding" error message.
      */
-    function __revertInvalidBasicOrderParameterEncoding() public pure {
+    function __revertInvalidBasicOrderParameterEncoding() external pure {
         _revertInvalidBasicOrderParameterEncoding();
     }
 
@@ -66,7 +66,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param conduit The address of the conduit that was called improperly.
      */
-    function __revertInvalidCallToConduit(address conduit) public pure {
+    function __revertInvalidCallToConduit(address conduit) external pure {
         _revertInvalidCallToConduit(conduit);
     }
 
@@ -74,7 +74,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts the current transaction with an "InvalidCanceller" error
      *      message.
      */
-    function __revertInvalidCanceller() public pure {
+    function __revertInvalidCanceller() external pure {
         _revertInvalidCanceller();
     }
 
@@ -88,7 +88,7 @@ contract ConsiderationErrorsWrapper {
     function __revertInvalidConduit(
         bytes32 conduitKey,
         address conduit
-    ) public pure {
+    ) external pure {
         _revertInvalidConduit(conduitKey, conduit);
     }
 
@@ -98,7 +98,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param amount The invalid amount.
      */
-    function __revertInvalidERC721TransferAmount(uint256 amount) public pure {
+    function __revertInvalidERC721TransferAmount(uint256 amount) external pure {
         _revertInvalidERC721TransferAmount(amount);
     }
 
@@ -110,7 +110,7 @@ contract ConsiderationErrorsWrapper {
      * @param value The invalid value that was sent in the transaction's `msg.value`
      *              field.
      */
-    function __revertInvalidMsgValue(uint256 value) public pure {
+    function __revertInvalidMsgValue(uint256 value) external pure {
         _revertInvalidMsgValue(value);
     }
 
@@ -118,14 +118,14 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts the current transaction with an "InvalidNativeOfferItem" error
      *      message.
      */
-    function __revertInvalidNativeOfferItem() public pure {
+    function __revertInvalidNativeOfferItem() external pure {
         _revertInvalidNativeOfferItem();
     }
 
     /**
      * @dev Reverts the current transaction with an "InvalidProof" error message.
      */
-    function __revertInvalidProof() public pure {
+    function __revertInvalidProof() external pure {
         _revertInvalidProof();
     }
 
@@ -135,7 +135,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param orderHash The hash of the contract order that caused the error.
      */
-    function __revertInvalidContractOrder(bytes32 orderHash) public pure {
+    function __revertInvalidContractOrder(bytes32 orderHash) external pure {
         _revertInvalidContractOrder(orderHash);
     }
 
@@ -148,7 +148,7 @@ contract ConsiderationErrorsWrapper {
     function __revertInvalidTime(
         uint256 startTime,
         uint256 endTime
-    ) public pure {
+    ) external pure {
         _revertInvalidTime(startTime, endTime);
     }
 
@@ -161,7 +161,7 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertMismatchedFulfillmentOfferAndConsiderationComponents(
         uint256 fulfillmentIndex
-    ) public pure {
+    ) external pure {
         _revertMismatchedFulfillmentOfferAndConsiderationComponents(
             fulfillmentIndex
         );
@@ -177,7 +177,7 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertMissingFulfillmentComponentOnAggregation(
         Side side
-    ) public pure {
+    ) external pure {
         _revertMissingFulfillmentComponentOnAggregation(side);
     }
 
@@ -185,21 +185,21 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts execution with a "MissingOriginalConsiderationItems" error
      *      message.
      */
-    function __revertMissingOriginalConsiderationItems() public pure {
+    function __revertMissingOriginalConsiderationItems() external pure {
         _revertMissingOriginalConsiderationItems();
     }
 
     /**
      * @dev Reverts execution with a "NoReentrantCalls" error message.
      */
-    function __revertNoReentrantCalls() public pure {
+    function __revertNoReentrantCalls() external pure {
         _revertNoReentrantCalls();
     }
 
     /**
      * @dev Reverts execution with a "NoSpecifiedOrdersAvailable" error message.
      */
-    function __revertNoSpecifiedOrdersAvailable() public pure {
+    function __revertNoSpecifiedOrdersAvailable() external pure {
         _revertNoSpecifiedOrdersAvailable();
     }
 
@@ -207,7 +207,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
      *      error message.
      */
-    function __revertOfferAndConsiderationRequiredOnFulfillment() public pure {
+    function __revertOfferAndConsiderationRequiredOnFulfillment() external pure {
         _revertOfferAndConsiderationRequiredOnFulfillment();
     }
 
@@ -216,7 +216,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param orderHash The hash of the order that has already been filled.
      */
-    function __revertOrderAlreadyFilled(bytes32 orderHash) public pure {
+    function __revertOrderAlreadyFilled(bytes32 orderHash) external pure {
         _revertOrderAlreadyFilled(orderHash);
     }
 
@@ -228,7 +228,7 @@ contract ConsiderationErrorsWrapper {
      *             consideration).
      *
      */
-    function __revertOrderCriteriaResolverOutOfRange(Side side) public pure {
+    function __revertOrderCriteriaResolverOutOfRange(Side side) external pure {
         _revertOrderCriteriaResolverOutOfRange(side);
     }
 
@@ -237,7 +237,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param orderHash The hash of the order that has already been cancelled.
      */
-    function __revertOrderIsCancelled(bytes32 orderHash) public pure {
+    function __revertOrderIsCancelled(bytes32 orderHash) external pure {
         _revertOrderIsCancelled(orderHash);
     }
 
@@ -247,14 +247,14 @@ contract ConsiderationErrorsWrapper {
      * @param orderHash The hash of the order that has already been partially
      *                  filled.
      */
-    function __revertOrderPartiallyFilled(bytes32 orderHash) public pure {
+    function __revertOrderPartiallyFilled(bytes32 orderHash) external pure {
         _revertOrderPartiallyFilled(orderHash);
     }
 
     /**
      * @dev Reverts execution with a "PartialFillsNotEnabledForOrder" error message.
      */
-    function __revertPartialFillsNotEnabledForOrder() public pure {
+    function __revertPartialFillsNotEnabledForOrder() external pure {
         _revertPartialFillsNotEnabledForOrder();
     }
 
@@ -265,7 +265,7 @@ contract ConsiderationErrorsWrapper {
     function __revertUnresolvedConsiderationCriteria(
         uint256 orderIndex,
         uint256 considerationIndex
-    ) public pure {
+    ) external pure {
         _revertUnresolvedConsiderationCriteria(
             orderIndex,
             considerationIndex
@@ -278,7 +278,7 @@ contract ConsiderationErrorsWrapper {
     function __revertUnresolvedOfferCriteria(
         uint256 orderIndex,
         uint256 offerIndex
-    ) public pure {
+    ) external pure {
         _revertUnresolvedOfferCriteria(
             orderIndex,
             offerIndex
@@ -288,7 +288,7 @@ contract ConsiderationErrorsWrapper {
     /**
      * @dev Reverts execution with an "UnusedItemParameters" error message.
      */
-    function __revertUnusedItemParameters() public pure {
+    function __revertUnusedItemParameters() external pure {
         _revertUnusedItemParameters();
     }
 
@@ -296,7 +296,7 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts execution with a "ConsiderationLengthNotEqualToTotalOriginal"
      *      error message.
      */
-    function __revertConsiderationLengthNotEqualToTotalOriginal() public pure {
+    function __revertConsiderationLengthNotEqualToTotalOriginal() external pure {
         _revertConsiderationLengthNotEqualToTotalOriginal();
     }
 }
