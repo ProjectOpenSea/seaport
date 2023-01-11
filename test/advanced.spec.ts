@@ -4605,18 +4605,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         criteriaResolvers
       );
 
-      // await checkExpectedEvents(
-      //   tx,
-      //   receipt,
-      //   [
-      //     {
-      //       order: mirrorOrder,
-      //       orderHash: mirrorOrderHash,
-      //       fulfiller: owner.address,
-      //     },
-      //   ],
-      //   executions
-      // );
       return receipt;
     });
     it("Criteria-based offer item with junk criteria proof", async () => {
