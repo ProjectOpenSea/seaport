@@ -60,16 +60,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         }
     }
 
-    function tryEnvString(
-        string memory envVar
-    ) internal view returns (string memory) {
-        try vm.envString(envVar) returns (string memory _value) {
-            return _value;
-        } catch {
-            return "";
-        }
-    }
-
     function stringEq(
         string memory a,
         string memory b
@@ -77,10 +67,10 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function debugEnabled() internal view returns (bool) {
+    function debugEnabled() internal returns (bool) {
         return
             tryEnvBool("SEAPORT_COVERAGE") ||
-            stringEq(tryEnvString("FOUNDRY_PROFILE"), "debug");
+            stringEq(vm.envOr("FOUNDRY_PROFILE", string("")), "debug");
     }
 
     function setUp() public virtual {
