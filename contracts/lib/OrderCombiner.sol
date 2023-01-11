@@ -859,9 +859,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                    the OrdersMatched event.
      */
     function _emitOrdersMatched(bytes32[] memory orderHashes) internal {
-        // Get topic0 for the OrdersMatched event.
-        bytes32 topic0 = OrdersMatched.selector;
-
         assembly {
             // Load the array length from memory.
             let length := mload(orderHashes)
@@ -881,7 +878,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             mstore(dataPointer, OneWord)
 
             // Emit the OrdersMatched event.
-            log1(dataPointer, dataSize, topic0)
+            log1(dataPointer, dataSize, OrdersMatchedTopic0)
 
             // Restore the cached word.
             mstore(dataPointer, cache)
