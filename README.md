@@ -13,6 +13,16 @@
 
 Seaport is a new marketplace protocol for safely and efficiently buying and selling NFTs.
 
+This commit marks the Seaport v1.2 implementation for the code4rena competition, with the following contracts in scope:
+ - contracts/Seaport.sol
+ - contracts/lib/*
+ - contracts/helpers/*
+ - contracts/interfaces/*
+ - contracts/conduit/* (with the assumption that only Seaport v1.2 will be added as a channel)
+ - reference/* (only considered for informational issues)
+ - lack of ERC721 safeTransferFrom usage not considered
+ - interaction with non-compliant or malicious ERC20/ERC721/ERC1155 implementations not considered
+
 ## Table of Contents
 
 - [Seaport](#seaport)
