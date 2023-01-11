@@ -483,6 +483,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      * @dev Internal pure function to aggregate a group of consideration items
      *      using supplied directives on which component items are candidates
      *      for aggregation, skipping items on orders that are not available.
+     *      Note that this function depends on memory layout affected by an
+     *      earlier call to _validateOrdersAndPrepareToFulfill.  The the memory
+     *      for the consideration arrays needs to be updated before calling
+     *      _aggregateValidFulfillmentConsiderationItems.
+     *      _validateOrdersAndPrepareToFulfill is called in _matchAdvancedOrders
+     *      and _fulfillAvailableAdvancedOrders in the current version.
      *
      * @param advancedOrders          The orders to aggregate consideration
      *                                items from.
@@ -631,6 +637,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
 
                     // Set the recipient on the received item.
+                    // Note that this depends on the memory layout affected by
+                    // _validateOrdersAndPrepareToFulfill.
                     mstore(
                         add(receivedItem, ReceivedItem_recipient_offset),
                         mload(

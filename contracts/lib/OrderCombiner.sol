@@ -142,7 +142,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     /**
      * @dev Internal function to validate a group of orders, update their
      *      statuses, reduce amounts by their previously filled fractions, apply
-     *      criteria resolvers, and emit OrderFulfilled events.
+     *      criteria resolvers, and emit OrderFulfilled events. Note that this
+     *      function needs to be called before
+     *      _aggregateValidFulfillmentConsiderationItems to set the memory
+     *      layout that _aggregateValidFulfillmentConsiderationItems depends on.
      *
      * @param advancedOrders    The advanced orders to validate and reduce by
      *                          their previously filled amounts.
@@ -394,6 +397,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                     // Utilize assembly to manually "shift" the recipient value,
                     // then to copy the start amount to the recipient.
+                    // Note that this sets up the memory layout that is
+                    // subsequently relied upon by
+                    // _aggregateValidFulfillmentConsiderationItems.
                     assembly {
                         // Derive the pointer to the recipient using the item
                         // pointer along with the offset to the recipient.
