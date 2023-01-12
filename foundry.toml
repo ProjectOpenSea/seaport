@@ -61,5 +61,8 @@ bracket_spacing = true
 multiline_func_header = 'params_first'
 wrap_comments = true
 override_spacing = false
+# forge fmt has a strange bug with multi-line function pointer return types
+# so ignore for now
+ignore = ['contracts/lib/ConsiderationDecoder.sol']
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
