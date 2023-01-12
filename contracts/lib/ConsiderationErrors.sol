@@ -134,17 +134,17 @@ function _revertInvalidCallToConduit(address conduit) pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InvalidCanceller" error
+ * @dev Reverts the current transaction with an "CannotCancelOrder" error
  *      message.
  */
-function _revertInvalidCanceller() pure {
+function _revertCannotCancelOrder() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode),
         // mem[28:32] = selector
-        mstore(0, InvalidCanceller_error_selector)
+        mstore(0, CannotCancelOrder_error_selector)
 
-        // revert(abi.encodeWithSignature("InvalidCanceller()"))
-        revert(Error_selector_offset, InvalidCanceller_error_length)
+        // revert(abi.encodeWithSignature("CannotCancelOrder()"))
+        revert(Error_selector_offset, CannotCancelOrder_error_length)
     }
 }
 
