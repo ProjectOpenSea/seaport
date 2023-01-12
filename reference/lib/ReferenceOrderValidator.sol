@@ -304,7 +304,9 @@ contract ReferenceOrderValidator is
         }
 
         {
-            // Increment contract nonce and use it to derive order hash.
+            // Increment contract nonce and use it to derive order hash. Note:
+            // nonce will be incremented even for skipped orders, and even if
+            // generateOrder's return data does not satisfy all the constraints.
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
             // Derive order hash from contract nonce and offerer address.
             orderHash = bytes32(
