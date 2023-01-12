@@ -188,16 +188,16 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Use assembly to set the value for the second bit of the error buffer.
         assembly {
             /**
-             * Use the 248th bit of the error buffer to indicate whether the
+             * Use the 231st bit of the error buffer to indicate whether the
              * current function is not matchAdvancedOrders or matchOrders.
              *
              * sig                                func
              * -----------------------------------------------------------------
-             * 10101000000101110100010 00 0000100 matchOrders
-             * 01010101100101000100101 00 1000010 matchAdvancedOrders
-             * 11101101100110001010010 10 1110100 fulfillAvailableOrders
-             * 10000111001000000001101 10 1000001 fulfillAvailableAdvancedOrders
-             *                         ^ 9th bit
+             * 1010100000010111010001000 0 000100 matchOrders
+             * 1111001011010001001010110 0 010010 matchAdvancedOrders
+             * 1110110110011000101001010 1 110100 fulfillAvailableOrders
+             * 1000011100100000000110110 1 000001 fulfillAvailableAdvancedOrders
+             *                           ^ 7th bit
              */
             invalidNativeOfferItemErrorBuffer := and(
                 NonMatchSelector_MagicMask,
