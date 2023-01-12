@@ -551,7 +551,9 @@ contract ReferenceConsideration is
      *         the order has been cancelled or validated and the fraction of the
      *         order that has been filled. Since the _orderStatus[orderHash]
      *         does not get set for contract orders, getOrderStatus will always
-     *         return (false, false, 0, 0) for those hashes.
+     *         return (false, false, 0, 0) for those hashes. Note that this
+     *         function is susceptible to view reentrancy and so should be used
+     *         with care when calling from other contracts.
      *
      * @param orderHash The order hash in question.
      *
@@ -619,6 +621,8 @@ contract ReferenceConsideration is
 
     /**
      * @dev Gets the contract offerer nonce for the specified contract offerer.
+     *      Note that this function is susceptible to view reentrancy and so
+     *      should be used with care when calling from other contracts.
      *
      * @param contractOfferer The contract offerer for which to get the nonce.
      *
