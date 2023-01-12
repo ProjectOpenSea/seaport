@@ -7846,5 +7846,107 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         return receipt;
       });
     });
+    // it("Transfers unspent offer items back to caller", async () => {
+    //   // Seller mints nft
+    //   const { nftId, amount } = await mintAndApprove1155(
+    //     seller,
+    //     marketplaceContract.address,
+    //     1,
+    //     1,
+    //     10000
+    //   );
+
+    //   const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+    //   const consideration = [
+    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
+    //     getItemETH(parseEther("1"), parseEther("1"), zone.address),
+    //     getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    //   ];
+
+    //   const {
+    //     order: orderOne,
+    //     orderHash: orderHashOne,
+    //     value,
+    //   } = await createOrder(
+    //     seller,
+    //     zone,
+    //     offer,
+    //     consideration,
+    //     0 // FULL_OPEN
+    //   );
+
+    //   const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+    //     seller,
+    //     zone,
+    //     offer,
+    //     consideration,
+    //     0 // FULL_OPEN
+    //   );
+
+    //   const offerComponents = [toFulfillmentComponents([[0, 0]])];
+
+    //   const considerationComponents = [
+    //     [
+    //       [0, 0],
+    //       [1, 0],
+    //     ],
+    //     [
+    //       [0, 1],
+    //       [1, 1],
+    //     ],
+    //     [
+    //       [0, 2],
+    //       [1, 2],
+    //     ],
+    //   ].map(toFulfillmentComponents);
+
+    //   await withBalanceChecks(
+    //     [orderOne, orderTwo],
+    //     0,
+    //     undefined,
+    //     async () => {
+    //       const tx = marketplaceContract
+    //         .connect(buyer)
+    //         .fulfillAvailableOrders(
+    //           [orderOne, orderTwo],
+    //           offerComponents,
+    //           considerationComponents,
+    //           toKey(0),
+    //           100,
+    //           {
+    //             value: value.mul(2),
+    //           }
+    //         );
+    //       const receipt = await (await tx).wait();
+    //       await checkExpectedEvents(
+    //         tx,
+    //         receipt,
+    //         [
+    //           {
+    //             order: orderOne,
+    //             orderHash: orderHashOne,
+    //             fulfiller: buyer.address,
+    //           },
+    //           {
+    //             order: orderTwo,
+    //             orderHash: orderHashTwo,
+    //             fulfiller: buyer.address,
+    //           },
+    //         ],
+    //         [],
+    //         [],
+    //         false,
+    //         2
+    //       );
+    //       return receipt;
+    //     },
+    //     2
+    //   );
+
+    //   expect(await testERC1155.balanceOf(owner.address, nftId)).to.equal(
+    //     amount.div(2)
+    //   );
+    // });
   });
 });

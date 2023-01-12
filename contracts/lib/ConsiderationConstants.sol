@@ -889,14 +889,14 @@ uint256 constant OrderPartiallyFilled_error_orderHash_ptr = 0x20;
 uint256 constant OrderPartiallyFilled_error_length = 0x24;
 
 /*
- *  error InvalidCanceller()
+ *  error CannotCancelOrder()
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant InvalidCanceller_error_selector = 0x80ec7374;
-uint256 constant InvalidCanceller_error_length = 0x04;
+uint256 constant CannotCancelOrder_error_selector = 0xfed398fc;
+uint256 constant CannotCancelOrder_error_length = 0x04;
 
 /*
  *  error BadFraction()

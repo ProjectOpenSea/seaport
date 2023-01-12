@@ -171,9 +171,10 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to cancel an order as a caller
-     *      other than the indicated offerer or zone.
+     *      other than the indicated offerer or zone or when attempting to
+     *      cancel a contract order.
      */
-    error InvalidCanceller();
+    error CannotCancelOrder();
 
     /**
      * @dev Revert with an error when supplying a fraction with a value of zero
