@@ -51,7 +51,7 @@
 	The Windows scripting host version: https://www.GRC.com/otg/wsh-uheprng.js
 	----------------------------------------------------------------------------
 	Qualifying MWC multipliers are: 187884, 686118, 898134, 1104375, 1250205,
-	1460910 and 1768863. (We use the largest one that's < 2^21)
+	1460910 and 1768863. (Use the largest one that's < 2^21)
 	============================================================================ */
 "use strict";
 const stringify = JSON.stringify;
@@ -120,7 +120,7 @@ const uheprng = function (seed) {
     };
 
     // this EXPORTED function is the default function returned by this library.
-    // The values returned are integers in the range from 0 to range-1. We first
+    // The values returned are integers in the range from 0 to range-1. First
     // obtain two 32-bit fractions (from rawprng) to synthesize a single high
     // resolution 53-bit prng (0 to <1), then we multiply this by the caller's
     // "range" param and take the "floor" to return a equally probable integer.

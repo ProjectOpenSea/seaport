@@ -40,7 +40,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
-     * @param fulfillmentIndex        The index of the fulfillment being applied.
+     * @param fulfillmentIndex        The index of the fulfillment being
+     *                                applied.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -386,41 +387,38 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         )
                         let fulfillmentPtr := mload(fulfillmentHeadPtr)
                         mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
-                        mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
                     }
                 }
                 default {
                     // Compare every subsequent item to the first
-                    if iszero(
-                        and(
-                            and(
-                                // The offerer must match on both items.
-                                eq(
-                                    mload(paramsPtr),
-                                    mload(
-                                        add(execution, Execution_offerer_offset)
-                                    )
-                                ),
-                                // The conduit key must match on both items.
-                                eq(
-                                    mload(
-                                        add(
-                                            paramsPtr,
-                                            OrderParameters_conduit_offset
-                                        )
-                                    ),
-                                    mload(
-                                        add(execution, Execution_conduit_offset)
-                                    )
+                    if or(
+                        or(
+                            // The offerer must match on both items.
+                            xor(
+                                mload(paramsPtr),
+                                mload(
+                                    add(execution, Execution_offerer_offset)
                                 )
                             ),
-                            // The itemType, token, and identifier must match.
-                            eq(
-                                dataHash,
-                                keccak256(
-                                    offerItemPtr,
-                                    ReceivedItem_CommonParams_size
+                            // The conduit key must match on both items.
+                            xor(
+                                mload(
+                                    add(
+                                        paramsPtr,
+                                        OrderParameters_conduit_offset
+                                    )
+                                ),
+                                mload(
+                                    add(execution, Execution_conduit_offset)
                                 )
+                            )
+                        ),
+                        // The itemType, token, and identifier must match.
+                        xor(
+                            dataHash,
+                            keccak256(
+                                offerItemPtr,
+                                ReceivedItem_CommonParams_size
                             )
                         )
                     ) {
@@ -483,6 +481,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      * @dev Internal pure function to aggregate a group of consideration items
      *      using supplied directives on which component items are candidates
      *      for aggregation, skipping items on orders that are not available.
+     *      Note that this function depends on memory layout affected by an
+     *      earlier call to _validateOrdersAndPrepareToFulfill.  The memory for
+     *      the consideration arrays needs to be updated before calling
+     *      _aggregateValidFulfillmentConsiderationItems.
+     *      _validateOrdersAndPrepareToFulfill is called in _matchAdvancedOrders
+     *      and _fulfillAvailableAdvancedOrders in the current version.
      *
      * @param advancedOrders          The orders to aggregate consideration
      *                                items from.
@@ -490,7 +494,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                                indicating the order index and item index
      *                                of each candidate consideration item for
      *                                aggregation.
-     * @param execution       The execution to apply the aggregation to.
+     * @param execution               The execution to apply the aggregation to.
      */
     function _aggregateValidFulfillmentConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
@@ -505,11 +509,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Create variable to track errors encountered with amount.
             let errorBuffer
 
-            // Declare a variable for hash(itemType, token, identifier, recipient)
+            // Declare variable for hash(itemType, token, identifier, recipient)
             let dataHash
 
             for {
-                // Create variable to track position in considerationComponents head.
+                // Track position in considerationComponents head.
                 let fulfillmentHeadPtr := considerationComponents
 
                 // Get position one word past last element in head of array.
@@ -589,7 +593,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     // Add consideration item amount to execution amount.
                     let newAmount := add(amount, mload(amountPtr))
 
-                    // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both
+                    // Update error buffer:
+                    // 1 = zero amount, 2 = overflow, 3 = both.
                     errorBuffer := or(
                         errorBuffer,
                         or(
@@ -601,7 +606,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     // Update the amount to the new, summed amount.
                     amount := newAmount
 
-                    // Zero out amount on original item to indicate it is credited.
+                    // Zero out original item amount to indicate it is credited.
                     mstore(amountPtr, 0)
                 }
 
@@ -631,6 +636,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
 
                     // Set the recipient on the received item.
+                    // Note that this depends on the memory layout affected by
+                    // _validateOrdersAndPrepareToFulfill.
                     mstore(
                         add(receivedItem, ReceivedItem_recipient_offset),
                         mload(
@@ -641,17 +648,18 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         )
                     )
 
-                    // Calculate the hash of (itemType, token, identifier, recipient).
-                    // This is run after amount is set to zero, so there will be one
-                    // blank word after identifier included in the hash buffer.
+                    // Calculate the hash of (itemType, token, identifier,
+                    // recipient). This is run after amount is set to zero, so
+                    // there will be one blank word after identifier included in
+                    // the hash buffer.
                     dataHash := keccak256(
                         considerationItemPtr,
                         ReceivedItem_size
                     )
 
-                    // If component index > 0, swap component pointer with pointer
-                    // to first component so that any remainder after fulfillment
-                    // can be added back to the first item.
+                    // If component index > 0, swap component pointer with
+                    // pointer to first component so that any remainder after
+                    // fulfillment can be added back to the first item.
                     let firstFulfillmentHeadPtr := add(
                         considerationComponents,
                         OneWord
@@ -662,7 +670,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         )
                         let fulfillmentPtr := mload(fulfillmentHeadPtr)
                         mstore(firstFulfillmentHeadPtr, fulfillmentPtr)
-                        mstore(fulfillmentHeadPtr, firstFulfillmentPtr)
                     }
                 }
                 default {
@@ -670,9 +677,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     // The itemType, token, identifier and recipient must match.
                     if xor(
                         dataHash,
-                        // Calculate the hash of (itemType, token, identifier, recipient).
-                        // This is run after amount is set to zero, so there will be one
-                        // blank word after identifier included in the hash buffer.
+                        // Calculate the hash of (itemType, token, identifier,
+                        // recipient). This is run after amount is set to zero,
+                        // so there will be one blank word after identifier
+                        // included in the hash buffer.
                         keccak256(considerationItemPtr, ReceivedItem_size)
                     ) {
                         // Throw if any of the requirements are not met.

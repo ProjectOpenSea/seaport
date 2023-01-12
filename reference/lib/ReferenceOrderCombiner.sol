@@ -208,10 +208,13 @@ contract ReferenceOrderCombiner is
         // Track the order hash for each order being fulfilled.
         orderHashes = new bytes32[](totalOrders);
 
-        // Check if we are in a match function
+        // Determine whether or not order matching is underway.
         bool nonMatchFn = msg.sig !=
             SeaportInterface.matchAdvancedOrders.selector &&
             msg.sig != SeaportInterface.matchOrders.selector;
+
+        // Declare a variable for tracking whether native offer items are
+        // present on orders that are not contract orders.
         bool anyNativeOfferItemsOnNonContractOrders;
 
         // Iterate over each order.

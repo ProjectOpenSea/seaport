@@ -243,7 +243,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     break
                 }
 
-                // shift and mask to calculate the the current filled numerator.
+                // Shift and mask to calculate the current filled numerator.
                 filledNumerator := and(
                     shr(OrderStatus_filledNumerator_offset, filledNumerator),
                     MaxUint120
@@ -501,7 +501,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Note: overflow impossible; nonce can't increment that high.
                 uint256 contractNonce;
                 unchecked {
-                    // Note: nonce will be incremented even for skipped orders.
+                    // Note: nonce will be incremented even for skipped orders,
+                    // and  even if generateOrder's return data does not satisfy
+                    // all the constraints. This is the case when errorBuffer
+                    // !=0 and revertOnInvalid == false.
                     contractNonce = _contractNonces[offerer]++;
                 }
 
@@ -636,6 +639,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      *      only the offerer or the zone of a given order may cancel it. Callers
      *      should ensure that the intended order was cancelled by calling
      *      `getOrderStatus` and confirming that `isCancelled` returns `true`.
+     *      Also note that contract orders are not cancellable.
      *
      * @param orders The orders to cancel.
      *
@@ -651,8 +655,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
 
-        // Accumulator for invariant in each loop
-        bool anyInvalidCaller;
+        // Declare a variable for tracking invariants in the loop.
+        bool anyInvalidCallerOrContractOrder;
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
@@ -664,21 +668,23 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
 
-                // Skip contract orders.
-                if (order.orderType == OrderType.CONTRACT) {
-                    continue;
-                }
-
                 address offerer = order.offerer;
                 address zone = order.zone;
+                OrderType orderType = order.orderType;
 
                 assembly {
-                    // If caller is neither offerer nor zone of order, ensure
-                    // that is flagged.
-                    anyInvalidCaller := or(
-                        anyInvalidCaller,
+                    // If caller is neither the offerer nor zone, or a contract
+                    // order is present, flag anyInvalidCallerOrContractOrder.
+                    anyInvalidCallerOrContractOrder := or(
+                        anyInvalidCallerOrContractOrder,
+                        // orderType == CONTRACT ||
                         // !(caller == offerer || caller == zone)
-                        iszero(or(eq(caller(), offerer), eq(caller(), zone)))
+                        or(
+                            eq(orderType, 4),
+                            iszero(
+                                or(eq(caller(), offerer), eq(caller(), zone))
+                            )
+                        )
                     )
                 }
 
@@ -704,8 +710,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
-        if (anyInvalidCaller) {
-            _revertInvalidCanceller();
+        if (anyInvalidCallerOrContractOrder) {
+            _revertCannotCancelOrder();
         }
 
         // Return a boolean indicating that orders were successfully cancelled.

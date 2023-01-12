@@ -304,7 +304,9 @@ contract ReferenceOrderValidator is
         }
 
         {
-            // Increment contract nonce and use it to derive order hash.
+            // Increment contract nonce and use it to derive order hash. Note:
+            // nonce will be incremented even for skipped orders, and even if
+            // generateOrder's return data does not satisfy all the constraints.
             uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
             // Derive order hash from contract nonce and offerer address.
             orderHash = bytes32(
@@ -511,7 +513,10 @@ contract ReferenceOrderValidator is
 
     /**
      * @dev Internal function to cancel an arbitrary number of orders. Note that
-     *      only the offerer or the zone of a given order may cancel it.
+     *      only the offerer or the zone of a given order may cancel it. Callers
+     *      should ensure that the intended order was cancelled by calling
+     *      `getOrderStatus` and confirming that `isCancelled` returns `true`.
+     *      Also note that contract orders are not cancellable.
      *
      * @param orders The orders to cancel.
      *
@@ -534,17 +539,16 @@ contract ReferenceOrderValidator is
             // Retrieve the order.
             OrderComponents calldata order = orders[i];
 
-            // Skip contract orders.
-            if (order.orderType == OrderType.CONTRACT) {
-                continue;
-            }
-
             offerer = order.offerer;
             zone = order.zone;
 
-            // Ensure caller is either offerer or zone of the order.
-            if (msg.sender != offerer && msg.sender != zone) {
-                revert InvalidCanceller();
+            // Ensure caller is either offerer or zone of the order and that the
+            // order is not a contract order.
+            if (
+                order.orderType == OrderType.CONTRACT ||
+                (msg.sender != offerer && msg.sender != zone)
+            ) {
+                revert CannotCancelOrder();
             }
 
             // Derive order hash using the order parameters and the counter.
@@ -575,6 +579,7 @@ contract ReferenceOrderValidator is
             // Emit an event signifying that the order has been cancelled.
             emit OrderCancelled(orderHash, offerer, zone);
         }
+
         return true;
     }
 
@@ -715,7 +720,7 @@ contract ReferenceOrderValidator is
         pure
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
-        // If we should not revert on invalid input...
+        // If invalid input should not revert...
         if (!revertOnInvalid) {
             // Return the contract order hash and zero values for the numerator
             // and denominator.

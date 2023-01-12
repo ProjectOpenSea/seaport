@@ -53,6 +53,22 @@ uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
 uint256 constant _ENTERED_AND_ACCEPTING_NATIVE_TOKENS = 3;
 
+uint256 constant Offset_fulfillAdvancedOrder_criteriaResolvers = 0x20;
+
+uint256 constant Offset_fulfillAvailableOrders_offerFulfillments = 0x20;
+uint256 constant Offset_fulfillAvailableOrders_considerationFulfillments = 0x40;
+
+uint256 constant Offset_fulfillAvailableAdvancedOrders_criteriaResolvers = 0x20;
+uint256 constant Offset_fulfillAvailableAdvancedOrders_offerFulfillments = 0x40;
+uint256 constant Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts = (
+    0x60
+);
+
+uint256 constant Offset_matchOrders_fulfillments = 0x20;
+
+uint256 constant Offset_matchAdvancedOrders_criteriaResolvers = 0x20;
+uint256 constant Offset_matchAdvancedOrders_fulfillments = 0x40;
+
 // Common Offsets
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
@@ -426,13 +442,13 @@ uint256 constant Signature_lower_v = 27;
 
 // Bitmask that only gives a non-zero value if masked with a non-match selector.
 uint256 constant NonMatchSelector_MagicMask = (
-    0x0100000000000000000000000000000000000000000000000000000000000000
+    0x4000000000000000000000000000000000000000000000000000000000
 );
 
-// First bit indicates that a NATIVE offer items has been used and the 248th bit
+// First bit indicates that a NATIVE offer items has been used and the 231th bit
 // indicates that a non match selector has been called.
 uint256 constant NonMatchSelector_InvalidErrorValue = (
-    0x0100000000000000000000000000000000000000000000000000000000000001
+    0x4000000000000000000000000000000000000000000000000000000001
 );
 
 uint256 constant IsValidOrder_signature = (
@@ -873,14 +889,14 @@ uint256 constant OrderPartiallyFilled_error_orderHash_ptr = 0x20;
 uint256 constant OrderPartiallyFilled_error_length = 0x24;
 
 /*
- *  error InvalidCanceller()
+ *  error CannotCancelOrder()
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant InvalidCanceller_error_selector = 0x80ec7374;
-uint256 constant InvalidCanceller_error_length = 0x04;
+uint256 constant CannotCancelOrder_error_selector = 0xfed398fc;
+uint256 constant CannotCancelOrder_error_length = 0x04;
 
 /*
  *  error BadFraction()

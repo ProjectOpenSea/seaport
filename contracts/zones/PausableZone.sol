@@ -216,7 +216,7 @@ contract PausableZone is
      * @dev This function is called by Seaport whenever any extraData is
      *      provided by the caller.
      *
-     * @ param zoneParameters       A struct that provides context about the
+     * @custom:param zoneParameters A struct that provides context about the
      *                              order fulfillment and any supplied
      *                              extraData, as well as all order hashes
      *                              fulfilled in a call to a match or
@@ -226,8 +226,18 @@ contract PausableZone is
      *                              currently valid.
      */
     function validateOrder(
-        ZoneParameters calldata /* zoneParameters */
-    ) external pure override returns (bytes4 validOrderMagicValue) {
+        ZoneParameters calldata
+    )
+        external
+        pure
+        override
+        returns (
+            /**
+             * @custom:name zoneParameters
+             */
+            bytes4 validOrderMagicValue
+        )
+    {
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }

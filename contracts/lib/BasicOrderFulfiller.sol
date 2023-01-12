@@ -316,7 +316,7 @@ contract BasicOrderFulfiller is OrderValidator {
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
         // Verify that calldata offsets for all dynamic types were produced by
-        // default encoding. This ensures that the constants we use for calldata
+        // default encoding. This ensures that the constants used for calldata
         // pointers to dynamic types are the same as those calculated by
         // Solidity using their offsets. Also verify that the basic order type
         // is within range.
