@@ -652,8 +652,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
 
-        // Accumulator for invariant in each loop
-        bool anyInvalidCaller;
+        // Declare a variable for tracking invariants in the loop.
+        bool anyInvalidCallerOrContractOrder;
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
@@ -661,7 +661,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders;) {
+            for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
 
@@ -670,10 +670,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                 OrderType orderType = order.orderType;
 
                 assembly {
-                    // If caller is neither offerer nor zone of order, or if an
-                    // order is a contract order, flag anyInvalidCaller.
-                    anyInvalidCaller := or(
-                        anyInvalidCaller,
+                    // If caller is neither the offerer nor zone, or a contract
+                    // order is present, flag anyInvalidCallerOrContractOrder.
+                    anyInvalidCallerOrContractOrder := or(
+                        anyInvalidCallerOrContractOrder,
                         // orderType == CONTRACT ||
                         // !(caller == offerer || caller == zone)
                         or(
@@ -707,7 +707,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
-        if (anyInvalidCaller) {
+        if (anyInvalidCallerOrContractOrder) {
             _revertInvalidCanceller();
         }
 
