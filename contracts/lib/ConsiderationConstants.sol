@@ -53,6 +53,22 @@ uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
 uint256 constant _ENTERED_AND_ACCEPTING_NATIVE_TOKENS = 3;
 
+uint256 constant Offset_fulfillAdvancedOrder_criteriaResolvers = 0x20;
+
+uint256 constant Offset_fulfillAvailableOrders_offerFulfillments = 0x20;
+uint256 constant Offset_fulfillAvailableOrders_considerationFulfillments = 0x40;
+
+uint256 constant Offset_fulfillAvailableAdvancedOrders_criteriaResolvers = 0x20;
+uint256 constant Offset_fulfillAvailableAdvancedOrders_offerFulfillments = 0x40;
+uint256 constant Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts = (
+    0x60
+);
+
+uint256 constant Offset_matchOrders_fulfillments = 0x20;
+
+uint256 constant Offset_matchAdvancedOrders_criteriaResolvers = 0x20;
+uint256 constant Offset_matchAdvancedOrders_fulfillments = 0x40;
+
 // Common Offsets
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem

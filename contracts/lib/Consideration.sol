@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ConsiderationInterface } from
-    "../interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "../interfaces/ConsiderationInterface.sol";
 
 import {
     OrderComponents,
@@ -25,9 +26,10 @@ import "./ConsiderationConstants.sol";
 
 /**
  * @title Consideration
- * @author 0age
- * @custom:coauthor d1ll0n
- * @custom:coauthor transmissions11
+ * @author 0age (0age.eth)
+ * @custom:coauthor d1ll0n (d1ll0n.eth)
+ * @custom:coauthor transmissions11 (t11s.eth)
+ * @custom:coauthor James Wenzel (emo.eth)
  * @custom:version 1.2
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace
  *         that provides lightweight methods for common routes as well as more
@@ -45,7 +47,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) OrderCombiner(conduitController) { }
+    constructor(address conduitController) OrderCombiner(conduitController) {}
 
     /**
      * @notice Accept native token transfers during execution that may then be
@@ -78,18 +80,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   this contract (or their chosen conduit if indicated)
      *                   before any tokens can be transferred. Also note that
      *                   contract recipients of ERC1155 consideration items must
-     *                   implement `onERC1155Received` in order to receive those
-     *                   items.
+     *                   implement `onERC1155Received` to receive those items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
      */
-    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
-        external
-        payable
-        override
-        returns (bool fulfilled)
-    {
+    function fulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -100,7 +98,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         criteria-based orders or partial filling of orders (though
      *         filling the remainder of a partially-filled order is supported).
      *
-     * @custom:param order               The order to fulfill. Note that both the
+     * @custom:param order        The order to fulfill. Note that both the
      *                            offerer and the fulfiller must first approve
      *                            this contract (or the corresponding conduit if
      *                            indicated) to transfer any relevant tokens on
@@ -111,7 +109,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
-     *                            Consideration).
+     *                            this contract).
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -139,37 +137,40 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         items for offer and consideration alongside criteria resolvers
      *         containing specific token identifiers and associated proofs.
      *
-     * @custom:param advancedOrder       The order to fulfill along with the fraction
-     *                            of the order to attempt to fill. Note that
-     *                            both the offerer and the fulfiller must first
-     *                            approve this contract (or their conduit if
-     *                            indicated by the order) to transfer any
-     *                            relevant tokens on their behalf and that
-     *                            contracts must implement `onERC1155Received`
-     *                            to receive ERC1155 tokens as consideration.
-     *                            Also note that all offer and consideration
-     *                            components must have no remainder after
-     *                            multiplication of the respective amount with
-     *                            the supplied fraction for the partial fill to
-     *                            be considered valid.
-     * @custom:param criteriaResolvers   An array where each element contains a
-     *                            reference to a specific offer or
-     *                            consideration, a token identifier, and a proof
-     *                            that the supplied token identifier is
-     *                            contained in the merkle root held by the item
-     *                            in question's criteria element. Note that an
-     *                            empty criteria indicates that any
-     *                            (transferable) token identifier on the token
-     *                            in question is valid and that no associated
-     *                            proof needs to be supplied.
-     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
-     *                            any, to source the fulfiller's token approvals
-     *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration).
-     * @param recipient           The intended recipient for all received items,
-     *                            with `address(0)` indicating that the caller
-     *                            should receive the items.
+     * @custom:param advancedOrder     The order to fulfill along with the
+     *                                 fraction of the order to attempt to fill.
+     *                                 Note that both the offerer and the
+     *                                 fulfiller must first approve this
+     *                                 contract (or their conduit if indicated
+     *                                 by the order) to transfer any relevant
+     *                                 tokens on their behalf and that contracts
+     *                                 must implement `onERC1155Received` to
+     *                                 receive ERC1155 tokens as consideration.
+     *                                 Also note that all offer and
+     *                                 consideration components must have no
+     *                                 remainder after multiplication of the
+     *                                 respective amount with the supplied
+     *                                 fraction for the partial fill to be
+     *                                 considered valid.
+     * @custom:param criteriaResolvers An array where each element contains a
+     *                                 reference to a specific offer or
+     *                                 consideration, a token identifier, and a
+     *                                 proof that the supplied token identifier
+     *                                 is contained in the merkle root held by
+     *                                 the item in question's criteria element.
+     *                                 Note that an empty criteria indicates
+     *                                 that any (transferable) token identifier
+     *                                 on the token in question is valid and
+     *                                 that no associated proof needs to be
+     *                                 supplied.
+     * @param fulfillerConduitKey      A bytes32 value indicating what conduit,
+     *                                 if any, to source the fulfiller's token
+     *                                 approvals from. The zero hash signifies
+     *                                 that no conduit should be used (and
+     *                                 direct approvals set on this contract).
+     * @param recipient                The intended recipient for all received
+     *                                 items, with `address(0)` indicating that
+     *                                 the caller should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -192,7 +193,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 CalldataStart.pptr()
             ),
             _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
-                CalldataStart.pptr(0x20)
+                CalldataStart.pptr(
+                    Offset_fulfillAdvancedOrder_criteriaResolvers
+                )
             ),
             fulfillerConduitKey,
             _substituteCallerForEmptyRecipient(recipient)
@@ -213,27 +216,37 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         partial filling of orders (though filling the remainder of a
      *         partially-filled order is supported).
      *
-     * @custom:param orders                    The orders to fulfill. Note that both
-     *                                  the offerer and the fulfiller must first
-     *                                  approve this contract (or the
-     *                                  corresponding conduit if indicated) to
-     *                                  transfer any relevant tokens on their
-     *                                  behalf and that contracts must implement
-     *                                  `onERC1155Received` to receive ERC1155
-     *                                  tokens as consideration.
-     * @custom:param offerFulfillments         An array of FulfillmentComponent arrays
-     *                                  indicating which offer items to attempt
-     *                                  to aggregate when preparing executions.
-     * @custom:param considerationFulfillments An array of FulfillmentComponent arrays
-     *                                  indicating which consideration items to
-     *                                  attempt to aggregate when preparing
-     *                                  executions.
-     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
-     *                                  if any, to source the fulfiller's token
-     *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration).
-     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     * @custom:param orders                    The orders to fulfill. Note that
+     *                                         both the offerer and the
+     *                                         fulfiller must first approve this
+     *                                         contract (or the corresponding
+     *                                         conduit if indicated) to transfer
+     *                                         any relevant tokens on their
+     *                                         behalf and that contracts must
+     *                                         implement `onERC1155Received` to
+     *                                         receive ERC1155 tokens as
+     *                                         consideration.
+     * @custom:param offerFulfillments         An array of FulfillmentComponent
+     *                                         arrays indicating which offer
+     *                                         items to attempt to aggregate
+     *                                         when preparing executions. Note
+     *                                         that any offer items not included
+     *                                         as part of a fulfillment will be
+     *                                         sent unaggregated to the caller.
+     * @custom:param considerationFulfillments An array of FulfillmentComponent
+     *                                         arrays indicating which
+     *                                         consideration items to attempt to
+     *                                         aggregate when preparing
+     *                                         executions.
+     * @param fulfillerConduitKey              A bytes32 value indicating what
+     *                                         conduit, if any, to source the
+     *                                         fulfiller's token approvals from.
+     *                                         The zero hash signifies that no
+     *                                         conduit should be used (and
+     *                                         direct approvals set on this
+     *                                         contract).
+     * @param maximumFulfilled                 The maximum number of orders to
+     *                                         fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
@@ -262,26 +275,35 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         payable
         override
         returns (
-            bool[] memory, /* availableOrders */
+            bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
         )
     {
         // Convert orders to "advanced" orders and fulfill all available orders.
-        return _fulfillAvailableAdvancedOrders(
-            _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
-                CalldataStart.pptr()
-            ), // Convert to advanced orders.
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            _toNestedFulfillmentComponentsReturnType(
-                _decodeNestedFulfillmentComponents
-            )(CalldataStart.pptr(0x20)),
-            _toNestedFulfillmentComponentsReturnType(
-                _decodeNestedFulfillmentComponents
-            )(CalldataStart.pptr(0x40)),
-            fulfillerConduitKey,
-            msg.sender,
-            maximumFulfilled
-        );
+        return
+            _fulfillAvailableAdvancedOrders(
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ), // Convert to advanced orders.
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
+                )(
+                    CalldataStart.pptr(
+                        Offset_fulfillAvailableOrders_offerFulfillments
+                    )
+                ),
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
+                )(
+                    CalldataStart.pptr(
+                        Offset_fulfillAvailableOrders_considerationFulfillments
+                    )
+                ),
+                fulfillerConduitKey,
+                msg.sender,
+                maximumFulfilled
+            );
     }
 
     /**
@@ -297,49 +319,63 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         recipient, respectively. Note that a failing item transfer or an
      *         issue with order formatting will cause the entire batch to fail.
      *
-     * @custom:param advancedOrders            The orders to fulfill along with the
-     *                                  fraction of those orders to attempt to
-     *                                  fill. Note that both the offerer and the
-     *                                  fulfiller must first approve this
-     *                                  contract (or their conduit if indicated
-     *                                  by the order) to transfer any relevant
-     *                                  tokens on their behalf and that
-     *                                  contracts must implement
-     *                                  `onERC1155Received` in order to receive
-     *                                  ERC1155 tokens as consideration. Also
-     *                                  note that all offer and consideration
-     *                                  components must have no remainder after
-     *                                  multiplication of the respective amount
-     *                                  with the supplied fraction for an
-     *                                  order's partial fill amount to be
-     *                                  considered valid.
-     * @custom:param criteriaResolvers         An array where each element contains a
-     *                                  reference to a specific offer or
-     *                                  consideration, a token identifier, and a
-     *                                  proof that the supplied token identifier
-     *                                  is contained in the merkle root held by
-     *                                  the item in question's criteria element.
-     *                                  Note that an empty criteria indicates
-     *                                  that any (transferable) token
-     *                                  identifier on the token in question is
-     *                                  valid and that no associated proof needs
-     *                                  to be supplied.
-     * @custom:param offerFulfillments         An array of FulfillmentComponent arrays
-     *                                  indicating which offer items to attempt
-     *                                  to aggregate when preparing executions.
-     * @custom:param considerationFulfillments An array of FulfillmentComponent arrays
-     *                                  indicating which consideration items to
-     *                                  attempt to aggregate when preparing
-     *                                  executions.
-     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
-     *                                  if any, to source the fulfiller's token
-     *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration).
-     * @param recipient                 The intended recipient for all received
-     *                                  items, with `address(0)` indicating that
-     *                                  the caller should receive the items.
-     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     * @custom:param advancedOrders            The orders to fulfill along with
+     *                                         the fraction of those orders to
+     *                                         attempt to fill. Note that both
+     *                                         the offerer and the fulfiller
+     *                                         must first approve this contract
+     *                                         (or their conduit if indicated by
+     *                                         the order) to transfer any
+     *                                         relevant tokens on their behalf
+     *                                         and that contracts must implement
+     *                                         `onERC1155Received` to receive
+     *                                         ERC1155 tokens as consideration.
+     *                                         Also note that all offer and
+     *                                         consideration components must
+     *                                         have no remainder after
+     *                                         multiplication of the respective
+     *                                         amount with the supplied fraction
+     *                                         for an order's partial fill
+     *                                         amount to be considered valid.
+     * @custom:param criteriaResolvers         An array where each element
+     *                                         contains a reference to a
+     *                                         specific offer or consideration,
+     *                                         a token identifier, and a proof
+     *                                         that the supplied token
+     *                                         identifier is contained in the
+     *                                         merkle root held by the item in
+     *                                         question's criteria element. Note
+     *                                         that an empty criteria indicates
+     *                                         that any (transferable) token
+     *                                         identifier on the token in
+     *                                         question is valid and that no
+     *                                         associated proof needs to be
+     *                                         supplied.
+     * @custom:param offerFulfillments         An array of FulfillmentComponent
+     *                                         arrays indicating which offer
+     *                                         items to attempt to aggregate
+     *                                         when preparing executions. Note
+     *                                         that any offer items not included
+     *                                         as part of a fulfillment will be
+     *                                         sent unaggregated to the caller.
+     * @custom:param considerationFulfillments An array of FulfillmentComponent
+     *                                         arrays indicating which
+     *                                         consideration items to attempt to
+     *                                         aggregate when preparing
+     *                                         executions.
+     * @param fulfillerConduitKey              A bytes32 value indicating what
+     *                                         conduit, if any, to source the
+     *                                         fulfiller's token approvals from.
+     *                                         The zero hash signifies that no
+     *                                         conduit should be used (and
+     *                                         direct approvals set on this
+     *                                         contract).
+     * @param recipient                        The intended recipient for all
+     *                                         received items, with `address(0)`
+     *                                         indicating that the caller should
+     *                                         receive the offer items.
+     * @param maximumFulfilled                 The maximum number of orders to
+     *                                         fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
@@ -373,28 +409,39 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         payable
         override
         returns (
-            bool[] memory, /* availableOrders */
+            bool[] memory /* availableOrders */,
             Execution[] memory /* executions */
         )
     {
         // Fulfill all available orders.
-        return _fulfillAvailableAdvancedOrders(
-            _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
-                CalldataStart.pptr()
-            ),
-            _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
-                CalldataStart.pptr(0x20)
-            ),
-            _toNestedFulfillmentComponentsReturnType(
-                _decodeNestedFulfillmentComponents
-            )(CalldataStart.pptr(0x40)),
-            _toNestedFulfillmentComponentsReturnType(
-                _decodeNestedFulfillmentComponents
-            )(CalldataStart.pptr(0x60)),
-            fulfillerConduitKey,
-            _substituteCallerForEmptyRecipient(recipient),
-            maximumFulfilled
-        );
+        return
+            _fulfillAvailableAdvancedOrders(
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
+                _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
+                    CalldataStart.pptr(
+                        Offset_fulfillAvailableAdvancedOrders_criteriaResolvers
+                    )
+                ),
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
+                )(
+                    CalldataStart.pptr(
+                        Offset_fulfillAvailableAdvancedOrders_offerFulfillments
+                    )
+                ),
+                _toNestedFulfillmentComponentsReturnType(
+                    _decodeNestedFulfillmentComponents
+                )(
+                    CalldataStart.pptr(
+                        Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts
+                    )
+                ),
+                fulfillerConduitKey,
+                _substituteCallerForEmptyRecipient(recipient),
+                maximumFulfilled
+            );
     }
 
     /**
@@ -407,23 +454,24 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *         offer item amounts or native tokens will be transferred to the
      *         caller.
      *
-     * @custom:param orders       The orders to match. Note that both the offerer and
-     *                      fulfiller on each order must first approve this
-     *                      contract (or their conduit if indicated by the
-     *                      order) to transfer any relevant tokens on their
-     *                      behalf and each consideration recipient must
-     *                      implement `onERC1155Received` in order to receive
-     *                      ERC1155 tokens.
-     * @custom:param fulfillments An array of elements allocating offer components to
-     *                      consideration components. Note that each
-     *                      consideration component must be fully met in order
-     *                      for the match operation to be valid.
+     * @custom:param orders       The orders to match. Note that both the
+     *                            offerer and fulfiller on each order must first
+     *                            approve this contract (or their conduit if
+     *                            indicated by the order) to transfer any
+     *                            relevant tokens on their behalf and each
+     *                            consideration recipient must implement
+     *                            `onERC1155Received` to receive ERC1155 tokens.
+     * @custom:param fulfillments An array of elements allocating offer
+     *                            components to consideration components. Note
+     *                            that each consideration component must be
+     *                            fully met for the match operation to be valid,
+     *                            and that any unspent offer items will be sent
+     *                            unaggregated to the caller.
      *
      * @return executions An array of elements indicating the sequence of
-     *                     transfers performed as part of matching the given
-     *                     orders. Note that unspent offer item amounts or
-     *                     native tokens will not be reflected as part of this
-     *                     array.
+     *                    transfers performed as part of matching the given
+     *                    orders. Note that unspent offer item amounts or native
+     *                    tokens will not be reflected as part of this array.
      */
     function matchOrders(
         Order[] calldata,
@@ -431,65 +479,66 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
          * @custom:name orders
          */
         Fulfillment[] calldata /* fulfillments */
-    )
-        external
-        payable
-        override
-        returns (Execution[] memory /* executions */ )
-    {
+    ) external payable override returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
-        return _matchAdvancedOrders(
-            _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
-                CalldataStart.pptr()
-            ),
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            _toFulfillmentsReturnType(_decodeFulfillments)(
-                CalldataStart.pptr(0x20)
-            ),
-            msg.sender
-        );
+        return
+            _matchAdvancedOrders(
+                _toAdvancedOrdersReturnType(_decodeOrdersAsAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                _toFulfillmentsReturnType(_decodeFulfillments)(
+                    CalldataStart.pptr(Offset_matchOrders_fulfillments)
+                ),
+                msg.sender
+            );
     }
 
     /**
-     * @notice Match an arbitrary number of full or partial orders, each with an
-     *         arbitrary number of items for offer and consideration, supplying
-     *         criteria resolvers containing specific token identifiers and
-     *         associated proofs as well as fulfillments allocating offer
-     *         components to consideration components. Any unspent offer item
-     *         amounts will be transferred to the designated recipient (with the
-     *         null address signifying to use the caller) and any unspent native
-     *         tokens will be returned to the caller.
+     * @notice Match an arbitrary number of full, partial, or contract orders,
+     *         each with an arbitrary number of items for offer and
+     *         consideration, supplying criteria resolvers containing specific
+     *         token identifiers and associated proofs as well as fulfillments
+     *         allocating offer components to consideration components. Any
+     *         unspent offer item amounts will be transferred to the designated
+     *         recipient (with the null address signifying to use the caller)
+     *         and any unspent native tokens will be returned to the caller.
      *
-     * @custom:param advancedOrders    The advanced orders to match. Note that both
-     *                           the offerer and fulfiller on each order must
-     *                           first approve this contract (or their conduit
-     *                           if indicated by the order) to transfer any
-     *                           relevant tokens on their behalf and each
-     *                           consideration recipient must implement
-     *                           `onERC1155Received` in order to receive ERC1155
-     *                           tokens. Also note that the offer and
-     *                           consideration components for each order must
-     *                           have no remainder after multiplying the
-     *                           respective amount with the supplied fraction in
-     *                           order for the group of partial fills to be
-     *                           considered valid.
+     * @custom:param advancedOrders    The advanced orders to match. Note that
+     *                                 both the offerer and fulfiller on each
+     *                                 order must first approve this contract
+     *                                 (or their conduit if indicated by the
+     *                                 order) to transfer any relevant tokens on
+     *                                 their behalf and each consideration
+     *                                 recipient must implement
+     *                                 `onERC1155Received` to receive ERC1155
+     *                                 tokens. Also note that the offer and
+     *                                 consideration components for each order
+     *                                 must have no remainder after multiplying
+     *                                 the respective amount with the supplied
+     *                                 fraction for the group of partial fills
+     *                                 to be considered valid.
      * @custom:param criteriaResolvers An array where each element contains a
-     *                           reference to a specific order as well as that
-     *                           order's offer or consideration, a token
-     *                           identifier, and a proof that the supplied token
-     *                           identifier is contained in the order's merkle
-     *                           root. Note that an empty root indicates that
-     *                           any (transferable) token identifier is valid
-     *                           and that no associated proof needs to be
-     *                           supplied.
+     *                                 reference to a specific offer or
+     *                                 consideration, a token identifier, and a
+     *                                 proof that the supplied token identifier
+     *                                 is contained in the merkle root held by
+     *                                 the item in question's criteria element.
+     *                                 Note that an empty criteria indicates
+     *                                 that any (transferable) token identifier
+     *                                 on the token in question is valid and
+     *                                 that no associated proof needs to be
+     *                                 supplied.
      * @custom:param fulfillments      An array of elements allocating offer
-     *                           components to consideration components. Note
-     *                           that each consideration component must be fully
-     *                           met in order for the match operation to be
-     *                           valid.
-     * @param recipient          The intended recipient for all unspent offer
-     *                           item amounts, or the caller if the null address
-     *                           is supplied.
+     *                                 components to consideration components.
+     *                                 Note that each consideration component
+     *                                 must be fully met for the match operation
+     *                                 to be valid, and that any unspent offer
+     *                                 items will be sent unaggregated to the
+     *                                 designated recipient.
+     * @param recipient                The intended recipient for all unspent
+     *                                 offer item amounts, or the caller if the
+     *                                 null address is supplied.
      *
      * @return executions An array of elements indicating the sequence of
      *                     transfers performed as part of matching the given
@@ -511,25 +560,23 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
          * @custom:name fulfillments
          */
         address recipient
-    )
-        external
-        payable
-        override
-        returns (Execution[] memory /* executions */ )
-    {
+    ) external payable override returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
-        return _matchAdvancedOrders(
-            _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
-                CalldataStart.pptr()
-            ),
-            _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
-                CalldataStart.pptr(0x20)
-            ),
-            _toFulfillmentsReturnType(_decodeFulfillments)(
-                CalldataStart.pptr(0x40)
-            ),
-            _substituteCallerForEmptyRecipient(recipient)
-        );
+        return
+            _matchAdvancedOrders(
+                _toAdvancedOrdersReturnType(_decodeAdvancedOrders)(
+                    CalldataStart.pptr()
+                ),
+                _toCriteriaResolversReturnType(_decodeCriteriaResolvers)(
+                    CalldataStart.pptr(
+                        Offset_matchAdvancedOrders_criteriaResolvers
+                    )
+                ),
+                _toFulfillmentsReturnType(_decodeFulfillments)(
+                    CalldataStart.pptr(Offset_matchAdvancedOrders_fulfillments)
+                ),
+                _substituteCallerForEmptyRecipient(recipient)
+            );
     }
 
     /**
@@ -543,11 +590,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return cancelled A boolean indicating whether the supplied orders have
      *                   been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders)
-        external
-        override
-        returns (bool cancelled)
-    {
+    function cancel(
+        OrderComponents[] calldata orders
+    ) external override returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -567,13 +612,17 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return validated A boolean indicating whether the supplied orders have
      *                   been successfully validated.
      */
-    function validate(Order[] calldata)
-        /**
-         * @custom:name orders
-         */
+    function validate(
+        Order[] calldata
+    )
         external
         override
-        returns (bool /* validated */ )
+        returns (
+            /**
+             * @custom:name orders
+             */
+            bool /* validated */
+        )
     {
         return
             _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
@@ -586,11 +635,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return newCounter The new counter.
      */
-    function incrementCounter()
-        external
-        override
-        returns (uint256 newCounter)
-    {
+    function incrementCounter() external override returns (uint256 newCounter) {
         // Increment current counter for the supplied offerer.  Note that the
         // counter is incremented by a large, quasi-random interval.
         newCounter = _incrementCounter();
@@ -603,14 +648,18 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return orderHash The order hash.
      */
-    function getOrderHash(OrderComponents calldata)
-        /**
-         * @custom:name order
-         */
+    function getOrderHash(
+        OrderComponents calldata
+    )
         external
         view
         override
-        returns (bytes32 orderHash)
+        returns (
+            /**
+             * @custom:name order
+             */
+            bytes32 orderHash
+        )
     {
         CalldataPointer orderPointer = CalldataStart.pptr();
 
@@ -643,7 +692,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(bytes32 orderHash)
+    function getOrderStatus(
+        bytes32 orderHash
+    )
         external
         view
         override
@@ -665,12 +716,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer)
-        external
-        view
-        override
-        returns (uint256 counter)
-    {
+    function getCounter(
+        address offerer
+    ) external view override returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -703,12 +751,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return nonce The contract offerer nonce.
      */
-    function getContractOffererNonce(address contractOfferer)
-        external
-        view
-        override
-        returns (uint256 nonce)
-    {
+    function getContractOffererNonce(
+        address contractOfferer
+    ) external view override returns (uint256 nonce) {
         nonce = _contractNonces[contractOfferer];
     }
 
@@ -721,7 +766,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         pure
         override
-        returns (string memory /* contractName */ )
+        returns (string memory /* contractName */)
     {
         // Return the name of the contract.
         return _name();
