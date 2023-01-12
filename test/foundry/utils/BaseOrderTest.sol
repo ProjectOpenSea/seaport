@@ -6,9 +6,8 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
-import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
     BasicOrderType,
     OrderType
@@ -137,14 +136,9 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         }
         uint256 nonce = consideration.getCounter(address(this));
 
-        orderParameters = getOrderParameters(
-            payable(this),
-            OrderType.FULL_OPEN
-        );
-        OrderComponents memory orderComponents = toOrderComponents(
-            orderParameters,
-            nonce
-        );
+        orderParameters = getOrderParameters(payable(this), OrderType.FULL_OPEN);
+        OrderComponents memory orderComponents =
+            toOrderComponents(orderParameters, nonce);
 
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
 
@@ -176,17 +170,13 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     ) internal pure returns (bytes32 lengthPtr) {
         assembly {
             // Points to the order parameters in the order calldata.
-            let orderParamsOffsetPtr := add(
-                orderCalldata,
-                relativeOrderParametersOffset
-            )
+            let orderParamsOffsetPtr :=
+                add(orderCalldata, relativeOrderParametersOffset)
             // Points to the items offset value.
             // Note: itemsOffsetPtr itself is not the offset value;
             // the value stored at itemsOffsetPtr is the offset value.
-            let itemsOffsetPtr := add(
-                orderParamsOffsetPtr,
-                relativeItemsLengthOffset
-            )
+            let itemsOffsetPtr :=
+                add(orderParamsOffsetPtr, relativeItemsLengthOffset)
             // Value of the items offset, which is the offset of the items
             // array relative to the start of order parameters.
             let itemsOffsetValue := mload(itemsOffsetPtr)
@@ -236,7 +226,8 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         if (overwriteItemsLength) {
             // Get the array length from the calldata and
             // store the length - amtToSubtractFromItemsLength in the calldata
-            // so that the length value does _not_ accurately represent the actual
+            // so that the length value does _not_ accurately represent the
+            // actual
             // total array length.
             _subtractAmountFromLengthInOrderCalldata(
                 fulfillOrderCalldata,
@@ -257,17 +248,16 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         );
 
         assertEq(
-            finalItemsLength,
-            originalItemsLength - amtToSubtractFromItemsLength
+            finalItemsLength, originalItemsLength - amtToSubtractFromItemsLength
         );
 
         bool success = _callConsiderationFulfillOrderWithCalldata(
-            address(_consideration),
-            fulfillOrderCalldata
+            address(_consideration), fulfillOrderCalldata
         );
 
         // If overwriteItemsLength is True, the call should
-        // have failed (success should be False) and if overwriteItemsLength is False,
+        // have failed (success should be False) and if overwriteItemsLength is
+        // False,
         // the call should have succeeded (success should be True).
         assertEq(success, !overwriteItemsLength);
     }
@@ -276,14 +266,14 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         address considerationAddress,
         bytes memory orderCalldata
     ) internal returns (bool success) {
-        (success, ) = considerationAddress.call(orderCalldata);
+        (success,) = considerationAddress.call(orderCalldata);
     }
 
     function getMaxConsiderationValue() internal view returns (uint256) {
         uint256 value = 0;
         for (uint256 i = 0; i < considerationItems.length; ++i) {
-            uint256 amount = considerationItems[i].startAmount >
-                considerationItems[i].endAmount
+            uint256 amount = considerationItems[i].startAmount
+                > considerationItems[i].endAmount
                 ? considerationItems[i].startAmount
                 : considerationItems[i].endAmount;
             value += amount;
@@ -292,69 +282,68 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     }
 
     /**
-     * @dev return OrderComponents for a given OrderParameters and offerer counter
+     * @dev return OrderComponents for a given OrderParameters and offerer
+     * counter
      */
     function getOrderComponents(
         OrderParameters memory parameters,
         uint256 counter
     ) internal pure returns (OrderComponents memory) {
-        return
-            OrderComponents(
-                parameters.offerer,
-                parameters.zone,
-                parameters.offer,
-                parameters.consideration,
-                parameters.orderType,
-                parameters.startTime,
-                parameters.endTime,
-                parameters.zoneHash,
-                parameters.salt,
-                parameters.conduitKey,
-                counter
-            );
+        return OrderComponents(
+            parameters.offerer,
+            parameters.zone,
+            parameters.offer,
+            parameters.consideration,
+            parameters.orderType,
+            parameters.startTime,
+            parameters.endTime,
+            parameters.zoneHash,
+            parameters.salt,
+            parameters.conduitKey,
+            counter
+        );
     }
 
     function getOrderParameters(
         address offerer,
         OrderType orderType
     ) internal returns (OrderParameters memory) {
-        return
-            OrderParameters({
-                offerer: offerer,
-                zone: address(0),
-                offer: offerItems,
-                consideration: considerationItems,
-                orderType: orderType,
-                startTime: block.timestamp,
-                endTime: block.timestamp + 1,
-                zoneHash: bytes32(0),
-                salt: globalSalt++,
-                conduitKey: bytes32(0),
-                totalOriginalConsiderationItems: considerationItems.length
-            });
+        return OrderParameters({
+            offerer: offerer,
+            zone: address(0),
+            offer: offerItems,
+            consideration: considerationItems,
+            orderType: orderType,
+            startTime: block.timestamp,
+            endTime: block.timestamp + 1,
+            zoneHash: bytes32(0),
+            salt: globalSalt++,
+            conduitKey: bytes32(0),
+            totalOriginalConsiderationItems: considerationItems.length
+        });
     }
 
     function toOrderComponents(
         OrderParameters memory _params,
         uint256 nonce
     ) internal pure returns (OrderComponents memory) {
-        return
-            OrderComponents(
-                _params.offerer,
-                _params.zone,
-                _params.offer,
-                _params.consideration,
-                _params.orderType,
-                _params.startTime,
-                _params.endTime,
-                _params.zoneHash,
-                _params.salt,
-                _params.conduitKey,
-                nonce
-            );
+        return OrderComponents(
+            _params.offerer,
+            _params.zone,
+            _params.offer,
+            _params.consideration,
+            _params.orderType,
+            _params.startTime,
+            _params.endTime,
+            _params.zoneHash,
+            _params.salt,
+            _params.conduitKey,
+            nonce
+        );
     }
 
-    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
+    ///@dev allow signing for this contract since it needs to be recipient of
+    /// basic order to reenter on receive
     function isValidSignature(
         bytes32,
         bytes memory
@@ -362,5 +351,5 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         return 0x1626ba7e;
     }
 
-    receive() external payable virtual {}
+    receive() external payable virtual { }
 }

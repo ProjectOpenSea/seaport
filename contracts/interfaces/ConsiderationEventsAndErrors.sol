@@ -45,9 +45,7 @@ interface ConsiderationEventsAndErrors {
      * @param zone      The zone of the cancelled order.
      */
     event OrderCancelled(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone
+        bytes32 orderHash, address indexed offerer, address indexed zone
     );
 
     /**
@@ -131,9 +129,7 @@ interface ConsiderationEventsAndErrors {
      * @param shortfallAmount    The unfulfilled consideration amount.
      */
     error ConsiderationNotMet(
-        uint256 orderIndex,
-        uint256 considerationIndex,
-        uint256 shortfallAmount
+        uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount
     );
 
     /**

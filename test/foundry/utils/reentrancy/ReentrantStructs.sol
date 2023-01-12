@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
+
 import {
     BasicOrderParameters,
     OfferItem,
@@ -71,7 +72,8 @@ struct ReentrantCallParameters {
     FulfillOrderParameters fulfillOrderParameters;
     FulfillAdvancedOrderParameters fulfillAdvancedOrderParameters;
     FulfillAvailableOrdersParameters fulfillAvailableOrdersParameters;
-    FulfillAvailableAdvancedOrdersParameters fulfillAvailableAdvancedOrdersParameters;
+    FulfillAvailableAdvancedOrdersParameters
+        fulfillAvailableAdvancedOrdersParameters;
     MatchOrdersParameters matchOrdersParameters;
     MatchAdvancedOrdersParameters matchAdvancedOrdersParameters;
     CancelParameters cancelParameters;

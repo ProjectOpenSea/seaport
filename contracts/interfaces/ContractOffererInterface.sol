@@ -38,8 +38,8 @@ interface ContractOffererInterface {
         returns (
             uint256 schemaID, // maps to a Seaport standard's ID
             string memory name,
-            bytes memory metadata // decoded based on the schemaID
-        );
+            bytes memory metadata
+        ); // decoded based on the schemaID
 
     // Additional functions and/or events based on schemaID
 }

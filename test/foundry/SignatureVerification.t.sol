@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    SignatureVerification
-} from "../../contracts/lib/SignatureVerification.sol";
-import {
-    ReferenceSignatureVerification
-} from "../../reference/lib/ReferenceSignatureVerification.sol";
+import { SignatureVerification } from
+    "../../contracts/lib/SignatureVerification.sol";
+import { ReferenceSignatureVerification } from
+    "../../reference/lib/ReferenceSignatureVerification.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
@@ -25,11 +23,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         }
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -41,11 +35,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 65);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -59,11 +49,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 65);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -75,11 +61,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         assertEq(signature.length, 64);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -88,11 +70,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         signature = new bytes(69);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -102,11 +80,7 @@ contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {
         signature = abi.encodePacked(r, s, v);
 
         _assertValidSignature(
-            alice,
-            digest,
-            digest,
-            signature.length,
-            signature
+            alice, digest, digest, signature.length, signature
         );
     }
 
@@ -305,7 +279,8 @@ contract ReferenceSignatureVerifierLogicWith1271Override is
 
 contract SignatureVerificationTest is BaseOrderTest {
     function test(function() external fn) internal {
-        try fn() {} catch (bytes memory reason) {
+        try fn() { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -324,15 +299,18 @@ contract SignatureVerificationTest is BaseOrderTest {
         logic.signatureVerificationValid();
         logic.signatureVerification1271Valid();
 
-        SignatureVerifierLogicWith1271Override logicWith1271Override = new SignatureVerifierLogicWith1271Override();
+        SignatureVerifierLogicWith1271Override logicWith1271Override =
+            new SignatureVerifierLogicWith1271Override();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Override.signatureVerification1271Invalid();
 
-        SignatureVerifierLogicWith1271Fail logicWith1271Fail = new SignatureVerifierLogicWith1271Fail();
+        SignatureVerifierLogicWith1271Fail logicWith1271Fail =
+            new SignatureVerifierLogicWith1271Fail();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
         logicWith1271Fail.signatureVerification1271Fail();
 
-        ReferenceSignatureVerifierLogic referenceLogic = new ReferenceSignatureVerifierLogic();
+        ReferenceSignatureVerifierLogic referenceLogic =
+            new ReferenceSignatureVerifierLogic();
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
         vm.expectRevert(abi.encodeWithSignature("BadSignatureV(uint8)", 0));
         referenceLogic.referenceSignatureVerification65ByteWithBadSignatureV();
@@ -346,9 +324,11 @@ contract SignatureVerificationTest is BaseOrderTest {
         referenceLogic.referenceSignatureVerificationValid();
         referenceLogic.referenceSignatureVerification1271Valid();
 
-        ReferenceSignatureVerifierLogicWith1271Override referenceLogicWith1271Override = new ReferenceSignatureVerifierLogicWith1271Override();
+        ReferenceSignatureVerifierLogicWith1271Override
+            referenceLogicWith1271Override =
+                new ReferenceSignatureVerifierLogicWith1271Override();
         vm.expectRevert(abi.encodeWithSignature("BadContractSignature()"));
-        referenceLogicWith1271Override
-            .referenceSignatureVerification1271Invalid();
+        referenceLogicWith1271Override.referenceSignatureVerification1271Invalid(
+        );
     }
 }

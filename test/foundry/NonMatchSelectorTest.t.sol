@@ -3,9 +3,8 @@
 
 pragma solidity ^0.8.17;
 
-import {
-    ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../contracts/interfaces/ConsiderationInterface.sol";
 
 import {
     NonMatchSelector_MagicMask,
@@ -13,40 +12,33 @@ import {
 } from "../../contracts/lib/ConsiderationConstants.sol";
 
 import { Test } from "forge-std/Test.sol";
-contract NonMatchSelectorTest is Test {
 
+contract NonMatchSelectorTest is Test {
     function testNonMatchSelectorMagicMaskAndInvalidErrorValue() public {
         assertEq(
-            NonMatchSelector_MagicMask + 1,
-            NonMatchSelector_InvalidErrorValue
+            NonMatchSelector_MagicMask + 1, NonMatchSelector_InvalidErrorValue
         );
     }
-    
+
     function testSelectorMatchOrders() public {
-        _testSelector(
-            ConsiderationInterface.matchOrders.selector,
-            false
-        );
+        _testSelector(ConsiderationInterface.matchOrders.selector, false);
     }
 
     function testSelectorMatchAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.matchAdvancedOrders.selector,
-            false
+            ConsiderationInterface.matchAdvancedOrders.selector, false
         );
     }
 
     function testSelectorFulfillAvailableOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableOrders.selector, true
         );
     }
 
     function testSelectorFulfillAvailableAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector, true
         );
     }
 
@@ -54,13 +46,11 @@ contract NonMatchSelectorTest is Test {
         bool isSelected;
 
         assembly {
-            isSelected := eq(
-                NonMatchSelector_MagicMask,
-                and(
+            isSelected :=
+                eq(
                     NonMatchSelector_MagicMask,
-                    selector
+                    and(NonMatchSelector_MagicMask, selector)
                 )
-            )
         }
 
         assertEq(isSelected, shouldBeSelected);

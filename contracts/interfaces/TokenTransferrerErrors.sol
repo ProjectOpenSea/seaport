@@ -74,10 +74,7 @@ interface TokenTransferrerErrors {
      * @param amount     The amount for the attempted ERC20 transfer.
      */
     error BadReturnValueFromERC20OnTransfer(
-        address token,
-        address from,
-        address to,
-        uint256 amount
+        address token, address from, address to, uint256 amount
     );
 
     /**

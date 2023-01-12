@@ -23,7 +23,7 @@ contract Verifiers is Assertions, SignatureVerification {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) Assertions(conduitController) {}
+    constructor(address conduitController) Assertions(conduitController) { }
 
     /**
      * @dev Internal view function to ensure that the current time falls within
@@ -43,10 +43,8 @@ contract Verifiers is Assertions, SignatureVerification {
     ) internal view returns (bool valid) {
         // Mark as valid if order has started and has not already ended.
         assembly {
-            valid := and(
-                iszero(gt(startTime, timestamp())),
-                gt(endTime, timestamp())
-            )
+            valid :=
+                and(iszero(gt(startTime, timestamp())), gt(endTime, timestamp()))
         }
 
         // Only revert on invalid if revertOnInvalid has been supplied as true.
@@ -81,10 +79,7 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes32 domainSeparator = _domainSeparator();
 
         // Derive original EIP-712 digest using domain separator and order hash.
-        bytes32 originalDigest = _deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        bytes32 originalDigest = _deriveEIP712Digest(domainSeparator, orderHash);
 
         uint256 originalSignatureLength = signature.length;
 
@@ -99,11 +94,7 @@ contract Verifiers is Assertions, SignatureVerification {
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(
-            offerer,
-            digest,
-            originalDigest,
-            originalSignatureLength,
-            signature
+            offerer, digest, originalDigest, originalSignatureLength, signature
         );
     }
 
@@ -114,28 +105,31 @@ contract Verifiers is Assertions, SignatureVerification {
      *
      * @return validLength True if bulk order size is valid, false otherwise.
      */
-    function _isValidBulkOrderSize(
-        uint256 signatureLength
-    ) internal pure returns (bool validLength) {
+    function _isValidBulkOrderSize(uint256 signatureLength)
+        internal
+        pure
+        returns (bool validLength)
+    {
         // Utilize assembly to validate the length; the equivalent logic is
         // (64 + x) + 3 + 32y where (0 <= x <= 1) and (1 <= y <= 24).
         assembly {
-            validLength := and(
-                lt(
-                    sub(signatureLength, BulkOrderProof_minSize),
-                    BulkOrderProof_rangeSize
-                ),
-                lt(
-                    and(
-                        add(
-                            signatureLength,
-                            BulkOrderProof_lengthAdjustmentBeforeMask
-                        ),
-                        AlmostOneWord
+            validLength :=
+                and(
+                    lt(
+                        sub(signatureLength, BulkOrderProof_minSize),
+                        BulkOrderProof_rangeSize
                     ),
-                    BulkOrderProof_lengthRangeAfterMask
+                    lt(
+                        and(
+                            add(
+                                signatureLength,
+                                BulkOrderProof_lengthAdjustmentBeforeMask
+                            ),
+                            AlmostOneWord
+                        ),
+                        BulkOrderProof_lengthRangeAfterMask
+                    )
                 )
-            )
         }
     }
 
@@ -186,11 +180,7 @@ contract Verifiers is Assertions, SignatureVerification {
             mstore(xor(scratchPtr1, OneWord), mload(proof))
 
             // Compute remaining proofs.
-            for {
-                let i := 1
-            } lt(i, height) {
-                i := add(i, 1)
-            } {
+            for { let i := 1 } lt(i, height) { i := add(i, 1) } {
                 proof := add(proof, OneWord)
                 let scratchPtr := shl(OneWordShift, and(shr(i, key), 1))
                 mstore(scratchPtr, keccak256(0, TwoWords))

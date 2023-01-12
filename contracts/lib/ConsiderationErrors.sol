@@ -44,8 +44,7 @@ function _revertConsiderationNotMet(
         // Store arguments.
         mstore(ConsiderationNotMet_error_orderIndex_ptr, orderIndex)
         mstore(
-            ConsiderationNotMet_error_considerationIndex_ptr,
-            considerationIndex
+            ConsiderationNotMet_error_considerationIndex_ptr, considerationIndex
         )
         mstore(ConsiderationNotMet_error_shortfallAmount_ptr, shortfallAmount)
 
@@ -471,8 +470,7 @@ function _revertOrderCriteriaResolverOutOfRange(Side side) pure {
         //     side
         // ))
         revert(
-            Error_selector_offset,
-            OrderCriteriaResolverOutOfRange_error_length
+            Error_selector_offset, OrderCriteriaResolverOutOfRange_error_length
         )
     }
 }
@@ -533,8 +531,7 @@ function _revertPartialFillsNotEnabledForOrder() pure {
 
         // revert(abi.encodeWithSignature("PartialFillsNotEnabledForOrder()"))
         revert(
-            Error_selector_offset,
-            PartialFillsNotEnabledForOrder_error_length
+            Error_selector_offset, PartialFillsNotEnabledForOrder_error_length
         )
     }
 }
@@ -565,8 +562,7 @@ function _revertUnresolvedConsiderationCriteria(
         //     considerationIndex
         // ))
         revert(
-            Error_selector_offset,
-            UnresolvedConsiderationCriteria_error_length
+            Error_selector_offset, UnresolvedConsiderationCriteria_error_length
         )
     }
 }

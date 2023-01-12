@@ -46,10 +46,8 @@ contract ZoneInteraction is
         // validation will be skipped.
         if (_isRestrictedAndCallerNotZone(orderType, parameters.zone)) {
             // Encode the `validateOrder` call in memory.
-            (MemoryPointer callData, uint256 size) = _encodeValidateBasicOrder(
-                orderHash,
-                parameters
-            );
+            (MemoryPointer callData, uint256 size) =
+                _encodeValidateBasicOrder(orderHash, parameters);
 
             // Perform `validateOrder` call and ensure magic value was returned.
             _callAndCheckStatus(
@@ -94,10 +92,7 @@ contract ZoneInteraction is
         ) {
             // Encode the `validateOrder` call in memory.
             (callData, size) = _encodeValidateOrder(
-                orderHash,
-                parameters,
-                advancedOrder.extraData,
-                orderHashes
+                orderHash, parameters, advancedOrder.extraData, orderHashes
             );
 
             // Set the target to the zone.
@@ -108,10 +103,7 @@ contract ZoneInteraction is
         } else if (parameters.orderType == OrderType.CONTRACT) {
             // Encode the `ratifyOrder` call in memory.
             (callData, size) = _encodeRatifyOrder(
-                orderHash,
-                parameters,
-                advancedOrder.extraData,
-                orderHashes
+                orderHash, parameters, advancedOrder.extraData, orderHashes
             );
 
             // Set the target to the offerer.
@@ -142,10 +134,11 @@ contract ZoneInteraction is
         address zone
     ) internal view returns (bool mustValidate) {
         assembly {
-            mustValidate := and(
-                or(eq(orderType, 2), eq(orderType, 3)),
-                iszero(eq(caller(), zone))
-            )
+            mustValidate :=
+                and(
+                    or(eq(orderType, 2), eq(orderType, 3)),
+                    iszero(eq(caller(), zone))
+                )
         }
     }
 
@@ -195,8 +188,7 @@ contract ZoneInteraction is
                 mstore(0, errorSelector)
                 mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
                 revert(
-                    Error_selector_offset,
-                    InvalidRestrictedOrder_error_length
+                    Error_selector_offset, InvalidRestrictedOrder_error_length
                 )
             }
         }
@@ -208,8 +200,7 @@ contract ZoneInteraction is
                 mstore(0, errorSelector)
                 mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
                 revert(
-                    Error_selector_offset,
-                    InvalidRestrictedOrder_error_length
+                    Error_selector_offset, InvalidRestrictedOrder_error_length
                 )
             }
         }

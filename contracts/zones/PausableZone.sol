@@ -4,9 +4,8 @@ pragma solidity ^0.8.13;
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
-import {
-    PausableZoneEventsAndErrors
-} from "./interfaces/PausableZoneEventsAndErrors.sol";
+import { PausableZoneEventsAndErrors } from
+    "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
@@ -117,9 +116,11 @@ contract PausableZone is
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(
-        address operatorToAssign
-    ) external override isController {
+    function assignOperator(address operatorToAssign)
+        external
+        override
+        isController
+    {
         // Ensure the operator being assigned is not the null address.
         if (operatorToAssign == address(0)) {
             revert PauserCanNotBeSetAsZero();
@@ -161,10 +162,7 @@ contract PausableZone is
     {
         // Call matchOrders on Seaport and return the sequence of transfers
         // performed as part of matching the given orders.
-        executions = seaport.matchOrders{ value: msg.value }(
-            orders,
-            fulfillments
-        );
+        executions = seaport.matchOrders{value: msg.value}(orders, fulfillments);
     }
 
     /**
@@ -202,11 +200,8 @@ contract PausableZone is
     {
         // Call matchAdvancedOrders on Seaport and return the sequence of
         // transfers performed as part of matching the given orders.
-        executions = seaport.matchAdvancedOrders{ value: msg.value }(
-            orders,
-            criteriaResolvers,
-            fulfillments,
-            msg.sender
+        executions = seaport.matchAdvancedOrders{value: msg.value}(
+            orders, criteriaResolvers, fulfillments, msg.sender
         );
     }
 
@@ -225,12 +220,10 @@ contract PausableZone is
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function validateOrder(
-        ZoneParameters calldata
-    )
+    function validateOrder(ZoneParameters calldata)
         external
         pure
-        override
+        override(ZoneInterface)
         returns (
             /**
              * @custom:name zoneParameters

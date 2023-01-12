@@ -45,7 +45,7 @@ contract TypehashDirectory {
         }
 
         // Iterate over each tree height.
-        for (uint256 i = 0; i < MaxTreeHeight; ) {
+        for (uint256 i = 0; i < MaxTreeHeight;) {
             // The actual height is one greater than its respective index.
             uint256 height = i + 1;
 
@@ -56,10 +56,7 @@ contract TypehashDirectory {
 
             // Encode the type string for the BulkOrder struct.
             bytes memory bulkOrderTypeString = bytes.concat(
-                "BulkOrder(OrderComponents",
-                brackets,
-                " tree)",
-                subTypes
+                "BulkOrder(OrderComponents", brackets, " tree)", subTypes
             );
 
             // Derive EIP712 type hash.
@@ -96,9 +93,11 @@ contract TypehashDirectory {
      *
      * @return A bytes array representing the string.
      */
-    function getMaxTreeBrackets(
-        uint256 maxHeight
-    ) internal pure returns (bytes memory) {
+    function getMaxTreeBrackets(uint256 maxHeight)
+        internal
+        pure
+        returns (bytes memory)
+    {
         bytes memory suffixes = new bytes(twoSubstringLength * maxHeight);
         assembly {
             // Retrieve the pointer to the array head.
@@ -108,11 +107,7 @@ contract TypehashDirectory {
             let endPtr := add(ptr, mul(maxHeight, twoSubstringLength))
 
             // Iterate over each pointer until terminal pointer is reached.
-            for {
-
-            } lt(ptr, endPtr) {
-                ptr := add(ptr, twoSubstringLength)
-            } {
+            for { } lt(ptr, endPtr) { ptr := add(ptr, twoSubstringLength) } {
                 // Insert "[2]" substring directly at current pointer location.
                 mstore(ptr, twoSubstring)
             }
@@ -132,52 +127,34 @@ contract TypehashDirectory {
         // Construct the OfferItem type string.
         // prettier-ignore
         bytes memory offerItemTypeString = bytes(
-                "OfferItem("
-                    "uint8 itemType,"
-                    "address token,"
-                    "uint256 identifierOrCriteria,"
-                    "uint256 startAmount,"
-                    "uint256 endAmount"
-                ")"
-            );
+            "OfferItem(" "uint8 itemType," "address token,"
+            "uint256 identifierOrCriteria," "uint256 startAmount,"
+            "uint256 endAmount" ")"
+        );
 
         // Construct the ConsiderationItem type string.
         // prettier-ignore
         bytes memory considerationItemTypeString = bytes(
-                "ConsiderationItem("
-                    "uint8 itemType,"
-                    "address token,"
-                    "uint256 identifierOrCriteria,"
-                    "uint256 startAmount,"
-                    "uint256 endAmount,"
-                    "address recipient"
-                ")"
-            );
+            "ConsiderationItem(" "uint8 itemType," "address token,"
+            "uint256 identifierOrCriteria," "uint256 startAmount,"
+            "uint256 endAmount," "address recipient" ")"
+        );
 
         // Construct the OrderComponents type string, not including the above.
         // prettier-ignore
         bytes memory orderComponentsPartialTypeString = bytes(
-                "OrderComponents("
-                    "address offerer,"
-                    "address zone,"
-                    "OfferItem[] offer,"
-                    "ConsiderationItem[] consideration,"
-                    "uint8 orderType,"
-                    "uint256 startTime,"
-                    "uint256 endTime,"
-                    "bytes32 zoneHash,"
-                    "uint256 salt,"
-                    "bytes32 conduitKey,"
-                    "uint256 counter"
-                ")"
-            );
+            "OrderComponents(" "address offerer," "address zone,"
+            "OfferItem[] offer," "ConsiderationItem[] consideration,"
+            "uint8 orderType," "uint256 startTime," "uint256 endTime,"
+            "bytes32 zoneHash," "uint256 salt," "bytes32 conduitKey,"
+            "uint256 counter" ")"
+        );
 
         // Return the combined string.
-        return
-            abi.encodePacked(
-                considerationItemTypeString,
-                offerItemTypeString,
-                orderComponentsPartialTypeString
-            );
+        return abi.encodePacked(
+            considerationItemTypeString,
+            offerItemTypeString,
+            orderComponentsPartialTypeString
+        );
     }
 }

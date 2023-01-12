@@ -8,9 +8,8 @@ import {
     ERC20Interface,
     ERC721Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
     OrderType,
     ItemType,
@@ -26,12 +25,10 @@ import {
     CriteriaResolver
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
-import {
-    ConsiderationEventsAndErrors
-} from "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
-import {
-    ZoneInteractionErrors
-} from "../../../contracts/interfaces/ZoneInteractionErrors.sol";
+import { ConsiderationEventsAndErrors } from
+    "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+import { ZoneInteractionErrors } from
+    "../../../contracts/interfaces/ZoneInteractionErrors.sol";
 
 contract AdjustedAmountOffererTest is
     BaseOrderTest,
@@ -73,7 +70,8 @@ contract AdjustedAmountOffererTest is
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -102,10 +100,10 @@ contract AdjustedAmountOffererTest is
     function testLessMinimumReceived() public {
         setUpLessMinimumReceived();
 
-        test(this.execLessMinimumReceived, Context({ seaport: consideration }));
+        test(this.execLessMinimumReceived, Context({seaport: consideration}));
         test(
             this.execLessMinimumReceived,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -114,9 +112,10 @@ contract AdjustedAmountOffererTest is
         setUpNormalOrder(address(offerer));
     }
 
-    function execLessMinimumReceived(
-        Context memory context
-    ) external stateless {
+    function execLessMinimumReceived(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidContractOrder.selector,
@@ -130,10 +129,10 @@ contract AdjustedAmountOffererTest is
     function testMoreMinimumReceived() public {
         setUpMoreMinimumReceived();
 
-        test(this.execMoreMinimumReceived, Context({ seaport: consideration }));
+        test(this.execMoreMinimumReceived, Context({seaport: consideration}));
         test(
             this.execMoreMinimumReceived,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -142,23 +141,25 @@ contract AdjustedAmountOffererTest is
         setUpNormalOrder(address(offerer));
     }
 
-    function execMoreMinimumReceived(
-        Context memory context
-    ) external stateless {
+    function execMoreMinimumReceived(Context memory context)
+        external
+        stateless
+    {
         uint256 startBalance = token2.balanceOf(address(this));
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(token1.balanceOf(address(this)), startBalance + 1001);
     }
 
-    // do the same as above but now for consideration items, specifying -1 and 1 as the second arguments to setUpOfferer
+    // do the same as above but now for consideration items, specifying -1 and 1
+    // as the second arguments to setUpOfferer
 
     function testLessMaximumSpent() public {
         setUpLessMaximumSpent();
 
-        test(this.execLessMaximumSpent, Context({ seaport: consideration }));
+        test(this.execLessMaximumSpent, Context({seaport: consideration}));
         test(
             this.execLessMaximumSpent,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -177,10 +178,10 @@ contract AdjustedAmountOffererTest is
     function testMoreMaximumSpent() public {
         setUpMoreMaximumSpent();
 
-        test(this.execMoreMaximumSpent, Context({ seaport: consideration }));
+        test(this.execMoreMaximumSpent, Context({seaport: consideration}));
         test(
             this.execMoreMaximumSpent,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -206,10 +207,9 @@ contract AdjustedAmountOffererTest is
         setUpNormalOrder(address(offerer));
         offerItems[0].endAmount += 1;
 
-        test(this.execAlterOfferItem, Context({ seaport: consideration }));
+        test(this.execAlterOfferItem, Context({seaport: consideration}));
         test(
-            this.execAlterOfferItem,
-            Context({ seaport: referenceConsideration })
+            this.execAlterOfferItem, Context({seaport: referenceConsideration})
         );
     }
 
@@ -229,19 +229,17 @@ contract AdjustedAmountOffererTest is
         setUpNormalOrder(address(offerer));
         considerationItems[0].endAmount += 1;
 
+        test(this.execAlterConsiderationItem, Context({seaport: consideration}));
         test(
             this.execAlterConsiderationItem,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execAlterConsiderationItem,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execAlterConsiderationItem(
-        Context memory context
-    ) external stateless {
+    function execAlterConsiderationItem(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidContractOrder.selector,
@@ -259,17 +257,13 @@ contract AdjustedAmountOffererTest is
         uint120 numer,
         uint120 denom
     ) internal returns (AdvancedOrder memory) {
-        return
-            AdvancedOrder({
-                parameters: getOrderParameters(
-                    address(offerer),
-                    OrderType.CONTRACT
-                ),
-                numerator: numer,
-                denominator: denom,
-                signature: "",
-                extraData: ""
-            });
+        return AdvancedOrder({
+            parameters: getOrderParameters(address(offerer), OrderType.CONTRACT),
+            numerator: numer,
+            denominator: denom,
+            signature: "",
+            extraData: ""
+        });
     }
 
     function fulfillAdvanced(

@@ -4,9 +4,8 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { Merkle } from "murky/Merkle.sol";
-import {
-    ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../contracts/interfaces/ConsiderationInterface.sol";
 import {
     CriteriaResolver,
     OfferItem,
@@ -34,14 +33,13 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function prepareCriteriaOfferOrder(
-        Context memory context
-    )
+    function prepareCriteriaOfferOrder(Context memory context)
         internal
         returns (
             bytes32[] memory hashedIdentifiers,
@@ -52,13 +50,11 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         hashedIdentifiers = new bytes32[](context.args.identifiers.length);
         for (uint256 i = 0; i < context.args.identifiers.length; i++) {
             // try to mint each identifier; fuzzer may include duplicates
-            try test721_1.mint(alice, context.args.identifiers[i]) {} catch (
-                bytes memory
-            ) {}
+            try test721_1.mint(alice, context.args.identifiers[i]) { }
+                catch (bytes memory) { }
             // hash identifier and store to generate proof
-            hashedIdentifiers[i] = keccak256(
-                abi.encode(context.args.identifiers[i])
-            );
+            hashedIdentifiers[i] =
+                keccak256(abi.encode(context.args.identifiers[i]));
         }
 
         bytes32 root = merkle.getRoot(hashedIdentifiers);
@@ -68,8 +64,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
 
         OrderComponents memory orderComponents = getOrderComponents(
-            baseOrderParameters,
-            context.consideration.getCounter(alice)
+            baseOrderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -124,17 +119,17 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersWithCriteria(
-        Context memory context
-    ) external stateless {
-        // pick a "random" index in the array of identifiers; use that identifier
+    function fulfillAvailableAdvancedOrdersWithCriteria(Context memory context)
+        external
+        stateless
+    {
+        // pick a "random" index in the array of identifiers; use that
+        // identifier
         context.args.index = context.args.index % 8;
         uint256 identifier = context.args.identifiers[context.args.index];
 
-        (
-            bytes32[] memory hashedIdentifiers,
-            AdvancedOrder memory advancedOrder
-        ) = prepareCriteriaOfferOrder(context);
+        (bytes32[] memory hashedIdentifiers, AdvancedOrder memory advancedOrder)
+        = prepareCriteriaOfferOrder(context);
 
         // add advancedOrder to an AdvancedOrder array
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
@@ -161,7 +156,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        context.consideration.fulfillAvailableAdvancedOrders{ value: 1 }(
+        context.consideration.fulfillAvailableAdvancedOrders{value: 1}(
             advancedOrders,
             resolvers,
             offerComponentsArray,

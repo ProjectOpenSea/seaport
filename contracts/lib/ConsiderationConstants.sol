@@ -60,9 +60,8 @@ uint256 constant Offset_fulfillAvailableOrders_considerationFulfillments = 0x40;
 
 uint256 constant Offset_fulfillAvailableAdvancedOrders_criteriaResolvers = 0x20;
 uint256 constant Offset_fulfillAvailableAdvancedOrders_offerFulfillments = 0x40;
-uint256 constant Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts = (
-    0x60
-);
+uint256 constant Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts =
+    (0x60);
 
 uint256 constant Offset_matchOrders_fulfillments = 0x20;
 
@@ -153,14 +152,13 @@ uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 uint256 constant BasicOrder_common_params_size = 0xa0;
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 
-uint256 constant BasicOrder_receivedItemByteMap = (
-    0x0000010102030000000000000000000000000000000000000000000000000000
-);
-uint256 constant BasicOrder_offeredItemByteMap = (
-    0x0203020301010000000000000000000000000000000000000000000000000000
-);
+uint256 constant BasicOrder_receivedItemByteMap =
+    (0x0000010102030000000000000000000000000000000000000000000000000000);
+uint256 constant BasicOrder_offeredItemByteMap =
+    (0x0203020301010000000000000000000000000000000000000000000000000000);
 
-bytes32 constant OrdersMatchedTopic0 = 0x4b9f2d36e1b4c93de62cc077b00b1a91d84b6c31b4a14e012718dcca230689e7;
+bytes32 constant OrdersMatchedTopic0 =
+    0x4b9f2d36e1b4c93de62cc077b00b1a91d84b6c31b4a14e012718dcca230689e7;
 
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
@@ -228,9 +226,8 @@ uint256 constant receivedItemsHash_ptr = 0x60;
 // Must be added to the size of the ReceivedItem array for additionalRecipients
 // (0xa0 * additionalRecipients.length) to calculate full size of the buffer.
 uint256 constant OrderFulfilled_baseSize = 0x1e0;
-uint256 constant OrderFulfilled_selector = (
-    0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31
-);
+uint256 constant OrderFulfilled_selector =
+    (0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31);
 
 // Minimum offset in memory to OrderFulfilled event data.
 // Must be added to the size of the EIP712 hash array for additionalRecipients
@@ -354,19 +351,16 @@ uint256 constant ContractOrder_orderHash_offerer_shift = 0x60;
 uint256 constant Counter_blockhash_shift = 0x80;
 
 // Signature-related
-bytes32 constant EIP2098_allButHighestBitMask = (
-    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-);
-bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
-    0x0000000000000000000000000000000000000000000000000000000101000000
-);
+bytes32 constant EIP2098_allButHighestBitMask =
+    (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet =
+    (0x0000000000000000000000000000000000000000000000000000000101000000);
 uint256 constant ECDSA_MaxLength = 65;
 uint256 constant ECDSA_signature_s_offset = 0x40;
 uint256 constant ECDSA_signature_v_offset = 0x60;
 
-bytes32 constant EIP1271_isValidSignature_selector = (
-    0x1626ba7e00000000000000000000000000000000000000000000000000000000
-);
+bytes32 constant EIP1271_isValidSignature_selector =
+    (0x1626ba7e00000000000000000000000000000000000000000000000000000000);
 uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
 uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
 uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
@@ -374,9 +368,8 @@ uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
 
 uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
 
-uint256 constant EIP_712_PREFIX = (
-    0x1901000000000000000000000000000000000000000000000000000000000000
-);
+uint256 constant EIP_712_PREFIX =
+    (0x1901000000000000000000000000000000000000000000000000000000000000);
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
@@ -385,21 +378,17 @@ uint256 constant MemoryExpansionCoefficientShift = 9;
 uint256 constant Create2AddressDerivation_ptr = 0x0b;
 uint256 constant Create2AddressDerivation_length = 0x55;
 
-uint256 constant MaskOverByteTwelve = (
-    0x0000000000000000000000ff0000000000000000000000000000000000000000
-);
+uint256 constant MaskOverByteTwelve =
+    (0x0000000000000000000000ff0000000000000000000000000000000000000000);
 
-uint256 constant MaskOverLastTwentyBytes = (
-    0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
-);
+uint256 constant MaskOverLastTwentyBytes =
+    (0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff);
 
-uint256 constant MaskOverFirstFourBytes = (
-    0xffffffff00000000000000000000000000000000000000000000000000000000
-);
+uint256 constant MaskOverFirstFourBytes =
+    (0xffffffff00000000000000000000000000000000000000000000000000000000);
 
-uint256 constant Conduit_execute_signature = (
-    0x4ce34aa200000000000000000000000000000000000000000000000000000000
-);
+uint256 constant Conduit_execute_signature =
+    (0x4ce34aa200000000000000000000000000000000000000000000000000000000);
 
 uint256 constant MaxUint8 = 0xff;
 uint256 constant MaxUint120 = 0xffffffffffffffffffffffffffffff;
@@ -441,19 +430,16 @@ uint256 constant Ecrecover_args_size = 0x80;
 uint256 constant Signature_lower_v = 27;
 
 // Bitmask that only gives a non-zero value if masked with a non-match selector.
-uint256 constant NonMatchSelector_MagicMask = (
-    0x4000000000000000000000000000000000000000000000000000000000
-);
+uint256 constant NonMatchSelector_MagicMask =
+    (0x4000000000000000000000000000000000000000000000000000000000);
 
 // First bit indicates that a NATIVE offer items has been used and the 231th bit
 // indicates that a non match selector has been called.
-uint256 constant NonMatchSelector_InvalidErrorValue = (
-    0x4000000000000000000000000000000000000000000000000000000001
-);
+uint256 constant NonMatchSelector_InvalidErrorValue =
+    (0x4000000000000000000000000000000000000000000000000000000001);
 
-uint256 constant IsValidOrder_signature = (
-    0x0e1d31dc00000000000000000000000000000000000000000000000000000000
-);
+uint256 constant IsValidOrder_signature =
+    (0x0e1d31dc00000000000000000000000000000000000000000000000000000000);
 uint256 constant IsValidOrder_sig_ptr = 0x0;
 uint256 constant IsValidOrder_orderHash_ptr = 0x04;
 uint256 constant IsValidOrder_caller_ptr = 0x24;
@@ -471,9 +457,8 @@ uint256 constant Error_selector_offset = 0x1c;
  *    - 0x20: side
  * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MissingFulfillmentComponentOnAggregation_error_selector = (
-    0x375c24c1
-);
+uint256 constant MissingFulfillmentComponentOnAggregation_error_selector =
+    (0x375c24c1);
 uint256 constant MissingFulfillmentComponentOnAggregation_error_side_ptr = 0x20;
 uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
 
@@ -484,9 +469,8 @@ uint256 constant MissingFulfillmentComponentOnAggregation_error_length = 0x24;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector = (
-    0x98e9db6e
-);
+uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_selector =
+    (0x98e9db6e);
 uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
 
 /*
@@ -499,9 +483,14 @@ uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
  *    - 0x20: fulfillmentIndex
  * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0xbced929d;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr = 0x20;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x24;
+uint256 constant
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_selector =
+        0xbced929d;
+uint256 constant
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr =
+        0x20;
+uint256 constant
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x24;
 
 /*
  *  error InvalidFulfillmentComponentData()
@@ -550,7 +539,8 @@ uint256 constant UnresolvedOfferCriteria_error_offerIndex_ptr = 0x40;
 uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
 
 /*
- *  error UnresolvedConsiderationCriteria(uint256 orderIndex, uint256 considerationIndex)
+*  error UnresolvedConsiderationCriteria(uint256 orderIndex, uint256
+considerationIndex)
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -560,7 +550,8 @@ uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
  */
 uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xa8930e9a;
 uint256 constant UnresolvedConsiderationCriteria_error_orderIndex_ptr = 0x20;
-uint256 constant UnresolvedConsiderationCriteria_error_considerationIndex_ptr = 0x40;
+uint256 constant UnresolvedConsiderationCriteria_error_considerationIndex_ptr =
+    0x40;
 uint256 constant UnresolvedConsiderationCriteria_error_length = 0x44;
 
 /*
@@ -580,8 +571,10 @@ uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = 0x6088d7de;
-uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector = 0x6088d7de;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector =
+    0x6088d7de;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector =
+    0x6088d7de;
 uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
 
 /*
@@ -703,7 +696,8 @@ uint256 constant UnusedItemParameters_error_selector = 0x6ab37ce7;
 uint256 constant UnusedItemParameters_error_length = 0x04;
 
 /*
- *  error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount)
+*  error BadReturnValueFromERC20OnTransfer(address token, address from, address
+to, uint256 amount)
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -815,7 +809,8 @@ uint256 constant InvalidCallToConduit_error_conduit_ptr = 0x20;
 uint256 constant InvalidCallToConduit_error_length = 0x24;
 
 /*
- *  error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount)
+*  error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex,
+uint256 shortfallAmount)
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -957,9 +952,8 @@ uint256 constant InvalidNativeOfferItem_error_length = 0x04;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant ConsiderationLengthNotEqualToTotalOriginal_error_selector = (
-    0x2165628a
-);
+uint256 constant ConsiderationLengthNotEqualToTotalOriginal_error_selector =
+    (0x2165628a);
 uint256 constant ConsiderationLengthNotEqualToTotalOriginal_error_length = 0x04;
 
 /*
@@ -1028,9 +1022,8 @@ uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
 uint256 constant BasicOrderParameters_signature_offset = 0x0220;
 
 uint256 constant OrderParameters_head_size = 0x0160;
-uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
-    0x0140
-);
+uint256 constant OrderParameters_totalOriginalConsiderationItems_offset =
+    (0x0140);
 uint256 constant AdvancedOrderPlusOrderParameters_head_size = 0x0200;
 
 uint256 constant Order_signature_offset = 0x20;

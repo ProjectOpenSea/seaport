@@ -2,9 +2,8 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import {
-    ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../contracts/interfaces/ConsiderationInterface.sol";
 import {
     BasicOrderParameters,
     Order,
@@ -47,8 +46,8 @@ contract TestNewHelpersTest is BaseOrderTest {
      * Context struct.
      */
     function testBasicOrder() public {
-        test(this.execBasicOrder, Context({ seaport: consideration }));
-        test(this.execBasicOrder, Context({ seaport: referenceConsideration }));
+        test(this.execBasicOrder, Context({seaport: consideration}));
+        test(this.execBasicOrder, Context({seaport: referenceConsideration}));
     }
 
     /**
@@ -62,31 +61,29 @@ contract TestNewHelpersTest is BaseOrderTest {
     function execBasicOrder(Context memory context) external stateless {
         string memory label = "offerer";
         _setUpSingleOrderOfferConsiderationItems(label);
-        // create a signed order - this will configure baseOrderParameters and baseOrderComponents
-        // we will use BaseOrderComponents to configure the BaseOrderParameters and re-use the signature
+        // create a signed order - this will configure baseOrderParameters and
+        // baseOrderComponents
+        // we will use BaseOrderComponents to configure the BaseOrderParameters
+        // and re-use the signature
         Order memory order = createSignedOrder(context.seaport, label);
-        BasicOrderParameters
-            memory basicOrderParameters = toBasicOrderParameters(
-                order,
-                BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
-            );
+        BasicOrderParameters memory basicOrderParameters =
+        toBasicOrderParameters(order, BasicOrderType.ERC721_TO_ERC20_FULL_OPEN);
 
-        context.seaport.fulfillBasicOrder({ parameters: basicOrderParameters });
+        context.seaport.fulfillBasicOrder({parameters: basicOrderParameters});
     }
 
     function testFulfillOrder() public {
-        test(this.execFulfillOrder, Context({ seaport: consideration }));
-        test(
-            this.execFulfillOrder,
-            Context({ seaport: referenceConsideration })
-        );
+        test(this.execFulfillOrder, Context({seaport: consideration}));
+        test(this.execFulfillOrder, Context({seaport: referenceConsideration}));
     }
 
     function execFulfillOrder(Context memory context) external stateless {
         string memory label = "offerer";
         _setUpSingleOrderOfferConsiderationItems(label);
-        // create a signed order - this will configure baseOrderParameters and baseOrderComponents
-        // we will use BaseOrderComponents to configure the BaseOrderParameters and re-use the signature
+        // create a signed order - this will configure baseOrderParameters and
+        // baseOrderComponents
+        // we will use BaseOrderComponents to configure the BaseOrderParameters
+        // and re-use the signature
         Order memory order = createSignedOrder(context.seaport, label);
 
         context.seaport.fulfillOrder({
@@ -96,23 +93,23 @@ contract TestNewHelpersTest is BaseOrderTest {
     }
 
     function testFulfillAdvancedOrder() public {
+        test(this.execFulfillAdvancedOrder, Context({seaport: consideration}));
         test(
             this.execFulfillAdvancedOrder,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execFulfillAdvancedOrder,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execFulfillAdvancedOrder(
-        Context memory context
-    ) external stateless {
+    function execFulfillAdvancedOrder(Context memory context)
+        external
+        stateless
+    {
         string memory label = "offerer";
         _setUpSingleOrderOfferConsiderationItems(label);
-        // create a signed order - this will configure baseOrderParameters and baseOrderComponents
-        // we will use BaseOrderComponents to configure the BaseOrderParameters and re-use the signature
+        // create a signed order - this will configure baseOrderParameters and
+        // baseOrderComponents
+        // we will use BaseOrderComponents to configure the BaseOrderParameters
+        // and re-use the signature
         Order memory order = createSignedOrder(context.seaport, label);
 
         context.seaport.fulfillAdvancedOrder({
@@ -124,23 +121,20 @@ contract TestNewHelpersTest is BaseOrderTest {
     }
 
     function testMatchOrders() public {
-        test(this.execMatchOrders, Context({ seaport: consideration }));
-        test(
-            this.execMatchOrders,
-            Context({ seaport: referenceConsideration })
-        );
+        test(this.execMatchOrders, Context({seaport: consideration}));
+        test(this.execMatchOrders, Context({seaport: referenceConsideration}));
     }
 
     function execMatchOrders(Context memory context) external stateless {
         string memory label = "offerer";
         _setUpMatchOrderOfferConsiderationItems(label);
-        // create a signed order - this will configure baseOrderParameters and baseOrderComponents
-        // we will use BaseOrderComponents to configure the BaseOrderParameters and re-use the signature
+        // create a signed order - this will configure baseOrderParameters and
+        // baseOrderComponents
+        // we will use BaseOrderComponents to configure the BaseOrderParameters
+        // and re-use the signature
         Order memory order = createSignedOrder(context.seaport, label);
-        (
-            Order memory mirror,
-            Fulfillment[] memory matchFulfillments
-        ) = createMirrorOrderAndFulfillments(context.seaport, order.parameters);
+        (Order memory mirror, Fulfillment[] memory matchFulfillments) =
+            createMirrorOrderAndFulfillments(context.seaport, order.parameters);
 
         Order[] memory orders = new Order[](2);
 
@@ -154,23 +148,22 @@ contract TestNewHelpersTest is BaseOrderTest {
     }
 
     function testFulfillAvailableOrders() public {
+        test(this.execFulfillAvailableOrders, Context({seaport: consideration}));
         test(
             this.execFulfillAvailableOrders,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execFulfillAvailableOrders,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execFulfillAvailableOrders(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableOrders(Context memory context)
+        external
+        stateless
+    {
         string memory label1 = "offerer";
         string memory label2 = "offerer 2";
         _setUpSingleOrderOfferConsiderationItems(label1, 1);
-        // caveat: need to create order explicitly after configuring since it relies on storage that may not be cleared
+        // caveat: need to create order explicitly after configuring since it
+        // relies on storage that may not be cleared
         Order memory order = createSignedOrder(context.seaport, label1);
 
         _setUpSingleOrderOfferConsiderationItems(label2, 2);
@@ -196,9 +189,9 @@ contract TestNewHelpersTest is BaseOrderTest {
         });
     }
 
-    function _setUpSingleOrderOfferConsiderationItems(
-        string memory label
-    ) internal {
+    function _setUpSingleOrderOfferConsiderationItems(string memory label)
+        internal
+    {
         _setUpSingleOrderOfferConsiderationItems(label, 1);
     }
 
@@ -206,32 +199,33 @@ contract TestNewHelpersTest is BaseOrderTest {
         string memory label,
         uint256 id
     ) internal {
-        // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
+        // make a labelled + reproducible address with ether, erc20s, and
+        // approvals for all erc20/erc721/erc1155
         address offerer = makeAddrWithAllocationsAndApprovals(label);
 
-        // add a single erc20 offer item - start/end amounts the same, defaults to token1
-        addErc20OfferItem({ amount: 100 });
+        // add a single erc20 offer item - start/end amounts the same, defaults
+        // to token1
+        addErc20OfferItem({amount: 100});
 
         // add a single considerationitem - defaults to test721_1
-        addErc721ConsiderationItem({
-            recipient: payable(offerer),
-            tokenId: id
-        });
+        addErc721ConsiderationItem({recipient: payable(offerer), tokenId: id});
         test721_1.mint(address(this), id);
     }
 
-    function _setUpMatchOrderOfferConsiderationItems(
-        string memory label
-    ) internal {
-        // make a labelled + reproducible address with ether, erc20s, and approvals for all erc20/erc721/erc1155
+    function _setUpMatchOrderOfferConsiderationItems(string memory label)
+        internal
+    {
+        // make a labelled + reproducible address with ether, erc20s, and
+        // approvals for all erc20/erc721/erc1155
         address offerer = makeAddrWithAllocationsAndApprovals(label);
         address mirror = makeAddrWithAllocationsAndApprovals("mirror offerer");
 
-        // add a single erc20 offer item - start/end amounts the same, defaults to token1
-        addErc20OfferItem({ amount: 100 });
+        // add a single erc20 offer item - start/end amounts the same, defaults
+        // to token1
+        addErc20OfferItem({amount: 100});
 
         // add a single considerationitem - defaults to test721_1
-        addErc721ConsiderationItem({ recipient: payable(offerer), tokenId: 1 });
+        addErc721ConsiderationItem({recipient: payable(offerer), tokenId: 1});
         test721_1.mint(mirror, 1);
     }
 

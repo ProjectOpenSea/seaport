@@ -29,14 +29,15 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
     function testExecuteBatch1155(FuzzInputs memory inputs) public {
-        ConduitBatch1155Transfer[]
-            memory batchTransfers = new ConduitBatch1155Transfer[](0);
+        ConduitBatch1155Transfer[] memory batchTransfers =
+            new ConduitBatch1155Transfer[](0);
         for (uint8 j = 0; j < inputs.batchIntermediates.length; ++j) {
             batchTransfers = extendConduitTransferArray(
                 batchTransfers,
@@ -53,14 +54,13 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
     }
 
     function executeBatch1155(Context memory context) external stateless {
-        bytes4 magicValue = context.conduit.executeBatch1155(
-            context.batchTransfers
-        );
+        bytes4 magicValue =
+            context.conduit.executeBatch1155(context.batchTransfers);
         assertEq(magicValue, Conduit.executeBatch1155.selector);
 
         for (uint256 i = 0; i < context.batchTransfers.length; ++i) {
-            ConduitBatch1155Transfer memory batchTransfer = context
-                .batchTransfers[i];
+            ConduitBatch1155Transfer memory batchTransfer =
+                context.batchTransfers[i];
 
             address[] memory toAddresses = new address[](
                 batchTransfer.ids.length
@@ -71,10 +71,8 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
             uint256[] memory actualBatchBalances = TestERC1155(
                 batchTransfer.token
             ).balanceOfBatch(toAddresses, batchTransfer.ids);
-            uint256[]
-                memory expectedBatchBalances = getExpectedBatchTokenBalances(
-                    batchTransfer
-                );
+            uint256[] memory expectedBatchBalances =
+                getExpectedBatchTokenBalances(batchTransfer);
             assertTrue(
                 actualBatchBalances.length == expectedBatchBalances.length
             );

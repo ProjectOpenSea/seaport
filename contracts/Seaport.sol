@@ -90,7 +90,7 @@ contract Seaport is Consideration {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) Consideration(conduitController) {}
+    constructor(address conduitController) Consideration(conduitController) { }
 
     /**
      * @dev Internal pure function to retrieve and return the name of this

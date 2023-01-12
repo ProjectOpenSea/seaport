@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ConsiderationEventsAndErrors
-} from "../interfaces/ConsiderationEventsAndErrors.sol";
+import { ConsiderationEventsAndErrors } from
+    "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
 
@@ -38,10 +37,8 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
         // overflow check as counter cannot be incremented that far.
         assembly {
             // Use second half of previous block hash as a quasi-random number.
-            let quasiRandomNumber := shr(
-                Counter_blockhash_shift,
-                blockhash(sub(number(), 1))
-            )
+            let quasiRandomNumber :=
+                shr(Counter_blockhash_shift, blockhash(sub(number(), 1)))
 
             // Write the caller to scratch space.
             mstore(0, caller())
@@ -71,9 +68,11 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
      *
      * @return currentCounter The current counter.
      */
-    function _getCounter(
-        address offerer
-    ) internal view returns (uint256 currentCounter) {
+    function _getCounter(address offerer)
+        internal
+        view
+        returns (uint256 currentCounter)
+    {
         // Return the counter for the supplied offerer.
         currentCounter = _counters[offerer];
     }

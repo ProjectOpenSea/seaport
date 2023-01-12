@@ -32,7 +32,7 @@ contract Executor is Verifiers, TokenTransferrer {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) Verifiers(conduitController) {}
+    constructor(address conduitController) Verifiers(conduitController) { }
 
     /**
      * @dev Internal function to transfer a given item, either directly or via
@@ -176,8 +176,7 @@ contract Executor is Verifiers, TokenTransferrer {
 
                 // Write the transfer source to memory.
                 mstore(
-                    add(callDataOffset, Conduit_execute_transferFrom_ptr),
-                    from
+                    add(callDataOffset, Conduit_execute_transferFrom_ptr), from
                 )
 
                 // Write the transfer recipient to memory.
@@ -198,9 +197,7 @@ contract Executor is Verifiers, TokenTransferrer {
 
             // Perform the call to the conduit.
             _callConduitUsingOffsets(
-                conduitKey,
-                callDataOffset,
-                OneConduitExecute_size
+                conduitKey, callDataOffset, OneConduitExecute_size
             );
         } else {
             // Otherwise, determine whether it is an ERC721 or ERC1155 item.
@@ -488,13 +485,14 @@ contract Executor is Verifiers, TokenTransferrer {
             callDataOffset := add(accumulator, TwoWords)
 
             // 68 + items * 192
-            callDataSize := add(
-                Accumulator_array_offset_ptr,
-                mul(
-                    mload(add(accumulator, Accumulator_array_length_ptr)),
-                    Conduit_transferItem_size
+            callDataSize :=
+                add(
+                    Accumulator_array_offset_ptr,
+                    mul(
+                        mload(add(accumulator, Accumulator_array_length_ptr)),
+                        Conduit_transferItem_size
+                    )
                 )
-            )
         }
 
         // Call conduit derived from conduit key & supply accumulated transfers.
@@ -535,15 +533,8 @@ contract Executor is Verifiers, TokenTransferrer {
             mstore(0, 0)
 
             // Perform call, placing first word of return data in scratch space.
-            success := call(
-                gas(),
-                conduit,
-                0,
-                callDataOffset,
-                callDataSize,
-                0,
-                OneWord
-            )
+            success :=
+                call(gas(), conduit, 0, callDataOffset, callDataSize, 0, OneWord)
 
             // Take value from scratch space and place it on the stack.
             result := mload(0)
@@ -574,14 +565,15 @@ contract Executor is Verifiers, TokenTransferrer {
      * @return accumulatorConduitKey The conduit key currently set for the
      *                               accumulator.
      */
-    function _getAccumulatorConduitKey(
-        bytes memory accumulator
-    ) internal pure returns (bytes32 accumulatorConduitKey) {
+    function _getAccumulatorConduitKey(bytes memory accumulator)
+        internal
+        pure
+        returns (bytes32 accumulatorConduitKey)
+    {
         // Retrieve the current conduit key from the accumulator.
         assembly {
-            accumulatorConduitKey := mload(
-                add(accumulator, Accumulator_conduitKey_ptr)
-            )
+            accumulatorConduitKey :=
+                mload(add(accumulator, Accumulator_conduitKey_ptr))
         }
     }
 
@@ -632,20 +624,19 @@ contract Executor is Verifiers, TokenTransferrer {
         } else {
             // Otherwise, increase the number of elements by one.
             assembly {
-                elements := add(
-                    mload(add(accumulator, Accumulator_array_length_ptr)),
-                    1
-                )
+                elements :=
+                    add(mload(add(accumulator, Accumulator_array_length_ptr)), 1)
                 mstore(add(accumulator, Accumulator_array_length_ptr), elements)
             }
         }
 
         // Insert the item.
         assembly {
-            let itemPointer := sub(
-                add(accumulator, mul(elements, Conduit_transferItem_size)),
-                Accumulator_itemSizeOffsetDifference
-            )
+            let itemPointer :=
+                sub(
+                    add(accumulator, mul(elements, Conduit_transferItem_size)),
+                    Accumulator_itemSizeOffsetDifference
+                )
             mstore(itemPointer, itemType)
             mstore(add(itemPointer, Conduit_transferItem_token_ptr), token)
             mstore(add(itemPointer, Conduit_transferItem_from_ptr), from)

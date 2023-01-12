@@ -10,9 +10,8 @@ import {
     ERC721Interface,
     ERC1155Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../../contracts/interfaces/ConsiderationInterface.sol";
 
 import {
     OfferItem,
@@ -28,8 +27,7 @@ import {
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
-    ItemType,
-    OrderType
+    ItemType, OrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 contract BadOffererTest is BaseOrderTest {
@@ -50,7 +48,8 @@ contract BadOffererTest is BaseOrderTest {
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -59,11 +58,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 1;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({seaport: consideration, id: id, eoa: false})
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({seaport: referenceConsideration, id: id, eoa: false})
         );
     }
 
@@ -71,11 +70,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 2;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({seaport: consideration, id: id, eoa: false})
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({seaport: referenceConsideration, id: id, eoa: false})
         );
     }
 
@@ -83,11 +82,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 3;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({seaport: consideration, id: id, eoa: false})
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({seaport: referenceConsideration, id: id, eoa: false})
         );
     }
 
@@ -95,11 +94,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 4;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({seaport: consideration, id: id, eoa: false})
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({seaport: referenceConsideration, id: id, eoa: false})
         );
     }
 
@@ -107,11 +106,11 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 1;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: true })
+            Context({seaport: consideration, id: id, eoa: true})
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: true })
+            Context({seaport: referenceConsideration, id: id, eoa: true})
         );
     }
 
@@ -149,26 +148,27 @@ contract BadOffererTest is BaseOrderTest {
 
     function configureFulfillmentComponents() internal {
         addSingleFulfillmentComponentsTo(
-            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+            FulfillmentComponent({orderIndex: 0, itemIndex: 0}),
             offerComponentsArray
         );
         addSingleFulfillmentComponentsTo(
-            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+            FulfillmentComponent({orderIndex: 1, itemIndex: 0}),
             offerComponentsArray
         );
         addSingleFulfillmentComponentsTo(
-            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+            FulfillmentComponent({orderIndex: 0, itemIndex: 0}),
             considerationComponentsArray
         );
         addSingleFulfillmentComponentsTo(
-            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+            FulfillmentComponent({orderIndex: 1, itemIndex: 0}),
             considerationComponentsArray
         );
     }
 
-    function configureBadOffererOrder(
-        uint256 id
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureBadOffererOrder(uint256 id)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         test721_1.mint(address(this), id);
 
         OfferItem[] memory offer = new OfferItem[](1);
@@ -210,9 +210,10 @@ contract BadOffererTest is BaseOrderTest {
         });
     }
 
-    function configureNormalOrder(
-        Context memory context
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureNormalOrder(Context memory context)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         (address offerer, uint256 pkey) = makeAddrAndKey("normal offerer");
         vm.prank(offerer);
         test721_1.setApprovalForAll(address(context.seaport), true);

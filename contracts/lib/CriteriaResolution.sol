@@ -16,9 +16,8 @@ import "./ConsiderationErrors.sol";
 
 import "../helpers/PointerLibraries.sol";
 
-import {
-    CriteriaResolutionErrors
-} from "../interfaces/CriteriaResolutionErrors.sol";
+import { CriteriaResolutionErrors } from
+    "../interfaces/CriteriaResolutionErrors.sol";
 
 /**
  * @title CriteriaResolution
@@ -56,9 +55,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Iterate over each criteria resolver.
             for (uint256 i = 0; i < totalCriteriaResolvers; ++i) {
                 // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = (
-                    criteriaResolvers[i]
-                );
+                CriteriaResolver memory criteriaResolver =
+                    (criteriaResolvers[i]);
 
                 // Read the order index from memory and place it on the stack.
                 uint256 orderIndex = criteriaResolver.orderIndex;
@@ -79,9 +77,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 }
 
                 // Retrieve the parameters for the order.
-                OrderParameters memory orderParameters = (
-                    advancedOrder.parameters
-                );
+                OrderParameters memory orderParameters =
+                    (advancedOrder.parameters);
 
                 {
                     // Get a pointer to the list of items to give to
@@ -94,9 +91,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     uint256 componentIndex = criteriaResolver.index;
 
                     // Get error selector for `OfferCriteriaResolverOutOfRange`.
-                    uint256 errorSelector = (
-                        OfferCriteriaResolverOutOfRange_error_selector
-                    );
+                    uint256 errorSelector =
+                        (OfferCriteriaResolverOutOfRange_error_selector);
 
                     // If the resolver refers to a consideration item...
                     if (criteriaResolver.side != Side.OFFER) {
@@ -104,8 +100,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                         // Using the array directly has a significant impact on
                         // the optimized compiler output.
                         MemoryPointer considerationPtr = orderParameters
-                            .toMemoryPointer()
-                            .pptr(OrderParameters_consideration_head_offset);
+                            .toMemoryPointer().pptr(
+                            OrderParameters_consideration_head_offset
+                        );
 
                         // Replace the items pointer with a pointer to the
                         // consideration array.
@@ -129,11 +126,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     }
 
                     // Apply the criteria resolver to the item in question.
-                    _updateCriteriaItem(
-                        items,
-                        componentIndex,
-                        criteriaResolver
-                    );
+                    _updateCriteriaItem(items, componentIndex, criteriaResolver);
                 }
             }
 
@@ -148,9 +141,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 }
 
                 // Retrieve the parameters for the order.
-                OrderParameters memory orderParameters = (
-                    advancedOrder.parameters
-                );
+                OrderParameters memory orderParameters =
+                    (advancedOrder.parameters);
 
                 // Read consideration length from memory and place on stack.
                 uint256 totalItems = orderParameters.consideration.length;
@@ -173,9 +165,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(orderParameters.offer[j].itemType)
-                    ) {
+                    if (_isItemWithCriteria(orderParameters.offer[j].itemType))
+                    {
                         _revertUnresolvedOfferCriteria(i, j);
                     }
                 }
@@ -245,9 +236,11 @@ contract CriteriaResolution is CriteriaResolutionErrors {
      * @return withCriteria A boolean indicating that the item type in question
      *                      represents a criteria-based item.
      */
-    function _isItemWithCriteria(
-        ItemType itemType
-    ) internal pure returns (bool withCriteria) {
+    function _isItemWithCriteria(ItemType itemType)
+        internal
+        pure
+        returns (bool withCriteria)
+    {
         // ERC721WithCriteria is ItemType 4. ERC1155WithCriteria is ItemType 5.
         assembly {
             withCriteria := gt(itemType, 3)

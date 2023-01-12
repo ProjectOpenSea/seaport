@@ -27,9 +27,11 @@ contract ConsiderationEncoder {
      *
      * @return ptr A memory pointer to the start of the bytes array in memory.
      */
-    function toMemoryPointer(
-        bytes memory obj
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(bytes memory obj)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := obj
         }
@@ -43,9 +45,11 @@ contract ConsiderationEncoder {
      * @return ptr A memory pointer to the start of the array of bytes32 types
      *             in memory.
      */
-    function toMemoryPointer(
-        bytes32[] memory obj
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(bytes32[] memory obj)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := obj
         }
@@ -119,15 +123,12 @@ contract ConsiderationEncoder {
         );
 
         // Get memory pointer to `orderParameters.offer.length`.
-        MemoryPointer srcOfferPointer = src
-            .offset(OrderParameters_offer_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcOfferPointer =
+            src.offset(OrderParameters_offer_head_offset).readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 minimumReceivedSize = _encodeSpentItems(
-            srcOfferPointer,
-            dstHead.offset(tailOffset)
-        );
+        uint256 minimumReceivedSize =
+            _encodeSpentItems(srcOfferPointer, dstHead.offset(tailOffset));
 
         unchecked {
             // Increment tail offset, now used to populate maximumSpent array.
@@ -135,19 +136,16 @@ contract ConsiderationEncoder {
         }
 
         // Write offset to maximumSpent.
-        dstHead.offset(generateOrder_maximumSpent_head_offset).write(
-            tailOffset
-        );
+        dstHead.offset(generateOrder_maximumSpent_head_offset).write(tailOffset);
 
         // Get memory pointer to `orderParameters.consideration.length`.
-        MemoryPointer srcConsiderationPointer = src
-            .offset(OrderParameters_consideration_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcConsiderationPointer = src.offset(
+            OrderParameters_consideration_head_offset
+        ).readMemoryPointer();
 
         // Encode the consideration array as a `SpentItem[]`.
         uint256 maximumSpentSize = _encodeSpentItems(
-            srcConsiderationPointer,
-            dstHead.offset(tailOffset)
+            srcConsiderationPointer, dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -162,10 +160,8 @@ contract ConsiderationEncoder {
         MemoryPointer srcContext = toMemoryPointer(context);
 
         // Encode context as a bytes array.
-        uint256 contextSize = _encodeBytes(
-            srcContext,
-            dstHead.offset(tailOffset)
-        );
+        uint256 contextSize =
+            _encodeBytes(srcContext, dstHead.offset(tailOffset));
 
         unchecked {
             // Increment the tail offset, now used to determine final size.
@@ -225,15 +221,12 @@ contract ConsiderationEncoder {
         dstHead.write(tailOffset);
 
         // Get memory pointer to `orderParameters.offer.length`.
-        MemoryPointer srcOfferPointer = src
-            .offset(OrderParameters_offer_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcOfferPointer =
+            src.offset(OrderParameters_offer_head_offset).readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 offerSize = _encodeSpentItems(
-            srcOfferPointer,
-            dstHead.offset(tailOffset)
-        );
+        uint256 offerSize =
+            _encodeSpentItems(srcOfferPointer, dstHead.offset(tailOffset));
 
         unchecked {
             // Increment tail offset, now used to populate consideration array.
@@ -244,14 +237,13 @@ contract ConsiderationEncoder {
         dstHead.offset(ratifyOrder_consideration_head_offset).write(tailOffset);
 
         // Get pointer to `orderParameters.consideration.length`.
-        MemoryPointer srcConsiderationPointer = src
-            .offset(OrderParameters_consideration_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcConsiderationPointer = src.offset(
+            OrderParameters_consideration_head_offset
+        ).readMemoryPointer();
 
         // Encode the consideration array as a `ReceivedItem[]`.
         uint256 considerationSize = _encodeConsiderationAsReceivedItems(
-            srcConsiderationPointer,
-            dstHead.offset(tailOffset)
+            srcConsiderationPointer, dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -263,10 +255,8 @@ contract ConsiderationEncoder {
         dstHead.offset(ratifyOrder_context_head_offset).write(tailOffset);
 
         // Encode context.
-        uint256 contextSize = _encodeBytes(
-            toMemoryPointer(context),
-            dstHead.offset(tailOffset)
-        );
+        uint256 contextSize =
+            _encodeBytes(toMemoryPointer(context), dstHead.offset(tailOffset));
 
         unchecked {
             // Increment tail offset, now used to populate orderHashes array.
@@ -278,8 +268,7 @@ contract ConsiderationEncoder {
 
         // Encode orderHashes.
         uint256 orderHashesSize = _encodeOrderHashes(
-            toMemoryPointer(orderHashes),
-            dstHead.offset(tailOffset)
+            toMemoryPointer(orderHashes), dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -364,15 +353,12 @@ contract ConsiderationEncoder {
         dstHead.offset(ZoneParameters_offer_head_offset).write(tailOffset);
 
         // Get pointer to `orderParameters.offer.length`.
-        MemoryPointer srcOfferPointer = src
-            .offset(OrderParameters_offer_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcOfferPointer =
+            src.offset(OrderParameters_offer_head_offset).readMemoryPointer();
 
         // Encode the offer array as a `SpentItem[]`.
-        uint256 offerSize = _encodeSpentItems(
-            srcOfferPointer,
-            dstHead.offset(tailOffset)
-        );
+        uint256 offerSize =
+            _encodeSpentItems(srcOfferPointer, dstHead.offset(tailOffset));
 
         unchecked {
             // Increment tail offset, now used to populate consideration array.
@@ -385,14 +371,13 @@ contract ConsiderationEncoder {
         );
 
         // Get pointer to `orderParameters.consideration.length`.
-        MemoryPointer srcConsiderationPointer = src
-            .offset(OrderParameters_consideration_head_offset)
-            .readMemoryPointer();
+        MemoryPointer srcConsiderationPointer = src.offset(
+            OrderParameters_consideration_head_offset
+        ).readMemoryPointer();
 
         // Encode the consideration array as a `ReceivedItem[]`.
         uint256 considerationSize = _encodeConsiderationAsReceivedItems(
-            srcConsiderationPointer,
-            dstHead.offset(tailOffset)
+            srcConsiderationPointer, dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -403,10 +388,8 @@ contract ConsiderationEncoder {
         // Write offset to extraData.
         dstHead.offset(ZoneParameters_extraData_head_offset).write(tailOffset);
         // Copy extraData.
-        uint256 extraDataSize = _encodeBytes(
-            toMemoryPointer(extraData),
-            dstHead.offset(tailOffset)
-        );
+        uint256 extraDataSize =
+            _encodeBytes(toMemoryPointer(extraData), dstHead.offset(tailOffset));
 
         unchecked {
             // Increment tail offset, now used to populate orderHashes array.
@@ -414,14 +397,11 @@ contract ConsiderationEncoder {
         }
 
         // Write offset to orderHashes.
-        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
-            tailOffset
-        );
+        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(tailOffset);
 
         // Encode the order hashes array.
         uint256 orderHashesSize = _encodeOrderHashes(
-            toMemoryPointer(orderHashes),
-            dstHead.offset(tailOffset)
+            toMemoryPointer(orderHashes), dstHead.offset(tailOffset)
         );
 
         unchecked {
@@ -490,24 +470,22 @@ contract ConsiderationEncoder {
             );
 
             // Retrieve the offset to the length of additional recipients.
-            uint256 additionalRecipientsLength = CalldataPointer
-                .wrap(BasicOrder_additionalRecipients_length_cdPtr)
-                .readUint256();
+            uint256 additionalRecipientsLength = CalldataPointer.wrap(
+                BasicOrder_additionalRecipients_length_cdPtr
+            ).readUint256();
 
             // Derive offset to event data using base offset & total recipients.
-            uint256 offerDataOffset = OrderFulfilled_offer_length_baseOffset +
-                additionalRecipientsLength *
-                OneWord;
+            uint256 offerDataOffset = OrderFulfilled_offer_length_baseOffset
+                + additionalRecipientsLength * OneWord;
 
             // Derive size of offer and consideration data.
             // 2 words (lengths) + 4 (offer data) + 5 (consideration 1) + 5 * ar
-            uint256 offerAndConsiderationSize = OrderFulfilled_baseDataSize +
-                (additionalRecipientsLength * ReceivedItem_size);
+            uint256 offerAndConsiderationSize = OrderFulfilled_baseDataSize
+                + (additionalRecipientsLength * ReceivedItem_size);
 
             // Copy offer and consideration data from event data to calldata.
             MemoryPointer.wrap(offerDataOffset).copy(
-                dstHead.offset(tailOffset),
-                offerAndConsiderationSize
+                dstHead.offset(tailOffset), offerAndConsiderationSize
             );
 
             // Increment tail offset, now used to populate extraData array.
@@ -524,9 +502,7 @@ contract ConsiderationEncoder {
         }
 
         // Write offset to orderHashes.
-        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(
-            tailOffset
-        );
+        dstHead.offset(ZoneParameters_orderHashes_head_offset).write(tailOffset);
 
         // Write length = 1 to the orderHashes array.
         dstHead.offset(tailOffset).write(1);
@@ -569,8 +545,7 @@ contract ConsiderationEncoder {
             // Copy the tail starting from the next element of the source to the
             // next element of the destination.
             srcLength.next().offset(headAndTailSize).copy(
-                dstLength.next(),
-                headAndTailSize
+                dstLength.next(), headAndTailSize
             );
 
             // Set size to the length of the tail plus one word for length.
@@ -616,11 +591,7 @@ contract ConsiderationEncoder {
             // Pointer to end of array head in memory.
             let mPtrHeadEnd := add(mPtrHead, shl(OneWordShift, length))
 
-            for {
-
-            } lt(mPtrHead, mPtrHeadEnd) {
-
-            } {
+            for { } lt(mPtrHead, mPtrHeadEnd) { } {
                 // Read pointer to data for array element from head position.
                 let mPtrTail := mload(mPtrHead)
 

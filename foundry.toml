@@ -58,5 +58,8 @@ script = 'offerers'
 line_length = 80
 tab_width = 4
 bracket_spacing = true
+multiline_func_header = 'params_first'
+wrap_comments = true
+override_spacing = false
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

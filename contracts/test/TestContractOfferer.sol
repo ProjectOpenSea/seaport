@@ -7,9 +7,8 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
@@ -47,12 +46,13 @@ contract TestContractOfferer is ContractOffererInterface {
         extraRequired = 0;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`
     /// i.e., the merkle-root.
-    /// @param identifier corresponds to the actual token-id that gets transferred.
+    /// @param identifier corresponds to the actual token-id that gets
+    /// transferred.
     function activateWithCriteria(
         SpentItem memory available,
         SpentItem memory required,
@@ -72,11 +72,7 @@ contract TestContractOfferer is ContractOffererInterface {
             ERC1155Interface token = ERC1155Interface(available.token);
 
             token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                identifier,
-                available.amount,
-                ""
+                msg.sender, address(this), identifier, available.amount, ""
             );
 
             token.setApprovalForAll(_SEAPORT, true);
@@ -249,17 +245,17 @@ contract TestContractOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
     )
         external
         pure
         virtual
         override
-        returns (bytes4 /* ratifyOrderMagicValue */)
+        returns (bytes4 /* ratifyOrderMagicValue */ )
     {
         return ContractOffererInterface.ratifyOrder.selector;
     }

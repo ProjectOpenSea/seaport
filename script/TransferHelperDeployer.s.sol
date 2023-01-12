@@ -9,13 +9,12 @@ interface ImmutableCreate2Factory {
 }
 
 contract TransferHelperDeployer is Script {
-    function setUp() public {}
+    function setUp() public { }
 
     function run() public {
         vm.broadcast();
-        ImmutableCreate2Factory factory = ImmutableCreate2Factory(
-            0x0000000000FFe8B47B3e2130213B802212439497
-        );
+        ImmutableCreate2Factory factory =
+            ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
         bytes32 salt = bytes32(0);
         factory.safeCreate2(
             salt,

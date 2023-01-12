@@ -7,13 +7,11 @@ import {
     ERC1155Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import {
-    ItemType,
-    Side
+    ItemType, Side
 } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -53,7 +51,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     * items,
      * and the optional extra data.
      *
      * @param -               Fulfiller, unused here.
@@ -184,18 +183,16 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata orderHashes /* orderHashes */,
+        SpentItem[] calldata minimumReceived, /* offer */
+        ReceivedItem[] calldata maximumSpent, /* consideration */
+        bytes calldata context, /* context */
+        bytes32[] calldata orderHashes, /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external override returns (bytes4 /* ratifyOrderMagicValue */ ) {
         // check that the length matches what is expected
         if (minimumReceived.length != numOffersToReturn) {
             revert IncorrectLength(
-                Side.OFFER,
-                minimumReceived.length,
-                numOffersToReturn
+                Side.OFFER, minimumReceived.length, numOffersToReturn
             );
         }
         // Check that all minimumReceived items are of type ERC20.
@@ -203,18 +200,14 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         for (uint256 i = 0; i < minimumReceived.length; i++) {
             if (minimumReceived[i].itemType != ItemType.ERC20) {
                 revert IncorrectItemType(
-                    minimumReceived[i].itemType,
-                    ItemType.ERC20
+                    minimumReceived[i].itemType, ItemType.ERC20
                 );
             }
 
             // Check that the token address for each minimumReceived item is
             // correct.
             if (minimumReceived[i].token != address(token1)) {
-                revert IncorrectToken(
-                    minimumReceived[i].token,
-                    address(token1)
-                );
+                revert IncorrectToken(minimumReceived[i].token, address(token1));
             }
 
             // Check that the value of each minimumReceived item is correct.
@@ -231,8 +224,7 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         for (uint256 i; i < maximumSpent.length; i++) {
             if (maximumSpent[i].itemType != ItemType.ERC721) {
                 revert IncorrectItemType(
-                    maximumSpent[i].itemType,
-                    ItemType.ERC721
+                    maximumSpent[i].itemType, ItemType.ERC721
                 );
             }
             if (maximumSpent[i].token != address(token2)) {
@@ -260,7 +252,8 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
-    /** @dev Returns the metadata for this contract offerer.
+    /**
+     * @dev Returns the metadata for this contract offerer.
      */
     function getMetadata()
         external

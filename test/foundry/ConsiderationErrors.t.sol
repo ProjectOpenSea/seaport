@@ -3,9 +3,8 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
-import {
-    ConsiderationErrorsWrapper
-} from "./utils/ConsiderationErrorsWrapper.sol";
+import { ConsiderationErrorsWrapper } from
+    "./utils/ConsiderationErrorsWrapper.sol";
 
 import { Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
@@ -28,10 +27,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertConsiderationNotMet() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "ConsiderationNotMet(uint256,uint256,uint256)",
-                1,
-                2,
-                3
+                "ConsiderationNotMet(uint256,uint256,uint256)", 1, 2, 3
             )
         );
         this.__revertConsiderationNotMet(1, 2, 3);
@@ -57,8 +53,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertInvalidCallToConduit() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "InvalidCallToConduit(address)",
-                someAddress
+                "InvalidCallToConduit(address)", someAddress
             )
         );
         this.__revertInvalidCallToConduit(someAddress);
@@ -72,9 +67,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertInvalidConduit() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "InvalidConduit(bytes32,address)",
-                someBytes32,
-                someAddress
+                "InvalidConduit(bytes32,address)", someBytes32, someAddress
             )
         );
         this.__revertInvalidConduit(someBytes32, someAddress);
@@ -82,18 +75,13 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
 
     function test_revertInvalidERC721TransferAmount() public {
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidERC721TransferAmount(uint256)",
-                4
-            )
+            abi.encodeWithSignature("InvalidERC721TransferAmount(uint256)", 4)
         );
         this.__revertInvalidERC721TransferAmount(4);
     }
 
     function test_revertInvalidMsgValue() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("InvalidMsgValue(uint256)", 5)
-        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidMsgValue(uint256)", 5));
         this.__revertInvalidMsgValue(5);
     }
 
@@ -110,8 +98,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertInvalidContractOrder() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "InvalidContractOrder(bytes32)",
-                someBytes32
+                "InvalidContractOrder(bytes32)", someBytes32
             )
         );
         this.__revertInvalidContractOrder(someBytes32);
@@ -119,11 +106,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
 
     function test_revertInvalidTime() public {
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidTime(uint256,uint256)",
-                6,
-                7
-            )
+            abi.encodeWithSignature("InvalidTime(uint256,uint256)", 6, 7)
         );
         this.__revertInvalidTime(6, 7);
     }
@@ -137,9 +120,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
                 8
             )
         );
-        this.__revertMismatchedFulfillmentOfferAndConsiderationComponents(
-            8
-        );
+        this.__revertMismatchedFulfillmentOfferAndConsiderationComponents(8);
     }
 
     function test_revertMissingOriginalConsiderationItems() public {
@@ -155,9 +136,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     }
 
     function test_revertNoSpecifiedOrdersAvailable() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("NoSpecifiedOrdersAvailable()")
-        );
+        vm.expectRevert(abi.encodeWithSignature("NoSpecifiedOrdersAvailable()"));
         this.__revertNoSpecifiedOrdersAvailable();
     }
 
@@ -180,8 +159,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertOrderCriteriaResolverOutOfRange() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "OrderCriteriaResolverOutOfRange(uint8)",
-                Side.CONSIDERATION
+                "OrderCriteriaResolverOutOfRange(uint8)", Side.CONSIDERATION
             )
         );
         this.__revertOrderCriteriaResolverOutOfRange(Side.CONSIDERATION);
@@ -197,24 +175,23 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertOrderPartiallyFilled() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "OrderPartiallyFilled(bytes32)",
-                someBytes32
+                "OrderPartiallyFilled(bytes32)", someBytes32
             )
         );
         this.__revertOrderPartiallyFilled(someBytes32);
     }
 
     function test_revertPartialFillsNotEnabledForOrder() public {
-        vm.expectRevert(abi.encodeWithSignature("PartialFillsNotEnabledForOrder()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("PartialFillsNotEnabledForOrder()")
+        );
         this.__revertPartialFillsNotEnabledForOrder();
     }
 
     function test_revertUnresolvedConsiderationCriteria() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "UnresolvedConsiderationCriteria(uint256,uint256)",
-                9,
-                10
+                "UnresolvedConsiderationCriteria(uint256,uint256)", 9, 10
             )
         );
         this.__revertUnresolvedConsiderationCriteria(9, 10);
@@ -223,9 +200,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     function test_revertUnresolvedOfferCriteria() public {
         vm.expectRevert(
             abi.encodeWithSignature(
-                "UnresolvedOfferCriteria(uint256,uint256)",
-                11,
-                12
+                "UnresolvedOfferCriteria(uint256,uint256)", 11, 12
             )
         );
         this.__revertUnresolvedOfferCriteria(11, 12);

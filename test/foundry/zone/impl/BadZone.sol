@@ -6,14 +6,15 @@ import {
     CriteriaResolver,
     ZoneParameters
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
-import {
-    ZoneInterface
-} from "../../../../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from
+    "../../../../contracts/interfaces/ZoneInterface.sol";
 
 contract BadZone is ZoneInterface {
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external pure returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        pure
+        returns (bytes4 validOrderMagicValue)
+    {
         if (zoneParameters.consideration[0].identifier == 1) {
             return ZoneInterface.validateOrder.selector;
         } else {
