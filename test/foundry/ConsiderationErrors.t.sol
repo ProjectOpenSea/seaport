@@ -64,11 +64,6 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
         this.__revertInvalidCallToConduit(someAddress);
     }
 
-    function test_revertInvalidCanceller() public {
-        vm.expectRevert(abi.encodeWithSignature("InvalidCanceller()"));
-        this.__revertInvalidCanceller();
-    }
-
     function test_revertInvalidConduit() public {
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -82,18 +77,13 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
 
     function test_revertInvalidERC721TransferAmount() public {
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidERC721TransferAmount(uint256)",
-                4
-            )
+            abi.encodeWithSignature("InvalidERC721TransferAmount(uint256)", 4)
         );
         this.__revertInvalidERC721TransferAmount(4);
     }
 
     function test_revertInvalidMsgValue() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("InvalidMsgValue(uint256)", 5)
-        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidMsgValue(uint256)", 5));
         this.__revertInvalidMsgValue(5);
     }
 
@@ -119,11 +109,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
 
     function test_revertInvalidTime() public {
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidTime(uint256,uint256)",
-                6,
-                7
-            )
+            abi.encodeWithSignature("InvalidTime(uint256,uint256)", 6, 7)
         );
         this.__revertInvalidTime(6, 7);
     }
@@ -137,9 +123,7 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
                 8
             )
         );
-        this.__revertMismatchedFulfillmentOfferAndConsiderationComponents(
-            8
-        );
+        this.__revertMismatchedFulfillmentOfferAndConsiderationComponents(8);
     }
 
     function test_revertMissingOriginalConsiderationItems() public {
@@ -205,7 +189,9 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     }
 
     function test_revertPartialFillsNotEnabledForOrder() public {
-        vm.expectRevert(abi.encodeWithSignature("PartialFillsNotEnabledForOrder()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("PartialFillsNotEnabledForOrder()")
+        );
         this.__revertPartialFillsNotEnabledForOrder();
     }
 

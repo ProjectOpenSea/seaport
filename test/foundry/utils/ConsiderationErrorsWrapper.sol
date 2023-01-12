@@ -71,14 +71,6 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidCanceller" error
-     *      message.
-     */
-    function __revertInvalidCanceller() external pure {
-        _revertInvalidCanceller();
-    }
-
-    /**
      * @dev Reverts the current transaction with an "InvalidConduit" error message,
      *      including the provided key and address of the invalid conduit.
      *
@@ -207,7 +199,10 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
      *      error message.
      */
-    function __revertOfferAndConsiderationRequiredOnFulfillment() external pure {
+    function __revertOfferAndConsiderationRequiredOnFulfillment()
+        external
+        pure
+    {
         _revertOfferAndConsiderationRequiredOnFulfillment();
     }
 
@@ -266,10 +261,7 @@ contract ConsiderationErrorsWrapper {
         uint256 orderIndex,
         uint256 considerationIndex
     ) external pure {
-        _revertUnresolvedConsiderationCriteria(
-            orderIndex,
-            considerationIndex
-        );
+        _revertUnresolvedConsiderationCriteria(orderIndex, considerationIndex);
     }
 
     /**
@@ -279,10 +271,7 @@ contract ConsiderationErrorsWrapper {
         uint256 orderIndex,
         uint256 offerIndex
     ) external pure {
-        _revertUnresolvedOfferCriteria(
-            orderIndex,
-            offerIndex
-        );
+        _revertUnresolvedOfferCriteria(orderIndex, offerIndex);
     }
 
     /**
@@ -296,7 +285,10 @@ contract ConsiderationErrorsWrapper {
      * @dev Reverts execution with a "ConsiderationLengthNotEqualToTotalOriginal"
      *      error message.
      */
-    function __revertConsiderationLengthNotEqualToTotalOriginal() external pure {
+    function __revertConsiderationLengthNotEqualToTotalOriginal()
+        external
+        pure
+    {
         _revertConsiderationLengthNotEqualToTotalOriginal();
     }
 }
