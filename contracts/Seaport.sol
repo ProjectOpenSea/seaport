@@ -4,8 +4,8 @@ pragma solidity ^0.8.17;
 import { Consideration } from "./lib/Consideration.sol";
 
 /**
- * @title Seaport
- * @custom:version 1.2
+ * @title Seaport (alpha version)
+ * @custom:version 1.2-ALPHA
  * @author 0age (0age.eth)
  * @custom:coauthor d1ll0n (d1ll0n.eth)
  * @custom:coauthor transmissions11 (t11s.eth)
@@ -81,7 +81,7 @@ import { Consideration } from "./lib/Consideration.sol";
  *         along with an arbitrary number of items that must be received back by
  *         the indicated recipients (the "consideration").
  */
-contract Seaport is Consideration {
+contract SeaportAlphaVersion is Consideration {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -100,11 +100,7 @@ contract Seaport is Consideration {
      */
     function _name() internal pure override returns (string memory) {
         // Return the name of the contract.
-        assembly {
-            mstore(0x20, 0x20)
-            mstore(0x47, 0x07536561706f7274)
-            return(0x20, 0x60)
-        }
+        return _nameString();
     }
 
     /**
@@ -115,6 +111,6 @@ contract Seaport is Consideration {
      */
     function _nameString() internal pure override returns (string memory) {
         // Return the name of the contract.
-        return "Seaport";
+        return "Seaport-alpha";
     }
 }
