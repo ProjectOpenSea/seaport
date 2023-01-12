@@ -636,6 +636,7 @@ contract OrderValidator is Executor, ZoneInteraction {
      *      only the offerer or the zone of a given order may cancel it. Callers
      *      should ensure that the intended order was cancelled by calling
      *      `getOrderStatus` and confirming that `isCancelled` returns `true`.
+     *      Also note that contract orders are not cancellable.
      *
      * @param orders The orders to cancel.
      *
@@ -660,25 +661,27 @@ contract OrderValidator is Executor, ZoneInteraction {
             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
                 OrderComponents calldata order = orders[i];
 
-                // Skip contract orders.
-                if (order.orderType == OrderType.CONTRACT) {
-                    continue;
-                }
-
                 address offerer = order.offerer;
                 address zone = order.zone;
+                OrderType orderType = order.orderType;
 
                 assembly {
-                    // If caller is neither offerer nor zone of order, ensure
-                    // that is flagged.
+                    // If caller is neither offerer nor zone of order, or if an
+                    // order is a contract order, flag anyInvalidCaller.
                     anyInvalidCaller := or(
                         anyInvalidCaller,
+                        // orderType == CONTRACT ||
                         // !(caller == offerer || caller == zone)
-                        iszero(or(eq(caller(), offerer), eq(caller(), zone)))
+                        or(
+                            eq(orderType, 4),
+                            iszero(
+                                or(eq(caller(), offerer), eq(caller(), zone))
+                            )
+                        )
                     )
                 }
 

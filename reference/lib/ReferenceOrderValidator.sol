@@ -511,7 +511,10 @@ contract ReferenceOrderValidator is
 
     /**
      * @dev Internal function to cancel an arbitrary number of orders. Note that
-     *      only the offerer or the zone of a given order may cancel it.
+     *      only the offerer or the zone of a given order may cancel it. Callers
+     *      should ensure that the intended order was cancelled by calling
+     *      `getOrderStatus` and confirming that `isCancelled` returns `true`.
+     *      Also note that contract orders are not cancellable.
      *
      * @param orders The orders to cancel.
      *
@@ -542,8 +545,12 @@ contract ReferenceOrderValidator is
             offerer = order.offerer;
             zone = order.zone;
 
-            // Ensure caller is either offerer or zone of the order.
-            if (msg.sender != offerer && msg.sender != zone) {
+            // Ensure caller is either offerer or zone of the order and that the
+            // order is not a contract order.
+            if (
+                order.orderType == OrderType.CONTRACT ||
+                (msg.sender != offerer && msg.sender != zone)
+            ) {
                 revert InvalidCanceller();
             }
 
@@ -575,6 +582,7 @@ contract ReferenceOrderValidator is
             // Emit an event signifying that the order has been cancelled.
             emit OrderCancelled(orderHash, offerer, zone);
         }
+
         return true;
     }
 
