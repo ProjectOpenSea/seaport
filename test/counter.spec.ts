@@ -586,14 +586,13 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         .connect(seller)
         .activate(contractOrderOffer[0], contractOrderOffer[0]);
 
-      const { order: contractOrder } =
-        await createOrder(
-          seller,
-          zone,
-          offer,
-          consideration,
-          4 // CONTRACT
-        );
+      const { order: contractOrder } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        4 // CONTRACT
+      );
 
       const contractOffererNonce =
         await marketplaceContract.getContractOffererNonce(
@@ -1018,7 +1017,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         buildOrderStatus(false, true, 0, 0)
       );
     });
-    it("Skip cancellation for contract order", async () => {
+    it("Reverts when trying to cancel contract order", async () => {
       // Seller mints nft
       const nftId = await mintAndApprove721(
         seller,
@@ -1104,27 +1103,9 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         buildOrderStatus(false, false, 0, 0)
       );
 
-      // should cancel non-contract order and skip cancellation for
-      // contract order (for code coverage)
-      await marketplaceContract
-        .connect(seller)
-        .cancel([contractOrderComponents]);
-
-      // // cannot fill the order anymore
-      // await expect(
-      //   marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
-      //     value,
-      //   })
-      // )
-      //   .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
-      //   .withArgs(orderHash);
-
-      // const nonContractOrderStatus = await marketplaceContract.getOrderStatus(
-      //   orderHash
-      // );
-      // expect({ ...nonContractOrderStatus }).to.deep.eq(
-      //   buildOrderStatus(false, true, 0, 0)
-      // );
+      await expect(
+        marketplaceContract.connect(seller).cancel([contractOrderComponents])
+      ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
       const contractOrderStatus = await marketplaceContract.getOrderStatus(
         contractOrderHash
