@@ -535,7 +535,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, orderComponents } = await createOrder(
+      const { order, orderHash } = await createOrder(
         seller,
         zone,
         offer,
@@ -586,7 +586,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         .connect(seller)
         .activate(contractOrderOffer[0], contractOrderOffer[0]);
 
-      const { order: contractOrder, orderComponents: contractOrderComponents } =
+      const { order: contractOrder } =
         await createOrder(
           seller,
           zone,
@@ -1033,7 +1033,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value, orderComponents } = await createOrder(
+      await createOrder(
         seller,
         zone,
         offer,
