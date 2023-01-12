@@ -295,12 +295,12 @@ contract ConsiderationEncoder {
      * @dev Takes an order hash, OrderParameters struct, extraData bytes array,
      *      and array of order hashes for each order included as part of the
      *      current fulfillment and encodes it as `validateOrder` calldata.
-     *      For future reference: there could eventually be a case of
-     *      writing to a memory region that might have been potentially dirtied
-     *      by the accumulator. Since the book-keeping for the accumulator does
-     *      not update the free memory pointer, it will be necessary to ensure
-     *      that all bytes in the memory in the range [dst, dst+size) are fully
-     *      updated/written to in this function. 
+     *      Note that future, new versions of this contract may end up writing
+     *      to a memory region that might have been potentially dirtied by the
+     *      accumulator. Since the book-keeping for the accumulator does not
+     *      update the free memory pointer, it will be necessary to ensure that
+     *      all bytes in the memory in the range [dst, dst+size) are fully
+     *      updated/written to in this function.
      *
      * @param orderHash       The order hash.
      * @param orderParameters The OrderParameters struct used to construct the
