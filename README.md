@@ -213,14 +213,20 @@ graph TD
 
 For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.svg).
 
-## Install
+# Initializing the repo
 
-To install dependencies and compile contracts:
+Clone the repo and compile the contracts with the following command:
 
 ```bash
-git clone https://github.com/ProjectOpenSea/seaport && cd seaport
+git clone --recurse-submodules https://github.com/code-423n4/2023-01-opensea.git
 yarn install
 yarn build
+```
+
+If you've already cloned the repo but without the `--recurse-submodules`, you can run the [following](https://git-scm.com/book/en/v2/Git-Tools-Submodules#_cloning_submodules) in the repo's directory:
+
+```bash
+git submodule update --init
 ```
 
 ## Usage
