@@ -243,7 +243,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     break
                 }
 
-                // shift and mask to calculate the the current filled numerator.
+                // Shift and mask to calculate the current filled numerator.
                 filledNumerator := and(
                     shr(OrderStatus_filledNumerator_offset, filledNumerator),
                     MaxUint120
