@@ -128,7 +128,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
 
 Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
 
-See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts/interfaces/SeaportInterface.sol), and the full [interface documentation](https://docs.opensea.io/v2.0/reference/seaport-overview) for more information on Seaport.
+See the [documentation](https://github.com/ProjectOpenSea/seaport/blob/3acb953d9017b181965ccb080fda8d3641a2ef4c/docs/SeaportDocumentation.md), the [interface](https://github.com/ProjectOpenSea/seaport/blob/3acb953d9017b181965ccb080fda8d3641a2ef4c/contracts/interfaces/SeaportInterface.sol), and the full [interface documentation](https://docs.opensea.io/v2.0/reference/seaport-overview) for more information on Seaport.
 
 ## Deployments
 
@@ -175,7 +175,7 @@ To be deployed on other EVM chains, such as:
 - Fantom
 - RSK
 
-To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
+To deploy to a new EVM chain, follow the [steps outlined here](https://github.com/ProjectOpenSea/seaport/blob/3acb953d9017b181965ccb080fda8d3641a2ef4c/docs/Deployment.md).
 
 ## Diagram
 
