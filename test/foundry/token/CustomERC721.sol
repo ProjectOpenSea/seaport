@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
-/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
+/// @author Solmate
+/// (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @notice modified for testing purposes
 abstract contract CustomERC721 {
     /*//////////////////////////////////////////////////////////////
@@ -10,21 +11,15 @@ abstract contract CustomERC721 {
     //////////////////////////////////////////////////////////////*/
 
     event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed id
+        address indexed from, address indexed to, uint256 indexed id
     );
 
     event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 indexed id
+        address indexed owner, address indexed spender, uint256 indexed id
     );
 
     event ApprovalForAll(
-        address indexed owner,
-        address indexed operator,
-        bool approved
+        address indexed owner, address indexed operator, bool approved
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -89,7 +84,10 @@ abstract contract CustomERC721 {
         emit Approval(owner, spender, id);
     }
 
-    function setApprovalForAll(address operator, bool approved) public virtual {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public virtual {
         _isApprovedForAll[msg.sender][operator] = approved;
 
         emit ApprovalForAll(msg.sender, operator, approved);
@@ -102,18 +100,22 @@ abstract contract CustomERC721 {
         return _isApprovedForAll[owner][spender];
     }
 
-    function transferFrom(address from, address to, uint256 id) public virtual {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public virtual {
         require(from == _ownerOf[id], "WRONG_FROM");
 
         require(
-            msg.sender == from ||
-                isApprovedForAll(from, msg.sender) ||
-                msg.sender == getApproved[id],
+            msg.sender == from || isApprovedForAll(from, msg.sender)
+                || msg.sender == getApproved[id],
             "NOT_AUTHORIZED"
         );
 
         // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
+        // ownership above and the recipient's balance can't realistically
+        // overflow.
         unchecked {
             _balanceOf[from]--;
 
@@ -135,14 +137,10 @@ abstract contract CustomERC721 {
         transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    ""
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(
+                    msg.sender, from, id, ""
+                ) == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -156,14 +154,10 @@ abstract contract CustomERC721 {
         transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    data
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(
+                    msg.sender, from, id, data
+                ) == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -172,13 +166,15 @@ abstract contract CustomERC721 {
                               ERC165 LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual returns (bool) {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID for ERC165
+            || interfaceId == 0x80ac58cd // ERC165 Interface ID for ERC721
+            || interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -223,14 +219,10 @@ abstract contract CustomERC721 {
         _mint(to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    address(0),
-                    id,
-                    ""
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(
+                    msg.sender, address(0), id, ""
+                ) == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -243,21 +235,19 @@ abstract contract CustomERC721 {
         _mint(to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    address(0),
-                    id,
-                    data
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(
+                    msg.sender, address(0), id, data
+                ) == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 }
 
-/// @notice A generic interface for a contract which properly accepts ERC721 tokens.
-/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
+/// @notice A generic interface for a contract which properly accepts ERC721
+/// tokens.
+/// @author Solmate
+/// (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721TokenReceiver {
     function onERC721Received(
         address,

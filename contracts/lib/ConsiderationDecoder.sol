@@ -31,9 +31,11 @@ contract ConsiderationDecoder {
      * @return mPtrLength A memory pointer to the start of the bytes array in
      *                    memory which contains the length of the array.
      */
-    function _decodeBytes(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeBytes(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         assembly {
             // Get the current free memory pointer.
             mPtrLength := mload(FreeMemoryPointerSlot)
@@ -41,22 +43,23 @@ contract ConsiderationDecoder {
             // Derive the size of the bytes array, rounding up to nearest word
             // and adding a word for the length field.
             // Note: masking `calldataload(cdPtrLength)` is redundant here.
-            let size := add(
-                and(
-                    add(calldataload(cdPtrLength), AlmostOneWord),
-                    OnlyFullWordMask
-                ),
-                OneWord
-            )
+            let size :=
+                add(
+                    and(
+                        add(calldataload(cdPtrLength), AlmostOneWord),
+                        OnlyFullWordMask
+                    ),
+                    OneWord
+                )
 
             // Copy bytes from calldata into memory based on pointers and size.
             calldatacopy(mPtrLength, cdPtrLength, size)
             // Store the masked value in memory.
             // Note: the value of `size` is at least 32.
-            // So the previous line will at least write to `[mPtrLength, mPtrLength + 32)`.
+            // So the previous line will at least write to `[mPtrLength,
+            // mPtrLength + 32)`.
             mstore(
-                mPtrLength,
-                and(calldataload(cdPtrLength), OffsetOrLengthMask)
+                mPtrLength, and(calldataload(cdPtrLength), OffsetOrLengthMask)
             )
 
             // Update free memory pointer based on the size of the bytes array.
@@ -73,9 +76,11 @@ contract ConsiderationDecoder {
      * @return mPtrLength A memory pointer to the start of the offer array in
      *                    memory which contains the length of the array.
      */
-    function _decodeOffer(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeOffer(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         assembly {
             // Retrieve length of array, masking to prevent potential overflow.
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
@@ -107,11 +112,7 @@ contract ConsiderationDecoder {
             let mPtrHeadNext := mPtrHead
 
             // Iterate over each head pointer until it reaches the tail.
-            for {
-
-            } lt(mPtrHeadNext, mPtrTail) {
-
-            } {
+            for { } lt(mPtrHeadNext, mPtrTail) { } {
                 // Write the next tail pointer to next head pointer in memory.
                 mstore(mPtrHeadNext, mPtrTailNext)
 
@@ -138,9 +139,11 @@ contract ConsiderationDecoder {
      *                    array in memory which contains the length of the
      *                    array.
      */
-    function _decodeConsideration(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeConsideration(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         assembly {
             // Retrieve length of array, masking to prevent potential overflow.
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
@@ -172,11 +175,7 @@ contract ConsiderationDecoder {
             let mPtrHeadNext := mPtrHead
 
             // Iterate over each head pointer until it reaches the tail.
-            for {
-
-            } lt(mPtrHeadNext, mPtrTail) {
-
-            } {
+            for { } lt(mPtrHeadNext, mPtrTail) { } {
                 // Write the next tail pointer to next head pointer in memory.
                 mstore(mPtrHeadNext, mPtrTailNext)
 
@@ -230,9 +229,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the OrderParameters struct head.
      */
-    function _decodeOrderParameters(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeOrderParameters(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate required memory for the OrderParameters head (offer and
         // consideration are allocated independently).
         mPtr = malloc(OrderParameters_head_size);
@@ -249,9 +250,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the Order struct head.
      */
-    function _decodeOrder(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeOrder(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate required memory for the Order head (OrderParameters and
         // signature are allocated independently).
         mPtr = malloc(Order_head_size);
@@ -275,9 +278,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the AdvancedOrder struct head.
      */
-    function _decodeAdvancedOrder(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeAdvancedOrder(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate memory for AdvancedOrder head and OrderParameters head.
         mPtr = malloc(AdvancedOrderPlusOrderParameters_head_size);
 
@@ -333,9 +338,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the AdvancedOrder struct head.
      */
-    function _decodeOrderAsAdvancedOrder(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeOrderAsAdvancedOrder(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate memory for AdvancedOrder head and OrderParameters head.
         mPtr = malloc(AdvancedOrderPlusOrderParameters_head_size);
 
@@ -375,9 +382,11 @@ contract ConsiderationDecoder {
      * @return mPtrLength A memory pointer to the start of the array of advanced
      *                    orders in memory which contains length of the array.
      */
-    function _decodeOrdersAsAdvancedOrders(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeOrdersAsAdvancedOrders(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -416,9 +425,11 @@ contract ConsiderationDecoder {
      * @return mPtrLength A memory pointer to the start of the criteria proof
      *                    in memory which contains length of the array.
      */
-    function _decodeCriteriaProof(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeCriteriaProof(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -442,9 +453,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the CriteriaResolver struct head.
      */
-    function _decodeCriteriaResolver(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeCriteriaResolver(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate required memory for the CriteriaResolver head (the criteria
         // proof bytes32 array is allocated independently).
         mPtr = malloc(CriteriaResolver_head_size);
@@ -474,9 +487,11 @@ contract ConsiderationDecoder {
      *                    array in memory which contains the length of the
      *                    array.
      */
-    function _decodeCriteriaResolvers(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeCriteriaResolvers(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -514,9 +529,11 @@ contract ConsiderationDecoder {
      * @return mPtrLength A memory pointer to the start of the orders array
      *                    in memory which contains the length of the array.
      */
-    function _decodeOrders(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeOrders(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -557,9 +574,11 @@ contract ConsiderationDecoder {
      *                    components array in memory which contains the length
      *                    of the array.
      */
-    function _decodeFulfillmentComponents(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeFulfillmentComponents(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         assembly {
             let arrLength := and(calldataload(cdPtrLength), OffsetOrLengthMask)
 
@@ -576,17 +595,11 @@ contract ConsiderationDecoder {
                 shl(FulfillmentComponent_mem_tail_size_shift, arrLength)
             )
             let mPtrHeadNext := mPtrHead
-            for {
-
-            } lt(mPtrHeadNext, mPtrTail) {
-
-            } {
+            for { } lt(mPtrHeadNext, mPtrTail) { } {
                 mstore(mPtrHeadNext, mPtrTailNext)
                 mPtrHeadNext := add(mPtrHeadNext, OneWord)
-                mPtrTailNext := add(
-                    mPtrTailNext,
-                    FulfillmentComponent_mem_tail_size
-                )
+                mPtrTailNext :=
+                    add(mPtrTailNext, FulfillmentComponent_mem_tail_size)
             }
 
             // Update the free memory pointer.
@@ -606,9 +619,11 @@ contract ConsiderationDecoder {
      *                    fulfillment components array in memory which
      *                    contains the length of the array.
      */
-    function _decodeNestedFulfillmentComponents(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeNestedFulfillmentComponents(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -649,9 +664,11 @@ contract ConsiderationDecoder {
      *                    array in memory which contains the length of the
      *                    array.
      */
-    function _decodeAdvancedOrders(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeAdvancedOrders(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -688,9 +705,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the Fulfillment struct head.
      */
-    function _decodeFulfillment(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeFulfillment(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate required memory for the Fulfillment head (the fulfillment
         // components arrays are allocated independently).
         mPtr = malloc(Fulfillment_head_size);
@@ -720,9 +739,11 @@ contract ConsiderationDecoder {
      *                    array in memory which contains the length of the
      *                    array.
      */
-    function _decodeFulfillments(
-        CalldataPointer cdPtrLength
-    ) internal pure returns (MemoryPointer mPtrLength) {
+    function _decodeFulfillments(CalldataPointer cdPtrLength)
+        internal
+        pure
+        returns (MemoryPointer mPtrLength)
+    {
         // Retrieve length of array, masking to prevent potential overflow.
         uint256 arrLength = cdPtrLength.readMaskedUint256();
 
@@ -761,9 +782,11 @@ contract ConsiderationDecoder {
      *
      * @return mPtr A memory pointer to the OrderParameters struct head.
      */
-    function _decodeOrderComponentsAsOrderParameters(
-        CalldataPointer cdPtr
-    ) internal pure returns (MemoryPointer mPtr) {
+    function _decodeOrderComponentsAsOrderParameters(CalldataPointer cdPtr)
+        internal
+        pure
+        returns (MemoryPointer mPtr)
+    {
         // Allocate memory for the OrderParameters head.
         mPtr = malloc(OrderParameters_head_size);
 
@@ -786,8 +809,7 @@ contract ConsiderationDecoder {
         );
 
         // Write masked consideration length to totalOriginalConsiderationItems.
-        mPtr
-            .offset(OrderParameters_totalOriginalConsiderationItems_offset)
+        mPtr.offset(OrderParameters_totalOriginalConsiderationItems_offset)
             .write(consideration.readUint256());
     }
 
@@ -830,16 +852,12 @@ contract ConsiderationDecoder {
 
                 // If valid length, check that offsets are within returndata.
                 let invalidOfferOffset := gt(offsetOffer, returndatasize())
-                let invalidConsiderationOffset := gt(
-                    offsetConsideration,
-                    returndatasize()
-                )
+                let invalidConsiderationOffset :=
+                    gt(offsetConsideration, returndatasize())
 
                 // Only proceed if length (and thus encoding) is valid so far.
-                invalidEncoding := or(
-                    invalidOfferOffset,
-                    invalidConsiderationOffset
-                )
+                invalidEncoding :=
+                    or(invalidOfferOffset, invalidConsiderationOffset)
                 if iszero(invalidEncoding) {
                     // Copy length of offer array to scratch space.
                     returndatacopy(0, offsetOffer, OneWord)
@@ -851,27 +869,25 @@ contract ConsiderationDecoder {
 
                     {
                         // Calculate total size of offer & consideration arrays.
-                        let totalOfferSize := shl(
-                            SpentItem_size_shift,
-                            offerLength
-                        )
-                        let totalConsiderationSize := mul(
-                            ReceivedItem_size,
-                            considerationLength
-                        )
+                        let totalOfferSize :=
+                            shl(SpentItem_size_shift, offerLength)
+                        let totalConsiderationSize :=
+                            mul(ReceivedItem_size, considerationLength)
 
                         // Add 4 words to total size to cover the offset and
                         // length fields of the two arrays.
-                        let totalSize := add(
-                            FourWords,
-                            add(totalOfferSize, totalConsiderationSize)
-                        )
+                        let totalSize :=
+                            add(
+                                FourWords,
+                                add(totalOfferSize, totalConsiderationSize)
+                            )
                         // Don't continue if returndatasize exceeds 65535 bytes
                         // or is not equal to the calculated size.
-                        invalidEncoding := or(
-                            gt(or(offerLength, considerationLength), 0xffff),
-                            xor(totalSize, returndatasize())
-                        )
+                        invalidEncoding :=
+                            or(
+                                gt(or(offerLength, considerationLength), 0xffff),
+                                xor(totalSize, returndatasize())
+                            )
                         // Set first word of scratch space to 0 so length of
                         // offer/consideration are set to 0 on invalid encoding.
                         mstore(0, 0)
@@ -880,19 +896,18 @@ contract ConsiderationDecoder {
             }
 
             if iszero(invalidEncoding) {
-                offer := copySpentItemsAsOfferItems(
-                    add(offsetOffer, OneWord),
-                    offerLength
-                )
+                offer :=
+                    copySpentItemsAsOfferItems(
+                        add(offsetOffer, OneWord), offerLength
+                    )
 
-                consideration := copyReceivedItemsAsConsiderationItems(
-                    add(offsetConsideration, OneWord),
-                    considerationLength
-                )
+                consideration :=
+                    copyReceivedItemsAsConsiderationItems(
+                        add(offsetConsideration, OneWord), considerationLength
+                    )
             }
 
-            function copySpentItemsAsOfferItems(rdPtrHead, length)
-                -> mPtrLength
+            function copySpentItemsAsOfferItems(rdPtrHead, length) -> mPtrLength
             {
                 // Retrieve the current free memory pointer.
                 mPtrLength := mload(FreeMemoryPointerSlot)
@@ -915,11 +930,7 @@ contract ConsiderationDecoder {
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
 
                 // Iterate over each element.
-                for {
-
-                } lt(headOffsetFromLength, headSizeWithLength) {
-
-                } {
+                for { } lt(headOffsetFromLength, headSizeWithLength) { } {
                     // Write the memory pointer to the accompanying head offset.
                     mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
 
@@ -939,8 +950,8 @@ contract ConsiderationDecoder {
                 }
             }
 
-            function copyReceivedItemsAsConsiderationItems(rdPtrHead, length)
-                -> mPtrLength
+            function copyReceivedItemsAsConsiderationItems(rdPtrHead, length) ->
+                mPtrLength
             {
                 // Retrieve the current free memory pointer.
                 mPtrLength := mload(FreeMemoryPointerSlot)
@@ -966,19 +977,13 @@ contract ConsiderationDecoder {
                 let mPtrTailNext := add(mPtrLength, headSizeWithLength)
 
                 // Iterate over each element.
-                for {
-
-                } lt(headOffsetFromLength, headSizeWithLength) {
-
-                } {
+                for { } lt(headOffsetFromLength, headSizeWithLength) { } {
                     // Write the memory pointer to the accompanying head offset.
                     mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
 
                     // Copy itemType, token, identifier and amount.
                     returndatacopy(
-                        mPtrTailNext,
-                        rdPtrHead,
-                        Common_endAmount_offset
+                        mPtrTailNext, rdPtrHead, Common_endAmount_offset
                     )
 
                     // Copy amount and recipient.
@@ -1017,13 +1022,13 @@ contract ConsiderationDecoder {
         pure
         returns (
             function()
-                internal
-                pure
-                returns (
-                    uint256,
-                    OfferItem[] memory,
-                    ConsiderationItem[] memory
-                ) outFn
+            internal
+            pure
+            returns (
+                            uint256,
+                            OfferItem[] memory,
+                            ConsiderationItem[] memory
+                        ) outFn
         )
     {
         assembly {
@@ -1050,7 +1055,7 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(OfferItem memory, address, bytes32, bytes memory)
-                internal outFn
+                        internal outFn
         )
     {
         assembly {
@@ -1077,7 +1082,7 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(ConsiderationItem memory, address, bytes32, bytes memory)
-                internal outFn
+                        internal outFn
         )
     {
         assembly {
@@ -1103,9 +1108,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (OrderParameters memory) outFn
+            internal
+            pure
+            returns (OrderParameters memory) outFn
         )
     {
         assembly {
@@ -1131,9 +1136,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (AdvancedOrder memory) outFn
+            internal
+            pure
+            returns (AdvancedOrder memory) outFn
         )
     {
         assembly {
@@ -1159,9 +1164,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (CriteriaResolver[] memory) outFn
+            internal
+            pure
+            returns (CriteriaResolver[] memory) outFn
         )
     {
         assembly {
@@ -1187,9 +1192,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (Order[] memory) outFn
+            internal
+            pure
+            returns (Order[] memory) outFn
         )
     {
         assembly {
@@ -1217,9 +1222,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (FulfillmentComponent[][] memory) outFn
+            internal
+            pure
+            returns (FulfillmentComponent[][] memory) outFn
         )
     {
         assembly {
@@ -1245,9 +1250,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (AdvancedOrder[] memory) outFn
+            internal
+            pure
+            returns (AdvancedOrder[] memory) outFn
         )
     {
         assembly {
@@ -1273,9 +1278,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                internal
-                pure
-                returns (Fulfillment[] memory) outFn
+            internal
+            pure
+            returns (Fulfillment[] memory) outFn
         )
     {
         assembly {

@@ -13,14 +13,17 @@ contract ConsiderationErrorsWrapper {
 
     /**
      * @dev Reverts the current transaction with a "ConsiderationNotMet" error
-     *      message, including the provided order index, consideration index, and
+     *      message, including the provided order index, consideration index,
+     * and
      *      shortfall amount.
      *
      * @param orderIndex         The index of the order that did not meet the
      *                           consideration criteria.
-     * @param considerationIndex The index of the consideration item that did not
+     * @param considerationIndex The index of the consideration item that did
+     * not
      *                           meet its criteria.
-     * @param shortfallAmount    The amount by which the consideration criteria were
+     * @param shortfallAmount    The amount by which the consideration criteria
+     * were
      *                           not met.
      */
     function __revertConsiderationNotMet(
@@ -29,14 +32,13 @@ contract ConsiderationErrorsWrapper {
         uint256 shortfallAmount
     ) external pure {
         _revertConsiderationNotMet(
-            orderIndex,
-            considerationIndex,
-            shortfallAmount
+            orderIndex, considerationIndex, shortfallAmount
         );
     }
 
     /**
-     * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem" error
+     * @dev Reverts the current transaction with a "CriteriaNotEnabledForItem"
+     * error
      *      message.
      */
     function __revertCriteriaNotEnabledForItem() external pure {
@@ -61,7 +63,8 @@ contract ConsiderationErrorsWrapper {
 
     /**
      * @dev Reverts the current transaction with an "InvalidCallToConduit" error
-     *      message, including the provided address of the conduit that was called
+     *      message, including the provided address of the conduit that was
+     * called
      *      improperly.
      *
      * @param conduit The address of the conduit that was called improperly.
@@ -71,7 +74,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidConduit" error message,
+     * @dev Reverts the current transaction with an "InvalidConduit" error
+     * message,
      *      including the provided key and address of the invalid conduit.
      *
      * @param conduitKey    The key of the invalid conduit.
@@ -85,21 +89,27 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidERC721TransferAmount"
+     * @dev Reverts the current transaction with an
+     * "InvalidERC721TransferAmount"
      *      error message.
      *
      * @param amount The invalid amount.
      */
-    function __revertInvalidERC721TransferAmount(uint256 amount) external pure {
+    function __revertInvalidERC721TransferAmount(uint256 amount)
+        external
+        pure
+    {
         _revertInvalidERC721TransferAmount(amount);
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidMsgValue" error message,
+     * @dev Reverts the current transaction with an "InvalidMsgValue" error
+     * message,
      *      including the invalid value that was sent in the transaction's
      *      `msg.value` field.
      *
-     * @param value The invalid value that was sent in the transaction's `msg.value`
+     * @param value The invalid value that was sent in the transaction's
+     * `msg.value`
      *              field.
      */
     function __revertInvalidMsgValue(uint256 value) external pure {
@@ -107,7 +117,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidNativeOfferItem" error
+     * @dev Reverts the current transaction with an "InvalidNativeOfferItem"
+     * error
      *      message.
      */
     function __revertInvalidNativeOfferItem() external pure {
@@ -115,7 +126,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InvalidProof" error message.
+     * @dev Reverts the current transaction with an "InvalidProof" error
+     * message.
      */
     function __revertInvalidProof() external pure {
         _revertInvalidProof();
@@ -146,9 +158,11 @@ contract ConsiderationErrorsWrapper {
 
     /**
      * @dev Reverts execution with a
-     *      "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
+     *      "MismatchedFulfillmentOfferAndConsiderationComponents" error
+     * message.
      *
-     * @param fulfillmentIndex         The index of the fulfillment that caused the
+     * @param fulfillmentIndex         The index of the fulfillment that caused
+     * the
      *                                 error.
      */
     function __revertMismatchedFulfillmentOfferAndConsiderationComponents(
@@ -167,9 +181,10 @@ contract ConsiderationErrorsWrapper {
      *             offer, 1 for consideration).
      *
      */
-    function __revertMissingFulfillmentComponentOnAggregation(
-        Side side
-    ) external pure {
+    function __revertMissingFulfillmentComponentOnAggregation(Side side)
+        external
+        pure
+    {
         _revertMissingFulfillmentComponentOnAggregation(side);
     }
 
@@ -196,7 +211,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
+     * @dev Reverts execution with a
+     * "OfferAndConsiderationRequiredOnFulfillment"
      *      error message.
      */
     function __revertOfferAndConsiderationRequiredOnFulfillment()
@@ -247,7 +263,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts execution with a "PartialFillsNotEnabledForOrder" error message.
+     * @dev Reverts execution with a "PartialFillsNotEnabledForOrder" error
+     * message.
      */
     function __revertPartialFillsNotEnabledForOrder() external pure {
         _revertPartialFillsNotEnabledForOrder();
@@ -282,7 +299,8 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts execution with a "ConsiderationLengthNotEqualToTotalOriginal"
+     * @dev Reverts execution with a
+     * "ConsiderationLengthNotEqualToTotalOriginal"
      *      error message.
      */
     function __revertConsiderationLengthNotEqualToTotalOriginal()

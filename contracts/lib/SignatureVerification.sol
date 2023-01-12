@@ -3,9 +3,8 @@ pragma solidity ^0.8.17;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
-import {
-    SignatureVerificationErrors
-} from "../interfaces/SignatureVerificationErrors.sol";
+import { SignatureVerificationErrors } from
+    "../interfaces/SignatureVerificationErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
@@ -16,7 +15,10 @@ import "./ConsiderationErrors.sol";
  * @author 0age
  * @notice SignatureVerification contains logic for verifying signatures.
  */
-contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
+contract SignatureVerification is
+    SignatureVerificationErrors,
+    LowLevelHelpers
+{
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
@@ -72,27 +74,24 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Try to recover signer.
                 if iszero(gt(lenDiff, 1)) {
                     // Read the signature `s` value.
-                    let originalSignatureS := mload(
-                        add(signature, ECDSA_signature_s_offset)
-                    )
+                    let originalSignatureS :=
+                        mload(add(signature, ECDSA_signature_s_offset))
 
                     // Read the first byte of the word after `s`. If the
                     // signature is 65 bytes, this will be the real `v` value.
                     // If not, it will need to be modified - doing it this way
                     // saves an extra condition.
-                    let v := byte(
-                        0,
-                        mload(add(signature, ECDSA_signature_v_offset))
-                    )
+                    let v :=
+                        byte(0, mload(add(signature, ECDSA_signature_v_offset)))
 
                     // If lenDiff is 1, parse 64-byte signature as ECDSA.
                     if lenDiff {
                         // Extract yParity from highest bit of vs and add 27 to
                         // get v.
-                        v := add(
-                            shr(MaxUint8, originalSignatureS),
-                            Signature_lower_v
-                        )
+                        v :=
+                            add(
+                                shr(MaxUint8, originalSignatureS), Signature_lower_v
+                            )
 
                         // Extract canonical s from vs, all but the highest bit.
                         // Temporarily overwrite the original `s` value in the
@@ -100,8 +99,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         mstore(
                             add(signature, ECDSA_signature_s_offset),
                             and(
-                                originalSignatureS,
-                                EIP2098_allButHighestBitMask
+                                originalSignatureS, EIP2098_allButHighestBitMask
                             )
                         )
                     }
@@ -164,21 +162,20 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 )
 
                 // Get pointer to use for the selector of `isValidSignature`.
-                let selectorPtr := sub(
-                    signature,
-                    EIP1271_isValidSignature_selector_negativeOffset
-                )
+                let selectorPtr :=
+                    sub(signature, EIP1271_isValidSignature_selector_negativeOffset)
 
                 // Cache the value currently stored at the selector pointer.
                 let cachedWordOverwrittenBySelector := mload(selectorPtr)
 
                 // Cache the value currently stored at the digest pointer.
-                let cachedWordOverwrittenByDigest := mload(
-                    sub(
-                        signature,
-                        EIP1271_isValidSignature_digest_negativeOffset
+                let cachedWordOverwrittenByDigest :=
+                    mload(
+                        sub(
+                            signature,
+                            EIP1271_isValidSignature_digest_negativeOffset
+                        )
                     )
-                )
 
                 // Write the selector first, since it overlaps the digest.
                 mstore(selectorPtr, EIP1271_isValidSignature_selector)
@@ -193,17 +190,18 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 )
 
                 // Call signer with `isValidSignature` to validate signature.
-                success := staticcall(
-                    gas(),
-                    signer,
-                    selectorPtr,
-                    add(
-                        originalSignatureLength,
-                        EIP1271_isValidSignature_calldata_baseLength
-                    ),
-                    0,
-                    OneWord
-                )
+                success :=
+                    staticcall(
+                        gas(),
+                        signer,
+                        selectorPtr,
+                        add(
+                            originalSignatureLength,
+                            EIP1271_isValidSignature_calldata_baseLength
+                        ),
+                        0,
+                        OneWord
+                    )
 
                 // Determine if the signature is valid on successful calls.
                 if success {
@@ -286,8 +284,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                         // revert(abi.encodeWithSignature("InvalidSigner()"))
                         revert(
-                            Error_selector_offset,
-                            InvalidSigner_error_length
+                            Error_selector_offset, InvalidSigner_error_length
                         )
                     }
                 }

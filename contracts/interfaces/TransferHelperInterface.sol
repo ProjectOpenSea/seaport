@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {
-    TransferHelperItemsWithRecipient
-} from "../helpers/TransferHelperStructs.sol";
+import { TransferHelperItemsWithRecipient } from
+    "../helpers/TransferHelperStructs.sol";
 
 interface TransferHelperInterface {
     /**

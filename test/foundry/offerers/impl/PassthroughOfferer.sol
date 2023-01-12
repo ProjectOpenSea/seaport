@@ -7,13 +7,11 @@ import {
     ERC1155Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import {
-    ItemType,
-    Side
+    ItemType, Side
 } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -35,7 +33,8 @@ contract PassthroughOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     * items,
      */
     function generateOrder(
         address,
@@ -69,9 +68,11 @@ contract PassthroughOfferer is ContractOffererInterface {
         return (a, _convertSpentToReceived(b));
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -81,26 +82,27 @@ contract PassthroughOfferer is ContractOffererInterface {
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(address(this))
-            });
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        return ReceivedItem({
+            itemType: spentItem.itemType,
+            token: spentItem.token,
+            identifier: spentItem.identifier,
+            amount: spentItem.amount,
+            recipient: payable(address(this))
+        });
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */ ) {
         return PassthroughOfferer.ratifyOrder.selector;
     }
 

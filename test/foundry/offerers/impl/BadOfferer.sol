@@ -7,13 +7,11 @@ import {
     ERC1155Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import {
-    ItemType,
-    Side
+    ItemType, Side
 } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -43,7 +41,8 @@ contract BadOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     * items,
      */
     function generateOrder(
         address a,
@@ -61,7 +60,6 @@ contract BadOfferer is ContractOffererInterface {
 
     /**
      * @dev Generates an order in response to a minimum received set of items.
-     
      */
     function previewOrder(
         address,
@@ -106,16 +104,17 @@ contract BadOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */ ) {
         return BadOfferer.ratifyOrder.selector;
     }
 
-    /** @dev Returns the metadata for this contract offerer.
+    /**
+     * @dev Returns the metadata for this contract offerer.
      */
     function getMetadata()
         external

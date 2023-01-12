@@ -22,9 +22,8 @@ contract Reenterer {
 
     receive() external payable {
         if (isPrepared) {
-            (bool success, bytes memory returnData) = target.call{
-                value: msgValue
-            }(callData);
+            (bool success, bytes memory returnData) =
+                target.call{value: msgValue}(callData);
 
             if (!success) {
                 assembly {

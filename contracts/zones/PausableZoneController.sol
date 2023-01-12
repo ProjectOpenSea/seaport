@@ -3,13 +3,11 @@ pragma solidity ^0.8.13;
 
 import { PausableZone } from "./PausableZone.sol";
 
-import {
-    PausableZoneControllerInterface
-} from "./interfaces/PausableZoneControllerInterface.sol";
+import { PausableZoneControllerInterface } from
+    "./interfaces/PausableZoneControllerInterface.sol";
 
-import {
-    PausableZoneEventsAndErrors
-} from "./interfaces/PausableZoneEventsAndErrors.sol";
+import { PausableZoneEventsAndErrors } from
+    "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import {
     Order,
@@ -76,9 +74,11 @@ contract PausableZoneController is
      *
      * @return derivedAddress The derived address for the zone.
      */
-    function createZone(
-        bytes32 salt
-    ) external override returns (address derivedAddress) {
+    function createZone(bytes32 salt)
+        external
+        override
+        returns (address derivedAddress)
+    {
         // Ensure the caller is the owner.
         if (msg.sender != _owner) {
             revert CallerIsNotOwner();
@@ -91,10 +91,7 @@ contract PausableZoneController is
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            salt,
-                            zoneCreationCode
+                            bytes1(0xff), address(this), salt, zoneCreationCode
                         )
                     )
                 )
@@ -120,9 +117,12 @@ contract PausableZoneController is
      *
      * @return success A boolean indicating the zone has been paused.
      */
-    function pause(
-        address zone
-    ) external override isPauser returns (bool success) {
+    function pause(address zone)
+        external
+        override
+        isPauser
+        returns (bool success)
+    {
         // Call pause on the given zone.
         PausableZone(zone).pause(msg.sender);
 
@@ -185,10 +185,8 @@ contract PausableZoneController is
 
         // Call executeMatchOrders on the given zone and return the sequence
         // of transfers performed as part of matching the given orders.
-        executions = zone.executeMatchOrders{ value: msg.value }(
-            seaportAddress,
-            orders,
-            fulfillments
+        executions = zone.executeMatchOrders{value: msg.value}(
+            seaportAddress, orders, fulfillments
         );
     }
 
@@ -230,11 +228,8 @@ contract PausableZoneController is
 
         // Call executeMatchOrders on the given zone and return the sequence
         // of transfers performed as part of matching the given orders.
-        executions = zone.executeMatchAdvancedOrders{ value: msg.value }(
-            seaportAddress,
-            orders,
-            criteriaResolvers,
-            fulfillments
+        executions = zone.executeMatchAdvancedOrders{value: msg.value}(
+            seaportAddress, orders, criteriaResolvers, fulfillments
         );
     }
 

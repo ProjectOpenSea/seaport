@@ -106,22 +106,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 startAmount,
         uint256 endAmount
     ) internal {
-        addOfferItem(
-            ItemType.ERC721,
-            token,
-            identifier,
-            startAmount,
-            endAmount
-        );
+        addOfferItem(ItemType.ERC721, token, identifier, startAmount, endAmount);
     }
 
     function addErc1155OfferItem(uint256 tokenId, uint256 amount) internal {
         addOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount
+            ItemType.ERC1155, address(test1155_1), tokenId, amount, amount
         );
     }
 
@@ -129,13 +119,7 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 startAmount,
         uint256 endAmount
     ) internal {
-        addOfferItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount
-        );
+        addOfferItem(ItemType.ERC20, address(token1), 0, startAmount, endAmount);
     }
 
     function addErc20OfferItem(uint256 amount) internal {
@@ -165,9 +149,9 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
     }
 
     ///@dev add a considerationItem to the considerationItems array
-    function addConsiderationItem(
-        ConsiderationItem memory _considerationItem
-    ) internal {
+    function addConsiderationItem(ConsiderationItem memory _considerationItem)
+        internal
+    {
         considerationItems.push(_considerationItem);
     }
 
@@ -176,7 +160,8 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         delete considerationItems;
     }
 
-    ///@dev construct a considerationItem and add it to the considerationItems array
+    ///@dev construct a considerationItem and add it to the considerationItems
+    /// array
     function addConsiderationItem(
         address payable recipient,
         ItemType itemType,
@@ -232,12 +217,7 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 endAmount
     ) internal {
         addConsiderationItem(
-            recipient,
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount
+            recipient, ItemType.NATIVE, address(0), 0, startAmount, endAmount
         );
     }
 
@@ -247,12 +227,7 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 endAmount
     ) internal {
         addConsiderationItem(
-            receiver,
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount
+            receiver, ItemType.ERC20, address(token1), 0, startAmount, endAmount
         );
     }
 
@@ -268,12 +243,7 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 tokenId
     ) internal {
         addConsiderationItem(
-            recipient,
-            ItemType.ERC721,
-            address(test721_1),
-            tokenId,
-            1,
-            1
+            recipient, ItemType.ERC721, address(test721_1), tokenId, 1, 1
         );
     }
 

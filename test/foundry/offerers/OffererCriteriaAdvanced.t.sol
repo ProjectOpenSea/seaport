@@ -8,9 +8,8 @@ import {
     ERC20Interface,
     ERC721Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
     OrderType,
     ItemType,
@@ -26,12 +25,10 @@ import {
     CriteriaResolver
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
-import {
-    ConsiderationEventsAndErrors
-} from "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
-import {
-    ZoneInteractionErrors
-} from "../../../contracts/interfaces/ZoneInteractionErrors.sol";
+import { ConsiderationEventsAndErrors } from
+    "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+import { ZoneInteractionErrors } from
+    "../../../contracts/interfaces/ZoneInteractionErrors.sol";
 
 contract OffererCriteriaAdvancedTest is
     BaseOrderTest,
@@ -65,7 +62,8 @@ contract OffererCriteriaAdvancedTest is
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -73,13 +71,10 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional1() public {
         setUpOnlyWholeFractional();
 
+        test(this.execOnlyWholeFractional1, Context({seaport: consideration}));
         test(
             this.execOnlyWholeFractional1,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execOnlyWholeFractional1,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -108,9 +103,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execOnlyWholeFractional1(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional1(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -119,19 +115,17 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional0() public {
         setUpOnlyWholeFractional();
 
+        test(this.execOnlyWholeFractional0, Context({seaport: consideration}));
         test(
             this.execOnlyWholeFractional0,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execOnlyWholeFractional0,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execOnlyWholeFractional0(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional0(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(BadFraction.selector);
         fulfillAdvanced(context, configureAdvancedOrder(0, 1));
     }
@@ -140,19 +134,17 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional2() public {
         setUpOnlyWholeFractional();
 
+        test(this.execOnlyWholeFractional2, Context({seaport: consideration}));
         test(
             this.execOnlyWholeFractional2,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execOnlyWholeFractional2,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execOnlyWholeFractional2(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional2(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(BadFraction.selector);
         fulfillAdvanced(context, configureAdvancedOrder(2, 2));
     }
@@ -181,19 +173,17 @@ contract OffererCriteriaAdvancedTest is
     function testZeroReceiverWildcard() public {
         setUpNormalOrder(address(0));
 
+        test(this.execZeroReceiverWildcard, Context({seaport: consideration}));
         test(
             this.execZeroReceiverWildcard,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execZeroReceiverWildcard,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execZeroReceiverWildcard(
-        Context memory context
-    ) external stateless {
+    function execZeroReceiverWildcard(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder(1, 1));
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -201,14 +191,17 @@ contract OffererCriteriaAdvancedTest is
     function testMismatchedReceiver() public {
         setUpNormalOrder(makeAddr("not offerer"));
 
-        test(this.execMismatchedReceiver, Context({ seaport: consideration }));
+        test(this.execMismatchedReceiver, Context({seaport: consideration}));
         test(
             this.execMismatchedReceiver,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
-    function execMismatchedReceiver(Context memory context) external stateless {
+    function execMismatchedReceiver(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidContractOrder.selector,
@@ -222,18 +215,18 @@ contract OffererCriteriaAdvancedTest is
         setUpCriteriaMinimumReceived();
 
         test(
-            this.execCriteriaMinimumReceived,
-            Context({ seaport: consideration })
+            this.execCriteriaMinimumReceived, Context({seaport: consideration})
         );
         test(
             this.execCriteriaMinimumReceived,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
     function setUpCriteriaMinimumReceived() internal {
         (bytes32 root, bytes32[] memory proof) = getRootAndProof(2);
-        // addOfferItem type ERC721_WITH_CRITERIA, criteria equal to root of merkle tree
+        // addOfferItem type ERC721_WITH_CRITERIA, criteria equal to root of
+        // merkle tree
         addOfferItem({
             itemType: ItemType.ERC721_WITH_CRITERIA,
             token: address(test721_1),
@@ -263,9 +256,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execCriteriaMinimumReceived(
-        Context memory context
-    ) external stateless {
+    function execCriteriaMinimumReceived(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -273,13 +267,10 @@ contract OffererCriteriaAdvancedTest is
     function testCriteriaMaximumSpent() public {
         setUpCriteriaMaximumSpent();
 
+        test(this.execCriteriaMaximumSpent, Context({seaport: consideration}));
         test(
             this.execCriteriaMaximumSpent,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execCriteriaMaximumSpent,
-            Context({ seaport: referenceConsideration })
+            Context({seaport: referenceConsideration})
         );
     }
 
@@ -295,7 +286,8 @@ contract OffererCriteriaAdvancedTest is
                 endAmount: 1000
             })
         );
-        // addConsiderationItem type ERC721_WITH_CRITERIA, criteria equal to root of merkle tree, recipient offerer
+        // addConsiderationItem type ERC721_WITH_CRITERIA, criteria equal to
+        // root of merkle tree, recipient offerer
         addConsiderationItem(
             ConsiderationItem({
                 itemType: ItemType.ERC721_WITH_CRITERIA,
@@ -307,7 +299,8 @@ contract OffererCriteriaAdvancedTest is
             })
         );
 
-        // add criteria resolver for side consideration, orderIndex 0, index 0, identifier 2, proof
+        // add criteria resolver for side consideration, orderIndex 0, index 0,
+        // identifier 2, proof
         criteriaResolvers.push(
             CriteriaResolver({
                 orderIndex: 0,
@@ -319,9 +312,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execCriteriaMaximumSpent(
-        Context memory context
-    ) external stateless {
+    function execCriteriaMaximumSpent(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(1), address(offerer));
     }
@@ -334,17 +328,13 @@ contract OffererCriteriaAdvancedTest is
         uint120 numer,
         uint120 denom
     ) internal returns (AdvancedOrder memory) {
-        return
-            AdvancedOrder({
-                parameters: getOrderParameters(
-                    address(offerer),
-                    OrderType.CONTRACT
-                ),
-                numerator: numer,
-                denominator: denom,
-                signature: "",
-                extraData: ""
-            });
+        return AdvancedOrder({
+            parameters: getOrderParameters(address(offerer), OrderType.CONTRACT),
+            numerator: numer,
+            denominator: denom,
+            signature: "",
+            extraData: ""
+        });
     }
 
     function fulfillAdvanced(
@@ -359,9 +349,10 @@ contract OffererCriteriaAdvancedTest is
         });
     }
 
-    function getRootAndProof(
-        uint256 identifier
-    ) internal returns (bytes32 root, bytes32[] memory proof) {
+    function getRootAndProof(uint256 identifier)
+        internal
+        returns (bytes32 root, bytes32[] memory proof)
+    {
         Merkle tree = new Merkle();
         bytes32[] memory leaves = generateLeaves();
         root = tree.getRoot(leaves);
@@ -370,7 +361,8 @@ contract OffererCriteriaAdvancedTest is
     }
 
     /**
-     * @dev Generate hashed leaves for identifiers [0,50) for insertion into a Merkle tree.
+     * @dev Generate hashed leaves for identifiers [0,50) for insertion into a
+     * Merkle tree.
      */
     function generateLeaves() internal pure returns (bytes32[] memory) {
         uint256[] memory leaves = new uint256[](50);

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+import { ConduitControllerInterface } from
+    "../interfaces/ConduitControllerInterface.sol";
 
-import {
-    ConsiderationEventsAndErrors
-} from "../interfaces/ConsiderationEventsAndErrors.sol";
+import { ConsiderationEventsAndErrors } from
+    "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import "./ConsiderationConstants.sol";
 
@@ -74,9 +72,8 @@ contract ConsiderationBase is
         _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
 
         // Retrieve the conduit creation code hash from the supplied controller.
-        (_CONDUIT_CREATION_CODE_HASH, ) = (
-            _CONDUIT_CONTROLLER.getConduitCodeHashes()
-        );
+        (_CONDUIT_CREATION_CODE_HASH,) =
+            (_CONDUIT_CONTROLLER.getConduitCodeHashes());
     }
 
     /**
@@ -198,56 +195,35 @@ contract ConsiderationBase is
         // Construct the OfferItem type string.
         // prettier-ignore
         bytes memory offerItemTypeString = bytes(
-            "OfferItem("
-                "uint8 itemType,"
-                "address token,"
-                "uint256 identifierOrCriteria,"
-                "uint256 startAmount,"
-                "uint256 endAmount"
-            ")"
+            "OfferItem(" "uint8 itemType," "address token,"
+            "uint256 identifierOrCriteria," "uint256 startAmount,"
+            "uint256 endAmount" ")"
         );
 
         // Construct the ConsiderationItem type string.
         // prettier-ignore
         bytes memory considerationItemTypeString = bytes(
-            "ConsiderationItem("
-                "uint8 itemType,"
-                "address token,"
-                "uint256 identifierOrCriteria,"
-                "uint256 startAmount,"
-                "uint256 endAmount,"
-                "address recipient"
-            ")"
+            "ConsiderationItem(" "uint8 itemType," "address token,"
+            "uint256 identifierOrCriteria," "uint256 startAmount,"
+            "uint256 endAmount," "address recipient" ")"
         );
 
         // Construct the OrderComponents type string, not including the above.
         // prettier-ignore
         bytes memory orderComponentsPartialTypeString = bytes(
-            "OrderComponents("
-                "address offerer,"
-                "address zone,"
-                "OfferItem[] offer,"
-                "ConsiderationItem[] consideration,"
-                "uint8 orderType,"
-                "uint256 startTime,"
-                "uint256 endTime,"
-                "bytes32 zoneHash,"
-                "uint256 salt,"
-                "bytes32 conduitKey,"
-                "uint256 counter"
-            ")"
+            "OrderComponents(" "address offerer," "address zone,"
+            "OfferItem[] offer," "ConsiderationItem[] consideration,"
+            "uint8 orderType," "uint256 startTime," "uint256 endTime,"
+            "bytes32 zoneHash," "uint256 salt," "bytes32 conduitKey,"
+            "uint256 counter" ")"
         );
 
         // Construct the primary EIP-712 domain type string.
         // prettier-ignore
         eip712DomainTypehash = keccak256(
             bytes(
-                "EIP712Domain("
-                    "string name,"
-                    "string version,"
-                    "uint256 chainId,"
-                    "address verifyingContract"
-                ")"
+                "EIP712Domain(" "string name," "string version,"
+                "uint256 chainId," "address verifyingContract" ")"
             )
         );
 
@@ -267,9 +243,11 @@ contract ConsiderationBase is
         orderTypehash = keccak256(orderTypeString);
     }
 
-    function _lookupBulkOrderTypehash(
-        uint256 treeHeight
-    ) internal view returns (bytes32 typeHash) {
+    function _lookupBulkOrderTypehash(uint256 treeHeight)
+        internal
+        view
+        returns (bytes32 typeHash)
+    {
         TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
         assembly {
             let typeHashOffset := add(1, shl(OneWordShift, sub(treeHeight, 1)))

@@ -13,8 +13,8 @@ contract TestERC20NotOk is ERC20("Test20NotOk", "TST20NO", 18) {
     }
 
     function transferFrom(
-        address /* from */,
-        address /* to */,
+        address, /* from */
+        address, /* to */
         uint256 /* amount */
     ) public pure override returns (bool) {
         return false;

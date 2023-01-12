@@ -50,7 +50,10 @@ contract EIP1271Wallet {
         token.approve(operator, amount);
     }
 
-    function approveNFT(NFTApprovalInterface token, address operator) external {
+    function approveNFT(
+        NFTApprovalInterface token,
+        address operator
+    ) external {
         if (msg.sender != owner) {
             revert("Only owner");
         }
@@ -87,8 +90,8 @@ contract EIP1271Wallet {
         }
 
         if (
-            uint256(s) >
-            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+            uint256(s)
+                > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
         ) {
             revert();
         }

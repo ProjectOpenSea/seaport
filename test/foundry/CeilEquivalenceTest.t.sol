@@ -15,10 +15,11 @@ contract CeilEquivalenceTest {
 
         uint256 optimized;
         assembly {
-            optimized := mul(
-                add(div(sub(numerator, 1), denominator), 1),
-                iszero(iszero(numerator))
-            )
+            optimized :=
+                mul(
+                    add(div(sub(numerator, 1), denominator), 1),
+                    iszero(iszero(numerator))
+                )
         }
 
         uint256 unoptimized;

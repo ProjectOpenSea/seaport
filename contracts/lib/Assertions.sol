@@ -5,9 +5,8 @@ import { OrderParameters } from "./ConsiderationStructs.sol";
 
 import { GettersAndDerivers } from "./GettersAndDerivers.sol";
 
-import {
-    TokenTransferrerErrors
-} from "../interfaces/TokenTransferrerErrors.sol";
+import { TokenTransferrerErrors } from
+    "../interfaces/TokenTransferrerErrors.sol";
 
 import { CounterManager } from "./CounterManager.sol";
 
@@ -32,9 +31,9 @@ contract Assertions is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) GettersAndDerivers(conduitController) {}
+    constructor(address conduitController)
+        GettersAndDerivers(conduitController)
+    { }
 
     /**
      * @dev Internal view function to ensure that the supplied consideration
@@ -57,11 +56,9 @@ contract Assertions is
         );
 
         // Derive and return order hash using current counter for the offerer.
-        return
-            _deriveOrderHash(
-                orderParameters,
-                _getCounter(orderParameters.offerer)
-            );
+        return _deriveOrderHash(
+            orderParameters, _getCounter(orderParameters.offerer)
+        );
     }
 
     /**
@@ -121,51 +118,54 @@ contract Assertions is
              * Checks:
              * 1. Order parameters struct offset == 0x20
              * 2. Additional recipients arr offset == 0x240
-             * 3. Signature offset == 0x260 + (recipients.length * 0x40)
+            * 3. Signature offset == 0x260 + (recipients.length * 0x40)
              * 4. BasicOrderType between 0 and 23 (i.e. < 24)
              */
-            validOffsets := and(
-                // Order parameters at calldata 0x04 must have offset of 0x20.
-                eq(
-                    calldataload(BasicOrder_parameters_cdPtr),
-                    BasicOrder_parameters_ptr
-                ),
-                // Additional recipients at cd 0x224 must have offset of 0x240.
-                eq(
-                    calldataload(BasicOrder_additionalRecipients_head_cdPtr),
-                    BasicOrder_additionalRecipients_head_ptr
+            validOffsets :=
+                and(
+                    // Order parameters at calldata 0x04 must have offset of 0x20.
+                    eq(
+                        calldataload(BasicOrder_parameters_cdPtr),
+                        BasicOrder_parameters_ptr
+                    ),
+                    // Additional recipients at cd 0x224 must have offset of 0x240.
+                    eq(
+                        calldataload(BasicOrder_additionalRecipients_head_cdPtr),
+                        BasicOrder_additionalRecipients_head_ptr
+                    )
                 )
-            )
 
-            validOffsets := and(
-                validOffsets,
-                eq(
-                    // Load signature offset from calldata 0x244.
-                    calldataload(BasicOrder_signature_cdPtr),
-                    // Derive expected offset as start of recipients + len * 64.
-                    add(
-                        BasicOrder_signature_ptr,
-                        shl(
-                            // Each additional recipient has a length of 0x40.
-                            AdditionalRecipient_size_shift,
-                            // Additional recipients length at calldata 0x264.
-                            calldataload(
-                                BasicOrder_additionalRecipients_length_cdPtr
+            validOffsets :=
+                and(
+                    validOffsets,
+                    eq(
+                        // Load signature offset from calldata 0x244.
+                        calldataload(BasicOrder_signature_cdPtr),
+                        // Derive expected offset as start of recipients + len * 64.
+                        add(
+                            BasicOrder_signature_ptr,
+                            shl(
+                                // Each additional recipient has a length of 0x40.
+                                AdditionalRecipient_size_shift,
+                                // Additional recipients length at calldata 0x264.
+                                calldataload(
+                                    BasicOrder_additionalRecipients_length_cdPtr
+                                )
                             )
                         )
                     )
                 )
-            )
 
-            validOffsets := and(
-                validOffsets,
-                lt(
-                    // BasicOrderType parameter at calldata offset 0x124.
-                    calldataload(BasicOrder_basicOrderType_cdPtr),
-                    // Value should be less than 24.
-                    BasicOrder_basicOrderType_range
+            validOffsets :=
+                and(
+                    validOffsets,
+                    lt(
+                        // BasicOrderType parameter at calldata offset 0x124.
+                        calldataload(BasicOrder_basicOrderType_cdPtr),
+                        // Value should be less than 24.
+                        BasicOrder_basicOrderType_range
+                    )
                 )
-            )
         }
 
         // Revert with an error if basic order parameter offsets are invalid.

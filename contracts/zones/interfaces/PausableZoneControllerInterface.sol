@@ -27,7 +27,9 @@ interface PausableZoneControllerInterface {
      *
      * @return derivedAddress The derived address for the zone.
      */
-    function createZone(bytes32 salt) external returns (address derivedAddress);
+    function createZone(bytes32 salt)
+        external
+        returns (address derivedAddress);
 
     /**
      * @notice Pause orders on a given zone.

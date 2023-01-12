@@ -28,7 +28,8 @@ contract ConduitExecuteTest is BaseConduitTest {
         function(Context memory) external fn,
         Context memory context
     ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -64,8 +65,7 @@ contract ConduitExecuteTest is BaseConduitTest {
             } else if (itemType == ConduitItemType.ERC1155) {
                 assertEq(
                     TestERC1155(transfer.token).balanceOf(
-                        transfer.to,
-                        transfer.identifier
+                        transfer.to, transfer.identifier
                     ),
                     getExpectedTokenBalance(transfer)
                 );

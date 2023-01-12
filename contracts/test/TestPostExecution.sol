@@ -15,9 +15,12 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         if (zoneParameters.consideration.length == 0) {
             revert("No consideration items supplied");
         }
@@ -25,8 +28,7 @@ contract TestPostExecution is ZoneInterface {
         ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
         address currentOwner;
-        try
-            ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
+        try ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
         returns (address owner) {
             currentOwner = owner;
         } catch {

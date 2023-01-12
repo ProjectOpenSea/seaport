@@ -38,8 +38,7 @@ interface CriteriaResolutionErrors {
      *                           has unresolved criteria.
      */
     error UnresolvedConsiderationCriteria(
-        uint256 orderIndex,
-        uint256 considerationIndex
+        uint256 orderIndex, uint256 considerationIndex
     );
 
     /**

@@ -57,7 +57,7 @@ contract ReentrancyGuard is ReentrancyErrors, LowLevelHelpers {
 
     /**
      * @dev Internal view function to ensure that a sentinel value for the
-            reentrancy guard is not currently set.
+     *         reentrancy guard is not currently set.
      */
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.

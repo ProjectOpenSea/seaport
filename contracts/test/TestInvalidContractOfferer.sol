@@ -7,9 +7,8 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "../interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
@@ -20,7 +19,7 @@ import { TestContractOfferer } from "./TestContractOfferer.sol";
 contract TestInvalidContractOfferer is TestContractOfferer {
     error RevertWithData(bytes revertData);
 
-    constructor(address seaport) TestContractOfferer(seaport) {}
+    constructor(address seaport) TestContractOfferer(seaport) { }
 
     function generateOrder(
         address,

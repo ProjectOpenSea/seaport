@@ -23,37 +23,34 @@ contract LowLevelHelpers {
                 // Ensure that sufficient gas is available to copy returndata
                 // while expanding memory where necessary. Start by computing
                 // the word size of returndata and allocated memory.
-                let returnDataWords := shr(
-                    OneWordShift,
-                    add(returndatasize(), AlmostOneWord)
-                )
+                let returnDataWords :=
+                    shr(OneWordShift, add(returndatasize(), AlmostOneWord))
 
                 // Note: use the free memory pointer in place of msize() to work
                 // around a Yul warning that prevents accessing msize directly
                 // when the IR pipeline is activated.
-                let msizeWords := shr(
-                    OneWordShift,
-                    mload(FreeMemoryPointerSlot)
-                )
+                let msizeWords :=
+                    shr(OneWordShift, mload(FreeMemoryPointerSlot))
 
                 // Next, compute the cost of the returndatacopy.
                 let cost := mul(CostPerWord, returnDataWords)
 
                 // Then, compute cost of new memory allocation.
                 if gt(returnDataWords, msizeWords) {
-                    cost := add(
-                        cost,
+                    cost :=
                         add(
-                            mul(sub(returnDataWords, msizeWords), CostPerWord),
-                            shr(
-                                MemoryExpansionCoefficientShift,
-                                sub(
-                                    mul(returnDataWords, returnDataWords),
-                                    mul(msizeWords, msizeWords)
+                            cost,
+                            add(
+                                mul(sub(returnDataWords, msizeWords), CostPerWord),
+                                shr(
+                                    MemoryExpansionCoefficientShift,
+                                    sub(
+                                        mul(returnDataWords, returnDataWords),
+                                        mul(msizeWords, msizeWords)
+                                    )
                                 )
                             )
                         )
-                    )
                 }
 
                 // Finally, add a small constant and compare to gas remaining;
@@ -78,9 +75,11 @@ contract LowLevelHelpers {
      *
      * @return updatedRecipient The updated recipient.
      */
-    function _substituteCallerForEmptyRecipient(
-        address recipient
-    ) internal view returns (address updatedRecipient) {
+    function _substituteCallerForEmptyRecipient(address recipient)
+        internal
+        view
+        returns (address updatedRecipient)
+    {
         // Utilize assembly to perform a branchless operation on the recipient.
         assembly {
             // Add caller to recipient if recipient equals 0; otherwise add 0.

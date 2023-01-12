@@ -90,7 +90,8 @@ interface ImmutableCreate2FactoryInterface {
      *
      * @return True if the contract has been deployed, false otherwise.
      */
-    function hasBeenDeployed(
-        address deploymentAddress
-    ) external view returns (bool);
+    function hasBeenDeployed(address deploymentAddress)
+        external
+        view
+        returns (bool);
 }

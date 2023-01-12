@@ -7,17 +7,15 @@ import "./TransferHelperStructs.sol";
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-import {
-    ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+import { ConduitControllerInterface } from
+    "../interfaces/ConduitControllerInterface.sol";
 
 import { Conduit } from "../conduit/Conduit.sol";
 
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
-import {
-    TransferHelperInterface
-} from "../interfaces/TransferHelperInterface.sol";
+import { TransferHelperInterface } from
+    "../interfaces/TransferHelperInterface.sol";
 
 import { TransferHelperErrors } from "../interfaces/TransferHelperErrors.sol";
 
@@ -47,11 +45,10 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
     constructor(address conduitController) {
         // Get the conduit creation code and runtime code hashes from the
         // supplied conduit controller and set them as an immutable.
-        ConduitControllerInterface controller = ConduitControllerInterface(
-            conduitController
-        );
-        (_CONDUIT_CREATION_CODE_HASH, _CONDUIT_RUNTIME_CODE_HASH) = controller
-            .getConduitCodeHashes();
+        ConduitControllerInterface controller =
+            ConduitControllerInterface(conduitController);
+        (_CONDUIT_CREATION_CODE_HASH, _CONDUIT_RUNTIME_CODE_HASH) =
+            controller.getConduitCodeHashes();
 
         // Set the supplied conduit controller as an immutable.
         _CONDUIT_CONTROLLER = controller;
@@ -123,9 +120,8 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // Iterate over each transfer.
             for (uint256 i = 0; i < numTransfers; ++i) {
                 // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
+                TransferHelperItemsWithRecipient calldata transfer =
+                    transfers[i];
 
                 // Increment totalItems by the number of items in the transfer.
                 sumOfItemsAcrossAllTransfers += transfer.items.length;
@@ -146,9 +142,8 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // Iterate over each transfer.
             for (uint256 i = 0; i < numTransfers; ++i) {
                 // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
+                TransferHelperItemsWithRecipient calldata transfer =
+                    transfers[i];
 
                 // Retrieve the items of the transfer in question.
                 TransferHelperItem[] calldata transferItems = transfer.items;
@@ -158,8 +153,8 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
 
                 // Create a boolean indicating whether validateERC721Receiver
                 // is true and recipient is a contract.
-                bool callERC721Receiver = transfer.validateERC721Receiver &&
-                    transfer.recipient.code.length != 0;
+                bool callERC721Receiver = transfer.validateERC721Receiver
+                    && transfer.recipient.code.length != 0;
 
                 // Retrieve the total number of items in the transfer and
                 // place on stack.
@@ -185,9 +180,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                             // Check if the recipient implements
                             // onERC721Received for the given tokenId.
                             _checkERC721Receiver(
-                                conduit,
-                                transfer.recipient,
-                                item.identifier
+                                conduit, transfer.recipient, item.identifier
                             );
                         }
                     }
@@ -239,25 +232,26 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // Utilize assembly to read first four bytes (if present) directly.
             assembly {
                 // Combine original mask with first four bytes of revert data.
-                customErrorSelector := and(
-                    mload(add(data, 0x20)), // Data begins after length offset.
-                    customErrorSelector
-                )
+                customErrorSelector :=
+                    and(
+                        mload(add(data, 0x20)), // Data begins after length offset.
+                        customErrorSelector
+                    )
             }
 
             // Pass through the custom error in question if the revert data is
             // the correct length and matches an expected custom error selector.
             if (
-                data.length == 4 &&
-                customErrorSelector == InvalidItemType.selector
+                data.length == 4
+                    && customErrorSelector == InvalidItemType.selector
             ) {
                 // "Bubble up" the revert reason.
                 assembly {
                     revert(add(data, 0x20), 0x04)
                 }
             } else if (
-                data.length == 36 &&
-                customErrorSelector == InvalidERC721TransferAmount.selector
+                data.length == 36
+                    && customErrorSelector == InvalidERC721TransferAmount.selector
             ) {
                 // "Bubble up" the revert reason.
                 assembly {
@@ -293,14 +287,9 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         uint256 tokenId
     ) internal {
         // Check if recipient can receive ERC721 tokens.
-        try
-            IERC721Receiver(recipient).onERC721Received(
-                conduit,
-                msg.sender,
-                tokenId,
-                ""
-            )
-        returns (bytes4 selector) {
+        try IERC721Receiver(recipient).onERC721Received(
+            conduit, msg.sender, tokenId, ""
+        ) returns (bytes4 selector) {
             // Check if onERC721Received selector is valid.
             if (selector != IERC721Receiver.onERC721Received.selector) {
                 // Revert if recipient cannot accept
@@ -310,18 +299,12 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         } catch (bytes memory data) {
             // "Bubble up" recipient's revert reason.
             revert ERC721ReceiverErrorRevertBytes(
-                data,
-                recipient,
-                msg.sender,
-                tokenId
+                data, recipient, msg.sender, tokenId
             );
         } catch Error(string memory reason) {
             // "Bubble up" recipient's revert reason.
             revert ERC721ReceiverErrorRevertString(
-                reason,
-                recipient,
-                msg.sender,
-                tokenId
+                reason, recipient, msg.sender, tokenId
             );
         }
     }

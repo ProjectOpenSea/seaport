@@ -42,9 +42,9 @@ contract OrderFulfiller is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) BasicOrderFulfiller(conduitController) {}
+    constructor(address conduitController)
+        BasicOrderFulfiller(conduitController)
+    { }
 
     /**
      * @dev Internal function to validate an order and update its status, adjust
@@ -85,11 +85,8 @@ contract OrderFulfiller is
         );
 
         // Validate order, update status, and determine fraction to fill.
-        (
-            bytes32 orderHash,
-            uint256 fillNumerator,
-            uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
+        (bytes32 orderHash, uint256 fillNumerator, uint256 fillDenominator) =
+            _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
@@ -118,9 +115,7 @@ contract OrderFulfiller is
 
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
-            advancedOrders[0],
-            orderHashes,
-            orderHash
+            advancedOrders[0], orderHashes, orderHash
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -234,8 +229,7 @@ contract OrderFulfiller is
                     assembly {
                         // Write new fractional amount to startAmount as amount.
                         mstore(
-                            add(offerItem, ReceivedItem_amount_offset),
-                            amount
+                            add(offerItem, ReceivedItem_amount_offset), amount
                         )
 
                         // Write recipient to endAmount.
@@ -255,15 +249,14 @@ contract OrderFulfiller is
                 );
             }
 
-            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            // If non-contract order has native offer items, throw
+            // InvalidNativeOfferItem.
             {
                 OrderType orderType = orderParameters.orderType;
                 uint256 invalidNativeOfferItem;
                 assembly {
-                    invalidNativeOfferItem := and(
-                        lt(orderType, 4),
-                        anyNativeItems
-                    )
+                    invalidNativeOfferItem :=
+                        and(lt(orderType, 4), anyNativeItems)
                 }
                 if (invalidNativeOfferItem != 0) {
                     _revertInvalidNativeOfferItem();
@@ -292,17 +285,15 @@ contract OrderFulfiller is
         // Declare a nested scope to minimize stack depth.
         unchecked {
             // Read consideration array length from memory and place on stack.
-            uint256 totalConsiderationItems = orderParameters
-                .consideration
-                .length;
+            uint256 totalConsiderationItems =
+                orderParameters.consideration.length;
 
             // Iterate over each consideration item on the order.
             // Skip overflow check as for loop is indexed starting at zero.
             for (uint256 i = 0; i < totalConsiderationItems; ++i) {
                 // Retrieve the consideration item.
-                ConsiderationItem memory considerationItem = (
-                    orderParameters.consideration[i]
-                );
+                ConsiderationItem memory considerationItem =
+                    (orderParameters.consideration[i]);
 
                 // Apply fraction & derive considerationItem amount to transfer.
                 uint256 amount = _applyFraction(
@@ -407,12 +398,7 @@ contract OrderFulfiller is
 
         // Emit an event signifying that the order has been fulfilled.
         emit OrderFulfilled(
-            orderHash,
-            offerer,
-            zone,
-            recipient,
-            spentItems,
-            receivedItems
-        );
+            orderHash, offerer, zone, recipient, spentItems, receivedItems
+            );
     }
 }

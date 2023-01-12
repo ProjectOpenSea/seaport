@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    AmountDerivationErrors
-} from "../interfaces/AmountDerivationErrors.sol";
+import { AmountDerivationErrors } from
+    "../interfaces/AmountDerivationErrors.sol";
 
 import "./ConsiderationConstants.sol";
 
@@ -62,25 +61,26 @@ contract AmountDeriver is AmountDerivationErrors {
             }
 
             // Aggregate new amounts weighted by time with rounding factor.
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed));
+            uint256 totalBeforeDivision =
+                ((startAmount * remaining) + (endAmount * elapsed));
 
             // Use assembly to combine operations and skip divide-by-zero check.
             assembly {
                 // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
                 // amount is set to zero if totalBeforeDivision is zero,
                 // as intermediate overflow can occur if it is zero.
-                amount := mul(
-                    iszero(iszero(totalBeforeDivision)),
-                    // Subtract 1 from the numerator and add 1 to the result if
-                    // roundUp is true to get the proper rounding direction.
-                    // Division is performed with no zero check as duration
-                    // cannot be zero as long as startTime < endTime.
-                    add(
-                        div(sub(totalBeforeDivision, roundUp), duration),
-                        roundUp
+                amount :=
+                    mul(
+                        iszero(iszero(totalBeforeDivision)),
+                        // Subtract 1 from the numerator and add 1 to the result if
+                        // roundUp is true to get the proper rounding direction.
+                        // Division is performed with no zero check as duration
+                        // cannot be zero as long as startTime < endTime.
+                        add(
+                            div(sub(totalBeforeDivision, roundUp), duration),
+                            roundUp
+                        )
                     )
-                )
             }
 
             // Return the current amount.

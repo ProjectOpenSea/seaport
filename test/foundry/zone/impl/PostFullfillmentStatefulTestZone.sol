@@ -7,9 +7,8 @@ import {
     ZoneParameters
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
-import {
-    ZoneInterface
-} from "../../../../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from
+    "../../../../contracts/interfaces/ZoneInterface.sol";
 
 contract PostFulfillmentStatefulTestZone is ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);
@@ -32,9 +31,10 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
      *
      * @return validOrderMagicValue The validOrder magic value.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        returns (bytes4 validOrderMagicValue)
+    {
         // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
@@ -51,8 +51,7 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
         // Check that the token ID in the consideration is correct.
         if (zoneParameters.consideration[0].identifier != 42) {
             revert IncorrectIdentifier(
-                zoneParameters.consideration[0].identifier,
-                42
+                zoneParameters.consideration[0].identifier, 42
             );
         }
 

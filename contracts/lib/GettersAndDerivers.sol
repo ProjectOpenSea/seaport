@@ -22,9 +22,9 @@ contract GettersAndDerivers is ConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) ConsiderationBase(conduitController) {}
+    constructor(address conduitController)
+        ConsiderationBase(conduitController)
+    { }
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
@@ -42,14 +42,13 @@ contract GettersAndDerivers is ConsiderationBase {
         uint256 counter
     ) internal view returns (bytes32 orderHash) {
         // Get length of original consideration array and place it on the stack.
-        uint256 originalConsiderationLength = (
-            orderParameters.totalOriginalConsiderationItems
-        );
+        uint256 originalConsiderationLength =
+            (orderParameters.totalOriginalConsiderationItems);
 
         /*
-         * Memory layout for an array of structs (dynamic or not) is similar
-         * to ABI encoding of dynamic types, with a head segment followed by
-         * a data segment. The main difference is that the head of an element
+        * Memory layout for an array of structs (dynamic or not) is similar
+        * to ABI encoding of dynamic types, with a head segment followed by
+        * a data segment. The main difference is that the head of an element
          * is a memory pointer rather than an offset.
          */
 
@@ -65,9 +64,8 @@ contract GettersAndDerivers is ConsiderationBase {
             let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the offers array.
-            let offerArrPtr := mload(
-                add(orderParameters, OrderParameters_offer_head_offset)
-            )
+            let offerArrPtr :=
+                mload(add(orderParameters, OrderParameters_offer_head_offset))
 
             // Load the length.
             let offerLength := mload(offerArrPtr)
@@ -77,9 +75,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
             // Iterate over the offer items.
             // prettier-ignore
-            for { let i := 0 } lt(i, offerLength) {
-                i := add(i, 1)
-            } {
+            for { let i := 0 } lt(i, offerLength) { i := add(i, 1) } {
                 // Read the pointer to the offer data and subtract one word
                 // to get typeHash pointer.
                 let ptr := sub(mload(offerArrPtr), OneWord)
@@ -102,10 +98,10 @@ contract GettersAndDerivers is ConsiderationBase {
             }
 
             // Derive the offer hash using the hashes of each item.
-            offerHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                shl(OneWordShift, offerLength)
-            )
+            offerHash :=
+                keccak256(
+                    mload(FreeMemoryPointerSlot), shl(OneWordShift, offerLength)
+                )
         }
 
         // Declare a variable for the derived hash of the consideration array.
@@ -120,15 +116,16 @@ contract GettersAndDerivers is ConsiderationBase {
             let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the consideration array.
-            let considerationArrPtr := add(
-                mload(
-                    add(
-                        orderParameters,
-                        OrderParameters_consideration_head_offset
-                    )
-                ),
-                OneWord
-            )
+            let considerationArrPtr :=
+                add(
+                    mload(
+                        add(
+                            orderParameters,
+                            OrderParameters_consideration_head_offset
+                        )
+                    ),
+                    OneWord
+                )
 
             // Iterate over the consideration items (not including tips).
             // prettier-ignore
@@ -147,8 +144,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
                 // Take the EIP712 hash and store it in the hash array.
                 mstore(
-                    hashArrPtr,
-                    keccak256(ptr, EIP712_ConsiderationItem_size)
+                    hashArrPtr, keccak256(ptr, EIP712_ConsiderationItem_size)
                 )
 
                 // Restore the previous word.
@@ -160,10 +156,11 @@ contract GettersAndDerivers is ConsiderationBase {
             }
 
             // Derive the consideration hash using the hashes of each item.
-            considerationHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                shl(OneWordShift, originalConsiderationLength)
-            )
+            considerationHash :=
+                keccak256(
+                    mload(FreeMemoryPointerSlot),
+                    shl(OneWordShift, originalConsiderationLength)
+                )
         }
 
         // Read order item EIP-712 typehash from runtime code & place on stack.
@@ -181,10 +178,8 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(typeHashPtr, typeHash)
 
             // Retrieve the pointer for the offer array head.
-            let offerHeadPtr := add(
-                orderParameters,
-                OrderParameters_offer_head_offset
-            )
+            let offerHeadPtr :=
+                add(orderParameters, OrderParameters_offer_head_offset)
 
             // Retrieve the data pointer referenced by the offer head.
             let offerDataPtr := mload(offerHeadPtr)
@@ -193,10 +188,8 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(offerHeadPtr, offerHash)
 
             // Retrieve the pointer for the consideration array head.
-            let considerationHeadPtr := add(
-                orderParameters,
-                OrderParameters_consideration_head_offset
-            )
+            let considerationHeadPtr :=
+                add(orderParameters, OrderParameters_consideration_head_offset)
 
             // Retrieve the data pointer referenced by the consideration head.
             let considerationDataPtr := mload(considerationHeadPtr)
@@ -205,10 +198,8 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(considerationHeadPtr, considerationHash)
 
             // Retrieve the pointer for the counter.
-            let counterPtr := add(
-                orderParameters,
-                OrderParameters_counter_offset
-            )
+            let counterPtr :=
+                add(orderParameters, OrderParameters_counter_offset)
 
             // Store the counter at the retrieved memory location.
             mstore(counterPtr, counter)
@@ -242,9 +233,11 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(
-        bytes32 conduitKey
-    ) internal view returns (address conduit) {
+    function _deriveConduit(bytes32 conduitKey)
+        internal
+        view
+        returns (address conduit)
+    {
         // Read conduit controller address from runtime and place on the stack.
         address conduitController = address(_CONDUIT_CONTROLLER);
 
@@ -267,17 +260,18 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(TwoWords, conduitCreationCodeHash)
 
             // Derive conduit by hashing and applying a mask over last 20 bytes.
-            conduit := and(
-                // Hash the relevant region.
-                keccak256(
-                    // The region starts at memory pointer 11.
-                    Create2AddressDerivation_ptr,
-                    // The region is 85 bytes long (1 + 20 + 32 + 32).
-                    Create2AddressDerivation_length
-                ),
-                // The address equals the last twenty bytes of the hash.
-                MaskOverLastTwentyBytes
-            )
+            conduit :=
+                and(
+                    // Hash the relevant region.
+                    keccak256(
+                        // The region starts at memory pointer 11.
+                        Create2AddressDerivation_ptr,
+                        // The region is 85 bytes long (1 + 20 + 32 + 32).
+                        Create2AddressDerivation_length
+                    ),
+                    // The address equals the last twenty bytes of the hash.
+                    MaskOverLastTwentyBytes
+                )
 
             // Restore the free memory pointer.
             mstore(FreeMemoryPointerSlot, freeMemoryPointer)
@@ -311,8 +305,8 @@ contract GettersAndDerivers is ConsiderationBase {
         internal
         view
         returns (
-            string memory /* version */,
-            bytes32 /* domainSeparator */,
+            string memory, /* version */
+            bytes32, /* domainSeparator */
             address /* conduitController */
         )
     {

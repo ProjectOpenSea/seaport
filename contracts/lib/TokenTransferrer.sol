@@ -3,9 +3,8 @@ pragma solidity ^0.8.13;
 
 import "./TokenTransferrerConstants.sol";
 
-import {
-    TokenTransferrerErrors
-} from "../interfaces/TokenTransferrerErrors.sol";
+import { TokenTransferrerErrors } from
+    "../interfaces/TokenTransferrerErrors.sol";
 
 import { ConduitBatch1155Transfer } from "../conduit/lib/ConduitStructs.sol";
 
@@ -56,27 +55,29 @@ contract TokenTransferrer is TokenTransferrerErrors {
             // return data is received (in which case it will be overwritten) or
             // that no data is received (in which case scratch space will be
             // ignored) on a successful call to the given token.
-            let callStatus := call(
-                gas(),
-                token,
-                0,
-                ERC20_transferFrom_sig_ptr,
-                ERC20_transferFrom_length,
-                0,
-                OneWord
-            )
+            let callStatus :=
+                call(
+                    gas(),
+                    token,
+                    0,
+                    ERC20_transferFrom_sig_ptr,
+                    ERC20_transferFrom_length,
+                    0,
+                    OneWord
+                )
 
             // Determine whether transfer was successful using status & result.
-            let success := and(
-                // Set success to whether the call reverted, if not check it
-                // either returned exactly 1 (can't just be non-zero data), or
-                // had no return data.
-                or(
-                    and(eq(mload(0), 1), gt(returndatasize(), 31)),
-                    iszero(returndatasize())
-                ),
-                callStatus
-            )
+            let success :=
+                and(
+                    // Set success to whether the call reverted, if not check it
+                    // either returned exactly 1 (can't just be non-zero data), or
+                    // had no return data.
+                    or(
+                        and(eq(mload(0), 1), gt(returndatasize(), 31)),
+                        iszero(returndatasize())
+                    ),
+                    callStatus
+                )
 
             // Handle cases where either the transfer failed or no data was
             // returned. Group these, as most transfers will succeed with data.
@@ -99,10 +100,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // necessary. Start by computing the word size
                                 // of returndata and allocated memory. Round up
                                 // to the nearest full word.
-                                let returnDataWords := shr(
-                                    OneWordShift,
-                                    add(returndatasize(), AlmostOneWord)
-                                )
+                                let returnDataWords :=
+                                    shr(
+                                        OneWordShift,
+                                        add(returndatasize(), AlmostOneWord)
+                                    )
 
                                 // Note: use the free memory pointer in place of
                                 // msize() to work around a Yul warning that
@@ -115,28 +117,26 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                                 // Then, compute cost of new memory allocation.
                                 if gt(returnDataWords, msizeWords) {
-                                    cost := add(
-                                        cost,
+                                    cost :=
                                         add(
-                                            mul(
-                                                sub(
-                                                    returnDataWords,
-                                                    msizeWords
+                                            cost,
+                                            add(
+                                                mul(
+                                                    sub(returnDataWords, msizeWords),
+                                                    CostPerWord
                                                 ),
-                                                CostPerWord
-                                            ),
-                                            shr(
-                                                MemoryExpansionCoefficientShift,
-                                                sub(
-                                                    mul(
-                                                        returnDataWords,
-                                                        returnDataWords
-                                                    ),
-                                                    mul(msizeWords, msizeWords)
+                                                shr(
+                                                    MemoryExpansionCoefficientShift,
+                                                    sub(
+                                                        mul(
+                                                            returnDataWords,
+                                                            returnDataWords
+                                                        ),
+                                                        mul(msizeWords, msizeWords)
+                                                    )
                                                 )
                                             )
                                         )
-                                    )
                                 }
 
                                 // Finally, add a small constant and compare to
@@ -155,16 +155,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                             // Store left-padded selector with push4, mem[28:32]
                             mstore(
-                                0,
-                                TokenTransferGenericFailure_error_selector
+                                0, TokenTransferGenericFailure_error_selector
                             )
                             mstore(
                                 TokenTransferGenericFailure_error_token_ptr,
                                 token
                             )
                             mstore(
-                                TokenTransferGenericFailure_error_from_ptr,
-                                from
+                                TokenTransferGenericFailure_error_from_ptr, from
                             )
                             mstore(TokenTransferGenericFailure_error_to_ptr, to)
                             mstore(
@@ -192,8 +190,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                         // Store left-padded selector with push4, mem[28:32]
                         mstore(
-                            0,
-                            BadReturnValueFromERC20OnTransfer_error_selector
+                            0, BadReturnValueFromERC20OnTransfer_error_selector
                         )
                         mstore(
                             BadReturnValueFromERC20OnTransfer_error_token_ptr,
@@ -204,8 +201,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                             from
                         )
                         mstore(
-                            BadReturnValueFromERC20OnTransfer_error_to_ptr,
-                            to
+                            BadReturnValueFromERC20OnTransfer_error_to_ptr, to
                         )
                         mstore(
                             BadReturnValueFromERC20OnTransfer_error_amount_ptr,
@@ -232,8 +228,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     //      "NoContract(address)", account
                     // ))
                     revert(
-                        Generic_error_selector_offset,
-                        NoContract_error_length
+                        Generic_error_selector_offset, NoContract_error_length
                     )
                 }
 
@@ -293,15 +288,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
             mstore(ERC721_transferFrom_id_ptr, identifier)
 
             // Perform the call, ignoring return data.
-            let success := call(
-                gas(),
-                token,
-                0,
-                ERC721_transferFrom_sig_ptr,
-                ERC721_transferFrom_length,
-                0,
-                0
-            )
+            let success :=
+                call(
+                    gas(),
+                    token,
+                    0,
+                    ERC721_transferFrom_sig_ptr,
+                    ERC721_transferFrom_length,
+                    0,
+                    0
+                )
 
             // If the transfer reverted:
             if iszero(success) {
@@ -312,10 +308,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := shr(
-                        OneWordShift,
-                        add(returndatasize(), AlmostOneWord)
-                    )
+                    let returnDataWords :=
+                        shr(OneWordShift, add(returndatasize(), AlmostOneWord))
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
@@ -327,22 +321,23 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                     // Then, compute cost of new memory allocation.
                     if gt(returnDataWords, msizeWords) {
-                        cost := add(
-                            cost,
+                        cost :=
                             add(
-                                mul(
-                                    sub(returnDataWords, msizeWords),
-                                    CostPerWord
-                                ),
-                                shr(
-                                    MemoryExpansionCoefficientShift,
-                                    sub(
-                                        mul(returnDataWords, returnDataWords),
-                                        mul(msizeWords, msizeWords)
+                                cost,
+                                add(
+                                    mul(
+                                        sub(returnDataWords, msizeWords),
+                                        CostPerWord
+                                    ),
+                                    shr(
+                                        MemoryExpansionCoefficientShift,
+                                        sub(
+                                            mul(returnDataWords, returnDataWords),
+                                            mul(msizeWords, msizeWords)
+                                        )
                                     )
                                 )
                             )
-                        )
                     }
 
                     // Finally, add a small constant and compare to gas
@@ -364,8 +359,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
                 mstore(TokenTransferGenericFailure_error_to_ptr, to)
                 mstore(
-                    TokenTransferGenericFailure_error_identifier_ptr,
-                    identifier
+                    TokenTransferGenericFailure_error_identifier_ptr, identifier
                 )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, 1)
 
@@ -445,15 +439,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
             mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
 
             // Perform the call, ignoring return data.
-            let success := call(
-                gas(),
-                token,
-                0,
-                ERC1155_safeTransferFrom_sig_ptr,
-                ERC1155_safeTransferFrom_length,
-                0,
-                0
-            )
+            let success :=
+                call(
+                    gas(),
+                    token,
+                    0,
+                    ERC1155_safeTransferFrom_sig_ptr,
+                    ERC1155_safeTransferFrom_length,
+                    0,
+                    0
+                )
 
             // If the transfer reverted:
             if iszero(success) {
@@ -464,10 +459,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := shr(
-                        OneWordShift,
-                        add(returndatasize(), AlmostOneWord)
-                    )
+                    let returnDataWords :=
+                        shr(OneWordShift, add(returndatasize(), AlmostOneWord))
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
@@ -479,22 +472,23 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                     // Then, compute cost of new memory allocation.
                     if gt(returnDataWords, msizeWords) {
-                        cost := add(
-                            cost,
+                        cost :=
                             add(
-                                mul(
-                                    sub(returnDataWords, msizeWords),
-                                    CostPerWord
-                                ),
-                                shr(
-                                    MemoryExpansionCoefficientShift,
-                                    sub(
-                                        mul(returnDataWords, returnDataWords),
-                                        mul(msizeWords, msizeWords)
+                                cost,
+                                add(
+                                    mul(
+                                        sub(returnDataWords, msizeWords),
+                                        CostPerWord
+                                    ),
+                                    shr(
+                                        MemoryExpansionCoefficientShift,
+                                        sub(
+                                            mul(returnDataWords, returnDataWords),
+                                            mul(msizeWords, msizeWords)
+                                        )
                                     )
                                 )
                             )
-                        )
                     }
 
                     // Finally, add a small constant and compare to gas
@@ -517,8 +511,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
                 mstore(TokenTransferGenericFailure_error_to_ptr, to)
                 mstore(
-                    TokenTransferGenericFailure_error_identifier_ptr,
-                    identifier
+                    TokenTransferGenericFailure_error_identifier_ptr, identifier
                 )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
 
@@ -584,18 +577,12 @@ contract TokenTransferrer is TokenTransferrerErrors {
             )
 
             // Iterate over each batch transfer.
-            for {
-                let i := 0
-            } lt(i, len) {
-                i := add(i, 1)
-            } {
+            for { let i := 0 } lt(i, len) { i := add(i, 1) } {
                 // Read the offset to the beginning of the element and add
                 // it to pointer to the beginning of the array head to get
                 // the absolute position of the element in calldata.
-                let elementPtr := add(
-                    arrayHeadPtr,
-                    calldataload(nextElementHeadPtr)
-                )
+                let elementPtr :=
+                    add(arrayHeadPtr, calldataload(nextElementHeadPtr))
 
                 // Retrieve the token from calldata.
                 let token := calldataload(elementPtr)
@@ -610,54 +597,56 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     //     "NoContract(address)", account
                     // ))
                     revert(
-                        Generic_error_selector_offset,
-                        NoContract_error_length
+                        Generic_error_selector_offset, NoContract_error_length
                     )
                 }
 
                 // Get the total number of supplied ids.
-                let idsLength := calldataload(
-                    add(elementPtr, ConduitBatch1155Transfer_ids_length_offset)
-                )
+                let idsLength :=
+                    calldataload(
+                        add(elementPtr, ConduitBatch1155Transfer_ids_length_offset)
+                    )
 
                 // Determine the expected offset for the amounts array.
-                let expectedAmountsOffset := add(
-                    ConduitBatch1155Transfer_amounts_length_baseOffset,
-                    shl(OneWordShift, idsLength)
-                )
+                let expectedAmountsOffset :=
+                    add(
+                        ConduitBatch1155Transfer_amounts_length_baseOffset,
+                        shl(OneWordShift, idsLength)
+                    )
 
                 // Validate struct encoding.
-                let invalidEncoding := iszero(
-                    and(
-                        // ids.length == amounts.length
-                        eq(
-                            idsLength,
-                            calldataload(add(elementPtr, expectedAmountsOffset))
-                        ),
+                let invalidEncoding :=
+                    iszero(
                         and(
-                            // ids_offset == 0xa0
+                            // ids.length == amounts.length
                             eq(
-                                calldataload(
-                                    add(
-                                        elementPtr,
-                                        ConduitBatch1155Transfer_ids_head_offset
-                                    )
-                                ),
-                                ConduitBatch1155Transfer_ids_length_offset
+                                idsLength,
+                                calldataload(add(elementPtr, expectedAmountsOffset))
                             ),
-                            // amounts_offset == 0xc0 + ids.length*32
-                            eq(
-                                calldataload(
-                                    add(
-                                        elementPtr,
-                                        ConduitBatchTransfer_amounts_head_offset
-                                    )
+                            and(
+                                // ids_offset == 0xa0
+                                eq(
+                                    calldataload(
+                                        add(
+                                            elementPtr,
+                                            ConduitBatch1155Transfer_ids_head_offset
+                                        )
+                                    ),
+                                    ConduitBatch1155Transfer_ids_length_offset
                                 ),
-                                expectedAmountsOffset
+                                // amounts_offset == 0xc0 + ids.length*32
+                                eq(
+                                    calldataload(
+                                        add(
+                                            elementPtr,
+                                            ConduitBatchTransfer_amounts_head_offset
+                                        )
+                                    ),
+                                    expectedAmountsOffset
+                                )
                             )
                         )
                     )
-                )
 
                 // Revert with an error if the encoding is not valid.
                 if invalidEncoding {
@@ -683,10 +672,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Determine size of calldata required for ids and amounts. Note
                 // that the size includes both lengths as well as the data.
-                let idsAndAmountsSize := add(
-                    TwoWords,
-                    shl(TwoWordsShift, idsLength)
-                )
+                let idsAndAmountsSize :=
+                    add(TwoWords, shl(TwoWordsShift, idsLength))
 
                 // Update the offset for the data array in memory.
                 mstore(
@@ -707,10 +694,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 )
 
                 // Determine the total calldata size for the call to transfer.
-                let transferDataSize := add(
-                    BatchTransfer1155Params_calldata_baseSize,
-                    idsAndAmountsSize
-                )
+                let transferDataSize :=
+                    add(
+                        BatchTransfer1155Params_calldata_baseSize, idsAndAmountsSize
+                    )
 
                 // Copy second section of calldata (including dynamic values).
                 calldatacopy(
@@ -720,15 +707,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 )
 
                 // Perform the call to transfer 1155 tokens.
-                let success := call(
-                    gas(),
-                    token,
-                    0,
-                    ConduitBatch1155Transfer_from_offset, // Data portion start.
-                    transferDataSize, // Location of the length of callData.
-                    0,
-                    0
-                )
+                let success :=
+                    call(
+                        gas(),
+                        token,
+                        0,
+                        ConduitBatch1155Transfer_from_offset, // Data portion start.
+                        transferDataSize, // Location of the length of callData.
+                        0,
+                        0
+                    )
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -739,10 +727,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // returndata while expanding memory where necessary.
                         // Start by computing word size of returndata and
                         // allocated memory. Round up to the nearest full word.
-                        let returnDataWords := shr(
-                            OneWordShift,
-                            add(returndatasize(), AlmostOneWord)
-                        )
+                        let returnDataWords :=
+                            shr(OneWordShift, add(returndatasize(), AlmostOneWord))
 
                         // Note: use transferDataSize in place of msize() to
                         // work around a Yul warning that prevents accessing
@@ -759,25 +745,25 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                         // Then, compute cost of new memory allocation.
                         if gt(returnDataWords, msizeWords) {
-                            cost := add(
-                                cost,
+                            cost :=
                                 add(
-                                    mul(
-                                        sub(returnDataWords, msizeWords),
-                                        CostPerWord
-                                    ),
-                                    shr(
-                                        MemoryExpansionCoefficientShift,
-                                        sub(
-                                            mul(
-                                                returnDataWords,
-                                                returnDataWords
-                                            ),
-                                            mul(msizeWords, msizeWords)
+                                    cost,
+                                    add(
+                                        mul(
+                                            sub(returnDataWords, msizeWords),
+                                            CostPerWord
+                                        ),
+                                        shr(
+                                            MemoryExpansionCoefficientShift,
+                                            sub(
+                                                mul(
+                                                    returnDataWords, returnDataWords
+                                                ),
+                                                mul(msizeWords, msizeWords)
+                                            )
                                         )
                                     )
                                 )
-                            )
                         }
 
                         // Finally, add a small constant and compare to gas
@@ -794,8 +780,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                     // Set the error signature.
                     mstore(
-                        0,
-                        ERC1155BatchTransferGenericFailure_error_signature
+                        0, ERC1155BatchTransferGenericFailure_error_signature
                     )
 
                     // Write the token.

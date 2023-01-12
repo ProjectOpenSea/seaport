@@ -30,10 +30,7 @@ interface TransferHelperErrors {
      *      bytes data.
      */
     error ERC721ReceiverErrorRevertBytes(
-        bytes reason,
-        address receiver,
-        address sender,
-        uint256 identifier
+        bytes reason, address receiver, address sender, uint256 identifier
     );
 
     /**
@@ -41,10 +38,7 @@ interface TransferHelperErrors {
      *      string reason.
      */
     error ERC721ReceiverErrorRevertString(
-        string reason,
-        address receiver,
-        address sender,
-        uint256 identifier
+        string reason, address receiver, address sender, uint256 identifier
     );
 
     /**
@@ -68,9 +62,7 @@ interface TransferHelperErrors {
      *      reason string.
      */
     error ConduitErrorRevertString(
-        string reason,
-        bytes32 conduitKey,
-        address conduit
+        string reason, bytes32 conduitKey, address conduit
     );
 
     /**
@@ -78,8 +70,6 @@ interface TransferHelperErrors {
      *      data.
      */
     error ConduitErrorRevertBytes(
-        bytes reason,
-        bytes32 conduitKey,
-        address conduit
+        bytes reason, bytes32 conduitKey, address conduit
     );
 }
