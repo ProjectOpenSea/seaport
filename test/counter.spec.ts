@@ -535,7 +535,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash } = await createOrder(
+      const { order, orderHash, orderComponents } = await createOrder(
         seller,
         zone,
         offer,
@@ -586,13 +586,14 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         .connect(seller)
         .activate(contractOrderOffer[0], contractOrderOffer[0]);
 
-      const { order: contractOrder } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        4 // CONTRACT
-      );
+      const { order: contractOrder, orderComponents: contractOrderComponents } =
+        await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          4 // CONTRACT
+        );
 
       const contractOffererNonce =
         await marketplaceContract.getContractOffererNonce(
@@ -1015,6 +1016,121 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...finalStatus }).to.deep.equal(
         buildOrderStatus(false, true, 0, 0)
+      );
+    });
+    it("Skip cancellation for contract order", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value, orderComponents } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      // Seller mints nft (CONTRACT order)
+      const contractOrderNftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      // seller deploys offererContract and approves it for 721 token
+      const offererContract = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set721ApprovalForAll(seller, offererContract.address, true);
+
+      const contractOrderOffer = [getTestItem721(contractOrderNftId) as any];
+
+      const contractOrderConsideration = [
+        getItemETH(
+          parseEther("10"),
+          parseEther("10"),
+          offererContract.address
+        ) as any,
+      ];
+
+      contractOrderOffer[0].identifier =
+        contractOrderOffer[0].identifierOrCriteria;
+      contractOrderOffer[0].amount = contractOrderOffer[0].endAmount;
+
+      contractOrderConsideration[0].identifier =
+        contractOrderConsideration[0].identifierOrCriteria;
+      contractOrderConsideration[0].amount =
+        contractOrderConsideration[0].endAmount;
+
+      await offererContract
+        .connect(seller)
+        .activate(contractOrderOffer[0], contractOrderOffer[0]);
+
+      const { orderComponents: contractOrderComponents } = await createOrder(
+        seller,
+        zone,
+        contractOrderOffer,
+        contractOrderConsideration,
+        4 // CONTRACT
+      );
+
+      const contractOffererNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContract.address
+        );
+
+      const contractOrderHash =
+        offererContract.address.toLowerCase() +
+        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
+
+      const orderStatus = await marketplaceContract.getOrderStatus(
+        contractOrderHash
+      );
+
+      expect({ ...orderStatus }).to.deep.equal(
+        buildOrderStatus(false, false, 0, 0)
+      );
+
+      // should cancel non-contract order and skip cancellation for
+      // contract order (for code coverage)
+      await marketplaceContract
+        .connect(seller)
+        .cancel([contractOrderComponents]);
+
+      // // cannot fill the order anymore
+      // await expect(
+      //   marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
+      //     value,
+      //   })
+      // )
+      //   .to.be.revertedWithCustomError(marketplaceContract, "OrderIsCancelled")
+      //   .withArgs(orderHash);
+
+      // const nonContractOrderStatus = await marketplaceContract.getOrderStatus(
+      //   orderHash
+      // );
+      // expect({ ...nonContractOrderStatus }).to.deep.eq(
+      //   buildOrderStatus(false, true, 0, 0)
+      // );
+
+      const contractOrderStatus = await marketplaceContract.getOrderStatus(
+        contractOrderHash
+      );
+      expect({ ...contractOrderStatus }).to.deep.eq(
+        buildOrderStatus(false, false, 0, 0)
       );
     });
   });
