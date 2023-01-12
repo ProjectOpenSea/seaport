@@ -688,7 +688,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.eq(
@@ -740,7 +740,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.equal(
@@ -867,7 +867,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
       const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...initialStatus }).to.deep.equal(
@@ -992,7 +992,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
       // cannot cancel it from a random account
       await expect(
         marketplaceContract.connect(owner).cancel([orderComponents])
-      ).to.be.revertedWithCustomError(marketplaceContract, "InvalidCanceller");
+      ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
       const newStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...newStatus }).to.deep.equal(
