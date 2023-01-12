@@ -211,7 +211,7 @@ graph TD
     end
 ```
 
-For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.svg).
+For a more thorough flowchart see [Seaport diagram](https://github.com/ProjectOpenSea/seaport/blob/3acb953d9017b181965ccb080fda8d3641a2ef4c/diagrams/Seaport.drawio.svg).
 
 ## Install
 
