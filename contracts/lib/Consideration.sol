@@ -478,7 +478,10 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         /**
          * @custom:name orders
          */
-        Fulfillment[] calldata /* fulfillments */
+        Fulfillment[] calldata 
+        /**
+        * @custom:name fulfillments
+        */
     ) external payable override returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
@@ -615,12 +618,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function validate(
         Order[] calldata
     )
+        /**
+         * @custom:name orders
+         */
         external
         override
         returns (
-            /**
-             * @custom:name orders
-             */
             bool /* validated */
         )
     {
@@ -651,13 +654,13 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function getOrderHash(
         OrderComponents calldata
     )
+        /**
+         * @custom:name order
+         */
         external
         view
         override
         returns (
-            /**
-             * @custom:name order
-             */
             bytes32 orderHash
         )
     {
