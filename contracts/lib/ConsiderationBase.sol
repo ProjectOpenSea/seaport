@@ -257,7 +257,7 @@ contract ConsiderationBase is
         // Derive ConsiderationItem type hash using corresponding type string.
         considerationItemTypehash = keccak256(considerationItemTypeString);
 
-        bytes memory orderTypeString = abi.encodePacked(
+        bytes memory orderTypeString = bytes.concat(
             orderComponentsPartialTypeString,
             considerationItemTypeString,
             offerItemTypeString
