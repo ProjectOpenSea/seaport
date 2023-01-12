@@ -216,7 +216,7 @@ contract PausableZone is
      * @dev This function is called by Seaport whenever any extraData is
      *      provided by the caller.
      *
-     * @custom:param zoneParameters       A struct that provides context about the
+     * @custom:param zoneParameters A struct that provides context about the
      *                              order fulfillment and any supplied
      *                              extraData, as well as all order hashes
      *                              fulfilled in a call to a match or
