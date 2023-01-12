@@ -478,8 +478,11 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         /**
          * @custom:name orders
          */
-        Fulfillment[] calldata /* fulfillments */
+        Fulfillment[] calldata
     )
+        /**
+         * @custom:name fulfillments
+         */
         external
         payable
         override
@@ -621,14 +624,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   been successfully validated.
      */
     function validate(Order[] calldata)
+        /**
+         * @custom:name orders
+         */
         external
         override
-        returns (
-            /**
-             * @custom:name orders
-             */
-            bool /* validated */
-        )
+        returns (bool /* validated */ )
     {
         return
             _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
@@ -659,15 +660,13 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return orderHash The order hash.
      */
     function getOrderHash(OrderComponents calldata)
+        /**
+         * @custom:name order
+         */
         external
         view
         override
-        returns (
-            /**
-             * @custom:name order
-             */
-            bytes32 orderHash
-        )
+        returns (bytes32 orderHash)
     {
         CalldataPointer orderPointer = CalldataStart.pptr();
 

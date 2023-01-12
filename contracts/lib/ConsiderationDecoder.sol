@@ -819,7 +819,7 @@ contract ConsiderationDecoder {
      *      adhere to a valid encoding scheme if it cannot be decoded.
      *
      * @return invalidEncoding A boolean signifying whether the returndata has
-     *                         an invalid encoding.
+     *  an invalid encoding.
      * @return offer           The decoded offer array.
      * @return consideration   The decoded consideration array.
      */
@@ -1022,13 +1022,13 @@ contract ConsiderationDecoder {
         pure
         returns (
             function()
-                        internal
-                        pure
-                        returns (
-                            uint256,
-                            OfferItem[] memory,
-                            ConsiderationItem[] memory
-                        ) outFn
+            internal
+            pure
+            returns (
+             uint256,
+             OfferItem[] memory,
+             ConsiderationItem[] memory
+            ) outFn
         )
     {
         assembly {
@@ -1055,7 +1055,7 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(OfferItem memory, address, bytes32, bytes memory)
-                        internal outFn
+            internal outFn
         )
     {
         assembly {
@@ -1082,7 +1082,7 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(ConsiderationItem memory, address, bytes32, bytes memory)
-                        internal outFn
+            internal outFn
         )
     {
         assembly {
@@ -1108,9 +1108,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (OrderParameters memory) outFn
+            internal
+            pure
+            returns (OrderParameters memory) outFn
         )
     {
         assembly {
@@ -1136,9 +1136,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (AdvancedOrder memory) outFn
+            internal
+            pure
+            returns (AdvancedOrder memory) outFn
         )
     {
         assembly {
@@ -1164,9 +1164,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (CriteriaResolver[] memory) outFn
+            internal
+            pure
+            returns (CriteriaResolver[] memory) outFn
         )
     {
         assembly {
@@ -1192,9 +1192,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (Order[] memory) outFn
+            internal
+            pure
+            returns (Order[] memory) outFn
         )
     {
         assembly {
@@ -1222,9 +1222,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (FulfillmentComponent[][] memory) outFn
+            internal
+            pure
+            returns (FulfillmentComponent[][] memory) outFn
         )
     {
         assembly {
@@ -1250,9 +1250,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (AdvancedOrder[] memory) outFn
+            internal
+            pure
+            returns (AdvancedOrder[] memory) outFn
         )
     {
         assembly {
@@ -1278,9 +1278,9 @@ contract ConsiderationDecoder {
         pure
         returns (
             function(CalldataPointer)
-                        internal
-                        pure
-                        returns (Fulfillment[] memory) outFn
+            internal
+            pure
+            returns (Fulfillment[] memory) outFn
         )
     {
         assembly {

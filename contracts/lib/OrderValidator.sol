@@ -199,8 +199,8 @@ contract OrderValidator is Executor, ZoneInteraction {
 
         // Ensure order is fillable and is not cancelled.
         if (
-            ! // Allow partially used orders to be filled.
-            _verifyOrderStatus(orderHash, orderStatus, false, revertOnInvalid)
+            // Allow partially used orders to be filled.
+            !_verifyOrderStatus(orderHash, orderStatus, false, revertOnInvalid)
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
             return (orderHash, 0, 0);
