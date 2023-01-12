@@ -718,7 +718,7 @@ contract ReferenceOrderValidator is
         pure
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
-        // If we should not revert on invalid input...
+        // If invalid input should not revert...
         if (!revertOnInvalid) {
             // Return the contract order hash and zero values for the numerator
             // and denominator.

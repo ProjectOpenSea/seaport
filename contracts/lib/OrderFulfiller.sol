@@ -175,10 +175,10 @@ contract OrderFulfiller is
 
         // As of solidity 0.6.0, inline assembly cannot directly access function
         // definitions, but can still access locally scoped function variables.
-        // This means that in order to recast the type of a function, we need to
-        // create a local variable to reference the internal function definition
-        // (using the same type) and a local variable with the desired type,
-        // and then cast the original function pointer to the desired type.
+        // This means that a local variable to reference the internal function
+        // definition (using the same type), along with a local variable with
+        // the desired type, must first be created. Then, the original function
+        // pointer can be recast to the desired type.
 
         /**
          * Repurpose existing OfferItem memory regions on the offer array for
