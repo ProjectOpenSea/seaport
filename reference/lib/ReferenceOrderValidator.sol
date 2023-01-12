@@ -546,7 +546,7 @@ contract ReferenceOrderValidator is
                 order.orderType == OrderType.CONTRACT ||
                 (msg.sender != offerer && msg.sender != zone)
             ) {
-                revert InvalidCanceller();
+                revert CannotCancelOrder();
             }
 
             // Derive order hash using the order parameters and the counter.

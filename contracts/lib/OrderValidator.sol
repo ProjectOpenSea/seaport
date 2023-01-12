@@ -708,7 +708,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         if (anyInvalidCallerOrContractOrder) {
-            _revertInvalidCanceller();
+            _revertCannotCancelOrder();
         }
 
         // Return a boolean indicating that orders were successfully cancelled.
