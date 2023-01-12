@@ -223,7 +223,7 @@ contract PausableZone is
     function validateOrder(ZoneParameters calldata)
         external
         pure
-        override(ZoneInterface)
+        override
         returns (
             /**
              * @custom:name zoneParameters
