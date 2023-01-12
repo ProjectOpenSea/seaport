@@ -537,11 +537,6 @@ contract ReferenceOrderValidator is
             // Retrieve the order.
             OrderComponents calldata order = orders[i];
 
-            // Skip contract orders.
-            if (order.orderType == OrderType.CONTRACT) {
-                continue;
-            }
-
             offerer = order.offerer;
             zone = order.zone;
 
