@@ -42,37 +42,182 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <th>ConduitController</th>
 </tr>
 
-<tr><td>Ethereum</td><td rowspan="14">
+<tr><td>Ethereum</td><td>
 
 [0x00000000006c3852cbEf3e08E8dF289169EdE581](https://etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
 
-</td><td rowspan="14">
+</td><td>
 
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
 
-<tr><td>Rinkeby</td></tr>
-<tr><td>Goerli</td></tr>
-<tr><td>Kovan</td></tr>
-<tr><td>Sepolia</td></tr>
-<tr><td>Polygon</td></tr>
-<tr><td>Mumbai</td></tr>
-<tr><td>Optimism</td></tr>
-<tr><td>Optimistic Kovan</td></tr>
-<tr><td>Arbitrum</td></tr>
-<tr><td>Arbitrum Nova</td></tr>
-<tr><td>Arbitrum Rinkeby</td></tr>
-<tr><td>Avalanche Fuji</td></tr>
-<tr><td>Avalanche C-Chain</td></tr>
-<tr><td>Gnosis Chain</td></tr>
-<tr><td>BSC</td></tr>
+<tr><td>Rinkeby</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://rinkeby.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://rinkeby.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Kovan</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://kovan.etherscan/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://kovan.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Sepolia</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://sepolia.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Polygon</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Mumbai</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://mumbai.polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://mumbai.polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Klaytn</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Baobab</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://baobab.scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://baobab.scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Optimism</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://optimistic.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://optimistic.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Optimistic Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli-optimism.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli-optimism.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli.arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum Nova</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://nova.arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Avalanche C-Chain</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Avalanche Fuji</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Gnosis Chain</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://gnosisscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnossiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>BSC</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>BSC Testnet</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
 
-- Klaytn
-- Baobab
 - Skale
 - Celo
 - Fantom
