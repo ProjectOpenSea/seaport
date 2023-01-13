@@ -32,8 +32,11 @@ import {
     PausableZoneController
 } from "../../contracts/zones/PausableZoneController.sol";
 import { PausableZone } from "../../contracts/zones/PausableZone.sol";
+import {
+    ConsiderationEventsAndErrors
+} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-contract FulfillBasicOrderTest is BaseOrderTest {
+contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;
 
     uint256 badIdentifier;
@@ -107,6 +110,17 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
         test(this.basicErc20To721, Context(consideration, inputs, 0));
         test(this.basicErc20To721, Context(referenceConsideration, inputs, 0));
+    }
+
+    function testRevertCancelledOrder(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersErc20To721(inputs);
+
+        test(this.revertCancelledOrder, Context(consideration, inputs, 0));
+        test(this.revertCancelledOrder, Context(referenceConsideration, inputs, 0));
     }
 
     function testBasicEthTo1155(
@@ -473,6 +487,44 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             this.revertUnusedItemParametersIdentifierSetOnErc20Consideration,
             Context(referenceConsideration, inputs, tokenAmount)
         );
+    }
+
+    function revertCancelledOrder(Context memory context) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+        basicOrderParameters.signature = signature;
+        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](1);
+        myBaseOrderComponents[0] = baseOrderComponents;
+
+        vm.prank(alice);
+
+        vm.expectEmit(true, true, true, false, address(context.consideration));
+        emit OrderCancelled(
+            orderHash,
+            alice,
+            context.args.zone
+        );
+        context.consideration.cancel(myBaseOrderComponents);
+
+        vm.expectRevert(abi.encodeWithSignature("OrderIsCancelled(bytes32)", orderHash));
+        context.consideration.fulfillBasicOrder(basicOrderParameters);
     }
 
     function revertUnusedItemParametersIdentifierSetOnErc20Consideration(
