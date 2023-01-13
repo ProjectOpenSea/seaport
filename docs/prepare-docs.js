@@ -15,11 +15,14 @@ glob("contracts/**/*.sol", {}, (er, files) => {
     let content = fs.readFileSync(file, "utf-8");
 
     // Restore normal @param tags.
-    content = content.replace(/@custom:param/g, "@param");
+    content = content.replace(
+      /@custom:param ([a-zA-z0-9]+)/g,
+      "@param $1       "
+    );
 
     // Replace @custom:name tags with name of the param in the correct location.
     content = content.replace(
-      /\/\*\*\s*\*?\s*@custom:name\s*( [^*]*)\s*\*\/\s*([a-zA-z[\]]+ calldata)\s*(,|\))/g,
+      /\/\*\*\s*\*?\s*@custom:name\s*([a-zA-Z0-9]*)\s*\*\/\s*([a-zA-z[\]]+ calldata)\s*(,|\))/g,
       "$2 $1$3"
     );
 
