@@ -115,10 +115,10 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   successfully fulfilled.
      */
     function fulfillOrder(
-        Order calldata,
         /**
          * @custom:name order
          */
+        Order calldata,
         bytes32 fulfillerConduitKey
     ) external payable override returns (bool fulfilled) {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -176,14 +176,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
-        AdvancedOrder calldata,
         /**
          * @custom:name advancedOrder
          */
-        CriteriaResolver[] calldata,
+        AdvancedOrder calldata,
         /**
          * @custom:name criteriaResolvers
          */
+        CriteriaResolver[] calldata,
         bytes32 fulfillerConduitKey,
         address recipient
     ) external payable override returns (bool fulfilled) {
@@ -256,11 +256,10 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                         orders.
      */
     function fulfillAvailableOrders(
-        Order[] calldata,
         /**
          * @custom:name orders
          */
-        FulfillmentComponent[][] calldata,
+        Order[] calldata,
         /**
          * @custom:name offerFulfillments
          */
@@ -268,6 +267,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         /**
          * @custom:name considerationFulfillments
          */
+        FulfillmentComponent[][] calldata,
         bytes32 fulfillerConduitKey,
         uint256 maximumFulfilled
     )
@@ -385,15 +385,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
-        AdvancedOrder[] calldata,
         /**
          * @custom:name advancedOrders
          */
-        CriteriaResolver[] calldata,
+        AdvancedOrder[] calldata,
         /**
          * @custom:name criteriaResolvers
          */
-        FulfillmentComponent[][] calldata,
+        CriteriaResolver[] calldata,
         /**
          * @custom:name offerFulfillments
          */
@@ -401,6 +400,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         /**
          * @custom:name considerationFulfillments
          */
+        FulfillmentComponent[][] calldata,
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled
@@ -474,11 +474,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                    tokens will not be reflected as part of this array.
      */
     function matchOrders(
-        Order[] calldata,
         /**
          * @custom:name orders
          */
-        Fulfillment[] calldata /* fulfillments */
+        Order[] calldata,
+        /**
+         * @custom:name fulfillments
+         */
+        Fulfillment[] calldata
     ) external payable override returns (Execution[] memory /* executions */) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
@@ -547,18 +550,18 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                     array.
      */
     function matchAdvancedOrders(
-        AdvancedOrder[] calldata,
         /**
          * @custom:name advancedOrders
          */
-        CriteriaResolver[] calldata,
+        AdvancedOrder[] calldata,
         /**
          * @custom:name criteriaResolvers
          */
-        Fulfillment[] calldata,
+        CriteriaResolver[] calldata,
         /**
          * @custom:name fulfillments
          */
+        Fulfillment[] calldata,
         address recipient
     ) external payable override returns (Execution[] memory /* executions */) {
         // Validate and match the advanced orders using supplied fulfillments.
@@ -613,17 +616,11 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   been successfully validated.
      */
     function validate(
+        /**
+         * @custom:name orders
+         */
         Order[] calldata
-    )
-        external
-        override
-        returns (
-            /**
-             * @custom:name orders
-             */
-            bool /* validated */
-        )
-    {
+    ) external override returns (bool /* validated */) {
         return
             _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
     }
@@ -649,18 +646,11 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return orderHash The order hash.
      */
     function getOrderHash(
+        /**
+         * @custom:name order
+         */
         OrderComponents calldata
-    )
-        external
-        view
-        override
-        returns (
-            /**
-             * @custom:name order
-             */
-            bytes32 orderHash
-        )
-    {
+    ) external view override returns (bytes32 orderHash) {
         CalldataPointer orderPointer = CalldataStart.pptr();
 
         // Derive order hash by supplying order parameters along with counter.

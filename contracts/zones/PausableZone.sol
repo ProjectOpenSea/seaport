@@ -226,18 +226,11 @@ contract PausableZone is
      *                              currently valid.
      */
     function validateOrder(
+        /**
+         * @custom:name zoneParameters
+         */
         ZoneParameters calldata
-    )
-        external
-        pure
-        override
-        returns (
-            /**
-             * @custom:name zoneParameters
-             */
-            bytes4 validOrderMagicValue
-        )
-    {
+    ) external pure override returns (bytes4 validOrderMagicValue) {
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }

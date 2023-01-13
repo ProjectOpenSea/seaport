@@ -19,8 +19,8 @@ glob("contracts/**/*.sol", {}, (er, files) => {
 
     // Replace @custom:name tags with name of the param in the correct location.
     content = content.replace(
-      /(,|\))\s*\/\*\*\s*\*?\s*@custom:name\s*( [^*]*)\s*\*\/\s*/g,
-      "$2$1"
+      /\/\*\*\s*\*?\s*@custom:name\s*( [^*]*)\s*\*\/\s*([a-zA-z[\]]+ calldata)\s*(,|\))/g,
+      "$2 $1$3"
     );
 
     // Once files have been overwritten, call forge doc to generate
