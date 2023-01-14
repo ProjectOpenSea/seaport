@@ -23,6 +23,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
   - [Install](#install)
   - [Usage](#usage)
     - [Foundry Tests](#foundry-tests)
+    - [Linting](#linting)
   - [Audits](#audits)
   - [Contributing](#contributing)
   - [License](#license)
@@ -299,61 +300,28 @@ yarn profile
 
 Seaport also includes a suite of fuzzing tests written in solidity with Foundry.
 
-To install Foundry (assuming a Linux or macOS system):
+To run tests with full traces and debugging with source, create an `.env` file with the following line:
 
 ```bash
-curl -L https://foundry.paradigm.xyz | bash
+FOUNDRY_PROFILE=debug
 ```
 
-This will download foundryup. To start Foundry, run:
+You may then run tests with `forge test`, optionally specifying a level of verbosity (anywhere from one to five `v`'s, eg, `-vvv`)
 
-```bash
-foundryup
-```
 
-To install dependencies:
+This will compile tests and contracts without `via-ir` enabled, which is must faster, but will not exactly match the deployed bytecode. 
 
-```
-forge install
-```
 
-To precompile contracts:
-
-The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
+To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code. 
 
 ```bash
 FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=reference forge build
 ```
 
-There are three Foundry profiles for running the test suites, which bypass the IR pipeline to speed up compilation. To run tests, run any of the following:
+For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).
 
-```bash
-FOUNDRY_PROFILE=test forge test # with 5000 fuzz runs
-FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
-FOUNDRY_PROFILE=local forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
-FOUNDRY_PROFILE=debug forge test # compiles and deploys Consideration and ReferenceConsideration using default profile solc settings, not from precompiled source, with 1000 fuzz runs
-```
-
-You may wish to include a `.env` file that `export`s a specific profile when developing locally.
-
-**Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
-
-**Note** the `local` profile uses Forge's `ffi` flag. `ffi` can potentially be unsafe, as it allows Forge to execute arbitrary code. Use with caution, and always ensure you trust the code in this repository, especially when working on third-party forks.
-
-The following modifiers are also available:
-
-- Level 2 (-vv): Logs emitted during tests are also displayed.
-- Level 3 (-vvv): Stack traces for failing tests are also displayed.
-- Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
-- Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
-
-```bash
-FOUNDRY_PROFILE=test forge test  -vv
-```
-
-For more information on foundry testing and use, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
-
+### Linting
 To run lint checks:
 
 ```bash
