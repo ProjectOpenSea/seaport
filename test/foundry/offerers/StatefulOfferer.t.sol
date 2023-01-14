@@ -103,6 +103,49 @@ contract StatefulOffererTest is BaseOrderTest {
         assertTrue(offerer.called());
     }
 
+    function testCancelAdvancedRevert() public {
+        test(
+            this.execCancelAdvancedRevert,
+            Context({ consideration: consideration, numToAdd: 0 })
+        );
+        test(
+            this.execCancelAdvancedRevert,
+            Context({ consideration: referenceConsideration, numToAdd: 0 })
+        );
+    }
+
+    function execCancelAdvancedRevert(Context memory context) public stateless {
+        offerer = new StatefulRatifierOfferer(
+            address(context.consideration),
+            ERC20Interface(address(token1)),
+            ERC721Interface(address(test721_1)),
+            1
+        );
+        addErc20OfferItem(1);
+        addErc721ConsiderationItem(payable(address(offerer)), 42);
+
+        test721_1.mint(address(this), 42);
+
+        _configureOrderParameters({
+            offerer: address(offerer),
+            zone: address(0),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        baseOrderParameters.orderType = OrderType.CONTRACT;
+
+        configureOrderComponents(0);
+
+        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](1);
+        myBaseOrderComponents[0] = baseOrderComponents;
+
+        vm.prank(address(offerer));
+        // Contract orders cannot be cancelled.
+        vm.expectRevert(abi.encodeWithSignature("CannotCancelOrder()"));
+        context.consideration.cancel(myBaseOrderComponents);
+    }
+
     function testFulfillAdvancedFuzz(uint8 numToAdd) public {
         numToAdd = uint8(bound(numToAdd, 1, 255));
         test(
