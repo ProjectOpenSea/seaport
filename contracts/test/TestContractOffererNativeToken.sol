@@ -24,7 +24,7 @@ import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
  *         an order. The offered item is placed into this contract as part of
  *         deployment and the corresponding token approvals are set for Seaport.
  */
-contract TestContractOfferer is ContractOffererInterface {
+contract TestContractOffererNativeToken is ContractOffererInterface {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
