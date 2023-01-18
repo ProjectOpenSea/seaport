@@ -733,6 +733,27 @@ uint256 constant NoContract_error_account_ptr = 0x20;
 uint256 constant NoContract_error_length = 0x24;
 
 /*
+ *  error TokenTransferGenericFailure(address token, address from, address to, uint256 identifier, uint256 amount)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: token
+ *    - 0x40: from
+ *    - 0x60: to
+ *    - 0x80: identifier
+ *    - 0xa0: amount
+ * Revert buffer is memory[0x1c:0xc0]
+ */
+uint256 constant TokenTransferGenericFailure_error_selector = 0xf486bc87;
+uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x20;
+uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x40;
+uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x60;
+uint256 constant TokenTransferGenericFailure_error_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_err_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
+uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
+
+/*
  *  error Invalid1155BatchTransferEncoding()
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:

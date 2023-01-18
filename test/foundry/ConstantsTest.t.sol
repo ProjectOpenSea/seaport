@@ -236,6 +236,13 @@ contract ConstantsTest is BaseConsiderationTest {
         );
     }
 
+    function testTokenTransferGenericFailure_error_selector() public {
+        _test(
+            TokenTransferGenericFailure_error_selector,
+            TokenTransferrerErrors.TokenTransferGenericFailure.selector
+        );
+    }
+
     function testNoReentrantCalls_error_selector() public {
         _test(
             NoReentrantCalls_error_selector,
