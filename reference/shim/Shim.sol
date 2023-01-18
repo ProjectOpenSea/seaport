@@ -17,6 +17,9 @@ import {
     TestContractOfferer
 } from "../../contracts/test/TestContractOfferer.sol";
 import {
+    TestContractOffererNativeToken
+} from "../../contracts/test/TestContractOffererNativeToken.sol";
+import {
     TestBadContractOfferer
 } from "../../contracts/test/TestBadContractOfferer.sol";
 import {
