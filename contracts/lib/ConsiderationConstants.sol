@@ -445,7 +445,7 @@ uint256 constant NonMatchSelector_MagicMask = (
     0x4000000000000000000000000000000000000000000000000000000000
 );
 
-// First bit indicates that a NATIVE offer items has been used and the 231th bit
+// First bit indicates that a NATIVE offer items has been used and the 231st bit
 // indicates that a non match selector has been called.
 uint256 constant NonMatchSelector_InvalidErrorValue = (
     0x4000000000000000000000000000000000000000000000000000000001
