@@ -96,35 +96,6 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
             revert OrderUnavailable();
         }
 
-        // Retrieve the offered item and set associated approvals.
-        if (available.itemType == ItemType.NATIVE) {
-            available.amount = address(this).balance;
-        } else if (available.itemType == ItemType.ERC20) {
-            ERC20Interface token = ERC20Interface(available.token);
-
-            token.transferFrom(msg.sender, address(this), available.amount);
-
-            token.approve(_SEAPORT, available.amount);
-        } else if (available.itemType == ItemType.ERC721) {
-            ERC721Interface token = ERC721Interface(available.token);
-
-            token.transferFrom(msg.sender, address(this), available.identifier);
-
-            token.setApprovalForAll(_SEAPORT, true);
-        } else if (available.itemType == ItemType.ERC1155) {
-            ERC1155Interface token = ERC1155Interface(available.token);
-
-            token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                available.identifier,
-                available.amount,
-                ""
-            );
-
-            token.setApprovalForAll(_SEAPORT, true);
-        }
-
         // Set storage variables.
         _available = available;
         _required = required;
@@ -168,32 +139,31 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         }
 
         // Set the offer and consideration that were supplied during deployment.
-        offer = new SpentItem[](1 + extraAvailable);
-        consideration = new ReceivedItem[](1 + extraRequired);
+        offer = new SpentItem[](1);
+        consideration = new ReceivedItem[](1);
 
-        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
-            offer[i] = _available;
-            if (offer[i].itemType == ItemType.NATIVE) {
-                (bool success, ) = _SEAPORT.call{ value: offer[i].amount }("");
+        // Send 10 ether to Seaport.
+        (bool success, ) = _SEAPORT.call{ value: 10 ether }("");
 
-                if (!success) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                }
+        // Revert if transaction fails.
+        if (!success) {
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
         }
 
-        for (uint256 i = 0; i < 1 + extraRequired; ++i) {
-            consideration[i] = ReceivedItem({
-                itemType: _required.itemType,
-                token: _required.token,
-                identifier: _required.identifier,
-                amount: _required.amount,
-                recipient: payable(address(this))
-            });
-        }
+        // Set the offer item as the _available item in storage.
+        offer[0] = _available;
+
+        // Set the erc721 consideration item.
+        consideration[0] = ReceivedItem({
+            itemType: ItemType.ERC721,
+            token: _required.token,
+            identifier: _required.identifier,
+            amount: _required.amount,
+            recipient: payable(address(this))
+        });
 
         // Update storage to reflect that the order has been fulfilled.
         fulfilled = true;

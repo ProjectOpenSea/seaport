@@ -1094,17 +1094,20 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       });
     });
     it("Contract Orders (native token offer items", async () => {
-      // Buyer mints nft
-      const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
-
-      // seller deploys offererContract and approves it for 1155 token
+      // Buyer deploys offererContract
       const offererContract = await deployContract(
         "TestContractOffererNativeToken",
         owner,
         marketplaceContract.address
       );
 
-      const offer = [getItemETH(toBN(10), toBN(10)) as any];
+      await faucet(offererContract.address, provider);
+
+      // Buyer mints nft
+      // Buyer will call fulfillAdvancedOrder and receive 10 eth offer item.
+      const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
+
+      const offer = [getItemETH(parseEther("10"), parseEther("10")) as any];
 
       const consideration = [
         getTestItem721(
@@ -1126,7 +1129,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         .connect(seller)
         .activate(offer[0], consideration[0]);
 
-      const { order, value } = await createOrder(
+      const { order } = await createOrder(
         seller,
         zone,
         offer,
@@ -1157,9 +1160,12 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
-            value,
-          });
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(0),
+            ethers.constants.AddressZero
+          );
         const receipt = await (await tx).wait();
         await checkExpectedEvents(
           tx,
