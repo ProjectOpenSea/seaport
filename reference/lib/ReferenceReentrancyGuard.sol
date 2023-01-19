@@ -2,6 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {
+    ConsiderationEventsAndErrors
+} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+
+import {
     ReentrancyErrors
 } from "../../contracts/interfaces/ReentrancyErrors.sol";
 
@@ -13,14 +17,10 @@ import "../../contracts/lib/ConsiderationConstants.sol";
  * @notice ReentrancyGuard contains a storage variable and related functionality
  *         for protecting against reentrancy.
  */
-contract ReferenceReentrancyGuard is ReentrancyErrors {
-    /**
-     * @dev Revert with an error when a caller attempts to supply callvalue to a
-     *      non-payable basic order route or does not supply any callvalue to a
-     *      payable basic order route.
-     */
-    error InvalidMsgValue(uint256 value);
-
+contract ReferenceReentrancyGuard is
+    ConsiderationEventsAndErrors,
+    ReentrancyErrors
+{
     // Prevent reentrant calls on protected functions.
     uint256 private _reentrancyGuard;
 
