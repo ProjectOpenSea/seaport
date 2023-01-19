@@ -14,6 +14,13 @@ import "../../contracts/lib/ConsiderationConstants.sol";
  *         for protecting against reentrancy.
  */
 contract ReferenceReentrancyGuard is ReentrancyErrors {
+    /**
+     * @dev Revert with an error when a caller attempts to supply callvalue to a
+     *      non-payable basic order route or does not supply any callvalue to a
+     *      payable basic order route.
+     */
+    error InvalidMsgValue(uint256 value);
+
     // Prevent reentrant calls on protected functions.
     uint256 private _reentrancyGuard;
 
