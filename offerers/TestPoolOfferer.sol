@@ -14,18 +14,22 @@ import { ItemType } from "../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    Schema
 } from "../contracts/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
 } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+
 import {
     IERC721
 } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+
 import {
     IERC20
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
 import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TestPoolOfferer is ContractOffererInterface, Ownable {
@@ -194,24 +198,22 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
     }
 
     /**
-     * @dev Get the metadata for this contract.
-     *
-     * @return schemaID   The ID of the schema for the metadata.
-     * @return name       The name of the contract.
-     * @return metadata   The metadata for the contract, encoded based on the
-     *                    schema.
+     * @dev Returns the metadata for this contract offerer.
      */
-    function getMetadata()
+    function getSeaportMetadata()
         external
         pure
         override
         returns (
-            uint256 schemaID, // maps to a Seaport standard's ID
             string memory name,
-            bytes memory metadata // decoded based on the schemaID
+            Schema[] memory schemas // map to Seaport Improvement Proposal IDs
         )
     {
-        return (7117, "TestPoolOfferer", "");
+        schemas = new Schema[](1);
+        schemas[0].id = 1337;
+        schemas[0].metadata = new bytes(0);
+
+        return ("TestPoolOfferer", schemas);
     }
 
     /**

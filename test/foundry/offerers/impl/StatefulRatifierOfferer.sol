@@ -18,7 +18,8 @@ import {
 
 import {
     SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    Schema
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
@@ -260,18 +261,22 @@ contract StatefulRatifierOfferer is ContractOffererInterface {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
-    /** @dev Returns the metadata for this contract offerer.
+    /**
+     * @dev Returns the metadata for this contract offerer.
      */
-    function getMetadata()
+    function getSeaportMetadata()
         external
         pure
         override
         returns (
-            uint256 schemaID, // maps to a Seaport standard's ID
             string memory name,
-            bytes memory metadata // decoded based on the schemaID
+            Schema[] memory schemas // map to Seaport Improvement Proposal IDs
         )
     {
-        return (1337, "TestContractOfferer", "");
+        schemas = new Schema[](1);
+        schemas[0].id = 1337;
+        schemas[0].metadata = new bytes(0);
+
+        return ("StatefulRatifierOfferer", schemas);
     }
 }
