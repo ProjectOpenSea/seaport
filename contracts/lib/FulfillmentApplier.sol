@@ -396,9 +396,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                             // The offerer must match on both items.
                             xor(
                                 mload(paramsPtr),
-                                mload(
-                                    add(execution, Execution_offerer_offset)
-                                )
+                                mload(add(execution, Execution_offerer_offset))
                             ),
                             // The conduit key must match on both items.
                             xor(
@@ -408,9 +406,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                                         OrderParameters_conduit_offset
                                     )
                                 ),
-                                mload(
-                                    add(execution, Execution_conduit_offset)
-                                )
+                                mload(add(execution, Execution_conduit_offset))
                             )
                         ),
                         // The itemType, token, and identifier must match.

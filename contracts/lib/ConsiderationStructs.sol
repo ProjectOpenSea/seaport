@@ -266,6 +266,15 @@ struct ZoneParameters {
     bytes32 zoneHash;
 }
 
+/**
+ * @dev Zones and contract offerers can communicate which schemas they implement
+ *      along with any associated metadata related to each schema.
+ */
+struct Schema {
+    uint256 id;
+    bytes metadata;
+}
+
 using StructPointers for OrderComponents global;
 using StructPointers for OfferItem global;
 using StructPointers for ConsiderationItem global;
