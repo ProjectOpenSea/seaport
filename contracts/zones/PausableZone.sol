@@ -19,7 +19,8 @@ import {
     Execution,
     OfferItem,
     ConsiderationItem,
-    ZoneParameters
+    ZoneParameters,
+    Schema
 } from "../lib/ConsiderationStructs.sol";
 
 import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
@@ -233,5 +234,24 @@ contract PausableZone is
     ) external pure override returns (bytes4 validOrderMagicValue) {
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
+    }
+
+    /**
+     * @dev Returns the metadata for this zone.
+     */
+    function getSeaportMetadata()
+        external
+        pure
+        override
+        returns (
+            string memory name,
+            Schema[] memory schemas // map to Seaport Improvement Proposal IDs
+        )
+    {
+        schemas = new Schema[](1);
+        schemas[0].id = 3003;
+        schemas[0].metadata = new bytes(0);
+
+        return ("PausableZone", schemas);
     }
 }
