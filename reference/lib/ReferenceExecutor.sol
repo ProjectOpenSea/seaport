@@ -121,7 +121,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
     /**
      * @dev Internal function to transfer Ether or other native tokens to a
-     *      given recipient.
+     *      given recipient. Note that this reference implementation deviates
+     *      from the primary contract, which "bubbles up" revert data when
+     *      present (the reference contract always throws a generic error).
      *
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
