@@ -2549,10 +2549,15 @@ contract FulfillOrderTest is BaseOrderTest {
             this.fulfillOrderRevertCounterIncremented,
             Context(referenceConsideration, empty, 0, 0, 0)
         );
-        test(this.fulfillOrderRevertCounterIncremented, Context(consideration, empty, 0, 0, 0));
+        test(
+            this.fulfillOrderRevertCounterIncremented,
+            Context(consideration, empty, 0, 0, 0)
+        );
     }
 
-    function fulfillOrderRevertCounterIncremented(Context memory context) external stateless {
+    function fulfillOrderRevertCounterIncremented(
+        Context memory context
+    ) external stateless {
         test1155_1.mint(bob, 1, 1);
         addErc1155OfferItem(1, 1);
         addEthConsiderationItem(payable(bob), 1);
@@ -2588,14 +2593,8 @@ contract FulfillOrderTest is BaseOrderTest {
         context.consideration.fulfillOrder{ value: 1 }(order, bytes32(0));
 
         configureOrderComponents(context.consideration.getCounter(bob));
-        orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        signature = signOrder(
-            context.consideration,
-            bobPk,
-            orderHash
-        );
+        orderHash = context.consideration.getOrderHash(baseOrderComponents);
+        signature = signOrder(context.consideration, bobPk, orderHash);
 
         order = Order(baseOrderParameters, signature);
 

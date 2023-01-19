@@ -120,7 +120,10 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         _configureBasicOrderParametersErc20To721(inputs);
 
         test(this.revertCancelledOrder, Context(consideration, inputs, 0));
-        test(this.revertCancelledOrder, Context(referenceConsideration, inputs, 0));
+        test(
+            this.revertCancelledOrder,
+            Context(referenceConsideration, inputs, 0)
+        );
     }
 
     function testBasicEthTo1155(
@@ -510,20 +513,20 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             orderHash
         );
         basicOrderParameters.signature = signature;
-        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](1);
+        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](
+            1
+        );
         myBaseOrderComponents[0] = baseOrderComponents;
 
         vm.prank(alice);
 
         vm.expectEmit(true, true, true, false, address(context.consideration));
-        emit OrderCancelled(
-            orderHash,
-            alice,
-            context.args.zone
-        );
+        emit OrderCancelled(orderHash, alice, context.args.zone);
         context.consideration.cancel(myBaseOrderComponents);
 
-        vm.expectRevert(abi.encodeWithSignature("OrderIsCancelled(bytes32)", orderHash));
+        vm.expectRevert(
+            abi.encodeWithSignature("OrderIsCancelled(bytes32)", orderHash)
+        );
         context.consideration.fulfillBasicOrder(basicOrderParameters);
     }
 
