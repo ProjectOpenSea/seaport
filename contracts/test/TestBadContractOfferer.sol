@@ -12,7 +12,11 @@ import {
 
 import { ItemType, Side } from "../lib/ConsiderationEnums.sol";
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import {
+    SpentItem,
+    ReceivedItem,
+    Schema
+} from "../lib/ConsiderationStructs.sol";
 
 contract TestBadContractOfferer is ContractOffererInterface {
     error IntentionalRevert();
