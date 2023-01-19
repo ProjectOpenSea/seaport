@@ -27,6 +27,7 @@ module.exports = {
     "test/TestERC721.sol",
     "test/TestERC721Revert.sol",
     "test/TestContractOfferer.sol",
+    "test/TestContractOffererNativeToken.sol",
     "test/TestInvalidContractOfferer.sol",
     "test/TestInvalidContractOffererRatifyOrder.sol",
     "test/TestBadContractOfferer.sol",

@@ -5,6 +5,8 @@ import {
     ConsiderationInterface
 } from "../contracts/interfaces/ConsiderationInterface.sol";
 
+import { OrderType } from "../contracts/lib/ConsiderationEnums.sol";
+
 import {
     OrderComponents,
     BasicOrderParameters,
@@ -56,6 +58,17 @@ contract ReferenceConsideration is
     ) ReferenceOrderCombiner(conduitController) {}
 
     /**
+     * @notice Accept native token transfers during execution that may then be
+     *         used to facilitate native token transfers, where any tokens that
+     *         remain will be transferred to the caller. Native tokens are only
+     *         acceptable mid-fulfillment (and not during basic fulfillment).
+     */
+    receive() external payable {
+        // Ensure the reentrancy guard is currently set to accept native tokens.
+        _assertAcceptingNativeTokens();
+    }
+
+    /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
      *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
      *         item, or an ERC1155 item as consideration. Six permutations are
@@ -83,7 +96,7 @@ contract ReferenceConsideration is
      */
     function fulfillBasicOrder(
         BasicOrderParameters calldata parameters
-    ) external payable override nonReentrant returns (bool fulfilled) {
+    ) external payable override nonReentrant(false) returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -113,7 +126,13 @@ contract ReferenceConsideration is
     function fulfillOrder(
         Order calldata order,
         bytes32 fulfillerConduitKey
-    ) external payable override nonReentrant returns (bool fulfilled) {
+    )
+        external
+        payable
+        override
+        nonReentrant(order.parameters.orderType == OrderType.CONTRACT)
+        returns (bool fulfilled)
+    {
         // Convert order to "advanced" order, then validate and fulfill it.
         // prettier-ignore
         fulfilled = _validateAndFulfillAdvancedOrder(
@@ -169,7 +188,13 @@ contract ReferenceConsideration is
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey,
         address recipient
-    ) external payable override nonReentrant returns (bool fulfilled) {
+    )
+        external
+        payable
+        override
+        nonReentrant(advancedOrder.parameters.orderType == OrderType.CONTRACT)
+        returns (bool fulfilled)
+    {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -232,7 +257,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrant
+        nonReentrant(true)
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
@@ -332,7 +357,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrant
+        nonReentrant(true)
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
@@ -388,7 +413,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrant
+        nonReentrant(true)
         returns (Execution[] memory executions)
     {
         // Convert to advanced, validate, and match orders using fulfillments.
@@ -451,7 +476,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        nonReentrant
+        nonReentrant(true)
         returns (Execution[] memory executions)
     {
         // Validate and match the advanced orders using supplied fulfillments.
