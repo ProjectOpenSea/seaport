@@ -35,3 +35,6 @@ ignore:
   - script
   - test
   - contracts/test
+  - contracts/helpers
+  - contracts/zones
+  - contracts/lib/ConsiderationStructs.sol
