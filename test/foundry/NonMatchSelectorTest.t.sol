@@ -13,20 +13,17 @@ import {
 } from "../../contracts/lib/ConsiderationConstants.sol";
 
 import { Test } from "forge-std/Test.sol";
-contract NonMatchSelectorTest is Test {
 
+contract NonMatchSelectorTest is Test {
     function testNonMatchSelectorMagicMaskAndInvalidErrorValue() public {
         assertEq(
             NonMatchSelector_MagicMask + 1,
             NonMatchSelector_InvalidErrorValue
         );
     }
-    
+
     function testSelectorMatchOrders() public {
-        _testSelector(
-            ConsiderationInterface.matchOrders.selector,
-            false
-        );
+        _testSelector(ConsiderationInterface.matchOrders.selector, false);
     }
 
     function testSelectorMatchAdvancedOrders() public {
@@ -56,10 +53,7 @@ contract NonMatchSelectorTest is Test {
         assembly {
             isSelected := eq(
                 NonMatchSelector_MagicMask,
-                and(
-                    NonMatchSelector_MagicMask,
-                    selector
-                )
+                and(NonMatchSelector_MagicMask, selector)
             )
         }
 

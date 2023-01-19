@@ -2543,4 +2543,71 @@ contract FulfillOrderTest is BaseOrderTest {
             bytes32(0)
         );
     }
+
+    function testFulfillOrderRevertCounterIncremented() public {
+        test(
+            this.fulfillOrderRevertCounterIncremented,
+            Context(referenceConsideration, empty, 0, 0, 0)
+        );
+        test(this.fulfillOrderRevertCounterIncremented, Context(consideration, empty, 0, 0, 0));
+    }
+
+    function fulfillOrderRevertCounterIncremented(Context memory context) external stateless {
+        test1155_1.mint(bob, 1, 1);
+        addErc1155OfferItem(1, 1);
+        addEthConsiderationItem(payable(bob), 1);
+
+        _configureOrderParameters(
+            bob,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        configureOrderComponents(context.consideration.getCounter(bob));
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder2098(
+            context.consideration,
+            bobPk,
+            orderHash
+        );
+
+        Order memory order = Order(baseOrderParameters, signature);
+
+        _validateOrder(order, context.consideration);
+
+        vm.prank(bob);
+        context.consideration.incrementCounter();
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        _validateOrder(order, context.consideration);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        context.consideration.fulfillOrder{ value: 1 }(order, bytes32(0));
+
+        configureOrderComponents(context.consideration.getCounter(bob));
+        orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        signature = signOrder(
+            context.consideration,
+            bobPk,
+            orderHash
+        );
+
+        order = Order(baseOrderParameters, signature);
+
+        _validateOrder(order, context.consideration);
+
+        vm.prank(bob);
+        context.consideration.incrementCounter();
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        _validateOrder(order, context.consideration);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        context.consideration.fulfillOrder{ value: 1 }(order, bytes32(0));
+    }
 }
