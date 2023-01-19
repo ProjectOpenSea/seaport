@@ -18,14 +18,20 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import {
-    ContractOffererInterface
-} from "../../../contracts/interfaces/ContractOffererInterface.sol";
-import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
-
+    ItemType,
+    OrderType
+} from "../../../contracts/lib/ConsiderationEnums.sol";
 import {
+    AdvancedOrder,
+    OrderParameters,
+    OrderComponents,
+    CriteriaResolver,
     SpentItem,
     ReceivedItem
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+import {
+    ContractOffererInterface
+} from "../../../contracts/interfaces/ContractOffererInterface.sol";
 import {
     TestContractOffererNativeToken
 } from "../../../contracts/test/TestContractOffererNativeToken.sol";
@@ -47,8 +53,15 @@ contract ContractOffersNativeTokenOfferItems is
     }
 
     modifier validateInputs(FuzzArgs memory args) {
-        vm.assume(args.ethAmount > 0);
+        vm.assume(args.ethAmount > 0 && args.ethAmount < 100000);
         _;
+    }
+
+    TestERC721 erc721;
+
+    function setUp() public override {
+        super.setUp();
+        erc721 = new TestERC721();
     }
 
     function test(
@@ -60,104 +73,91 @@ contract ContractOffersNativeTokenOfferItems is
         }
     }
 
-    TestERC721 erc721;
-
-    function setUp() public override {
-        erc721 = new TestERC721();
-    }
-
-    function testGenerateOrder(
+    function testEthForErc721(
         FuzzArgs memory args
     ) public validateInputs(args) {
         test(
-            this.generateOrder,
-            Context({ seaport: consideration, args: args })
+            this.ethForErc721,
+            Context({
+                seaport: consideration,
+                args: FuzzArgs({ ethAmount: 1, nftId: 1 })
+            })
         );
         test(
-            this.generateOrder,
+            this.ethForErc721,
             Context({ seaport: referenceConsideration, args: args })
         );
     }
 
-    function generateOrder(Context memory context) public stateless {
+    function ethForErc721(Context memory context) public stateless {
         TestContractOffererNativeToken contractOfferer = new TestContractOffererNativeToken(
                 address(context.seaport)
             );
-        vm.deal(address(contractOfferer), 1000 ether);
+        vm.deal(address(contractOfferer), UINT256_MAX);
 
-        erc721.setApprovalForAll(address(contractOfferer), true);
-        erc721.mint(address(this), context.args.nftId);
+        test721_1.setApprovalForAll(address(contractOfferer), true);
+        test721_1.mint(address(this), context.args.nftId);
 
-        SpentItem[] memory minimumReceived = new SpentItem[](1);
-        minimumReceived[0] = SpentItem({
+        SpentItem[] memory maximumSpent = new SpentItem[](1);
+        maximumSpent[0] = SpentItem({
             itemType: ItemType.ERC721,
             token: address(erc721),
             identifier: context.args.nftId,
             amount: 1
         });
 
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
+        SpentItem[] memory minimumReceived = new SpentItem[](1);
+        minimumReceived[0] = SpentItem({
             itemType: ItemType.NATIVE,
             token: address(0),
             identifier: 0,
             amount: context.args.ethAmount
         });
 
-        contractOfferer.activate(maximumSpent[0], minimumReceived[0]);
-
-        vm.prank(address(context.seaport));
-        (
-            SpentItem[] memory spentItems,
-            ReceivedItem[] memory receivedItems
-        ) = contractOfferer.generateOrder(
-                address(this),
-                minimumReceived,
-                maximumSpent,
-                ""
-            );
-
-        assertEq(spentItems.length, 1, "Spent items length should be 1");
-        assertEq(
-            uint8(spentItems[0].itemType),
-            uint8(ItemType.NATIVE),
-            "Spent item type should be ETH"
+        addEthOfferItem(context.args.ethAmount);
+        addErc721ConsiderationItem(
+            payable(address(contractOfferer)),
+            context.args.nftId
         );
-        assertEq(
-            spentItems[0].token,
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(contractOfferer),
             address(0),
-            "Spent item token address should be 0x0"
-        );
-        assertEq(
-            spentItems[0].identifier,
+            offerItems,
+            considerationItems,
+            OrderType.CONTRACT,
+            block.timestamp,
+            block.timestamp + 1000,
+            bytes32(0),
             0,
-            "Spent item token id should be 0"
+            bytes32(0),
+            considerationItems.length
         );
-        assertEq(
-            spentItems[0].amount,
-            context.args.ethAmount,
-            "Spent item amount should be fuzzed ethAmount"
-        );
-        assertEq(receivedItems.length, 1, "Received items length should be 1");
-        assertEq(
-            uint8(receivedItems[0].itemType),
-            uint8(ItemType.ERC721),
-            "Received item type should be ERC721"
-        );
-        assertEq(
-            receivedItems[0].token,
-            address(erc721),
-            "Received item token address should be address(erc721)"
-        );
-        assertEq(
-            receivedItems[0].identifier,
-            context.args.nftId,
-            "Received item token id should be fuzzed nftId"
-        );
-        assertEq(
-            receivedItems[0].amount,
+
+        AdvancedOrder memory advancedOrder = AdvancedOrder(
+            orderParameters,
             1,
-            "Received item amount should be 1"
+            1,
+            "",
+            ""
+        );
+
+        uint256 originalBalance = address(this).balance;
+
+        context.seaport.fulfillAdvancedOrder(
+            advancedOrder,
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+
+        assertEq(
+            context.args.ethAmount,
+            address(this).balance - originalBalance
+        );
+        assertEq(
+            address(contractOfferer),
+            test721_1.ownerOf(context.args.nftId)
         );
     }
 }
