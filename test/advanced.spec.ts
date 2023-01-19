@@ -1093,7 +1093,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         return receipt;
       });
     });
-    it.only("Contract Orders (native token offer items)", async () => {
+    it("Contract Orders (native token offer items)", async () => {
       // Buyer deploys offererContract
       const offererContract = await deployContract(
         "TestContractOffererNativeToken",
