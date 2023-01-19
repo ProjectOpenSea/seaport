@@ -2,6 +2,7 @@
 pragma solidity ^0.8.7;
 
 import { Test } from "forge-std/Test.sol";
+
 import {
     ERC20Interface,
     ERC721Interface
@@ -17,18 +18,25 @@ import {
     SpentItem,
     ReceivedItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     EnumerableSet
 } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+
 import {
     IERC721
 } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+
 import {
     IERC20
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
+
 import { TestPoolOfferer } from "../TestPoolOfferer.sol";
+
 import { TestPoolFactory } from "../TestPoolFactory.sol";
 
 contract TestPoolFactoryImpl {
