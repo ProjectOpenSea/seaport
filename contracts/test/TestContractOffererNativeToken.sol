@@ -86,20 +86,6 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         ready = true;
     }
 
-    // function activate(
-    //     SpentItem memory available,
-    //     SpentItem memory required
-    // ) public payable {
-    //     if (ready || fulfilled) {
-    //         revert OrderUnavailable();
-    //     }
-
-    //     // Set storage variables.
-    //     _available = available;
-    //     _required = required;
-    //     ready = true;
-    // }
-
     function extendAvailable() public {
         if (!ready || fulfilled) {
             revert OrderUnavailable();
