@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 
 import "forge-std/Test.sol";
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+import { DifferentialTest } from "../utils/DifferentialTest.sol";
 // import {
 //     IERC721
 // } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
@@ -31,7 +32,10 @@ import {
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
-contract ContractOffersNativeTokenOfferItems is BaseOrderTest {
+contract ContractOffersNativeTokenOfferItems is
+    DifferentialTest,
+    BaseOrderTest
+{
     struct FuzzArgs {
         uint256 ethAmount;
         uint256 nftId;
@@ -75,7 +79,7 @@ contract ContractOffersNativeTokenOfferItems is BaseOrderTest {
         );
     }
 
-    function generateOrder(Context memory context) public {
+    function generateOrder(Context memory context) public stateless {
         TestContractOffererNativeToken contractOfferer = new TestContractOffererNativeToken(
                 address(context.seaport)
             );
