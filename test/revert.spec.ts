@@ -6680,6 +6680,55 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         )
         .withArgs(conduitOne.address, parseEther("1"));
     });
+    it("Reverts when marketplace is an ether recipient for basic orders", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(
+          parseEther("1"),
+          parseEther("1"),
+          marketplaceContract.address
+        ),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        0, // EthForERC721
+        order
+      );
+
+      const customError = !process.env.REFERENCE
+        ? "InvalidMsgValue"
+        : "EtherTransferGenericFailure";
+      const args = !process.env.REFERENCE
+        ? [parseEther("1")]
+        : [marketplaceContract.address, parseEther("1")];
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillBasicOrder(basicOrderParameters, {
+            value,
+          })
+      )
+        .to.be.revertedWithCustomError(marketplaceContract, customError)
+        .withArgs(...args);
+    });
   });
 
   describe("Basic Order Calldata", () => {
