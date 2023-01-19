@@ -13,7 +13,11 @@ import {
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import {
+    SpentItem,
+    ReceivedItem,
+    Schema
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title TestContractOfferer
@@ -274,16 +278,22 @@ contract TestContractOfferer is ContractOffererInterface {
         return bytes4(0xf23a6e61);
     }
 
-    function getMetadata()
+    /**
+     * @dev Returns the metadata for this contract offerer.
+     */
+    function getSeaportMetadata()
         external
         pure
         override
         returns (
-            uint256 schemaID, // maps to a Seaport standard's ID
             string memory name,
-            bytes memory metadata // decoded based on the schemaID
+            Schema[] memory schemas // map to Seaport Improvement Proposal IDs
         )
     {
-        return (1337, "TestContractOfferer", "");
+        schemas = new Schema[](1);
+        schemas[0].id = 1337;
+        schemas[0].metadata = new bytes(0);
+
+        return ("TestContractOfferer", schemas);
     }
 }
