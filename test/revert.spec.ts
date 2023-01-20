@@ -5607,6 +5607,83 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           )
       ).to.be.revertedWithCustomError(marketplaceContract, "MissingItemAmount");
     });
+    it("Reverts when aggregating zero-amount items", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      // Buyer mints ERC20
+      await testERC20.mint(buyer.address, 1000);
+
+      // Buyer approves marketplace contract to transfer tokens
+
+      await expect(
+        testERC20.connect(buyer).approve(marketplaceContract.address, 1000)
+      )
+        .to.emit(testERC20, "Approval")
+        .withArgs(buyer.address, marketplaceContract.address, 1000);
+
+      const offer = [getTestItem1155(nftId, 0, 0, undefined)];
+
+      const consideration = [
+        getTestItem20(amount.mul(100), amount.mul(100), seller.address),
+        getTestItem20(amount.mul(10), amount.mul(10), zone.address),
+        getTestItem20(amount.mul(20), amount.mul(20), owner.address),
+      ];
+
+      const { order: orderOne, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { order: orderTwo } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const offerComponents = [
+        toFulfillmentComponents([
+          [0, 0],
+          [1, 0],
+        ]),
+      ];
+
+      const considerationComponents = [
+        [
+          [0, 0],
+          [1, 0],
+        ],
+        [
+          [0, 1],
+          [1, 1],
+        ],
+        [
+          [0, 2],
+          [1, 2],
+        ],
+      ].map(toFulfillmentComponents);
+
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableOrders(
+            [orderOne, orderTwo],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            100
+          )
+      ).to.be.revertedWithCustomError(marketplaceContract, "MissingItemAmount");
+    });
     it("Reverts when ERC20 tokens return falsey values", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
