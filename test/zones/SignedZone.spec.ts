@@ -171,7 +171,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     expect(recoveredAddress).to.equal(signer.address);
 
     // extraData to be set on the order, according to SIP-7
-    const extraData = `0x${fulfiller.slice(2)}${toPaddedBytes(
+    const sip6VersionByte = "00";
+    const extraData = `0x${sip6VersionByte}${fulfiller.slice(2)}${toPaddedBytes(
       expiration,
       8
     )}${signature.slice(2)}${context.slice(2)}`;
@@ -450,7 +451,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     // Tamper with extraData by extending the expiration
     order.extraData =
-      order.extraData.slice(0, 50) + "9" + order.extraData.slice(51);
+      order.extraData.slice(0, 52) + "9" + order.extraData.slice(53);
 
     await expect(
       marketplaceContract
@@ -527,7 +528,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     const seaportMetadata = await signedZone.getSeaportMetadata();
     expect(seaportMetadata[0]).to.eq("OpenSeaSignedZone");
-    expect(seaportMetadata[1][0][0]).to.deep.eq(toBN(7));
+    expect(seaportMetadata[1][0][0]).to.deep.eq(toBN(5));
+    expect(seaportMetadata[1][1][0]).to.deep.eq(toBN(6));
+    expect(seaportMetadata[1][2][0]).to.deep.eq(toBN(7));
   });
   it("Should error on improperly formatted extraData", async () => {
     // Execute 721 <=> ETH order
@@ -572,8 +575,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
       .withArgs("extraData is empty", orderHash);
 
-    // Expect failure with invalid length extraData
-    order.extraData = validExtraData.slice(0, 50);
+    // Expect failure with non-zero SIP-6 version byte
+    order.extraData = "0x" + "01" + validExtraData.slice(4);
     await expect(
       marketplaceContract
         .connect(buyer)
@@ -588,7 +591,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         )
     )
       .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("extraData length must be at least 92 bytes", orderHash);
+      .withArgs("SIP-6 version byte must be 0x00", orderHash);
 
     // Expect success with valid extraData
     order.extraData = validExtraData;
