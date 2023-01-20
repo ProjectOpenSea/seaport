@@ -1,34 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import { ZoneParameters } from "../lib/ConsiderationStructs.sol";
+
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+
+import { SignedZoneInterface } from "./interfaces/SignedZoneInterface.sol";
 
 import {
     SignedZoneEventsAndErrors
 } from "./interfaces/SignedZoneEventsAndErrors.sol";
 
-import { ZoneParameters } from "../lib/ConsiderationStructs.sol";
-
-import { SignedZoneInterface } from "./interfaces/SignedZoneInterface.sol";
+import { SIP5Interface } from "./interfaces/SIP5Interface.sol";
 
 import {
     Ownable2Step
 } from "../../lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
+import {
+    ERC165
+} from "../../lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
+
 /**
  * @title  SignedZone
  * @author ryanio
- * @notice SignedZone is a zone implementation that requires orders
+ * @notice SignedZone is an implementation of SIP-7 that requires orders
  *         to be signed by an approved signer.
+ *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
  */
 contract SignedZone is
     SignedZoneEventsAndErrors,
     ZoneInterface,
     SignedZoneInterface,
+    SIP5Interface,
+    ERC165,
     Ownable2Step
 {
     /// @dev The allowed signers.
-    mapping(address => bool) private _signers;
+    mapping(address => SignerInfo) private _signers;
+
+    /// @dev The API endpoint where orders for this zone can be signed.
+    ///      Request and response payloads are defined in SIP-7.
+    string private _API_ENDPOINT;
+
+    /// @dev The name for this zone returned in getSeaportMetadata().
+    string private _ZONE_NAME;
 
     /// @dev The EIP-712 digest parameters.
     bytes32 internal immutable _NAME_HASH = keccak256(bytes("SignedZone"));
@@ -50,7 +66,8 @@ contract SignedZone is
             "SignedOrder(",
                 "address fulfiller,",
                 "uint256 expiration,",
-                "bytes32 orderHash",
+                "bytes32 orderHash,",
+                "bytes context",
             ")"
           )
         );
@@ -89,44 +106,58 @@ contract SignedZone is
 
     /**
      * @notice Constructor to deploy the contract.
+     *
+     * @param zoneName    The name for the zone returned in getSeaportMetadata().
+     * @param apiEndpoint The API endpoint where orders for this zone can be signed.
+     *                    Request and response payloads are defined in SIP-7.
      */
-    constructor() {
+    constructor(string memory zoneName, string memory apiEndpoint) {
+        _ZONE_NAME = zoneName;
+        _API_ENDPOINT = apiEndpoint;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
     }
 
     /**
-     * @notice Add a new signer.
+     * @notice Add a new signer to the zone.
      *
      * @param signer The new signer address to add.
      */
     function addSigner(address signer) external onlyOwner {
+        // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
         }
 
-        if (_signers[signer] == true) {
+        // Revert if the signer is already added.
+        if (_signers[signer].active) {
             revert SignerAlreadyAdded(signer);
         }
 
-        // Add the signer in the mapping.
-        _signers[signer] = true;
+        // Revert if the signer was previously authorized.
+        if (_signers[signer].previouslyActive) {
+            revert SignerCannotBeReauthorized(signer);
+        }
+
+        // Set the signer info.
+        _signers[signer] = SignerInfo(true, true);
 
         // Emit an event that the signer was added.
         emit SignerAdded(signer);
     }
 
     /**
-     * @notice Remove an active signer.
+     * @notice Remove an active signer from the zone.
      *
      * @param signer The signer address to remove.
      */
     function removeSigner(address signer) external onlyOwner {
-        if (_signers[signer] == false) {
+        // Revert if the signer is not active.
+        if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
         }
 
-        // Remove the signer in the mapping.
-        _signers[signer] = false;
+        // Set the signer's active status to false.
+        _signers[signer].active = false;
 
         // Emit an event that the signer was removed.
         emit SignerRemoved(signer);
@@ -144,23 +175,42 @@ contract SignedZone is
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external view override returns (bytes4 validOrderMagicValue) {
-        // Set the fulfiller, expiration, and signature from the extraData.
+        // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
-        // bytes 0-20: expected fulfiller (zero address means not restricted)
-        address expectedFulfiller = address(bytes20(extraData[:20]));
-        // bytes 20-52: expiration timestamp
-        uint256 expiration = uint256(bytes32(extraData[20:52]));
-        // bytes 52-117: signature (supports 64 byte compact sig, EIP-2098)
-        bytes calldata signature = extraData[52:];
-
-        // Put orderHash and fulfiller on the stack for more efficient access.
         bytes32 orderHash = zoneParameters.orderHash;
-        address actualFulfiller = zoneParameters.fulfiller;
+
+        // Revert with an error if the extraData does not have valid length.
+        if (extraData.length == 0) {
+            revert InvalidExtraData("extraData is empty", orderHash);
+        }
+
+        // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
+        if (extraData[0] != 0x00) {
+            revert InvalidExtraData(
+                "SIP-6 version byte must be 0x00",
+                orderHash
+            );
+        }
+
+        // extraData bytes 1-21: expected fulfiller (zero address means not restricted)
+        address expectedFulfiller = address(bytes20(extraData[1:21]));
+
+        // extraData bytes 21-25: expiration timestamp
+        uint256 expiration = uint256(bytes32(bytes4(extraData[21:25])) >> 224);
+
+        // extraData bytes 25-89: signature (strictly requires 64 byte compact sig, EIP-2098)
+        bytes calldata signature = extraData[25:89];
+
+        // extraData bytes 89-end: context (optional, variable length)
+        bytes calldata context = extraData[89:];
 
         // Revert if expired.
         if (block.timestamp > expiration) {
             revert SignatureExpired(expiration, orderHash);
         }
+
+        // Put fulfiller on the stack for more efficient access.
+        address actualFulfiller = zoneParameters.fulfiller;
 
         // Revert if expected fulfiller is not the zero address and does
         // not match the actual fulfiller.
@@ -183,7 +233,8 @@ contract SignedZone is
         bytes32 signedOrderHash = _deriveSignedOrderHash(
             expectedFulfiller,
             expiration,
-            orderHash
+            orderHash,
+            context
         );
 
         // Derive the EIP-712 digest using the domain separator and signedOrder
@@ -196,9 +247,9 @@ contract SignedZone is
         // Recover the signer address from the digest and signature.
         address recoveredSigner = _recoverSigner(digest, signature);
 
-        // Revert if the signer is not approved.
-        if (_signers[recoveredSigner] != true) {
-            revert SignerNotApproved(recoveredSigner, orderHash);
+        // Revert if the signer is not active.
+        if (!_signers[recoveredSigner].active) {
+            revert SignerNotActive(recoveredSigner, orderHash);
         }
 
         // Return the selector of validateOrder as the magic value.
@@ -208,9 +259,10 @@ contract SignedZone is
     /**
      * @dev Derive the signedOrder hash from the orderHash and expiration.
      *
-     * @param fulfiller        The expected fulfiller address.
-     * @param expiration       The signature expiration timestamp.
-     * @param orderHash        The order hash.
+     * @param fulfiller  The expected fulfiller address.
+     * @param expiration The signature expiration timestamp.
+     * @param orderHash  The order hash.
+     * @param context    The optional variable-length context.
      *
      * @return signedOrderHash The signedOrder hash.
      *
@@ -218,11 +270,18 @@ contract SignedZone is
     function _deriveSignedOrderHash(
         address fulfiller,
         uint256 expiration,
-        bytes32 orderHash
+        bytes32 orderHash,
+        bytes calldata context
     ) internal view returns (bytes32 signedOrderHash) {
         // Derive the signed order hash.
         signedOrderHash = keccak256(
-            abi.encode(_SIGNED_ORDER_TYPEHASH, fulfiller, expiration, orderHash)
+            abi.encode(
+                _SIGNED_ORDER_TYPEHASH,
+                fulfiller,
+                expiration,
+                orderHash,
+                keccak256(context)
+            )
         );
     }
 
@@ -447,13 +506,51 @@ contract SignedZone is
     }
 
     /**
-     * @dev Public view function to retrieve configuration information for
-     *      this contract.
+     * @notice Returns signing information about the zone.
      *
-     * @return domainSeparator The domain separator for this contract.
+     * @return domainSeparator The domain separator used for signing.
      */
-    function information() external view returns (bytes32 domainSeparator) {
+    function information()
+        external
+        view
+        returns (bytes32 domainSeparator, string memory apiEndpoint)
+    {
         // Derive the domain separator.
         domainSeparator = _domainSeparator();
+        // Return the API endpoint.
+        apiEndpoint = _API_ENDPOINT;
+    }
+
+    /**
+     * @dev Returns Seaport metadata for this contract, returning the
+     *      contract name and supported schemas.
+     *
+     * @return name    The contract name
+     * @return schemas The supported SIPs
+     */
+    function getSeaportMetadata()
+        external
+        view
+        returns (string memory name, Schema[] memory schemas)
+    {
+        name = _ZONE_NAME;
+        schemas = new Schema[](3);
+        schemas[0].id = 5;
+        schemas[1].id = 6;
+        schemas[2].id = 7;
+    }
+
+    /**
+     * @notice Returns whether the interface is supported.
+     *
+     * @param interfaceId The interface id to check against.
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165) returns (bool) {
+        return
+            interfaceId == type(SIP5Interface).interfaceId || // SIP-5
+            interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
+            super.supportsInterface(interfaceId); // ERC-165
     }
 }

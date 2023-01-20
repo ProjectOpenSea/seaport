@@ -3,10 +3,16 @@ import { expect } from "chai";
 import { keccak256, recoverAddress, toUtf8Bytes } from "ethers/lib/utils";
 import hre, { ethers, network } from "hardhat";
 
+import {
+  ERC165__factory,
+  SIP5Interface__factory,
+  ZoneInterface__factory,
+} from "../../typechain-types";
 import { merkleTree } from "../utils/criteria";
 import {
   buildResolver,
   convertSignatureToEIP2098,
+  getInterfaceID,
   getItemETH,
   randomHex,
   toBN,
@@ -86,19 +92,26 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     chainId = (await provider.getNetwork()).chainId;
 
     signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
-    signedZone = await signedZoneFactory.deploy();
+    signedZone = await signedZoneFactory.deploy(
+      "OpenSeaSignedZone",
+      "https://api.opensea.io/api/v2/sign"
+    );
   });
 
-  const toPaddedExpiration = (expiration: number) =>
-    ethers.BigNumber.from(expiration).toHexString().slice(2).padStart(64, "0");
+  const toPaddedBytes = (value: number, numBytes = 32) =>
+    ethers.BigNumber.from(value)
+      .toHexString()
+      .slice(2)
+      .padStart(numBytes * 2, "0");
 
   const calculateSignedOrderHash = (
     fulfiller: string,
     expiration: number,
-    orderHash: string
+    orderHash: string,
+    context: string
   ) => {
     const signedOrderTypeString =
-      "SignedOrder(address fulfiller,uint256 expiration,bytes32 orderHash)";
+      "SignedOrder(address fulfiller,uint256 expiration,bytes32 orderHash,bytes context)";
     const signedOrderTypeHash = keccak256(toUtf8Bytes(signedOrderTypeString));
 
     const signedOrderHash = keccak256(
@@ -106,8 +119,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         [
           signedOrderTypeHash.slice(2),
           fulfiller.slice(2).padStart(64, "0"),
-          toPaddedExpiration(expiration),
+          toPaddedBytes(expiration),
           orderHash.slice(2),
+          keccak256(context).slice(2),
         ].join("")
     );
 
@@ -116,11 +130,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
   const signOrder = async (
     orderHash: string,
+    context: string = "0x",
     signer: Wallet,
-    zone: Contract,
     fulfiller = ethers.constants.AddressZero,
     secondsUntilExpiration = 60,
-    compactSignature = false
+    zone: Contract = signedZone
   ) => {
     const domainData = {
       name: "SignedZone",
@@ -130,24 +144,22 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     };
 
     const expiration = Math.round(Date.now() / 1000) + secondsUntilExpiration;
-    const signedOrder = { fulfiller, expiration, orderHash };
+    const signedOrder = { fulfiller, expiration, orderHash, context };
     let signature = await signer._signTypedData(
       domainData,
       signedOrderType,
       signedOrder
     );
 
-    expect(signature.length).to.eq(2 + 65 * 2); // 0x + 65 bytes
-    if (compactSignature) {
-      signature = convertSignatureToEIP2098(signature);
-      expect(signature.length).to.eq(2 + 64 * 2); // 0x + 64 bytes
-    }
+    signature = convertSignatureToEIP2098(signature);
+    expect(signature.length).to.eq(2 + 64 * 2); // 0x + 64 bytes
 
-    const domainSeparator = await zone.information();
+    const { domainSeparator } = await zone.information();
     const signedOrderHash = calculateSignedOrderHash(
       fulfiller,
       expiration,
-      orderHash
+      orderHash,
+      context
     );
     const digest = keccak256(
       `0x1901${domainSeparator.slice(2)}${signedOrderHash.slice(2)}`
@@ -156,10 +168,12 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const recoveredAddress = recoverAddress(digest, signature);
     expect(recoveredAddress).to.equal(signer.address);
 
-    // extraData to be set on the order
-    const extraData = `0x${fulfiller.slice(2)}${toPaddedExpiration(
-      expiration
-    )}${signature.slice(2)}`;
+    // extraData to be set on the order, according to SIP-7
+    const sip6VersionByte = "00";
+    const extraData = `0x${sip6VersionByte}${fulfiller.slice(2)}${toPaddedBytes(
+      expiration,
+      4
+    )}${signature.slice(2)}${context.slice(2)}`;
 
     return { signature, expiration, extraData };
   };
@@ -184,7 +198,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     order.extraData = (
-      await signOrder(orderHash, approvedSigner, signedZone)
+      await signOrder(orderHash, "0x1234", approvedSigner)
     ).extraData;
 
     // Expect failure if signer is not approved
@@ -201,7 +215,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotApproved")
+      .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
@@ -253,7 +267,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     order.extraData = (
-      await signOrder(orderHash, approvedSigner, signedZone, buyer.address)
+      await signOrder(orderHash, undefined, approvedSigner, buyer.address)
     ).extraData;
 
     // Approve signer
@@ -302,91 +316,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       return receipt;
     });
   });
-  it("Fulfills an order with a signed zone using compact signature (EIP-2098)", async () => {
-    // Execute 721 <=> ETH order
-    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
-
-    const offer = [getTestItem721(nftId)];
-
-    const consideration = [
-      getItemETH(parseEther("10"), parseEther("10"), seller.address),
-      getItemETH(parseEther("1"), parseEther("1"), owner.address),
-    ];
-
-    const { order, orderHash, value } = await createOrder(
-      seller,
-      signedZone.address,
-      offer,
-      consideration,
-      2 // FULL_RESTRICTED
-    );
-
-    // Use compact representation of signature (EIP-2098)
-    order.extraData = (
-      await signOrder(
-        orderHash,
-        approvedSigner,
-        signedZone,
-        undefined,
-        undefined,
-        true
-      )
-    ).extraData;
-
-    // Expect failure if signer is not approved
-    await expect(
-      marketplaceContract
-        .connect(buyer)
-        .fulfillAdvancedOrder(
-          order,
-          [],
-          toKey(0),
-          ethers.constants.AddressZero,
-          {
-            value,
-          }
-        )
-    )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotApproved")
-      .withArgs(approvedSigner.address, orderHash);
-
-    // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
-
-    // Expect success now that signer is approved
-    await withBalanceChecks([order], 0, undefined, async () => {
-      const tx = await marketplaceContract
-        .connect(buyer)
-        .fulfillAdvancedOrder(
-          order,
-          [],
-          toKey(0),
-          ethers.constants.AddressZero,
-          {
-            value,
-          }
-        );
-
-      const receipt = await tx.wait();
-      await checkExpectedEvents(tx, receipt, [
-        {
-          order,
-          orderHash,
-          fulfiller: buyer.address,
-          fulfillerConduitKey: toKey(0),
-        },
-      ]);
-      return receipt;
-    });
-  });
   it("Fulfills an advanced order with criteria with a signed zone", async () => {
-    const signedZoneFactory = await ethers.getContractFactory(
-      "SignedZone",
-      owner
-    );
-
-    const signedZone = await signedZoneFactory.deploy();
-
     // Create advanced order using signed zone
     // Execute 721 <=> ETH order
     const nftId = await mintAndApprove721(seller, marketplaceContract.address);
@@ -414,12 +344,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     order.extraData = (
-      await signOrder(orderHash, approvedSigner, signedZone)
+      await signOrder(orderHash, undefined, approvedSigner)
     ).extraData;
-
-    // Approve and remove signer
-    await signedZone.addSigner(approvedSigner.address);
-    await signedZone.removeSigner(approvedSigner.address);
 
     // Expect failure if signer is not approved
     await expect(
@@ -435,7 +361,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotApproved")
+      .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
@@ -473,13 +399,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     });
   });
   it("Does not fulfill an expired signature order with a signed zone", async () => {
-    const signedZoneFactory = await ethers.getContractFactory(
-      "SignedZone",
-      owner
-    );
-
-    const signedZone = await signedZoneFactory.deploy();
-
     // Create advanced order using signed zone
     // Execute 721 <=> ETH order
     const nftId = await mintAndApprove721(seller, marketplaceContract.address);
@@ -501,8 +420,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     const { extraData, expiration } = await signOrder(
       orderHash,
+      undefined,
       approvedSigner,
-      signedZone,
       undefined,
       -100
     );
@@ -529,10 +448,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(expiration, orderHash);
 
     // Tamper with extraData by extending the expiration
-    const futureExpiration = Math.round(Date.now() / 1000) + 1000;
-    order.extraData = `0x${toPaddedExpiration(
-      futureExpiration
-    )}${extraData.slice(2, 132)}`;
+    order.extraData =
+      order.extraData.slice(0, 44) + "9" + order.extraData.slice(45);
+
     await expect(
       marketplaceContract
         .connect(buyer)
@@ -546,17 +464,10 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotApproved")
+      .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(anyValue, orderHash);
   });
   it("Only the owner can set and remove signers", async () => {
-    const signedZoneFactory = await ethers.getContractFactory(
-      "SignedZone",
-      owner
-    );
-
-    const signedZone = await signedZoneFactory.deploy();
-
     await expect(
       signedZone.connect(buyer).addSigner(buyer.address)
     ).to.be.revertedWith("Ownable: caller is not the owner");
@@ -577,6 +488,10 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.emit(signedZone, "SignerRemoved")
       .withArgs(approvedSigner.address);
 
+    await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
+      .to.be.revertedWithCustomError(signedZone, "SignerCannotBeReauthorized")
+      .withArgs(approvedSigner.address);
+
     await expect(signedZone.connect(owner).removeSigner(approvedSigner.address))
       .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
       .withArgs(approvedSigner.address);
@@ -590,6 +505,112 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     )
       .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
       .withArgs(ethers.constants.AddressZero);
+  });
+  it("Should return valid data in information() and getSeaportMetadata()", async () => {
+    const information = await signedZone.information();
+    expect(information[0].length).to.eq(66);
+    expect(information[1]).to.eq("https://api.opensea.io/api/v2/sign");
+
+    const seaportMetadata = await signedZone.getSeaportMetadata();
+    expect(seaportMetadata[0]).to.eq("OpenSeaSignedZone");
+    expect(seaportMetadata[1][0][0]).to.deep.eq(toBN(5));
+    expect(seaportMetadata[1][1][0]).to.deep.eq(toBN(6));
+    expect(seaportMetadata[1][2][0]).to.deep.eq(toBN(7));
+  });
+  it("Should error on improperly formatted extraData", async () => {
+    // Execute 721 <=> ETH order
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+
+    const offer = [getTestItem721(nftId)];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const { order, orderHash, value } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    const validExtraData = (
+      await signOrder(orderHash, "0x1234", approvedSigner)
+    ).extraData;
+
+    // Approve signer
+    await signedZone.addSigner(approvedSigner.address);
+
+    // Expect failure with 0 length extraData
+    await expect(
+      marketplaceContract
+        .connect(buyer)
+        .fulfillAdvancedOrder(
+          order,
+          [],
+          toKey(0),
+          ethers.constants.AddressZero,
+          {
+            value,
+          }
+        )
+    )
+      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
+      .withArgs("extraData is empty", orderHash);
+
+    // Expect failure with non-zero SIP-6 version byte
+    order.extraData = "0x" + "01" + validExtraData.slice(4);
+    await expect(
+      marketplaceContract
+        .connect(buyer)
+        .fulfillAdvancedOrder(
+          order,
+          [],
+          toKey(0),
+          ethers.constants.AddressZero,
+          {
+            value,
+          }
+        )
+    )
+      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
+      .withArgs("SIP-6 version byte must be 0x00", orderHash);
+
+    // Expect success with valid extraData
+    order.extraData = validExtraData;
+    await marketplaceContract
+      .connect(buyer)
+      .fulfillAdvancedOrder(order, [], toKey(0), ethers.constants.AddressZero, {
+        value,
+      });
+  });
+  it("Should return supportsInterface=true for SIP-5 and ZoneInterface", async () => {
+    const supportedInterfacesSIP5Interface = [[SIP5Interface__factory]];
+    const supportedInterfacesZoneInterface = [[ZoneInterface__factory]];
+    const supportedInterfacesERC165 = [[ERC165__factory]];
+
+    for (const factories of [
+      ...supportedInterfacesSIP5Interface,
+      ...supportedInterfacesZoneInterface,
+      ...supportedInterfacesERC165,
+    ]) {
+      const interfaceId = factories
+        .map((factory) => getInterfaceID(factory.createInterface()))
+        .reduce((prev, curr) => prev.xor(curr))
+        .toHexString();
+      expect(await signedZone.supportsInterface(interfaceId)).to.be.true;
+    }
+
+    // Ensure the interface for SIP-5 returns true.
+    expect(await signedZone.supportsInterface("0x2e778efc")).to.be.true;
+
+    // Ensure invalid interfaces return false.
+    const invalidInterfaceIds = ["0x00000000", "0x10000000", "0x00000001"];
+    for (const interfaceId of invalidInterfaceIds) {
+      expect(await signedZone.supportsInterface(interfaceId)).to.be.false;
+    }
   });
   // Note: Run this test last in this file as it hacks changing the hre
   it("Reverts on changed chainId", async () => {
@@ -613,7 +634,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     order.extraData = (
-      await signOrder(orderHash, approvedSigner, signedZone)
+      await signOrder(orderHash, undefined, approvedSigner)
     ).extraData;
 
     // Expect failure if signer is not approved
@@ -630,7 +651,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotApproved")
+      .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer

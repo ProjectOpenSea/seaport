@@ -370,3 +370,12 @@ export const defaultAcceptOfferMirrorFulfillment = [
 ].map(([offerArr, considerationArr]) =>
   toFulfillment(offerArr, considerationArr)
 );
+
+export const getInterfaceID = (contractInterface: utils.Interface) => {
+  let interfaceID = constants.Zero;
+  const functions: string[] = Object.keys(contractInterface.functions);
+  for (let i = 0; i < functions.length; i++) {
+    interfaceID = interfaceID.xor(contractInterface.getSighash(functions[i]));
+  }
+  return interfaceID;
+};
