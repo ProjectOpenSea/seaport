@@ -1,19 +1,14 @@
 import { expect } from "chai";
-
 import hre, { ethers, network } from "hardhat";
-
-import { create2FactoryFixture } from "../utils/fixtures/create2";
-
 import { randomHex, toBN } from "../utils/encoding";
 import { faucet } from "../utils/faucet";
-
 import { VERSION } from "../utils/helpers";
-
+import { create2FactoryFixture } from "../utils/fixtures/create2";
 import type {
+  ImmutableCreate2FactoryInterface,
   SignedZone,
   SignedZoneFactory,
   SignedZoneFactory__factory,
-  ImmutableCreate2FactoryInterface,
 } from "../../typechain-types";
 
 const deployConstants = require("../../constants/constants");

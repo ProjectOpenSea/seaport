@@ -118,7 +118,8 @@ contract SignedZoneFactory is
             )
         );
 
-        // Derive the SignedZone address from deployer, salt and creation code hash.
+        // Derive the SignedZone address from deployer, salt and creation code
+        // hash.
         derivedAddress = address(
             uint160(
                 uint256(
