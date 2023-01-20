@@ -29,10 +29,21 @@ interface SignedZoneEventsAndErrors {
     error SignerNotPresent(address signer);
 
     /**
-     * @dev Revert with an error when an order is signed with a signer
-     *      that is not approved.
+     * @dev Revert with an error if a new signer is the zero address.
      */
-    error SignerNotApproved(address signer, bytes32 orderHash);
+    error SignerCannotBeZeroAddress();
+
+    /**
+     * @dev Revert with an error if a removed signer is trying to be
+     *      reauthorized.
+     */
+    error SignerCannotBeReauthorized(address signer);
+
+    /**
+     * @dev Revert with an error when an order is signed with a signer
+     *      that is not active.
+     */
+    error SignerNotActive(address signer, bytes32 orderHash);
 
     /**
      * @dev Revert with an error when the signature has expired.
@@ -49,7 +60,8 @@ interface SignedZoneEventsAndErrors {
     );
 
     /**
-     * @dev Revert with an error if a new signer is the zero addres.
+     * @dev Revert with an error if supplied order extraData is invalid
+     *      or improperly formatted.
      */
-    error SignerCannotBeZeroAddress();
+    error InvalidExtraData(string reason, bytes32 orderHash);
 }
