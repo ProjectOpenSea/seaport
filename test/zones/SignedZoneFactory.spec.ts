@@ -1,9 +1,11 @@
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
+
 import { randomHex, toBN } from "../utils/encoding";
 import { faucet } from "../utils/faucet";
-import { VERSION } from "../utils/helpers";
 import { create2FactoryFixture } from "../utils/fixtures/create2";
+import { VERSION } from "../utils/helpers";
+
 import type {
   ImmutableCreate2FactoryInterface,
   SignedZone,
