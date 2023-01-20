@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
 import { DifferentialTest } from "../utils/DifferentialTest.sol";
-
 import {
     ERC20Interface,
     ERC721Interface
@@ -70,18 +69,18 @@ contract ContractOffersNativeTokenOfferItems is
         erc721 = new TestERC721();
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testEthForErc721(
-        FuzzArgs memory args
-    ) public validateInputs(args) {
+    function testEthForErc721(FuzzArgs memory args)
+        public
+        validateInputs(args)
+    {
         test(
             this.ethForErc721,
             Context({

@@ -111,7 +111,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     context: string
   ) => {
     const signedOrderTypeString =
-      "SignedOrder(address fulfiller,uint256 expiration,bytes32 orderHash,bytes context)";
+      "SignedOrder(address fulfiller,uint64 expiration,bytes32 orderHash,bytes context)";
     const signedOrderTypeHash = keccak256(toUtf8Bytes(signedOrderTypeString));
 
     const signedOrderHash = keccak256(
@@ -154,7 +154,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     signature = convertSignatureToEIP2098(signature);
     expect(signature.length).to.eq(2 + 64 * 2); // 0x + 64 bytes
 
-    const { domainSeparator } = await zone.information();
+    const { domainSeparator } = await zone.sip7Information();
     const signedOrderHash = calculateSignedOrderHash(
       fulfiller,
       expiration,
@@ -172,7 +172,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const sip6VersionByte = "00";
     const extraData = `0x${sip6VersionByte}${fulfiller.slice(2)}${toPaddedBytes(
       expiration,
-      4
+      8
     )}${signature.slice(2)}${context.slice(2)}`;
 
     return { signature, expiration, extraData };
@@ -506,8 +506,21 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
       .withArgs(ethers.constants.AddressZero);
   });
-  it("Should return valid data in information() and getSeaportMetadata()", async () => {
-    const information = await signedZone.information();
+  it("Only the owner should be able to modify the apiEndpoint", async () => {
+    expect((await signedZone.sip7Information())[1]).to.equal(
+      "https://api.opensea.io/api/v2/sign"
+    );
+
+    await expect(
+      signedZone.connect(buyer).updateAPIEndpoint("test123")
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+
+    await signedZone.connect(owner).updateAPIEndpoint("test123");
+
+    expect((await signedZone.sip7Information())[1]).to.eq("test123");
+  });
+  it("Should return valid data in sip7Information() and getSeaportMetadata()", async () => {
+    const information = await signedZone.sip7Information();
     expect(information[0].length).to.eq(66);
     expect(information[1]).to.eq("https://api.opensea.io/api/v2/sign");
 
