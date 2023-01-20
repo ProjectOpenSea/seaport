@@ -39,6 +39,8 @@ const { signedOrderType } = require("../../eip-712-types/signedOrder");
 const { parseEther } = ethers.utils;
 
 describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
+  if (process.env.REFERENCE) return;
+
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -449,7 +451,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     // Tamper with extraData by extending the expiration
     order.extraData =
-      order.extraData.slice(0, 44) + "9" + order.extraData.slice(45);
+      order.extraData.slice(0, 52) + "9" + order.extraData.slice(53);
 
     await expect(
       marketplaceContract
