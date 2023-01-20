@@ -203,32 +203,32 @@ contract SignedZone is
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
 
-        // Revert with an error if the extraData does not have valid length.
+        // Revert with an error if the extraData is empty.
         if (extraData.length == 0) {
             revert InvalidExtraData("extraData is empty", orderHash);
         }
 
-        // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
-        if (extraData[0] != 0x00) {
+        // Revert with an error if the extraData does not have valid length.
+        if (extraData.length < 92) {
             revert InvalidExtraData(
-                "SIP-6 version byte must be 0x00",
+                "extraData length must be at least 92 bytes",
                 orderHash
             );
         }
 
-        // extraData bytes 1-21: expected fulfiller
+        // extraData bytes 0-20: expected fulfiller
         // (zero address means not restricted)
-        address expectedFulfiller = address(bytes20(extraData[1:21]));
+        address expectedFulfiller = address(bytes20(extraData[:20]));
 
-        // extraData bytes 21-29: expiration timestamp (uint64)
-        uint64 expiration = uint64(bytes8(extraData[21:29]));
+        // extraData bytes 20-28: expiration timestamp (uint64)
+        uint64 expiration = uint64(bytes8(extraData[20:28]));
 
-        // extraData bytes 29-93: signature
+        // extraData bytes 28-92: signature
         // (strictly requires 64 byte compact sig, EIP-2098)
-        bytes calldata signature = extraData[29:93];
+        bytes calldata signature = extraData[28:92];
 
-        // extraData bytes 93-end: context (optional, variable length)
-        bytes calldata context = extraData[93:];
+        // extraData bytes 92-end: context (optional, variable length)
+        bytes calldata context = extraData[92:];
 
         // Revert if expired.
         if (block.timestamp > expiration) {
@@ -314,10 +314,8 @@ contract SignedZone is
         returns (string memory name, Schema[] memory schemas)
     {
         name = _ZONE_NAME;
-        schemas = new Schema[](3);
-        schemas[0].id = 5;
-        schemas[1].id = 6;
-        schemas[2].id = 7;
+        schemas = new Schema[](1);
+        schemas[0].id = 7;
     }
 
     /**
