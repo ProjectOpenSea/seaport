@@ -429,12 +429,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       undefined,
       approvedSigner,
       undefined,
-      -100
+      -1000
     );
     order.extraData = extraData;
-
-    // Set next block timestamp to current time (to help ci pass)
-    await helpers.time.setNextBlockTimestamp(Math.ceil(Date.now() / 1000));
 
     // Expect failure that signature is expired
     await expect(
