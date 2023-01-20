@@ -1,4 +1,5 @@
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import helpers from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { keccak256, recoverAddress, toUtf8Bytes } from "ethers/lib/utils";
 import hre, { ethers, network } from "hardhat";
@@ -420,6 +421,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
+    // Approve signer
+    await signedZone.addSigner(approvedSigner.address);
+
     const { extraData, expiration } = await signOrder(
       orderHash,
       undefined,
@@ -429,8 +433,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
     order.extraData = extraData;
 
-    // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    // Set next block timestamp to current time (to help ci pass)
+    await helpers.time.setNextBlockTimestamp(Math.ceil(Date.now() / 1000));
 
     // Expect failure that signature is expired
     await expect(
