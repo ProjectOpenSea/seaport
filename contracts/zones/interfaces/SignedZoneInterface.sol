@@ -33,13 +33,20 @@ interface SignedZoneInterface {
     function removeSigner(address signer) external;
 
     /**
+     * @notice Update the API endpoint returned by this zone.
+     *
+     * @param newApiEndpoint The new API endpoint.
+     */
+    function updateAPIEndpoint(string calldata newApiEndpoint) external;
+
+    /**
      * @notice Returns signing information about the zone.
      *
      * @return domainSeparator The domain separator used for signing.
      * @return apiEndpoint     The API endpoint to get signatures for orders
      *                         using this zone.
      */
-    function information()
+    function sip7Information()
         external
         view
         returns (bytes32 domainSeparator, string memory apiEndpoint);

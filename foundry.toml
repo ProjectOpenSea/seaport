@@ -9,7 +9,7 @@ remappings = [
     'forge-std/=lib/forge-std/src/',
     '@rari-capital/solmate/=lib/solmate/',
     'murky/=lib/murky/src/',
-    'openzeppelin-contracts/=lib/openzeppelin-contracts/'
+    '@openzeppelin/=lib/openzeppelin-contracts/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [

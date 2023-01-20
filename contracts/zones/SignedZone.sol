@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneParameters } from "../lib/ConsiderationStructs.sol";
+import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
@@ -13,13 +13,9 @@ import {
 
 import { SIP5Interface } from "./interfaces/SIP5Interface.sol";
 
-import {
-    Ownable2Step
-} from "../../lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-import {
-    ERC165
-} from "../../lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
  * @title  SignedZone
@@ -41,7 +37,7 @@ contract SignedZone is
 
     /// @dev The API endpoint where orders for this zone can be signed.
     ///      Request and response payloads are defined in SIP-7.
-    string private _API_ENDPOINT;
+    string private _sip7APIEndpoint;
 
     /// @dev The name for this zone returned in getSeaportMetadata().
     string private _ZONE_NAME;
@@ -65,7 +61,7 @@ contract SignedZone is
           abi.encodePacked(
             "SignedOrder(",
                 "address fulfiller,",
-                "uint256 expiration,",
+                "uint64 expiration,",
                 "bytes32 orderHash,",
                 "bytes context",
             ")"
@@ -74,47 +70,63 @@ contract SignedZone is
     uint256 internal immutable _CHAIN_ID = block.chainid;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
+    /* solhint-disable private-vars-leading-underscore */
+    /* solhint-disable const-name-snakecase */
+
     /// @dev ECDSA signature offsets.
-    uint256 constant ECDSA_MaxLength = 65;
-    uint256 constant ECDSA_signature_s_offset = 0x40;
-    uint256 constant ECDSA_signature_v_offset = 0x60;
+    uint256 internal constant ECDSA_MaxLength = 65;
+    uint256 internal constant ECDSA_signature_s_offset = 0x40;
+    uint256 internal constant ECDSA_signature_v_offset = 0x60;
 
     /// @dev Helpers for memory offsets.
-    uint256 constant OneWord = 0x20;
-    uint256 constant TwoWords = 0x40;
-    uint256 constant ThreeWords = 0x60;
-    uint256 constant FourWords = 0x80;
-    uint256 constant FiveWords = 0xa0;
-    uint256 constant Signature_lower_v = 27;
-    uint256 constant MaxUint8 = 0xff;
-    bytes32 constant EIP2098_allButHighestBitMask = (
+    uint256 internal constant OneWord = 0x20;
+    uint256 internal constant TwoWords = 0x40;
+    uint256 internal constant ThreeWords = 0x60;
+    uint256 internal constant FourWords = 0x80;
+    uint256 internal constant FiveWords = 0xa0;
+    uint256 internal constant Signature_lower_v = 27;
+    uint256 internal constant MaxUint8 = 0xff;
+    bytes32 internal constant EIP2098_allButHighestBitMask = (
         0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     );
-    uint256 constant Ecrecover_precompile = 1;
-    uint256 constant Ecrecover_args_size = 0x80;
-    uint256 constant FreeMemoryPointerSlot = 0x40;
-    uint256 constant ZeroSlot = 0x60;
-    uint256 constant Slot0x80 = 0x80;
+    uint256 internal constant Ecrecover_precompile = 1;
+    uint256 internal constant Ecrecover_args_size = 0x80;
+    uint256 internal constant FreeMemoryPointerSlot = 0x40;
+    uint256 internal constant ZeroSlot = 0x60;
+    uint256 internal constant Slot0x80 = 0x80;
 
     /// @dev The EIP-712 digest offsets.
-    uint256 constant EIP712_DomainSeparator_offset = 0x02;
-    uint256 constant EIP712_SignedOrderHash_offset = 0x22;
-    uint256 constant EIP712_DigestPayload_size = 0x42;
-    uint256 constant EIP_712_PREFIX = (
+    uint256 internal constant EIP712_DomainSeparator_offset = 0x02;
+    uint256 internal constant EIP712_SignedOrderHash_offset = 0x22;
+    uint256 internal constant EIP712_DigestPayload_size = 0x42;
+    uint256 internal constant EIP_712_PREFIX = (
         0x1901000000000000000000000000000000000000000000000000000000000000
     );
+
+    /* solhint-enable private-vars-leading-underscore */
+    /* solhint-enable const-name-snakecase */
 
     /**
      * @notice Constructor to deploy the contract.
      *
-     * @param zoneName    The name for the zone returned in getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be signed.
+     * @param zoneName    The name for the zone returned in
+     *                    getSeaportMetadata().
+     * @param apiEndpoint The API endpoint where orders for this zone can be
+     *                    signed.
      *                    Request and response payloads are defined in SIP-7.
      */
     constructor(string memory zoneName, string memory apiEndpoint) {
+        // Set the zone name.
         _ZONE_NAME = zoneName;
-        _API_ENDPOINT = apiEndpoint;
+
+        // Set the API endpoint.
+        _sip7APIEndpoint = apiEndpoint;
+
+        // Derive and set the domain separator.
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+
+        // Emit an event to signal a SIP-5 contract has been deployed.
+        emit SeaportCompatibleContractDeployed();
     }
 
     /**
@@ -122,7 +134,7 @@ contract SignedZone is
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(address signer) external onlyOwner {
+    function addSigner(address signer) external override onlyOwner {
         // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
@@ -150,7 +162,7 @@ contract SignedZone is
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(address signer) external onlyOwner {
+    function removeSigner(address signer) external override onlyOwner {
         // Revert if the signer is not active.
         if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
@@ -161,6 +173,18 @@ contract SignedZone is
 
         // Emit an event that the signer was removed.
         emit SignerRemoved(signer);
+    }
+
+    /**
+     * @notice Update the API endpoint returned by this zone.
+     *
+     * @param newApiEndpoint The new API endpoint.
+     */
+    function updateAPIEndpoint(
+        string calldata newApiEndpoint
+    ) external override onlyOwner {
+        // Update to the new API endpoint.
+        _sip7APIEndpoint = newApiEndpoint;
     }
 
     /**
@@ -192,17 +216,19 @@ contract SignedZone is
             );
         }
 
-        // extraData bytes 1-21: expected fulfiller (zero address means not restricted)
+        // extraData bytes 1-21: expected fulfiller
+        // (zero address means not restricted)
         address expectedFulfiller = address(bytes20(extraData[1:21]));
 
-        // extraData bytes 21-25: expiration timestamp
-        uint256 expiration = uint256(bytes32(bytes4(extraData[21:25])) >> 224);
+        // extraData bytes 21-29: expiration timestamp (uint64)
+        uint64 expiration = uint64(bytes8(extraData[21:29]));
 
-        // extraData bytes 25-89: signature (strictly requires 64 byte compact sig, EIP-2098)
-        bytes calldata signature = extraData[25:89];
+        // extraData bytes 29-93: signature
+        // (strictly requires 64 byte compact sig, EIP-2098)
+        bytes calldata signature = extraData[29:93];
 
-        // extraData bytes 89-end: context (optional, variable length)
-        bytes calldata context = extraData[89:];
+        // extraData bytes 93-end: context (optional, variable length)
+        bytes calldata context = extraData[93:];
 
         // Revert if expired.
         if (block.timestamp > expiration) {
@@ -257,6 +283,58 @@ contract SignedZone is
     }
 
     /**
+     * @notice Returns signing information about the zone.
+     *
+     * @return domainSeparator The domain separator used for signing.
+     */
+    function sip7Information()
+        external
+        view
+        override
+        returns (bytes32 domainSeparator, string memory apiEndpoint)
+    {
+        // Derive the domain separator.
+        domainSeparator = _domainSeparator();
+
+        // Return the API endpoint.
+        apiEndpoint = _sip7APIEndpoint;
+    }
+
+    /**
+     * @dev Returns Seaport metadata for this contract, returning the
+     *      contract name and supported schemas.
+     *
+     * @return name    The contract name
+     * @return schemas The supported SIPs
+     */
+    function getSeaportMetadata()
+        external
+        view
+        override(SIP5Interface, ZoneInterface)
+        returns (string memory name, Schema[] memory schemas)
+    {
+        name = _ZONE_NAME;
+        schemas = new Schema[](3);
+        schemas[0].id = 5;
+        schemas[1].id = 6;
+        schemas[2].id = 7;
+    }
+
+    /**
+     * @notice Returns whether the interface is supported.
+     *
+     * @param interfaceId The interface id to check against.
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165) returns (bool) {
+        return
+            interfaceId == type(SIP5Interface).interfaceId || // SIP-5
+            interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
+            super.supportsInterface(interfaceId); // ERC-165
+    }
+
+    /**
      * @dev Derive the signedOrder hash from the orderHash and expiration.
      *
      * @param fulfiller  The expected fulfiller address.
@@ -269,7 +347,7 @@ contract SignedZone is
      */
     function _deriveSignedOrderHash(
         address fulfiller,
-        uint256 expiration,
+        uint64 expiration,
         bytes32 orderHash,
         bytes calldata context
     ) internal view returns (bytes32 signedOrderHash) {
@@ -409,41 +487,6 @@ contract SignedZone is
     }
 
     /**
-     * @dev Internal pure function to efficiently derive an digest to sign for
-     *      an order in accordance with EIP-712.
-     *
-     * @param domainSeparator The domain separator.
-     * @param signedOrderHash The signedOrder hash.
-     *
-     * @return digest The digest hash.
-     */
-    function _deriveEIP712Digest(
-        bytes32 domainSeparator,
-        bytes32 signedOrderHash
-    ) internal pure returns (bytes32 digest) {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(0, EIP_712_PREFIX)
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(EIP712_DomainSeparator_offset, domainSeparator)
-
-            // Place the signed order hash in scratch space, spilling into the
-            // first two bytes of the free memory pointer — this should never be
-            // set as memory cannot be expanded to that size, and will be
-            // zeroed out after the hash is performed.
-            mstore(EIP712_SignedOrderHash_offset, signedOrderHash)
-
-            // Hash the relevant region
-            digest := keccak256(0, EIP712_DigestPayload_size)
-
-            // Clear out the dirtied bits in the memory pointer.
-            mstore(EIP712_SignedOrderHash_offset, 0)
-        }
-    }
-
-    /**
      * @dev Internal view function to get the EIP-712 domain separator. If the
      *      chainId matches the chainId set on deployment, the cached domain
      *      separator will be returned; otherwise, it will be derived from
@@ -506,51 +549,37 @@ contract SignedZone is
     }
 
     /**
-     * @notice Returns signing information about the zone.
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
      *
-     * @return domainSeparator The domain separator used for signing.
+     * @param domainSeparator The domain separator.
+     * @param signedOrderHash The signedOrder hash.
+     *
+     * @return digest The digest hash.
      */
-    function information()
-        external
-        view
-        returns (bytes32 domainSeparator, string memory apiEndpoint)
-    {
-        // Derive the domain separator.
-        domainSeparator = _domainSeparator();
-        // Return the API endpoint.
-        apiEndpoint = _API_ENDPOINT;
-    }
+    function _deriveEIP712Digest(
+        bytes32 domainSeparator,
+        bytes32 signedOrderHash
+    ) internal pure returns (bytes32 digest) {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(0, EIP_712_PREFIX)
 
-    /**
-     * @dev Returns Seaport metadata for this contract, returning the
-     *      contract name and supported schemas.
-     *
-     * @return name    The contract name
-     * @return schemas The supported SIPs
-     */
-    function getSeaportMetadata()
-        external
-        view
-        returns (string memory name, Schema[] memory schemas)
-    {
-        name = _ZONE_NAME;
-        schemas = new Schema[](3);
-        schemas[0].id = 5;
-        schemas[1].id = 6;
-        schemas[2].id = 7;
-    }
+            // Place the domain separator in the next region of scratch space.
+            mstore(EIP712_DomainSeparator_offset, domainSeparator)
 
-    /**
-     * @notice Returns whether the interface is supported.
-     *
-     * @param interfaceId The interface id to check against.
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165) returns (bool) {
-        return
-            interfaceId == type(SIP5Interface).interfaceId || // SIP-5
-            interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
-            super.supportsInterface(interfaceId); // ERC-165
+            // Place the signed order hash in scratch space, spilling into the
+            // first two bytes of the free memory pointer — this should never be
+            // set as memory cannot be expanded to that size, and will be
+            // zeroed out after the hash is performed.
+            mstore(EIP712_SignedOrderHash_offset, signedOrderHash)
+
+            // Hash the relevant region
+            digest := keccak256(0, EIP712_DigestPayload_size)
+
+            // Clear out the dirtied bits in the memory pointer.
+            mstore(EIP712_SignedOrderHash_offset, 0)
+        }
     }
 }

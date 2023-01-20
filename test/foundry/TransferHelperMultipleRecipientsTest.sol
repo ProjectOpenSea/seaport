@@ -65,7 +65,7 @@ import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 import { StubERC20 } from "./token/StubERC20.sol";
 import { StubERC721 } from "./token/StubERC721.sol";
 import { StubERC1155 } from "./token/StubERC1155.sol";
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     using Strings for uint256;
