@@ -211,18 +211,37 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }
     }
 
-    function testFulfillAvailableAdvancedOrderMissingItemAmount() public {
+    function testFulfillAvailableAdvancedOrderPanic() public {
         for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
             }
             test(
-                this.fulfillAvailableAdvancedOrdersMissingItemAmount,
+                this.fulfillAvailableAdvancedOrdersPanic,
                 Context(consideration, empty, ItemType(i))
             );
             test(
-                this.fulfillAvailableAdvancedOrdersMissingItemAmount,
+                this.fulfillAvailableAdvancedOrdersPanic,
+                Context(referenceConsideration, empty, ItemType(i))
+            );
+        }
+    }
+
+    function testFulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts()
+        public
+    {
+        for (uint256 i; i < 4; ++i) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            test(
+                this.fulfillAvailableAdvancedOrdersPanic,
+                Context(consideration, empty, ItemType(i))
+            );
+            test(
+                this.fulfillAvailableAdvancedOrdersPanic,
                 Context(referenceConsideration, empty, ItemType(i))
             );
         }
@@ -379,7 +398,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersMissingItemAmount(
+    function fulfillAvailableAdvancedOrdersPanic(
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
@@ -476,6 +495,110 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         CriteriaResolver[] memory criteriaResolvers;
 
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        context.consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
+            advancedOrders,
+            criteriaResolvers,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            address(0),
+            100
+        );
+    }
+
+    function fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts(
+        Context memory context
+    ) external stateless {
+        // add zero-amount 1155 offer item
+        addErc1155OfferItem(context.args.id, 0);
+        addConsiderationItem(alice, context.itemType, 1, 100);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        addErc1155OfferItem(context.args.id, 0);
+        addConsiderationItem(alice, context.itemType, 1, 100);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            context.consideration.getCounter(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(secondOrderComponents)
+        );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = AdvancedOrder(
+            orderParameters,
+            uint120(1),
+            uint120(1),
+            signature,
+            "0x"
+        );
+        advancedOrders[1] = AdvancedOrder(
+            secondOrderParameters,
+            uint120(1),
+            uint120(1),
+            secondSignature,
+            "0x"
+        );
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+
+        // aggregate eth considerations together
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+
+        CriteriaResolver[] memory criteriaResolvers;
+
+        vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
         context.consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
             advancedOrders,
             criteriaResolvers,
