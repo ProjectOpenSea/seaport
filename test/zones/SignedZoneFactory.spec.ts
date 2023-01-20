@@ -15,7 +15,7 @@ import type {
 
 const deployConstants = require("../../constants/constants");
 
-describe.only(`Zone - SignedZoneFactory (Seaport v${VERSION})`, function () {
+describe(`Zone - SignedZoneFactory (Seaport v${VERSION})`, function () {
   if (process.env.REFERENCE) return;
 
   const { provider } = ethers;
