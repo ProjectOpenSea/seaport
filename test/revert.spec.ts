@@ -5634,7 +5634,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         getTestItem20(amount.mul(20), amount.mul(20), owner.address),
       ];
 
-      const { order: orderOne, value } = await createOrder(
+      const { order: orderOne } = await createOrder(
         seller,
         zone,
         offer,
