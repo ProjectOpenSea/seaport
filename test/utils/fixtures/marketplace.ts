@@ -149,14 +149,19 @@ export const marketplaceFixture = async (
     orderComponents: OrderComponents[],
     signer: Wallet | Contract,
     startIndex = 0,
-    height?: number
+    height?: number,
+    extraCheap?: boolean
   ) => {
     const tree = getBulkOrderTree(orderComponents, startIndex, height);
     const bulkOrderType = tree.types;
     const chunks = tree.getDataToSign();
-    const signature = await signer._signTypedData(domainData, bulkOrderType, {
+    let signature = await signer._signTypedData(domainData, bulkOrderType, {
       tree: chunks,
     });
+
+    if (extraCheap) {
+      signature = convertSignatureToEIP2098(signature);
+    }
 
     const proofAndSignature = tree.getEncodedProofAndSignature(
       startIndex,
@@ -270,7 +275,8 @@ export const marketplaceFixture = async (
         [orderComponents],
         signer ?? offerer,
         bulkSignatureIndex,
-        bulkSignatureHeight
+        bulkSignatureHeight,
+        extraCheap
       );
 
       // Verify bulk signature length
