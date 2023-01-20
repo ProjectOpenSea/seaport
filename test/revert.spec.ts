@@ -4329,11 +4329,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
       ];
 
-      const {
-        order: orderOne,
-        orderHash: orderHashOne,
-        value,
-      } = await createOrder(
+      const { order: orderOne, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -4342,7 +4338,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         criteriaResolvers
       );
 
-      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      const { order: orderTwo } = await createOrder(
         seller,
         zone,
         offer,
