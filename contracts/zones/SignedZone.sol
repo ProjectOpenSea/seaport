@@ -204,8 +204,11 @@ contract SignedZone is
         bytes32 orderHash = zoneParameters.orderHash;
 
         // Revert with an error if the extraData does not have valid length.
-        if (extraData.length == 0) {
-            revert InvalidExtraData("extraData is empty", orderHash);
+        if (extraData.length < 92) {
+            revert InvalidExtraData(
+                "extraData length must be at least 92 bytes",
+                orderHash
+            );
         }
 
         // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
@@ -314,10 +317,8 @@ contract SignedZone is
         returns (string memory name, Schema[] memory schemas)
     {
         name = _ZONE_NAME;
-        schemas = new Schema[](3);
-        schemas[0].id = 5;
-        schemas[1].id = 6;
-        schemas[2].id = 7;
+        schemas = new Schema[](1);
+        schemas[0].id = 7;
     }
 
     /**
