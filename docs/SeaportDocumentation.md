@@ -18,7 +18,13 @@ Each order contains eleven key components:
   - The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current counter at once by calling `incrementCounter`).
   - "Restricted" orders (as specified by the order type) must either be executed by the zone or the offerer, or must be approved as indicated by a call to an `isValidOrder` or `isValidOrderIncludingExtraData` view function on the zone.
 - The `offer` contains an array of items that may be transferred from the offerer's account, where each item consists of the following components:
-  - The `itemType` designates the type of item, with valid types being Ether (or other native token for the given chain), ERC20, ERC721, ERC1155, ERC721 with "criteria" (explained below), and ERC1155 with criteria.
+  - The `itemType` designates the type of item, with valid types being:
+    * Ether (or other native token for the given chain) enum value: `NATIVE = 0`
+    * ERC20: enum value: `ERC20 = 1`
+    * ERC721: enum value: `ERC721 = 2`
+    * ERC1155: enum value: `ERC1155 = 3`
+    * ERC721 with "criteria" (explained below): enum value: `ERC721_WITH_CRITERIA = 4`
+    * ERC1155 with "criteria" (explained below): enum value: `ERC1155_WITH_CRITERIA = 5`
   - The `token` designates the account of the item's token contract (with the null address used for Ether or other native tokens).
   - The `identifierOrCriteria` represents either the ERC721 or ERC1155 token identifier or, in the case of a criteria-based item type, a merkle root composed of the valid set of token identifiers for the item. This value will be ignored for Ether and ERC20 item types, and can optionally be zero for criteria-based item types to allow for any identifier.
   - The `startAmount` represents the amount of the item in question that will be required should the order be fulfilled at the moment the order becomes active.
