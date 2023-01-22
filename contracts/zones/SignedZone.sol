@@ -32,8 +32,11 @@ contract SignedZone is
     ERC165,
     Ownable2Step
 {
-    /// @dev The allowed signers.
+    /// @dev The authorized signers.
     mapping(address => SignerInfo) private _signers;
+
+    /// @dev The currently active signers.
+    address[] private _activeSigners;
 
     /// @dev The API endpoint where orders for this zone can be signed.
     ///      Request and response payloads are defined in SIP-7.
@@ -107,6 +110,16 @@ contract SignedZone is
     /* solhint-enable const-name-snakecase */
 
     /**
+     * @dev Modifier to restrict access to the owner or an approved signer.
+     */
+    modifier onlyOwnerOrActiveSigner() {
+        if (msg.sender != owner() && !_signers[msg.sender].active) {
+            revert OnlyOwnerOrActiveSigner();
+        }
+        _;
+    }
+
+    /**
      * @notice Constructor to deploy the contract.
      *
      * @param zoneName    The name for the zone returned in
@@ -131,10 +144,13 @@ contract SignedZone is
 
     /**
      * @notice Add a new signer to the zone.
+     *         Only the owner or an active signer can call this function.
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(address signer) external override onlyOwner {
+    function addSigner(
+        address signer
+    ) external override onlyOwnerOrActiveSigner {
         // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
@@ -153,16 +169,22 @@ contract SignedZone is
         // Set the signer info.
         _signers[signer] = SignerInfo(true, true);
 
+        // Add the signer to _activeSigners.
+        _activeSigners.push(signer);
+
         // Emit an event that the signer was added.
         emit SignerAdded(signer);
     }
 
     /**
      * @notice Remove an active signer from the zone.
+     *         Only the owner or an active signer can call this function.
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(address signer) external override onlyOwner {
+    function removeSigner(
+        address signer
+    ) external override onlyOwnerOrActiveSigner {
         // Revert if the signer is not active.
         if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
@@ -171,18 +193,31 @@ contract SignedZone is
         // Set the signer's active status to false.
         _signers[signer].active = false;
 
+        // Remove the signer from _activeSigners.
+        for (uint256 i = 0; i < _activeSigners.length; ) {
+            if (_activeSigners[i] == signer) {
+                _activeSigners[i] = _activeSigners[_activeSigners.length - 1];
+                _activeSigners.pop();
+                break;
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
         // Emit an event that the signer was removed.
         emit SignerRemoved(signer);
     }
 
     /**
      * @notice Update the API endpoint returned by this zone.
+     *         Only the owner or an active signer can call this function.
      *
      * @param newApiEndpoint The new API endpoint.
      */
     function updateAPIEndpoint(
         string calldata newApiEndpoint
-    ) external override onlyOwner {
+    ) external override onlyOwnerOrActiveSigner {
         // Update to the new API endpoint.
         _sip7APIEndpoint = newApiEndpoint;
     }
@@ -286,6 +321,21 @@ contract SignedZone is
     }
 
     /**
+     * @notice Returns the active signers for the zone.
+     *
+     * @return signers The active signers.
+     */
+    function getActiveSigners()
+        external
+        view
+        override
+        returns (address[] memory signers)
+    {
+        // Return the active signers for the zone.
+        signers = _activeSigners;
+    }
+
+    /**
      * @notice Returns signing information about the zone.
      *
      * @return domainSeparator The domain separator used for signing.
@@ -316,7 +366,10 @@ contract SignedZone is
         override(SIP5Interface, ZoneInterface)
         returns (string memory name, Schema[] memory schemas)
     {
+        // Return the zone name.
         name = _ZONE_NAME;
+
+        // Return the supported SIPs.
         schemas = new Schema[](1);
         schemas[0].id = 7;
     }
