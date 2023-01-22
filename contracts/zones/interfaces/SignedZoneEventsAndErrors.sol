@@ -17,6 +17,12 @@ interface SignedZoneEventsAndErrors {
     event SignerRemoved(address signer);
 
     /**
+     * @dev Revert with an error if msg.sender is not the owner
+     *      or an active signer.
+     */
+    error OnlyOwnerOrActiveSigner();
+
+    /**
      * @dev Revert with an error if trying to add a signer that is
      *      already active.
      */

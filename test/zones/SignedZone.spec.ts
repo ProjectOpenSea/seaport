@@ -82,15 +82,15 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   let chainId: number;
 
   beforeEach(async () => {
-    // Setup basic buyer/seller wallets with ETH
+    // Setup basic buyer/seller and approvedSigner wallets with ETH
     seller = new ethers.Wallet(randomHex(32), provider);
     buyer = new ethers.Wallet(randomHex(32), provider);
+    approvedSigner = new ethers.Wallet(randomHex(32), provider);
 
-    for (const wallet of [seller, buyer]) {
+    for (const wallet of [seller, buyer, approvedSigner]) {
       await faucet(wallet.address, provider);
     }
 
-    approvedSigner = new ethers.Wallet(randomHex(32), provider);
     chainId = (await provider.getNetwork()).chainId;
 
     signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
@@ -135,7 +135,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     context: string = "0x",
     signer: Wallet,
     fulfiller = ethers.constants.AddressZero,
-    secondsUntilExpiration = 60,
+    secondsUntilExpiration = 200,
     zone: Contract = signedZone
   ) => {
     const domainData = {
@@ -469,26 +469,53 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(anyValue, orderHash);
   });
-  it("Only the owner can set and remove signers", async () => {
+  it("Only the owner or active signers can set and remove signers", async () => {
     await expect(
       signedZone.connect(buyer).addSigner(buyer.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
 
     await expect(
       signedZone.connect(buyer).removeSigner(buyer.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
 
     await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
       .to.emit(signedZone, "SignerAdded")
       .withArgs(approvedSigner.address);
 
+    expect(await signedZone.getActiveSigners()).to.deep.equal([
+      approvedSigner.address,
+    ]);
+
     await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
       .to.be.revertedWithCustomError(signedZone, "SignerAlreadyAdded")
       .withArgs(approvedSigner.address);
 
-    await expect(signedZone.connect(owner).removeSigner(approvedSigner.address))
+    // The active signer should be able to add other signers.
+    await expect(signedZone.connect(approvedSigner).addSigner(buyer.address))
+      .to.emit(signedZone, "SignerAdded")
+      .withArgs(buyer.address);
+
+    // The active signer should be remove other signers.
+    await expect(signedZone.connect(approvedSigner).removeSigner(buyer.address))
+      .to.emit(signedZone, "SignerRemoved")
+      .withArgs(buyer.address);
+
+    // The active signer should be able to update API information.
+    await signedZone.connect(approvedSigner).updateAPIEndpoint("test");
+    expect((await signedZone.sip7Information())[1]).to.equal("test");
+
+    // The active signer should be able to remove themselves.
+    await expect(
+      signedZone.connect(approvedSigner).removeSigner(approvedSigner.address)
+    )
       .to.emit(signedZone, "SignerRemoved")
       .withArgs(approvedSigner.address);
+
+    expect(await signedZone.getActiveSigners()).to.deep.equal([]);
+
+    await expect(
+      signedZone.connect(approvedSigner).addSigner(seller.address)
+    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
 
     await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
       .to.be.revertedWithCustomError(signedZone, "SignerCannotBeReauthorized")
@@ -507,6 +534,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     )
       .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
       .withArgs(ethers.constants.AddressZero);
+
+    expect(await signedZone.getActiveSigners()).to.deep.equal([]);
   });
   it("Only the owner should be able to modify the apiEndpoint", async () => {
     expect((await signedZone.sip7Information())[1]).to.equal(
@@ -515,7 +544,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     await expect(
       signedZone.connect(buyer).updateAPIEndpoint("test123")
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
 
     await signedZone.connect(owner).updateAPIEndpoint("test123");
 

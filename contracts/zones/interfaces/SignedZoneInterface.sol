@@ -40,6 +40,16 @@ interface SignedZoneInterface {
     function updateAPIEndpoint(string calldata newApiEndpoint) external;
 
     /**
+     * @notice Returns the active signers for the zone.
+     *
+     * @return signers The active signers.
+     */
+    function getActiveSigners()
+        external
+        view
+        returns (address[] memory signers);
+
+    /**
      * @notice Returns signing information about the zone.
      *
      * @return domainSeparator The domain separator used for signing.
