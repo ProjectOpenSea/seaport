@@ -110,7 +110,7 @@ contract SignedZone is
     /* solhint-enable const-name-snakecase */
 
     /**
-     * @dev Modifier to restrict access to the owner or an approved signer.
+     * @dev Modifier to restrict access to the owner or an active signer.
      */
     modifier onlyOwnerOrActiveSigner() {
         if (msg.sender != owner() && !_signers[msg.sender].active) {
