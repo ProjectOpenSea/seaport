@@ -340,6 +340,61 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
+    function testRevertBasicEthTo721ZeroAmount(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(
+            this.revertBasicErc20To721ZeroAmount,
+            Context(consideration, inputs, 0)
+        );
+        test(
+            this.revertBasicErc20To721ZeroAmount,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
+    function revertBasicErc20To721ZeroAmount(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        considerationItems[0].startAmount = 0;
+        considerationItems[0].endAmount = 0;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
     function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount,
