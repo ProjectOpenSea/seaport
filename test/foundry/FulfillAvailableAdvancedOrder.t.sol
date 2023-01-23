@@ -237,11 +237,13 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 continue;
             }
             test(
-                this.fulfillAvailableAdvancedOrdersPanic,
+                this
+                    .fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
                 Context(consideration, empty, ItemType(i))
             );
             test(
-                this.fulfillAvailableAdvancedOrdersPanic,
+                this
+                    .fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
                 Context(referenceConsideration, empty, ItemType(i))
             );
         }
