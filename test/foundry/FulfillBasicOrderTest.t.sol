@@ -35,6 +35,7 @@ import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 import {
     ConsiderationEventsAndErrors
 } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+import "hardhat/console.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;
@@ -86,6 +87,49 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
 
         test(this.basicEthTo721, Context(consideration, inputs, 0));
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
+    }
+
+    function testBasicEthTo721WithAdditionalRecipients(
+        FuzzInputsCommon memory inputs,
+        uint256 numAdditionalRecipients
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        vm.assume(numAdditionalRecipients > 0);
+        vm.assume(inputs.paymentAmount < 10);
+        uint256 finalAdditionalRecipients = numAdditionalRecipients % 10;
+
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, 1);
+
+        AdditionalRecipient[]
+            storage _additionalRecipients = additionalRecipients;
+        for (uint256 i = 0; i < finalAdditionalRecipients; i++) {
+            _additionalRecipients.push(
+                AdditionalRecipient({
+                    recipient: alice,
+                    amount: inputs.paymentAmount
+                })
+            );
+            addEthConsiderationItem(alice, inputs.paymentAmount);
+        }
+        _configureBasicOrderParametersEthTo721(inputs);
+        basicOrderParameters.additionalRecipients = _additionalRecipients;
+        basicOrderParameters.considerationAmount = 1;
+        basicOrderParameters
+            .totalOriginalAdditionalRecipients = finalAdditionalRecipients;
+
+        console.log(
+            "basicOrderParameters.totalOriginalAdditionalRecipients: ",
+            basicOrderParameters.totalOriginalAdditionalRecipients
+        );
+
+        test(
+            this.basicEthTo721WithAdditionalRecipients,
+            Context(consideration, inputs, 0)
+        );
+        test(
+            this.basicEthTo721WithAdditionalRecipients,
+            Context(referenceConsideration, inputs, 0)
+        );
     }
 
     function testBasicEthTo721WithZone(
@@ -722,6 +766,53 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             value: context.args.paymentAmount
         }(basicOrderParameters);
         assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
+    }
+
+    function basicEthTo721WithAdditionalRecipients(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+
+        uint256 aliceBalanceBefore = alice.balance;
+
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount.mul(10000000)
+        }(basicOrderParameters);
+
+        uint256 aliceBalanceAfter = alice.balance;
+
+        console.log(
+            "basicOrderParameters.additionalRecipients.length: ",
+            basicOrderParameters.additionalRecipients.length
+        );
+
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
+        assertEq(
+            1 +
+                (context.args.paymentAmount % 1000) *
+                basicOrderParameters.additionalRecipients.length,
+            aliceBalanceAfter - aliceBalanceBefore
+        );
     }
 
     function basicErc20To721(Context memory context) external stateless {
