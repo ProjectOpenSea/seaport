@@ -249,19 +249,23 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }
     }
 
-    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts()
-        public
-    {
+    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(
+        FuzzInputs memory args
+    ) public validateInputs(args) {
         for (uint256 i; i < 4; ++i) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
             test(
                 this
                     .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
-                Context(consideration, empty, ItemType(i))
+                Context(consideration, args, ItemType(i))
             );
             test(
                 this
                     .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceConsideration, args, ItemType(i))
             );
         }
     }
@@ -633,8 +637,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         // add zero-amount 1155 offer item
-        addErc1155OfferItem(context.args.id, context.args.amount);
-        addConsiderationItem(alice, context.itemType, 0, 0);
+        addErc1155OfferItem(context.args.id, 100);
+        if (context.itemType == ItemType.ERC721) {
+            addConsiderationItem(
+                alice,
+                ItemType.ERC721,
+                address(test721_1),
+                0,
+                0,
+                0
+            );
+        } else {
+            addConsiderationItem(alice, context.itemType, 0, 0);
+        }
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -663,7 +678,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        addErc1155OfferItem(context.args.id, context.args.amount);
+        addErc1155OfferItem(context.args.id, 100);
         addConsiderationItem(alice, context.itemType, 0, 0);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
