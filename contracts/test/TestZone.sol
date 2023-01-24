@@ -30,6 +30,26 @@ contract TestZone is ZoneInterface {
             assembly {
                 revert(0, 0)
             }
+        } else if (
+            zoneParameters.extraData.length > 32 &&
+            zoneParameters.extraData.length % 32 == 0
+        ) {
+            bytes32[] memory expectedOrderHashes = abi.decode(
+                zoneParameters.extraData,
+                (bytes32[])
+            );
+
+            uint256 expectedLength = expectedOrderHashes.length;
+
+            if (expectedLength != zoneParameters.orderHashes.length) {
+                revert("Revert on unexpected order hashes length");
+            }
+
+            for (uint256 i = 0; i < expectedLength; ++i) {
+                if (expectedOrderHashes[i] != zoneParameters.orderHashes[i]) {
+                    revert("Revert on unexpected order hash");
+                }
+            }
         }
 
         validOrderMagicValue = zoneParameters.zoneHash != bytes32(uint256(3))

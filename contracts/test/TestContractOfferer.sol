@@ -166,7 +166,10 @@ contract TestContractOfferer is ContractOffererInterface {
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
         if (
-            !ready || fulfilled || msg.sender != _SEAPORT || context.length != 0
+            !ready ||
+            fulfilled ||
+            msg.sender != _SEAPORT ||
+            context.length % 32 != 0
         ) {
             revert OrderUnavailable();
         }
@@ -206,7 +209,12 @@ contract TestContractOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
-        if (!ready || fulfilled || caller != _SEAPORT || context.length != 0) {
+        if (
+            !ready ||
+            fulfilled ||
+            caller != _SEAPORT ||
+            context.length % 32 != 0
+        ) {
             revert OrderUnavailable();
         }
 
@@ -255,8 +263,8 @@ contract TestContractOfferer is ContractOffererInterface {
     function ratifyOrder(
         SpentItem[] calldata /* offer */,
         ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        bytes calldata context,
+        bytes32[] calldata orderHashes,
         uint256 /* contractNonce */
     )
         external
@@ -265,6 +273,25 @@ contract TestContractOfferer is ContractOffererInterface {
         override
         returns (bytes4 /* ratifyOrderMagicValue */)
     {
+        if (context.length > 32 && context.length % 32 == 0) {
+            bytes32[] memory expectedOrderHashes = abi.decode(
+                context,
+                (bytes32[])
+            );
+
+            uint256 expectedLength = expectedOrderHashes.length;
+
+            if (expectedLength != orderHashes.length) {
+                revert("Revert on unexpected order hashes length");
+            }
+
+            for (uint256 i = 0; i < expectedLength; ++i) {
+                if (expectedOrderHashes[i] != orderHashes[i]) {
+                    revert("Revert on unexpected order hash");
+                }
+            }
+        }
+
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
