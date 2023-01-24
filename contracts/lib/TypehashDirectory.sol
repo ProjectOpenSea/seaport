@@ -174,7 +174,7 @@ contract TypehashDirectory {
 
         // Return the combined string.
         return
-            abi.encodePacked(
+            bytes.concat(
                 considerationItemTypeString,
                 offerItemTypeString,
                 orderComponentsPartialTypeString
