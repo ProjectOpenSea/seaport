@@ -859,11 +859,11 @@ contract OrderValidator is Executor, ZoneInteraction {
         pure
         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
     {
-        if (!revertOnInvalid) {
-            return (contractOrderHash, 0, 0);
+        if (revertOnInvalid) {
+            _revertInvalidContractOrder(contractOrderHash);
         }
 
-        _revertInvalidContractOrder(contractOrderHash);
+        return (contractOrderHash, 0, 0);
     }
 
     /**
