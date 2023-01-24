@@ -15,7 +15,7 @@ import {
 contract TestZone is ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    ) external pure override returns (bytes4 validOrderMagicValue) {
         if (zoneParameters.extraData.length == 0) {
             if (zoneParameters.zoneHash == bytes32(uint256(1))) {
                 revert("Revert on zone hash 1");
