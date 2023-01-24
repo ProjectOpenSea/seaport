@@ -11,9 +11,7 @@ import {
     OrderStatus,
     CriteriaResolver,
     OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem
+    ConsiderationItem
 } from "./ConsiderationStructs.sol";
 
 import "./ConsiderationErrors.sol";
@@ -22,14 +20,7 @@ import { Executor } from "./Executor.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
 
-import {
-    ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
-
-import {
-    MemoryPointer,
-    getFreeMemoryPointer
-} from "../helpers/PointerLibraries.sol";
+import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 
 /**
  * @title OrderValidator

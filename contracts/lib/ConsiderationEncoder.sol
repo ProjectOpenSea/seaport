@@ -6,12 +6,7 @@ import "./ConsiderationConstants.sol";
 import {
     BasicOrderParameters,
     Order,
-    CriteriaResolver,
-    AdvancedOrder,
-    FulfillmentComponent,
-    Execution,
     Fulfillment,
-    OrderComponents,
     OrderParameters,
     SpentItem,
     ReceivedItem

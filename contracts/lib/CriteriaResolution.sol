@@ -5,7 +5,6 @@ import { ItemType, Side } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
-    ConsiderationItem,
     OrderParameters,
     AdvancedOrder,
     CriteriaResolver,
