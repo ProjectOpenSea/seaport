@@ -35,6 +35,7 @@ import type {
   TestERC1155,
   TestERC20,
   TestERC721,
+  TestZone,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
@@ -53,6 +54,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
   let testERC1155Two: TestERC1155;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
+  let stubZone: TestZone;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createMirrorAcceptOfferOrder: SeaportFixtures["createMirrorAcceptOfferOrder"];
@@ -114,6 +116,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       withBalanceChecks,
       invalidContractOfferer,
       invalidContractOffererRatifyOrder,
+      stubZone,
     } = await seaportFixture(owner));
   });
 
@@ -3058,7 +3061,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         "ConsiderationLengthNotEqualToTotalOriginal"
       );
     });
-    it("Can fulfill and aggregate contract orders via fulfillAvailableOrders with failing orders", async () => {
+    it("Can fulfill and aggregate contract orders via fulfillAvailableAdvancedOrders with failing orders", async () => {
       // Seller mints nfts
       const { nftId: nftIdOne, amount: amountOne } = await mintAndApprove1155(
         seller,
@@ -3154,6 +3157,21 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       orderOne.numerator = 1;
       orderOne.denominator = 1;
       orderOne.signature = "0x";
+
+      // test orderHashes
+      orderOne.extraData = ethers.utils.defaultAbiCoder.encode(
+        ["bytes32[]"],
+        [
+          [
+            orderHashOne,
+            ethers.constants.HashZero,
+            ethers.constants.HashZero,
+            ethers.constants.HashZero,
+          ],
+        ]
+      );
+
+      expect((orderOne.extraData.length - 2) / 64).to.equal(6);
 
       // second order reverts when generating the order
       const offerTwo = [
@@ -3302,11 +3320,13 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       await withBalanceChecks([orderOne], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillAvailableOrders(
+          .fulfillAvailableAdvancedOrders(
             [orderOne, orderTwo, orderThree, orderFour],
+            [],
             offerComponents,
             considerationComponents,
             toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value: value.add(valueTwo).add(valueThree).add(valueFour).mul(2),
@@ -7294,6 +7314,119 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
               offerComponents,
               considerationComponents,
               toKey(0),
+              100,
+              {
+                value: value.mul(2),
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
+    });
+    it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders including restricted orders", async () => {
+      // Seller mints nft
+      const { nftId, amount } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        1,
+        1,
+        10000
+      );
+
+      const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const {
+        order: orderOne,
+        orderHash: orderHashOne,
+        value,
+      } = await createOrder(
+        seller,
+        stubZone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      // test orderHashes
+      orderOne.extraData = ethers.utils.defaultAbiCoder.encode(
+        ["bytes32[]"],
+        [[orderHashOne, orderHashTwo]]
+      );
+
+      expect((orderOne.extraData.length - 2) / 64).to.equal(4);
+
+      const offerComponents = [
+        toFulfillmentComponents([
+          [0, 0],
+          [1, 0],
+        ]),
+      ];
+
+      const considerationComponents = [
+        [
+          [0, 0],
+          [1, 0],
+        ],
+        [
+          [0, 1],
+          [1, 1],
+        ],
+        [
+          [0, 2],
+          [1, 2],
+        ],
+      ].map(toFulfillmentComponents);
+
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [orderOne, orderTwo],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
               100,
               {
                 value: value.mul(2),

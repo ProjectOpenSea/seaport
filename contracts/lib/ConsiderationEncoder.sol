@@ -564,10 +564,7 @@ contract ConsiderationEncoder {
 
             // Copy the tail starting from the next element of the source to the
             // next element of the destination.
-            srcLength.next().offset(headAndTailSize).copy(
-                dstLength.next(),
-                headAndTailSize
-            );
+            srcLength.next().copy(dstLength.next(), headAndTailSize);
 
             // Set size to the length of the tail plus one word for length.
             size = headAndTailSize + OneWord;
