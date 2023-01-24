@@ -28,7 +28,7 @@ contract TypehashDirectory {
      *      tree height from 1 to 24, and write them to runtime code.
      */
     constructor() {
-        // Declare an array where each type hash will be writter.
+        // Declare an array where each type hash will be written.
         bytes32[] memory typeHashes = new bytes32[](MaxTreeHeight);
 
         // Derive a string of 24 "[2]" substrings.

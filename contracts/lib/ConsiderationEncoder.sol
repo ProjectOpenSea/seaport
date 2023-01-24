@@ -342,7 +342,7 @@ contract ConsiderationEncoder {
         dstHead.writeBytes32(orderHash);
         dstHead.offset(ZoneParameters_fulfiller_offset).write(msg.sender);
 
-        // Get the memory pointer to the order paramaters struct.
+        // Get the memory pointer to the order parameters struct.
         MemoryPointer src = orderParameters.toMemoryPointer();
 
         // Copy offerer, startTime, endTime and zoneHash to zoneParameters.
