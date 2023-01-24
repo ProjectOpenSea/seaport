@@ -4,27 +4,33 @@ pragma solidity ^0.8.17;
 import {
     ConduitController
 } from "../../../contracts/conduit/ConduitController.sol";
+
 import {
     ReferenceConduitController
 } from "../../../reference/conduit/ReferenceConduitController.sol";
+
 import {
     ConduitControllerInterface
 } from "../../../contracts/interfaces/ConduitControllerInterface.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     OrderType,
     BasicOrderType,
     ItemType,
     Side
 } from "../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
     OfferItem,
     ConsiderationItem,
     OrderComponents,
     BasicOrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { DifferentialTest } from "./DifferentialTest.sol";
 
 import { StructCopier } from "./StructCopier.sol";
@@ -138,7 +144,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     }
 
     ///@dev deploy reference consideration contracts from pre-compiled source
-    /// (solc-0.8.7, IR pipeline disabled,  unless running coverage or debug)
+    /// (solc-0.8.13, IR pipeline disabled, unless running coverage or debug)
     function _deployAndConfigurePrecompiledReferenceConsideration() public {
         if (!coverage_or_debug) {
             referenceConduitController = ConduitController(
