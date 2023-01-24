@@ -221,7 +221,7 @@ library MemoryPointerLib {
                 dst,
                 size
             )
-            if or(iszero(success), iszero(returndatasize())) {
+            if or(iszero(returndatasize()), iszero(success)) {
                 revert(0, 0)
             }
         }
