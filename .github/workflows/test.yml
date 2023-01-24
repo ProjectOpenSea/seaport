@@ -172,9 +172,6 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile optimized using 0.8.17 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
-
       - name: Run coverage with lcov output
         run: SEAPORT_COVERAGE=true forge coverage --report lcov
 

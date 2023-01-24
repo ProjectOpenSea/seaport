@@ -290,6 +290,12 @@ yarn test:ref
 yarn coverage:ref
 ```
 
+To open the generated Hardhat coverage report locally after running `yarn coverage` or `yarn coverage:ref`:
+
+```bash
+open coverage/index.html
+```
+
 To profile gas usage:
 
 ```bash
@@ -317,10 +323,12 @@ FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=reference forge build
 ```
 
-To run Forge coverage tests:
+To run Forge coverage tests and open the generated coverage report locally:
 
 ```bash
-yarn coverage:forge
+brew install lcov
+SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && genhtml lcov.info -o html --branch
+open html/index.html
 ```
 
 For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).
