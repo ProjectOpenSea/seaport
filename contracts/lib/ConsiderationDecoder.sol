@@ -381,7 +381,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
@@ -422,7 +422,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive array size based on one word per array element and length.
-            uint256 arrSize = (arrLength + 1) * OneWord;
+            uint256 arrSize = (arrLength + 1) << OneWordShift;
 
             // Allocate memory equal to the array size.
             mPtrLength = malloc(arrSize);
@@ -480,7 +480,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
@@ -520,7 +520,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
@@ -612,7 +612,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
@@ -655,7 +655,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);
@@ -726,7 +726,7 @@ contract ConsiderationDecoder {
 
         unchecked {
             // Derive offset to the tail based on one word per array element.
-            uint256 tailOffset = arrLength * OneWord;
+            uint256 tailOffset = arrLength << OneWordShift;
 
             // Add one additional word for the length and allocate memory.
             mPtrLength = malloc(tailOffset + OneWord);

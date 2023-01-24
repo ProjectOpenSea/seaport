@@ -217,7 +217,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             orderHashes = new bytes32[](totalOrders);
 
             // Determine the memory offset to terminate on during loops.
-            terminalMemoryOffset = (totalOrders + 1) * 32;
+            terminalMemoryOffset = (totalOrders + 1) << OneWordShift;
         }
 
         // Skip overflow checks as all for loops are indexed starting at zero.

@@ -560,7 +560,7 @@ contract ConsiderationEncoder {
 
         unchecked {
             // Determine head & tail size as one word per element in the array.
-            uint256 headAndTailSize = length * OneWord;
+            uint256 headAndTailSize = length << OneWordShift;
 
             // Copy the tail starting from the next element of the source to the
             // next element of the destination.
@@ -671,7 +671,7 @@ contract ConsiderationEncoder {
             // incremented until it reaches the tail position (start of the
             // array data).
             MemoryPointer srcHead = srcLength.next();
-            MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
+            MemoryPointer srcHeadEnd = srcHead.offset(length << OneWordShift);
 
             // Position in memory to write next item for calldata. Since
             // ReceivedItem has a fixed length, the array elements do not
