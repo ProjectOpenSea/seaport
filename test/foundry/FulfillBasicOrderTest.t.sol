@@ -35,7 +35,6 @@ import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 import {
     ConsiderationEventsAndErrors
 } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
-import "hardhat/console.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;
@@ -116,11 +115,6 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.considerationAmount = 1;
         basicOrderParameters
             .totalOriginalAdditionalRecipients = finalAdditionalRecipients;
-
-        console.log(
-            "basicOrderParameters.totalOriginalAdditionalRecipients: ",
-            basicOrderParameters.totalOriginalAdditionalRecipients
-        );
 
         test(
             this.basicEthTo721WithAdditionalRecipients,
@@ -800,11 +794,6 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         }(basicOrderParameters);
 
         uint256 aliceBalanceAfter = alice.balance;
-
-        console.log(
-            "basicOrderParameters.additionalRecipients.length: ",
-            basicOrderParameters.additionalRecipients.length
-        );
 
         assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
         assertEq(
