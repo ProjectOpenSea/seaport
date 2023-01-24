@@ -269,7 +269,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Decrement the number of fulfilled orders.
                 // Skip underflow check as the condition before
                 // implies that maximumFulfilled > 0.
-                maximumFulfilled--;
+                --maximumFulfilled;
 
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
