@@ -249,19 +249,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }
     }
 
-    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts()
-        public
-    {
+    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(
+        FuzzInputs memory args
+    ) public {
         for (uint256 i; i < 4; ++i) {
             test(
                 this
                     .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
-                Context(consideration, empty, ItemType(i))
+                Context(consideration, args, ItemType(i))
             );
             test(
                 this
                     .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceConsideration, args, ItemType(i))
             );
         }
     }
