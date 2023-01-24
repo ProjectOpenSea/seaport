@@ -71,3 +71,4 @@ shuklaayush                    | `shuklaayush.eth`
 Riley Holterhus                |
 big-tech-sux                   |
 naps62                         | `naps62.eth`
+Dravee                         | `dravee.eth`
