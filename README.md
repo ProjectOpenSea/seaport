@@ -308,20 +308,25 @@ FOUNDRY_PROFILE=debug
 
 You may then run tests with `forge test`, optionally specifying a level of verbosity (anywhere from one to five `v`'s, eg, `-vvv`)
 
+This will compile tests and contracts without `via-ir` enabled, which is must faster, but will not exactly match the deployed bytecode.
 
-This will compile tests and contracts without `via-ir` enabled, which is must faster, but will not exactly match the deployed bytecode. 
-
-
-To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code. 
+To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code.
 
 ```bash
 FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=reference forge build
 ```
 
+To run Forge coverage tests:
+
+```bash
+yarn coverage:forge
+```
+
 For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).
 
 ### Linting
+
 To run lint checks:
 
 ```bash
