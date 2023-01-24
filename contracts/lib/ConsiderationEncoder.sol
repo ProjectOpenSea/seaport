@@ -65,6 +65,7 @@ contract ConsiderationEncoder {
         unchecked {
             // Mask the length of the bytes array to protect against overflow
             // and round up to the nearest word.
+            // Note: `size` also includes the 1 word that stores the length.
             size = (src.readUint256() + AlmostTwoWords) & OnlyFullWordMask;
 
             // Copy the bytes array to the new memory location.
