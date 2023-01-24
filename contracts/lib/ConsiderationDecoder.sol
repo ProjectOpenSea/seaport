@@ -2,12 +2,10 @@
 pragma solidity ^0.8.17;
 
 import {
-    BasicOrderParameters,
     Order,
     CriteriaResolver,
     AdvancedOrder,
     FulfillmentComponent,
-    Execution,
     Fulfillment,
     OrderComponents,
     OrderParameters,
