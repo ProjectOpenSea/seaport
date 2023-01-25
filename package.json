@@ -68,7 +68,8 @@
     "elliptic": ">=6.5.4",
     "minimatch": ">=3.0.5",
     "flat": ">=5.0.1",
-    "json5": ">=1.0.2"
+    "json5": ">=1.0.2",
+    "cookiejar": ">=2.1.4"
   },
   "scripts": {
     "build": "yarn clean; hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
