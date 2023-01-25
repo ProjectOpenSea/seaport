@@ -19,6 +19,16 @@ interface SignedZoneInterface {
     }
 
     /**
+     * @dev The struct for storing SIP-7 information.
+     */
+    struct SIP7InfoStruct {
+        bytes32 domainSeparator; /// The domain separator used for signing.
+        string apiEndpoint; /// The API endpoint for the zone.
+        uint256[] substandards; /// The substandards supported by the zone.
+        string documentationURI; /// The documentation URI for the zone.
+    }
+
+    /**
      * @notice Add a new signer to the zone.
      *
      * @param signer The new signer address to add.
@@ -52,12 +62,18 @@ interface SignedZoneInterface {
     /**
      * @notice Returns signing information about the zone.
      *
-     * @return domainSeparator The domain separator used for signing.
-     * @return apiEndpoint     The API endpoint to get signatures for orders
-     *                         using this zone.
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
      */
     function sip7Information()
         external
         view
-        returns (bytes32 domainSeparator, string memory apiEndpoint);
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        );
 }
