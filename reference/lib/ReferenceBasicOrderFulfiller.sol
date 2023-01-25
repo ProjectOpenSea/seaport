@@ -860,7 +860,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             }
 
             // Transfer Ether to the additional recipient.
-            _transferEth(
+            _transferNativeToken(
                 additionalRecipient.recipient,
                 additionalRecipientAmount
             );
@@ -875,12 +875,12 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         }
 
         // Transfer Ether to the offerer.
-        _transferEth(parameters.offerer, amount);
+        _transferNativeToken(parameters.offerer, amount);
 
         // If any Ether remains after transfers, return it to the caller.
         if (etherRemaining > amount) {
             // Transfer remaining Ether to the caller.
-            _transferEth(payable(msg.sender), etherRemaining - amount);
+            _transferNativeToken(payable(msg.sender), etherRemaining - amount);
         }
     }
 

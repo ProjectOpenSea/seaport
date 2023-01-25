@@ -237,7 +237,7 @@ contract Executor is Verifiers, TokenTransferrer {
         bool success;
 
         assembly {
-            // Transfer the ETH and store if it succeeded or not.
+            // Transfer the native token and store if it succeeded or not.
             success := call(gas(), to, amount, 0, 0, 0, 0)
         }
 

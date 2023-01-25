@@ -296,7 +296,7 @@ contract ReferenceOrderFulfiller is
         // If any ether remains after fulfillments...
         if (etherRemaining != 0) {
             // return it to the caller.
-            _transferEth(payable(msg.sender), etherRemaining);
+            _transferNativeToken(payable(msg.sender), etherRemaining);
         }
         // Return the order to execute.
         return orderToExecute;

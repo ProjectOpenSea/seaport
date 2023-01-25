@@ -772,7 +772,7 @@ contract ReferenceOrderCombiner is
 
         // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
-            _transferEth(payable(msg.sender), etherRemaining);
+            _transferNativeToken(payable(msg.sender), etherRemaining);
         }
 
         // Return the array containing available orders.
