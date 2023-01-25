@@ -101,7 +101,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // to the nearest full word.
                                 let returnDataWords := shr(
                                     OneWordShift,
-                                    add(returndatasize(), AlmostOneWord)
+                                    add(returndatasize(), ThirtyOneBytes)
                                 )
 
                                 // Note: use the free memory pointer in place of
@@ -314,7 +314,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Round up to the nearest full word.
                     let returnDataWords := shr(
                         OneWordShift,
-                        add(returndatasize(), AlmostOneWord)
+                        add(returndatasize(), ThirtyOneBytes)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
@@ -466,7 +466,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Round up to the nearest full word.
                     let returnDataWords := shr(
                         OneWordShift,
-                        add(returndatasize(), AlmostOneWord)
+                        add(returndatasize(), ThirtyOneBytes)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
@@ -741,7 +741,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // allocated memory. Round up to the nearest full word.
                         let returnDataWords := shr(
                             OneWordShift,
-                            add(returndatasize(), AlmostOneWord)
+                            add(returndatasize(), ThirtyOneBytes)
                         )
 
                         // Note: use transferDataSize in place of msize() to
