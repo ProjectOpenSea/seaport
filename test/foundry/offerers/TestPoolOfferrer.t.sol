@@ -5,10 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 import { IERC721 } from "forge-std/interfaces/IERC721.sol";
 
-import {
-    TestPoolFactory,
-    TestPoolOfferer
-} from "../../../offerers/TestPoolFactory.sol";
+import { TestPoolFactory, TestPoolOfferer } from "./impl/TestPoolFactory.sol";
 import {
     SpentItem,
     ReceivedItem,
