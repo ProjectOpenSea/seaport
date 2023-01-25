@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "../lib/ConsiderationConstants.sol";
+
 /**
  * @title TypehashDirectory
  * @notice The typehash directory contains 24 bulk order EIP-712 typehashes,
@@ -12,16 +14,12 @@ pragma solidity ^0.8.17;
 contract TypehashDirectory {
     // Encodes "[2]" for use in deriving typehashes.
     bytes3 internal constant twoSubstring = 0x5B325D;
-    uint256 internal constant twoSubstringLength = 3;
+    uint256 internal constant twoSubstringLength = 0x3;
 
     // Dictates maximum bulk order group size; 24 => 2^24 => 16,777,216 orders.
-    uint256 internal constant MaxTreeHeight = 24;
+    uint256 internal constant MaxTreeHeight = 0x18;
 
     uint256 internal constant InvalidOpcode = 0xfe;
-    uint256 internal constant OneWord = 0x20;
-    uint256 internal constant OneWordShift = 5;
-    uint256 internal constant AlmostOneWord = 0x1f;
-    uint256 internal constant FreeMemoryPointerSlot = 0x40;
 
     /**
      * @dev Derive 24 bulk order EIP-712 typehashes, one for each supported
