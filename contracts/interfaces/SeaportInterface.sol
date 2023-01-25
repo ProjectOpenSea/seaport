@@ -16,10 +16,10 @@ import {
  * @title SeaportInterface
  * @author 0age
  * @custom:version 1.2
- * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
- *         minimizes external calls to the greatest extent possible and provides
- *         lightweight methods for common routes as well as more flexible
- *         methods for composing advanced orders.
+ * @notice Seaport is a generalized native token/ERC20/ERC721/ERC1155
+ *         marketplace. It minimizes external calls to the greatest extent
+ *         possible and provides lightweight methods for common routes as well
+ *         as more flexible methods for composing advanced orders.
  *
  * @dev SeaportInterface contains all external function interfaces for Seaport.
  */

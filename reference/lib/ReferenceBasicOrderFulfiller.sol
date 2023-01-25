@@ -841,8 +841,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) internal {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Put native token value supplied by the caller on the stack.
+        uint256 nativeTokensRemaining = msg.value;
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
@@ -851,36 +851,39 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 parameters.additionalRecipients[i]
             );
 
-            // Read ether amount to transfer to recipient and place on stack.
+            // Read native token amount to transfer to recipient and place on stack.
             uint256 additionalRecipientAmount = additionalRecipient.amount;
 
-            // Ensure that sufficient Ether is available.
-            if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
+            // Ensure that sufficient native tokens are available.
+            if (additionalRecipientAmount > nativeTokensRemaining) {
+                revert InsufficientNativeTokensSupplied();
             }
 
-            // Transfer Ether to the additional recipient.
-            _transferEth(
+            // Transfer native token to the additional recipient.
+            _transferNativeTokens(
                 additionalRecipient.recipient,
                 additionalRecipientAmount
             );
 
-            // Reduce ether value available.
-            etherRemaining -= additionalRecipientAmount;
+            // Reduce native token value available.
+            nativeTokensRemaining -= additionalRecipientAmount;
         }
 
-        // Ensure that sufficient Ether is still available.
-        if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
+        // Ensure that sufficient native token is still available.
+        if (amount > nativeTokensRemaining) {
+            revert InsufficientNativeTokensSupplied();
         }
 
-        // Transfer Ether to the offerer.
-        _transferEth(parameters.offerer, amount);
+        // Transfer native token to the offerer.
+        _transferNativeTokens(parameters.offerer, amount);
 
-        // If any Ether remains after transfers, return it to the caller.
-        if (etherRemaining > amount) {
-            // Transfer remaining Ether to the caller.
-            _transferEth(payable(msg.sender), etherRemaining - amount);
+        // If any native token remains after transfers, return it to the caller.
+        if (nativeTokensRemaining > amount) {
+            // Transfer remaining native token to the caller.
+            _transferNativeTokens(
+                payable(msg.sender),
+                nativeTokensRemaining - amount
+            );
         }
     }
 

@@ -65,7 +65,7 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         {
             bool success;
             assembly {
-                // Transfer the ETH and store if it succeeded or not.
+                // Transfer the native token and store if it succeeded or not.
                 success := call(gas(), _addr, 1, 0, 0, 0, 0)
             }
             vm.assume(success);

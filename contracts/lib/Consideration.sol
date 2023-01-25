@@ -31,12 +31,13 @@ import "./ConsiderationConstants.sol";
  * @custom:coauthor transmissions11 (t11s.eth)
  * @custom:coauthor James Wenzel (emo.eth)
  * @custom:version 1.2
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace
- *         that provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders or groups of orders.
- *         Each order contains an arbitrary number of items that may be spent
- *         (the "offer") along with an arbitrary number of items that must be
- *         received back by the indicated recipients (the "consideration").
+ * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
+ *         marketplace that provides lightweight methods for common routes as
+ *         well as more flexible methods for composing advanced orders or groups
+ *         of orders. Each order contains an arbitrary number of items that may
+ *         be spent (the "offer") along with an arbitrary number of items that
+ *         must be received back by the indicated recipients (the
+ *         "consideration").
  */
 contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
