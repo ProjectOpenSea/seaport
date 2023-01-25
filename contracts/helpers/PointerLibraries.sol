@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../lib/ConsiderationConstants.sol";
-
 type CalldataPointer is uint256;
 
 type ReturndataPointer is uint256;
@@ -20,8 +18,10 @@ using MemoryWriters for MemoryPointer global;
 
 CalldataPointer constant CalldataStart = CalldataPointer.wrap(0x04);
 MemoryPointer constant FreeMemoryPPtr = MemoryPointer.wrap(0x40);
-uint256 constant IdentityPrecompileAddress = 4;
+uint256 constant IdentityPrecompileAddress = 0x4;
 uint256 constant OffsetOrLengthMask = 0xffffffff;
+uint256 constant _OneWord = 0x20;
+uint256 constant _FreeMemoryPointerSlot = 0x40;
 
 /// @dev Allocates `size` bytes in memory by increasing the free memory pointer
 ///    and returns the memory pointer to the first byte of the allocated region.
@@ -29,8 +29,8 @@ uint256 constant OffsetOrLengthMask = 0xffffffff;
 // solhint-disable-next-line func-visibility
 function malloc(uint256 size) pure returns (MemoryPointer mPtr) {
     assembly {
-        mPtr := mload(FreeMemoryPointerSlot)
-        mstore(FreeMemoryPointerSlot, add(mPtr, size))
+        mPtr := mload(_FreeMemoryPointerSlot)
+        mstore(_FreeMemoryPointerSlot, add(mPtr, size))
     }
 }
 
@@ -100,7 +100,7 @@ library CalldataPointerLib {
         CalldataPointer cdPtr
     ) internal pure returns (CalldataPointer cdPtrNext) {
         assembly {
-            cdPtrNext := add(cdPtr, OneWord)
+            cdPtrNext := add(cdPtr, _OneWord)
         }
     }
 
@@ -181,7 +181,7 @@ library ReturndataPointerLib {
         ReturndataPointer rdPtr
     ) internal pure returns (ReturndataPointer rdPtrNext) {
         assembly {
-            rdPtrNext := add(rdPtr, OneWord)
+            rdPtrNext := add(rdPtr, _OneWord)
         }
     }
 
@@ -261,7 +261,7 @@ library MemoryPointerLib {
         MemoryPointer mPtr
     ) internal pure returns (MemoryPointer mPtrNext) {
         assembly {
-            mPtrNext := add(mPtr, OneWord)
+            mPtrNext := add(mPtr, _OneWord)
         }
     }
 
@@ -1200,7 +1200,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bool value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1210,7 +1210,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (address value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1220,7 +1220,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes1 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1230,7 +1230,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes2 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1240,7 +1240,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes3 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1250,7 +1250,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes4 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1260,7 +1260,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes5 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1270,7 +1270,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes6 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1280,7 +1280,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes7 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1290,7 +1290,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes8 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1300,7 +1300,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes9 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1310,7 +1310,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes10 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1320,7 +1320,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes11 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1330,7 +1330,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes12 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1340,7 +1340,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes13 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1350,7 +1350,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes14 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1360,7 +1360,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes15 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1370,7 +1370,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes16 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1380,7 +1380,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes17 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1390,7 +1390,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes18 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1400,7 +1400,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes19 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1410,7 +1410,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes20 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1420,7 +1420,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes21 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1430,7 +1430,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes22 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1440,7 +1440,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes23 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1450,7 +1450,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes24 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1460,7 +1460,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes25 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1470,7 +1470,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes26 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1480,7 +1480,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes27 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1490,7 +1490,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes28 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1500,7 +1500,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes29 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1510,7 +1510,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes30 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1520,7 +1520,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes31 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1530,7 +1530,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (bytes32 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1540,7 +1540,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint8 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1550,7 +1550,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint16 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1560,7 +1560,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint24 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1570,7 +1570,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint32 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1580,7 +1580,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint40 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1590,7 +1590,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint48 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1600,7 +1600,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint56 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1610,7 +1610,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint64 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1620,7 +1620,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint72 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1630,7 +1630,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint80 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1640,7 +1640,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint88 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1650,7 +1650,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint96 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1660,7 +1660,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint104 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1670,7 +1670,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint112 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1680,7 +1680,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint120 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1690,7 +1690,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint128 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1700,7 +1700,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint136 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1710,7 +1710,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint144 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1720,7 +1720,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint152 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1730,7 +1730,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint160 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1740,7 +1740,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint168 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1750,7 +1750,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint176 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1760,7 +1760,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint184 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1770,7 +1770,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint192 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1780,7 +1780,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint200 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1790,7 +1790,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint208 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1800,7 +1800,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint216 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1810,7 +1810,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint224 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1820,7 +1820,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint232 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1830,7 +1830,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint240 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1840,7 +1840,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint248 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1850,7 +1850,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (uint256 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1860,7 +1860,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int8 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1870,7 +1870,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int16 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1880,7 +1880,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int24 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1890,7 +1890,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int32 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1900,7 +1900,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int40 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1910,7 +1910,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int48 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1920,7 +1920,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int56 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1930,7 +1930,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int64 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1940,7 +1940,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int72 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1950,7 +1950,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int80 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1960,7 +1960,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int88 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1970,7 +1970,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int96 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1980,7 +1980,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int104 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -1990,7 +1990,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int112 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2000,7 +2000,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int120 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2010,7 +2010,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int128 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2020,7 +2020,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int136 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2030,7 +2030,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int144 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2040,7 +2040,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int152 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2050,7 +2050,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int160 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2060,7 +2060,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int168 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2070,7 +2070,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int176 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2080,7 +2080,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int184 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2090,7 +2090,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int192 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2100,7 +2100,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int200 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2110,7 +2110,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int208 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2120,7 +2120,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int216 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2130,7 +2130,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int224 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2140,7 +2140,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int232 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2150,7 +2150,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int240 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2160,7 +2160,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int248 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
@@ -2170,7 +2170,7 @@ library ReturndataReaders {
         ReturndataPointer rdPtr
     ) internal pure returns (int256 value) {
         assembly {
-            returndatacopy(0, rdPtr, OneWord)
+            returndatacopy(0, rdPtr, _OneWord)
             value := mload(0)
         }
     }
