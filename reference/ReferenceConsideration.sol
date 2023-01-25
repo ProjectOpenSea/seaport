@@ -33,13 +33,13 @@ import {
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
  * @custom:version 1.2-reference
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
- *         It minimizes external calls to the greatest extent possible and
- *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders or groups of orders.
- *         Each order contains an arbitrary number of items that may be spent
- *         (the "offer") along with an arbitrary number of items that must be
- *         received back by the indicated recipients (the "consideration").
+ * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
+ *         marketplace. It minimizes external calls to the greatest extent
+ *         possible and provides lightweight methods for common routes as well
+ *         as more flexible methods for composing advanced orders or groups of
+ *         orders. Each order contains an arbitrary number of items that may be
+ *         spent (the "offer") along with an arbitrary number of items that must
+ *         be received back by the indicated recipients (the "consideration").
  */
 contract ReferenceConsideration is
     ConsiderationInterface,

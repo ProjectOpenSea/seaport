@@ -4906,7 +4906,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -4917,7 +4917,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await withBalanceChecks([order], 0, undefined, async () => {
@@ -4978,7 +4978,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -4989,7 +4989,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await marketplaceContract
@@ -5042,7 +5042,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           )
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -5065,7 +5065,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           )
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -5161,7 +5161,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -5172,7 +5172,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientEtherSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       const tx = marketplaceContract
@@ -5314,7 +5314,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "EtherTransferGenericFailure"
+        "NativeTokenTransferGenericFailure"
       );
     });
 
@@ -5372,7 +5372,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       )
         .to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         )
         .withArgs(conduitOne.address, parseEther("1"));
     });
@@ -6837,7 +6837,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       )
         .to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         )
         .withArgs(conduitOne.address, parseEther("1"));
     });
@@ -6875,7 +6875,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
 
       const customError = !process.env.REFERENCE
         ? "InvalidMsgValue"
-        : "EtherTransferGenericFailure";
+        : "NativeTokenTransferGenericFailure";
       const args = !process.env.REFERENCE
         ? [parseEther("1")]
         : [marketplaceContract.address, parseEther("1")];
@@ -7030,14 +7030,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7092,14 +7093,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7163,7 +7165,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7176,7 +7179,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             )
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7242,7 +7245,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7256,7 +7260,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             )
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7331,7 +7335,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7347,7 +7352,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             )
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7408,7 +7413,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7417,7 +7423,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7493,7 +7499,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7508,7 +7515,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             )
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7565,14 +7572,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth, which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(seller)
             .fulfillOrder(order, toKey(0), { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7629,15 +7637,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth,
-        // which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens,
+        // which reverts with NativeTokenTransferGenericFailure
         await expect(
           marketplaceContract
             .connect(seller)
             .fulfillOrder(order, toKey(0), { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });
@@ -7692,15 +7700,15 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferEth,
-        // which reverts with EtherTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens,
+        // which reverts with NativeTokenTransferGenericFailure
         await expect(
           marketplaceContract
             .connect(seller)
             .fulfillOrder(order, toKey(0), { value })
         ).to.be.revertedWithCustomError(
           marketplaceContract,
-          "EtherTransferGenericFailure"
+          "NativeTokenTransferGenericFailure"
         );
       }
     });

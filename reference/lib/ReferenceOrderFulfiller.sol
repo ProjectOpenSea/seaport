@@ -240,7 +240,7 @@ contract ReferenceOrderFulfiller is
         );
 
         // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        uint256 nativeTokensRemaining = msg.value;
 
         // Declare a nested scope to minimize stack depth.
         {
@@ -273,11 +273,11 @@ contract ReferenceOrderFulfiller is
                 // Reduce available value if offer spent ETH or a native token.
                 if (receivedItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                    if (amount > nativeTokensRemaining) {
+                        revert InsufficientNativeTokensSupplied();
                     }
                     // Reduce ether remaining by amount.
-                    etherRemaining -= amount;
+                    nativeTokensRemaining -= amount;
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -293,10 +293,10 @@ contract ReferenceOrderFulfiller is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulatorStruct);
 
-        // If any ether remains after fulfillments...
-        if (etherRemaining != 0) {
+        // If any native token remains after fulfillments...
+        if (nativeTokensRemaining != 0) {
             // return it to the caller.
-            _transferEth(payable(msg.sender), etherRemaining);
+            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
         }
         // Return the order to execute.
         return orderToExecute;
