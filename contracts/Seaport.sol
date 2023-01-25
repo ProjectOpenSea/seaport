@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { Consideration } from "./lib/Consideration.sol";
 
 /**
  * @title Seaport
- * @custom:version 1.1
+ * @custom:version 1.2
  * @author 0age (0age.eth)
  * @custom:coauthor d1ll0n (d1ll0n.eth)
  * @custom:coauthor transmissions11 (t11s.eth)
+ * @custom:coauthor James Wenzel (emo.eth)
  * @custom:contributor Kartik (slokh.eth)
  * @custom:contributor LeFevre (lefevre.eth)
  * @custom:contributor Joseph Schiarizzi (CupOJoseph.eth)
  * @custom:contributor Aspyn Palatnick (stuckinaboot.eth)
- * @custom:contributor James Wenzel (emo.eth)
  * @custom:contributor Stephan Min (stephanm.eth)
  * @custom:contributor Ryan Ghods (ralxz.eth)
+ * @custom:contributor Daniel Viau (snotrocket.eth)
  * @custom:contributor hack3r-0m (hack3r-0m.eth)
  * @custom:contributor Diego Estevez (antidiego.eth)
  * @custom:contributor Chomtana (chomtana.eth)
@@ -73,8 +74,7 @@ import { Consideration } from "./lib/Consideration.sol";
  * @custom:contributor rfart(rfa)
  * @custom:contributor Riley Holterhus
  * @custom:contributor big-tech-sux
- * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
- *         minimizes external calls to the greatest extent possible and provides
+ * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace with
  *         lightweight methods for common routes as well as more flexible
  *         methods for composing advanced orders or groups of orders. Each order
  *         contains an arbitrary number of items that may be spent (the "offer")

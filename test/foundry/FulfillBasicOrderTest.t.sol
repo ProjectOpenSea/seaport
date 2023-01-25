@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //Author: CupOJoseph
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,
@@ -32,8 +32,11 @@ import {
     PausableZoneController
 } from "../../contracts/zones/PausableZoneController.sol";
 import { PausableZone } from "../../contracts/zones/PausableZone.sol";
+import {
+    ConsiderationEventsAndErrors
+} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-contract FulfillBasicOrderTest is BaseOrderTest {
+contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;
 
     uint256 badIdentifier;
@@ -65,18 +68,18 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testBasicEthTo721(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicEthTo721(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
@@ -85,10 +88,47 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicEthTo721WithAdditionalRecipients(
+        FuzzInputsCommon memory inputs,
+        uint256 numAdditionalRecipients
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        vm.assume(numAdditionalRecipients > 0);
+        vm.assume(inputs.paymentAmount < 10);
+        uint256 finalAdditionalRecipients = numAdditionalRecipients % 10;
+
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, 1);
+
+        AdditionalRecipient[]
+            storage _additionalRecipients = additionalRecipients;
+        for (uint256 i = 0; i < finalAdditionalRecipients; i++) {
+            _additionalRecipients.push(
+                AdditionalRecipient({
+                    recipient: alice,
+                    amount: inputs.paymentAmount
+                })
+            );
+            addEthConsiderationItem(alice, inputs.paymentAmount);
+        }
+        _configureBasicOrderParametersEthTo721(inputs);
+        basicOrderParameters.additionalRecipients = _additionalRecipients;
+        basicOrderParameters.considerationAmount = 1;
+        basicOrderParameters
+            .totalOriginalAdditionalRecipients = finalAdditionalRecipients;
+
+        test(
+            this.basicEthTo721WithAdditionalRecipients,
+            Context(consideration, inputs, 0)
+        );
+        test(
+            this.basicEthTo721WithAdditionalRecipients,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
+    function testBasicEthTo721WithZone(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         inputs.zone = address(0);
 
         addErc721OfferItem(inputs.tokenId);
@@ -99,16 +139,29 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicErc20To721(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs, 0))
-    {
+    function testBasicErc20To721(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
 
         test(this.basicErc20To721, Context(consideration, inputs, 0));
         test(this.basicErc20To721, Context(referenceConsideration, inputs, 0));
+    }
+
+    function testRevertCancelledOrder(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersErc20To721(inputs);
+
+        test(this.revertCancelledOrder, Context(consideration, inputs, 0));
+        test(
+            this.revertCancelledOrder,
+            Context(referenceConsideration, inputs, 0)
+        );
     }
 
     function testBasicEthTo1155(
@@ -239,7 +292,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -302,7 +355,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -322,6 +375,61 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             );
 
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
+    function testRevertBasicEthTo721ZeroAmount(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(
+            this.revertBasicErc20To721ZeroAmount,
+            Context(consideration, inputs, 0)
+        );
+        test(
+            this.revertBasicErc20To721ZeroAmount,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
+    function revertBasicErc20To721ZeroAmount(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        considerationItems[0].startAmount = 0;
+        considerationItems[0].endAmount = 0;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
@@ -362,7 +470,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -429,7 +537,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -477,6 +585,44 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
+    function revertCancelledOrder(Context memory context) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+        basicOrderParameters.signature = signature;
+        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](
+            1
+        );
+        myBaseOrderComponents[0] = baseOrderComponents;
+
+        vm.prank(alice);
+
+        vm.expectEmit(true, true, true, false, address(context.consideration));
+        emit OrderCancelled(orderHash, alice, context.args.zone);
+        context.consideration.cancel(myBaseOrderComponents);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("OrderIsCancelled(bytes32)", orderHash)
+        );
+        context.consideration.fulfillBasicOrder(basicOrderParameters);
+    }
+
     function revertUnusedItemParametersIdentifierSetOnErc20Consideration(
         Context memory context
     ) external stateless {
@@ -491,7 +637,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             globalSalt++,
             false
         );
-        _configureOrderComponents(context.consideration.getCounter(alice));
+        configureOrderComponents(context.consideration.getCounter(alice));
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -514,7 +660,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
-    function prepareBasicOrder(uint256 tokenId)
+    function prepareBasicOrder(
+        uint256 tokenId
+    )
         internal
         returns (
             Order memory order,
@@ -532,7 +680,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicErc20To1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -560,7 +708,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicEthTo1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -590,7 +738,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function basicEthTo721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -614,10 +762,52 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
     }
 
+    function basicEthTo721WithAdditionalRecipients(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+
+        uint256 aliceBalanceBefore = alice.balance;
+
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount.mul(10000000)
+        }(basicOrderParameters);
+
+        uint256 aliceBalanceAfter = alice.balance;
+
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
+        assertEq(
+            1 +
+                (context.args.paymentAmount % 1000) *
+                basicOrderParameters.additionalRecipients.length,
+            aliceBalanceAfter - aliceBalanceBefore
+        );
+    }
+
     function basicErc20To721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
-        _configureOrderComponents(
+        configureOrderComponents(
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
@@ -711,7 +901,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             .ERC20_TO_ERC721_FULL_OPEN;
     }
 
-    function _configureOrderComponents(
+    function configureOrderComponents(
         address zone,
         bytes32 zoneHash,
         uint256 salt,

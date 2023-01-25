@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { IERC721Receiver } from "../interfaces/IERC721Receiver.sol";
 
@@ -62,7 +62,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
      *         specified recipients.
      *
      * @param items      The items to transfer to an intended recipient.
-     * @param conduitKey An optional conduit key referring to a conduit through
+     * @param conduitKey A mandatory conduit key referring to a conduit through
      *                   which the bulk transfer should occur.
      *
      * @return magicValue A value indicating that the transfers were successful.
@@ -249,12 +249,19 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // the correct length and matches an expected custom error selector.
             if (
                 data.length == 4 &&
-                (customErrorSelector == InvalidItemType.selector ||
-                    customErrorSelector == InvalidERC721TransferAmount.selector)
+                customErrorSelector == InvalidItemType.selector
             ) {
                 // "Bubble up" the revert reason.
                 assembly {
                     revert(add(data, 0x20), 0x04)
+                }
+            } else if (
+                data.length == 36 &&
+                customErrorSelector == InvalidERC721TransferAmount.selector
+            ) {
+                // "Bubble up" the revert reason.
+                assembly {
+                    revert(add(data, 0x20), 0x24)
                 }
             }
 

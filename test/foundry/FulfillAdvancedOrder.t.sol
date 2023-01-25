@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { OneWord } from "../../contracts/lib/ConsiderationConstants.sol";
 import {
@@ -61,7 +61,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         vm.assume(
             args.paymentAmounts[0].add(args.paymentAmounts[1]).add(
                 args.paymentAmounts[2]
-            ) <= 2**120 - 1
+            ) <= 2 ** 120 - 1
         );
         _;
     }
@@ -81,22 +81,23 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         vm.assume(
             args.paymentAmounts[0].add(args.paymentAmounts[1]).add(
                 args.paymentAmounts[2]
-            ) <= 2**120 - 1
+            ) <= 2 ** 120 - 1
         );
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testNoNativeOffersFulfillAdvanced(uint8[8] memory itemTypes)
-        public
-    {
+    function testNoNativeOffersFulfillAdvanced(
+        uint8[8] memory itemTypes
+    ) public {
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
             ItemType itemType = ItemType(itemTypes[i] % 4);
@@ -127,13 +128,12 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAdvanced(Context memory context)
-        external
-        stateless
-    {
+    function noNativeOfferItemsFulfillAdvanced(
+        Context memory context
+    ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -144,7 +144,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
 
         vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
-        context.consideration.fulfillAdvancedOrder(
+        context.consideration.fulfillAdvancedOrder{ value: 1 ether }(
             AdvancedOrder(baseOrderParameters, 1, 1, signature, ""),
             new CriteriaResolver[](0),
             bytes32(0),
@@ -174,10 +174,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function advancedPartialAscendingOfferAmount1155(Context memory context)
-        external
-        stateless
-    {
+    function advancedPartialAscendingOfferAmount1155(
+        Context memory context
+    ) external stateless {
         uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(2))
             .add(context.args.paymentAmounts[1].mul(2))
             .add(context.args.paymentAmounts[2].mul(2));
@@ -469,10 +468,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function partialFulfillEthTo1155DenominatorOverflow(Context memory context)
-        external
-        stateless
-    {
+    function partialFulfillEthTo1155DenominatorOverflow(
+        Context memory context
+    ) external stateless {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
@@ -508,7 +506,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         // Create an order to fulfill half of the original offer.
         context.consideration.fulfillAdvancedOrder{ value: 50 }(
-            AdvancedOrder(baseOrderParameters, 2**118, 2**119, signature, ""),
+            AdvancedOrder(
+                baseOrderParameters,
+                2 ** 118,
+                2 ** 119,
+                signature,
+                ""
+            ),
             new CriteriaResolver[](0),
             bytes32(0),
             address(0)
@@ -589,8 +593,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder memory advancedOrder = AdvancedOrder(
             baseOrderParameters,
-            2**119,
-            2**119,
+            2 ** 119,
+            2 ** 119,
             signature,
             ""
         );
@@ -658,8 +662,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder memory advancedOrder = AdvancedOrder(
             baseOrderParameters,
-            2**119,
-            2**119,
+            2 ** 119,
+            2 ** 119,
             signature,
             ""
         );
@@ -729,8 +733,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder memory advancedOrder = AdvancedOrder(
             baseOrderParameters,
-            2**119,
-            2**119,
+            2 ** 119,
+            2 ** 119,
             signature,
             ""
         );
@@ -761,10 +765,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function partialFulfillEthTo1155NumeratorSetToZero(Context memory context)
-        external
-        stateless
-    {
+    function partialFulfillEthTo1155NumeratorSetToZero(
+        Context memory context
+    ) external stateless {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
@@ -819,10 +822,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function partialFulfillEthTo1155DenominatorSetToZero(Context memory context)
-        external
-        stateless
-    {
+    function partialFulfillEthTo1155DenominatorSetToZero(
+        Context memory context
+    ) external stateless {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
@@ -866,7 +868,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function testpartialFulfillEthTo1155NumeratorDenominatorSetToZero() public {
+    function testPartialFulfillEthTo1155NumeratorDenominatorSetToZero() public {
         test(
             this.partialFulfillEthTo1155NumeratorDenominatorSetToZero,
             Context(consideration, empty, 0, 0)
@@ -917,6 +919,74 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // Call fulfillAdvancedOrder with an order with a numerator and denominator of 0.
         context.consideration.fulfillAdvancedOrder{ value: 50 }(
             AdvancedOrder(baseOrderParameters, 0, 0, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+    }
+
+    function testRevertPartialFulfillInexactFractionEthTo1155(
+        FuzzInputs memory inputs
+    ) public {
+        // ensure an inexact fraction is supplied.
+        vm.assume(inputs.numer > 0 && inputs.numer < 69);
+
+        test(
+            this.revertPartialFulfillInexactFractionEthTo1155,
+            Context(consideration, inputs, 0, 0)
+        );
+        test(
+            this.revertPartialFulfillInexactFractionEthTo1155,
+            Context(referenceConsideration, inputs, 0, 0)
+        );
+    }
+
+    function revertPartialFulfillInexactFractionEthTo1155(
+        Context memory context
+    ) external stateless {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        vm.expectRevert(abi.encodeWithSignature("InexactFraction()"));
+        // Call fulfillAdvancedOrder with an order with a numerator and denominator of 0.
+        context.consideration.fulfillAdvancedOrder{ value: 100 }(
+            AdvancedOrder(
+                baseOrderParameters,
+                context.args.numer,
+                69,
+                signature,
+                ""
+            ),
             new CriteriaResolver[](0),
             bytes32(0),
             address(0)

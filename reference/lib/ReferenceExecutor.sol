@@ -1,30 +1,32 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
-import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "../../contracts/interfaces/ConduitInterface.sol";
 
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
-} from "contracts/conduit/lib/ConduitStructs.sol";
+} from "../../contracts/conduit/lib/ConduitStructs.sol";
 
-import { ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 
-import { ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
+import { ReceivedItem } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 import { AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 
@@ -43,9 +45,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceVerifiers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceVerifiers(conduitController) {}
 
     /**
      * @dev Internal function to transfer a given item.
@@ -119,7 +121,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
     /**
      * @dev Internal function to transfer Ether or other native tokens to a
-     *      given recipient.
+     *      given recipient. Note that this reference implementation deviates
+     *      from the primary contract, which "bubbles up" revert data when
+     *      present (the reference contract always throws a generic error).
      *
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
@@ -223,7 +227,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
-                revert InvalidERC721TransferAmount();
+                revert InvalidERC721TransferAmount(amount);
             }
 
             // Perform transfer via the token contract directly.
@@ -327,9 +331,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param accumulatorStruct A struct containing conduit transfer data
      *                          and its corresponding conduitKey.
      */
-    function _triggerIfArmed(AccumulatorStruct memory accumulatorStruct)
-        internal
-    {
+    function _triggerIfArmed(
+        AccumulatorStruct memory accumulatorStruct
+    ) internal {
         // Exit if the accumulator is not "armed".
         if (accumulatorStruct.transfers.length == 0) {
             return;
@@ -444,11 +448,9 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @return conduit   The address of the conduit associated with the given
      *                   conduit key.
      */
-    function _getConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _getConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Derive the address of the conduit using the conduit key.
         conduit = _deriveConduit(conduitKey);
 

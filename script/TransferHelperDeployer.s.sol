@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
-import { TransferHelper } from "contracts/helpers/TransferHelper.sol";
+import { TransferHelper } from "../contracts/helpers/TransferHelper.sol";
 
 interface ImmutableCreate2Factory {
     function safeCreate2(bytes32, bytes memory) external;

@@ -1,6 +1,11 @@
 name: Seaport Test CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, 1.*, 2.*]
+    tags: ["*"]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
@@ -13,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +26,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
 
@@ -31,7 +36,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     steps:
       - uses: actions/checkout@v3
@@ -39,7 +44,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn lint:check
 
@@ -49,7 +54,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     steps:
       - uses: actions/checkout@v3
@@ -57,7 +62,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
       - run: yarn test
@@ -68,7 +73,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     env:
       REFERENCE: true
@@ -79,7 +84,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
       - run: yarn build:ref
@@ -101,7 +106,7 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.7 and via-ir=false
+      - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Run tests
@@ -123,14 +128,57 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.7 and via-ir=false
+      - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile optimized using 0.8.14 and via-ir=true
+      - name: Precompile optimized using 0.8.17 and via-ir=true
         run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
+
+  forge-offerers:
+    name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Run tests
+        run: FOUNDRY_PROFILE=offerers forge test -vvv
+
+  forge-coverage:
+    name: Run Forge Coverage report on tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Run coverage with lcov output
+        run: SEAPORT_COVERAGE=true forge coverage --report lcov
+
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./lcov.info
+          flags: foundry
 
   coverage:
     name: Run Coverage Tests
@@ -138,7 +186,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     steps:
       - uses: actions/checkout@v3
@@ -146,7 +194,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
       - run: yarn coverage
@@ -161,7 +209,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [16.15.1]
 
     env:
       REFERENCE: true
@@ -172,7 +220,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
       - run: yarn build:ref

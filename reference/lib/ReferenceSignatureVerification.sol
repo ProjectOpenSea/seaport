@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
+import {
+    EIP1271Interface
+} from "../../contracts/interfaces/EIP1271Interface.sol";
 
 import {
     SignatureVerificationErrors
-} from "contracts/interfaces/SignatureVerificationErrors.sol";
+} from "../../contracts/interfaces/SignatureVerificationErrors.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title SignatureVerification
@@ -23,14 +25,18 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
      *
-     * @param signer    The signer for the order.
-     * @param digest    The digest to verify the signature against.
-     * @param signature A signature from the signer indicating that the order
-     *                  has been approved.
+     * @param signer            The signer for the order.
+     * @param digest            The digest to verify signature against.
+     * @param originalDigest    The original digest to verify signature against.
+     * @param originalSignature The original signature.
+     * @param signature         A signature from the signer indicating that the
+     *                          order has been approved.
      */
     function _assertValidSignature(
         address signer,
         bytes32 digest,
+        bytes32 originalDigest,
+        bytes memory originalSignature,
         bytes memory signature
     ) internal view {
         // Declare r, s, and v signature parameters.
@@ -40,7 +46,11 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
 
         if (signer.code.length > 0) {
             // If signer is a contract, try verification via EIP-1271.
-            _assertValidEIP1271Signature(signer, digest, signature);
+            _assertValidEIP1271Signature(
+                signer,
+                originalDigest,
+                originalSignature
+            );
 
             // Return early if the ERC-1271 signature check succeeded.
             return;
@@ -49,10 +59,13 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
+            // Decode signature into r, vs.
             (r, vs) = abi.decode(signature, (bytes32, bytes32));
 
+            // Decompose vs into s and v.
             s = vs & EIP2098_allButHighestBitMask;
 
+            // If the highest bit is set, v = 28, otherwise v = 27.
             v = uint8(uint256(vs >> 255)) + 27;
         } else if (signature.length == 65) {
             (r, s) = abi.decode(signature, (bytes32, bytes32));
@@ -94,7 +107,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             EIP1271Interface(signer).isValidSignature(digest, signature) !=
             EIP1271Interface.isValidSignature.selector
         ) {
-            revert InvalidSigner();
+            revert BadContractSignature();
         }
     }
 }

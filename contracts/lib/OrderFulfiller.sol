@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
-import { ItemType } from "./ConsiderationEnums.sol";
+import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
@@ -20,7 +20,7 @@ import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
 
 /**
  * @title OrderFulfiller
@@ -42,9 +42,9 @@ contract OrderFulfiller is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        BasicOrderFulfiller(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) BasicOrderFulfiller(conduitController) {}
 
     /**
      * @dev Internal function to validate an order and update its status, adjust
@@ -79,22 +79,17 @@ contract OrderFulfiller is
         address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
-        // Declare empty bytes32 array (unused, will remain empty).
-        bytes32[] memory priorOrderHashes;
+        _setReentrancyGuard(
+            // Native tokens accepted during execution for contract order types.
+            advancedOrder.parameters.orderType == OrderType.CONTRACT
+        );
 
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(
-                advancedOrder,
-                criteriaResolvers,
-                true,
-                priorOrderHashes
-            );
+        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
@@ -115,6 +110,17 @@ contract OrderFulfiller is
             fillDenominator,
             fulfillerConduitKey,
             recipient
+        );
+
+        // Declare empty bytes32 array and populate with the order hash.
+        bytes32[] memory orderHashes = new bytes32[](1);
+        orderHashes[0] = orderHash;
+
+        // Ensure restricted orders have a valid submitter or pass a zone check.
+        _assertRestrictedAdvancedOrderValidity(
+            advancedOrders[0],
+            orderHashes,
+            orderHash
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -169,10 +175,10 @@ contract OrderFulfiller is
 
         // As of solidity 0.6.0, inline assembly cannot directly access function
         // definitions, but can still access locally scoped function variables.
-        // This means that in order to recast the type of a function, we need to
-        // create a local variable to reference the internal function definition
-        // (using the same type) and a local variable with the desired type,
-        // and then cast the original function pointer to the desired type.
+        // This means that a local variable to reference the internal function
+        // definition (using the same type), along with a local variable with
+        // the desired type, must first be created. Then, the original function
+        // pointer can be recast to the desired type.
 
         /**
          * Repurpose existing OfferItem memory regions on the offer array for
@@ -189,25 +195,12 @@ contract OrderFulfiller is
 
         // Declare a nested scope to minimize stack depth.
         unchecked {
-            // Declare a virtual function pointer taking an OfferItem argument.
-            function(OfferItem memory, address, bytes32, bytes memory)
-                internal _transferOfferItem;
-
-            {
-                // Assign _transfer function to a new function pointer (it takes
-                // a ReceivedItem as its initial argument)
-                function(ReceivedItem memory, address, bytes32, bytes memory)
-                    internal _transferReceivedItem = _transfer;
-
-                // Utilize assembly to override the virtual function pointer.
-                assembly {
-                    // Cast initial ReceivedItem type to an OfferItem type.
-                    _transferOfferItem := _transferReceivedItem
-                }
-            }
-
             // Read offer array length from memory and place on stack.
             uint256 totalOfferItems = orderParameters.offer.length;
+
+            // Create a variable to indicate whether the order has any
+            // native offer items
+            uint256 anyNativeItems;
 
             // Iterate over each offer on the order.
             // Skip overflow check as for loop is indexed starting at zero.
@@ -215,10 +208,13 @@ contract OrderFulfiller is
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // Offer items for the native token can not be received
-                // outside of a match order function.
-                if (offerItem.itemType == ItemType.NATIVE) {
-                    revert InvalidNativeOfferItem();
+                // Offer items for the native token can not be received outside
+                // of a match order function except as part of a contract order.
+                {
+                    ItemType itemType = offerItem.itemType;
+                    assembly {
+                        anyNativeItems := or(anyNativeItems, iszero(itemType))
+                    }
                 }
 
                 // Declare an additional nested scope to minimize stack depth.
@@ -251,17 +247,32 @@ contract OrderFulfiller is
                 }
 
                 // Transfer the item from the offerer to the recipient.
-                _transferOfferItem(
+                _toOfferItemInput(_transfer)(
                     offerItem,
                     orderParameters.offerer,
                     orderParameters.conduitKey,
                     accumulator
                 );
             }
+
+            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            {
+                OrderType orderType = orderParameters.orderType;
+                uint256 invalidNativeOfferItem;
+                assembly {
+                    invalidNativeOfferItem := and(
+                        lt(orderType, 4),
+                        anyNativeItems
+                    )
+                }
+                if (invalidNativeOfferItem != 0) {
+                    _revertInvalidNativeOfferItem();
+                }
+            }
         }
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Declare a variable for the available native token balance.
+        uint256 nativeTokenBalance;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
@@ -280,22 +291,6 @@ contract OrderFulfiller is
 
         // Declare a nested scope to minimize stack depth.
         unchecked {
-            // Declare virtual function pointer with ConsiderationItem argument.
-            function(ConsiderationItem memory, address, bytes32, bytes memory)
-                internal _transferConsiderationItem;
-            {
-                // Reassign _transfer function to a new function pointer (it
-                // takes a ReceivedItem as its initial argument).
-                function(ReceivedItem memory, address, bytes32, bytes memory)
-                    internal _transferReceivedItem = _transfer;
-
-                // Utilize assembly to override the virtual function pointer.
-                assembly {
-                    // Cast ReceivedItem type to ConsiderationItem type.
-                    _transferConsiderationItem := _transferReceivedItem
-                }
-            }
-
             // Read consideration array length from memory and place on stack.
             uint256 totalConsiderationItems = orderParameters
                 .consideration
@@ -342,17 +337,19 @@ contract OrderFulfiller is
 
                 // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                    // Get the current available balance of native tokens.
+                    assembly {
+                        nativeTokenBalance := selfbalance()
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    etherRemaining -= amount;
+                    // Ensure that sufficient native tokens are still available.
+                    if (amount > nativeTokenBalance) {
+                        _revertInsufficientEtherSupplied();
+                    }
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                _transferConsiderationItem(
+                _toConsiderationItemInput(_transfer)(
                     considerationItem,
                     msg.sender,
                     fulfillerConduitKey,
@@ -364,10 +361,14 @@ contract OrderFulfiller is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // If any ether remains after fulfillments...
-        if (etherRemaining != 0) {
-            // return it to the caller.
-            _transferEth(payable(msg.sender), etherRemaining);
+        // Determine whether any native token balance remains.
+        assembly {
+            nativeTokenBalance := selfbalance()
+        }
+
+        // Return any remaining native token balance to the caller.
+        if (nativeTokenBalance != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
         }
     }
 
@@ -379,7 +380,7 @@ contract OrderFulfiller is
      * @param orderHash     The order hash.
      * @param offerer       The offerer for the order.
      * @param zone          The zone for the order.
-     * @param fulfiller     The fulfiller of the order, or the null address if
+     * @param recipient     The recipient of the order, or the null address if
      *                      the order was fulfilled via order matching.
      * @param offer         The offer items for the order.
      * @param consideration The consideration items for the order.
@@ -388,7 +389,7 @@ contract OrderFulfiller is
         bytes32 orderHash,
         address offerer,
         address zone,
-        address fulfiller,
+        address recipient,
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration
     ) internal {
@@ -409,64 +410,9 @@ contract OrderFulfiller is
             orderHash,
             offerer,
             zone,
-            fulfiller,
+            recipient,
             spentItems,
             receivedItems
         );
-    }
-
-    /**
-     * @dev Internal pure function to convert an order to an advanced order with
-     *      numerator and denominator of 1 and empty extraData.
-     *
-     * @param order The order to convert.
-     *
-     * @return advancedOrder The new advanced order.
-     */
-    function _convertOrderToAdvanced(Order calldata order)
-        internal
-        pure
-        returns (AdvancedOrder memory advancedOrder)
-    {
-        // Convert to partial order (1/1 or full fill) and return new value.
-        advancedOrder = AdvancedOrder(
-            order.parameters,
-            1,
-            1,
-            order.signature,
-            ""
-        );
-    }
-
-    /**
-     * @dev Internal pure function to convert an array of orders to an array of
-     *      advanced orders with numerator and denominator of 1.
-     *
-     * @param orders The orders to convert.
-     *
-     * @return advancedOrders The new array of partial orders.
-     */
-    function _convertOrdersToAdvanced(Order[] calldata orders)
-        internal
-        pure
-        returns (AdvancedOrder[] memory advancedOrders)
-    {
-        // Read the number of orders from calldata and place on the stack.
-        uint256 totalOrders = orders.length;
-
-        // Allocate new empty array for each partial order in memory.
-        advancedOrders = new AdvancedOrder[](totalOrders);
-
-        // Skip overflow check as the index for the loop starts at zero.
-        unchecked {
-            // Iterate over the given orders.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Convert to partial order (1/1 or full fill) and update array.
-                advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
-            }
-        }
-
-        // Return the array of advanced orders.
-        return advancedOrders;
     }
 }

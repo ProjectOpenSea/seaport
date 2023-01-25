@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { Side, ItemType } from "contracts/lib/ConsiderationEnums.sol";
+import {
+    Side,
+    ItemType,
+    OrderType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -16,7 +20,7 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -27,9 +31,11 @@ import { ReferenceOrderFulfiller } from "./ReferenceOrderFulfiller.sol";
 
 import { ReferenceFulfillmentApplier } from "./ReferenceFulfillmentApplier.sol";
 
-import "contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationConstants.sol";
 
-import { SeaportInterface } from "contracts/interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "../../contracts/interfaces/SeaportInterface.sol";
 
 /**
  * @title OrderCombiner
@@ -50,9 +56,9 @@ contract ReferenceOrderCombiner is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderFulfiller(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceOrderFulfiller(conduitController) {}
 
     /**
      * @notice Internal function to attempt to fill a group of orders, fully or
@@ -140,7 +146,7 @@ contract ReferenceOrderCombiner is
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Validate orders, apply amounts, & determine if they utilize conduits
-        _validateOrdersAndPrepareToFulfill(
+        bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             ordersToExecute,
             criteriaResolvers,
@@ -151,11 +157,13 @@ contract ReferenceOrderCombiner is
 
         // Execute transfers.
         (availableOrders, executions) = _executeAvailableFulfillments(
+            advancedOrders,
             ordersToExecute,
             offerFulfillments,
             considerationFulfillments,
             fulfillerConduitKey,
-            recipient
+            recipient,
+            orderHashes
         );
 
         // Return order fulfillment details and executions.
@@ -183,6 +191,8 @@ contract ReferenceOrderCombiner is
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
      * @param recipient         The intended recipient for all received items.
+     *
+     * @return orderHashes      The hashes of the orders being fulfilled.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
@@ -191,18 +201,21 @@ contract ReferenceOrderCombiner is
         bool revertOnInvalid,
         uint256 maximumFulfilled,
         address recipient
-    ) internal {
+    ) internal returns (bytes32[] memory orderHashes) {
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
 
         // Track the order hash for each order being fulfilled.
-        bytes32[] memory orderHashes = new bytes32[](totalOrders);
+        orderHashes = new bytes32[](totalOrders);
 
-        // Check if we are in a match function
+        // Determine whether or not order matching is underway.
         bool nonMatchFn = msg.sig !=
             SeaportInterface.matchAdvancedOrders.selector &&
             msg.sig != SeaportInterface.matchOrders.selector;
-        bool anyNativeOfferItems;
+
+        // Declare a variable for tracking whether native offer items are
+        // present on orders that are not contract orders.
+        bool anyNativeOfferItemsOnNonContractOrders;
 
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
@@ -228,12 +241,7 @@ contract ReferenceOrderCombiner is
                 bytes32 orderHash,
                 uint256 numerator,
                 uint256 denominator
-            ) = _validateOrderAndUpdateStatus(
-                    advancedOrder,
-                    criteriaResolvers,
-                    revertOnInvalid,
-                    orderHashes
-                );
+            ) = _validateOrderAndUpdateStatus(advancedOrder, revertOnInvalid);
 
             // Do not track hash or adjust prices if order is not fulfilled.
             if (numerator == 0) {
@@ -267,9 +275,11 @@ contract ReferenceOrderCombiner is
                 // Retrieve the offer item.
                 OfferItem memory offerItem = offer[j];
 
-                anyNativeOfferItems =
-                    anyNativeOfferItems ||
-                    offerItem.itemType == ItemType.NATIVE;
+                anyNativeOfferItemsOnNonContractOrders =
+                    anyNativeOfferItemsOnNonContractOrders ||
+                    (offerItem.itemType == ItemType.NATIVE &&
+                        advancedOrder.parameters.orderType !=
+                        OrderType.CONTRACT);
 
                 // Apply order fill fraction to offer item end amount.
                 uint256 endAmount = _getFraction(
@@ -359,7 +369,7 @@ contract ReferenceOrderCombiner is
             }
         }
 
-        if (anyNativeOfferItems && nonMatchFn) {
+        if (anyNativeOfferItemsOnNonContractOrders && nonMatchFn) {
             revert InvalidNativeOfferItem();
         }
 
@@ -445,6 +455,7 @@ contract ReferenceOrderCombiner is
      *                                  direct approvals set on Consideration).
      * @param recipient                 The intended recipient for all received
      *                                  items.
+     * @param orderHashes               An array of order hashes for each order.
      *
      * @return availableOrders          An array of booleans indicating if each
      *                                  order with an index corresponding to the
@@ -455,11 +466,13 @@ contract ReferenceOrderCombiner is
      *                                  of matching the given orders.
      */
     function _executeAvailableFulfillments(
+        AdvancedOrder[] memory advancedOrders,
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey,
-        address recipient
+        address recipient,
+        bytes32[] memory orderHashes
     )
         internal
         returns (bool[] memory availableOrders, Execution[] memory executions)
@@ -563,8 +576,11 @@ contract ReferenceOrderCombiner is
         }
         // Perform final checks and compress executions into standard and batch.
         availableOrders = _performFinalChecksAndExecuteOrders(
+            advancedOrders,
             ordersToExecute,
-            executions
+            executions,
+            orderHashes,
+            recipient
         );
 
         return (availableOrders, executions);
@@ -583,22 +599,66 @@ contract ReferenceOrderCombiner is
      * @param executions         An array of elements indicating the sequence of
      *                           transfers to perform when fulfilling the given
      *                           orders.
+     * @param orderHashes        An array of order hashes for each order.
      *
-     * @return availableOrders  An array of booleans indicating if each order
-     *                          with an index corresponding to the index of the
-     *                          returned boolean was fulfillable or not.
+     * @return availableOrders   An array of booleans indicating if each order
+     *                           with an index corresponding to the index of the
+     *                           returned boolean was fulfillable or not.
      */
     function _performFinalChecksAndExecuteOrders(
+        AdvancedOrder[] memory advancedOrders,
         OrderToExecute[] memory ordersToExecute,
-        Execution[] memory executions
+        Execution[] memory executions,
+        bytes32[] memory orderHashes,
+        address recipient
     ) internal returns (bool[] memory availableOrders) {
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
+
         // Retrieve the length of the advanced orders array and place on stack.
-        uint256 totalOrders = ordersToExecute.length;
+        uint256 totalOrders = advancedOrders.length;
 
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
-        // Iterate over orders to ensure all considerations are met.
-        for (uint256 i = 0; i < totalOrders; ++i) {
+
+        // Create the accumulator struct.
+        AccumulatorStruct memory accumulatorStruct;
+
+        {
+            // Iterate over each execution.
+            for (uint256 i = 0; i < executions.length; ++i) {
+                // Retrieve the execution and the associated received item.
+                Execution memory execution = executions[i];
+                ReceivedItem memory item = execution.item;
+
+                // If execution transfers native tokens, reduce value available.
+                if (item.itemType == ItemType.NATIVE) {
+                    // Ensure that sufficient native tokens are still available.
+                    if (item.amount > etherRemaining) {
+                        revert InsufficientEtherSupplied();
+                    }
+
+                    // Reduce ether remaining by amount.
+                    etherRemaining -= item.amount;
+                }
+
+                // Transfer the item specified by the execution.
+                _transfer(
+                    item,
+                    execution.offerer,
+                    execution.conduitKey,
+                    accumulatorStruct
+                );
+            }
+
+            // Trigger remaining accumulated transfers via call to the conduit.
+            _triggerIfArmed(accumulatorStruct);
+        }
+
+        // duplicate recipient onto stack to avoid stack-too-deep
+        address _recipient = recipient;
+        // Iterate over orders to ensure all consideration items are met.
+        for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
             OrderToExecute memory orderToExecute = ordersToExecute[i];
 
@@ -613,52 +673,97 @@ contract ReferenceOrderCombiner is
             // Mark the order as available.
             availableOrders[i] = true;
 
-            // Retrieve consideration items to ensure they are fulfilled.
-            ReceivedItem[] memory consideration = (
-                orderToExecute.receivedItems
-            );
+            // Retrieve the original order in question.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-            // Iterate over each consideration item to ensure it is met.
-            for (uint256 j = 0; j < consideration.length; ++j) {
-                // Retrieve remaining amount on the consideration item.
-                uint256 unmetAmount = consideration[j].amount;
+            // Retrieve the order parameters.
+            OrderParameters memory parameters = advancedOrder.parameters;
 
-                // Revert if the remaining amount is not zero.
-                if (unmetAmount != 0) {
-                    revert ConsiderationNotMet(i, j, unmetAmount);
+            {
+                // Retrieve offer items.
+                OfferItem[] memory offer = parameters.offer;
+
+                // Read length of offer array & place on the stack.
+                uint256 totalOfferItems = offer.length;
+
+                // Iterate over each offer item to restore it.
+                for (uint256 j = 0; j < totalOfferItems; ++j) {
+                    SpentItem memory offerSpentItem = orderToExecute.spentItems[
+                        j
+                    ];
+
+                    // Retrieve remaining amount on the offer item.
+                    uint256 unspentAmount = offerSpentItem.amount;
+
+                    // Retrieve original amount on the offer item.
+                    uint256 originalAmount = orderToExecute
+                        .spentItemOriginalAmounts[j];
+
+                    // Transfer to recipient if unspent amount is not zero.
+                    // Note that the transfer will not be reflected in the
+                    // executions array.
+                    if (unspentAmount != 0) {
+                        _transfer(
+                            _convertSpentItemToReceivedItemWithRecipient(
+                                offerSpentItem,
+                                _recipient
+                            ),
+                            parameters.offerer,
+                            parameters.conduitKey,
+                            accumulatorStruct
+                        );
+                    }
+
+                    // Restore original amount on the offer item.
+                    offerSpentItem.amount = originalAmount;
                 }
             }
-        }
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+            {
+                // Retrieve consideration items to ensure they are fulfilled.
+                ReceivedItem[] memory consideration = (
+                    orderToExecute.receivedItems
+                );
 
-        // Create the accumulator struct.
-        AccumulatorStruct memory accumulatorStruct;
+                // Iterate over each consideration item to ensure it is met.
+                for (uint256 j = 0; j < consideration.length; ++j) {
+                    // Retrieve remaining amount on the consideration item.
+                    uint256 unmetAmount = consideration[j].amount;
 
-        // Iterate over each execution.
-        for (uint256 i = 0; i < executions.length; ++i) {
-            // Retrieve the execution and the associated received item.
-            Execution memory execution = executions[i];
-            ReceivedItem memory item = execution.item;
+                    // Revert if the remaining amount is not zero.
+                    if (unmetAmount != 0) {
+                        revert ConsiderationNotMet(i, j, unmetAmount);
+                    }
 
-            // If execution transfers native tokens, reduce value available.
-            if (item.itemType == ItemType.NATIVE) {
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
+                    // Restore original amount.
+                    consideration[j].amount = orderToExecute
+                        .receivedItemOriginalAmounts[j];
                 }
-
-                // Reduce ether remaining by amount.
-                etherRemaining -= item.amount;
             }
 
-            // Transfer the item specified by the execution.
-            _transfer(
-                item,
-                execution.offerer,
-                execution.conduitKey,
-                accumulatorStruct
+            {
+                // Get offer items as well.
+                SpentItem[] memory offer = (orderToExecute.spentItems);
+
+                // Iterate over each consideration item to ensure it is met.
+                for (uint256 j = 0; j < offer.length; ++j) {
+                    // Restore original amount.
+                    offer[j].amount = orderToExecute.spentItemOriginalAmounts[
+                        j
+                    ];
+                }
+            }
+
+            // Ensure restricted orders have valid submitter or pass check.
+            _assertRestrictedAdvancedOrderValidity(
+                advancedOrder,
+                orderToExecute,
+                orderHashes,
+                orderHashes[i],
+                advancedOrder.parameters.zoneHash,
+                advancedOrder.parameters.orderType,
+                orderToExecute.offerer,
+                advancedOrder.parameters.zone
             );
         }
 
@@ -672,6 +777,35 @@ contract ReferenceOrderCombiner is
 
         // Return the array containing available orders.
         return availableOrders;
+    }
+
+    /**
+     * @dev Internal function to convert a spent item to an equivalent
+     *      ReceivedItem with a specified recipient.
+     *
+     * @param offerItem          The "offerItem" represented by a SpentItem
+     *                           struct.
+     * @param recipient          The intended recipient of the converted
+     *                           ReceivedItem
+     *
+     * @return ReceivedItem      The derived ReceivedItem including the
+     *                           specified recipient.
+     */
+    function _convertSpentItemToReceivedItemWithRecipient(
+        SpentItem memory offerItem,
+        address recipient
+    ) internal pure returns (ReceivedItem memory) {
+        address payable _recipient;
+        _recipient = payable(recipient);
+
+        return
+            ReceivedItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifier,
+                offerItem.amount,
+                _recipient
+            );
     }
 
     /**
@@ -705,6 +839,8 @@ contract ReferenceOrderCombiner is
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
+     * @param recipient         The intended recipient for all unspent offer
+     *                          item amounts.
      *
      * @return executions       An array of elements indicating the sequence of
      *                          transfers performed as part of matching the
@@ -713,7 +849,8 @@ contract ReferenceOrderCombiner is
     function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        address recipient
     ) internal returns (Execution[] memory executions) {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
@@ -722,17 +859,27 @@ contract ReferenceOrderCombiner is
             );
 
         // Validate orders, apply amounts, & determine if they utilize conduits.
-        _validateOrdersAndPrepareToFulfill(
+        bytes32[] memory orderHashes = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             ordersToExecute,
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
             advancedOrders.length,
-            address(0)
+            recipient
         );
 
+        // Emit OrdersMatched event.
+        emit OrdersMatched(orderHashes);
+
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
+        return
+            _fulfillAdvancedOrders(
+                advancedOrders,
+                ordersToExecute,
+                fulfillments,
+                orderHashes,
+                recipient
+            );
     }
 
     /**
@@ -747,14 +894,18 @@ contract ReferenceOrderCombiner is
      *                           that the final amount of each consideration
      *                           component must be zero for a match operation to
      *                           be considered valid.
+     * @param orderHashes        An array of order hashes for each order.
      *
-     * @return executions          An array of elements indicating the sequence
-     *                            of transfers performed as part of
-     *                            matching the given orders.
+     * @return executions        An array of elements indicating the sequence
+     *                           of transfers performed as part of
+     *                           matching the given orders.
      */
     function _fulfillAdvancedOrders(
+        AdvancedOrder[] memory advancedOrders,
         OrderToExecute[] memory ordersToExecute,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        bytes32[] memory orderHashes,
+        address recipient
     ) internal returns (Execution[] memory executions) {
         // Retrieve fulfillments array length and place on the stack.
         uint256 totalFulfillments = fulfillments.length;
@@ -774,7 +925,8 @@ contract ReferenceOrderCombiner is
             Execution memory execution = _applyFulfillment(
                 ordersToExecute,
                 fulfillment.offerComponents,
-                fulfillment.considerationComponents
+                fulfillment.considerationComponents,
+                i
             );
 
             // If offerer and recipient on the execution are the same...
@@ -803,7 +955,13 @@ contract ReferenceOrderCombiner is
         }
 
         // Perform final checks and execute orders.
-        _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
+        _performFinalChecksAndExecuteOrders(
+            advancedOrders,
+            ordersToExecute,
+            executions,
+            orderHashes,
+            recipient
+        );
 
         // Return executions.
         return executions;

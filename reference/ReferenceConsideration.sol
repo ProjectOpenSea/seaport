@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
     ConsiderationInterface
-} from "contracts/interfaces/ConsiderationInterface.sol";
+} from "../contracts/interfaces/ConsiderationInterface.sol";
+
+import { OrderType } from "../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OrderComponents,
@@ -16,7 +18,7 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution
-} from "contracts/lib/ConsiderationStructs.sol";
+} from "../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
@@ -30,7 +32,7 @@ import {
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1.1-reference
+ * @custom:version 1.2-reference
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
@@ -51,9 +53,20 @@ contract ReferenceConsideration is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderCombiner(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceOrderCombiner(conduitController) {}
+
+    /**
+     * @notice Accept native token transfers during execution that may then be
+     *         used to facilitate native token transfers, where any tokens that
+     *         remain will be transferred to the caller. Native tokens are only
+     *         acceptable mid-fulfillment (and not during basic fulfillment).
+     */
+    receive() external payable {
+        // Ensure the reentrancy guard is currently set to accept native tokens.
+        _assertAcceptingNativeTokens();
+    }
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -81,14 +94,9 @@ contract ReferenceConsideration is
      * @return fulfilled A boolean indicating whether the order has been
      *                   fulfilled.
      */
-    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
-        external
-        payable
-        override
-        notEntered
-        nonReentrant
-        returns (bool fulfilled)
-    {
+    function fulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) external payable override nonReentrant(false) returns (bool fulfilled) {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
@@ -115,12 +123,14 @@ contract ReferenceConsideration is
      * @return fulfilled A boolean indicating whether the order has been
      *                   fulfilled.
      */
-    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
+    function fulfillOrder(
+        Order calldata order,
+        bytes32 fulfillerConduitKey
+    )
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(order.parameters.orderType == OrderType.CONTRACT)
         returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -182,8 +192,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(advancedOrder.parameters.orderType == OrderType.CONTRACT)
         returns (bool fulfilled)
     {
         // Validate and fulfill the order.
@@ -248,8 +257,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(true)
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
@@ -349,8 +357,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(true)
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
@@ -381,21 +388,23 @@ contract ReferenceConsideration is
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders            The orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
+     * @param orders        The orders to match. Note that both the offerer and
+     *                      fulfiller on each order must first approve this
+     *                      contract (or their conduit if indicated by the
+     *                      order) to transfer any relevant tokens on their
+     *                      behalf and each consideration recipient must
+     *                      implement `onERC1155Received` in order to receive
+     *                      ERC1155 tokens.
+     * @param fulfillments  An array of elements allocating offer components to
+     *                      consideration components. Note that each
+     *                      consideration component must be fully met in order
+     *                      for the match operation to be valid.
      *
-     * @return executions An array of elements indicating the sequence of
-     *                    transfers performed as part of matching the given
-     *                    orders.
+     * @return executions  An array of elements indicating the sequence of
+     *                     transfers performed as part of matching the given
+     *                     orders. Note that unspent offer item amounts or
+     *                     native tokens will not be reflected as part of this
+     *                     array.
      */
     function matchOrders(
         Order[] calldata orders,
@@ -404,8 +413,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(true)
         returns (Execution[] memory executions)
     {
         // Convert to advanced, validate, and match orders using fulfillments.
@@ -413,7 +421,8 @@ contract ReferenceConsideration is
             _matchAdvancedOrders(
                 _convertOrdersToAdvanced(orders),
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillments
+                fulfillments,
+                msg.sender
             );
     }
 
@@ -448,21 +457,26 @@ contract ReferenceConsideration is
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
+     * @param recipient         The intended recipient for all unspent offer
+     *                          item amounts, or the caller if the null address
+     *                          is supplied.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
-     *                    orders.
+     *                    orders. Note that unspent offer item amounts or
+     *                    native tokens will not be reflected as part of this
+     *                    array.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        Fulfillment[] calldata fulfillments,
+        address recipient
     )
         external
         payable
         override
-        notEntered
-        nonReentrant
+        nonReentrant(true)
         returns (Execution[] memory executions)
     {
         // Validate and match the advanced orders using supplied fulfillments.
@@ -470,7 +484,8 @@ contract ReferenceConsideration is
             _matchAdvancedOrders(
                 advancedOrders,
                 criteriaResolvers,
-                fulfillments
+                fulfillments,
+                recipient == address(0) ? msg.sender : recipient
             );
     }
 
@@ -483,12 +498,9 @@ contract ReferenceConsideration is
      * @return cancelled A boolean indicating whether the supplied orders have
      *         been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders)
-        external
-        override
-        notEntered
-        returns (bool cancelled)
-    {
+    function cancel(
+        OrderComponents[] calldata orders
+    ) external override notEntered returns (bool cancelled) {
         // Cancel the orders.
         cancelled = _cancel(orders);
     }
@@ -504,12 +516,9 @@ contract ReferenceConsideration is
      * @return validated A boolean indicating whether the supplied orders have
      *         been successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        override
-        notEntered
-        returns (bool validated)
-    {
+    function validate(
+        Order[] calldata orders
+    ) external override notEntered returns (bool validated) {
         // Validate the orders.
         validated = _validate(orders);
     }
@@ -538,12 +547,9 @@ contract ReferenceConsideration is
      *
      * @return orderHash the order hash.
      */
-    function getOrderHash(OrderComponents calldata order)
-        external
-        view
-        override
-        returns (bytes32 orderHash)
-    {
+    function getOrderHash(
+        OrderComponents calldata order
+    ) external view override returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with the
         // counter.
         // prettier-ignore
@@ -568,7 +574,11 @@ contract ReferenceConsideration is
     /**
      * @notice Retrieve the status of a given order by hash, including whether
      *         the order has been cancelled or validated and the fraction of the
-     *         order that has been filled.
+     *         order that has been filled. Since the _orderStatus[orderHash]
+     *         does not get set for contract orders, getOrderStatus will always
+     *         return (false, false, 0, 0) for those hashes. Note that this
+     *         function is susceptible to view reentrancy and so should be used
+     *         with care when calling from other contracts.
      *
      * @param orderHash The order hash in question.
      *
@@ -582,7 +592,9 @@ contract ReferenceConsideration is
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(bytes32 orderHash)
+    function getOrderStatus(
+        bytes32 orderHash
+    )
         external
         view
         override
@@ -604,12 +616,9 @@ contract ReferenceConsideration is
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer)
-        external
-        view
-        override
-        returns (uint256 counter)
-    {
+    function getCounter(
+        address offerer
+    ) external view override returns (uint256 counter) {
         // Return the counter for the supplied offerer.
         counter = _getCounter(offerer);
     }
@@ -633,6 +642,21 @@ contract ReferenceConsideration is
     {
         // Return the information for this contract.
         return _information();
+    }
+
+    /**
+     * @dev Gets the contract offerer nonce for the specified contract offerer.
+     *      Note that this function is susceptible to view reentrancy and so
+     *      should be used with care when calling from other contracts.
+     *
+     * @param contractOfferer The contract offerer for which to get the nonce.
+     *
+     * @return nonce The contract offerer nonce.
+     */
+    function getContractOffererNonce(
+        address contractOfferer
+    ) external view override returns (uint256 nonce) {
+        nonce = _contractNonces[contractOfferer];
     }
 
     /**

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import "./TokenTransferrerConstants.sol";
 
@@ -99,16 +99,16 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // necessary. Start by computing the word size
                                 // of returndata and allocated memory. Round up
                                 // to the nearest full word.
-                                let returnDataWords := div(
-                                    add(returndatasize(), AlmostOneWord),
-                                    OneWord
+                                let returnDataWords := shr(
+                                    OneWordShift,
+                                    add(returndatasize(), AlmostOneWord)
                                 )
 
                                 // Note: use the free memory pointer in place of
                                 // msize() to work around a Yul warning that
                                 // prevents accessing msize directly when the IR
                                 // pipeline is activated.
-                                let msizeWords := div(memPointer, OneWord)
+                                let msizeWords := shr(OneWordShift, memPointer)
 
                                 // Next, compute the cost of the returndatacopy.
                                 let cost := mul(CostPerWord, returnDataWords)
@@ -125,15 +125,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                                 ),
                                                 CostPerWord
                                             ),
-                                            div(
+                                            shr(
+                                                MemoryExpansionCoefficientShift,
                                                 sub(
                                                     mul(
                                                         returnDataWords,
                                                         returnDataWords
                                                     ),
                                                     mul(msizeWords, msizeWords)
-                                                ),
-                                                MemoryExpansionCoefficient
+                                                )
                                             )
                                         )
                                     )
@@ -153,10 +153,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 }
                             }
 
-                            // Otherwise revert with a generic error message.
+                            // Store left-padded selector with push4, mem[28:32]
                             mstore(
-                                TokenTransferGenericFailure_error_sig_ptr,
-                                TokenTransferGenericFailure_error_signature
+                                0,
+                                TokenTransferGenericFailure_error_selector
                             )
                             mstore(
                                 TokenTransferGenericFailure_error_token_ptr,
@@ -167,22 +167,33 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 from
                             )
                             mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                            mstore(TokenTransferGenericFailure_error_id_ptr, 0)
+                            mstore(
+                                TokenTransferGenericFailure_err_identifier_ptr,
+                                0
+                            )
                             mstore(
                                 TokenTransferGenericFailure_error_amount_ptr,
                                 amount
                             )
+
+                            // revert(abi.encodeWithSignature(
+                            //     "TokenTransferGenericFailure(
+                            //         address,address,address,uint256,uint256
+                            //     )", token, from, to, identifier, amount
+                            // ))
                             revert(
-                                TokenTransferGenericFailure_error_sig_ptr,
+                                Generic_error_selector_offset,
                                 TokenTransferGenericFailure_error_length
                             )
                         }
 
                         // Otherwise revert with a message about the token
                         // returning false or non-compliant return values.
+
+                        // Store left-padded selector with push4, mem[28:32]
                         mstore(
-                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
-                            BadReturnValueFromERC20OnTransfer_error_signature
+                            0,
+                            BadReturnValueFromERC20OnTransfer_error_selector
                         )
                         mstore(
                             BadReturnValueFromERC20OnTransfer_error_token_ptr,
@@ -200,16 +211,30 @@ contract TokenTransferrer is TokenTransferrerErrors {
                             BadReturnValueFromERC20OnTransfer_error_amount_ptr,
                             amount
                         )
+
+                        // revert(abi.encodeWithSignature(
+                        //     "BadReturnValueFromERC20OnTransfer(
+                        //         address,address,address,uint256
+                        //     )", token, from, to, amount
+                        // ))
                         revert(
-                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
+                            Generic_error_selector_offset,
                             BadReturnValueFromERC20OnTransfer_error_length
                         )
                     }
 
                     // Otherwise, revert with error about token not having code:
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
+                    // Store left-padded selector with push4, mem[28:32]
+                    mstore(0, NoContract_error_selector)
+                    mstore(NoContract_error_account_ptr, token)
+
+                    // revert(abi.encodeWithSignature(
+                    //      "NoContract(address)", account
+                    // ))
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Otherwise, the token just returned no data despite the call
@@ -247,9 +272,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
-                mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                mstore(NoContract_error_token_ptr, token)
-                revert(NoContract_error_sig_ptr, NoContract_error_length)
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, NoContract_error_selector)
+                mstore(NoContract_error_account_ptr, token)
+
+                // revert(abi.encodeWithSignature(
+                //     "NoContract(address)", account
+                // ))
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The free memory pointer memory slot will be used when populating
@@ -282,15 +312,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := div(
-                        add(returndatasize(), AlmostOneWord),
-                        OneWord
+                    let returnDataWords := shr(
+                        OneWordShift,
+                        add(returndatasize(), AlmostOneWord)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(memPointer, OneWord)
+                    let msizeWords := shr(OneWordShift, memPointer)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -304,12 +334,12 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                     sub(returnDataWords, msizeWords),
                                     CostPerWord
                                 ),
-                                div(
+                                shr(
+                                    MemoryExpansionCoefficientShift,
                                     sub(
                                         mul(returnDataWords, returnDataWords),
                                         mul(msizeWords, msizeWords)
-                                    ),
-                                    MemoryExpansionCoefficient
+                                    )
                                 )
                             )
                         )
@@ -328,17 +358,24 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 }
 
                 // Otherwise revert with a generic error message.
-                mstore(
-                    TokenTransferGenericFailure_error_sig_ptr,
-                    TokenTransferGenericFailure_error_signature
-                )
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, TokenTransferGenericFailure_error_selector)
                 mstore(TokenTransferGenericFailure_error_token_ptr, token)
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
                 mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                mstore(
+                    TokenTransferGenericFailure_error_identifier_ptr,
+                    identifier
+                )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, 1)
+
+                // revert(abi.encodeWithSignature(
+                //     "TokenTransferGenericFailure(
+                //         address,address,address,uint256,uint256
+                //     )", token, from, to, identifier, amount
+                // ))
                 revert(
-                    TokenTransferGenericFailure_error_sig_ptr,
+                    Generic_error_selector_offset,
                     TokenTransferGenericFailure_error_length
                 )
             }
@@ -375,9 +412,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
-                mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                mstore(NoContract_error_token_ptr, token)
-                revert(NoContract_error_sig_ptr, NoContract_error_length)
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, NoContract_error_selector)
+                mstore(NoContract_error_account_ptr, token)
+
+                // revert(abi.encodeWithSignature(
+                //     "NoContract(address)", account
+                // ))
+                revert(Generic_error_selector_offset, NoContract_error_length)
             }
 
             // The following memory slots will be used when populating call data
@@ -422,15 +464,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
                     // Round up to the nearest full word.
-                    let returnDataWords := div(
-                        add(returndatasize(), AlmostOneWord),
-                        OneWord
+                    let returnDataWords := shr(
+                        OneWordShift,
+                        add(returndatasize(), AlmostOneWord)
                     )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(memPointer, OneWord)
+                    let msizeWords := shr(OneWordShift, memPointer)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -444,12 +486,12 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                     sub(returnDataWords, msizeWords),
                                     CostPerWord
                                 ),
-                                div(
+                                shr(
+                                    MemoryExpansionCoefficientShift,
                                     sub(
                                         mul(returnDataWords, returnDataWords),
                                         mul(msizeWords, msizeWords)
-                                    ),
-                                    MemoryExpansionCoefficient
+                                    )
                                 )
                             )
                         )
@@ -468,17 +510,25 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 }
 
                 // Otherwise revert with a generic error message.
-                mstore(
-                    TokenTransferGenericFailure_error_sig_ptr,
-                    TokenTransferGenericFailure_error_signature
-                )
+
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, TokenTransferGenericFailure_error_selector)
                 mstore(TokenTransferGenericFailure_error_token_ptr, token)
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
                 mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                mstore(
+                    TokenTransferGenericFailure_error_identifier_ptr,
+                    identifier
+                )
                 mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
+
+                // revert(abi.encodeWithSignature(
+                //     "TokenTransferGenericFailure(
+                //         address,address,address,uint256,uint256
+                //     )", token, from, to, identifier, amount
+                // ))
                 revert(
-                    TokenTransferGenericFailure_error_sig_ptr,
+                    Generic_error_selector_offset,
                     TokenTransferGenericFailure_error_length
                 )
             }
@@ -552,9 +602,17 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
+                    // Store left-padded selector with push4, mem[28:32]
+                    mstore(0, NoContract_error_selector)
+                    mstore(NoContract_error_account_ptr, token)
+
+                    // revert(abi.encodeWithSignature(
+                    //     "NoContract(address)", account
+                    // ))
+                    revert(
+                        Generic_error_selector_offset,
+                        NoContract_error_length
+                    )
                 }
 
                 // Get the total number of supplied ids.
@@ -565,7 +623,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // Determine the expected offset for the amounts array.
                 let expectedAmountsOffset := add(
                     ConduitBatch1155Transfer_amounts_length_baseOffset,
-                    mul(idsLength, OneWord)
+                    shl(OneWordShift, idsLength)
                 )
 
                 // Validate struct encoding.
@@ -625,7 +683,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Determine size of calldata required for ids and amounts. Note
                 // that the size includes both lengths as well as the data.
-                let idsAndAmountsSize := add(TwoWords, mul(idsLength, TwoWords))
+                let idsAndAmountsSize := add(
+                    TwoWords,
+                    shl(TwoWordsShift, idsLength)
+                )
 
                 // Update the offset for the data array in memory.
                 mstore(
@@ -678,9 +739,9 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // returndata while expanding memory where necessary.
                         // Start by computing word size of returndata and
                         // allocated memory. Round up to the nearest full word.
-                        let returnDataWords := div(
-                            add(returndatasize(), AlmostOneWord),
-                            OneWord
+                        let returnDataWords := shr(
+                            OneWordShift,
+                            add(returndatasize(), AlmostOneWord)
                         )
 
                         // Note: use transferDataSize in place of msize() to
@@ -691,7 +752,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // manually and does not update it, and transferDataSize
                         // should be the largest memory value used (unless a
                         // previous batch was larger).
-                        let msizeWords := div(transferDataSize, OneWord)
+                        let msizeWords := shr(OneWordShift, transferDataSize)
 
                         // Next, compute the cost of the returndatacopy.
                         let cost := mul(CostPerWord, returnDataWords)
@@ -705,15 +766,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                         sub(returnDataWords, msizeWords),
                                         CostPerWord
                                     ),
-                                    div(
+                                    shr(
+                                        MemoryExpansionCoefficientShift,
                                         sub(
                                             mul(
                                                 returnDataWords,
                                                 returnDataWords
                                             ),
                                             mul(msizeWords, msizeWords)
-                                        ),
-                                        MemoryExpansionCoefficient
+                                        )
                                     )
                                 )
                             )

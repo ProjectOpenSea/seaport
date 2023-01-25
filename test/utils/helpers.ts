@@ -9,7 +9,7 @@ import type {
   Order,
 } from "./types";
 
-export const VERSION = `1.1${process.env.REFERENCE ? "-reference" : ""}`;
+export const VERSION = `1.2${process.env.REFERENCE ? "-reference" : ""}`;
 
 export const minRandom = (min: ethers.BigNumberish) => randomBN(10).add(min);
 
@@ -37,10 +37,17 @@ export const simulateAdvancedMatchOrders = async (
   criteriaResolvers: CriteriaResolver[],
   fulfillments: Fulfillment[],
   caller: ethers.Wallet,
-  value: ethers.BigNumberish
+  value: ethers.BigNumberish,
+  recipient: string = ethers.constants.AddressZero
 ) =>
   marketplaceContract
     .connect(caller)
-    .callStatic.matchAdvancedOrders(orders, criteriaResolvers, fulfillments, {
-      value,
-    });
+    .callStatic.matchAdvancedOrders(
+      orders,
+      criteriaResolvers,
+      fulfillments,
+      recipient,
+      {
+        value,
+      }
+    );

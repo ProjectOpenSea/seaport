@@ -4,7 +4,7 @@
 0xb3a34c4c = fulfillOrder\
 0xe7acab24 = fulfillAdvancedOrder\
 0xa8174404 = matchOrders\
-0x55944a42 = matchAdvancedOrders\
+0xf2d12b12 = matchAdvancedOrders\
 0xed98a574 = fulfillAvailableOrders\
 0x87201b41 = fulfillAvailableAdvancedOrders
 

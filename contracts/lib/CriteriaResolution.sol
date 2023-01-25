@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
-    ConsiderationItem,
     OrderParameters,
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    MemoryPointer
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ConsiderationErrors.sol";
+
+import "../helpers/PointerLibraries.sol";
 
 import {
     CriteriaResolutionErrors
@@ -62,104 +64,74 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Ensure that the order index is in range.
                 if (orderIndex >= totalAdvancedOrders) {
-                    revert OrderCriteriaResolverOutOfRange();
+                    _revertOrderCriteriaResolverOutOfRange(
+                        criteriaResolver.side
+                    );
                 }
 
+                // Retrieve the referenced advanced order.
+                AdvancedOrder memory advancedOrder = advancedOrders[orderIndex];
+
                 // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrders[orderIndex].numerator == 0) {
+                if (advancedOrder.numerator == 0) {
                     continue;
                 }
 
                 // Retrieve the parameters for the order.
                 OrderParameters memory orderParameters = (
-                    advancedOrders[orderIndex].parameters
+                    advancedOrder.parameters
                 );
 
-                // Read component index from memory and place it on the stack.
-                uint256 componentIndex = criteriaResolver.index;
+                {
+                    // Get a pointer to the list of items to give to
+                    // _updateCriteriaItem. If the resolver refers to a
+                    // consideration item, this array pointer will be replaced
+                    // with the consideration array.
+                    OfferItem[] memory items = orderParameters.offer;
 
-                // Declare values for item's type and criteria.
-                ItemType itemType;
-                uint256 identifierOrCriteria;
+                    // Read component index from memory and place it on stack.
+                    uint256 componentIndex = criteriaResolver.index;
 
-                // If the criteria resolver refers to an offer item...
-                if (criteriaResolver.side == Side.OFFER) {
-                    // Retrieve the offer.
-                    OfferItem[] memory offer = orderParameters.offer;
+                    // Get error selector for `OfferCriteriaResolverOutOfRange`.
+                    uint256 errorSelector = (
+                        OfferCriteriaResolverOutOfRange_error_selector
+                    );
+
+                    // If the resolver refers to a consideration item...
+                    if (criteriaResolver.side != Side.OFFER) {
+                        // Get the pointer to `orderParameters.consideration`
+                        // Using the array directly has a significant impact on
+                        // the optimized compiler output.
+                        MemoryPointer considerationPtr = orderParameters
+                            .toMemoryPointer()
+                            .pptr(OrderParameters_consideration_head_offset);
+
+                        // Replace the items pointer with a pointer to the
+                        // consideration array.
+                        assembly {
+                            items := considerationPtr
+                        }
+
+                        // Replace the error selector with the selector for
+                        // `ConsiderationCriteriaResolverOutOfRange`.
+                        errorSelector = (
+                            ConsiderationCriteriaResolverOutOfRange_err_selector
+                        );
+                    }
 
                     // Ensure that the component index is in range.
-                    if (componentIndex >= offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
+                    if (componentIndex >= items.length) {
+                        assembly {
+                            mstore(0, errorSelector)
+                            revert(Error_selector_offset, Selector_length)
+                        }
                     }
 
-                    // Retrieve relevant item using the component index.
-                    OfferItem memory offerItem = offer[componentIndex];
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = offerItem.itemType;
-                    identifierOrCriteria = offerItem.identifierOrCriteria;
-
-                    // Optimistically update item type to remove criteria usage.
-                    // Use assembly to operate on ItemType enum as a number.
-                    ItemType newItemType;
-                    assembly {
-                        // Item type 4 becomes 2 and item type 5 becomes 3.
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    offerItem.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    offerItem.identifierOrCriteria = criteriaResolver
-                        .identifier;
-                } else {
-                    // Otherwise, the resolver refers to a consideration item.
-                    ConsiderationItem[] memory consideration = (
-                        orderParameters.consideration
-                    );
-
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= consideration.length) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
-
-                    // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory considerationItem = (
-                        consideration[componentIndex]
-                    );
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = considerationItem.itemType;
-                    identifierOrCriteria = (
-                        considerationItem.identifierOrCriteria
-                    );
-
-                    // Optimistically update item type to remove criteria usage.
-                    // Use assembly to operate on ItemType enum as a number.
-                    ItemType newItemType;
-                    assembly {
-                        // Item type 4 becomes 2 and item type 5 becomes 3.
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    considerationItem.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    considerationItem.identifierOrCriteria = (
-                        criteriaResolver.identifier
-                    );
-                }
-
-                // Ensure the specified item type indicates criteria usage.
-                if (!_isItemWithCriteria(itemType)) {
-                    revert CriteriaNotEnabledForItem();
-                }
-
-                // If criteria is not 0 (i.e. a collection-wide offer)...
-                if (identifierOrCriteria != uint256(0)) {
-                    // Verify identifier inclusion in criteria root using proof.
-                    _verifyProof(
-                        criteriaResolver.identifier,
-                        identifierOrCriteria,
-                        criteriaResolver.criteriaProof
+                    // Apply the criteria resolver to the item in question.
+                    _updateCriteriaItem(
+                        items,
+                        componentIndex,
+                        criteriaResolver
                     );
                 }
             }
@@ -190,7 +162,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                             orderParameters.consideration[j].itemType
                         )
                     ) {
-                        revert UnresolvedConsiderationCriteria();
+                        _revertUnresolvedConsiderationCriteria(i, j);
                     }
                 }
 
@@ -203,11 +175,62 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     if (
                         _isItemWithCriteria(orderParameters.offer[j].itemType)
                     ) {
-                        revert UnresolvedOfferCriteria();
+                        _revertUnresolvedOfferCriteria(i, j);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * @dev Internal pure function to update a criteria item.
+     *
+     * @param offer             The offer containing the item to update.
+     * @param componentIndex    The index of the item to update.
+     * @param criteriaResolver  The criteria resolver to use to update the item.
+     */
+    function _updateCriteriaItem(
+        OfferItem[] memory offer,
+        uint256 componentIndex,
+        CriteriaResolver memory criteriaResolver
+    ) internal pure {
+        // Retrieve relevant item using the component index.
+        OfferItem memory offerItem = offer[componentIndex];
+
+        // Read item type and criteria from memory & place on stack.
+        ItemType itemType = offerItem.itemType;
+
+        // Ensure the specified item type indicates criteria usage.
+        if (!_isItemWithCriteria(itemType)) {
+            _revertCriteriaNotEnabledForItem();
+        }
+
+        uint256 identifierOrCriteria = offerItem.identifierOrCriteria;
+
+        // If criteria is not 0 (i.e. a collection-wide criteria-based item)...
+        if (identifierOrCriteria != uint256(0)) {
+            // Verify identifier inclusion in criteria root using proof.
+            _verifyProof(
+                criteriaResolver.identifier,
+                identifierOrCriteria,
+                criteriaResolver.criteriaProof
+            );
+        } else if (criteriaResolver.criteriaProof.length != 0) {
+            // Revert if non-empty proof is supplied for a collection-wide item.
+            _revertInvalidProof();
+        }
+
+        // Update item type to remove criteria usage.
+        // Use assembly to operate on ItemType enum as a number.
+        ItemType newItemType;
+        assembly {
+            // Item type 4 becomes 2 and item type 5 becomes 3.
+            newItemType := sub(3, eq(itemType, 4))
+        }
+        offerItem.itemType = newItemType;
+
+        // Update identifier w/ supplied identifier.
+        offerItem.identifierOrCriteria = criteriaResolver.identifier;
     }
 
     /**
@@ -221,11 +244,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
      * @return withCriteria A boolean indicating that the item type in question
      *                      represents a criteria-based item.
      */
-    function _isItemWithCriteria(ItemType itemType)
-        internal
-        pure
-        returns (bool withCriteria)
-    {
+    function _isItemWithCriteria(
+        ItemType itemType
+    ) internal pure returns (bool withCriteria) {
         // ERC721WithCriteria is ItemType 4. ERC1155WithCriteria is ItemType 5.
         assembly {
             withCriteria := gt(itemType, 3)
@@ -256,14 +277,13 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Derive the hash of the leaf to use as the initial proof element.
             let computedHash := keccak256(0, OneWord)
 
-            // Based on: https://github.com/Rari-Capital/solmate/blob/v7/src/utils/MerkleProof.sol
             // Get memory start location of the first element in proof array.
             let data := add(proof, OneWord)
 
             // Iterate over each proof element to compute the root hash.
             for {
                 // Left shift by 5 is equivalent to multiplying by 0x20.
-                let end := add(data, shl(5, mload(proof)))
+                let end := add(data, shl(OneWordShift, mload(proof)))
             } lt(data, end) {
                 // Increment by one word at a time.
                 data := add(data, OneWord)
@@ -274,7 +294,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Sort proof elements and place them in scratch space.
                 // Slot of `computedHash` in scratch space.
                 // If the condition is true: 0x20, otherwise: 0x00.
-                let scratch := shl(5, gt(computedHash, loadedData))
+                let scratch := shl(OneWordShift, gt(computedHash, loadedData))
 
                 // Store elements to hash contiguously in scratch space. Scratch
                 // space is 64 bytes (0x00 - 0x3f) & both elements are 32 bytes.
@@ -291,7 +311,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
         // Revert if computed hash does not equal supplied root.
         if (!isValid) {
-            revert InvalidProof();
+            _revertInvalidProof();
         }
     }
 }

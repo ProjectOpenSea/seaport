@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
@@ -89,12 +89,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        override
-        onlyOpenChannel
-        returns (bytes4 magicValue)
-    {
+    function execute(
+        ConduitTransfer[] calldata transfers
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = transfers.length;
 
@@ -223,7 +220,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         } else if (item.itemType == ConduitItemType.ERC721) {
             // Ensure that exactly one 721 item is being transferred.
             if (item.amount != 1) {
-                revert InvalidERC721TransferAmount();
+                revert InvalidERC721TransferAmount(item.amount);
             }
 
             // Transfer ERC721 token.

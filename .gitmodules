@@ -1,15 +1,15 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
-	url = https://github.com/brockelmore/forge-std
+	url = https://github.com/foundry-rs/forge-std
 [submodule "lib/ds-test"]
 	path = lib/ds-test
 	url = https://github.com/dapphub/ds-test
-[submodule "lib/solmate"]
-	path = lib/solmate
-	url = https://github.com/rari-capital/solmate
 [submodule "lib/murky"]
 	path = lib/murky
 	url = https://github.com/dmfxyz/murky
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/solmate"]
+	path = lib/solmate
+	url = https://github.com/transmissions11/solmate

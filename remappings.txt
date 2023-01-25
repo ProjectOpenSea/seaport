@@ -1,5 +1,5 @@
-murky/=./lib/murky/src/
-ds-test/=./lib/ds-test/src/
-solmate/=./lib/solmate/src/
-forge-std/=./lib/forge-std/src/
-@rari-capital/solmate=./lib/solmate/
+@rari-capital/solmate=lib/solmate/
+ds-test/=lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+murky/=lib/murky/src/
+openzeppelin-contracts/=lib/openzeppelin-contracts/

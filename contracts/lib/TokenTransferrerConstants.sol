@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 /*
  * -------------------------- Disambiguation & Other Notes ---------------------
@@ -8,7 +8,7 @@ pragma solidity ^0.8.7;
  *      offset or pointer to the body of a dynamic type. In calldata, the head
  *      is always an offset (relative to the parent object), while in memory,
  *      the head is always the pointer to the body. More information found here:
- *      https://docs.soliditylang.org/en/v0.8.14/abi-spec.html#argument-encoding
+ *      https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#argument-encoding
  *        - Note that the length of an array is separate from and precedes the
  *          head of the array.
  *
@@ -38,6 +38,9 @@ uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 
+uint256 constant OneWordShift = 5;
+uint256 constant TwoWordsShift = 6;
+
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
 uint256 constant DefaultFreeMemoryPointer = 0x80;
@@ -45,6 +48,8 @@ uint256 constant DefaultFreeMemoryPointer = 0x80;
 uint256 constant Slot0x80 = 0x80;
 uint256 constant Slot0xA0 = 0xa0;
 uint256 constant Slot0xC0 = 0xc0;
+
+uint256 constant Generic_error_selector_offset = 0x1c;
 
 // abi.encodeWithSignature("transferFrom(address,address,uint256)")
 uint256 constant ERC20_transferFrom_signature = (
@@ -90,48 +95,42 @@ uint256 constant ERC721_transferFrom_to_ptr = 0x24;
 uint256 constant ERC721_transferFrom_id_ptr = 0x44;
 uint256 constant ERC721_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
 
-// abi.encodeWithSignature("NoContract(address)")
-uint256 constant NoContract_error_signature = (
-    0x5f15d67200000000000000000000000000000000000000000000000000000000
-);
-uint256 constant NoContract_error_sig_ptr = 0x0;
-uint256 constant NoContract_error_token_ptr = 0x4;
-uint256 constant NoContract_error_length = 0x24; // 4 + 32 == 36
+/*
+ *  error NoContract(address account)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x00: account
+ * Revert buffer is memory[0x1c:0x40]
+ */
+uint256 constant NoContract_error_selector = 0x5f15d672;
+uint256 constant NoContract_error_account_ptr = 0x20;
+uint256 constant NoContract_error_length = 0x24;
 
-// abi.encodeWithSignature(
-//     "TokenTransferGenericFailure(address,address,address,uint256,uint256)"
-// )
-uint256 constant TokenTransferGenericFailure_error_signature = (
-    0xf486bc8700000000000000000000000000000000000000000000000000000000
-);
-uint256 constant TokenTransferGenericFailure_error_sig_ptr = 0x0;
-uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x4;
-uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x24;
-uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x44;
-uint256 constant TokenTransferGenericFailure_error_id_ptr = 0x64;
-uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0x84;
-
-// 4 + 32 * 5 == 164
+/*
+ *  error TokenTransferGenericFailure(address token, address from, address to, uint256 identifier, uint256 amount)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x20: token
+ *    - 0x40: from
+ *    - 0x60: to
+ *    - 0x80: identifier
+ *    - 0xa0: amount
+ * Revert buffer is memory[0x1c:0xc0]
+ */
+uint256 constant TokenTransferGenericFailure_error_selector = 0xf486bc87;
+uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x20;
+uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x40;
+uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x60;
+uint256 constant TokenTransferGenericFailure_error_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_err_identifier_ptr = 0x80;
+uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
 uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
-
-// abi.encodeWithSignature(
-//     "BadReturnValueFromERC20OnTransfer(address,address,address,uint256)"
-// )
-uint256 constant BadReturnValueFromERC20OnTransfer_error_signature = (
-    0x9889192300000000000000000000000000000000000000000000000000000000
-);
-uint256 constant BadReturnValueFromERC20OnTransfer_error_sig_ptr = 0x0;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x4;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x24;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x44;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
-
-// 4 + 32 * 4 == 132
-uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficient = 0x200;
+uint256 constant MemoryExpansionCoefficientShift = 9;
 
 // Values are offset by 32 bytes in order to write the token to the beginning
 // in the event of a revert
@@ -171,3 +170,21 @@ uint256 constant ERC1155BatchTransferGenericFailure_error_signature = (
 );
 uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
 uint256 constant ERC1155BatchTransferGenericFailure_ids_offset = 0xc0;
+
+/*
+ *  error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount)
+ *    - Defined in TokenTransferrerErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ *    - 0x00: token
+ *    - 0x20: from
+ *    - 0x40: to
+ *    - 0x60: amount
+ * Revert buffer is memory[0x1c:0xa0]
+ */
+uint256 constant BadReturnValueFromERC20OnTransfer_error_selector = 0x98891923;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x20;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x40;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x60;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x80;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 import {
     OrderType,
@@ -60,9 +60,10 @@ contract MatchAdvancedOrder is BaseOrderTest {
         FuzzInputsAscendingDescending args;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -157,10 +158,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function matchAdvancedOrdersOverflowOrderSide(Context memory context)
-        external
-        stateless
-    {
+    function matchAdvancedOrdersOverflowOrderSide(
+        Context memory context
+    ) external stateless {
         addOfferItem(context.itemType, 1, 100);
         addErc721ConsiderationItem(alice, 1);
 
@@ -191,7 +191,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        addOfferItem(context.itemType, 1, 2**256 - 1);
+        addOfferItem(context.itemType, 1, 2 ** 256 - 1);
         addErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -317,7 +317,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -357,7 +358,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         test721_1.mint(bob, 2);
         addErc721OfferItem(2);
-        addConsiderationItem(alice, context.itemType, 1, 2**256 - 1);
+        addConsiderationItem(alice, context.itemType, 1, 2 ** 256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -480,7 +481,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -617,7 +619,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders{ value: context.args.amount }(
             advancedOrders,
             new CriteriaResolver[](0), // no criteria resolvers
-            fulfillments
+            fulfillments,
+            address(0)
         );
     }
 
@@ -765,7 +768,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders(
             orders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
         uint256 balanceAfterOrder = token1.balanceOf(bob);
         // check the difference in alice's balance is equal to partial fill of current amount
@@ -924,7 +928,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         context.consideration.matchAdvancedOrders(
             orders,
             new CriteriaResolver[](0),
-            fulfillments
+            fulfillments,
+            address(0)
         );
         uint256 balanceAfterOrder = token1.balanceOf(alice);
         // check the difference in alice's balance is equal to partial fill of current amount

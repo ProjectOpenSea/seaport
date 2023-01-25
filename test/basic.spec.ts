@@ -1,3 +1,4 @@
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
@@ -18,7 +19,12 @@ import {
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
-import { VERSION, minRandom, simulateMatchOrders } from "./utils/helpers";
+import {
+  VERSION,
+  minRandom,
+  simulateAdvancedMatchOrders,
+  simulateMatchOrders,
+} from "./utils/helpers";
 
 import type {
   ConduitInterface,
@@ -27,6 +33,7 @@ import type {
   EIP1271Wallet__factory,
   TestERC20,
   TestERC721,
+  TestPostExecution,
   TestZone,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
@@ -47,6 +54,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
   let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
   let stubZone: TestZone;
+  let postExecutionZone: TestPostExecution;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
 
@@ -91,6 +99,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
       mintAndApproveERC20,
       set721ApprovalForAll,
       stubZone,
+      postExecutionZone,
       testERC20,
       testERC721,
       withBalanceChecks,
@@ -102,20 +111,24 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
   let zone: Wallet;
 
   let sellerContract: EIP1271Wallet;
-  let buyerContract: EIP1271Wallet;
 
-  beforeEach(async () => {
+  async function setupFixture() {
     // Setup basic buyer/seller wallets with ETH
-    seller = new ethers.Wallet(randomHex(32), provider);
-    buyer = new ethers.Wallet(randomHex(32), provider);
-    zone = new ethers.Wallet(randomHex(32), provider);
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
+    const zone = new ethers.Wallet(randomHex(32), provider);
 
-    sellerContract = await EIP1271WalletFactory.deploy(seller.address);
-    buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+    const sellerContract = await EIP1271WalletFactory.deploy(seller.address);
 
-    for (const wallet of [seller, buyer, zone, sellerContract, buyerContract]) {
+    for (const wallet of [seller, buyer, zone, sellerContract]) {
       await faucet(wallet.address, provider);
     }
+
+    return { seller, buyer, zone, sellerContract };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer, zone, sellerContract } = await loadFixture(setupFixture));
   });
 
   describe("A single ERC721 is to be transferred", async () => {
@@ -495,9 +508,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         const basicOrderParameters = getBasicOrderParameters(
           0, // EthForERC721
@@ -594,9 +672,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
@@ -692,9 +835,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
@@ -964,6 +1172,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           return receipt;
         });
       });
+
       it("ERC721 <=> ETH (basic, already validated)", async () => {
         const nftId = await mintAndApprove721(
           seller,
@@ -987,9 +1196,74 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
 
         // Validate the order from any account
-        await expect(marketplaceContract.connect(owner).validate([order]))
-          .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, zone.address);
+        const tx = await marketplaceContract.connect(owner).validate([order]);
+
+        const receipt = await tx.wait();
+
+        expect(receipt.events?.length).to.equal(1);
+
+        const event = receipt.events && receipt.events[0];
+
+        expect(event?.event).to.equal("OrderValidated");
+
+        expect(event?.args?.orderHash).to.equal(orderHash);
+
+        const parameters = event && event.args && event.args.orderParameters;
+
+        expect(parameters.offerer).to.equal(order.parameters.offerer);
+        expect(parameters.zone).to.equal(order.parameters.zone);
+        expect(parameters.orderType).to.equal(order.parameters.orderType);
+        expect(parameters.startTime).to.equal(order.parameters.startTime);
+        expect(parameters.endTime).to.equal(order.parameters.endTime);
+        expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+        expect(parameters.salt).to.equal(order.parameters.salt);
+        expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          order.parameters.totalOriginalConsiderationItems
+        );
+        expect(parameters.totalOriginalConsiderationItems).to.equal(
+          parameters.consideration.length
+        );
+
+        expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+        expect(parameters.consideration.length).to.equal(
+          order.parameters.consideration.length
+        );
+
+        for (let i = 0; i < parameters.offer.length; i++) {
+          const eventOffer = parameters.offer[i];
+          const suppliedOffer = order.parameters.offer[i];
+          expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+          expect(eventOffer.token).to.equal(suppliedOffer.token);
+          expect(eventOffer.identifierOrCriteria).to.equal(
+            suppliedOffer.identifierOrCriteria
+          );
+          expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+          expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+        }
+
+        for (let i = 0; i < parameters.consideration.length; i++) {
+          const eventConsideration = parameters.consideration[i];
+          const suppliedConsideration = order.parameters.consideration[i];
+          expect(eventConsideration.itemType).to.equal(
+            suppliedConsideration.itemType
+          );
+          expect(eventConsideration.token).to.equal(
+            suppliedConsideration.token
+          );
+          expect(eventConsideration.identifierOrCriteria).to.equal(
+            suppliedConsideration.identifierOrCriteria
+          );
+          expect(eventConsideration.startAmount).to.equal(
+            suppliedConsideration.startAmount
+          );
+          expect(eventConsideration.endAmount).to.equal(
+            suppliedConsideration.endAmount
+          );
+          expect(eventConsideration.recipient).to.equal(
+            suppliedConsideration.recipient
+          );
+        }
 
         const basicOrderParameters = getBasicOrderParameters(
           0, // EthForERC721
@@ -1161,12 +1435,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1228,12 +1502,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1293,12 +1567,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1806,7 +2080,10 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("BadContractSignature");
+          ).to.be.revertedWithCustomError(
+            marketplaceContract,
+            "BadContractSignature"
+          );
         } else {
           await expect(
             marketplaceContract
@@ -1904,12 +2181,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -1981,12 +2258,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2042,6 +2319,72 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           const tx = marketplaceContract
             .connect(buyer)
             .fulfillOrder(order, toKey(0));
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(tx, receipt, [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(0),
+            },
+          ]);
+
+          return receipt;
+        });
+      });
+      it("ERC721 <=> ETH (restricted order checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // Buyer approves marketplace contract to transfer ERC20 tokens too
+        await expect(
+          testERC20
+            .connect(buyer)
+            .approve(marketplaceContract.address, tokenAmount)
+        )
+          .to.emit(testERC20, "Approval")
+          .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+
+        const offer = [
+          getTestItem20(tokenAmount.sub(100), tokenAmount.sub(100)),
+        ];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        order.extraData = "0x1234";
+
+        await withBalanceChecks([order], 0, undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(0),
+              ethers.constants.AddressZero
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
@@ -2203,6 +2546,181 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           offer,
           consideration,
           0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          4, // ERC721ForERC20
+          order
+        );
+
+        await withBalanceChecks([order], toBN(0), undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters);
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ],
+            getBasicOrderExecutions(order, buyer.address, conduitKeyOne)
+          );
+
+          return receipt;
+        });
+      });
+      it("ERC721 <=> ETH (basic simple with restricted order checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = toBN(random128());
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
+
+        const consideration = [getTestItem721(nftId, 1, 1, seller.address)];
+
+        const { order, orderHash } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          4, // ERC721ForERC20
+          order
+        );
+
+        await withBalanceChecks([order], toBN(0), undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters);
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ],
+            getBasicOrderExecutions(order, buyer.address, conduitKeyOne)
+          );
+
+          return receipt;
+        });
+      });
+      it("ERC721 <=> ETH (basic with restricted order checked post-execution and tips)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = toBN(random128());
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
+
+        const consideration = [getTestItem721(nftId, 1, 1, seller.address)];
+
+        const { order, orderHash } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        order.parameters.consideration.push(
+          getTestItem20(50, 50, zone.address)
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          4, // ERC721ForERC20
+          order
+        );
+
+        basicOrderParameters.totalOriginalAdditionalRecipients = toBN(0);
+
+        await withBalanceChecks([order], toBN(0), undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters);
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ],
+            getBasicOrderExecutions(order, buyer.address, conduitKeyOne)
+          );
+
+          return receipt;
+        });
+      });
+      it("ERC721 <=> ETH (basic with restricted order checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = toBN(random128());
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
         );
 
         const basicOrderParameters = getBasicOrderParameters(
@@ -2416,12 +2934,93 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
+            },
+          ],
+          executions
+        );
+        return receipt;
+      });
+      it("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
+        // Buyer mints nft
+        const nftId = await mint721(buyer);
+
+        // Buyer approves marketplace contract to transfer NFT
+        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
+
+        // Seller mints ERC20
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+        const offer = [
+          getTestItem20(tokenAmount.sub(100), tokenAmount.sub(100)),
+        ];
+
+        const consideration = [
+          getTestItem721(nftId, 1, 1, seller.address),
+          getTestItem20(50, 50, zone.address),
+          getTestItem20(50, 50, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          postExecutionZone,
+          offer,
+          consideration,
+          2 // FULL_RESTRICTED
+        );
+
+        order.extraData = "0x1234";
+
+        const { mirrorOrder, mirrorOrderHash } =
+          await createMirrorAcceptOfferOrder(buyer, zone, order);
+
+        const fulfillments = defaultAcceptOfferMirrorFulfillment;
+
+        const executions = await simulateAdvancedMatchOrders(
+          marketplaceContract,
+          [order, mirrorOrder],
+          [],
+          fulfillments,
+          owner,
+          value
+        );
+
+        expect(executions.length).to.equal(4);
+
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [order, mirrorOrder],
+            [],
+            fulfillments,
+            ethers.constants.AddressZero
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: owner.address,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2495,12 +3094,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2752,12 +3351,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -2823,12 +3422,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3127,12 +3726,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3208,12 +3807,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3526,12 +4125,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions
@@ -3605,12 +4204,12 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
             {
               order,
               orderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: ethers.constants.AddressZero,
+              fulfiller: owner.address,
             },
           ],
           executions

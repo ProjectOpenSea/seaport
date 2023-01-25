@@ -12,6 +12,7 @@ Aspyn Palatnick                | `stuckinaboot.eth`
 James Wenzel                   | `emo.eth`
 Stephan Min                    | `stephanm.eth`
 Ryan Ghods                     | `ralxz.eth`
+Daniel Viau                    | `snotrocket.eth`
 0xPatissier                    |
 pcaversaccio                   |
 David Eiber                    |
@@ -70,3 +71,4 @@ shuklaayush                    | `shuklaayush.eth`
 Riley Holterhus                |
 big-tech-sux                   |
 naps62                         | `naps62.eth`
+Dravee                         | `dravee.eth`
