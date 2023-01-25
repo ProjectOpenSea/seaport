@@ -143,6 +143,9 @@ contract ZoneInteraction is
     ) internal view returns (bool mustValidate) {
         assembly {
             mustValidate := and(
+                // Note that this check requires that there are no order types
+                // beyond the current set (0-4).  It will need to be modified if
+                // more order types are added.
                 and(lt(orderType, 4), gt(orderType, 1)),
                 iszero(eq(caller(), zone))
             )

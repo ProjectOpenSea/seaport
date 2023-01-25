@@ -227,7 +227,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             ConsiderationItem[] memory consideration;
 
             // Iterate over each order.
-            for (uint256 i = 32; i < terminalMemoryOffset; i += 32) {
+            for (uint256 i = OneWord; i < terminalMemoryOffset; i += OneWord) {
                 // Retrieve order using assembly to bypass out-of-range check.
                 assembly {
                     advancedOrder := mload(add(advancedOrders, i))
@@ -289,6 +289,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     // depth errors.
                     OrderType orderType = advancedOrder.parameters.orderType;
                     assembly {
+                        // Note that this check requires that there are no order
+                        // types beyond the current set (0-4).  It will need to
+                        // be modified if more order types are added.
                         let isNonContract := lt(orderType, 4)
                         mstore(0, isNonContract)
                     }
@@ -448,7 +451,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             bytes32 orderHash;
 
             // Iterate over each order.
-            for (uint256 i = 32; i < terminalMemoryOffset; i += 32) {
+            for (uint256 i = OneWord; i < terminalMemoryOffset; i += OneWord) {
                 assembly {
                     orderHash := mload(add(orderHashes, i))
                 }

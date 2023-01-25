@@ -346,7 +346,7 @@ contract ConsiderationDecoder {
         // Resolve OrderParameters calldata pointer & write to allocated region.
         _decodeOrderParametersTo(cdPtr.pptr(), mPtrParameters);
 
-        // Write default Order numerator and denominator values (e.g. 1/1).
+        // Write default Order numerator and denominator values (i.e. 1/1).
         mPtr.offset(AdvancedOrder_numerator_offset).write(1);
         mPtr.offset(AdvancedOrder_denominator_offset).write(1);
 

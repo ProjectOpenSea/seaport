@@ -261,6 +261,9 @@ contract OrderFulfiller is
                 uint256 invalidNativeOfferItem;
                 assembly {
                     invalidNativeOfferItem := and(
+                        // Note that this check requires that there are no order
+                        // types beyond the current set (0-4).  It will need to
+                        // be modified if more order types are added.
                         lt(orderType, 4),
                         anyNativeItems
                     )

@@ -38,7 +38,7 @@ pragma solidity ^0.8.13;
 // Name is right padded, so it touches the length which is left padded. This
 // enables writing both values at once. Length goes at byte 95 in memory, and
 // name fills bytes 96-109, so both values can be written left-padded to 77.
-uint256 constant NameLengthPtr = 77;
+uint256 constant NameLengthPtr = 0x4D;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
 uint256 constant information_version_offset = 0;
@@ -73,7 +73,7 @@ uint256 constant Offset_matchAdvancedOrders_fulfillments = 0x40;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
-uint256 constant Selector_length = 4;
+uint256 constant Selector_length = 0x4;
 
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
@@ -81,7 +81,7 @@ uint256 constant Common_amount_offset = 0x60;
 uint256 constant Common_endAmount_offset = 0x80;
 
 uint256 constant SpentItem_size = 0x80;
-uint256 constant SpentItem_size_shift = 7;
+uint256 constant SpentItem_size_shift = 0x7;
 
 uint256 constant OfferItem_size = 0xa0;
 uint256 constant OfferItem_size_with_length = 0xc0;
@@ -241,7 +241,7 @@ uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
 // Related constants used for restricted order checks on basic orders.
 
-address constant IdentityPrecompile = address(4);
+address constant IdentityPrecompile = address(0x4);
 uint256 constant OrderFulfilled_baseDataSize = 0x160;
 uint256 constant ValidateOrder_offerDataOffset = 0x184;
 
@@ -436,7 +436,7 @@ uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
 
-uint256 constant Ecrecover_precompile = 1;
+uint256 constant Ecrecover_precompile = 0x1;
 uint256 constant Ecrecover_args_size = 0x80;
 uint256 constant Signature_lower_v = 27;
 
