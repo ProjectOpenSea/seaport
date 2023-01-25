@@ -74,12 +74,12 @@ import { Consideration } from "./lib/Consideration.sol";
  * @custom:contributor rfart(rfa)
  * @custom:contributor Riley Holterhus
  * @custom:contributor big-tech-sux
- * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace with
- *         lightweight methods for common routes as well as more flexible
- *         methods for composing advanced orders or groups of orders. Each order
- *         contains an arbitrary number of items that may be spent (the "offer")
- *         along with an arbitrary number of items that must be received back by
- *         the indicated recipients (the "consideration").
+ * @notice Seaport is a generalized native token/ERC20/ERC721/ERC1155
+ *         marketplace with lightweight methods for common routes as well as
+ *         more flexible methods for composing advanced orders or groups of
+ *         orders. Each order contains an arbitrary number of items that may be
+ *         spent (the "offer") along with an arbitrary number of items that must
+ *         be received back by the indicated recipients (the "consideration").
  */
 contract Seaport is Consideration {
     /**

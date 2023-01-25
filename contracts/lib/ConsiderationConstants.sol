@@ -38,7 +38,7 @@ pragma solidity ^0.8.13;
 // Name is right padded, so it touches the length which is left padded. This
 // enables writing both values at once. Length goes at byte 95 in memory, and
 // name fills bytes 96-109, so both values can be written left-padded to 77.
-uint256 constant NameLengthPtr = 77;
+uint256 constant NameLengthPtr = 0x4D;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
 uint256 constant information_version_offset = 0;
@@ -73,7 +73,7 @@ uint256 constant Offset_matchAdvancedOrders_fulfillments = 0x40;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
-uint256 constant Selector_length = 4;
+uint256 constant Selector_length = 0x4;
 
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
@@ -81,7 +81,7 @@ uint256 constant Common_amount_offset = 0x60;
 uint256 constant Common_endAmount_offset = 0x80;
 
 uint256 constant SpentItem_size = 0x80;
-uint256 constant SpentItem_size_shift = 7;
+uint256 constant SpentItem_size_shift = 0x7;
 
 uint256 constant OfferItem_size = 0xa0;
 uint256 constant OfferItem_size_with_length = 0xc0;
@@ -129,7 +129,7 @@ uint256 constant OrderStatus_ValidatedAndNotCancelled = 1;
 uint256 constant OrderStatus_filledNumerator_offset = 0x10;
 uint256 constant OrderStatus_filledDenominator_offset = 0x88;
 
-uint256 constant AlmostOneWord = 0x1f;
+uint256 constant ThirtyOneBytes = 0x1f;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
@@ -241,7 +241,7 @@ uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
 // Related constants used for restricted order checks on basic orders.
 
-address constant IdentityPrecompile = address(4);
+address constant IdentityPrecompile = address(0x4);
 uint256 constant OrderFulfilled_baseDataSize = 0x160;
 uint256 constant ValidateOrder_offerDataOffset = 0x184;
 
@@ -436,7 +436,7 @@ uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
 
-uint256 constant Ecrecover_precompile = 1;
+uint256 constant Ecrecover_precompile = 0x1;
 uint256 constant Ecrecover_args_size = 0x80;
 uint256 constant Signature_lower_v = 27;
 
@@ -852,17 +852,17 @@ uint256 constant ConsiderationNotMet_error_shortfallAmount_ptr = 0x60;
 uint256 constant ConsiderationNotMet_error_length = 0x64;
 
 /*
- *  error InsufficientEtherSupplied()
+ *  error InsufficientNativeTokensSupplied()
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant InsufficientEtherSupplied_error_selector = 0x1a783b8d;
-uint256 constant InsufficientEtherSupplied_error_length = 0x04;
+uint256 constant InsufficientNativeTokensSupplied_error_selector = 0x8ffff980;
+uint256 constant InsufficientNativeTokensSupplied_error_length = 0x04;
 
 /*
- *  error EtherTransferGenericFailure(address account, uint256 amount)
+ *  error NativeTokenTransferGenericFailure(address account, uint256 amount)
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -870,10 +870,10 @@ uint256 constant InsufficientEtherSupplied_error_length = 0x04;
  *    - 0x40: amount
  * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant EtherTransferGenericFailure_error_selector = 0x470c7c1d;
-uint256 constant EtherTransferGenericFailure_error_account_ptr = 0x20;
-uint256 constant EtherTransferGenericFailure_error_amount_ptr = 0x40;
-uint256 constant EtherTransferGenericFailure_error_length = 0x44;
+uint256 constant NativeTokenTransferGenericFailure_error_selector = 0xbc806b96;
+uint256 constant NativeTokenTransferGenericFailure_error_account_ptr = 0x20;
+uint256 constant NativeTokenTransferGenericFailure_error_amount_ptr = 0x40;
+uint256 constant NativeTokenTransferGenericFailure_error_length = 0x44;
 
 /*
  *  error PartialFillsNotEnabledForOrder()

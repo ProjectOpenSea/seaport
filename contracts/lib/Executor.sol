@@ -237,7 +237,7 @@ contract Executor is Verifiers, TokenTransferrer {
         bool success;
 
         assembly {
-            // Transfer the ETH and store if it succeeded or not.
+            // Transfer the native token and store if it succeeded or not.
             success := call(gas(), to, amount, 0, 0, 0, 0)
         }
 
@@ -249,16 +249,16 @@ contract Executor is Verifiers, TokenTransferrer {
             // Otherwise, revert with a generic error message.
             assembly {
                 // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, EtherTransferGenericFailure_error_selector)
-                mstore(EtherTransferGenericFailure_error_account_ptr, to)
-                mstore(EtherTransferGenericFailure_error_amount_ptr, amount)
+                mstore(0, NativeTokenTransferGenericFailure_error_selector)
+                mstore(NativeTokenTransferGenericFailure_error_account_ptr, to)
+                mstore(NativeTokenTransferGenericFailure_error_amount_ptr, amount)
 
                 // revert(abi.encodeWithSignature(
-                //   "EtherTransferGenericFailure(address,uint256)", to, amount)
+                //   "NativeTokenTransferGenericFailure(address,uint256)", to, amount)
                 // )
                 revert(
                     Error_selector_offset,
-                    EtherTransferGenericFailure_error_length
+                    NativeTokenTransferGenericFailure_error_length
                 )
             }
         }

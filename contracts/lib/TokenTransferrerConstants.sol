@@ -33,7 +33,7 @@ pragma solidity ^0.8.13;
  *      codebase but have been left in for readability.
  */
 
-uint256 constant AlmostOneWord = 0x1f;
+uint256 constant ThirtyOneBytes = 0x1f;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;

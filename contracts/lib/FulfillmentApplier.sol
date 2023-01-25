@@ -92,9 +92,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         // Ensure offer and consideration share types, tokens and identifiers.
         // (a != b || c != d || e != f) == (((a ^ b) | (c ^ d) | (e ^ f)) != 0), but the 2nd expression is cheaper
         if (
-            ((uint8(execution.item.itemType) ^ uint8(considerationItem.itemType)) |
-            (uint160(execution.item.token) ^ uint160(considerationItem.token)) |
-            (execution.item.identifier ^ considerationItem.identifier)) != 0
+            ((uint8(execution.item.itemType) ^
+                uint8(considerationItem.itemType)) |
+                (uint160(execution.item.token) ^
+                    uint160(considerationItem.token)) |
+                (execution.item.identifier ^ considerationItem.identifier)) != 0
         ) {
             _revertMismatchedFulfillmentOfferAndConsiderationComponents(
                 fulfillmentIndex

@@ -131,7 +131,7 @@ contract Verifiers is Assertions, SignatureVerification {
                             signatureLength,
                             BulkOrderProof_lengthAdjustmentBeforeMask
                         ),
-                        AlmostOneWord
+                        ThirtyOneBytes
                     ),
                     BulkOrderProof_lengthRangeAfterMask
                 )
