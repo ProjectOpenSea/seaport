@@ -842,7 +842,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         BasicOrderParameters calldata parameters
     ) internal {
         // Put native token value supplied by the caller on the stack.
-        uint256 nativeTokenRemaining = msg.value;
+        uint256 nativeTokensRemaining = msg.value;
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
@@ -855,34 +855,34 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             uint256 additionalRecipientAmount = additionalRecipient.amount;
 
             // Ensure that sufficient native token is available.
-            if (additionalRecipientAmount > nativeTokenRemaining) {
-                revert InsufficientNativeTokenSupplied();
+            if (additionalRecipientAmount > nativeTokensRemaining) {
+                revert InsufficientNativeTokensSupplied();
             }
 
             // Transfer native token to the additional recipient.
-            _transferNativeToken(
+            _transferNativeTokens(
                 additionalRecipient.recipient,
                 additionalRecipientAmount
             );
 
             // Reduce native token value available.
-            nativeTokenRemaining -= additionalRecipientAmount;
+            nativeTokensRemaining -= additionalRecipientAmount;
         }
 
         // Ensure that sufficient native token is still available.
-        if (amount > nativeTokenRemaining) {
-            revert InsufficientNativeTokenSupplied();
+        if (amount > nativeTokensRemaining) {
+            revert InsufficientNativeTokensSupplied();
         }
 
         // Transfer native token to the offerer.
-        _transferNativeToken(parameters.offerer, amount);
+        _transferNativeTokens(parameters.offerer, amount);
 
         // If any native token remains after transfers, return it to the caller.
-        if (nativeTokenRemaining > amount) {
+        if (nativeTokensRemaining > amount) {
             // Transfer remaining native token to the caller.
-            _transferNativeToken(
+            _transferNativeTokens(
                 payable(msg.sender),
-                nativeTokenRemaining - amount
+                nativeTokensRemaining - amount
             );
         }
     }

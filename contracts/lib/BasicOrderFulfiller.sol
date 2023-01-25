@@ -957,7 +957,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
                 // Ensure that sufficient native tokens are available.
                 if (additionalRecipientAmount > nativeTokensRemaining) {
-                    _revertInsufficientNativeTokenSupplied();
+                    _revertInsufficientNativeTokensSupplied();
                 }
 
                 // Reduce native token value available. Skip underflow check as
@@ -971,7 +971,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Ensure that sufficient native tokens are still available.
         if (amount > nativeTokensRemaining) {
-            _revertInsufficientNativeTokenSupplied();
+            _revertInsufficientNativeTokensSupplied();
         }
 
         // Transfer native tokens to the offerer.

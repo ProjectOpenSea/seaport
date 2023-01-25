@@ -75,17 +75,17 @@ function _revertCriteriaNotEnabledForItem() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InsufficientNativeTokenSupplied"
+ * @dev Reverts the current transaction with an "InsufficientNativeTokensSupplied"
  *      error message.
  */
-function _revertInsufficientNativeTokenSupplied() pure {
+function _revertInsufficientNativeTokensSupplied() pure {
     assembly {
         // Store left-padded selector with push4 (reduces bytecode),
         // mem[28:32] = selector
-        mstore(0, InsufficientNativeTokenSupplied_error_selector)
+        mstore(0, InsufficientNativeTokensSupplied_error_selector)
 
-        // revert(abi.encodeWithSignature("InsufficientNativeTokenSupplied()"))
-        revert(Error_selector_offset, InsufficientNativeTokenSupplied_error_length)
+        // revert(abi.encodeWithSignature("InsufficientNativeTokensSupplied()"))
+        revert(Error_selector_offset, InsufficientNativeTokensSupplied_error_length)
     }
 }
 

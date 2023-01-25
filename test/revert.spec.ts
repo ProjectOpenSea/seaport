@@ -4906,7 +4906,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -4917,7 +4917,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await withBalanceChecks([order], 0, undefined, async () => {
@@ -4978,7 +4978,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -4989,7 +4989,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await marketplaceContract
@@ -5042,7 +5042,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           )
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -5065,7 +5065,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           )
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -5161,7 +5161,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       await expect(
@@ -5172,7 +5172,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           })
       ).to.be.revertedWithCustomError(
         marketplaceContract,
-        "InsufficientNativeTokenSupplied"
+        "InsufficientNativeTokensSupplied"
       );
 
       const tx = marketplaceContract
@@ -7030,7 +7030,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
@@ -7093,7 +7093,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7165,7 +7165,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7245,7 +7245,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7335,7 +7335,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7413,7 +7413,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7499,7 +7499,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7572,7 +7572,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
         // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
@@ -7637,7 +7637,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken,
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens,
         // which reverts with NativeTokenTransferGenericFailure
         await expect(
           marketplaceContract
@@ -7700,7 +7700,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken,
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens,
         // which reverts with NativeTokenTransferGenericFailure
         await expect(
           marketplaceContract

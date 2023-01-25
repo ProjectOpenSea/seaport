@@ -78,7 +78,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             }
 
             // Transfer the native tokens to the recipient.
-            _transferNativeToken(item.recipient, item.amount);
+            _transferNativeTokens(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
             // Ensure that no identifier is supplied.
             if (item.identifier != 0) {
@@ -128,7 +128,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
      */
-    function _transferNativeToken(address payable to, uint256 amount) internal {
+    function _transferNativeTokens(address payable to, uint256 amount) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 

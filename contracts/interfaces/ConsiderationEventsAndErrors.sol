@@ -140,7 +140,7 @@ interface ConsiderationEventsAndErrors {
      * @dev Revert with an error when insufficient native token is supplied as
      *      part of msg.value when fulfilling orders.
      */
-    error InsufficientNativeTokenSupplied();
+    error InsufficientNativeTokensSupplied();
 
     /**
      * @dev Revert with an error when a native token transfer reverts.

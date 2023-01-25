@@ -294,10 +294,10 @@ contract ConstantsTest is BaseConsiderationTest {
         );
     }
 
-    function testInsufficientNativeTokenSupplied_error_selector() public {
+    function testInsufficientNativeTokensSupplied_error_selector() public {
         _test(
-            InsufficientNativeTokenSupplied_error_selector,
-            ConsiderationEventsAndErrors.InsufficientNativeTokenSupplied.selector
+            InsufficientNativeTokensSupplied_error_selector,
+            ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied.selector
         );
     }
 

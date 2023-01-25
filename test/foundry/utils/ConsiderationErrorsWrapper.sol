@@ -44,11 +44,11 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts the current transaction with an "InsufficientNativeTokenSupplied"
+     * @dev Reverts the current transaction with an "InsufficientNativeTokensSupplied"
      *      error message.
      */
-    function __revertInsufficientNativeTokenSupplied() external pure {
-        _revertInsufficientNativeTokenSupplied();
+    function __revertInsufficientNativeTokensSupplied() external pure {
+        _revertInsufficientNativeTokensSupplied();
     }
 
     /**

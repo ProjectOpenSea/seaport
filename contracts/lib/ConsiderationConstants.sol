@@ -852,14 +852,14 @@ uint256 constant ConsiderationNotMet_error_shortfallAmount_ptr = 0x60;
 uint256 constant ConsiderationNotMet_error_length = 0x64;
 
 /*
- *  error InsufficientNativeTokenSupplied()
+ *  error InsufficientNativeTokensSupplied()
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant InsufficientNativeTokenSupplied_error_selector = 0x5032ab30;
-uint256 constant InsufficientNativeTokenSupplied_error_length = 0x04;
+uint256 constant InsufficientNativeTokensSupplied_error_selector = 0x8ffff980;
+uint256 constant InsufficientNativeTokensSupplied_error_length = 0x04;
 
 /*
  *  error NativeTokenTransferGenericFailure(address account, uint256 amount)

@@ -613,7 +613,7 @@ contract ReferenceOrderCombiner is
         address recipient
     ) internal returns (bool[] memory availableOrders) {
         // Put ether value supplied by the caller on the stack.
-        uint256 nativeTokenRemaining = msg.value;
+        uint256 nativeTokensRemaining = msg.value;
 
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
@@ -634,12 +634,12 @@ contract ReferenceOrderCombiner is
                 // If execution transfers native tokens, reduce value available.
                 if (item.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
-                    if (item.amount > nativeTokenRemaining) {
-                        revert InsufficientNativeTokenSupplied();
+                    if (item.amount > nativeTokensRemaining) {
+                        revert InsufficientNativeTokensSupplied();
                     }
 
                     // Reduce ether remaining by amount.
-                    nativeTokenRemaining -= item.amount;
+                    nativeTokensRemaining -= item.amount;
                 }
 
                 // Transfer the item specified by the execution.
@@ -772,8 +772,8 @@ contract ReferenceOrderCombiner is
 
         // If any native token remains after fulfillments, return it to the
         // caller.
-        if (nativeTokenRemaining != 0) {
-            _transferNativeToken(payable(msg.sender), nativeTokenRemaining);
+        if (nativeTokensRemaining != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
         }
 
         // Return the array containing available orders.
