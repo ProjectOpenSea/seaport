@@ -137,15 +137,15 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Revert with an error when insufficient ether is supplied as part of
-     *      msg.value when fulfilling orders.
+     * @dev Revert with an error when insufficient native token is supplied as
+     *      part of msg.value when fulfilling orders.
      */
-    error InsufficientEtherSupplied();
+    error InsufficientNativeTokenSupplied();
 
     /**
-     * @dev Revert with an error when an ether transfer reverts.
+     * @dev Revert with an error when a native token transfer reverts.
      */
-    error EtherTransferGenericFailure(address account, uint256 amount);
+    error NativeTokenTransferGenericFailure(address account, uint256 amount);
 
     /**
      * @dev Revert with an error when a partial fill is attempted on an order
@@ -204,7 +204,7 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fulfill an order with an
-     *      offer for ETH outside of matching orders.
+     *      offer for a native token outside of matching orders.
      */
     error InvalidNativeOfferItem();
 }

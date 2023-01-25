@@ -635,7 +635,7 @@ contract ReferenceOrderCombiner is
                 if (item.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (item.amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                        revert InsufficientNativeTokenSupplied();
                     }
 
                     // Reduce ether remaining by amount.

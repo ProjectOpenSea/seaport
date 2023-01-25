@@ -86,7 +86,8 @@ contract BasicOrderFulfiller is OrderValidator {
             // Divide basicOrderType by four to derive the route.
             route := shr(2, basicOrderType)
 
-            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
+            // If route > 1 additionalRecipient items are ERC20 (1) else native
+            // token (0).
             additionalRecipientsItemType := gt(route, 1)
         }
 
@@ -136,7 +137,8 @@ contract BasicOrderFulfiller is OrderValidator {
                 )
 
                 // If route > 2, receivedItemType is route - 2. If route is 2,
-                // the receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+                // the receivedItemType is ERC20 (1). Otherwise, it is native
+                // token (0).
                 receivedItemType := byte(route, BasicOrder_receivedItemByteMap)
 
                 // If route > 3, offeredItemType is ERC20 (1). Route is 2 or 3,
@@ -955,7 +957,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
                 // Ensure that sufficient native tokens are available.
                 if (additionalRecipientAmount > nativeTokensRemaining) {
-                    _revertInsufficientEtherSupplied();
+                    _revertInsufficientNativeTokenSupplied();
                 }
 
                 // Reduce native token value available. Skip underflow check as
@@ -969,7 +971,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Ensure that sufficient native tokens are still available.
         if (amount > nativeTokensRemaining) {
-            _revertInsufficientEtherSupplied();
+            _revertInsufficientNativeTokenSupplied();
         }
 
         // Transfer native tokens to the offerer.

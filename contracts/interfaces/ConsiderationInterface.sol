@@ -16,10 +16,10 @@ import {
  * @title ConsiderationInterface
  * @author 0age
  * @custom:version 1.2
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
- *         It minimizes external calls to the greatest extent possible and
- *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders.
+ * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
+ *         marketplace. It minimizes external calls to the greatest extent
+ *         possible and provides lightweight methods for common routes as well
+ *         as more flexible methods for composing advanced orders.
  *
  * @dev ConsiderationInterface contains all external function interfaces for
  *      Consideration.

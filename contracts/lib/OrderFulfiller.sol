@@ -344,7 +344,7 @@ contract OrderFulfiller is
 
                     // Ensure that sufficient native tokens are still available.
                     if (amount > nativeTokenBalance) {
-                        _revertInsufficientEtherSupplied();
+                        _revertInsufficientNativeTokenSupplied();
                     }
                 }
 

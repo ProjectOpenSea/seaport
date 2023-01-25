@@ -294,17 +294,17 @@ contract ConstantsTest is BaseConsiderationTest {
         );
     }
 
-    function testInsufficientEtherSupplied_error_selector() public {
+    function testInsufficientNativeTokenSupplied_error_selector() public {
         _test(
-            InsufficientEtherSupplied_error_selector,
-            ConsiderationEventsAndErrors.InsufficientEtherSupplied.selector
+            InsufficientNativeTokenSupplied_error_selector,
+            ConsiderationEventsAndErrors.InsufficientNativeTokenSupplied.selector
         );
     }
 
-    function testEtherTransferGenericFailure_error_selector() public {
+    function testNativeTokenTransferGenericFailure_error_selector() public {
         _test(
-            EtherTransferGenericFailure_error_selector,
-            ConsiderationEventsAndErrors.EtherTransferGenericFailure.selector
+            NativeTokenTransferGenericFailure_error_selector,
+            ConsiderationEventsAndErrors.NativeTokenTransferGenericFailure.selector
         );
     }
 

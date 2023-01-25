@@ -274,7 +274,7 @@ contract ReferenceOrderFulfiller is
                 if (receivedItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                        revert InsufficientNativeTokenSupplied();
                     }
                     // Reduce ether remaining by amount.
                     etherRemaining -= amount;

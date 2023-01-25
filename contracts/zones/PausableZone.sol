@@ -109,7 +109,8 @@ contract PausableZone is
         // Emit an event signifying that the zone is paused.
         emit Paused();
 
-        // Destroy the zone, sending any ether to the transaction submitter.
+        // Destroy the zone, sending any native token to the transaction
+        // submitter.
         selfdestruct(payable(payee));
     }
 

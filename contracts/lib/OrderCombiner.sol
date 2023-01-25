@@ -709,7 +709,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Ensure that sufficient native tokens are still available.
                 if (item.amount > nativeTokenBalance) {
-                    _revertInsufficientEtherSupplied();
+                    _revertInsufficientNativeTokenSupplied();
                 }
             }
 

@@ -352,7 +352,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // set blockTimestamp to right before endTime and set insufficient value for transaction
         vm.warp(block.timestamp + 999);
         vm.expectRevert(
-            ConsiderationEventsAndErrors.InsufficientEtherSupplied.selector
+            ConsiderationEventsAndErrors.InsufficientNativeTokenSupplied.selector
         );
         context.consideration.fulfillAdvancedOrder{
             value: context

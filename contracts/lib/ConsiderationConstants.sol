@@ -852,17 +852,17 @@ uint256 constant ConsiderationNotMet_error_shortfallAmount_ptr = 0x60;
 uint256 constant ConsiderationNotMet_error_length = 0x64;
 
 /*
- *  error InsufficientEtherSupplied()
+ *  error InsufficientNativeTokenSupplied()
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant InsufficientEtherSupplied_error_selector = 0x1a783b8d;
-uint256 constant InsufficientEtherSupplied_error_length = 0x04;
+uint256 constant InsufficientNativeTokenSupplied_error_selector = 0x5032ab30;
+uint256 constant InsufficientNativeTokenSupplied_error_length = 0x04;
 
 /*
- *  error EtherTransferGenericFailure(address account, uint256 amount)
+ *  error NativeTokenTransferGenericFailure(address account, uint256 amount)
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -870,10 +870,10 @@ uint256 constant InsufficientEtherSupplied_error_length = 0x04;
  *    - 0x40: amount
  * Revert buffer is memory[0x1c:0x60]
  */
-uint256 constant EtherTransferGenericFailure_error_selector = 0x470c7c1d;
-uint256 constant EtherTransferGenericFailure_error_account_ptr = 0x20;
-uint256 constant EtherTransferGenericFailure_error_amount_ptr = 0x40;
-uint256 constant EtherTransferGenericFailure_error_length = 0x44;
+uint256 constant NativeTokenTransferGenericFailure_error_selector = 0xbc806b96;
+uint256 constant NativeTokenTransferGenericFailure_error_account_ptr = 0x20;
+uint256 constant NativeTokenTransferGenericFailure_error_amount_ptr = 0x40;
+uint256 constant NativeTokenTransferGenericFailure_error_length = 0x44;
 
 /*
  *  error PartialFillsNotEnabledForOrder()

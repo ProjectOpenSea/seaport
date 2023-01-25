@@ -138,7 +138,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         // If the call fails...
         if (!success) {
             // Revert with a generic error message.
-            revert EtherTransferGenericFailure(to, amount);
+            revert NativeTokenTransferGenericFailure(to, amount);
         }
     }
 

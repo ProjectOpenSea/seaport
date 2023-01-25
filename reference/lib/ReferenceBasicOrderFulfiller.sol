@@ -856,7 +856,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
             // Ensure that sufficient Ether is available.
             if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
+                revert InsufficientNativeTokenSupplied();
             }
 
             // Transfer Ether to the additional recipient.
@@ -871,7 +871,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
         // Ensure that sufficient Ether is still available.
         if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
+            revert InsufficientNativeTokenSupplied();
         }
 
         // Transfer Ether to the offerer.
