@@ -42,6 +42,13 @@ contract SignedZone is
     ///      Request and response payloads are defined in SIP-7.
     string private _sip7APIEndpoint;
 
+    /// @dev The substandards supported by this zone.
+    uint256[] private _sip7Substandards;
+
+    /// @dev The URI to the documentation describing the behavior of the
+    ///      contract.
+    string private _sip7DocumentationURI;
+
     /// @dev The name for this zone returned in getSeaportMetadata().
     string private _ZONE_NAME;
 
@@ -122,18 +129,33 @@ contract SignedZone is
     /**
      * @notice Constructor to deploy the contract.
      *
-     * @param zoneName    The name for the zone returned in
-     *                    getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be
-     *                    signed.
-     *                    Request and response payloads are defined in SIP-7.
+     * @param zoneName         The name for the zone returned in
+     *                         getSeaportMetadata().
+     * @param apiEndpoint      The API endpoint where orders for this zone can
+     *                         be signed.
+     *                         Request and response payloads are defined in
+     *                         SIP-7.
+     * @param substandards     The substandards supported by this zone.
+     * @param documentationURI The URI to the documentation describing the
+     *                         behavior of the contract.
      */
-    constructor(string memory zoneName, string memory apiEndpoint) {
+    constructor(
+        string memory zoneName,
+        string memory apiEndpoint,
+        uint256[] memory substandards,
+        string memory documentationURI
+    ) {
         // Set the zone name.
         _ZONE_NAME = zoneName;
 
         // Set the API endpoint.
         _sip7APIEndpoint = apiEndpoint;
+
+        // Set the substandards.
+        _sip7Substandards = substandards;
+
+        // Set the documentation URI.
+        _sip7DocumentationURI = documentationURI;
 
         // Derive and set the domain separator.
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
@@ -148,9 +170,11 @@ contract SignedZone is
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(
-        address signer
-    ) external override onlyOwnerOrActiveSigner {
+    function addSigner(address signer)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
@@ -182,9 +206,11 @@ contract SignedZone is
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(
-        address signer
-    ) external override onlyOwnerOrActiveSigner {
+    function removeSigner(address signer)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Revert if the signer is not active.
         if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
@@ -215,9 +241,11 @@ contract SignedZone is
      *
      * @param newApiEndpoint The new API endpoint.
      */
-    function updateAPIEndpoint(
-        string calldata newApiEndpoint
-    ) external override onlyOwnerOrActiveSigner {
+    function updateAPIEndpoint(string calldata newApiEndpoint)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Update to the new API endpoint.
         _sip7APIEndpoint = newApiEndpoint;
     }
@@ -231,9 +259,12 @@ contract SignedZone is
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
@@ -336,21 +367,51 @@ contract SignedZone is
     }
 
     /**
-     * @notice Returns signing information about the zone.
+     * @notice External call to return the signing information, substandards,
+     *         and documentation about the zone.
      *
-     * @return domainSeparator The domain separator used for signing.
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
      */
     function sip7Information()
         external
         view
         override
-        returns (bytes32 domainSeparator, string memory apiEndpoint)
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        )
     {
-        // Derive the domain separator.
-        domainSeparator = _domainSeparator();
+        // Return the SIP-7 information.
+        SIP7InfoStruct memory sip7Info = _sip7Information();
+        domainSeparator = sip7Info.domainSeparator;
+        apiEndpoint = sip7Info.apiEndpoint;
+        substandards = sip7Info.substandards;
+        documentationURI = sip7Info.documentationURI;
+    }
 
-        // Return the API endpoint.
-        apiEndpoint = _sip7APIEndpoint;
+    /**
+     * @notice Internal call to return the signing information, substandards,
+     *         and documentation about the zone.
+     *
+     * @return sip7Info The SIP-7 information struct for the zone.
+     */
+    function _sip7Information()
+        internal
+        view
+        returns (SIP7InfoStruct memory sip7Info)
+    {
+        // Build the SIP-7 information struct.
+        sip7Info = SIP7InfoStruct({
+            domainSeparator: _domainSeparator(),
+            apiEndpoint: _sip7APIEndpoint,
+            substandards: _sip7Substandards,
+            documentationURI: _sip7DocumentationURI
+        });
     }
 
     /**
@@ -372,6 +433,9 @@ contract SignedZone is
         // Return the supported SIPs.
         schemas = new Schema[](1);
         schemas[0].id = 7;
+
+        // Encode the SIP-7 information.
+        schemas[0].metadata = abi.encode(_sip7Information());
     }
 
     /**
@@ -379,9 +443,13 @@ contract SignedZone is
      *
      * @param interfaceId The interface id to check against.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC165)
+        returns (bool)
+    {
         return
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
             interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
@@ -426,10 +494,11 @@ contract SignedZone is
      *
      * @return recoveredSigner The recovered signer.
      */
-    function _recoverSigner(
-        bytes32 digest,
-        bytes memory signature
-    ) internal view returns (address recoveredSigner) {
+    function _recoverSigner(bytes32 digest, bytes memory signature)
+        internal
+        view
+        returns (address recoveredSigner)
+    {
         // Utilize assembly to perform optimized signature verification check.
         assembly {
             // Ensure that first word of scratch space is empty.

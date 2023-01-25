@@ -93,10 +93,16 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     chainId = (await provider.getNetwork()).chainId;
 
+    let subStandards = [1, 2, 3, 4, 5];
+    let documentationURI =
+      "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md";
+
     signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
     signedZone = await signedZoneFactory.deploy(
       "OpenSeaSignedZone",
-      "https://api.opensea.io/api/v2/sign"
+      "https://api.opensea.io/api/v2/sign",
+      subStandards,
+      documentationURI
     );
   });
 
@@ -554,10 +560,41 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const information = await signedZone.sip7Information();
     expect(information[0].length).to.eq(66);
     expect(information[1]).to.eq("https://api.opensea.io/api/v2/sign");
+    expect(information[2]).to.deep.eq([1, 2, 3, 4, 5].map((s) => toBN(s)));
+    expect(information[3]).to.eq(
+      "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md"
+    );
 
     const seaportMetadata = await signedZone.getSeaportMetadata();
     expect(seaportMetadata[0]).to.eq("OpenSeaSignedZone");
     expect(seaportMetadata[1][0][0]).to.deep.eq(toBN(7));
+
+    // Get the domain separator
+    const { domainSeparator, apiEndpoint, substandards, documentationURI } =
+      await signedZone.sip7Information();
+
+    // Create the expected metadata struct
+    const expected_seaport_metadata_struct = [
+      [domainSeparator, apiEndpoint, substandards, documentationURI],
+    ];
+
+    // Encode the expected metadata struct
+    const expected_metadata_bytes = ethers.utils.defaultAbiCoder.encode(
+      ["tuple(bytes32, string, uint256[], string)"],
+      expected_seaport_metadata_struct
+    );
+    // Compare the encoded metadata struct to the one returned by the contract
+    expect(seaportMetadata[1][0][1]).to.deep.eq(expected_metadata_bytes);
+
+    // Decode the metadata struct
+    const decoded_metadata = ethers.utils.defaultAbiCoder.decode(
+      [
+        "tuple(bytes32 domainSeparator, string apiEndpoint, uint256[] substandards, string documentationURI)",
+      ],
+      seaportMetadata[1][0][1]
+    );
+    // Compare the decoded metadata struct to the one returned by the contract
+    expect(decoded_metadata).to.deep.eq(expected_seaport_metadata_struct);
   });
   it("Should error on improperly formatted extraData", async () => {
     // Execute 721 <=> ETH order
