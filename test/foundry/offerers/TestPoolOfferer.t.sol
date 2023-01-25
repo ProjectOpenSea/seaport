@@ -38,7 +38,7 @@ interface TransferHelper {
     ) external returns (bytes4 magicValue);
 }
 
-contract TestPoolOfferrerTest is BaseOrderTest {
+contract TestPoolOffererTest is BaseOrderTest {
     TestPoolFactory factory;
     TestPoolOfferer offerer;
 
