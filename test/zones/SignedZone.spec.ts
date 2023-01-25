@@ -93,8 +93,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     chainId = (await provider.getNetwork()).chainId;
 
-    let subStandards = [1, 2, 3, 4, 5];
-    let documentationURI =
+    const subStandards = [1, 2, 3, 4, 5];
+    const documentationURI =
       "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md";
 
     signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
@@ -574,27 +574,27 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       await signedZone.sip7Information();
 
     // Create the expected metadata struct
-    const expected_seaport_metadata_struct = [
+    const expectedSeaportMetadataStruct = [
       [domainSeparator, apiEndpoint, substandards, documentationURI],
     ];
 
     // Encode the expected metadata struct
-    const expected_metadata_bytes = ethers.utils.defaultAbiCoder.encode(
+    const expectedMetadataBytes = ethers.utils.defaultAbiCoder.encode(
       ["tuple(bytes32, string, uint256[], string)"],
-      expected_seaport_metadata_struct
+      expectedSeaportMetadataStruct
     );
     // Compare the encoded metadata struct to the one returned by the contract
-    expect(seaportMetadata[1][0][1]).to.deep.eq(expected_metadata_bytes);
+    expect(seaportMetadata[1][0][1]).to.deep.eq(expectedMetadataBytes);
 
     // Decode the metadata struct
-    const decoded_metadata = ethers.utils.defaultAbiCoder.decode(
+    const decodedMetadata = ethers.utils.defaultAbiCoder.decode(
       [
         "tuple(bytes32 domainSeparator, string apiEndpoint, uint256[] substandards, string documentationURI)",
       ],
       seaportMetadata[1][0][1]
     );
     // Compare the decoded metadata struct to the one returned by the contract
-    expect(decoded_metadata).to.deep.eq(expected_seaport_metadata_struct);
+    expect(decodedMetadata).to.deep.eq(expectedSeaportMetadataStruct);
   });
   it("Should error on improperly formatted extraData", async () => {
     // Execute 721 <=> ETH order
