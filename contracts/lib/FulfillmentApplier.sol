@@ -718,7 +718,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Store the InvalidFulfillmentComponentData error signature.
                 mstore(0, InvalidFulfillmentComponentData_error_selector)
 
-                // Return, supplying InvalidFulfillmentComponentData signature.
+                // revert(abi.encodeWithSignature("InvalidFulfillmentComponentData()")
                 revert(
                     Error_selector_offset,
                     InvalidFulfillmentComponentData_error_length
