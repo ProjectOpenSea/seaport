@@ -129,7 +129,7 @@ uint256 constant OrderStatus_ValidatedAndNotCancelled = 1;
 uint256 constant OrderStatus_filledNumerator_offset = 0x10;
 uint256 constant OrderStatus_filledDenominator_offset = 0x88;
 
-uint256 constant AlmostOneWord = 0x1f;
+uint256 constant ThirtyOneBytes = 0x1f;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;

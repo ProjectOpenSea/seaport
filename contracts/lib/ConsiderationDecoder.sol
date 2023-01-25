@@ -41,7 +41,7 @@ contract ConsiderationDecoder {
             // Note: masking `calldataload(cdPtrLength)` is redundant here.
             let size := add(
                 and(
-                    add(calldataload(cdPtrLength), AlmostOneWord),
+                    add(calldataload(cdPtrLength), ThirtyOneBytes),
                     OnlyFullWordMask
                 ),
                 OneWord

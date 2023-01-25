@@ -20,7 +20,7 @@ contract TypehashDirectory {
     uint256 internal constant InvalidOpcode = 0xfe;
     uint256 internal constant OneWord = 0x20;
     uint256 internal constant OneWordShift = 5;
-    uint256 internal constant AlmostOneWord = 0x1f;
+    uint256 internal constant ThirtyOneBytes = 0x1f;
     uint256 internal constant FreeMemoryPointerSlot = 0x40;
 
     /**
@@ -82,7 +82,7 @@ contract TypehashDirectory {
             mstore(typeHashes, InvalidOpcode)
 
             return(
-                add(typeHashes, AlmostOneWord),
+                add(typeHashes, ThirtyOneBytes),
                 add(shl(OneWordShift, MaxTreeHeight), 1)
             )
         }
