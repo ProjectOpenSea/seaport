@@ -4,19 +4,19 @@ pragma solidity ^0.8.7;
 import {
     ERC20Interface,
     ERC721Interface
-} from "../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../contracts/interfaces/ContractOffererInterface.sol";
+} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../contracts/lib/ConsiderationStructs.sol";
+} from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
