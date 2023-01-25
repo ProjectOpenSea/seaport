@@ -7093,7 +7093,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7164,7 +7165,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7243,7 +7245,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7332,7 +7335,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7409,7 +7413,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7494,7 +7499,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(buyer)
@@ -7566,7 +7572,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           "NoReentrantCalls"
         );
       } else {
-        // NoReentrantCalls gets bubbled up in _transferNativeToken, which reverts with NativeTokenTransferGenericFailure
+        // NoReentrantCalls gets bubbled up in _transferNativeToken, which
+        // reverts with NativeTokenTransferGenericFailure.
         await expect(
           marketplaceContract
             .connect(seller)
