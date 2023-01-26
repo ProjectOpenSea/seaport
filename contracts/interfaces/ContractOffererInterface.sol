@@ -57,7 +57,8 @@ interface ContractOffererInterface {
     ) external returns (bytes4 ratifyOrderMagicValue);
 
     /**
-     * @dev Generates an order in response to a minimum received set of items.
+     * @dev View function to preview an order generated in response to a minimum
+     *      received set of items.
      *
      * @param caller          The address of the caller.
      * @param fulfiller       The address of the fulfiller.
