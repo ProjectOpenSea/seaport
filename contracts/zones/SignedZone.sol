@@ -123,6 +123,7 @@ contract SignedZone is
         if (msg.sender != owner() && !_signers[msg.sender].active) {
             revert OnlyOwnerOrActiveSigner();
         }
+
         _;
     }
 
@@ -170,11 +171,9 @@ contract SignedZone is
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(address signer)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
+    function addSigner(
+        address signer
+    ) external override onlyOwnerOrActiveSigner {
         // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
@@ -206,11 +205,9 @@ contract SignedZone is
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(address signer)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
+    function removeSigner(
+        address signer
+    ) external override onlyOwnerOrActiveSigner {
         // Revert if the signer is not active.
         if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
@@ -226,6 +223,7 @@ contract SignedZone is
                 _activeSigners.pop();
                 break;
             }
+
             unchecked {
                 ++i;
             }
@@ -241,11 +239,9 @@ contract SignedZone is
      *
      * @param newApiEndpoint The new API endpoint.
      */
-    function updateAPIEndpoint(string calldata newApiEndpoint)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
+    function updateAPIEndpoint(
+        string calldata newApiEndpoint
+    ) external override onlyOwnerOrActiveSigner {
         // Update to the new API endpoint.
         _sip7APIEndpoint = newApiEndpoint;
     }
@@ -259,20 +255,17 @@ contract SignedZone is
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        override
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view override returns (bytes4 validOrderMagicValue) {
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
 
         // Revert with an error if the extraData does not have valid length.
-        if (extraData.length < 92) {
+        if (extraData.length < 93) {
             revert InvalidExtraData(
-                "extraData length must be at least 92 bytes",
+                "extraData length must be at least 93 bytes",
                 orderHash
             );
         }
@@ -387,31 +380,7 @@ contract SignedZone is
         )
     {
         // Return the SIP-7 information.
-        SIP7InfoStruct memory sip7Info = _sip7Information();
-        domainSeparator = sip7Info.domainSeparator;
-        apiEndpoint = sip7Info.apiEndpoint;
-        substandards = sip7Info.substandards;
-        documentationURI = sip7Info.documentationURI;
-    }
-
-    /**
-     * @notice Internal call to return the signing information, substandards,
-     *         and documentation about the zone.
-     *
-     * @return sip7Info The SIP-7 information struct for the zone.
-     */
-    function _sip7Information()
-        internal
-        view
-        returns (SIP7InfoStruct memory sip7Info)
-    {
-        // Build the SIP-7 information struct.
-        sip7Info = SIP7InfoStruct({
-            domainSeparator: _domainSeparator(),
-            apiEndpoint: _sip7APIEndpoint,
-            substandards: _sip7Substandards,
-            documentationURI: _sip7DocumentationURI
-        });
+        return _sip7Information();
     }
 
     /**
@@ -435,7 +404,20 @@ contract SignedZone is
         schemas[0].id = 7;
 
         // Encode the SIP-7 information.
-        schemas[0].metadata = abi.encode(_sip7Information());
+
+        (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        ) = _sip7Information();
+
+        schemas[0].metadata = abi.encode(
+            domainSeparator,
+            apiEndpoint,
+            substandards,
+            documentationURI
+        );
     }
 
     /**
@@ -443,17 +425,39 @@ contract SignedZone is
      *
      * @param interfaceId The interface id to check against.
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC165)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165) returns (bool) {
         return
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
             interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
             super.supportsInterface(interfaceId); // ERC-165
+    }
+
+    /**
+     * @notice Internal call to return the signing information, substandards,
+     *         and documentation about the zone.
+     *
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
+     */
+    function _sip7Information()
+        internal
+        view
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        )
+    {
+        // Return the SIP-7 information.
+        domainSeparator = _domainSeparator();
+        apiEndpoint = _sip7APIEndpoint;
+        substandards = _sip7Substandards;
+        documentationURI = _sip7DocumentationURI;
     }
 
     /**
@@ -488,17 +492,16 @@ contract SignedZone is
     /**
      * @dev Internal view function to return the signer of a signature.
      *
-     * @param digest           The digest to verify the signature against.
-     * @param signature        A signature from the signer indicating that the
-     *                         order has been approved.
+     * @param digest    The digest to verify the signature against.
+     * @param signature A signature from the signer indicating that the order
+     *                  has been approved.
      *
      * @return recoveredSigner The recovered signer.
      */
-    function _recoverSigner(bytes32 digest, bytes memory signature)
-        internal
-        view
-        returns (address recoveredSigner)
-    {
+    function _recoverSigner(
+        bytes32 digest,
+        bytes memory signature
+    ) internal view returns (address recoveredSigner) {
         // Utilize assembly to perform optimized signature verification check.
         assembly {
             // Ensure that first word of scratch space is empty.

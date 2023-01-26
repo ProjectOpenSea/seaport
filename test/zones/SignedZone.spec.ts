@@ -573,28 +573,34 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const { domainSeparator, apiEndpoint, substandards, documentationURI } =
       await signedZone.sip7Information();
 
-    // Create the expected metadata struct
-    const expectedSeaportMetadataStruct = [
-      [domainSeparator, apiEndpoint, substandards, documentationURI],
+    // Create the expected metadata params
+    const expectedSeaportMetadata = [
+      domainSeparator,
+      apiEndpoint,
+      substandards,
+      documentationURI,
     ];
 
-    // Encode the expected metadata struct
+    // Encode the expected metadata
     const expectedMetadataBytes = ethers.utils.defaultAbiCoder.encode(
-      ["tuple(bytes32, string, uint256[], string)"],
-      expectedSeaportMetadataStruct
+      ["bytes32", "string", "uint256[]", "string"],
+      expectedSeaportMetadata
     );
-    // Compare the encoded metadata struct to the one returned by the contract
+    // Compare the encoded metadata to the one returned by the contract
     expect(seaportMetadata[1][0][1]).to.deep.eq(expectedMetadataBytes);
 
-    // Decode the metadata struct
+    // Decode the metadata
     const decodedMetadata = ethers.utils.defaultAbiCoder.decode(
       [
-        "tuple(bytes32 domainSeparator, string apiEndpoint, uint256[] substandards, string documentationURI)",
+        "bytes32 domainSeparator",
+        "string apiEndpoint",
+        "uint256[] substandards",
+        "string documentationURI",
       ],
       seaportMetadata[1][0][1]
     );
-    // Compare the decoded metadata struct to the one returned by the contract
-    expect(decodedMetadata).to.deep.eq(expectedSeaportMetadataStruct);
+    // Compare the decoded metadata to the one returned by the contract
+    expect(decodedMetadata).to.deep.eq(expectedSeaportMetadata);
   });
   it("Should error on improperly formatted extraData", async () => {
     // Execute 721 <=> ETH order
