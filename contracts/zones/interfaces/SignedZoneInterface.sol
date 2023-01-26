@@ -19,16 +19,6 @@ interface SignedZoneInterface {
     }
 
     /**
-     * @dev The struct for storing SIP-7 information.
-     */
-    struct SIP7InfoStruct {
-        bytes32 domainSeparator; /// The domain separator used for signing.
-        string apiEndpoint; /// The API endpoint for the zone.
-        uint256[] substandards; /// The substandards supported by the zone.
-        string documentationURI; /// The documentation URI for the zone.
-    }
-
-    /**
      * @notice Add a new signer to the zone.
      *
      * @param signer The new signer address to add.
