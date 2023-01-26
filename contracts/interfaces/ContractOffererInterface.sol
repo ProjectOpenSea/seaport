@@ -15,7 +15,7 @@ import {
 interface ContractOffererInterface {
     /**
      * @dev Generates an order with the specified minimum and maximum spent
-     *      items, and the optional extra data.
+     *      items, and optional context (supplied as extraData).
      *
      * @param fulfiller       The address of the fulfiller.
      * @param minimumReceived The minimum items that the caller is willing to
