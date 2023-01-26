@@ -643,7 +643,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         )
     )
       .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("extraData length must be at least 92 bytes", orderHash);
+      .withArgs("extraData length must be at least 93 bytes", orderHash);
 
     // Expect failure with invalid length extraData
     order.extraData = validExtraData.slice(0, 50);
@@ -661,7 +661,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         )
     )
       .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("extraData length must be at least 92 bytes", orderHash);
+      .withArgs("extraData length must be at least 93 bytes", orderHash);
 
     // Expect failure with non-zero SIP-6 version byte
     order.extraData = "0x" + "01" + validExtraData.slice(4);
