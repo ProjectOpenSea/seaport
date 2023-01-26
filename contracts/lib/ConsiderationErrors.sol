@@ -85,7 +85,10 @@ function _revertInsufficientNativeTokensSupplied() pure {
         mstore(0, InsufficientNativeTokensSupplied_error_selector)
 
         // revert(abi.encodeWithSignature("InsufficientNativeTokensSupplied()"))
-        revert(Error_selector_offset, InsufficientNativeTokensSupplied_error_length)
+        revert(
+            Error_selector_offset,
+            InsufficientNativeTokensSupplied_error_length
+        )
     }
 }
 
