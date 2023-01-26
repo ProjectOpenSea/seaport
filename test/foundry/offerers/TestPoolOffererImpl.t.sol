@@ -6,18 +6,18 @@ import { Test } from "forge-std/Test.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../../contracts/interfaces/ContractOffererInterface.sol";
+} from "../../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
@@ -31,13 +31,13 @@ import {
     IERC20
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
-import { TestPoolOfferer } from "../TestPoolOfferer.sol";
+import { TestPoolOfferer } from "./impl/TestPoolOfferer.sol";
 
-import { TestPoolFactory } from "../TestPoolFactory.sol";
+import { TestPoolFactory } from "./impl/TestPoolFactory.sol";
 
 contract TestPoolFactoryImpl {
     address immutable seaport;
@@ -94,7 +94,7 @@ contract TestPoolImpl is TestPoolOfferer {
     }
 }
 
-contract TestPoolOffererTest is Test {
+contract TestPoolOffererImpl is Test {
     TestPoolFactoryImpl factory;
     TestPoolImpl test;
     TestERC20 erc20;

@@ -25,7 +25,7 @@ contract LowLevelHelpers {
                 // the word size of returndata and allocated memory.
                 let returnDataWords := shr(
                     OneWordShift,
-                    add(returndatasize(), AlmostOneWord)
+                    add(returndatasize(), ThirtyOneBytes)
                 )
 
                 // Note: use the free memory pointer in place of msize() to work

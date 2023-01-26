@@ -80,7 +80,7 @@ contract TypehashDirectory {
             mstore(typeHashes, InvalidOpcode)
 
             return(
-                add(typeHashes, AlmostOneWord),
+                add(typeHashes, ThirtyOneBytes),
                 add(shl(OneWordShift, MaxTreeHeight), 1)
             )
         }
