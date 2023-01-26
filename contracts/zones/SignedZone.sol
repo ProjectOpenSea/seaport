@@ -42,6 +42,13 @@ contract SignedZone is
     ///      Request and response payloads are defined in SIP-7.
     string private _sip7APIEndpoint;
 
+    /// @dev The substandards supported by this zone.
+    uint256[] private _sip7Substandards;
+
+    /// @dev The URI to the documentation describing the behavior of the
+    ///      contract.
+    string private _sip7DocumentationURI;
+
     /// @dev The name for this zone returned in getSeaportMetadata().
     string private _ZONE_NAME;
 
@@ -116,24 +123,40 @@ contract SignedZone is
         if (msg.sender != owner() && !_signers[msg.sender].active) {
             revert OnlyOwnerOrActiveSigner();
         }
+
         _;
     }
 
     /**
      * @notice Constructor to deploy the contract.
      *
-     * @param zoneName    The name for the zone returned in
-     *                    getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be
-     *                    signed.
-     *                    Request and response payloads are defined in SIP-7.
+     * @param zoneName         The name for the zone returned in
+     *                         getSeaportMetadata().
+     * @param apiEndpoint      The API endpoint where orders for this zone can
+     *                         be signed.
+     *                         Request and response payloads are defined in
+     *                         SIP-7.
+     * @param substandards     The substandards supported by this zone.
+     * @param documentationURI The URI to the documentation describing the
+     *                         behavior of the contract.
      */
-    constructor(string memory zoneName, string memory apiEndpoint) {
+    constructor(
+        string memory zoneName,
+        string memory apiEndpoint,
+        uint256[] memory substandards,
+        string memory documentationURI
+    ) {
         // Set the zone name.
         _ZONE_NAME = zoneName;
 
         // Set the API endpoint.
         _sip7APIEndpoint = apiEndpoint;
+
+        // Set the substandards.
+        _sip7Substandards = substandards;
+
+        // Set the documentation URI.
+        _sip7DocumentationURI = documentationURI;
 
         // Derive and set the domain separator.
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
@@ -200,6 +223,7 @@ contract SignedZone is
                 _activeSigners.pop();
                 break;
             }
+
             unchecked {
                 ++i;
             }
@@ -239,9 +263,9 @@ contract SignedZone is
         bytes32 orderHash = zoneParameters.orderHash;
 
         // Revert with an error if the extraData does not have valid length.
-        if (extraData.length < 92) {
+        if (extraData.length < 93) {
             revert InvalidExtraData(
-                "extraData length must be at least 92 bytes",
+                "extraData length must be at least 93 bytes",
                 orderHash
             );
         }
@@ -336,21 +360,27 @@ contract SignedZone is
     }
 
     /**
-     * @notice Returns signing information about the zone.
+     * @notice External call to return the signing information, substandards,
+     *         and documentation about the zone.
      *
-     * @return domainSeparator The domain separator used for signing.
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
      */
     function sip7Information()
         external
         view
         override
-        returns (bytes32 domainSeparator, string memory apiEndpoint)
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        )
     {
-        // Derive the domain separator.
-        domainSeparator = _domainSeparator();
-
-        // Return the API endpoint.
-        apiEndpoint = _sip7APIEndpoint;
+        // Return the SIP-7 information.
+        return _sip7Information();
     }
 
     /**
@@ -372,6 +402,22 @@ contract SignedZone is
         // Return the supported SIPs.
         schemas = new Schema[](1);
         schemas[0].id = 7;
+
+        // Encode the SIP-7 information.
+
+        (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        ) = _sip7Information();
+
+        schemas[0].metadata = abi.encode(
+            domainSeparator,
+            apiEndpoint,
+            substandards,
+            documentationURI
+        );
     }
 
     /**
@@ -386,6 +432,32 @@ contract SignedZone is
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
             interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
             super.supportsInterface(interfaceId); // ERC-165
+    }
+
+    /**
+     * @notice Internal call to return the signing information, substandards,
+     *         and documentation about the zone.
+     *
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
+     */
+    function _sip7Information()
+        internal
+        view
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        )
+    {
+        // Return the SIP-7 information.
+        domainSeparator = _domainSeparator();
+        apiEndpoint = _sip7APIEndpoint;
+        substandards = _sip7Substandards;
+        documentationURI = _sip7DocumentationURI;
     }
 
     /**
@@ -420,9 +492,9 @@ contract SignedZone is
     /**
      * @dev Internal view function to return the signer of a signature.
      *
-     * @param digest           The digest to verify the signature against.
-     * @param signature        A signature from the signer indicating that the
-     *                         order has been approved.
+     * @param digest    The digest to verify the signature against.
+     * @param signature A signature from the signer indicating that the order
+     *                  has been approved.
      *
      * @return recoveredSigner The recovered signer.
      */

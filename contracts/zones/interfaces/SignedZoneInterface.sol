@@ -52,12 +52,18 @@ interface SignedZoneInterface {
     /**
      * @notice Returns signing information about the zone.
      *
-     * @return domainSeparator The domain separator used for signing.
-     * @return apiEndpoint     The API endpoint to get signatures for orders
-     *                         using this zone.
+     * @return domainSeparator  The domain separator used for signing.
+     * @return apiEndpoint      The API endpoint for the zone.
+     * @return substandards     The substandards supported by the zone.
+     * @return documentationURI The documentation URI for the zone.
      */
     function sip7Information()
         external
         view
-        returns (bytes32 domainSeparator, string memory apiEndpoint);
+        returns (
+            bytes32 domainSeparator,
+            string memory apiEndpoint,
+            uint256[] memory substandards,
+            string memory documentationURI
+        );
 }
