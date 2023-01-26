@@ -495,7 +495,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     // Note: nonce will be incremented even for skipped orders,
                     // and  even if generateOrder's return data does not satisfy
                     // all the constraints. This is the case when errorBuffer
-                    // !=0 and revertOnInvalid == false.
+                    // != 0 and revertOnInvalid == false.
                     contractNonce = _contractNonces[offerer]++;
                 }
 

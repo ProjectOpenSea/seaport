@@ -665,6 +665,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         Invalid1155BatchTransferEncoding_ptr,
                         Invalid1155BatchTransferEncoding_selector
                     )
+                    // revert(abi.encodeWithSignature("Invalid1155BatchTransferEncoding()"))
                     revert(
                         Invalid1155BatchTransferEncoding_ptr,
                         Invalid1155BatchTransferEncoding_length

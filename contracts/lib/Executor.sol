@@ -251,7 +251,10 @@ contract Executor is Verifiers, TokenTransferrer {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, NativeTokenTransferGenericFailure_error_selector)
                 mstore(NativeTokenTransferGenericFailure_error_account_ptr, to)
-                mstore(NativeTokenTransferGenericFailure_error_amount_ptr, amount)
+                mstore(
+                    NativeTokenTransferGenericFailure_error_amount_ptr,
+                    amount
+                )
 
                 // revert(abi.encodeWithSignature(
                 //   "NativeTokenTransferGenericFailure(address,uint256)", to, amount)

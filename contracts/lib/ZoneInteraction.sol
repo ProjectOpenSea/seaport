@@ -197,6 +197,7 @@ contract ZoneInteraction is
             assembly {
                 mstore(0, errorSelector)
                 mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSelector("InvalidRestrictedOrder(bytes32)", orderHash))
                 revert(
                     Error_selector_offset,
                     InvalidRestrictedOrder_error_length
@@ -210,6 +211,7 @@ contract ZoneInteraction is
             assembly {
                 mstore(0, errorSelector)
                 mstore(InvalidRestrictedOrder_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSelector("InvalidRestrictedOrder(bytes32)", orderHash))
                 revert(
                     Error_selector_offset,
                     InvalidRestrictedOrder_error_length

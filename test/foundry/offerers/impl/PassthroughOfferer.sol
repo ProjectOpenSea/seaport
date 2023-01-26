@@ -53,7 +53,9 @@ contract PassthroughOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order in response to a minimum received set of items.
+     * @dev View function to preview an order generated in response to a minimum
+     *      set of received items, maximum set of spent items, and context
+     *      (supplied as extraData).
      */
     function previewOrder(
         address,
