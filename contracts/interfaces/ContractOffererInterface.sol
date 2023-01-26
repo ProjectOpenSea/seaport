@@ -61,8 +61,9 @@ interface ContractOffererInterface {
      *      set of received items, maximum set of spent items, and context
      *      (supplied as extraData).
      *
-     * @param caller          The address of the caller.
-     * @param fulfiller       The address of the fulfiller.
+     * @param caller          The address of the caller (e.g. Seaport).
+     * @param fulfiller       The address of the fulfiller (e.g. the account
+     *                        calling Seaport).
      * @param minimumReceived The minimum items that the caller is willing to
      *                        receive.
      * @param maximumSpent    The maximum items the caller is willing to spend.
