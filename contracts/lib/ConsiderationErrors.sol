@@ -84,7 +84,7 @@ import {
     UnresolvedOfferCriteria_error_selector,
     UnusedItemParameters_error_length,
     UnusedItemParameters_error_selector
-} from "./ConsiderationConstants.sol";
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @dev Reverts the current transaction with a "BadFraction" error message.

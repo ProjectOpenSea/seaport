@@ -10,11 +10,6 @@ import {
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
 import {
-    BadContractSignature_error_length,
-    BadContractSignature_error_selector,
-    BadSignatureV_error_length,
-    BadSignatureV_error_selector,
-    BadSignatureV_error_v_ptr,
     ECDSA_MaxLength,
     ECDSA_signature_s_offset,
     ECDSA_signature_v_offset,
@@ -27,15 +22,23 @@ import {
     EIP1271_isValidSignature_selector,
     EIP1271_isValidSignature_signature_head_offset,
     EIP2098_allButHighestBitMask,
-    Error_selector_offset,
-    InvalidSignature_error_length,
-    InvalidSignature_error_selector,
-    InvalidSigner_error_length,
-    InvalidSigner_error_selector,
     MaxUint8,
     OneWord,
     Signature_lower_v
 } from "./ConsiderationConstants.sol";
+
+import {
+    BadContractSignature_error_length,
+    BadContractSignature_error_selector,
+    BadSignatureV_error_length,
+    BadSignatureV_error_selector,
+    BadSignatureV_error_v_ptr,
+    Error_selector_offset,
+    InvalidSignature_error_length,
+    InvalidSignature_error_selector,
+    InvalidSigner_error_length,
+    InvalidSigner_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title SignatureVerification

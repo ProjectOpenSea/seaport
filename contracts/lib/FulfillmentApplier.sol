@@ -28,27 +28,30 @@ import {
     Common_amount_offset,
     Common_identifier_offset,
     Common_token_offset,
-    Error_selector_offset,
     Execution_conduit_offset,
     Execution_offerer_offset,
     Fulfillment_itemIndex_offset,
-    InvalidFulfillmentComponentData_error_length,
-    InvalidFulfillmentComponentData_error_selector,
-    MissingItemAmount_error_length,
-    MissingItemAmount_error_selector,
     OneWord,
     OneWordShift,
     OrderParameters_conduit_offset,
     OrderParameters_consideration_head_offset,
     OrderParameters_offer_head_offset,
-    Panic_arithmetic,
-    Panic_error_code_ptr,
-    Panic_error_length,
-    Panic_error_selector,
     ReceivedItem_CommonParams_size,
     ReceivedItem_recipient_offset,
     ReceivedItem_size
 } from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    InvalidFulfillmentComponentData_error_length,
+    InvalidFulfillmentComponentData_error_selector,
+    MissingItemAmount_error_length,
+    MissingItemAmount_error_selector,
+    Panic_arithmetic,
+    Panic_error_code_ptr,
+    Panic_error_length,
+    Panic_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title FulfillmentApplier

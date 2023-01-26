@@ -17,15 +17,15 @@ import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 
+import { MaskOverFirstFourBytes, OneWord } from "./ConsiderationConstants.sol";
+
 import {
     Error_selector_offset,
     InvalidContractOrder_error_selector,
     InvalidRestrictedOrder_error_length,
     InvalidRestrictedOrder_error_orderHash_ptr,
-    InvalidRestrictedOrder_error_selector,
-    MaskOverFirstFourBytes,
-    OneWord
-} from "./ConsiderationConstants.sol";
+    InvalidRestrictedOrder_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title ZoneInteraction

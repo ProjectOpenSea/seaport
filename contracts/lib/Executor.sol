@@ -39,16 +39,19 @@ import {
     Conduit_transferItem_size,
     Conduit_transferItem_to_ptr,
     Conduit_transferItem_token_ptr,
-    Error_selector_offset,
     FreeMemoryPointerSlot,
-    NativeTokenTransferGenericFailure_error_account_ptr,
-    NativeTokenTransferGenericFailure_error_amount_ptr,
-    NativeTokenTransferGenericFailure_error_length,
-    NativeTokenTransferGenericFailure_error_selector,
     OneConduitExecute_size,
     OneWord,
     TwoWords
 } from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    NativeTokenTransferGenericFailure_error_account_ptr,
+    NativeTokenTransferGenericFailure_error_amount_ptr,
+    NativeTokenTransferGenericFailure_error_length,
+    NativeTokenTransferGenericFailure_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 import {
     _revertInvalidCallToConduit,

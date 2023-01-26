@@ -37,16 +37,19 @@ import {
     Common_token_offset,
     ConsiderItem_recipient_offset,
     ContractOrder_orderHash_offerer_shift,
-    Error_selector_offset,
     MaxUint120,
     OrderStatus_filledDenominator_offset,
     OrderStatus_filledNumerator_offset,
-    OrderStatus_ValidatedAndNotCancelled,
+    OrderStatus_ValidatedAndNotCancelled
+} from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
     Panic_arithmetic,
     Panic_error_code_ptr,
     Panic_error_length,
     Panic_error_selector
-} from "./ConsiderationConstants.sol";
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title OrderValidator

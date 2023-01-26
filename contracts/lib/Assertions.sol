@@ -21,11 +21,14 @@ import {
     BasicOrder_parameters_cdPtr,
     BasicOrder_parameters_ptr,
     BasicOrder_signature_cdPtr,
-    BasicOrder_signature_ptr,
+    BasicOrder_signature_ptr
+} from "./ConsiderationConstants.sol";
+
+import {
     Error_selector_offset,
     MissingItemAmount_error_length,
     MissingItemAmount_error_selector
-} from "./ConsiderationConstants.sol";
+} from "./ConsiderationErrorConstants.sol";
 
 import {
     _revertInvalidBasicOrderParameterEncoding,
