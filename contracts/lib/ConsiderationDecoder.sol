@@ -56,7 +56,12 @@ import {
     TwoWords
 } from "./ConsiderationConstants.sol";
 
-import "../helpers/PointerLibraries.sol";
+import {
+    CalldataPointer,
+    malloc,
+    MemoryPointer,
+    OffsetOrLengthMask
+} from "../helpers/PointerLibraries.sol";
 
 contract ConsiderationDecoder {
     /**

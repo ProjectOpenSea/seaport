@@ -19,8 +19,6 @@ import {
     _revertUnresolvedOfferCriteria
 } from "./ConsiderationErrors.sol";
 
-import "../helpers/PointerLibraries.sol";
-
 import {
     CriteriaResolutionErrors
 } from "../interfaces/CriteriaResolutionErrors.sol";

@@ -20,7 +20,10 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
-import "../helpers/PointerLibraries.sol";
+import {
+    CalldataStart,
+    CalldataPointer
+} from "../helpers/PointerLibraries.sol";
 
 import {
     Offset_fulfillAdvancedOrder_criteriaResolvers,

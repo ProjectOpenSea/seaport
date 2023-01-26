@@ -66,7 +66,11 @@ import {
     ReceivedItem
 } from "./ConsiderationStructs.sol";
 
-import "../helpers/PointerLibraries.sol";
+import {
+    CalldataPointer,
+    getFreeMemoryPointer,
+    MemoryPointer
+} from "../helpers/PointerLibraries.sol";
 
 contract ConsiderationEncoder {
     /**
