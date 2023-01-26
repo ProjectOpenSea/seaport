@@ -297,14 +297,18 @@ contract ConstantsTest is BaseConsiderationTest {
     function testInsufficientNativeTokensSupplied_error_selector() public {
         _test(
             InsufficientNativeTokensSupplied_error_selector,
-            ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied.selector
+            ConsiderationEventsAndErrors
+                .InsufficientNativeTokensSupplied
+                .selector
         );
     }
 
     function testNativeTokenTransferGenericFailure_error_selector() public {
         _test(
             NativeTokenTransferGenericFailure_error_selector,
-            ConsiderationEventsAndErrors.NativeTokenTransferGenericFailure.selector
+            ConsiderationEventsAndErrors
+                .NativeTokenTransferGenericFailure
+                .selector
         );
     }
 

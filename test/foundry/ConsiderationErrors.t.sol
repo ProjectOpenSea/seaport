@@ -43,7 +43,9 @@ contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     }
 
     function test_revertInsufficientNativeTokensSupplied() public {
-        vm.expectRevert(abi.encodeWithSignature("InsufficientNativeTokensSupplied()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("InsufficientNativeTokensSupplied()")
+        );
         this.__revertInsufficientNativeTokensSupplied();
     }
 

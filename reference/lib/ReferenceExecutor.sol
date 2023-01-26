@@ -126,7 +126,10 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
      */
-    function _transferNativeTokens(address payable to, uint256 amount) internal {
+    function _transferNativeTokens(
+        address payable to,
+        uint256 amount
+    ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 
