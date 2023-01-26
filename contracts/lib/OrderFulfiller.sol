@@ -24,9 +24,9 @@ import "./ConsiderationErrors.sol";
 
 import {
     AccumulatorDisarmed,
+    ConsiderationItem_recipient_offset,
     ReceivedItem_amount_offset,
-    ReceivedItem_recipient_offset,
-    ConsiderationItem_recipient_offset
+    ReceivedItem_recipient_offset
 } from "./ConsiderationConstants.sol";
 
 /**
