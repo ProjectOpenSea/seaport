@@ -26,8 +26,6 @@ import {
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 import {
     ZoneInteractionErrors
 } from "../../contracts/interfaces/ZoneInteractionErrors.sol";
