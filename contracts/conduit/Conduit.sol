@@ -12,7 +12,15 @@ import {
     ConduitBatch1155Transfer
 } from "./lib/ConduitStructs.sol";
 
-import "./lib/ConduitConstants.sol";
+import {
+    ChannelClosed_channel_ptr,
+    ChannelClosed_error_length,
+    ChannelClosed_error_ptr,
+    ChannelClosed_error_signature,
+    ChannelKey_channel_ptr,
+    ChannelKey_length,
+    ChannelKey_slot_ptr
+} from "./lib/ConduitConstants.sol";
 
 /**
  * @title Conduit
