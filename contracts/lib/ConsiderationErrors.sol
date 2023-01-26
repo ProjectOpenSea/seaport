@@ -3,7 +3,88 @@ pragma solidity ^0.8.17;
 
 import { Side } from "./ConsiderationEnums.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    BadFraction_error_length,
+    BadFraction_error_selector,
+    CannotCancelOrder_error_length,
+    CannotCancelOrder_error_selector,
+    ConsiderationLengthNotEqualToTotalOriginal_error_length,
+    ConsiderationLengthNotEqualToTotalOriginal_error_selector,
+    ConsiderationNotMet_error_considerationIndex_ptr,
+    ConsiderationNotMet_error_length,
+    ConsiderationNotMet_error_orderIndex_ptr,
+    ConsiderationNotMet_error_selector,
+    ConsiderationNotMet_error_shortfallAmount_ptr,
+    CriteriaNotEnabledForItem_error_length,
+    CriteriaNotEnabledForItem_error_selector,
+    Error_selector_offset,
+    InsufficientNativeTokensSupplied_error_length,
+    InsufficientNativeTokensSupplied_error_selector,
+    InvalidBasicOrderParameterEncoding_error_length,
+    InvalidBasicOrderParameterEncoding_error_selector,
+    InvalidCallToConduit_error_conduit_ptr,
+    InvalidCallToConduit_error_length,
+    InvalidCallToConduit_error_selector,
+    InvalidConduit_error_conduit_ptr,
+    InvalidConduit_error_conduitKey_ptr,
+    InvalidConduit_error_length,
+    InvalidConduit_error_selector,
+    InvalidContractOrder_error_length,
+    InvalidContractOrder_error_orderHash_ptr,
+    InvalidContractOrder_error_selector,
+    InvalidERC721TransferAmount_error_amount_ptr,
+    InvalidERC721TransferAmount_error_length,
+    InvalidERC721TransferAmount_error_selector,
+    InvalidMsgValue_error_length,
+    InvalidMsgValue_error_selector,
+    InvalidMsgValue_error_value_ptr,
+    InvalidNativeOfferItem_error_length,
+    InvalidNativeOfferItem_error_selector,
+    InvalidProof_error_length,
+    InvalidProof_error_selector,
+    InvalidTime_error_endTime_ptr,
+    InvalidTime_error_length,
+    InvalidTime_error_selector,
+    InvalidTime_error_startTime_ptr,
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr,
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_length,
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_selector,
+    MissingFulfillmentComponentOnAggregation_error_length,
+    MissingFulfillmentComponentOnAggregation_error_selector,
+    MissingFulfillmentComponentOnAggregation_error_side_ptr,
+    MissingOriginalConsiderationItems_error_length,
+    MissingOriginalConsiderationItems_error_selector,
+    NoReentrantCalls_error_length,
+    NoReentrantCalls_error_selector,
+    NoSpecifiedOrdersAvailable_error_length,
+    NoSpecifiedOrdersAvailable_error_selector,
+    OfferAndConsiderationRequiredOnFulfillment_error_length,
+    OfferAndConsiderationRequiredOnFulfillment_error_selector,
+    OrderAlreadyFilled_error_length,
+    OrderAlreadyFilled_error_orderHash_ptr,
+    OrderAlreadyFilled_error_selector,
+    OrderCriteriaResolverOutOfRange_error_length,
+    OrderCriteriaResolverOutOfRange_error_selector,
+    OrderCriteriaResolverOutOfRange_error_side_ptr,
+    OrderIsCancelled_error_length,
+    OrderIsCancelled_error_orderHash_ptr,
+    OrderIsCancelled_error_selector,
+    OrderPartiallyFilled_error_length,
+    OrderPartiallyFilled_error_orderHash_ptr,
+    OrderPartiallyFilled_error_selector,
+    PartialFillsNotEnabledForOrder_error_length,
+    PartialFillsNotEnabledForOrder_error_selector,
+    UnresolvedConsiderationCriteria_error_considerationIndex_ptr,
+    UnresolvedConsiderationCriteria_error_length,
+    UnresolvedConsiderationCriteria_error_orderIndex_ptr,
+    UnresolvedConsiderationCriteria_error_selector,
+    UnresolvedOfferCriteria_error_length,
+    UnresolvedOfferCriteria_error_offerIndex_ptr,
+    UnresolvedOfferCriteria_error_orderIndex_ptr,
+    UnresolvedOfferCriteria_error_selector,
+    UnusedItemParameters_error_length,
+    UnusedItemParameters_error_selector
+} from "./ConsiderationConstants.sol";
 
 /**
  * @dev Reverts the current transaction with a "BadFraction" error message.
@@ -85,7 +166,10 @@ function _revertInsufficientNativeTokensSupplied() pure {
         mstore(0, InsufficientNativeTokensSupplied_error_selector)
 
         // revert(abi.encodeWithSignature("InsufficientNativeTokensSupplied()"))
-        revert(Error_selector_offset, InsufficientNativeTokensSupplied_error_length)
+        revert(
+            Error_selector_offset,
+            InsufficientNativeTokensSupplied_error_length
+        )
     }
 }
 

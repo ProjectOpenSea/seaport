@@ -139,7 +139,7 @@ uint256 constant FiveWords = 0xa0;
 uint256 constant OneWordShift = 5;
 uint256 constant TwoWordsShift = 6;
 
-uint256 constant AlmostTwoWords = 0x3f;
+uint256 constant SixtyThreeBytes = 0x3f;
 uint256 constant OnlyFullWordMask = 0xffffffe0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;

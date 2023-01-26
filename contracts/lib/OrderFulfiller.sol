@@ -22,6 +22,13 @@ import { AmountDeriver } from "./AmountDeriver.sol";
 
 import "./ConsiderationErrors.sol";
 
+import {
+    AccumulatorDisarmed,
+    ReceivedItem_amount_offset,
+    ReceivedItem_recipient_offset,
+    ConsiderationItem_recipient_offset
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title OrderFulfiller
  * @author 0age

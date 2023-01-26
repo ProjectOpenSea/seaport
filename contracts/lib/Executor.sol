@@ -13,7 +13,42 @@ import { Verifiers } from "./Verifiers.sol";
 
 import { TokenTransferrer } from "./TokenTransferrer.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Accumulator_array_length_ptr,
+    Accumulator_array_offset_ptr,
+    Accumulator_array_offset,
+    Accumulator_conduitKey_ptr,
+    Accumulator_itemSizeOffsetDifference,
+    Accumulator_selector_ptr,
+    AccumulatorArmed,
+    AccumulatorDisarmed,
+    Conduit_execute_ConduitTransfer_length_ptr,
+    Conduit_execute_ConduitTransfer_length,
+    Conduit_execute_ConduitTransfer_offset_ptr,
+    Conduit_execute_ConduitTransfer_ptr,
+    Conduit_execute_signature,
+    Conduit_execute_transferAmount_ptr,
+    Conduit_execute_transferFrom_ptr,
+    Conduit_execute_transferIdentifier_ptr,
+    Conduit_execute_transferItemType_ptr,
+    Conduit_execute_transferTo_ptr,
+    Conduit_execute_transferToken_ptr,
+    Conduit_transferItem_amount_ptr,
+    Conduit_transferItem_from_ptr,
+    Conduit_transferItem_identifier_ptr,
+    Conduit_transferItem_size,
+    Conduit_transferItem_to_ptr,
+    Conduit_transferItem_token_ptr,
+    Error_selector_offset,
+    FreeMemoryPointerSlot,
+    NativeTokenTransferGenericFailure_error_account_ptr,
+    NativeTokenTransferGenericFailure_error_amount_ptr,
+    NativeTokenTransferGenericFailure_error_length,
+    NativeTokenTransferGenericFailure_error_selector,
+    OneConduitExecute_size,
+    OneWord,
+    TwoWords
+} from "./ConsiderationConstants.sol";
 
 import "./ConsiderationErrors.sol";
 
@@ -251,7 +286,10 @@ contract Executor is Verifiers, TokenTransferrer {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, NativeTokenTransferGenericFailure_error_selector)
                 mstore(NativeTokenTransferGenericFailure_error_account_ptr, to)
-                mstore(NativeTokenTransferGenericFailure_error_amount_ptr, amount)
+                mstore(
+                    NativeTokenTransferGenericFailure_error_amount_ptr,
+                    amount
+                )
 
                 // revert(abi.encodeWithSignature(
                 //   "NativeTokenTransferGenericFailure(address,uint256)", to, amount)

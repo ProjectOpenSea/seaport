@@ -7,6 +7,12 @@ import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
 import "./ConsiderationErrors.sol";
 
+import {
+    _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,
+    _ENTERED,
+    _NOT_ENTERED
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title ReentrancyGuard
  * @author 0age

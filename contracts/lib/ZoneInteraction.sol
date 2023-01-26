@@ -15,6 +15,16 @@ import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
 import "./ConsiderationEncoder.sol";
 
+import {
+    Error_selector_offset,
+    InvalidContractOrder_error_selector,
+    InvalidRestrictedOrder_error_length,
+    InvalidRestrictedOrder_error_orderHash_ptr,
+    InvalidRestrictedOrder_error_selector,
+    MaskOverFirstFourBytes,
+    OneWord
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title ZoneInteraction
  * @author 0age

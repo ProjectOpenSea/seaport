@@ -1,6 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+// TODO: come back and get this right.
+
+// import {
+//     BadReturnValueFromERC20OnTransfer_error_amount_ptr,
+//     BadReturnValueFromERC20OnTransfer_error_from_ptr,
+//     BadReturnValueFromERC20OnTransfer_error_length,
+//     BadReturnValueFromERC20OnTransfer_error_selector,
+//     BadReturnValueFromERC20OnTransfer_error_to_ptr,
+//     BadReturnValueFromERC20OnTransfer_error_token_ptr,
+//     CostPerWord,
+//     DefaultFreeMemoryPointer,
+//     ExtraGasBuffer,
+//     FreeMemoryPointerSlot,
+//     MemoryExpansionCoefficientShift,
+//     NoContract_error_account_ptr,
+//     NoContract_error_length,
+//     NoContract_error_selector,
+//     OneWord,
+//     OneWordShift,
+//     Slot0xA0,
+//     ThirtyOneBytes,
+//     TokenTransferGenericFailure_err_identifier_ptr,
+//     TokenTransferGenericFailure_error_amount_ptr,
+//     TokenTransferGenericFailure_error_from_ptr,
+//     TokenTransferGenericFailure_error_identifier_ptr,
+//     TokenTransferGenericFailure_error_length,
+//     TokenTransferGenericFailure_error_selector,
+//     TokenTransferGenericFailure_error_to_ptr,
+//     TokenTransferGenericFailure_error_token_ptr,
+//     TwoWords,
+//     TwoWordsShift,
+//     ZeroSlot
+// } from "./TokenTransferrerConstants.sol";
+
 import "./TokenTransferrerConstants.sol";
 
 import {

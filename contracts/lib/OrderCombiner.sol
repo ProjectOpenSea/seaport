@@ -22,6 +22,19 @@ import { FulfillmentApplier } from "./FulfillmentApplier.sol";
 
 import "./ConsiderationErrors.sol";
 
+import {
+    AccumulatorDisarmed,
+    ConsiderationItem_recipient_offset,
+    NonMatchSelector_InvalidErrorValue,
+    NonMatchSelector_MagicMask,
+    OneWord,
+    OneWordShift,
+    OrdersMatchedTopic0,
+    ReceivedItem_amount_offset,
+    ReceivedItem_recipient_offset,
+    TwoWords
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title OrderCombiner
  * @author 0age

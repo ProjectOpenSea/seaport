@@ -19,6 +19,17 @@ import {
     CriteriaResolutionErrors
 } from "../interfaces/CriteriaResolutionErrors.sol";
 
+import {
+    ConsiderationCriteriaResolverOutOfRange_err_selector,
+    Error_selector_offset,
+    OfferCriteriaResolverOutOfRange_error_selector,
+    OneWord,
+    OneWordShift,
+    OrderParameters_consideration_head_offset,
+    Selector_length,
+    TwoWords
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title CriteriaResolution
  * @author 0age

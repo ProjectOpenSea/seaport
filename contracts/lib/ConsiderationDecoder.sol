@@ -15,7 +15,46 @@ import {
     ReceivedItem
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    AdvancedOrder_denominator_offset,
+    AdvancedOrder_extraData_offset,
+    AdvancedOrder_fixed_segment_0,
+    AdvancedOrder_head_size,
+    AdvancedOrder_numerator_offset,
+    AdvancedOrder_signature_offset,
+    AdvancedOrderPlusOrderParameters_head_size,
+    Common_amount_offset,
+    Common_endAmount_offset,
+    ConsiderationItem_size_with_length,
+    ConsiderationItem_size,
+    CriteriaResolver_criteriaProof_offset,
+    CriteriaResolver_fixed_segment_0,
+    CriteriaResolver_head_size,
+    FourWords,
+    FreeMemoryPointerSlot,
+    Fulfillment_considerationComponents_offset,
+    Fulfillment_head_size,
+    FulfillmentComponent_mem_tail_size_shift,
+    FulfillmentComponent_mem_tail_size,
+    OfferItem_size_with_length,
+    OfferItem_size,
+    OneWord,
+    OneWordShift,
+    OnlyFullWordMask,
+    Order_head_size,
+    Order_signature_offset,
+    OrderComponents_OrderParameters_common_head_size,
+    OrderParameters_consideration_head_offset,
+    OrderParameters_head_size,
+    OrderParameters_offer_head_offset,
+    OrderParameters_totalOriginalConsiderationItems_offset,
+    ReceivedItem_recipient_offset,
+    ReceivedItem_size,
+    SpentItem_size_shift,
+    SpentItem_size,
+    ThirtyOneBytes,
+    TwoWords
+} from "./ConsiderationConstants.sol";
 
 import "../helpers/PointerLibraries.sol";
 

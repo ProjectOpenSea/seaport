@@ -9,6 +9,20 @@ import { SignatureVerification } from "./SignatureVerification.sol";
 
 import "./ConsiderationErrors.sol";
 
+import {
+    BulkOrderProof_keyShift,
+    BulkOrderProof_keySize,
+    BulkOrderProof_lengthAdjustmentBeforeMask,
+    BulkOrderProof_lengthRangeAfterMask,
+    BulkOrderProof_minSize,
+    BulkOrderProof_rangeSize,
+    ECDSA_MaxLength,
+    OneWord,
+    OneWordShift,
+    ThirtyOneBytes,
+    TwoWords
+} from "./ConsiderationConstants.sol";
+
 /**
  * @title Verifiers
  * @author 0age

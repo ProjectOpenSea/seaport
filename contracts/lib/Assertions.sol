@@ -11,6 +11,22 @@ import {
 
 import { CounterManager } from "./CounterManager.sol";
 
+import {
+    AdditionalRecipient_size_shift,
+    BasicOrder_additionalRecipients_head_cdPtr,
+    BasicOrder_additionalRecipients_head_ptr,
+    BasicOrder_additionalRecipients_length_cdPtr,
+    BasicOrder_basicOrderType_cdPtr,
+    BasicOrder_basicOrderType_range,
+    BasicOrder_parameters_cdPtr,
+    BasicOrder_parameters_ptr,
+    BasicOrder_signature_cdPtr,
+    BasicOrder_signature_ptr,
+    Error_selector_offset,
+    MissingItemAmount_error_length,
+    MissingItemAmount_error_selector
+} from "./ConsiderationConstants.sol";
+
 import "./ConsiderationErrors.sol";
 
 /**
