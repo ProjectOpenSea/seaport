@@ -1,4 +1,4 @@
-# Deloying Seaport
+# Deploying Seaport
 
 Seaport and the ConduitController can be deployed to the same address on all EVM chains using the CREATE2 Factory.
 
