@@ -378,6 +378,28 @@ interface SeaportInterface {
     function incrementCounter() external returns (uint256 newCounter);
 
     /**
+     * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
+     *         the native token for the given chain) as consideration for the
+     *         order. An arbitrary number of "additional recipients" may also be
+     *         supplied which will each receive native tokens from the fulfiller
+     *         as consideration. Note that this function costs less gas than
+     *         `fulfillBasicOrder` due to the zero bytes in the function
+     *         selector (0x00000000) which also results in earlier function
+     *         dispatch.
+     *
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer must first approve this contract (or
+     *                   their preferred conduit if indicated by the order) for
+     *                   their offered ERC721 token to be transferred.
+     *
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
+     */
+    function fulfillBasicOrder_efficient_6GL6yc(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool fulfilled);
+
+    /**
      * @notice Retrieve the order hash for a given order.
      *
      * @param order The components of the order.

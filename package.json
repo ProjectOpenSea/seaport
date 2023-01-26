@@ -81,6 +81,7 @@
     "test:nospec": "NO_SPECIALIZER=true hardhat test --config ./hardhat.config.ts",
     "test:ref": "REFERENCE=true hardhat test --config ./hardhat-reference.config.ts",
     "profile": "yarn clean; REPORT_GAS=true hardhat test --config ./hardhat.config.ts; hardhat compare-reports",
+    "profile:show": "hardhat compare-reports",
     "profile:nospec": "yarn clean; NO_SPECIALIZER=true REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "yarn clean; hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
