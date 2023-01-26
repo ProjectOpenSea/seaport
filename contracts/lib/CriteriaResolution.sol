@@ -122,13 +122,12 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     // Ensure that the component index is in range.
                     if (componentIndex >= items.length) {
                         assembly {
-                            mstore(0, errorSelector)
                             // Revert with either
                             // `OfferCriteriaResolverOutOfRange()` or
                             // `ConsiderationCriteriaResolverOutOfRange()`,
                             // depending on whether the resolver refers to a
                             // consideration item.
-                            //
+                            mstore(0, errorSelector)
                             // revert(abi.encodeWithSignature(
                             //    "OfferCriteriaResolverOutOfRange()"
                             // ))
