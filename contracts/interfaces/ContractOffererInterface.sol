@@ -37,7 +37,7 @@ interface ContractOffererInterface {
 
     /**
      * @dev Ratifies an order with the specified offer, consideration, and
-     *      optional extra data.
+     *      optional context (supplied as extraData).
      *
      * @param offer         The offer items.
      * @param consideration The consideration items.
