@@ -467,7 +467,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillBasicOrder(basicOrderParameters, {
+            .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters, {
               value,
             });
           const receipt = await (await tx).wait();
@@ -585,7 +585,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         await withBalanceChecks([order], 0, undefined, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillBasicOrder(basicOrderParameters, {
+            .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters, {
               value,
             });
           const receipt = await (await tx).wait();

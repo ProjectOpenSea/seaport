@@ -93,6 +93,13 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
 
+    function fulfillBasicOrder_efficient_6GL6yc(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool fulfilled) {
+        // Validate and fulfill the basic order.
+        fulfilled = _validateAndFulfillBasicOrder(parameters);
+    }
+
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
      *         consideration. Note that this function does not support
