@@ -5,7 +5,33 @@ import { OrderParameters } from "./ConsiderationStructs.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Create2AddressDerivation_length,
+    Create2AddressDerivation_ptr,
+    EIP_712_PREFIX,
+    EIP712_ConsiderationItem_size,
+    EIP712_DigestPayload_size,
+    EIP712_DomainSeparator_offset,
+    EIP712_OfferItem_size,
+    EIP712_Order_size,
+    EIP712_OrderHash_offset,
+    FreeMemoryPointerSlot,
+    information_conduitController_offset,
+    information_domainSeparator_offset,
+    information_length,
+    information_version_cd_offset,
+    information_version_offset,
+    information_versionLengthPtr,
+    information_versionWithLength,
+    MaskOverByteTwelve,
+    MaskOverLastTwentyBytes,
+    OneWord,
+    OneWordShift,
+    OrderParameters_consideration_head_offset,
+    OrderParameters_counter_offset,
+    OrderParameters_offer_head_offset,
+    TwoWords
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers

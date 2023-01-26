@@ -11,8 +11,6 @@ import {
 
 import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 /**
  * @title Assertions
  * @author 0age

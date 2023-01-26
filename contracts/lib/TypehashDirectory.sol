@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../lib/ConsiderationConstants.sol";
+import {
+    FreeMemoryPointerSlot,
+    OneWord,
+    OneWordShift,
+    ThirtyOneBytes
+} from "../lib/ConsiderationConstants.sol";
 
 /**
  * @title TypehashDirectory

@@ -11,13 +11,31 @@ import {
     MemoryPointer
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationErrors.sol";
-
-import "../helpers/PointerLibraries.sol";
+import {
+    _revertCriteriaNotEnabledForItem,
+    _revertInvalidProof,
+    _revertOrderCriteriaResolverOutOfRange,
+    _revertUnresolvedConsiderationCriteria,
+    _revertUnresolvedOfferCriteria
+} from "./ConsiderationErrors.sol";
 
 import {
     CriteriaResolutionErrors
 } from "../interfaces/CriteriaResolutionErrors.sol";
+
+import {
+    OneWord,
+    OneWordShift,
+    OrderParameters_consideration_head_offset,
+    Selector_length,
+    TwoWords
+} from "./ConsiderationConstants.sol";
+
+import {
+    ConsiderationCriteriaResolverOutOfRange_err_selector,
+    Error_selector_offset,
+    OfferCriteriaResolverOutOfRange_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title CriteriaResolution

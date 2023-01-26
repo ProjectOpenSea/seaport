@@ -9,7 +9,11 @@ import {
     ReentrancyErrors
 } from "../../contracts/interfaces/ReentrancyErrors.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
+import {
+    _ENTERED,
+    _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,
+    _NOT_ENTERED
+} from "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title ReentrancyGuard

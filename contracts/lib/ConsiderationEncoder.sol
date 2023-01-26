@@ -1,7 +1,61 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./ConsiderationConstants.sol";
+import {
+    BasicOrder_additionalRecipients_length_cdPtr,
+    BasicOrder_common_params_size,
+    BasicOrder_startTime_cdPtr,
+    BasicOrder_startTimeThroughZoneHash_size,
+    Common_amount_offset,
+    Common_identifier_offset,
+    Common_token_offset,
+    generateOrder_base_tail_offset,
+    generateOrder_context_head_offset,
+    generateOrder_head_offset,
+    generateOrder_maximumSpent_head_offset,
+    generateOrder_minimumReceived_head_offset,
+    generateOrder_selector_offset,
+    generateOrder_selector,
+    OneWord,
+    OneWordShift,
+    OnlyFullWordMask,
+    OrderFulfilled_baseDataSize,
+    OrderFulfilled_offer_length_baseOffset,
+    OrderParameters_consideration_head_offset,
+    OrderParameters_endTime_offset,
+    OrderParameters_offer_head_offset,
+    OrderParameters_startTime_offset,
+    OrderParameters_zoneHash_offset,
+    ratifyOrder_base_tail_offset,
+    ratifyOrder_consideration_head_offset,
+    ratifyOrder_context_head_offset,
+    ratifyOrder_contractNonce_offset,
+    ratifyOrder_head_offset,
+    ratifyOrder_orderHashes_head_offset,
+    ratifyOrder_selector_offset,
+    ratifyOrder_selector,
+    ReceivedItem_size,
+    Selector_length,
+    SixtyThreeBytes,
+    SpentItem_size_shift,
+    SpentItem_size,
+    validateOrder_head_offset,
+    validateOrder_selector_offset,
+    validateOrder_selector,
+    validateOrder_zoneParameters_offset,
+    ZoneParameters_base_tail_offset,
+    ZoneParameters_basicOrderFixedElements_length,
+    ZoneParameters_consideration_head_offset,
+    ZoneParameters_endTime_offset,
+    ZoneParameters_extraData_head_offset,
+    ZoneParameters_fulfiller_offset,
+    ZoneParameters_offer_head_offset,
+    ZoneParameters_offerer_offset,
+    ZoneParameters_orderHashes_head_offset,
+    ZoneParameters_selectorAndPointer_length,
+    ZoneParameters_startTime_offset,
+    ZoneParameters_zoneHash_offset
+} from "./ConsiderationConstants.sol";
 
 import {
     BasicOrderParameters,
@@ -12,7 +66,11 @@ import {
     ReceivedItem
 } from "./ConsiderationStructs.sol";
 
-import "../helpers/PointerLibraries.sol";
+import {
+    CalldataPointer,
+    getFreeMemoryPointer,
+    MemoryPointer
+} from "../helpers/PointerLibraries.sol";
 
 contract ConsiderationEncoder {
     /**
@@ -66,7 +124,7 @@ contract ConsiderationEncoder {
             // Mask the length of the bytes array to protect against overflow
             // and round up to the nearest word.
             // Note: `size` also includes the 1 word that stores the length.
-            size = (src.readUint256() + AlmostTwoWords) & OnlyFullWordMask;
+            size = (src.readUint256() + SixtyThreeBytes) & OnlyFullWordMask;
 
             // Copy the bytes array to the new memory location.
             src.copy(dst, size);

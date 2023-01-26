@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./ConsiderationConstants.sol";
+import {
+    CostPerWord,
+    ExtraGasBuffer,
+    FreeMemoryPointerSlot,
+    MemoryExpansionCoefficientShift,
+    OneWord,
+    OneWordShift,
+    ThirtyOneBytes
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title LowLevelHelpers

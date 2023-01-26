@@ -5,7 +5,11 @@ import {
     AmountDerivationErrors
 } from "../interfaces/AmountDerivationErrors.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Error_selector_offset,
+    InexactFraction_error_length,
+    InexactFraction_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title AmountDeriver

@@ -2,7 +2,13 @@
 
 pragma solidity ^0.8.17;
 
-import "../../contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationErrorConstants.sol";
+
+import {
+    generateOrder_selector,
+    ratifyOrder_selector,
+    validateOrder_selector
+} from "../../contracts/lib/ConsiderationConstants.sol";
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 

@@ -9,8 +9,6 @@ import {
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 /**
  * @title GettersAndDerivers
  * @author 0age
