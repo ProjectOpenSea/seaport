@@ -59,7 +59,8 @@ contract AdjustedAmountOfferer is ContractOffererInterface {
 
     /**
      * @dev View function to preview an order generated in response to a minimum
-     *      received set of items.
+     *      set of received items, maximum set of spent items, and context
+     *      (supplied as extraData).
      */
     function previewOrder(
         address,
