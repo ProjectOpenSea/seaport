@@ -9,8 +9,6 @@ import {
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
-import "./ConsiderationErrors.sol";
-
 import {
     BadContractSignature_error_length,
     BadContractSignature_error_selector,

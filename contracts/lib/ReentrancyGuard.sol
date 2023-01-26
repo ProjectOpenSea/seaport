@@ -5,7 +5,10 @@ import { ReentrancyErrors } from "../interfaces/ReentrancyErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInvalidMsgValue,
+    _revertNoReentrantCalls
+} from "./ConsiderationErrors.sol";
 
 import {
     _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,

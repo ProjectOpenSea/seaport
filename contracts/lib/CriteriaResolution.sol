@@ -11,7 +11,13 @@ import {
     MemoryPointer
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertCriteriaNotEnabledForItem,
+    _revertInvalidProof,
+    _revertOrderCriteriaResolverOutOfRange,
+    _revertUnresolvedConsiderationCriteria,
+    _revertUnresolvedOfferCriteria
+} from "./ConsiderationErrors.sol";
 
 import "../helpers/PointerLibraries.sol";
 

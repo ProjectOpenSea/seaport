@@ -18,7 +18,11 @@ import {
 
 import { OrderValidator } from "./OrderValidator.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidMsgValue,
+    _revertUnusedItemParameters
+} from "./ConsiderationErrors.sol";
 
 import {
     AccumulatorDisarmed,

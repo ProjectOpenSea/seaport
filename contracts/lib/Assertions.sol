@@ -27,7 +27,10 @@ import {
     MissingItemAmount_error_selector
 } from "./ConsiderationConstants.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInvalidBasicOrderParameterEncoding,
+    _revertMissingOriginalConsiderationItems
+} from "./ConsiderationErrors.sol";
 
 /**
  * @title Assertions

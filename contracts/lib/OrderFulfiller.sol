@@ -20,7 +20,10 @@ import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidNativeOfferItem
+} from "./ConsiderationErrors.sol";
 
 import {
     AccumulatorDisarmed,

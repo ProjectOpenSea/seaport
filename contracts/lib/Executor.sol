@@ -50,7 +50,12 @@ import {
     TwoWords
 } from "./ConsiderationConstants.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInvalidCallToConduit,
+    _revertInvalidConduit,
+    _revertInvalidERC721TransferAmount,
+    _revertUnusedItemParameters
+} from "./ConsiderationErrors.sol";
 
 /**
  * @title Executor

@@ -13,7 +13,11 @@ import {
     FulfillmentComponent
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertMismatchedFulfillmentOfferAndConsiderationComponents,
+    _revertMissingFulfillmentComponentOnAggregation,
+    _revertOfferAndConsiderationRequiredOnFulfillment
+} from "./ConsiderationErrors.sol";
 
 import {
     FulfillmentApplicationErrors
@@ -24,6 +28,7 @@ import {
     Common_amount_offset,
     Common_identifier_offset,
     Common_token_offset,
+    Error_selector_offset,
     Execution_conduit_offset,
     Execution_offerer_offset,
     Fulfillment_itemIndex_offset,

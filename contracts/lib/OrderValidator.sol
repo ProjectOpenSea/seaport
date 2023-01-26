@@ -14,7 +14,13 @@ import {
     ConsiderationItem
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertBadFraction,
+    _revertCannotCancelOrder,
+    _revertConsiderationLengthNotEqualToTotalOriginal,
+    _revertInvalidContractOrder,
+    _revertPartialFillsNotEnabledForOrder
+} from "./ConsiderationErrors.sol";
 
 import { Executor } from "./Executor.sol";
 

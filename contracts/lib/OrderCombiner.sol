@@ -20,7 +20,12 @@ import { OrderFulfiller } from "./OrderFulfiller.sol";
 
 import { FulfillmentApplier } from "./FulfillmentApplier.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertConsiderationNotMet,
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidNativeOfferItem,
+    _revertNoSpecifiedOrdersAvailable
+} from "./ConsiderationErrors.sol";
 
 import {
     AccumulatorDisarmed,

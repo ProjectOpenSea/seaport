@@ -7,7 +7,12 @@ import { Assertions } from "./Assertions.sol";
 
 import { SignatureVerification } from "./SignatureVerification.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInvalidTime,
+    _revertOrderAlreadyFilled,
+    _revertOrderIsCancelled,
+    _revertOrderPartiallyFilled
+} from "./ConsiderationErrors.sol";
 
 import {
     BulkOrderProof_keyShift,
