@@ -13,7 +13,9 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
-import "./ConsiderationEncoder.sol";
+import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
+
+import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 
 import {
     Error_selector_offset,
