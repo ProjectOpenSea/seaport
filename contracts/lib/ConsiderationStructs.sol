@@ -292,7 +292,18 @@ using StructPointers for FulfillmentComponent global;
 using StructPointers for Execution global;
 using StructPointers for ZoneParameters global;
 
+/**
+ * @dev This library provides a set of functions for converting structs to
+ *      pointers.
+ */
 library StructPointers {
+    /**
+     * @dev Get a MemoryPointer from OrderComponents.
+     *
+     * @param obj The OrderComponents object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         OrderComponents memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -301,6 +312,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from OrderComponents.
+     *
+     * @param obj The OrderComponents object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         OrderComponents calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -309,6 +327,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from OfferItem.
+     *
+     * @param obj The OfferItem object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         OfferItem memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -317,6 +342,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from OfferItem.
+     *
+     * @param obj The OfferItem object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         OfferItem calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -325,6 +357,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from ConsiderationItem.
+     *
+     * @param obj The ConsiderationItem object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         ConsiderationItem memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -333,6 +372,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from ConsiderationItem.
+     *
+     * @param obj The ConsiderationItem object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         ConsiderationItem calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -341,6 +387,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from SpentItem.
+     *
+     * @param obj The SpentItem object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         SpentItem memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -349,6 +402,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from SpentItem.
+     *
+     * @param obj The SpentItem object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         SpentItem calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -357,6 +417,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from ReceivedItem.
+     *
+     * @param obj The ReceivedItem object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         ReceivedItem memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -365,6 +432,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from ReceivedItem.
+     *
+     * @param obj The ReceivedItem object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         ReceivedItem calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -373,6 +447,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from BasicOrderParameters.
+     *
+     * @param obj The BasicOrderParameters object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         BasicOrderParameters memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -381,6 +462,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from BasicOrderParameters.
+     *
+     * @param obj The BasicOrderParameters object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         BasicOrderParameters calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -389,6 +477,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from AdditionalRecipient.
+     *
+     * @param obj The AdditionalRecipient object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         AdditionalRecipient memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -397,6 +492,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from AdditionalRecipient.
+     *
+     * @param obj The AdditionalRecipient object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         AdditionalRecipient calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -405,6 +507,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from OrderParameters.
+     *
+     * @param obj The OrderParameters object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         OrderParameters memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -413,6 +522,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from OrderParameters.
+     *
+     * @param obj The OrderParameters object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         OrderParameters calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -421,6 +537,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from Order.
+     *
+     * @param obj The Order object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         Order memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -429,6 +552,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from Order.
+     *
+     * @param obj The Order object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         Order calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -437,6 +567,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from AdvancedOrder.
+     *
+     * @param obj The AdvancedOrder object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         AdvancedOrder memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -445,6 +582,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from AdvancedOrder.
+     *
+     * @param obj The AdvancedOrder object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         AdvancedOrder calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -453,6 +597,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from OrderStatus.
+     *
+     * @param obj The OrderStatus object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         OrderStatus memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -461,6 +612,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from OrderStatus.
+     *
+     * @param obj The OrderStatus object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         OrderStatus calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -469,6 +627,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from CriteriaResolver.
+     *
+     * @param obj The CriteriaResolver object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         CriteriaResolver memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -477,6 +642,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from CriteriaResolver.
+     *
+     * @param obj The CriteriaResolver object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         CriteriaResolver calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -485,6 +657,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from Fulfillment.
+     *
+     * @param obj The Fulfillment object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         Fulfillment memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -493,6 +672,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from Fulfillment.
+     *
+     * @param obj The Fulfillment object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         Fulfillment calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -501,6 +687,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from FulfillmentComponent.
+     *
+     * @param obj The FulfillmentComponent object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         FulfillmentComponent memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -509,6 +702,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from FulfillmentComponent.
+     *
+     * @param obj The FulfillmentComponent object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         FulfillmentComponent calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -517,6 +717,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from Execution.
+     *
+     * @param obj The Execution object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         Execution memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -525,6 +732,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from Execution.
+     *
+     * @param obj The Execution object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         Execution calldata obj
     ) internal pure returns (CalldataPointer ptr) {
@@ -533,6 +747,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a MemoryPointer from ZoneParameters.
+     *
+     * @param obj The ZoneParameters object.
+     *
+     * @return ptr The MemoryPointer.
+     */
     function toMemoryPointer(
         ZoneParameters memory obj
     ) internal pure returns (MemoryPointer ptr) {
@@ -541,6 +762,13 @@ library StructPointers {
         }
     }
 
+    /**
+     * @dev Get a CalldataPointer from ZoneParameters.
+     *
+     * @param obj The ZoneParameters object.
+     *
+     * @return ptr The CalldataPointer.
+     */
     function toCalldataPointer(
         ZoneParameters calldata obj
     ) internal pure returns (CalldataPointer ptr) {

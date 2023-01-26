@@ -58,7 +58,11 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 // Next, set the caller as the argument.
                 mstore(ChannelClosed_channel_ptr, caller())
 
-                // Finally, revert, returning full custom error with argument.
+                // Finally, revert, returning full custom error with argument
+                // data in memory.
+                // revert(abi.encodeWithSignature(
+                //     "ChannelClosed(address)", caller()
+                // ))
                 revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
             }
         }
