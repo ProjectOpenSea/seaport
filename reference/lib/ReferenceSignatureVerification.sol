@@ -9,7 +9,9 @@ import {
     SignatureVerificationErrors
 } from "../../contracts/interfaces/SignatureVerificationErrors.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
+import {
+    EIP2098_allButHighestBitMask
+} from "../../contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title SignatureVerification

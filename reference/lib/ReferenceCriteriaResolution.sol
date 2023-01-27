@@ -15,8 +15,6 @@ import {
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 import {
     CriteriaResolutionErrors
 } from "../../contracts/interfaces/CriteriaResolutionErrors.sol";

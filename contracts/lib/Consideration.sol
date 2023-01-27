@@ -20,9 +20,23 @@ import {
 
 import { OrderCombiner } from "./OrderCombiner.sol";
 
-import "../helpers/PointerLibraries.sol";
+import {
+    CalldataStart,
+    CalldataPointer
+} from "../helpers/PointerLibraries.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Offset_fulfillAdvancedOrder_criteriaResolvers,
+    Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts,
+    Offset_fulfillAvailableAdvancedOrders_criteriaResolvers,
+    Offset_fulfillAvailableAdvancedOrders_offerFulfillments,
+    Offset_fulfillAvailableOrders_considerationFulfillments,
+    Offset_fulfillAvailableOrders_offerFulfillments,
+    Offset_matchAdvancedOrders_criteriaResolvers,
+    Offset_matchAdvancedOrders_fulfillments,
+    Offset_matchOrders_fulfillments,
+    OrderParameters_counter_offset
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title Consideration

@@ -18,7 +18,76 @@ import {
 
 import { OrderValidator } from "./OrderValidator.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidMsgValue,
+    _revertUnusedItemParameters
+} from "./ConsiderationErrors.sol";
+
+import {
+    AccumulatorDisarmed,
+    AdditionalRecipient_size_shift,
+    AdditionalRecipient_size,
+    BasicOrder_additionalRecipients_data_cdPtr,
+    BasicOrder_additionalRecipients_length_cdPtr,
+    BasicOrder_basicOrderType_cdPtr,
+    BasicOrder_common_params_size,
+    BasicOrder_considerationAmount_cdPtr,
+    BasicOrder_considerationHashesArray_ptr,
+    BasicOrder_considerationItem_endAmount_ptr,
+    BasicOrder_considerationItem_identifier_ptr,
+    BasicOrder_considerationItem_itemType_ptr,
+    BasicOrder_considerationItem_startAmount_ptr,
+    BasicOrder_considerationItem_token_ptr,
+    BasicOrder_considerationItem_typeHash_ptr,
+    BasicOrder_considerationToken_cdPtr,
+    BasicOrder_fulfillerConduit_cdPtr,
+    BasicOrder_offerAmount_cdPtr,
+    BasicOrder_offeredItemByteMap,
+    BasicOrder_offerer_cdPtr,
+    BasicOrder_offererConduit_cdPtr,
+    BasicOrder_offerItem_endAmount_ptr,
+    BasicOrder_offerItem_itemType_ptr,
+    BasicOrder_offerItem_token_ptr,
+    BasicOrder_offerItem_typeHash_ptr,
+    BasicOrder_offerToken_cdPtr,
+    BasicOrder_order_considerationHashes_ptr,
+    BasicOrder_order_counter_ptr,
+    BasicOrder_order_offerer_ptr,
+    BasicOrder_order_offerHashes_ptr,
+    BasicOrder_order_orderType_ptr,
+    BasicOrder_order_startTime_ptr,
+    BasicOrder_order_typeHash_ptr,
+    BasicOrder_receivedItemByteMap,
+    BasicOrder_startTime_cdPtr,
+    BasicOrder_totalOriginalAdditionalRecipients_cdPtr,
+    BasicOrder_zone_cdPtr,
+    Common_token_offset,
+    EIP712_ConsiderationItem_size,
+    EIP712_OfferItem_size,
+    EIP712_Order_size,
+    FiveWords,
+    FourWords,
+    FreeMemoryPointerSlot,
+    OneWord,
+    OneWordShift,
+    OrderFulfilled_baseOffset,
+    OrderFulfilled_baseSize,
+    OrderFulfilled_consideration_body_offset,
+    OrderFulfilled_consideration_head_offset,
+    OrderFulfilled_consideration_length_baseOffset,
+    OrderFulfilled_fulfiller_offset,
+    OrderFulfilled_offer_body_offset,
+    OrderFulfilled_offer_head_offset,
+    OrderFulfilled_offer_length_baseOffset,
+    OrderFulfilled_selector,
+    ReceivedItem_amount_offset,
+    ReceivedItem_size,
+    receivedItemsHash_ptr,
+    ThreeWords,
+    TwoWords,
+    ZeroSlot
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller

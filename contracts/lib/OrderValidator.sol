@@ -14,13 +14,42 @@ import {
     ConsiderationItem
 } from "./ConsiderationStructs.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertBadFraction,
+    _revertCannotCancelOrder,
+    _revertConsiderationLengthNotEqualToTotalOriginal,
+    _revertInvalidContractOrder,
+    _revertPartialFillsNotEnabledForOrder
+} from "./ConsiderationErrors.sol";
 
 import { Executor } from "./Executor.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
 
 import { MemoryPointer } from "../helpers/PointerLibraries.sol";
+
+import {
+    AdvancedOrder_denominator_offset,
+    AdvancedOrder_numerator_offset,
+    Common_amount_offset,
+    Common_endAmount_offset,
+    Common_identifier_offset,
+    Common_token_offset,
+    ConsiderItem_recipient_offset,
+    ContractOrder_orderHash_offerer_shift,
+    MaxUint120,
+    OrderStatus_filledDenominator_offset,
+    OrderStatus_filledNumerator_offset,
+    OrderStatus_ValidatedAndNotCancelled
+} from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    Panic_arithmetic,
+    Panic_error_code_ptr,
+    Panic_error_length,
+    Panic_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title OrderValidator

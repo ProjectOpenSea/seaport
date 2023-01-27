@@ -31,8 +31,6 @@ import { ReferenceOrderFulfiller } from "./ReferenceOrderFulfiller.sol";
 
 import { ReferenceFulfillmentApplier } from "./ReferenceFulfillmentApplier.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 import {
     SeaportInterface
 } from "../../contracts/interfaces/SeaportInterface.sol";

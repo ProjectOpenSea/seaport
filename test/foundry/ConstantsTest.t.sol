@@ -2,7 +2,13 @@
 
 pragma solidity ^0.8.17;
 
-import "../../contracts/lib/ConsiderationConstants.sol";
+import "../../contracts/lib/ConsiderationErrorConstants.sol";
+
+import {
+    generateOrder_selector,
+    ratifyOrder_selector,
+    validateOrder_selector
+} from "../../contracts/lib/ConsiderationConstants.sol";
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
@@ -297,14 +303,18 @@ contract ConstantsTest is BaseConsiderationTest {
     function testInsufficientNativeTokensSupplied_error_selector() public {
         _test(
             InsufficientNativeTokensSupplied_error_selector,
-            ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied.selector
+            ConsiderationEventsAndErrors
+                .InsufficientNativeTokensSupplied
+                .selector
         );
     }
 
     function testNativeTokenTransferGenericFailure_error_selector() public {
         _test(
             NativeTokenTransferGenericFailure_error_selector,
-            ConsiderationEventsAndErrors.NativeTokenTransferGenericFailure.selector
+            ConsiderationEventsAndErrors
+                .NativeTokenTransferGenericFailure
+                .selector
         );
     }
 

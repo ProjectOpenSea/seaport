@@ -31,8 +31,6 @@ import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
 
 import { ReferenceAmountDeriver } from "./ReferenceAmountDeriver.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 /**
  * @title OrderFulfiller
  * @author 0age

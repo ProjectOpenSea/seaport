@@ -19,8 +19,6 @@ import {
     OrderToExecute
 } from "./ReferenceConsiderationStructs.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 import {
     FulfillmentApplicationErrors
 } from "../../contracts/interfaces/FulfillmentApplicationErrors.sol";

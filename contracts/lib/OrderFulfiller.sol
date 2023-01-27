@@ -20,7 +20,17 @@ import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
-import "./ConsiderationErrors.sol";
+import {
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidNativeOfferItem
+} from "./ConsiderationErrors.sol";
+
+import {
+    AccumulatorDisarmed,
+    ConsiderationItem_recipient_offset,
+    ReceivedItem_amount_offset,
+    ReceivedItem_recipient_offset
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title OrderFulfiller

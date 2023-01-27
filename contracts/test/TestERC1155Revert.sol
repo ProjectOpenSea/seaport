@@ -7,9 +7,11 @@ contract TestERC1155Revert {
         address /* to */,
         uint256 /* id */,
         uint256 /* amount */,
-        bytes memory /* data */
+        bytes calldata /* data */
     ) public pure {
-        revert("Some ERC1155 revert message");
+        revert(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
     }
 
     function safeBatchTransferFrom(
@@ -20,5 +22,14 @@ contract TestERC1155Revert {
         bytes memory /* data */
     ) public pure {
         revert("Some ERC1155 revert message for batch transfers");
+    }
+
+    function getRevertData() public pure returns (bytes memory) {
+        assembly {
+            mstore(0x40, 0)
+            mstore(0, shl(20, 1))
+            mstore(add(0x20, shl(20, 1)), 1)
+            return(0, add(0x20, shl(20, 1)))
+        }
     }
 }

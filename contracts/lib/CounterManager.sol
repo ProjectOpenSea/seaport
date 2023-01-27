@@ -7,7 +7,11 @@ import {
 
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Counter_blockhash_shift,
+    OneWord,
+    TwoWords
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title CounterManager

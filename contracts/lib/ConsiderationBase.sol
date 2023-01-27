@@ -9,7 +9,21 @@ import {
     ConsiderationEventsAndErrors
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    EIP712_domainData_chainId_offset,
+    EIP712_domainData_nameHash_offset,
+    EIP712_domainData_size,
+    EIP712_domainData_verifyingContract_offset,
+    EIP712_domainData_versionHash_offset,
+    FreeMemoryPointerSlot,
+    NameLengthPtr,
+    NameWithLength,
+    OneWord,
+    OneWordShift,
+    Slot0x80,
+    ThreeWords,
+    ZeroSlot
+} from "./ConsiderationConstants.sol";
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
