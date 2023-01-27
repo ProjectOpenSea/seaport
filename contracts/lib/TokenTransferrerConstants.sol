@@ -110,7 +110,13 @@ uint256 constant NoContract_error_account_ptr = 0x20;
 uint256 constant NoContract_error_length = 0x24;
 
 /*
- *  error TokenTransferGenericFailure(address token, address from, address to, uint256 identifier, uint256 amount)
+ *  error TokenTransferGenericFailure(
+ *      address token,
+ *      address from,
+ *      address to,
+ *      uint256 identifier,
+ *      uint256 amount
+ *  )
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -174,7 +180,9 @@ uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
 uint256 constant ERC1155BatchTransferGenericFailure_ids_offset = 0xc0;
 
 /*
- *  error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount)
+ *  error BadReturnValueFromERC20OnTransfer(
+ *      address token, address from, address to, uint256 amount
+ *  )
  *    - Defined in TokenTransferrerErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)

@@ -119,9 +119,9 @@ contract ReferenceVerifiers is
     /**
      * @dev Determines whether the specified bulk order size is valid.
      *
-     * @param signature    The signature of the bulk order to check.
+     * @param signature The signature of the bulk order to check.
      *
-     * @return validLength True if the bulk order size is valid, false otherwise.
+     * @return validLength True if bulk order size is valid, false otherwise.
      */
     function _isValidBulkOrderSize(
         bytes memory signature
@@ -138,8 +138,8 @@ contract ReferenceVerifiers is
      * @param proofAndSignature  The proof and signature of the bulk order.
      * @param leaf               The leaf of the bulk order tree.
      *
-     * @return bulkOrderHash     The bulk order hash.
-     * @return signature         The signature of the bulk order.
+     * @return bulkOrderHash The bulk order hash.
+     * @return signature     The signature of the bulk order.
      */
     function _computeBulkOrderProof(
         bytes memory proofAndSignature,

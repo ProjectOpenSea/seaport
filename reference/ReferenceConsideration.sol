@@ -166,7 +166,6 @@ contract ReferenceConsideration is
         returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
-        // prettier-ignore
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -584,7 +583,6 @@ contract ReferenceConsideration is
     ) external view override returns (bytes32 orderHash) {
         // Derive order hash by supplying order parameters along with the
         // counter.
-        // prettier-ignore
         orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,

@@ -74,16 +74,17 @@ contract ReferenceConsiderationBase is
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
 
-        // Set the supplied conduit controller to temp.
-        ConduitControllerInterface tempConduitController = ConduitControllerInterface(
-                conduitController
-            );
+        // Set supplied conduit controller to an in-memory controller interface.
+        ConduitControllerInterface tempController = ConduitControllerInterface(
+            conduitController
+        );
 
-        _CONDUIT_CONTROLLER = tempConduitController;
+        // Assign the in-memory interface as an immutable.
+        _CONDUIT_CONTROLLER = tempController;
 
         // Retrieve the conduit creation code hash from the supplied controller.
         (_CONDUIT_CREATION_CODE_HASH, ) = (
-            tempConduitController.getConduitCodeHashes()
+            tempController.getConduitCodeHashes()
         );
 
         _bulkOrderTypehashes[1] = bytes32(
@@ -194,7 +195,6 @@ contract ReferenceConsiderationBase is
         bytes32 _nameHash,
         bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
-        // prettier-ignore
         return keccak256(
             abi.encode(
                 _eip712DomainTypeHash,
@@ -243,7 +243,6 @@ contract ReferenceConsiderationBase is
         versionHash = keccak256(bytes(_VERSION));
 
         // Construct the OfferItem type string.
-        // prettier-ignore
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
                 "uint8 itemType,",
@@ -255,7 +254,6 @@ contract ReferenceConsiderationBase is
         );
 
         // Construct the ConsiderationItem type string.
-        // prettier-ignore
         bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
                 "uint8 itemType,",
@@ -268,7 +266,6 @@ contract ReferenceConsiderationBase is
         );
 
         // Construct the OrderComponents type string, not including the above.
-        // prettier-ignore
         bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
                 "address offerer,",
@@ -286,7 +283,6 @@ contract ReferenceConsiderationBase is
         );
 
         // Construct the primary EIP-712 domain type string.
-        // prettier-ignore
         eip712DomainTypehash = keccak256(
             abi.encodePacked(
                 "EIP712Domain(",

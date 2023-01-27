@@ -39,9 +39,11 @@ uint256 constant OfferAndConsiderationRequiredOnFulfillment_error_length = 0x04;
  *    - 0x20: fulfillmentIndex
  * Revert buffer is memory[0x1c:0x40]
  */
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_selector = 0xbced929d;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr = 0x20;
-uint256 constant MismatchedFulfillmentOfferAndConsiderationComponents_error_length = 0x24;
+uint256 constant MismatchedOfferAndConsiderationComponents_error_selector = (
+    0xbced929d
+);
+uint256 constant MismatchedOfferAndConsiderationComponents_error_idx_ptr = 0x20;
+uint256 constant MismatchedOfferAndConsiderationComponents_error_length = 0x24;
 
 /*
  *  error InvalidFulfillmentComponentData()
@@ -103,7 +105,9 @@ uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
  */
 uint256 constant UnresolvedConsiderationCriteria_error_selector = 0xa8930e9a;
 uint256 constant UnresolvedConsiderationCriteria_error_orderIndex_ptr = 0x20;
-uint256 constant UnresolvedConsiderationCriteria_error_considerationIndex_ptr = 0x40;
+uint256 constant UnresolvedConsiderationCriteria_error_considerationIdx_ptr = (
+    0x40
+);
 uint256 constant UnresolvedConsiderationCriteria_error_length = 0x44;
 
 /*

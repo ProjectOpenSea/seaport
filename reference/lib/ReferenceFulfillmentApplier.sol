@@ -47,8 +47,9 @@ contract ReferenceFulfillmentApplier is
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
-     * @param fulfillmentIndex        The index of the fulfillment component that
-     *                                does not match the initial offer item.
+     * @param fulfillmentIndex        The index of the fulfillment component
+     *                                that does not match the initial offer
+     *                                item.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -209,39 +210,39 @@ contract ReferenceFulfillmentApplier is
         // If no available order was located...
         if (nextComponentIndex == 0) {
             // Return with an empty execution element that will be filtered.
-            // prettier-ignore
-            return Execution(
-                ReceivedItem(
-                    ItemType.NATIVE,
+            return
+                Execution(
+                    ReceivedItem(
+                        ItemType.NATIVE,
+                        address(0),
+                        0,
+                        0,
+                        payable(address(0))
+                    ),
                     address(0),
-                    0,
-                    0,
-                    payable(address(0))
-                ),
-                address(0),
-                bytes32(0)
-            );
+                    bytes32(0)
+                );
         }
 
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by offerer.
-            // prettier-ignore
-            return _aggregateValidFulfillmentOfferItems(
-                ordersToExecute,
-                fulfillmentComponents,
-                recipient
-            );
+            return
+                _aggregateValidFulfillmentOfferItems(
+                    ordersToExecute,
+                    fulfillmentComponents,
+                    recipient
+                );
         } else {
             // Otherwise, fulfillment components are consideration
             // components. Return execution for aggregated items provided by
             // the fulfiller.
-            // prettier-ignore
-            return _aggregateConsiderationItems(
-                ordersToExecute,
-                fulfillmentComponents,
-                fulfillerConduitKey
-            );
+            return
+                _aggregateConsiderationItems(
+                    ordersToExecute,
+                    fulfillmentComponents,
+                    fulfillerConduitKey
+                );
         }
     }
 
@@ -298,22 +299,23 @@ contract ReferenceFulfillmentApplier is
         // Declare variables indicating whether the aggregation is invalid.
         // Ensure that the order index is not out of range.
         bool invalidFulfillment;
+
         // Ensure that no available items have missing amounts.
         bool missingItemAmount;
 
         // Loop through the offer components, checking for validity.
         for (uint256 i = 0; i < offerComponents.length; ++i) {
-            // Get the order index and item index of the offer
-            // component.
+            // Get the order index and item index of the offer component.
             orderIndex = offerComponents[i].orderIndex;
             itemIndex = offerComponents[i].itemIndex;
 
             // Ensure that the order index is not out of range.
             invalidFulfillment = orderIndex >= ordersToExecute.length;
-            // Break if invalid
+            // Break if invalid.
             if (invalidFulfillment) {
                 break;
             }
+
             // Get the order based on offer components order index.
             orderToExecute = ordersToExecute[orderIndex];
             if (
@@ -339,9 +341,9 @@ contract ReferenceFulfillmentApplier is
                         orderToExecute.conduitKey
                     );
 
-                    // If component index > 0, swap component pointer with pointer
-                    // to first component so that any remainder after fulfillment
-                    // can be added back to the first item.
+                    // If component index > 0, swap component pointer with
+                    // pointer to first component so that any remainder after
+                    // fulfillment can be added back to the first item.
                     if (i != 0) {
                         FulfillmentComponent
                             memory firstComponent = offerComponents[0];
@@ -349,13 +351,12 @@ contract ReferenceFulfillmentApplier is
                         offerComponents[i] = firstComponent;
                     }
                 } else {
-                    // Update the Received Item Amount.
+                    // Update the Received Item amount.
                     execution.item.amount =
                         execution.item.amount +
                         offer.amount;
 
-                    // Ensure the indicated offer item matches original
-                    // item.
+                    // Ensure indicated offer item matches original item.
                     invalidFulfillment = _checkMatchingOffer(
                         orderToExecute,
                         offer,
@@ -367,11 +368,10 @@ contract ReferenceFulfillmentApplier is
                 missingItemAmount = offer.amount == 0;
                 invalidFulfillment = invalidFulfillment || missingItemAmount;
 
-                // Zero out amount on original offerItem to indicate
-                // it is spent,
+                // Zero out amount on original offerItem to indicate it's spent.
                 offer.amount = 0;
 
-                // Break if invalid
+                // Break if invalid.
                 if (invalidFulfillment) {
                     break;
                 }
@@ -431,8 +431,8 @@ contract ReferenceFulfillmentApplier is
      * @dev Internal pure function to check the indicated consideration item
      *      matches original item.
      *
-     * @param consideration  The consideration to compare
-     * @param receivedItem  The aggregated received item
+     * @param consideration The consideration to compare.
+     * @param receivedItem  The aggregated received item.
      *
      * @return invalidFulfillment A boolean indicating whether the fulfillment
      *                            is invalid.
@@ -468,7 +468,7 @@ contract ReferenceFulfillmentApplier is
     ) internal pure returns (ReceivedItem memory receivedItem) {
         bool foundItem = false;
 
-        // Declare struct in memory to avoid declaring multiple local variables
+        // Declare struct in memory to avoid declaring multiple local variables.
         ConsiderationItemIndicesAndValidity memory potentialCandidate;
 
         ReceivedItem memory consideration;
@@ -487,14 +487,16 @@ contract ReferenceFulfillmentApplier is
             /// Ensure that the order index is not out of range.
             potentialCandidate.invalidFulfillment =
                 potentialCandidate.orderIndex >= ordersToExecute.length;
-            // Break if invalid
+
+            // Break if invalid.
             if (potentialCandidate.invalidFulfillment) {
                 break;
             }
-            // Get the order based on consideration components order
-            // index.
+
+            // Get order based on consideration components order index.
             orderToExecute = ordersToExecute[potentialCandidate.orderIndex];
-            // Confirm this is a fulfilled order.
+
+            // Confirm that the order is being fulfilled.
             if (
                 orderToExecute.numerator != 0 &&
                 potentialCandidate.itemIndex <
@@ -517,9 +519,9 @@ contract ReferenceFulfillmentApplier is
                         consideration.recipient
                     );
 
-                    // If component index > 0, swap component pointer with pointer
-                    // to first component so that any remainder after fulfillment
-                    // can be added back to the first item.
+                    // If component index > 0, swap component pointer with
+                    // pointer to first component so that any remainder after
+                    // fulfillment can be added back to the first item.
                     if (i != 0) {
                         FulfillmentComponent
                             memory firstComponent = considerationComponents[0];
@@ -527,7 +529,7 @@ contract ReferenceFulfillmentApplier is
                         considerationComponents[i] = firstComponent;
                     }
                 } else {
-                    // Updating Received Item Amount
+                    // Update Received Item amount.
                     receivedItem.amount =
                         receivedItem.amount +
                         consideration.amount;
@@ -549,10 +551,10 @@ contract ReferenceFulfillmentApplier is
                     potentialCandidate.missingItemAmount;
 
                 // Zero out amount on original consideration item to
-                // indicate it is spent
+                // indicate it is spent.
                 consideration.amount = 0;
 
-                // Break if invalid
+                // Break if invalid.
                 if (potentialCandidate.invalidFulfillment) {
                     break;
                 }

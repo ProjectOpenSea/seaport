@@ -359,7 +359,6 @@ uint256 constant ECDSA_signature_v_offset = 0x60;
 bytes32 constant EIP1271_isValidSignature_selector = (
     0x1626ba7e00000000000000000000000000000000000000000000000000000000
 );
-// uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
 uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
 uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
 uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;

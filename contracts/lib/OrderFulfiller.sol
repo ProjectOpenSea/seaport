@@ -264,7 +264,8 @@ contract OrderFulfiller is
                 );
             }
 
-            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            // If a non-contract order has native offer items, throw with an
+            // `InvalidNativeOfferItem` custom error.
             {
                 OrderType orderType = orderParameters.orderType;
                 uint256 invalidNativeOfferItem;

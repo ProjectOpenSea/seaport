@@ -81,8 +81,8 @@ contract ConsiderationDecoder {
             mPtrLength := mload(FreeMemoryPointerSlot)
 
             // Derive the size of the bytes array, rounding up to nearest word
-            // and adding a word for the length field.
-            // Note: masking `calldataload(cdPtrLength)` is redundant here.
+            // and adding a word for the length field. Note: masking
+            // `calldataload(cdPtrLength)` is redundant here.
             let size := add(
                 and(
                     add(calldataload(cdPtrLength), ThirtyOneBytes),
@@ -93,9 +93,10 @@ contract ConsiderationDecoder {
 
             // Copy bytes from calldata into memory based on pointers and size.
             calldatacopy(mPtrLength, cdPtrLength, size)
-            // Store the masked value in memory.
-            // Note: the value of `size` is at least 32.
-            // So the previous line will at least write to `[mPtrLength, mPtrLength + 32)`.
+
+            // Store the masked value in memory. Note: the value of `size` is at
+            // least 32, meaning the calldatacopy above will at least write to
+            // `[mPtrLength, mPtrLength + 32)`.
             mstore(
                 mPtrLength,
                 and(calldataload(cdPtrLength), OffsetOrLengthMask)

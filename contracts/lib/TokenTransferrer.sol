@@ -737,11 +737,15 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Revert with an error if the encoding is not valid.
                 if invalidEncoding {
+                    // Store left-padded selector with push4, mem[28:32]
                     mstore(
                         Invalid1155BatchTransferEncoding_ptr,
                         Invalid1155BatchTransferEncoding_selector
                     )
-                    // revert(abi.encodeWithSignature("Invalid1155BatchTransferEncoding()"))
+
+                    // revert(abi.encodeWithSignature(
+                    //     "Invalid1155BatchTransferEncoding()"
+                    // ))
                     revert(
                         Invalid1155BatchTransferEncoding_ptr,
                         Invalid1155BatchTransferEncoding_length
