@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 /**
  * @title  SignedZone
- * @author ryanio
+ * @author ryanio, BCLeFevre
  * @notice SignedZone is an implementation of SIP-7 that requires orders
  *         to be signed by an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md

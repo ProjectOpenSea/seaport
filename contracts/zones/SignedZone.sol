@@ -19,7 +19,7 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
  * @title  SignedZone
- * @author ryanio
+ * @author ryanio, BCLeFevre
  * @notice SignedZone is an implementation of SIP-7 that requires orders
  *         to be signed by an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
@@ -113,6 +113,38 @@ contract SignedZone is
         0x1901000000000000000000000000000000000000000000000000000000000000
     );
 
+    /*
+     *  error InvalidFulfiller(address expectedFulfiller, address actualFulfiller, bytes32 orderHash)
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     *    - 0x20: expectedFulfiller
+     *    - 0x40: actualFullfiller
+     *    - 0x60: orderHash
+     * Revert buffer is memory[0x1c:0x80]
+     */
+    uint256 constant InvalidFulfiller_error_selector = 0x1bcf9bb7;
+    uint256 constant InvalidFulfiller_error_expectedFulfiller_ptr = 0x20;
+    uint256 constant InvalidFulfiller_error_actualFulfiller_ptr = 0x40;
+    uint256 constant InvalidFulfiller_error_orderHash_ptr = 0x60;
+    uint256 constant InvalidFulfiller_error_length = 0x64;
+
+    /*
+     *  error InvalidReceiver(uint256 expectedReceivedIdentifier, uint256 actualReceievedIdentifier, bytes32 orderHash)
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     *    - 0x20: expectedReceivedIdentifier
+     *    - 0x40: actualReceievedIdentifier
+     *    - 0x60: orderHash
+     * Revert buffer is memory[0x1c:0x80]
+     */
+    uint256 constant InvalidReceivedItem_error_selector = 0xb36c03e8;
+    uint256 constant InvalidReceivedItem_error_expectedReceivedItem_ptr = 0x20;
+    uint256 constant InvalidReceivedItem_error_actualReceivedItem_ptr = 0x40;
+    uint256 constant InvalidReceivedItem_error_orderHash_ptr = 0x60;
+    uint256 constant InvalidReceivedItem_error_length = 0x64;
+
     /* solhint-enable private-vars-leading-underscore */
     /* solhint-enable const-name-snakecase */
 
@@ -171,9 +203,11 @@ contract SignedZone is
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(
-        address signer
-    ) external override onlyOwnerOrActiveSigner {
+    function addSigner(address signer)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Do not allow the zero address to be added as a signer.
         if (signer == address(0)) {
             revert SignerCannotBeZeroAddress();
@@ -205,9 +239,11 @@ contract SignedZone is
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(
-        address signer
-    ) external override onlyOwnerOrActiveSigner {
+    function removeSigner(address signer)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Revert if the signer is not active.
         if (!_signers[signer].active) {
             revert SignerNotPresent(signer);
@@ -239,9 +275,11 @@ contract SignedZone is
      *
      * @param newApiEndpoint The new API endpoint.
      */
-    function updateAPIEndpoint(
-        string calldata newApiEndpoint
-    ) external override onlyOwnerOrActiveSigner {
+    function updateAPIEndpoint(string calldata newApiEndpoint)
+        external
+        override
+        onlyOwnerOrActiveSigner
+    {
         // Update to the new API endpoint.
         _sip7APIEndpoint = newApiEndpoint;
     }
@@ -255,17 +293,20 @@ contract SignedZone is
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
 
         // Revert with an error if the extraData does not have valid length.
-        if (extraData.length < 93) {
+        if (extraData.length != 126) {
             revert InvalidExtraData(
-                "extraData length must be at least 93 bytes",
+                "extraData length must be at least 126 bytes",
                 orderHash
             );
         }
@@ -278,9 +319,13 @@ contract SignedZone is
             );
         }
 
-        // extraData bytes 1-21: expected fulfiller
-        // (zero address means not restricted)
-        address expectedFulfiller = address(bytes20(extraData[1:21]));
+        // extraData bytes 93-94: Substandard #1 (MUST be 0x00)
+        if (extraData[93] != 0x00) {
+            revert InvalidExtraData(
+                "SIP-6 version byte must be 0x00 to indicate SIP-7 Substandard support.",
+                orderHash
+            );
+        }
 
         // extraData bytes 21-29: expiration timestamp (uint64)
         uint64 expiration = uint64(bytes8(extraData[21:29]));
@@ -297,24 +342,85 @@ contract SignedZone is
             revert SignatureExpired(expiration, orderHash);
         }
 
-        // Put fulfiller on the stack for more efficient access.
-        address actualFulfiller = zoneParameters.fulfiller;
-
-        // Revert if expected fulfiller is not the zero address and does
-        // not match the actual fulfiller.
-        bool validFulfiller;
-        assembly {
-            validFulfiller := or(
-                iszero(expectedFulfiller),
-                eq(expectedFulfiller, actualFulfiller)
-            )
-        }
-        if (!validFulfiller) {
-            revert InvalidFulfiller(
-                expectedFulfiller,
-                actualFulfiller,
+        // Revert if the order does not have any consideration items.
+        // (Substandard #1 requirement)
+        if (zoneParameters.consideration.length == 0) {
+            revert InvalidSubstandardSupport(
+                "Consideration must have at least one item.",
+                1, // Substandard #1
                 orderHash
             );
+        }
+
+        // extraData bytes 1-21: expected fulfiller
+        // (zero address means not restricted)
+        address expectedFulfiller;
+
+        // Revert if the expected fulfiller is not the zero address and does
+        // not match the actual fulfiller or if the expected received
+        // identifier does not match the actual received identifier.
+        assembly {
+            // Get the pionter to the struct in calldata.
+            let structPtr := add(0x04, calldataload(0x04))
+            // Get the pointer to the consideration array in calldata.
+            let considerationPtr := calldataload(add(structPtr, FourWords))
+            // Get the pointer to the extraData array in calldata.
+            let extraDataPtr := calldataload(add(structPtr, FiveWords))
+
+            // Get the actual fulfiller.
+            let actualFulfiller := calldataload(add(structPtr, OneWord))
+
+            // Get the expected fulfiller.
+            expectedFulfiller := shr(
+                96,
+                calldataload(add(0x21, add(structPtr, extraDataPtr)))
+            )
+
+            // Get the actual received identifier.
+            let actualReceivedIdentifier := calldataload(
+                add(ThreeWords, add(structPtr, considerationPtr))
+            )
+            // Get the expected received identifier.
+            let expectedReceivedIdentifier := calldataload(
+                add(0x7e, add(structPtr, extraDataPtr))
+            )
+
+            // Revert if expected fulfiller is not the zero address and does
+            // not match the actual fulfiller.
+            if and(
+                iszero(iszero(expectedFulfiller)),
+                iszero(eq(expectedFulfiller, actualFulfiller))
+            ) {
+                mstore(0, InvalidFulfiller_error_selector)
+                mstore(
+                    InvalidFulfiller_error_expectedFulfiller_ptr,
+                    expectedFulfiller
+                )
+                mstore(
+                    InvalidFulfiller_error_actualFulfiller_ptr,
+                    actualFulfiller
+                )
+                mstore(InvalidFulfiller_error_orderHash_ptr, orderHash)
+                revert(0x1c, InvalidFulfiller_error_length)
+            }
+
+            // Revert if expected received item does not match the actual
+            // received item.
+            if iszero(
+                eq(expectedReceivedIdentifier, actualReceivedIdentifier)
+            ) {
+                mstore(0, InvalidReceivedItem_error_selector)
+                mstore(
+                    InvalidReceivedItem_error_expectedReceivedItem_ptr,
+                    expectedReceivedIdentifier
+                )
+                mstore(
+                    InvalidReceivedItem_error_actualReceivedItem_ptr,
+                    actualReceivedIdentifier
+                )
+                mstore(InvalidReceivedItem_error_orderHash_ptr, orderHash)
+                revert(0x1c, InvalidReceivedItem_error_length)
+            }
         }
 
         // Derive the signedOrder hash.
@@ -425,9 +531,13 @@ contract SignedZone is
      *
      * @param interfaceId The interface id to check against.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC165)
+        returns (bool)
+    {
         return
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
             interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
@@ -498,10 +608,11 @@ contract SignedZone is
      *
      * @return recoveredSigner The recovered signer.
      */
-    function _recoverSigner(
-        bytes32 digest,
-        bytes memory signature
-    ) internal view returns (address recoveredSigner) {
+    function _recoverSigner(bytes32 digest, bytes memory signature)
+        internal
+        view
+        returns (address recoveredSigner)
+    {
         // Utilize assembly to perform optimized signature verification check.
         assembly {
             // Ensure that first word of scratch space is empty.
