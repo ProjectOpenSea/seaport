@@ -21,6 +21,7 @@ import { OrderValidator } from "./OrderValidator.sol";
 import {
     _revertInsufficientNativeTokensSupplied,
     _revertInvalidMsgValue,
+    _revertInvalidERC721TransferAmount,
     _revertUnusedItemParameters
 } from "./ConsiderationErrors.sol";
 
@@ -66,12 +67,24 @@ import {
     BasicOrder_totalOriginalAdditionalRecipients_cdPtr,
     BasicOrder_zone_cdPtr,
     Common_token_offset,
+    Conduit_execute_ConduitTransfer_length_ptr,
+    Conduit_execute_ConduitTransfer_length,
+    Conduit_execute_ConduitTransfer_offset_ptr,
+    Conduit_execute_ConduitTransfer_ptr,
+    Conduit_execute_signature,
+    Conduit_execute_transferAmount_ptr,
+    Conduit_execute_transferIdentifier_ptr,
+    Conduit_execute_transferFrom_ptr,
+    Conduit_execute_transferItemType_ptr,
+    Conduit_execute_transferTo_ptr,
+    Conduit_execute_transferToken_ptr,
     EIP712_ConsiderationItem_size,
     EIP712_OfferItem_size,
     EIP712_Order_size,
     FiveWords,
     FourWords,
     FreeMemoryPointerSlot,
+    OneConduitExecute_size,
     OneWord,
     OneWordShift,
     OrderFulfilled_baseOffset,
@@ -99,7 +112,9 @@ import {
     InvalidTime_error_selector,
     InvalidTime_error_startTime_ptr,
     MissingOriginalConsiderationItems_error_length,
-    MissingOriginalConsiderationItems_error_selector
+    MissingOriginalConsiderationItems_error_selector,
+    UnusedItemParameters_error_length,
+    UnusedItemParameters_error_selector
 } from "./ConsiderationErrorConstants.sol";
 
 /**
@@ -255,24 +270,28 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer tokens based on the route.
         if (additionalRecipientsItemType == ItemType.NATIVE) {
-            // Ensure neither the token nor the identifier parameters are set.
-            if (
-                (uint160(parameters.considerationToken) |
-                    parameters.considerationIdentifier) != 0
-            ) {
-                _revertUnusedItemParameters();
+            // Ensure neither consideration token nor identifier are set. Note
+            // that dirty upper bits in the consideration token will still cause
+            // this error to be thrown.
+            assembly {
+                if or(
+                    calldataload(BasicOrder_considerationToken_cdPtr),
+                    calldataload(BasicOrder_considerationIdentifier_cdPtr)
+                ) {
+                    // Store left-padded selector with push4 (reduces bytecode),
+                    // mem[28:32] = selector
+                    mstore(0, UnusedItemParameters_error_selector)
+
+                    // revert(abi.encodeWithSignature("UnusedItemParameters()"))
+                    revert(
+                        Error_selector_offset,
+                        UnusedItemParameters_error_length
+                    )
+                }
             }
 
             // Transfer the ERC721 or ERC1155 item, bypassing the accumulator.
-            _transferIndividual721Or1155Item(
-                offeredItemType,
-                parameters.offerToken,
-                parameters.offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
+            _transferIndividual721Or1155Item(offeredItemType, conduitKey);
 
             // Transfer native to recipients, return excess to caller & wrap up.
             _transferNativeTokensAndFinalize();
@@ -1006,14 +1025,140 @@ contract BasicOrderFulfiller is OrderValidator {
         }
 
         // Verify and update the status of the derived order.
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            parameters.offerer,
-            parameters.signature
-        );
+        _validateBasicOrderAndUpdateStatus(orderHash, parameters.signature);
 
         // Return the derived order hash.
         return orderHash;
+    }
+
+    /**
+     * @dev Internal function to transfer an individual ERC721 or ERC1155 item
+     *      from a given originator to a given recipient. The accumulator will
+     *      be bypassed, meaning that this function should be utilized in cases
+     *      where multiple item transfers can be accumulated into a single
+     *      conduit call. Sufficient approvals must be set, either on the
+     *      respective conduit or on this contract. Note that this function may
+     *      only be safely called as part of basic orders, as it assumes a
+     *      specific calldata encoding structure that must first be validated.
+     *
+     * @param itemType   The type of item to transfer, either ERC721 or ERC1155.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used, with direct
+     *                   approvals set on this contract.
+     */
+    function _transferIndividual721Or1155Item(
+        ItemType itemType,
+        bytes32 conduitKey
+    ) internal {
+        // Retrieve token, from, identifier, and amount from calldata using
+        // fixed calldata offsets based on strict basic parameter encoding.
+        address token;
+        address from;
+        uint256 identifier;
+        uint256 amount;
+        assembly {
+            token := calldataload(BasicOrder_offerToken_cdPtr)
+            from := calldataload(BasicOrder_offerer_cdPtr)
+            identifier := calldataload(BasicOrder_offerIdentifier_cdPtr)
+            amount := calldataload(BasicOrder_offerAmount_cdPtr)
+        }
+
+        // Determine if the transfer is to be performed via a conduit.
+        if (conduitKey != bytes32(0)) {
+            // Use free memory pointer as calldata offset for the conduit call.
+            uint256 callDataOffset;
+
+            // Utilize assembly to place each argument in free memory.
+            assembly {
+                // Retrieve the free memory pointer and use it as the offset.
+                callDataOffset := mload(FreeMemoryPointerSlot)
+
+                // Write ConduitInterface.execute.selector to memory.
+                mstore(callDataOffset, Conduit_execute_signature)
+
+                // Write the offset to the ConduitTransfer array in memory.
+                mstore(
+                    add(
+                        callDataOffset,
+                        Conduit_execute_ConduitTransfer_offset_ptr
+                    ),
+                    Conduit_execute_ConduitTransfer_ptr
+                )
+
+                // Write the length of the ConduitTransfer array to memory.
+                mstore(
+                    add(
+                        callDataOffset,
+                        Conduit_execute_ConduitTransfer_length_ptr
+                    ),
+                    Conduit_execute_ConduitTransfer_length
+                )
+
+                // Write the item type to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferItemType_ptr),
+                    itemType
+                )
+
+                // Write the token to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferToken_ptr),
+                    token
+                )
+
+                // Write the transfer source to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferFrom_ptr),
+                    from
+                )
+
+                // Write the transfer recipient (the caller) to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferTo_ptr),
+                    caller()
+                )
+
+                // Write the token identifier to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferIdentifier_ptr),
+                    identifier
+                )
+
+                // Write the transfer amount to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferAmount_ptr),
+                    amount
+                )
+            }
+
+            // Perform the call to the conduit.
+            _callConduitUsingOffsets(
+                conduitKey,
+                callDataOffset,
+                OneConduitExecute_size
+            );
+        } else {
+            // Otherwise, determine whether it is an ERC721 or ERC1155 item.
+            if (itemType == ItemType.ERC721) {
+                // Ensure that exactly one 721 item is being transferred.
+                if (amount != 1) {
+                    _revertInvalidERC721TransferAmount(amount);
+                }
+
+                // Perform transfer to caller via the token contract directly.
+                _performERC721Transfer(token, from, msg.sender, identifier);
+            } else {
+                // Perform transfer to caller via the token contract directly.
+                _performERC1155Transfer(
+                    token,
+                    from,
+                    msg.sender,
+                    identifier,
+                    amount
+                );
+            }
+        }
     }
 
     /**

@@ -31,6 +31,7 @@ import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 import {
     AdvancedOrder_denominator_offset,
     AdvancedOrder_numerator_offset,
+    BasicOrder_offerer_cdPtr,
     Common_amount_offset,
     Common_endAmount_offset,
     Common_identifier_offset,
@@ -76,17 +77,25 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     /**
      * @dev Internal function to verify and update the status of a basic order.
+     *      Note that this function may only be safely called as part of basic
+     *      orders, as it assumes a specific calldata encoding structure that
+     *      must first be validated.
      *
      * @param orderHash The hash of the order.
-     * @param offerer   The offerer of the order.
      * @param signature A signature from the offerer indicating that the order
      *                  has been approved.
      */
     function _validateBasicOrderAndUpdateStatus(
         bytes32 orderHash,
-        address offerer,
-        bytes memory signature
+        bytes calldata signature
     ) internal {
+        // Retrieve offerer directly using fixed calldata offset based on strict
+        // basic parameter encoding.
+        address offerer;
+        assembly {
+            offerer := calldataload(BasicOrder_offerer_cdPtr)
+        }
+
         // Retrieve the order status for the given order hash.
         OrderStatus storage orderStatus = _orderStatus[orderHash];
 
