@@ -7,9 +7,7 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
-import {
-    OrderType
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,

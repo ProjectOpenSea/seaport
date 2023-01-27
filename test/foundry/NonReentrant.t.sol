@@ -32,9 +32,7 @@ import {
     ReentryPoint
 } from "./utils/reentrancy/ReentrantEnums.sol";
 
-import {
-    CriteriaResolver
-} from "./utils/reentrancy/ReentrantStructs.sol";
+import { CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
