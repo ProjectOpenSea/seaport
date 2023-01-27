@@ -47,6 +47,20 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
 
     receive() external payable {}
 
+    function activate(
+        SpentItem memory available,
+        SpentItem memory required
+    ) public payable {
+        if (ready || fulfilled) {
+            revert OrderUnavailable();
+        }
+
+        // Set storage variables.
+        _available = available;
+        _required = required;
+        ready = true;
+    }
+
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`
     /// i.e., the merkle-root.
