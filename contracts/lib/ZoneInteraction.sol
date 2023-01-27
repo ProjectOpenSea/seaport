@@ -17,7 +17,11 @@ import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 
-import { MaskOverFirstFourBytes, OneWord } from "./ConsiderationConstants.sol";
+import {
+    ContractOrder_orderHash_offerer_shift,
+    MaskOverFirstFourBytes,
+    OneWord
+} from "./ConsiderationConstants.sol";
 
 import {
     Error_selector_offset,
@@ -118,16 +122,26 @@ contract ZoneInteraction is
             // Set the restricted-order-specific error selector.
             errorSelector = InvalidRestrictedOrder_error_selector;
         } else if (parameters.orderType == OrderType.CONTRACT) {
+            // Set the target to the offerer.
+            target = parameters.offerer;
+
+            // Shift the target 96 bits to the left.
+            uint256 shiftedOfferer;
+            assembly {
+                shiftedOfferer := shl(
+                    ContractOrder_orderHash_offerer_shift,
+                    target
+                )
+            }
+
             // Encode the `ratifyOrder` call in memory.
             (callData, size) = _encodeRatifyOrder(
                 orderHash,
                 parameters,
                 advancedOrder.extraData,
-                orderHashes
+                orderHashes,
+                shiftedOfferer
             );
-
-            // Set the target to the offerer.
-            target = parameters.offerer;
 
             // Set the contract-order-specific error selector.
             errorSelector = InvalidContractOrder_error_selector;

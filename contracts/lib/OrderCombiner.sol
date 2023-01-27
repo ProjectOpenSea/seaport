@@ -424,7 +424,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     assembly {
                         // Derive the pointer to the recipient using the item
                         // pointer along with the offset to the recipient.
-                        let considerationItemRecipient := add(
+                        let considerationItemRecipientPtr := add(
                             considerationItem,
                             ConsiderationItem_recipient_offset // recipient
                         )
@@ -437,13 +437,13 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                                 considerationItem,
                                 ReceivedItem_recipient_offset // old endAmount
                             ),
-                            mload(considerationItemRecipient)
+                            mload(considerationItemRecipientPtr)
                         )
 
                         // Write startAmount to recipient, as recipient is not
                         // used from this point on and can be repurposed to
                         // track received amounts.
-                        mstore(considerationItemRecipient, currentAmount)
+                        mstore(considerationItemRecipientPtr, currentAmount)
                     }
                 }
             }
