@@ -21,6 +21,7 @@ import { OrderValidator } from "./OrderValidator.sol";
 import {
     _revertInsufficientNativeTokensSupplied,
     _revertInvalidMsgValue,
+    _revertInvalidERC721TransferAmount,
     _revertUnusedItemParameters
 } from "./ConsiderationErrors.sol";
 
@@ -34,6 +35,7 @@ import {
     BasicOrder_common_params_size,
     BasicOrder_considerationAmount_cdPtr,
     BasicOrder_considerationHashesArray_ptr,
+    BasicOrder_considerationIdentifier_cdPtr,
     BasicOrder_considerationItem_endAmount_ptr,
     BasicOrder_considerationItem_identifier_ptr,
     BasicOrder_considerationItem_itemType_ptr,
@@ -41,11 +43,13 @@ import {
     BasicOrder_considerationItem_token_ptr,
     BasicOrder_considerationItem_typeHash_ptr,
     BasicOrder_considerationToken_cdPtr,
+    BasicOrder_endTime_cdPtr,
     BasicOrder_fulfillerConduit_cdPtr,
     BasicOrder_offerAmount_cdPtr,
     BasicOrder_offeredItemByteMap,
     BasicOrder_offerer_cdPtr,
     BasicOrder_offererConduit_cdPtr,
+    BasicOrder_offerIdentifier_cdPtr,
     BasicOrder_offerItem_endAmount_ptr,
     BasicOrder_offerItem_itemType_ptr,
     BasicOrder_offerItem_token_ptr,
@@ -63,12 +67,24 @@ import {
     BasicOrder_totalOriginalAdditionalRecipients_cdPtr,
     BasicOrder_zone_cdPtr,
     Common_token_offset,
+    Conduit_execute_ConduitTransfer_length_ptr,
+    Conduit_execute_ConduitTransfer_length,
+    Conduit_execute_ConduitTransfer_offset_ptr,
+    Conduit_execute_ConduitTransfer_ptr,
+    Conduit_execute_signature,
+    Conduit_execute_transferAmount_ptr,
+    Conduit_execute_transferIdentifier_ptr,
+    Conduit_execute_transferFrom_ptr,
+    Conduit_execute_transferItemType_ptr,
+    Conduit_execute_transferTo_ptr,
+    Conduit_execute_transferToken_ptr,
     EIP712_ConsiderationItem_size,
     EIP712_OfferItem_size,
     EIP712_Order_size,
     FiveWords,
     FourWords,
     FreeMemoryPointerSlot,
+    OneConduitExecute_size,
     OneWord,
     OneWordShift,
     OrderFulfilled_baseOffset,
@@ -88,6 +104,18 @@ import {
     TwoWords,
     ZeroSlot
 } from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    InvalidTime_error_endTime_ptr,
+    InvalidTime_error_length,
+    InvalidTime_error_selector,
+    InvalidTime_error_startTime_ptr,
+    MissingOriginalConsiderationItems_error_length,
+    MissingOriginalConsiderationItems_error_selector,
+    UnusedItemParameters_error_length,
+    UnusedItemParameters_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -242,30 +270,31 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer tokens based on the route.
         if (additionalRecipientsItemType == ItemType.NATIVE) {
-            // Ensure neither the token nor the identifier parameters are set.
-            if (
-                (uint160(parameters.considerationToken) |
-                    parameters.considerationIdentifier) != 0
-            ) {
-                _revertUnusedItemParameters();
+            // Ensure neither consideration token nor identifier are set. Note
+            // that dirty upper bits in the consideration token will still cause
+            // this error to be thrown.
+            assembly {
+                if or(
+                    calldataload(BasicOrder_considerationToken_cdPtr),
+                    calldataload(BasicOrder_considerationIdentifier_cdPtr)
+                ) {
+                    // Store left-padded selector with push4 (reduces bytecode),
+                    // mem[28:32] = selector
+                    mstore(0, UnusedItemParameters_error_selector)
+
+                    // revert(abi.encodeWithSignature("UnusedItemParameters()"))
+                    revert(
+                        Error_selector_offset,
+                        UnusedItemParameters_error_length
+                    )
+                }
             }
 
             // Transfer the ERC721 or ERC1155 item, bypassing the accumulator.
-            _transferIndividual721Or1155Item(
-                offeredItemType,
-                parameters.offerToken,
-                parameters.offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
+            _transferIndividual721Or1155Item(offeredItemType, conduitKey);
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferNativeTokensAndFinalize(
-                parameters.considerationAmount,
-                parameters.offerer
-            );
+            _transferNativeTokensAndFinalize();
         } else {
             // Initialize an accumulator array. From this point forward, no new
             // memory regions can be safely allocated until the accumulator is
@@ -325,8 +354,6 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                parameters.offerer,
-                parameters,
                 offerTypeIsAdditionalRecipientsType,
                 accumulator
             );
@@ -381,9 +408,6 @@ contract BasicOrderFulfiller is OrderValidator {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard(false); // Native tokens rejected during execution.
 
-        // Ensure current timestamp falls between order start time and end time.
-        _verifyTime(parameters.startTime, parameters.endTime, true);
-
         // Verify that calldata offsets for all dynamic types were produced by
         // default encoding. This ensures that the constants used for calldata
         // pointers to dynamic types are the same as those calculated by
@@ -391,20 +415,60 @@ contract BasicOrderFulfiller is OrderValidator {
         // is within range.
         _assertValidBasicOrderParameters();
 
-        {
-            // Retrieve total number of additional recipients & place on stack.
-            uint256 totalAdditionalRecipients;
-            assembly {
-                totalAdditionalRecipients := calldataload(
-                    BasicOrder_additionalRecipients_length_cdPtr
+        // Check for invalid time and missing original consideration items.
+        // Utilize assembly so that constant calldata pointers can be applied.
+        assembly {
+            // Ensure current timestamp is between order start time & end time.
+            if iszero(
+                and(
+                    iszero(
+                        gt(
+                            calldataload(BasicOrder_startTime_cdPtr),
+                            timestamp()
+                        )
+                    ),
+                    gt(calldataload(BasicOrder_endTime_cdPtr), timestamp())
                 )
+            ) {
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
+                mstore(0, InvalidTime_error_selector)
+
+                // Store arguments.
+                mstore(
+                    InvalidTime_error_startTime_ptr,
+                    calldataload(BasicOrder_startTime_cdPtr)
+                )
+                mstore(
+                    InvalidTime_error_endTime_ptr,
+                    calldataload(BasicOrder_endTime_cdPtr)
+                )
+
+                // revert(abi.encodeWithSignature(
+                //     "InvalidTime(uint256,uint256)",
+                //     startTime,
+                //     endTime
+                // ))
+                revert(Error_selector_offset, InvalidTime_error_length)
             }
 
-            // Ensure consideration array length is not less than original.
-            _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
-                totalAdditionalRecipients,
-                parameters.totalOriginalAdditionalRecipients
-            );
+            // Ensure consideration array length isn't less than total original.
+            if lt(
+                calldataload(BasicOrder_additionalRecipients_length_cdPtr),
+                calldataload(BasicOrder_totalOriginalAdditionalRecipients_cdPtr)
+            ) {
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
+                mstore(0, MissingOriginalConsiderationItems_error_selector)
+
+                // revert(abi.encodeWithSignature(
+                //     "MissingOriginalConsiderationItems()"
+                // ))
+                revert(
+                    Error_selector_offset,
+                    MissingOriginalConsiderationItems_error_length
+                )
+            }
         }
 
         {
@@ -961,14 +1025,140 @@ contract BasicOrderFulfiller is OrderValidator {
         }
 
         // Verify and update the status of the derived order.
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            parameters.offerer,
-            parameters.signature
-        );
+        _validateBasicOrderAndUpdateStatus(orderHash, parameters.signature);
 
         // Return the derived order hash.
         return orderHash;
+    }
+
+    /**
+     * @dev Internal function to transfer an individual ERC721 or ERC1155 item
+     *      from a given originator to a given recipient. The accumulator will
+     *      be bypassed, meaning that this function should be utilized in cases
+     *      where multiple item transfers can be accumulated into a single
+     *      conduit call. Sufficient approvals must be set, either on the
+     *      respective conduit or on this contract. Note that this function may
+     *      only be safely called as part of basic orders, as it assumes a
+     *      specific calldata encoding structure that must first be validated.
+     *
+     * @param itemType   The type of item to transfer, either ERC721 or ERC1155.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used, with direct
+     *                   approvals set on this contract.
+     */
+    function _transferIndividual721Or1155Item(
+        ItemType itemType,
+        bytes32 conduitKey
+    ) internal {
+        // Retrieve token, from, identifier, and amount from calldata using
+        // fixed calldata offsets based on strict basic parameter encoding.
+        address token;
+        address from;
+        uint256 identifier;
+        uint256 amount;
+        assembly {
+            token := calldataload(BasicOrder_offerToken_cdPtr)
+            from := calldataload(BasicOrder_offerer_cdPtr)
+            identifier := calldataload(BasicOrder_offerIdentifier_cdPtr)
+            amount := calldataload(BasicOrder_offerAmount_cdPtr)
+        }
+
+        // Determine if the transfer is to be performed via a conduit.
+        if (conduitKey != bytes32(0)) {
+            // Use free memory pointer as calldata offset for the conduit call.
+            uint256 callDataOffset;
+
+            // Utilize assembly to place each argument in free memory.
+            assembly {
+                // Retrieve the free memory pointer and use it as the offset.
+                callDataOffset := mload(FreeMemoryPointerSlot)
+
+                // Write ConduitInterface.execute.selector to memory.
+                mstore(callDataOffset, Conduit_execute_signature)
+
+                // Write the offset to the ConduitTransfer array in memory.
+                mstore(
+                    add(
+                        callDataOffset,
+                        Conduit_execute_ConduitTransfer_offset_ptr
+                    ),
+                    Conduit_execute_ConduitTransfer_ptr
+                )
+
+                // Write the length of the ConduitTransfer array to memory.
+                mstore(
+                    add(
+                        callDataOffset,
+                        Conduit_execute_ConduitTransfer_length_ptr
+                    ),
+                    Conduit_execute_ConduitTransfer_length
+                )
+
+                // Write the item type to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferItemType_ptr),
+                    itemType
+                )
+
+                // Write the token to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferToken_ptr),
+                    token
+                )
+
+                // Write the transfer source to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferFrom_ptr),
+                    from
+                )
+
+                // Write the transfer recipient (the caller) to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferTo_ptr),
+                    caller()
+                )
+
+                // Write the token identifier to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferIdentifier_ptr),
+                    identifier
+                )
+
+                // Write the transfer amount to memory.
+                mstore(
+                    add(callDataOffset, Conduit_execute_transferAmount_ptr),
+                    amount
+                )
+            }
+
+            // Perform the call to the conduit.
+            _callConduitUsingOffsets(
+                conduitKey,
+                callDataOffset,
+                OneConduitExecute_size
+            );
+        } else {
+            // Otherwise, determine whether it is an ERC721 or ERC1155 item.
+            if (itemType == ItemType.ERC721) {
+                // Ensure that exactly one 721 item is being transferred.
+                if (amount != 1) {
+                    _revertInvalidERC721TransferAmount(amount);
+                }
+
+                // Perform transfer to caller via the token contract directly.
+                _performERC721Transfer(token, from, msg.sender, identifier);
+            } else {
+                // Perform transfer to caller via the token contract directly.
+                _performERC1155Transfer(
+                    token,
+                    from,
+                    msg.sender,
+                    identifier,
+                    amount
+                );
+            }
+        }
     }
 
     /**
@@ -978,20 +1168,19 @@ contract BasicOrderFulfiller is OrderValidator {
      *      amount must be provided as msg.value. Also note that this function
      *      may only be safely called as part of basic orders, as it assumes a
      *      specific calldata encoding structure that must first be validated.
-     *
-     * @param amount The amount to transfer.
-     * @param to     The recipient of the native token transfer.
      */
-    function _transferNativeTokensAndFinalize(
-        uint256 amount,
-        address payable to
-    ) internal {
+    function _transferNativeTokensAndFinalize() internal {
         // Put native token value supplied by the caller on the stack.
         uint256 nativeTokensRemaining = msg.value;
 
-        // Retrieve total size of additional recipients data and place on stack.
+        // Retrieve consideration amount, offerer, and total size of additional
+        // recipients data from calldata using fixed offsets and place on stack.
+        uint256 amount;
+        address payable to;
         uint256 totalAdditionalRecipientsDataSize;
         assembly {
+            amount := calldataload(BasicOrder_considerationAmount_cdPtr)
+            to := calldataload(BasicOrder_offerer_cdPtr)
             totalAdditionalRecipientsDataSize := shl(
                 AdditionalRecipient_size_shift,
                 calldataload(BasicOrder_additionalRecipients_length_cdPtr)
@@ -1063,18 +1252,16 @@ contract BasicOrderFulfiller is OrderValidator {
      * @dev Internal function to transfer ERC20 tokens to a given recipient as
      *      part of basic order fulfillment. Note that this function may only be
      *      safely called as part of basic orders, as it assumes a specific
-     *      calldata encoding structure that must first be validated.
+     *      calldata encoding structure that must first be validated. Also note
+     *      that basic order parameters are retrieved using fixed offsets, this
+     *      requires that strict basic order encoding has already been verified.
      *
-     * @param offerer     The offerer of the fulfiller order.
-     * @param parameters  The basic order parameters.
      * @param fromOfferer A boolean indicating whether to decrement amount from
      *                    the offered amount.
      * @param accumulator An open-ended array that collects transfers to execute
      *                    against a given conduit in a single call.
      */
     function _transferERC20AndFinalize(
-        address offerer,
-        BasicOrderParameters calldata parameters,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
@@ -1093,23 +1280,27 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Set ERC20 token transfer variables based on fromOfferer boolean.
             if (fromOfferer) {
-                // Use offerer as from value and msg.sender as to value.
-                from = offerer;
-                to = msg.sender;
-
-                // Use offer token and related values if token is from offerer.
-                token = parameters.offerToken;
-                identifier = parameters.offerIdentifier;
-                amount = parameters.offerAmount;
+                // Use offerer as from value, msg.sender as to value, and offer
+                // token, identifier, & amount values if token is from offerer.
+                assembly {
+                    from := calldataload(BasicOrder_offerer_cdPtr)
+                    to := caller()
+                    token := calldataload(BasicOrder_offerToken_cdPtr)
+                    identifier := calldataload(BasicOrder_offerIdentifier_cdPtr)
+                    amount := calldataload(BasicOrder_offerAmount_cdPtr)
+                }
             } else {
-                // Use msg.sender as from value and offerer as to value.
-                from = msg.sender;
-                to = offerer;
-
-                // Otherwise, use consideration token and related values.
-                token = parameters.considerationToken;
-                identifier = parameters.considerationIdentifier;
-                amount = parameters.considerationAmount;
+                // Otherwise, use msg.sender as from value, offerer as to value,
+                // and consideration token, identifier, and amount values.
+                assembly {
+                    from := caller()
+                    to := calldataload(BasicOrder_offerer_cdPtr)
+                    token := calldataload(BasicOrder_considerationToken_cdPtr)
+                    identifier := calldataload(
+                        BasicOrder_considerationIdentifier_cdPtr
+                    )
+                    amount := calldataload(BasicOrder_considerationAmount_cdPtr)
+                }
             }
 
             // Ensure that no identifier is supplied.

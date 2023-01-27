@@ -22,17 +22,6 @@ import {
     Accumulator_selector_ptr,
     AccumulatorArmed,
     AccumulatorDisarmed,
-    Conduit_execute_ConduitTransfer_length_ptr,
-    Conduit_execute_ConduitTransfer_length,
-    Conduit_execute_ConduitTransfer_offset_ptr,
-    Conduit_execute_ConduitTransfer_ptr,
-    Conduit_execute_signature,
-    Conduit_execute_transferAmount_ptr,
-    Conduit_execute_transferFrom_ptr,
-    Conduit_execute_transferIdentifier_ptr,
-    Conduit_execute_transferItemType_ptr,
-    Conduit_execute_transferTo_ptr,
-    Conduit_execute_transferToken_ptr,
     Conduit_transferItem_amount_ptr,
     Conduit_transferItem_from_ptr,
     Conduit_transferItem_identifier_ptr,
@@ -40,7 +29,6 @@ import {
     Conduit_transferItem_to_ptr,
     Conduit_transferItem_token_ptr,
     FreeMemoryPointerSlot,
-    OneConduitExecute_size,
     OneWord,
     TwoWords
 } from "./ConsiderationConstants.sol";
@@ -143,122 +131,6 @@ contract Executor is Verifiers, TokenTransferrer {
                 conduitKey,
                 accumulator
             );
-        }
-    }
-
-    /**
-     * @dev Internal function to transfer an individual ERC721 or ERC1155 item
-     *      from a given originator to a given recipient. The accumulator will
-     *      be bypassed, meaning that this function should be utilized in cases
-     *      where multiple item transfers can be accumulated into a single
-     *      conduit call. Sufficient approvals must be set, either on the
-     *      respective conduit or on this contract itself.
-     *
-     * @param itemType   The type of item to transfer, either ERC721 or ERC1155.
-     * @param token      The token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param identifier The tokenId to transfer.
-     * @param amount     The amount to transfer.
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from. The zero hash
-     *                   signifies that no conduit should be used, with direct
-     *                   approvals set on this contract.
-     */
-    function _transferIndividual721Or1155Item(
-        ItemType itemType,
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount,
-        bytes32 conduitKey
-    ) internal {
-        // Determine if the transfer is to be performed via a conduit.
-        if (conduitKey != bytes32(0)) {
-            // Use free memory pointer as calldata offset for the conduit call.
-            uint256 callDataOffset;
-
-            // Utilize assembly to place each argument in free memory.
-            assembly {
-                // Retrieve the free memory pointer and use it as the offset.
-                callDataOffset := mload(FreeMemoryPointerSlot)
-
-                // Write ConduitInterface.execute.selector to memory.
-                mstore(callDataOffset, Conduit_execute_signature)
-
-                // Write the offset to the ConduitTransfer array in memory.
-                mstore(
-                    add(
-                        callDataOffset,
-                        Conduit_execute_ConduitTransfer_offset_ptr
-                    ),
-                    Conduit_execute_ConduitTransfer_ptr
-                )
-
-                // Write the length of the ConduitTransfer array to memory.
-                mstore(
-                    add(
-                        callDataOffset,
-                        Conduit_execute_ConduitTransfer_length_ptr
-                    ),
-                    Conduit_execute_ConduitTransfer_length
-                )
-
-                // Write the item type to memory.
-                mstore(
-                    add(callDataOffset, Conduit_execute_transferItemType_ptr),
-                    itemType
-                )
-
-                // Write the token to memory.
-                mstore(
-                    add(callDataOffset, Conduit_execute_transferToken_ptr),
-                    token
-                )
-
-                // Write the transfer source to memory.
-                mstore(
-                    add(callDataOffset, Conduit_execute_transferFrom_ptr),
-                    from
-                )
-
-                // Write the transfer recipient to memory.
-                mstore(add(callDataOffset, Conduit_execute_transferTo_ptr), to)
-
-                // Write the token identifier to memory.
-                mstore(
-                    add(callDataOffset, Conduit_execute_transferIdentifier_ptr),
-                    identifier
-                )
-
-                // Write the transfer amount to memory.
-                mstore(
-                    add(callDataOffset, Conduit_execute_transferAmount_ptr),
-                    amount
-                )
-            }
-
-            // Perform the call to the conduit.
-            _callConduitUsingOffsets(
-                conduitKey,
-                callDataOffset,
-                OneConduitExecute_size
-            );
-        } else {
-            // Otherwise, determine whether it is an ERC721 or ERC1155 item.
-            if (itemType == ItemType.ERC721) {
-                // Ensure that exactly one 721 item is being transferred.
-                if (amount != 1) {
-                    _revertInvalidERC721TransferAmount(amount);
-                }
-
-                // Perform transfer via the token contract directly.
-                _performERC721Transfer(token, from, to, identifier);
-            } else {
-                // Perform transfer via the token contract directly.
-                _performERC1155Transfer(token, from, to, identifier, amount);
-            }
         }
     }
 
