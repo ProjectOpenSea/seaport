@@ -5,7 +5,6 @@ pragma solidity ^0.8.17;
 import {
     BadContractSignature_error_selector,
     BadFraction_error_selector,
-    BadReturnValueFromERC20OnTransfer_error_selector,
     BadSignatureV_error_selector,
     CannotCancelOrder_error_selector,
     ConsiderationCriteriaResolverOutOfRange_error_selector,
@@ -14,7 +13,6 @@ import {
     CriteriaNotEnabledForItem_error_selector,
     InexactFraction_error_selector,
     InsufficientNativeTokensSupplied_error_selector,
-    Invalid1155BatchTransferEncoding_error_selector,
     InvalidBasicOrderParameterEncoding_error_selector,
     InvalidCallToConduit_error_selector,
     InvalidConduit_error_selector,
@@ -33,7 +31,6 @@ import {
     MissingItemAmount_error_selector,
     MissingOriginalConsiderationItems_error_selector,
     NativeTokenTransferGenericFailure_error_selector,
-    NoContract_error_selector,
     NoReentrantCalls_error_selector,
     NoSpecifiedOrdersAvailable_error_selector,
     OfferAndConsiderationRequiredOnFulfillment_error_selector,
@@ -44,11 +41,16 @@ import {
     OrderPartiallyFilled_error_selector,
     Panic_error_selector,
     PartialFillsNotEnabledForOrder_error_selector,
-    TokenTransferGenericFailure_error_selector,
     UnresolvedConsiderationCriteria_error_selector,
     UnresolvedOfferCriteria_error_selector,
     UnusedItemParameters_error_selector
 } from "../../contracts/lib/ConsiderationErrorConstants.sol";
+
+import {
+    BadReturnValueFromERC20OnTransfer_error_selector,
+    NoContract_error_selector,
+    TokenTransferGenericFailure_error_selector
+} from "../../contracts/lib/TokenTransferrerConstants.sol";
 
 import {
     generateOrder_selector,
@@ -278,13 +280,6 @@ contract ConstantsTest is BaseConsiderationTest {
         _test(
             NoContract_error_selector,
             TokenTransferrerErrors.NoContract.selector
-        );
-    }
-
-    function testInvalid1155BatchTransferEncoding_error_selector() public {
-        _test(
-            Invalid1155BatchTransferEncoding_error_selector,
-            TokenTransferrerErrors.Invalid1155BatchTransferEncoding.selector
         );
     }
 

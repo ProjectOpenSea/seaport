@@ -90,7 +90,10 @@ uint256 constant UnresolvedOfferCriteria_error_offerIndex_ptr = 0x40;
 uint256 constant UnresolvedOfferCriteria_error_length = 0x44;
 
 /*
- *  error UnresolvedConsiderationCriteria(uint256 orderIndex, uint256 considerationIndex)
+ *  error UnresolvedConsiderationCriteria(
+ *      uint256 orderIndex,
+ *      uint256 considerationIndex
+ *  )
  *    - Defined in CriteriaResolutionErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -111,7 +114,7 @@ uint256 constant UnresolvedConsiderationCriteria_error_length = 0x44;
  * Revert buffer is memory[0x1c:0x20]
  */
 uint256 constant OfferCriteriaResolverOutOfRange_error_selector = 0xbfb3f8ce;
-uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
+// uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
 
 /*
  *  error ConsiderationCriteriaResolverOutOfRange()
@@ -120,9 +123,13 @@ uint256 constant OfferCriteriaResolverOutOfRange_error_length = 0x04;
  *    - 0x00: Left-padded selector (data begins at 0x1c)
  * Revert buffer is memory[0x1c:0x20]
  */
-uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = 0x6088d7de;
-uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector = 0x6088d7de;
-uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
+uint256 constant ConsiderationCriteriaResolverOutOfRange_error_selector = (
+    0x6088d7de
+);
+uint256 constant ConsiderationCriteriaResolverOutOfRange_err_selector = (
+    0x6088d7de
+);
+// uint256 constant ConsiderationCriteriaResolverOutOfRange_error_length = 0x04;
 
 /*
  *  error CriteriaNotEnabledForItem()
@@ -243,67 +250,6 @@ uint256 constant UnusedItemParameters_error_selector = 0x6ab37ce7;
 uint256 constant UnusedItemParameters_error_length = 0x04;
 
 /*
- *  error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount)
- *    - Defined in TokenTransferrerErrors.sol
- *  Memory layout:
- *    - 0x00: Left-padded selector (data begins at 0x1c)
- *    - 0x20: token
- *    - 0x40: from
- *    - 0x60: to
- *    - 0x80: amount
- * Revert buffer is memory[0x1c:0xa0]
- */
-uint256 constant BadReturnValueFromERC20OnTransfer_error_selector = 0x98891923;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x20;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x40;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x60;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x80;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
-
-/*
- *  error NoContract(address account)
- *    - Defined in TokenTransferrerErrors.sol
- *  Memory layout:
- *    - 0x00: Left-padded selector (data begins at 0x1c)
- *    - 0x20: account
- * Revert buffer is memory[0x1c:0x40]
- */
-uint256 constant NoContract_error_selector = 0x5f15d672;
-uint256 constant NoContract_error_account_ptr = 0x20;
-uint256 constant NoContract_error_length = 0x24;
-
-/*
- *  error TokenTransferGenericFailure(address token, address from, address to, uint256 identifier, uint256 amount)
- *    - Defined in TokenTransferrerErrors.sol
- *  Memory layout:
- *    - 0x00: Left-padded selector (data begins at 0x1c)
- *    - 0x20: token
- *    - 0x40: from
- *    - 0x60: to
- *    - 0x80: identifier
- *    - 0xa0: amount
- * Revert buffer is memory[0x1c:0xc0]
- */
-uint256 constant TokenTransferGenericFailure_error_selector = 0xf486bc87;
-uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x20;
-uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x40;
-uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x60;
-uint256 constant TokenTransferGenericFailure_error_identifier_ptr = 0x80;
-uint256 constant TokenTransferGenericFailure_err_identifier_ptr = 0x80;
-uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
-uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
-
-/*
- *  error Invalid1155BatchTransferEncoding()
- *    - Defined in TokenTransferrerErrors.sol
- *  Memory layout:
- *    - 0x00: Left-padded selector (data begins at 0x1c)
- * Revert buffer is memory[0x1c:0x20]
- */
-uint256 constant Invalid1155BatchTransferEncoding_error_selector = 0xeba2084c;
-uint256 constant Invalid1155BatchTransferEncoding_error_length = 0x04;
-
-/*
  *  error NoReentrantCalls()
  *    - Defined in ReentrancyErrors.sol
  *  Memory layout:
@@ -376,7 +322,11 @@ uint256 constant InvalidCallToConduit_error_conduit_ptr = 0x20;
 uint256 constant InvalidCallToConduit_error_length = 0x24;
 
 /*
- *  error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount)
+ *  error ConsiderationNotMet(
+ *      uint256 orderIndex,
+ *      uint256 considerationIndex,
+ *      uint256 shortfallAmount
+ *  )
  *    - Defined in ConsiderationEventsAndErrors.sol
  *  Memory layout:
  *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -536,4 +486,4 @@ uint256 constant Panic_error_code_ptr = 0x20;
 uint256 constant Panic_error_length = 0x24;
 
 uint256 constant Panic_arithmetic = 0x11;
-uint256 constant Panic_resource = 0x41;
+// uint256 constant Panic_resource = 0x41;
