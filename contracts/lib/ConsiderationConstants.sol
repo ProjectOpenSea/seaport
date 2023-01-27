@@ -84,6 +84,7 @@ uint256 constant SpentItem_size_shift = 0x7;
 uint256 constant OfferItem_size = 0xa0;
 uint256 constant OfferItem_size_with_length = 0xc0;
 
+uint256 constant ReceivedItem_size_excluding_recipient = 0x80;
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;

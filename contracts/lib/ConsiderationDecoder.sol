@@ -1021,7 +1021,11 @@ contract ConsiderationDecoder {
                     mstore(add(mPtrLength, headOffsetFromLength), mPtrTailNext)
 
                     // Copy itemType, token, identifier and amount.
-                    returndatacopy(mPtrTailNext, rdPtrHead, SpentItem_size)
+                    returndatacopy(
+                        mPtrTailNext,
+                        rdPtrHead,
+                        ReceivedItem_size_excluding_recipient
+                    )
 
                     // Copy amount and recipient.
                     returndatacopy(
