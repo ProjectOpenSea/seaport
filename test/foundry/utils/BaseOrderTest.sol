@@ -1,32 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
-    BasicOrderType,
     OrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
-    BasicOrderParameters,
-    ConsiderationItem,
     AdditionalRecipient,
-    OfferItem,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     Order,
     OrderComponents,
     OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
+
 import { OrderBuilder } from "./OrderBuilder.sol";
+
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts

@@ -3,18 +3,12 @@ pragma solidity ^0.8.13;
 
 import {
     ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
+    ERC721Interface
 } from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
-
-import {
-    ItemType,
-    Side
-} from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,

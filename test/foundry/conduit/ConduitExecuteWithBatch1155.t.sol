@@ -3,9 +3,6 @@
 pragma solidity ^0.8.17;
 
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
-import {
-    ConduitController
-} from "../../../contracts/conduit/ConduitController.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
 import {
     ConduitTransfer,
@@ -15,8 +12,6 @@ import {
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
-import { ERC721Recipient } from "../utils/ERC721Recipient.sol";
-import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
 
 contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
     struct FuzzInputs {

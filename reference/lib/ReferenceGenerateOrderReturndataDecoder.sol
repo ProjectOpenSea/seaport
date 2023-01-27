@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {
-    SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 contract ReferenceGenerateOrderReturndataDecoder {

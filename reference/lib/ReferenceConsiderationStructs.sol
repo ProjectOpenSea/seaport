@@ -2,13 +2,13 @@
 pragma solidity ^0.8.13;
 
 import {
-    OrderType,
-    ItemType
+    ItemType,
+    OrderType
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {

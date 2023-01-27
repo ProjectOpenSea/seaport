@@ -4,13 +4,13 @@ pragma solidity ^0.8.13;
 import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    OfferItem,
-    ConsiderationItem,
-    OrderParameters,
     AdvancedOrder,
+    ConsiderationItem,
     CriteriaResolver,
-    SpentItem,
-    ReceivedItem
+    OfferItem,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";

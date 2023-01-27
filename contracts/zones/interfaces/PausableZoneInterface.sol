@@ -6,10 +6,10 @@ import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
-    Order,
-    OrderComponents,
+    Execution,
     Fulfillment,
-    Execution
+    Order,
+    OrderComponents
 } from "../../lib/ConsiderationStructs.sol";
 
 /**

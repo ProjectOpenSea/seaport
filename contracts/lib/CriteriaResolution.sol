@@ -4,11 +4,11 @@ pragma solidity ^0.8.17;
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
 import {
-    OfferItem,
-    OrderParameters,
     AdvancedOrder,
     CriteriaResolver,
-    MemoryPointer
+    MemoryPointer,
+    OfferItem,
+    OrderParameters
 } from "./ConsiderationStructs.sol";
 
 import {

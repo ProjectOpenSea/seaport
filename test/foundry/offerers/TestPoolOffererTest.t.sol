@@ -2,41 +2,19 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
+
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
-import { IERC721 } from "forge-std/interfaces/IERC721.sol";
 
 import { TestPoolFactory, TestPoolOfferer } from "./impl/TestPoolFactory.sol";
+
 import {
     SpentItem,
-    ReceivedItem,
-    OrderComponents,
-    OfferItem,
-    ConsiderationItem,
     AdvancedOrder,
     CriteriaResolver,
     OrderType
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
-
-struct TransferHelperItem {
-    uint8 itemType;
-    address token;
-    uint256 identifier;
-    uint256 amount;
-}
-
-struct TransferHelperItemsWithRecipient {
-    TransferHelperItem[] items;
-    address recipient;
-    bool validateERC721Receiver;
-}
-
-interface TransferHelper {
-    function bulkTransfer(
-        TransferHelperItemsWithRecipient[] memory items,
-        bytes32 conduitKey
-    ) external returns (bytes4 magicValue);
-}
 
 contract TestPoolOffererTest is BaseOrderTest {
     TestPoolFactory factory;

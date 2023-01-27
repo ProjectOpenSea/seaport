@@ -3,14 +3,7 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import {
-    AdvancedOrder,
-    CriteriaResolver,
-    OfferItem,
-    ConsiderationItem,
-    ZoneParameters,
-    Schema
-} from "../lib/ConsiderationStructs.sol";
+import { Schema, ZoneParameters } from "../lib/ConsiderationStructs.sol";
 
 contract TestZone is ZoneInterface {
     function validateOrder(

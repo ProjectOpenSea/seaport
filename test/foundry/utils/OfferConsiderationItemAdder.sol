@@ -7,6 +7,7 @@ import {
     ItemType,
     SpentItem
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { TestTokenMinter } from "./TestTokenMinter.sol";
 
 contract OfferConsiderationItemAdder is TestTokenMinter {

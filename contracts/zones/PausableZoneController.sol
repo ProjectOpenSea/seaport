@@ -12,12 +12,12 @@ import {
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import {
-    Order,
-    Fulfillment,
-    OrderComponents,
     AdvancedOrder,
     CriteriaResolver,
-    Execution
+    Execution,
+    Fulfillment,
+    Order,
+    OrderComponents
 } from "../lib/ConsiderationStructs.sol";
 
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";

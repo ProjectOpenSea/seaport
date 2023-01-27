@@ -17,18 +17,11 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
-import {
-    OrderType,
-    BasicOrderType,
-    ItemType,
-    Side
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
-    ConsiderationItem,
-    OrderComponents,
-    BasicOrderParameters
+    ConsiderationItem
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import { DifferentialTest } from "./DifferentialTest.sol";

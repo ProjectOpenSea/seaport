@@ -2,16 +2,14 @@
 pragma solidity ^0.8.17;
 
 import {
-    Order,
-    CriteriaResolver,
     AdvancedOrder,
-    FulfillmentComponent,
-    Fulfillment,
-    OrderComponents,
-    OrderParameters,
-    SpentItem,
-    OfferItem,
     ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    FulfillmentComponent,
+    OfferItem,
+    Order,
+    OrderParameters,
     ReceivedItem
 } from "./ConsiderationStructs.sol";
 

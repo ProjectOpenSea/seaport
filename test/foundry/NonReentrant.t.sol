@@ -7,9 +7,11 @@ import {
     ItemType,
     Side
 } from "../../contracts/lib/ConsiderationEnums.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     AdditionalRecipient,
     Fulfillment,
@@ -17,17 +19,20 @@ import {
     ConsiderationItem,
     FulfillmentComponent,
     OrderComponents,
+    OrderParameters,
     AdvancedOrder,
     BasicOrderParameters,
     Order
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+
 import {
     EntryPoint,
     ReentryPoint
 } from "./utils/reentrancy/ReentrantEnums.sol";
+
 import {
-    OrderParameters,
     CriteriaResolver
 } from "./utils/reentrancy/ReentrantStructs.sol";
 

@@ -4,35 +4,27 @@ pragma solidity ^0.8.17;
 
 import {
     OrderType,
-    BasicOrderType,
-    ItemType,
-    Side
+    ItemType
 } from "../../contracts/lib/ConsiderationEnums.sol";
-import {
-    AdditionalRecipient
-} from "../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
-    Order,
     AdvancedOrder,
     OfferItem,
     OrderParameters,
     ConsiderationItem,
     OrderComponents,
-    BasicOrderParameters,
     FulfillmentComponent,
     CriteriaResolver
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
-import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
+
 import { stdError } from "forge-std/Test.sol";
+
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillAvailableAdvancedOrder is BaseOrderTest {

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
-
 import {
     SignatureVerificationErrors
 } from "../interfaces/SignatureVerificationErrors.sol";

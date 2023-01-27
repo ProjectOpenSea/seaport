@@ -4,13 +4,9 @@ pragma solidity ^0.8.13;
 import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    OfferItem,
-    ConsiderationItem,
-    ReceivedItem,
-    OrderParameters,
-    AdvancedOrder,
     Execution,
     FulfillmentComponent,
+    ReceivedItem,
     SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
@@ -22,6 +18,7 @@ import {
 import {
     FulfillmentApplicationErrors
 } from "../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+
 import {
     TokenTransferrerErrors
 } from "../../contracts/interfaces/TokenTransferrerErrors.sol";

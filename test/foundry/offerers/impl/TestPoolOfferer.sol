@@ -2,11 +2,6 @@
 pragma solidity ^0.8.7;
 
 import {
-    ERC20Interface,
-    ERC721Interface
-} from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-
-import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 

@@ -7,8 +7,6 @@ import {
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-import { ConduitController } from "../conduit/ConduitController.sol";
-
 import { ConduitMock } from "../test/ConduitMock.sol";
 
 import { ConduitMockInvalidMagic } from "../test/ConduitMockInvalidMagic.sol";

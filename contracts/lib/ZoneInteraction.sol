@@ -5,8 +5,8 @@ import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
-    OrderParameters,
-    BasicOrderParameters
+    BasicOrderParameters,
+    OrderParameters
 } from "./ConsiderationStructs.sol";
 
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";

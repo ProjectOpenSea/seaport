@@ -2,8 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {
-    AdvancedOrder,
-    CriteriaResolver,
     ZoneParameters,
     Schema
 } from "../../../../contracts/lib/ConsiderationStructs.sol";

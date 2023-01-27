@@ -59,11 +59,7 @@ import {
 
 import {
     BasicOrderParameters,
-    Order,
-    Fulfillment,
-    OrderParameters,
-    SpentItem,
-    ReceivedItem
+    OrderParameters
 } from "./ConsiderationStructs.sol";
 
 import {

@@ -5,33 +5,24 @@ pragma solidity ^0.8.17;
 
 import {
     OrderType,
-    BasicOrderType,
-    ItemType,
-    Side
+    BasicOrderType
 } from "../../contracts/lib/ConsiderationEnums.sol";
-import {
-    AdditionalRecipient,
-    Order
-} from "../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
-    OfferItem,
-    ConsiderationItem,
+    AdditionalRecipient,
+    Order,
     OrderComponents,
     BasicOrderParameters
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
-import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
-import {
-    PausableZoneController
-} from "../../contracts/zones/PausableZoneController.sol";
-import { PausableZone } from "../../contracts/zones/PausableZone.sol";
+
 import {
     ConsiderationEventsAndErrors
 } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
