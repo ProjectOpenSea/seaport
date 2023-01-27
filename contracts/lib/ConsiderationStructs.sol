@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {
-    OrderType,
     BasicOrderType,
     ItemType,
+    OrderType,
     Side
 } from "./ConsiderationEnums.sol";
 

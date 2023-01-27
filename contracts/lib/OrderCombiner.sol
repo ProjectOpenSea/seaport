@@ -4,16 +4,15 @@ pragma solidity ^0.8.17;
 import { Side, ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
-    OfferItem,
+    AdvancedOrder,
     ConsiderationItem,
-    ReceivedItem,
-    OrderParameters,
+    CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
-    Order,
-    AdvancedOrder,
-    CriteriaResolver
+    OfferItem,
+    OrderParameters,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
 
 import { OrderFulfiller } from "./OrderFulfiller.sol";
@@ -424,7 +423,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     assembly {
                         // Derive the pointer to the recipient using the item
                         // pointer along with the offset to the recipient.
-                        let considerationItemRecipient := add(
+                        let considerationItemRecipientPtr := add(
                             considerationItem,
                             ConsiderationItem_recipient_offset // recipient
                         )
@@ -437,13 +436,13 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                                 considerationItem,
                                 ReceivedItem_recipient_offset // old endAmount
                             ),
-                            mload(considerationItemRecipient)
+                            mload(considerationItemRecipientPtr)
                         )
 
                         // Write startAmount to recipient, as recipient is not
                         // used from this point on and can be repurposed to
                         // track received amounts.
-                        mstore(considerationItemRecipient, currentAmount)
+                        mstore(considerationItemRecipientPtr, currentAmount)
                     }
                 }
             }

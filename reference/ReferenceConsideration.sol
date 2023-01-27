@@ -8,24 +8,20 @@ import {
 import { OrderType } from "../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    OrderComponents,
-    BasicOrderParameters,
-    OrderParameters,
-    Order,
     AdvancedOrder,
-    OrderStatus,
+    BasicOrderParameters,
     CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    Execution
+    Order,
+    OrderComponents,
+    OrderParameters
 } from "../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
-import {
-    OrderToExecute,
-    AccumulatorStruct
-} from "./lib/ReferenceConsiderationStructs.sol";
+import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration

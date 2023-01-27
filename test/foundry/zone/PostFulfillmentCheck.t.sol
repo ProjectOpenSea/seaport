@@ -2,10 +2,13 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+
 import { TestZone } from "./impl/TestZone.sol";
+
 import {
     PostFulfillmentStatefulTestZone
 } from "./impl/PostFullfillmentStatefulTestZone.sol";
+
 import {
     ConsiderationItem,
     OfferItem,
@@ -13,16 +16,16 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     BasicOrderParameters,
-    Order,
     AdditionalRecipient,
-    FulfillmentComponent,
-    Fulfillment
+    FulfillmentComponent
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     OrderType,
     Side,
     BasicOrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";

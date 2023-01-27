@@ -8,11 +8,9 @@ import { ERC721Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
-    AdvancedOrder,
-    CriteriaResolver,
     ReceivedItem,
-    ZoneParameters,
-    Schema
+    Schema,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {

@@ -16,8 +16,6 @@ import {
     ConduitControllerInterface
 } from "../interfaces/ConduitControllerInterface.sol";
 
-import { Conduit } from "../conduit/Conduit.sol";
-
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
 import {

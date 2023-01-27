@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import { ReceivedItem, SpentItem } from "../lib/ConsiderationStructs.sol";
 
 import { TestContractOfferer } from "./TestContractOfferer.sol";
 

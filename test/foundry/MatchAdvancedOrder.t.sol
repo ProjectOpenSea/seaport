@@ -6,10 +6,11 @@ import {
     OrderType,
     ItemType
 } from "../../contracts/lib/ConsiderationEnums.sol";
-import { Order } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     AdvancedOrder,
     OfferItem,
@@ -19,8 +20,11 @@ import {
     CriteriaResolver,
     FulfillmentComponent
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+
 import { stdError } from "forge-std/Test.sol";
+
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract MatchAdvancedOrder is BaseOrderTest {

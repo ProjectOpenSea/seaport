@@ -84,6 +84,7 @@ uint256 constant SpentItem_size_shift = 0x7;
 uint256 constant OfferItem_size = 0xa0;
 uint256 constant OfferItem_size_with_length = 0xc0;
 
+uint256 constant ReceivedItem_size_excluding_recipient = 0x80;
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
@@ -250,16 +251,16 @@ uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
 // BasicOrderParameters
 uint256 constant BasicOrder_parameters_cdPtr = 0x04;
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
-// uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
+uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
 uint256 constant BasicOrder_considerationAmount_cdPtr = 0x64;
 uint256 constant BasicOrder_offerer_cdPtr = 0x84;
 uint256 constant BasicOrder_zone_cdPtr = 0xa4;
 uint256 constant BasicOrder_offerToken_cdPtr = 0xc4;
-// uint256 constant BasicOrder_offerIdentifier_cdPtr = 0xe4;
+uint256 constant BasicOrder_offerIdentifier_cdPtr = 0xe4;
 uint256 constant BasicOrder_offerAmount_cdPtr = 0x104;
 uint256 constant BasicOrder_basicOrderType_cdPtr = 0x124;
 uint256 constant BasicOrder_startTime_cdPtr = 0x144;
-// uint256 constant BasicOrder_endTime_cdPtr = 0x164;
+uint256 constant BasicOrder_endTime_cdPtr = 0x164;
 // uint256 constant BasicOrder_zoneHash_cdPtr = 0x184;
 // uint256 constant BasicOrder_salt_cdPtr = 0x1a4;
 uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
@@ -454,6 +455,7 @@ uint256 constant generateOrder_minimumReceived_head_offset = 0x20;
 uint256 constant generateOrder_maximumSpent_head_offset = 0x40;
 uint256 constant generateOrder_context_head_offset = 0x60;
 uint256 constant generateOrder_base_tail_offset = 0x80;
+uint256 constant generateOrder_maximum_returndatasize = 0xffff;
 
 uint256 constant ratifyOrder_selector = 0xf4dd92ce;
 uint256 constant ratifyOrder_selector_offset = 0x1c;

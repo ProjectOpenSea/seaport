@@ -59,11 +59,7 @@ import {
 
 import {
     BasicOrderParameters,
-    Order,
-    Fulfillment,
-    OrderParameters,
-    SpentItem,
-    ReceivedItem
+    OrderParameters
 } from "./ConsiderationStructs.sol";
 
 import {
@@ -244,6 +240,8 @@ contract ConsiderationEncoder {
      * @param orderHashes     An array of bytes32 values representing the order
      *                        hashes of all orders included as part of the
      *                        current fulfillment.
+     * @param shiftedOfferer  The offerer for the order, shifted 96 bits to the
+     *                        left.
      *
      * @return dst  A memory pointer referencing the encoded `ratifyOrder`
      *              calldata.
@@ -253,7 +251,8 @@ contract ConsiderationEncoder {
         bytes32 orderHash, // e.g. offerer + contract nonce
         OrderParameters memory orderParameters,
         bytes memory context, // encoded based on the schemaID
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        uint256 shiftedOfferer
     ) internal view returns (MemoryPointer dst, uint256 size) {
         // Get free memory pointer to write calldata to. This isn't allocated as
         // it is only used for a single function call.
@@ -266,9 +265,9 @@ contract ConsiderationEncoder {
         // Get pointer to the beginning of the encoded data.
         MemoryPointer dstHead = dst.offset(ratifyOrder_head_offset);
 
-        // Write contractNonce to calldata.
+        // Write contractNonce to calldata via xor(orderHash, shiftedOfferer).
         dstHead.offset(ratifyOrder_contractNonce_offset).write(
-            uint96(uint256(orderHash))
+            uint256(orderHash) ^ shiftedOfferer
         );
 
         // Initialize tail offset, used to populate the offer array.

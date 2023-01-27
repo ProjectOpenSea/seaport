@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
+
 import {
     BasicOrderParameters,
     CriteriaResolver,
@@ -13,9 +14,6 @@ import {
     OrderParameters,
     OrderComponents
 } from "../../../contracts/lib/ConsiderationStructs.sol";
-import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
 contract StructCopier {
     Order _tempOrder;

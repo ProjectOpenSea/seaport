@@ -8,20 +8,17 @@ import {
 } from "../../contracts/interfaces/ContractOffererInterface.sol";
 
 import {
-    OrderType,
-    ItemType
+    ItemType,
+    OrderType
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
+    AdditionalRecipient,
     AdvancedOrder,
-    OrderParameters,
-    CriteriaResolver,
     BasicOrderParameters,
-    OrderParameters,
-    ZoneParameters,
-    SpentItem,
     ReceivedItem,
-    AdditionalRecipient
+    SpentItem,
+    ZoneParameters
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";

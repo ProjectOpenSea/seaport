@@ -2,16 +2,14 @@
 pragma solidity ^0.8.17;
 
 import {
-    Order,
-    CriteriaResolver,
     AdvancedOrder,
-    FulfillmentComponent,
-    Fulfillment,
-    OrderComponents,
-    OrderParameters,
-    SpentItem,
-    OfferItem,
     ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    FulfillmentComponent,
+    OfferItem,
+    Order,
+    OrderParameters,
     ReceivedItem
 } from "./ConsiderationStructs.sol";
 
@@ -36,6 +34,7 @@ import {
     Fulfillment_head_size,
     FulfillmentComponent_mem_tail_size_shift,
     FulfillmentComponent_mem_tail_size,
+    generateOrder_maximum_returndatasize,
     OfferItem_size_with_length,
     OfferItem_size,
     OneWord,
@@ -50,6 +49,7 @@ import {
     OrderParameters_totalOriginalConsiderationItems_offset,
     ReceivedItem_recipient_offset,
     ReceivedItem_size,
+    ReceivedItem_size_excluding_recipient,
     SpentItem_size_shift,
     SpentItem_size,
     ThirtyOneBytes,
@@ -853,8 +853,8 @@ contract ConsiderationDecoder {
         )
     {
         assembly {
-            // check that returndatasize is at least 80 bytes:
-            // offerOffset,considerationOffset,offerLength,considerationLength
+            // Check that returndatasize is at least four words: offerOffset,
+            // considerationOffset, offerLength, & considerationLength
             invalidEncoding := lt(returndatasize(), FourWords)
 
             let offsetOffer
@@ -862,10 +862,10 @@ contract ConsiderationDecoder {
             let offerLength
             let considerationLength
 
+            // Proceed if enough returndata is present to continue evaluation.
             if iszero(invalidEncoding) {
-                // Copy first two words of calldata (the offsets to offer and
-                // consideration array lengths) to scratch space. Multiply by
-                // validLength to avoid panics if returndatasize is too small.
+                // Copy first two words of returndata (the offsets to offer and
+                // consideration array lengths) to scratch space.
                 returndatacopy(0, 0, TwoWords)
                 offsetOffer := mload(0)
                 offsetConsideration := mload(OneWord)
@@ -909,11 +909,15 @@ contract ConsiderationDecoder {
                             add(totalOfferSize, totalConsiderationSize)
                         )
                         // Don't continue if returndatasize exceeds 65535 bytes
-                        // or is not equal to the calculated size.
+                        // or is greater than the calculated size.
                         invalidEncoding := or(
-                            gt(or(offerLength, considerationLength), 0xffff),
-                            xor(totalSize, returndatasize())
+                            gt(
+                                or(offerLength, considerationLength),
+                                generateOrder_maximum_returndatasize
+                            ),
+                            gt(totalSize, returndatasize())
                         )
+
                         // Set first word of scratch space to 0 so length of
                         // offer/consideration are set to 0 on invalid encoding.
                         mstore(0, 0)
@@ -1020,7 +1024,7 @@ contract ConsiderationDecoder {
                     returndatacopy(
                         mPtrTailNext,
                         rdPtrHead,
-                        Common_endAmount_offset
+                        ReceivedItem_size_excluding_recipient
                     )
 
                     // Copy amount and recipient.

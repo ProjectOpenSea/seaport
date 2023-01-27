@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "../conduit/lib/ConduitStructs.sol";
 
 /**

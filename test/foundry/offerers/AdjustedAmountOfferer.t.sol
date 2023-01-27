@@ -2,26 +2,24 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+
 import { AdjustedAmountOfferer } from "./impl/AdjustedAmountOfferer.sol";
-import { Merkle } from "murky/Merkle.sol";
+
 import {
-    ERC20Interface,
-    ERC721Interface
+    ERC20Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     OrderType,
-    ItemType,
-    Side
+    ItemType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
-    Order,
-    SpentItem,
-    OrderParameters,
     ConsiderationItem,
-    OfferItem,
     AdvancedOrder,
     CriteriaResolver
 } from "../../../contracts/lib/ConsiderationStructs.sol";
@@ -29,6 +27,7 @@ import {
 import {
     ConsiderationEventsAndErrors
 } from "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+
 import {
     ZoneInteractionErrors
 } from "../../../contracts/interfaces/ZoneInteractionErrors.sol";

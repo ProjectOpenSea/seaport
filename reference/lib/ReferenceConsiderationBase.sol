@@ -9,8 +9,6 @@ import {
     ConsiderationEventsAndErrors
 } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "../../contracts/lib/ConsiderationStructs.sol";
-
 import {
     ReentrancyErrors
 } from "../../contracts/interfaces/ReentrancyErrors.sol";

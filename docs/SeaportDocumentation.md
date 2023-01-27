@@ -69,6 +69,10 @@ While the standard method can technically be used for fulfilling any order, it s
 
 > Note: Calls to Seaport that would fulfill or match a collection of advanced orders can be monitored and where there are unused offer items, it's possible for a third party to claim them. Anyone can monitor the mempool to find calls to `fulfillAvailableOrders`, `fulfillAvailableAdvancedOrders`, `matchOrders`, `matchAdvancedOrders` and calculate if there are any unused offer item amounts.  If there are unused offer item amounts, the third party can create orders with no offer items, but with consideration items mirroring the unused offer items and populate the fulfillment aggregation data to match the unused offer items with the new mirrored consideration items.  This would allow the third party to claim the unused offer items.  A contract offerer or a zone could prevent this, but by default, it's possible.
 
+> Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria, on the fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible.  Contract offerers should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
+
+> Note: In some cases, contract offerers will be able to lower the value of an offered NFT by transferring out valuable tokens that are attached to the NFT.  For example, a contract offerer could modify a property of an NFT when Seaport calls `generateOrder`.  Consider using a mirrored order that allows for a post-transfer validation, such as a contract order or a restricted order, in cases like this.
+
 ### Balance and Approval Requirements
 
 When creating an offer, the following requirements should be checked to ensure that the order will be fulfillable:

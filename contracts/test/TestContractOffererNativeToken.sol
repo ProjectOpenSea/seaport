@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import {
-    ERC20Interface,
     ERC721Interface,
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
@@ -14,9 +13,9 @@ import {
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../lib/ConsiderationStructs.sol";
 
 /**

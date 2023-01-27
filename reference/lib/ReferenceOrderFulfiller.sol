@@ -2,19 +2,19 @@
 pragma solidity ^0.8.13;
 
 import {
-    OrderType,
-    ItemType
+    ItemType,
+    OrderType
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    OrderParameters,
-    Order,
     AdvancedOrder,
-    CriteriaResolver
+    ConsiderationItem,
+    CriteriaResolver,
+    OfferItem,
+    Order,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {

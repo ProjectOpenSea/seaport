@@ -2,19 +2,19 @@
 pragma solidity ^0.8.13;
 
 import {
-    OrderType,
+    BasicOrderRouteType,
     BasicOrderType,
     ItemType,
-    BasicOrderRouteType
+    OrderType
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    OfferItem,
     ConsiderationItem,
-    SpentItem,
-    ReceivedItem
+    OfferItem,
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {

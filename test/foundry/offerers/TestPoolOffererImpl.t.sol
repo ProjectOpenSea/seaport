@@ -3,15 +3,6 @@ pragma solidity ^0.8.7;
 
 import { Test } from "forge-std/Test.sol";
 
-import {
-    ERC20Interface,
-    ERC721Interface
-} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-
-import {
-    ContractOffererInterface
-} from "../../../contracts/interfaces/ContractOffererInterface.sol";
-
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -36,8 +27,6 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestPoolOfferer } from "./impl/TestPoolOfferer.sol";
-
-import { TestPoolFactory } from "./impl/TestPoolFactory.sol";
 
 contract TestPoolFactoryImpl {
     address immutable seaport;
