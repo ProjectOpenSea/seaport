@@ -73,6 +73,7 @@
   },
   "scripts": {
     "build": "yarn clean; hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
+    "build:quick": "hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
     "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
     "build:nospec": "yarn clean; NO_SPECIALIZER=true hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
     "clean": "hardhat clean; hardhat clean --config ./hardhat-reference.config.ts; forge clean; rm -rf coverage coverage.json hh-cache hh-cache-ref",

@@ -34,6 +34,7 @@ import {
     BasicOrder_common_params_size,
     BasicOrder_considerationAmount_cdPtr,
     BasicOrder_considerationHashesArray_ptr,
+    BasicOrder_considerationIdentifier_cdPtr,
     BasicOrder_considerationItem_endAmount_ptr,
     BasicOrder_considerationItem_identifier_ptr,
     BasicOrder_considerationItem_itemType_ptr,
@@ -47,6 +48,7 @@ import {
     BasicOrder_offeredItemByteMap,
     BasicOrder_offerer_cdPtr,
     BasicOrder_offererConduit_cdPtr,
+    BasicOrder_offerIdentifier_cdPtr,
     BasicOrder_offerItem_endAmount_ptr,
     BasicOrder_offerItem_itemType_ptr,
     BasicOrder_offerItem_token_ptr,
@@ -273,10 +275,7 @@ contract BasicOrderFulfiller is OrderValidator {
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferNativeTokensAndFinalize(
-                parameters.considerationAmount,
-                parameters.offerer
-            );
+            _transferNativeTokensAndFinalize();
         } else {
             // Initialize an accumulator array. From this point forward, no new
             // memory regions can be safely allocated until the accumulator is
@@ -336,8 +335,6 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                parameters.offerer,
-                parameters,
                 offerTypeIsAdditionalRecipientsType,
                 accumulator
             );
@@ -1026,20 +1023,19 @@ contract BasicOrderFulfiller is OrderValidator {
      *      amount must be provided as msg.value. Also note that this function
      *      may only be safely called as part of basic orders, as it assumes a
      *      specific calldata encoding structure that must first be validated.
-     *
-     * @param amount The amount to transfer.
-     * @param to     The recipient of the native token transfer.
      */
-    function _transferNativeTokensAndFinalize(
-        uint256 amount,
-        address payable to
-    ) internal {
+    function _transferNativeTokensAndFinalize() internal {
         // Put native token value supplied by the caller on the stack.
         uint256 nativeTokensRemaining = msg.value;
 
-        // Retrieve total size of additional recipients data and place on stack.
+        // Retrieve consideration amount, offerer, and total size of additional
+        // recipients data from calldata using fixed offsets and place on stack.
+        uint256 amount;
+        address payable to;
         uint256 totalAdditionalRecipientsDataSize;
         assembly {
+            amount := calldataload(BasicOrder_considerationAmount_cdPtr)
+            to := calldataload(BasicOrder_offerer_cdPtr)
             totalAdditionalRecipientsDataSize := shl(
                 AdditionalRecipient_size_shift,
                 calldataload(BasicOrder_additionalRecipients_length_cdPtr)
@@ -1111,18 +1107,16 @@ contract BasicOrderFulfiller is OrderValidator {
      * @dev Internal function to transfer ERC20 tokens to a given recipient as
      *      part of basic order fulfillment. Note that this function may only be
      *      safely called as part of basic orders, as it assumes a specific
-     *      calldata encoding structure that must first be validated.
+     *      calldata encoding structure that must first be validated. Also note
+     *      that basic order parameters are retrieved using fixed offsets, this
+     *      requires that strict basic order encoding has already been verified.
      *
-     * @param offerer     The offerer of the fulfiller order.
-     * @param parameters  The basic order parameters.
      * @param fromOfferer A boolean indicating whether to decrement amount from
      *                    the offered amount.
      * @param accumulator An open-ended array that collects transfers to execute
      *                    against a given conduit in a single call.
      */
     function _transferERC20AndFinalize(
-        address offerer,
-        BasicOrderParameters calldata parameters,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
@@ -1141,23 +1135,27 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Set ERC20 token transfer variables based on fromOfferer boolean.
             if (fromOfferer) {
-                // Use offerer as from value and msg.sender as to value.
-                from = offerer;
-                to = msg.sender;
-
-                // Use offer token and related values if token is from offerer.
-                token = parameters.offerToken;
-                identifier = parameters.offerIdentifier;
-                amount = parameters.offerAmount;
+                // Use offerer as from value, msg.sender as to value, and offer
+                // token, identifier, & amount values if token is from offerer.
+                assembly {
+                    from := calldataload(BasicOrder_offerer_cdPtr)
+                    to := caller()
+                    token := calldataload(BasicOrder_offerToken_cdPtr)
+                    identifier := calldataload(BasicOrder_offerIdentifier_cdPtr)
+                    amount := calldataload(BasicOrder_offerAmount_cdPtr)
+                }
             } else {
-                // Use msg.sender as from value and offerer as to value.
-                from = msg.sender;
-                to = offerer;
-
-                // Otherwise, use consideration token and related values.
-                token = parameters.considerationToken;
-                identifier = parameters.considerationIdentifier;
-                amount = parameters.considerationAmount;
+                // Otherwise, use msg.sender as from value, offerer as to value,
+                // and consideration token, identifier, and amount values.
+                assembly {
+                    from := caller()
+                    to := calldataload(BasicOrder_offerer_cdPtr)
+                    token := calldataload(BasicOrder_considerationToken_cdPtr)
+                    identifier := calldataload(
+                        BasicOrder_considerationIdentifier_cdPtr
+                    )
+                    amount := calldataload(BasicOrder_considerationAmount_cdPtr)
+                }
             }
 
             // Ensure that no identifier is supplied.
