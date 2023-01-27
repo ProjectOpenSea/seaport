@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import {
     BasicOrderRouteType,
@@ -610,7 +610,6 @@ contract BasicOrderFulfiller is OrderValidator {
                     BasicOrder_totalOriginalAdditionalRecipients_cdPtr
                 )
                 let i := 0
-                // prettier-ignore
                 for {} lt(i, totalAdditionalRecipients) {
                     i := add(i, 1)
                 } {
@@ -719,7 +718,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 totalAdditionalRecipients := calldataload(
                     BasicOrder_additionalRecipients_length_cdPtr
                 )
-                // prettier-ignore
+
                 for {} lt(i, totalAdditionalRecipients) {
                     i := add(i, 1)
                 } {

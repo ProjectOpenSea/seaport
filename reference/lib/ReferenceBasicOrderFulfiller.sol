@@ -849,7 +849,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 parameters.additionalRecipients[i]
             );
 
-            // Read native token amount to transfer to recipient and place on stack.
+            // Read native token amount to transfer to recipient & put on stack.
             uint256 additionalRecipientAmount = additionalRecipient.amount;
 
             // Ensure that sufficient native tokens are available.

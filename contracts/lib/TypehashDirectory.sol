@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import {
     FreeMemoryPointerSlot,
@@ -133,7 +133,6 @@ contract TypehashDirectory {
      */
     function getTreeSubTypes() internal pure returns (bytes memory) {
         // Construct the OfferItem type string.
-        // prettier-ignore
         bytes memory offerItemTypeString = bytes(
                 "OfferItem("
                     "uint8 itemType,"
@@ -145,7 +144,6 @@ contract TypehashDirectory {
             );
 
         // Construct the ConsiderationItem type string.
-        // prettier-ignore
         bytes memory considerationItemTypeString = bytes(
                 "ConsiderationItem("
                     "uint8 itemType,"
@@ -158,7 +156,6 @@ contract TypehashDirectory {
             );
 
         // Construct the OrderComponents type string, not including the above.
-        // prettier-ignore
         bytes memory orderComponentsPartialTypeString = bytes(
                 "OrderComponents("
                     "address offerer,"

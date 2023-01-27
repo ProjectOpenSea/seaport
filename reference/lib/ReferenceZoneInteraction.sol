@@ -171,8 +171,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param offerItemType         The item type of the offer.
      * @param considerationItemType The item type of the consideration.
      *
-     * @return spentItems           The converted offer parameters as an array of
-     *                              SpentItem objects.
+     * @return spentItems           The converted offer parameters as an array
+     *                              of SpentItem objects.
      * @return receivedItems        The converted consideration parameters as an
      *                              array of ReceivedItem objects.
      */

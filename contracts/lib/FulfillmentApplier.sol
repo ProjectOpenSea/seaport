@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import { Side } from "./ConsiderationEnums.sol";
 
@@ -120,8 +120,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             execution
         );
 
-        // Ensure offer and consideration share types, tokens and identifiers.
-        // (a != b || c != d || e != f) == (((a ^ b) | (c ^ d) | (e ^ f)) != 0), but the 2nd expression is cheaper
+        // Ensure offer & consideration item types, tokens, & identifiers match.
+        // (a != b || c != d || e != f) == (((a ^ b) | (c ^ d) | (e ^ f)) != 0),
+        // but the second expression requires less gas to evaluate.
         if (
             ((uint8(execution.item.itemType) ^
                 uint8(considerationItem.itemType)) |
@@ -749,7 +750,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Store the InvalidFulfillmentComponentData error signature.
                 mstore(0, InvalidFulfillmentComponentData_error_selector)
 
-                // revert(abi.encodeWithSignature("InvalidFulfillmentComponentData()")
+                // revert(abi.encodeWithSignature(
+                //     "InvalidFulfillmentComponentData()"
+                // ))
                 revert(
                     Error_selector_offset,
                     InvalidFulfillmentComponentData_error_length

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
@@ -165,6 +165,8 @@ contract Executor is Verifiers, TokenTransferrer {
             assembly {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, NativeTokenTransferGenericFailure_error_selector)
+
+                // Write `to` and `amount` arguments.
                 mstore(NativeTokenTransferGenericFailure_error_account_ptr, to)
                 mstore(
                     NativeTokenTransferGenericFailure_error_amount_ptr,
@@ -172,8 +174,10 @@ contract Executor is Verifiers, TokenTransferrer {
                 )
 
                 // revert(abi.encodeWithSignature(
-                //   "NativeTokenTransferGenericFailure(address,uint256)", to, amount)
-                // )
+                //     "NativeTokenTransferGenericFailure(address,uint256)",
+                //     to,
+                //     amount
+                // ))
                 revert(
                     Error_selector_offset,
                     NativeTokenTransferGenericFailure_error_length

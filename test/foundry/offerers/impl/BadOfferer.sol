@@ -10,9 +10,7 @@ import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
-import {
-    ItemType
-} from "../../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,

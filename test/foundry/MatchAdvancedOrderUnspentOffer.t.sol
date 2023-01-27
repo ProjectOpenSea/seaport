@@ -15,7 +15,7 @@ import {
     OfferItem,
     ConsiderationItem,
     CriteriaResolver,
-    Fulfillment  
+    Fulfillment
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";

@@ -342,9 +342,9 @@ contract ReferenceOrderValidator is
                     )
                 );
 
-            //  If the call succeeds, try to decode the offer and consideration items.
+            //  If call succeeds, try to decode offer and consideration items.
             if (success) {
-                // Try to decode the offer and consideration items from the returndata.
+                // Try to decode offer and consideration items from returndata.
                 try
                     (new ReferenceGenerateOrderReturndataDecoder()).decode(
                         returnData

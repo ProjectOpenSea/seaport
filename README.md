@@ -374,7 +374,7 @@ When making a pull request, ensure that:
 
 ## License
 
-[MIT](LICENSE) Copyright 2022 Ozone Networks, Inc.
+[MIT](LICENSE) Copyright 2023 Ozone Networks, Inc.
 
 [version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
 [version-link]: https://github.com/ProjectOpenSea/seaport/releases

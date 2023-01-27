@@ -121,7 +121,7 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         address,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
-        bytes calldata context
+        bytes calldata /* context */
     )
         external
         virtual

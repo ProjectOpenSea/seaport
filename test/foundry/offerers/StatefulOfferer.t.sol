@@ -23,9 +23,7 @@ import {
     FulfillmentComponent
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
-import {
-    OrderType
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 contract StatefulOffererTest is BaseOrderTest {
     StatefulRatifierOfferer offerer;

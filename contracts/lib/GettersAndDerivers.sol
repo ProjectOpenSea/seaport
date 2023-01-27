@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import { OrderParameters } from "./ConsiderationStructs.sol";
 
@@ -102,7 +102,6 @@ contract GettersAndDerivers is ConsiderationBase {
             offerArrPtr := add(offerArrPtr, OneWord)
 
             // Iterate over the offer items.
-            // prettier-ignore
             for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
@@ -157,7 +156,6 @@ contract GettersAndDerivers is ConsiderationBase {
             )
 
             // Iterate over the consideration items (not including tips).
-            // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
@@ -319,7 +317,6 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return The domain separator.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
             : _deriveDomainSeparator();

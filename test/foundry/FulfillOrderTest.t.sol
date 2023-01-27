@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 
 import {
     OrderType,
-    ItemType    
+    ItemType
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {

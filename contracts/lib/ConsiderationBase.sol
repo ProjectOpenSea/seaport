@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import {
     ConduitControllerInterface
@@ -210,7 +210,6 @@ contract ConsiderationBase is
         versionHash = keccak256(bytes("1.2"));
 
         // Construct the OfferItem type string.
-        // prettier-ignore
         bytes memory offerItemTypeString = bytes(
             "OfferItem("
                 "uint8 itemType,"
@@ -222,7 +221,6 @@ contract ConsiderationBase is
         );
 
         // Construct the ConsiderationItem type string.
-        // prettier-ignore
         bytes memory considerationItemTypeString = bytes(
             "ConsiderationItem("
                 "uint8 itemType,"
@@ -235,7 +233,6 @@ contract ConsiderationBase is
         );
 
         // Construct the OrderComponents type string, not including the above.
-        // prettier-ignore
         bytes memory orderComponentsPartialTypeString = bytes(
             "OrderComponents("
                 "address offerer,"
@@ -253,7 +250,6 @@ contract ConsiderationBase is
         );
 
         // Construct the primary EIP-712 domain type string.
-        // prettier-ignore
         eip712DomainTypehash = keccak256(
             bytes(
                 "EIP712Domain("

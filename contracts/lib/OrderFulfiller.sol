@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import { ItemType, OrderType } from "./ConsiderationEnums.sol";
 
@@ -264,7 +264,8 @@ contract OrderFulfiller is
                 );
             }
 
-            // If non-contract order has native offer items, throw InvalidNativeOfferItem.
+            // If a non-contract order has native offer items, throw with an
+            // `InvalidNativeOfferItem` custom error.
             {
                 OrderType orderType = orderParameters.orderType;
                 uint256 invalidNativeOfferItem;

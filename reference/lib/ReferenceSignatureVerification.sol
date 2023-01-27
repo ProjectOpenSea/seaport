@@ -57,7 +57,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             // Return early if the ERC-1271 signature check succeeded.
             return;
         } else if (signature.length == 64) {
-            // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
+            // If signature contains 64 bytes, parse as EIP-2098 sig. (r+s&v)
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 

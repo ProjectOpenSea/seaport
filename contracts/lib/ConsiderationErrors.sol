@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import { Side } from "./ConsiderationEnums.sol";
 
@@ -46,9 +46,9 @@ import {
     InvalidTime_error_length,
     InvalidTime_error_selector,
     InvalidTime_error_startTime_ptr,
-    MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr,
-    MismatchedFulfillmentOfferAndConsiderationComponents_error_length,
-    MismatchedFulfillmentOfferAndConsiderationComponents_error_selector,
+    MismatchedOfferAndConsiderationComponents_error_idx_ptr,
+    MismatchedOfferAndConsiderationComponents_error_length,
+    MismatchedOfferAndConsiderationComponents_error_selector,
     MissingFulfillmentComponentOnAggregation_error_length,
     MissingFulfillmentComponentOnAggregation_error_selector,
     MissingFulfillmentComponentOnAggregation_error_side_ptr,
@@ -74,7 +74,7 @@ import {
     OrderPartiallyFilled_error_selector,
     PartialFillsNotEnabledForOrder_error_length,
     PartialFillsNotEnabledForOrder_error_selector,
-    UnresolvedConsiderationCriteria_error_considerationIndex_ptr,
+    UnresolvedConsiderationCriteria_error_considerationIdx_ptr,
     UnresolvedConsiderationCriteria_error_length,
     UnresolvedConsiderationCriteria_error_orderIndex_ptr,
     UnresolvedConsiderationCriteria_error_selector,
@@ -156,8 +156,8 @@ function _revertCriteriaNotEnabledForItem() pure {
 }
 
 /**
- * @dev Reverts the current transaction with an "InsufficientNativeTokensSupplied"
- *      error message.
+ * @dev Reverts the current transaction with an
+ *      "InsufficientNativeTokensSupplied" error message.
  */
 function _revertInsufficientNativeTokensSupplied() pure {
     assembly {
@@ -393,14 +393,11 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents(
     assembly {
         // Store left-padded selector with push4 (reduces bytecode),
         // mem[28:32] = selector
-        mstore(
-            0,
-            MismatchedFulfillmentOfferAndConsiderationComponents_error_selector
-        )
+        mstore(0, MismatchedOfferAndConsiderationComponents_error_selector)
 
-        // Store argument.
+        // Store fulfillment index argument.
         mstore(
-            MismatchedFulfillmentOfferAndConsiderationComponents_error_fulfillmentIndex_ptr,
+            MismatchedOfferAndConsiderationComponents_error_idx_ptr,
             fulfillmentIndex
         )
 
@@ -410,7 +407,7 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents(
         // ))
         revert(
             Error_selector_offset,
-            MismatchedFulfillmentOfferAndConsiderationComponents_error_length
+            MismatchedOfferAndConsiderationComponents_error_length
         )
     }
 }
@@ -636,10 +633,10 @@ function _revertUnresolvedConsiderationCriteria(
         // mem[28:32] = selector
         mstore(0, UnresolvedConsiderationCriteria_error_selector)
 
-        // Store arguments.
+        // Store orderIndex and considerationIndex arguments.
         mstore(UnresolvedConsiderationCriteria_error_orderIndex_ptr, orderIndex)
         mstore(
-            UnresolvedConsiderationCriteria_error_considerationIndex_ptr,
+            UnresolvedConsiderationCriteria_error_considerationIdx_ptr,
             considerationIndex
         )
 
