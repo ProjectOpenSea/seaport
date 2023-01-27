@@ -4,13 +4,13 @@ pragma solidity ^0.8.17;
 import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
-    OrderParameters,
-    Order,
     AdvancedOrder,
-    OrderComponents,
-    OrderStatus,
+    ConsiderationItem,
     OfferItem,
-    ConsiderationItem
+    Order,
+    OrderComponents,
+    OrderParameters,
+    OrderStatus
 } from "./ConsiderationStructs.sol";
 
 import {

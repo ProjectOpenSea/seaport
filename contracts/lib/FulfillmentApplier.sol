@@ -4,10 +4,10 @@ pragma solidity ^0.8.17;
 import { Side } from "./ConsiderationEnums.sol";
 
 import {
-    ReceivedItem,
     AdvancedOrder,
     Execution,
-    FulfillmentComponent
+    FulfillmentComponent,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
 
 import {

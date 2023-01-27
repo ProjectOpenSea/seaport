@@ -10,9 +10,9 @@ import {
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestBadContractOfferer is ContractOffererInterface {

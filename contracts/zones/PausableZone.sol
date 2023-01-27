@@ -12,12 +12,12 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 import {
     AdvancedOrder,
     CriteriaResolver,
+    Execution,
+    Fulfillment,
     Order,
     OrderComponents,
-    Fulfillment,
-    Execution,
-    ZoneParameters,
-    Schema
+    Schema,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";

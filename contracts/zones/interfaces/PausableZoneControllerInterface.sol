@@ -2,12 +2,12 @@
 pragma solidity ^0.8.13;
 
 import {
-    Order,
-    Fulfillment,
-    OrderComponents,
     AdvancedOrder,
     CriteriaResolver,
-    Execution
+    Execution,
+    Fulfillment,
+    Order,
+    OrderComponents
 } from "../../lib/ConsiderationStructs.sol";
 
 import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";

@@ -8,8 +8,8 @@ import { ConduitItemType } from "./lib/ConduitEnums.sol";
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "./lib/ConduitStructs.sol";
 
 import {

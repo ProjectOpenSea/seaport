@@ -6,14 +6,14 @@ import {
 } from "../interfaces/ConsiderationInterface.sol";
 
 import {
-    OrderComponents,
-    BasicOrderParameters,
-    Order,
     AdvancedOrder,
+    BasicOrderParameters,
     CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    Execution
+    Order,
+    OrderComponents
 } from "./ConsiderationStructs.sol";
 
 import { OrderCombiner } from "./OrderCombiner.sol";

@@ -9,8 +9,8 @@ import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
-    ZoneParameters,
-    Schema
+    Schema,
+    ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ZoneInterface {

@@ -4,15 +4,15 @@ pragma solidity ^0.8.17;
 import { Side, ItemType, OrderType } from "./ConsiderationEnums.sol";
 
 import {
-    OfferItem,
+    AdvancedOrder,
     ConsiderationItem,
-    ReceivedItem,
-    OrderParameters,
+    CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
-    AdvancedOrder,
-    CriteriaResolver
+    OfferItem,
+    OrderParameters,
+    ReceivedItem
 } from "./ConsiderationStructs.sol";
 
 import { OrderFulfiller } from "./OrderFulfiller.sol";

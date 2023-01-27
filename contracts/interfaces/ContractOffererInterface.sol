@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../lib/ConsiderationStructs.sol";
 
 /**

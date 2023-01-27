@@ -2,9 +2,9 @@
 pragma solidity ^0.8.17;
 
 import {
-    OrderType,
+    BasicOrderRouteType,
     ItemType,
-    BasicOrderRouteType
+    OrderType
 } from "./ConsiderationEnums.sol";
 
 import { BasicOrderParameters } from "./ConsiderationStructs.sol";
