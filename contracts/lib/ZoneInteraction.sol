@@ -17,7 +17,11 @@ import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 
-import { MaskOverFirstFourBytes, OneWord } from "./ConsiderationConstants.sol";
+import {
+    ContractOrder_orderHash_offerer_shift,
+    MaskOverFirstFourBytes,
+    OneWord
+} from "./ConsiderationConstants.sol";
 
 import {
     Error_selector_offset,
