@@ -41,6 +41,7 @@ import {
     BasicOrder_considerationItem_token_ptr,
     BasicOrder_considerationItem_typeHash_ptr,
     BasicOrder_considerationToken_cdPtr,
+    BasicOrder_endTime_cdPtr,
     BasicOrder_fulfillerConduit_cdPtr,
     BasicOrder_offerAmount_cdPtr,
     BasicOrder_offeredItemByteMap,
@@ -88,6 +89,16 @@ import {
     TwoWords,
     ZeroSlot
 } from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    InvalidTime_error_endTime_ptr,
+    InvalidTime_error_length,
+    InvalidTime_error_selector,
+    InvalidTime_error_startTime_ptr,
+    MissingOriginalConsiderationItems_error_length,
+    MissingOriginalConsiderationItems_error_selector
+} from "./ConsiderationErrorConstants.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -381,9 +392,6 @@ contract BasicOrderFulfiller is OrderValidator {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard(false); // Native tokens rejected during execution.
 
-        // Ensure current timestamp falls between order start time and end time.
-        _verifyTime(parameters.startTime, parameters.endTime, true);
-
         // Verify that calldata offsets for all dynamic types were produced by
         // default encoding. This ensures that the constants used for calldata
         // pointers to dynamic types are the same as those calculated by
@@ -391,20 +399,60 @@ contract BasicOrderFulfiller is OrderValidator {
         // is within range.
         _assertValidBasicOrderParameters();
 
-        {
-            // Retrieve total number of additional recipients & place on stack.
-            uint256 totalAdditionalRecipients;
-            assembly {
-                totalAdditionalRecipients := calldataload(
-                    BasicOrder_additionalRecipients_length_cdPtr
+        // Check for invalid time and missing original consideration items.
+        // Utilize assembly so that constant calldata pointers can be applied.
+        assembly {
+            // Ensure current timestamp is between order start time & end time.
+            if iszero(
+                and(
+                    iszero(
+                        gt(
+                            calldataload(BasicOrder_startTime_cdPtr),
+                            timestamp()
+                        )
+                    ),
+                    gt(calldataload(BasicOrder_endTime_cdPtr), timestamp())
                 )
+            ) {
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
+                mstore(0, InvalidTime_error_selector)
+
+                // Store arguments.
+                mstore(
+                    InvalidTime_error_startTime_ptr,
+                    calldataload(BasicOrder_startTime_cdPtr)
+                )
+                mstore(
+                    InvalidTime_error_endTime_ptr,
+                    calldataload(BasicOrder_endTime_cdPtr)
+                )
+
+                // revert(abi.encodeWithSignature(
+                //     "InvalidTime(uint256,uint256)",
+                //     startTime,
+                //     endTime
+                // ))
+                revert(Error_selector_offset, InvalidTime_error_length)
             }
 
-            // Ensure consideration array length is not less than original.
-            _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
-                totalAdditionalRecipients,
-                parameters.totalOriginalAdditionalRecipients
-            );
+            // Ensure consideration array length isn't less than total original.
+            if lt(
+                calldataload(BasicOrder_additionalRecipients_length_cdPtr),
+                calldataload(BasicOrder_totalOriginalAdditionalRecipients_cdPtr)
+            ) {
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
+                mstore(0, MissingOriginalConsiderationItems_error_selector)
+
+                // revert(abi.encodeWithSignature(
+                //     "MissingOriginalConsiderationItems()"
+                // ))
+                revert(
+                    Error_selector_offset,
+                    MissingOriginalConsiderationItems_error_length
+                )
+            }
         }
 
         {
