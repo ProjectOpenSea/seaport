@@ -7,16 +7,15 @@ import {
 } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    OrderParameters,
-    Order,
     AdvancedOrder,
-    OrderComponents,
-    OrderStatus,
-    CriteriaResolver,
-    OfferItem,
     ConsiderationItem,
-    SpentItem,
-    ReceivedItem
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    OrderStatus,
+    ReceivedItem,
+    SpentItem
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceExecutor } from "./ReferenceExecutor.sol";
@@ -26,6 +25,7 @@ import { ReferenceZoneInteraction } from "./ReferenceZoneInteraction.sol";
 import {
     ContractOffererInterface
 } from "../../contracts/interfaces/ContractOffererInterface.sol";
+
 import {
     ReferenceGenerateOrderReturndataDecoder
 } from "./ReferenceGenerateOrderReturndataDecoder.sol";

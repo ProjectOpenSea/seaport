@@ -10,8 +10,8 @@ import {
 } from "../../contracts/interfaces/ReentrancyErrors.sol";
 
 import {
-    _ENTERED,
     _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,
+    _ENTERED,
     _NOT_ENTERED
 } from "../../contracts/lib/ConsiderationConstants.sol";
 

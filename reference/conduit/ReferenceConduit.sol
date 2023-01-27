@@ -12,8 +12,8 @@ import {
 } from "../lib/ReferenceTokenTransferrer.sol";
 
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "../../contracts/conduit/lib/ConduitStructs.sol";
 
 /**
