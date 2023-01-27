@@ -86,20 +86,6 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         ready = true;
     }
 
-    function activate(
-        SpentItem memory available,
-        SpentItem memory required
-    ) public payable {
-        if (ready || fulfilled) {
-            revert OrderUnavailable();
-        }
-
-        // Set storage variables.
-        _available = available;
-        _required = required;
-        ready = true;
-    }
-
     function extendAvailable() public {
         if (!ready || fulfilled) {
             revert OrderUnavailable();
@@ -120,8 +106,8 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
 
     function generateOrder(
         address,
-        SpentItem[] calldata,
-        SpentItem[] calldata,
+        SpentItem[] calldata minimumReceived,
+        SpentItem[] calldata maximumSpent,
         bytes calldata context
     )
         external
@@ -129,19 +115,14 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        // Ensure the caller is Seaport & the order has not yet been fulfilled.
-        if (
-            !ready || fulfilled || msg.sender != _SEAPORT || context.length != 0
-        ) {
-            revert OrderUnavailable();
-        }
-
         // Set the offer and consideration that were supplied during deployment.
         offer = new SpentItem[](1);
         consideration = new ReceivedItem[](1);
 
-        // Send 10 ether to Seaport.
-        (bool success, ) = _SEAPORT.call{ value: 10 ether }("");
+        // Send eth to Seaport.
+        (bool success, ) = _SEAPORT.call{ value: minimumReceived[0].amount }(
+            ""
+        );
 
         // Revert if transaction fails.
         if (!success) {
@@ -152,14 +133,14 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         }
 
         // Set the offer item as the _available item in storage.
-        offer[0] = _available;
+        offer[0] = minimumReceived[0];
 
         // Set the erc721 consideration item.
         consideration[0] = ReceivedItem({
             itemType: ItemType.ERC721,
-            token: _required.token,
-            identifier: _required.identifier,
-            amount: _required.amount,
+            token: maximumSpent[0].token,
+            identifier: maximumSpent[0].identifier,
+            amount: maximumSpent[0].amount,
             recipient: payable(address(this))
         });
 
