@@ -26,7 +26,7 @@ import {
     InvalidSignature_error_selector,
     InvalidSigner_error_selector,
     InvalidTime_error_selector,
-    MismatchedFulfillmentOfferAndConsiderationComponents_error_selector,
+    MismatchedOfferAndConsiderationComponents_error_selector,
     MissingFulfillmentComponentOnAggregation_error_selector,
     MissingItemAmount_error_selector,
     MissingOriginalConsiderationItems_error_selector,
@@ -130,7 +130,7 @@ contract ConstantsTest is BaseConsiderationTest {
         public
     {
         _test(
-            MismatchedFulfillmentOfferAndConsiderationComponents_error_selector,
+            MismatchedOfferAndConsiderationComponents_error_selector,
             FulfillmentApplicationErrors
                 .MismatchedFulfillmentOfferAndConsiderationComponents
                 .selector
