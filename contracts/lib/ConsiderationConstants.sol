@@ -54,10 +54,8 @@ uint256 constant _ENTERED = 2;
 uint256 constant _ENTERED_AND_ACCEPTING_NATIVE_TOKENS = 3;
 
 uint256 constant Offset_fulfillAdvancedOrder_criteriaResolvers = 0x20;
-
 uint256 constant Offset_fulfillAvailableOrders_offerFulfillments = 0x20;
 uint256 constant Offset_fulfillAvailableOrders_considerationFulfillments = 0x40;
-
 uint256 constant Offset_fulfillAvailableAdvancedOrders_criteriaResolvers = 0x20;
 uint256 constant Offset_fulfillAvailableAdvancedOrders_offerFulfillments = 0x40;
 uint256 constant Offset_fulfillAvailableAdvancedOrders_cnsdrationFlflmnts = (
@@ -102,9 +100,6 @@ uint256 constant ConsiderItem_recipient_offset = 0xa0;
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
-uint256 constant Panic_arithmetic = 0x11;
-uint256 constant Panic_resource = 0x41;
-
 uint256 constant OrderParameters_offerer_offset = 0x00;
 uint256 constant OrderParameters_zone_offset = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
@@ -136,8 +131,8 @@ uint256 constant ThreeWords = 0x60;
 uint256 constant FourWords = 0x80;
 uint256 constant FiveWords = 0xa0;
 
-uint256 constant OneWordShift = 5;
-uint256 constant TwoWordsShift = 6;
+uint256 constant OneWordShift = 0x5;
+uint256 constant TwoWordsShift = 0x6;
 
 uint256 constant SixtyThreeBytes = 0x3f;
 uint256 constant OnlyFullWordMask = 0xffffffe0;
@@ -160,7 +155,9 @@ uint256 constant BasicOrder_offeredItemByteMap = (
     0x0203020301010000000000000000000000000000000000000000000000000000
 );
 
-bytes32 constant OrdersMatchedTopic0 = 0x4b9f2d36e1b4c93de62cc077b00b1a91d84b6c31b4a14e012718dcca230689e7;
+bytes32 constant OrdersMatchedTopic0 = (
+    0x4b9f2d36e1b4c93de62cc077b00b1a91d84b6c31b4a14e012718dcca230689e7
+);
 
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
@@ -240,11 +237,8 @@ uint256 constant OrderFulfilled_consideration_length_baseOffset = 0x2a0;
 uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
 // Related constants used for restricted order checks on basic orders.
-
-address constant IdentityPrecompile = address(0x4);
 uint256 constant OrderFulfilled_baseDataSize = 0x160;
 uint256 constant ValidateOrder_offerDataOffset = 0x184;
-
 uint256 constant RatifyOrder_offerDataOffset = 0xc4;
 
 // uint256 constant OrderFulfilled_orderHash_offset = 0x00;
@@ -276,9 +270,7 @@ uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
 uint256 constant BasicOrder_signature_cdPtr = 0x244;
 uint256 constant BasicOrder_additionalRecipients_length_cdPtr = 0x264;
 uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
-
 uint256 constant BasicOrder_parameters_ptr = 0x20;
-
 uint256 constant BasicOrder_basicOrderType_range = 0x18; // 24 values
 
 /*
@@ -379,8 +371,8 @@ uint256 constant EIP_712_PREFIX = (
 );
 
 uint256 constant ExtraGasBuffer = 0x20;
-uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficientShift = 9;
+uint256 constant CostPerWord = 0x3;
+uint256 constant MemoryExpansionCoefficientShift = 0x9;
 
 uint256 constant Create2AddressDerivation_ptr = 0x0b;
 uint256 constant Create2AddressDerivation_length = 0x55;
@@ -406,7 +398,6 @@ uint256 constant MaxUint120 = 0xffffffffffffffffffffffffffffff;
 
 uint256 constant Conduit_execute_ConduitTransfer_ptr = 0x20;
 uint256 constant Conduit_execute_ConduitTransfer_length = 0x01;
-
 uint256 constant Conduit_execute_ConduitTransfer_offset_ptr = 0x04;
 uint256 constant Conduit_execute_ConduitTransfer_length_ptr = 0x24;
 uint256 constant Conduit_execute_transferItemType_ptr = 0x44;
@@ -425,10 +416,9 @@ uint256 constant Accumulator_conduitKey_ptr = 0x20;
 uint256 constant Accumulator_selector_ptr = 0x40;
 uint256 constant Accumulator_array_offset_ptr = 0x44;
 uint256 constant Accumulator_array_length_ptr = 0x64;
-
 uint256 constant Accumulator_itemSizeOffsetDifference = 0x3c;
-
 uint256 constant Accumulator_array_offset = 0x20;
+
 uint256 constant Conduit_transferItem_size = 0xc0;
 uint256 constant Conduit_transferItem_token_ptr = 0x20;
 uint256 constant Conduit_transferItem_from_ptr = 0x40;
@@ -450,16 +440,6 @@ uint256 constant NonMatchSelector_MagicMask = (
 uint256 constant NonMatchSelector_InvalidErrorValue = (
     0x4000000000000000000000000000000000000000000000000000000001
 );
-
-uint256 constant IsValidOrder_signature = (
-    0x0e1d31dc00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant IsValidOrder_sig_ptr = 0x0;
-uint256 constant IsValidOrder_orderHash_ptr = 0x04;
-uint256 constant IsValidOrder_caller_ptr = 0x24;
-uint256 constant IsValidOrder_offerer_ptr = 0x44;
-uint256 constant IsValidOrder_zoneHash_ptr = 0x64;
-uint256 constant IsValidOrder_length = 0x84; // 4 + 32 * 4 == 132
 
 /**
  * @dev Selector and offsets for generateOrder
@@ -509,11 +489,6 @@ uint256 constant ZoneParameters_selectorAndPointer_length = 0x24;
 uint256 constant ZoneParameters_basicOrderFixedElements_length = 0x64;
 
 // ConsiderationDecoder Constants
-uint256 constant BasicOrderParameters_head_size = 0x0240;
-uint256 constant BasicOrderParameters_fixed_segment_0 = 0x0200;
-uint256 constant BasicOrderParameters_additionalRecipients_offset = 0x0200;
-uint256 constant BasicOrderParameters_signature_offset = 0x0220;
-
 uint256 constant OrderParameters_head_size = 0x0160;
 uint256 constant OrderParameters_totalOriginalConsiderationItems_offset = (
     0x0140
