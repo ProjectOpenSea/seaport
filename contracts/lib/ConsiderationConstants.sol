@@ -454,6 +454,7 @@ uint256 constant generateOrder_minimumReceived_head_offset = 0x20;
 uint256 constant generateOrder_maximumSpent_head_offset = 0x40;
 uint256 constant generateOrder_context_head_offset = 0x60;
 uint256 constant generateOrder_base_tail_offset = 0x80;
+uint256 constant generateOrder_maximum_returndatasize = 0xffff;
 
 uint256 constant ratifyOrder_selector = 0xf4dd92ce;
 uint256 constant ratifyOrder_selector_offset = 0x1c;
