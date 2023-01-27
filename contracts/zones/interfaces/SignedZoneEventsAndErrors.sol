@@ -66,6 +66,24 @@ interface SignedZoneEventsAndErrors {
     );
 
     /**
+     * @dev Revert with an error if the received item does not match.
+     */
+    error InvalidReceivedItem(
+        uint256 expectedReceivedIdentifier,
+        uint256 actualReceievedIdentifier,
+        bytes32 orderHash
+    );
+
+    /**
+     * @dev Revert with an error if the context does not support a required substandard.
+     */
+    error InvalidSubstandardSupport(
+        string reason,
+        uint256 substandard,
+        bytes32 orderHash
+    );
+
+    /**
      * @dev Revert with an error if supplied order extraData is invalid
      *      or improperly formatted.
      */
