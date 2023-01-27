@@ -100,15 +100,15 @@ uint256 constant ConsiderItem_recipient_offset = 0xa0;
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
-uint256 constant OrderParameters_offerer_offset = 0x00;
-uint256 constant OrderParameters_zone_offset = 0x20;
+// uint256 constant OrderParameters_offerer_offset = 0x00;
+// uint256 constant OrderParameters_zone_offset = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
-uint256 constant OrderParameters_orderType_offset = 0x80;
+// uint256 constant OrderParameters_orderType_offset = 0x80;
 uint256 constant OrderParameters_startTime_offset = 0xa0;
 uint256 constant OrderParameters_endTime_offset = 0xc0;
 uint256 constant OrderParameters_zoneHash_offset = 0xe0;
-uint256 constant OrderParameters_salt_offset = 0x100;
+// uint256 constant OrderParameters_salt_offset = 0x100;
 uint256 constant OrderParameters_conduit_offset = 0x120;
 uint256 constant OrderParameters_counter_offset = 0x140;
 
@@ -144,10 +144,9 @@ uint256 constant DefaultFreeMemoryPointer = 0x80;
 uint256 constant Slot0x80 = 0x80;
 uint256 constant Slot0xA0 = 0xa0;
 
-uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
+// uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 uint256 constant BasicOrder_common_params_size = 0xa0;
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
-
 uint256 constant BasicOrder_receivedItemByteMap = (
     0x0000010102030000000000000000000000000000000000000000000000000000
 );
@@ -238,8 +237,8 @@ uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
 
 // Related constants used for restricted order checks on basic orders.
 uint256 constant OrderFulfilled_baseDataSize = 0x160;
-uint256 constant ValidateOrder_offerDataOffset = 0x184;
-uint256 constant RatifyOrder_offerDataOffset = 0xc4;
+// uint256 constant ValidateOrder_offerDataOffset = 0x184;
+// uint256 constant RatifyOrder_offerDataOffset = 0xc4;
 
 // uint256 constant OrderFulfilled_orderHash_offset = 0x00;
 uint256 constant OrderFulfilled_fulfiller_offset = 0x20;
@@ -302,7 +301,7 @@ uint256 constant BasicOrder_considerationItem_endAmount_ptr = 0x120;
  *   - 0x100: startAmount
  *   - 0x120: endAmount
  */
-uint256 constant BasicOrder_offerItem_typeHash_ptr = DefaultFreeMemoryPointer;
+uint256 constant BasicOrder_offerItem_typeHash_ptr = 0x80;
 uint256 constant BasicOrder_offerItem_itemType_ptr = 0xa0;
 uint256 constant BasicOrder_offerItem_token_ptr = 0xc0;
 // uint256 constant BasicOrder_offerItem_identifier_ptr = 0xe0;
@@ -359,11 +358,10 @@ uint256 constant ECDSA_signature_v_offset = 0x60;
 bytes32 constant EIP1271_isValidSignature_selector = (
     0x1626ba7e00000000000000000000000000000000000000000000000000000000
 );
-uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
+// uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
 uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
 uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
 uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
-
 uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
 
 uint256 constant EIP_712_PREFIX = (
@@ -380,11 +378,9 @@ uint256 constant Create2AddressDerivation_length = 0x55;
 uint256 constant MaskOverByteTwelve = (
     0x0000000000000000000000ff0000000000000000000000000000000000000000
 );
-
 uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
 );
-
 uint256 constant MaskOverFirstFourBytes = (
     0xffffffff00000000000000000000000000000000000000000000000000000000
 );
@@ -462,7 +458,7 @@ uint256 constant generateOrder_base_tail_offset = 0x80;
 uint256 constant ratifyOrder_selector = 0xf4dd92ce;
 uint256 constant ratifyOrder_selector_offset = 0x1c;
 uint256 constant ratifyOrder_head_offset = 0x04;
-uint256 constant ratifyOrder_offer_head_offset = 0x00;
+// uint256 constant ratifyOrder_offer_head_offset = 0x00;
 uint256 constant ratifyOrder_consideration_head_offset = 0x20;
 uint256 constant ratifyOrder_context_head_offset = 0x40;
 uint256 constant ratifyOrder_orderHashes_head_offset = 0x60;
@@ -474,7 +470,7 @@ uint256 constant validateOrder_selector_offset = 0x1c;
 uint256 constant validateOrder_head_offset = 0x04;
 uint256 constant validateOrder_zoneParameters_offset = 0x20;
 
-uint256 constant ZoneParameters_orderHash_offset = 0x00;
+// uint256 constant ZoneParameters_orderHash_offset = 0x00;
 uint256 constant ZoneParameters_fulfiller_offset = 0x20;
 uint256 constant ZoneParameters_offerer_offset = 0x40;
 uint256 constant ZoneParameters_offer_head_offset = 0x60;
