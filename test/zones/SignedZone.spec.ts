@@ -44,6 +44,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
+  // Version byte for SIP-6 using Substandard 1
+  const sip6VersionByte = "00";
+
   let marketplaceContract: ConsiderationInterface;
   let signedZoneFactory: SignedZone__factory;
   let signedZone: SignedZone;
@@ -177,7 +180,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     expect(recoveredAddress).to.equal(signer.address);
 
     // extraData to be set on the order, according to SIP-7
-    const sip6VersionByte = "00";
     const extraData = `0x${sip6VersionByte}${fulfiller.slice(2)}${toPaddedBytes(
       expiration,
       8
@@ -195,6 +197,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const consideration = [
       getItemETH(parseEther("10"), parseEther("10"), seller.address),
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      getItemETH(parseEther("1"), parseEther("1"), approvedSigner.address),
     ];
 
     const { order, orderHash, value } = await createOrder(
@@ -205,7 +208,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
@@ -280,7 +282,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     // Get the substandard1 data
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
@@ -368,7 +369,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     // Get the substandard1 data
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
@@ -452,7 +452,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     await signedZone.addSigner(approvedSigner.address);
 
     // Get the substandard1 data
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
@@ -522,8 +521,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "01";
-    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+    // Set incorrect version byte
+    const incorrectVersionByte = "01";
+    const substandard1Data = `0x${incorrectVersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
 
@@ -573,7 +573,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "00";
     const expectedTokenID = 9999;
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       expectedTokenID
@@ -621,7 +620,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "00";
     const expectedTokenID = 1;
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       expectedTokenID
@@ -797,7 +795,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;
@@ -917,7 +914,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       2 // FULL_RESTRICTED
     );
 
-    const sip6VersionByte = "00";
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
       consideration[0].identifierOrCriteria.toNumber()
     ).toString()}`;

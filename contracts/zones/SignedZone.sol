@@ -145,6 +145,31 @@ contract SignedZone is
     uint256 constant InvalidReceivedItem_error_orderHash_ptr = 0x60;
     uint256 constant InvalidReceivedItem_error_length = 0x64;
 
+    /*
+     *  error InvalidZoneParameterEncoding()
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     * Revert buffer is memory[0x1c:0x20]
+     */
+    uint256 constant InvalidZoneParameterEncoding_error_selector = 0x46d5d895;
+    uint256 constant InvalidZoneParameterEncoding_error_length = 0x1c;
+
+    // Zone parameter calldata pointers
+    uint256 constant Zone_parameters_cdPtr = 0x04;
+    uint256 constant Zone_parameters_fulfiller_cdPtr = 0x44;
+    uint256 constant Zone_consideration_head_cdPtr = 0xa4;
+    uint256 constant Zone_extraData_cdPtr = 0xc4;
+
+    // Zone parameter memory pointers
+    uint256 constant Zone_parameters_ptr = 0x20;
+
+    // Zone parameter offsets
+    uint256 constant Zone_parameters_offset = 0x24;
+    uint256 constant expectedFulfiller_offset = 0x45;
+    uint256 constant actualReceivedIdentifier_offset = 0x84;
+    uint256 constant expectedReceivedIdentifier_offset = 0xa2;
+
     /* solhint-enable private-vars-leading-underscore */
     /* solhint-enable const-name-snakecase */
 
@@ -299,6 +324,9 @@ contract SignedZone is
         override
         returns (bytes4 validOrderMagicValue)
     {
+        // Check Zone parameters validity.
+        _assertValidZoneParameters();
+
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
@@ -352,76 +380,11 @@ contract SignedZone is
             );
         }
 
-        // extraData bytes 1-21: expected fulfiller
-        // (zero address means not restricted)
-        address expectedFulfiller;
-
-        // Revert if the expected fulfiller is not the zero address and does
-        // not match the actual fulfiller or if the expected received
-        // identifier does not match the actual received identifier.
-        assembly {
-            // Get the pionter to the struct in calldata.
-            let structPtr := add(0x04, calldataload(0x04))
-            // Get the pointer to the consideration array in calldata.
-            let considerationPtr := calldataload(add(structPtr, FourWords))
-            // Get the pointer to the extraData array in calldata.
-            let extraDataPtr := calldataload(add(structPtr, FiveWords))
-
-            // Get the actual fulfiller.
-            let actualFulfiller := calldataload(add(structPtr, OneWord))
-
-            // Get the expected fulfiller.
-            expectedFulfiller := shr(
-                96,
-                calldataload(add(0x21, add(structPtr, extraDataPtr)))
-            )
-
-            // Get the actual received identifier.
-            let actualReceivedIdentifier := calldataload(
-                add(ThreeWords, add(structPtr, considerationPtr))
-            )
-            // Get the expected received identifier.
-            let expectedReceivedIdentifier := calldataload(
-                add(0x7e, add(structPtr, extraDataPtr))
-            )
-
-            // Revert if expected fulfiller is not the zero address and does
-            // not match the actual fulfiller.
-            if and(
-                iszero(iszero(expectedFulfiller)),
-                iszero(eq(expectedFulfiller, actualFulfiller))
-            ) {
-                mstore(0, InvalidFulfiller_error_selector)
-                mstore(
-                    InvalidFulfiller_error_expectedFulfiller_ptr,
-                    expectedFulfiller
-                )
-                mstore(
-                    InvalidFulfiller_error_actualFulfiller_ptr,
-                    actualFulfiller
-                )
-                mstore(InvalidFulfiller_error_orderHash_ptr, orderHash)
-                revert(0x1c, InvalidFulfiller_error_length)
-            }
-
-            // Revert if expected received item does not match the actual
-            // received item.
-            if iszero(
-                eq(expectedReceivedIdentifier, actualReceivedIdentifier)
-            ) {
-                mstore(0, InvalidReceivedItem_error_selector)
-                mstore(
-                    InvalidReceivedItem_error_expectedReceivedItem_ptr,
-                    expectedReceivedIdentifier
-                )
-                mstore(
-                    InvalidReceivedItem_error_actualReceivedItem_ptr,
-                    actualReceivedIdentifier
-                )
-                mstore(InvalidReceivedItem_error_orderHash_ptr, orderHash)
-                revert(0x1c, InvalidReceivedItem_error_length)
-            }
-        }
+        // Check the validity of the Substandard #1 extraData and get the
+        // expected fulfiller address.
+        address expectedFulfiller = _assertValidSubstandardAndGetExpectedFulfiller(
+                orderHash
+            );
 
         // Derive the signedOrder hash.
         bytes32 signedOrderHash = _deriveSignedOrderHash(
@@ -817,6 +780,119 @@ contract SignedZone is
 
             // Clear out the dirtied bits in the memory pointer.
             mstore(EIP712_SignedOrderHash_offset, 0)
+        }
+    }
+
+    /**
+     * @dev Internal pure function to validate calldata offsets for the
+     *      dyanamic type in ZoneParameters. This ensures that functions using
+     *      the calldata object normally will be using the same data as the
+     *      assembly functions and that values that are bound to a given range
+     *      are within that range.
+     */
+    function _assertValidZoneParameters() internal pure {
+        // Utilize assembly in order to read offset data directly from calldata.
+        assembly {
+            /*
+             * Checks:
+             * 1. Zone parameters struct offset == 0x20
+             */
+
+            // Zone parameters at calldata 0x04 must have offset of 0x20.
+            if iszero(
+                eq(calldataload(Zone_parameters_cdPtr), Zone_parameters_ptr)
+            ) {
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, InvalidZoneParameterEncoding_error_selector)
+                // revert(abi.encodeWithSignature("InvalidZoneParameterEncoding()"))
+                revert(0x1c, InvalidZoneParameterEncoding_error_length)
+            }
+        }
+    }
+
+    /**
+     * @dev Internal pure function to ensure that the context argument for the
+     *      supplied extra data follows the substandard #1 format. Returns the
+     *      expected fulfiller of the order for deriving the signed order hash.
+     *
+     * @param orderHash The order hash.
+     *
+     * @return expectedFulfiller The expected fulfiller of the order.
+     */
+    function _assertValidSubstandardAndGetExpectedFulfiller(bytes32 orderHash)
+        internal
+        pure
+        returns (address expectedFulfiller)
+    {
+        // Revert if the expected fulfiller is not the zero address and does
+        // not match the actual fulfiller or if the expected received
+        // identifier does not match the actual received identifier.
+        assembly {
+            // Get the actual fulfiller.
+            let actualFulfiller := calldataload(Zone_parameters_fulfiller_cdPtr)
+            let extraDataPtr := calldataload(Zone_extraData_cdPtr)
+            let considerationPtr := calldataload(Zone_consideration_head_cdPtr)
+
+            // Get the expected fulfiller.
+            expectedFulfiller := shr(
+                96,
+                calldataload(add(expectedFulfiller_offset, extraDataPtr))
+            )
+
+            // Get the actual received identifier.
+            let actualReceivedIdentifier := calldataload(
+                add(actualReceivedIdentifier_offset, considerationPtr)
+            )
+
+            // Get the expected received identifier.
+            let expectedReceivedIdentifier := calldataload(
+                add(expectedReceivedIdentifier_offset, extraDataPtr)
+            )
+
+            // Revert if expected fulfiller is not the zero address and does
+            // not match the actual fulfiller.
+            if and(
+                iszero(iszero(expectedFulfiller)),
+                iszero(eq(expectedFulfiller, actualFulfiller))
+            ) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidFulfiller_error_selector)
+                mstore(
+                    InvalidFulfiller_error_expectedFulfiller_ptr,
+                    expectedFulfiller
+                )
+                mstore(
+                    InvalidFulfiller_error_actualFulfiller_ptr,
+                    actualFulfiller
+                )
+                mstore(InvalidFulfiller_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidFulfiller(address,address,bytes32)", expectedFulfiller, actualFulfiller, orderHash)
+                // )
+                revert(0x1c, InvalidFulfiller_error_length)
+            }
+
+            // Revert if expected received item does not match the actual
+            // received item.
+            if iszero(
+                eq(expectedReceivedIdentifier, actualReceivedIdentifier)
+            ) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidReceivedItem_error_selector)
+                mstore(
+                    InvalidReceivedItem_error_expectedReceivedItem_ptr,
+                    expectedReceivedIdentifier
+                )
+                mstore(
+                    InvalidReceivedItem_error_actualReceivedItem_ptr,
+                    actualReceivedIdentifier
+                )
+                mstore(InvalidReceivedItem_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidReceivedItem(uint256,uint256,bytes32)", expectedReceivedIdentifier, actualReceievedIdentifier, orderHash)
+                // )
+                revert(0x1c, InvalidReceivedItem_error_length)
+            }
         }
     }
 }

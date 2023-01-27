@@ -57,6 +57,12 @@ interface SignedZoneEventsAndErrors {
     error SignatureExpired(uint256 expiration, bytes32 orderHash);
 
     /**
+     * @dev Revert with an error if supplied order extraData is invalid
+     *      or improperly formatted.
+     */
+    error InvalidExtraData(string reason, bytes32 orderHash);
+
+    /**
      * @dev Revert with an error if the fulfiller does not match.
      */
     error InvalidFulfiller(
@@ -84,8 +90,7 @@ interface SignedZoneEventsAndErrors {
     );
 
     /**
-     * @dev Revert with an error if supplied order extraData is invalid
-     *      or improperly formatted.
+     * @dev Revert with an error if the zone parameter encoding is invalid.
      */
-    error InvalidExtraData(string reason, bytes32 orderHash);
+    error InvalidZoneParameterEncoding();
 }
