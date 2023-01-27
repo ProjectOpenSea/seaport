@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: MIT
-//Author: CupOJoseph
-
 pragma solidity ^0.8.17;
 
 import {
@@ -20,6 +18,16 @@ import {
 } from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+
+import {
+    InvalidEthRecipient
+} from "../../contracts/test/InvalidEthRecipient.sol";
+
+import { TestERC721 } from "../../contracts/test/TestERC721.sol";
+
+import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
+
+import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -421,6 +429,57 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             );
 
         vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
+    function testRevertInvalidEthRecipient(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        InvalidEthRecipient invalidRecipient = new InvalidEthRecipient();
+
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(
+            payable(address(invalidRecipient)),
+            inputs.paymentAmount
+        );
+        _configureBasicOrderParametersEthTo721(inputs);
+    }
+
+    function revertInvalidEthRecipient(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+                signature
+            );
+
+        bytes
+            memory expectedRevert = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        vm.expectRevert(expectedRevert);
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
