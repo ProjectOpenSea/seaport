@@ -71,7 +71,7 @@ While the standard method can technically be used for fulfilling any order, it s
 
 > Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria, on the fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible.  Contract offerers should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
 
-> Note: In some cases, contract offerers will be able to lower the value of an offered NFT by transferring out valuable tokens that are attached to the NFT.  For example, a contract offerer could transfer out a Koda when Seaport calls `generateOrder`.  Consider using a mirrored order that allows for a post-transfer validation, such as a contract order or a restricted order, in cases like this.
+> Note: In some cases, contract offerers will be able to lower the value of an offered NFT by transferring out valuable tokens that are attached to the NFT.  For example, a contract offerer could modify a property of an NFT when Seaport calls `generateOrder`.  Consider using a mirrored order that allows for a post-transfer validation, such as a contract order or a restricted order, in cases like this.
 
 ### Balance and Approval Requirements
 
