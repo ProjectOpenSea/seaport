@@ -9,8 +9,6 @@ import {
 
 import { Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
-import "../../contracts/lib/ConsiderationConstants.sol";
-
 contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     address someAddress;
     bytes32 someBytes32;
