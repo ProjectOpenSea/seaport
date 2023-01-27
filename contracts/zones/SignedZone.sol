@@ -43,7 +43,8 @@ contract SignedZone is
     string private _sip7APIEndpoint;
 
     /// @dev The substandards supported by this zone.
-    uint256[] private _sip7Substandards;
+    ///      Substandards are defined in SIP-7.
+    uint256[] private _sip7Substandards = [1];
 
     /// @dev The URI to the documentation describing the behavior of the
     ///      contract.
@@ -193,14 +194,12 @@ contract SignedZone is
      *                         be signed.
      *                         Request and response payloads are defined in
      *                         SIP-7.
-     * @param substandards     The substandards supported by this zone.
      * @param documentationURI The URI to the documentation describing the
      *                         behavior of the contract.
      */
     constructor(
         string memory zoneName,
         string memory apiEndpoint,
-        uint256[] memory substandards,
         string memory documentationURI
     ) {
         // Set the zone name.
@@ -208,9 +207,6 @@ contract SignedZone is
 
         // Set the API endpoint.
         _sip7APIEndpoint = apiEndpoint;
-
-        // Set the substandards.
-        _sip7Substandards = substandards;
 
         // Set the documentation URI.
         _sip7DocumentationURI = documentationURI;

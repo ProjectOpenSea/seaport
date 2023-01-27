@@ -96,7 +96,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     chainId = (await provider.getNetwork()).chainId;
 
-    const subStandards = [1];
     const documentationURI =
       "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md";
 
@@ -104,7 +103,6 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     signedZone = await signedZoneFactory.deploy(
       "OpenSeaSignedZone",
       "https://api.opensea.io/api/v2/sign",
-      subStandards,
       documentationURI
     );
   });
