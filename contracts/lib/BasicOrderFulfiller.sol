@@ -7,14 +7,7 @@ import {
     BasicOrderRouteType
 } from "./ConsiderationEnums.sol";
 
-import {
-    AdditionalRecipient,
-    BasicOrderParameters,
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem
-} from "./ConsiderationStructs.sol";
+import { BasicOrderParameters } from "./ConsiderationStructs.sol";
 
 import { OrderValidator } from "./OrderValidator.sol";
 

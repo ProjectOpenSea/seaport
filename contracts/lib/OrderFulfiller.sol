@@ -9,7 +9,6 @@ import {
     SpentItem,
     ReceivedItem,
     OrderParameters,
-    Order,
     AdvancedOrder,
     CriteriaResolver
 } from "./ConsiderationStructs.sol";

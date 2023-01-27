@@ -13,7 +13,6 @@ import {
     OrderParameters,
     Order,
     AdvancedOrder,
-    OrderStatus,
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
@@ -22,10 +21,7 @@ import {
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
-import {
-    OrderToExecute,
-    AccumulatorStruct
-} from "./lib/ReferenceConsiderationStructs.sol";
+import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration

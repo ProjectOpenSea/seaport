@@ -8,10 +8,8 @@ import {
 import {
     OrderComponents,
     BasicOrderParameters,
-    OrderParameters,
     Order,
     AdvancedOrder,
-    OrderStatus,
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,

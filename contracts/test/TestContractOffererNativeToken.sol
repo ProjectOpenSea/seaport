@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import {
-    ERC20Interface,
     ERC721Interface,
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";

@@ -11,7 +11,6 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution,
-    Order,
     AdvancedOrder,
     CriteriaResolver
 } from "./ConsiderationStructs.sol";

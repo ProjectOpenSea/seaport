@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType, Side } from "./ConsiderationEnums.sol";
+import { Side } from "./ConsiderationEnums.sol";
 
 import {
-    OfferItem,
-    ConsiderationItem,
     ReceivedItem,
-    OrderParameters,
     AdvancedOrder,
     Execution,
     FulfillmentComponent

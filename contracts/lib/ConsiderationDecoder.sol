@@ -7,9 +7,7 @@ import {
     AdvancedOrder,
     FulfillmentComponent,
     Fulfillment,
-    OrderComponents,
     OrderParameters,
-    SpentItem,
     OfferItem,
     ConsiderationItem,
     ReceivedItem

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import {
     PausableZoneEventsAndErrors
@@ -17,8 +16,6 @@ import {
     OrderComponents,
     Fulfillment,
     Execution,
-    OfferItem,
-    ConsiderationItem,
     ZoneParameters,
     Schema
 } from "../lib/ConsiderationStructs.sol";

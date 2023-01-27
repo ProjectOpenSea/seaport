@@ -3,8 +3,6 @@ pragma solidity ^0.8.13;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
-
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
