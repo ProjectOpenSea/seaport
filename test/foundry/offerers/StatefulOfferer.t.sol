@@ -2,29 +2,28 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+
 import { StatefulRatifierOfferer } from "./impl/StatefulRatifierOfferer.sol";
+
 import {
     ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
+    ERC721Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     OfferItem,
     ConsiderationItem,
     AdvancedOrder,
     CriteriaResolver,
-    SpentItem,
-    OrderParameters,
     OrderComponents,
-    ReceivedItem,
-    FulfillmentComponent,
-    Fulfillment
+    FulfillmentComponent
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import {
-    ItemType,
     OrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 

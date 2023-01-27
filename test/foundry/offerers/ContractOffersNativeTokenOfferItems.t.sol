@@ -8,17 +8,8 @@ import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 import { DifferentialTest } from "../utils/DifferentialTest.sol";
 
 import {
-    ERC20Interface,
-    ERC721Interface
-} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
-
-import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
-
-import {
-    ContractOffererInterface
-} from "../../../contracts/interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
@@ -30,8 +21,6 @@ import {
 import {
     TestContractOffererNativeToken
 } from "../../../contracts/test/TestContractOffererNativeToken.sol";
-
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 

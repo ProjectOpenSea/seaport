@@ -7,9 +7,9 @@ import { BadOfferer } from "./impl/BadOfferer.sol";
 
 import {
     ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
+    ERC721Interface
 } from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
@@ -19,12 +19,8 @@ import {
     ConsiderationItem,
     AdvancedOrder,
     CriteriaResolver,
-    SpentItem,
     OrderParameters,
-    OrderComponents,
-    ReceivedItem,
-    FulfillmentComponent,
-    Fulfillment
+    FulfillmentComponent
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {

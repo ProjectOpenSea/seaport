@@ -3,16 +3,20 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+
 import { Merkle } from "murky/Merkle.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     CriteriaResolver,
     OfferItem,
     OrderComponents,
     AdvancedOrder
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
 contract FulfillAdvancedOrderCriteria is BaseOrderTest {

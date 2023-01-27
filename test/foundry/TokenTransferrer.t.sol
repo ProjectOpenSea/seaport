@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer,
     ConduitItemType
 } from "../../contracts/conduit/lib/ConduitStructs.sol";
+
 import { TestERC20Revert } from "../../contracts/test/TestERC20Revert.sol";
+
 import { TestERC20NotOk } from "../../contracts/test/TestERC20NotOk.sol";
+
 import { TestERC721Revert } from "../../contracts/test/TestERC721Revert.sol";
+
 import { TestERC1155Revert } from "../../contracts/test/TestERC1155Revert.sol";
+
 import { BaseConduitTest } from "./conduit/BaseConduitTest.sol";
+
 import { Conduit } from "../../contracts/conduit/Conduit.sol";
+
 import {
     TokenTransferrerErrors
 } from "../../contracts/interfaces/TokenTransferrerErrors.sol";

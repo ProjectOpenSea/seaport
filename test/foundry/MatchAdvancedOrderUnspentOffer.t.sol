@@ -2,27 +2,24 @@
 
 pragma solidity ^0.8.17;
 
-import {
-    OrderType,
-    ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+
 import { Order } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     AdvancedOrder,
     OfferItem,
-    OrderParameters,
     ConsiderationItem,
-    OrderComponents,
     CriteriaResolver,
-    Fulfillment,
-    FulfillmentComponent
+    Fulfillment  
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { stdError } from "forge-std/Test.sol";
-import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 contract MatchOrderUnspentOfferTest is BaseOrderTest {

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
-
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
@@ -24,8 +22,6 @@ import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
-import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
-
 import {
     ConduitMockInvalidMagic
 } from "../../contracts/test/ConduitMockInvalidMagic.sol";
@@ -33,6 +29,7 @@ import {
 import {
     ConduitMockRevertNoReason
 } from "../../contracts/test/ConduitMockRevertNoReason.sol";
+
 import {
     ConduitControllerMock
 } from "../../contracts/test/ConduitControllerMock.sol";
@@ -44,10 +41,6 @@ import {
 import {
     TokenTransferrerErrors
 } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
-
-import {
-    TransferHelperInterface
-} from "../../contracts/interfaces/TransferHelperInterface.sol";
 
 import {
     TransferHelperErrors
@@ -62,9 +55,13 @@ import {
 } from "../../contracts/test/ERC721ReceiverMock.sol";
 
 import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
+
 import { StubERC20 } from "./token/StubERC20.sol";
+
 import { StubERC721 } from "./token/StubERC721.sol";
+
 import { StubERC1155 } from "./token/StubERC1155.sol";
+
 import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {

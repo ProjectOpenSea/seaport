@@ -2,18 +2,20 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
+
 import {
     ConsiderationInterface
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     BasicOrderParameters,
     Order,
-    AdvancedOrder,
     CriteriaResolver,
     Fulfillment,
     OrderParameters,
     FulfillmentComponent
 } from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BasicOrderType } from "../../contracts/lib/ConsiderationEnums.sol";
 
 contract TestNewHelpersTest is BaseOrderTest {

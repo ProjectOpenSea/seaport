@@ -4,9 +4,11 @@ pragma solidity ^0.8.17;
 import {
     SignatureVerification
 } from "../../contracts/lib/SignatureVerification.sol";
+
 import {
     ReferenceSignatureVerification
 } from "../../reference/lib/ReferenceSignatureVerification.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 contract SignatureVerifierLogic is BaseOrderTest, SignatureVerification {

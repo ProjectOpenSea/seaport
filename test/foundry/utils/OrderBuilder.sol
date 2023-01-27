@@ -2,13 +2,13 @@
 pragma solidity ^0.8.17;
 
 import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
+
 import {
     OrderParameters,
     OrderComponents,
     Order,
     BasicOrderParameters,
     SpentItem,
-    ReceivedItem,
     AdditionalRecipient,
     OfferItem,
     ConsiderationItem,
@@ -16,10 +16,12 @@ import {
     FulfillmentComponent,
     AdvancedOrder
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     OrderType,
     BasicOrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
