@@ -2,7 +2,55 @@
 
 pragma solidity ^0.8.17;
 
-import "../../contracts/lib/ConsiderationErrorConstants.sol";
+import {
+    BadContractSignature_error_selector,
+    BadFraction_error_selector,
+    BadSignatureV_error_selector,
+    CannotCancelOrder_error_selector,
+    ConsiderationCriteriaResolverOutOfRange_error_selector,
+    ConsiderationLengthNotEqualToTotalOriginal_error_selector,
+    ConsiderationNotMet_error_selector,
+    CriteriaNotEnabledForItem_error_selector,
+    InexactFraction_error_selector,
+    InsufficientNativeTokensSupplied_error_selector,
+    InvalidBasicOrderParameterEncoding_error_selector,
+    InvalidCallToConduit_error_selector,
+    InvalidConduit_error_selector,
+    InvalidContractOrder_error_selector,
+    InvalidERC721TransferAmount_error_selector,
+    InvalidFulfillmentComponentData_error_selector,
+    InvalidMsgValue_error_selector,
+    InvalidNativeOfferItem_error_selector,
+    InvalidProof_error_selector,
+    InvalidRestrictedOrder_error_selector,
+    InvalidSignature_error_selector,
+    InvalidSigner_error_selector,
+    InvalidTime_error_selector,
+    MismatchedFulfillmentOfferAndConsiderationComponents_error_selector,
+    MissingFulfillmentComponentOnAggregation_error_selector,
+    MissingItemAmount_error_selector,
+    MissingOriginalConsiderationItems_error_selector,
+    NativeTokenTransferGenericFailure_error_selector,
+    NoReentrantCalls_error_selector,
+    NoSpecifiedOrdersAvailable_error_selector,
+    OfferAndConsiderationRequiredOnFulfillment_error_selector,
+    OfferCriteriaResolverOutOfRange_error_selector,
+    OrderAlreadyFilled_error_selector,
+    OrderCriteriaResolverOutOfRange_error_selector,
+    OrderIsCancelled_error_selector,
+    OrderPartiallyFilled_error_selector,
+    Panic_error_selector,
+    PartialFillsNotEnabledForOrder_error_selector,
+    UnresolvedConsiderationCriteria_error_selector,
+    UnresolvedOfferCriteria_error_selector,
+    UnusedItemParameters_error_selector
+} from "../../contracts/lib/ConsiderationErrorConstants.sol";
+
+import {
+    BadReturnValueFromERC20OnTransfer_error_selector,
+    NoContract_error_selector,
+    TokenTransferGenericFailure_error_selector
+} from "../../contracts/lib/TokenTransferrerConstants.sol";
 
 import {
     generateOrder_selector,
@@ -232,13 +280,6 @@ contract ConstantsTest is BaseConsiderationTest {
         _test(
             NoContract_error_selector,
             TokenTransferrerErrors.NoContract.selector
-        );
-    }
-
-    function testInvalid1155BatchTransferEncoding_error_selector() public {
-        _test(
-            Invalid1155BatchTransferEncoding_error_selector,
-            TokenTransferrerErrors.Invalid1155BatchTransferEncoding.selector
         );
     }
 

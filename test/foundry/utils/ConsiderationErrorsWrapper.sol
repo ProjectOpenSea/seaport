@@ -1,7 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../../../contracts/lib/ConsiderationErrors.sol";
+import { Side } from "../../../contracts/lib/ConsiderationEnums.sol";
+
+import {
+    _revertBadFraction,
+    _revertConsiderationLengthNotEqualToTotalOriginal,
+    _revertConsiderationNotMet,
+    _revertCriteriaNotEnabledForItem,
+    _revertInsufficientNativeTokensSupplied,
+    _revertInvalidBasicOrderParameterEncoding,
+    _revertInvalidCallToConduit,
+    _revertInvalidConduit,
+    _revertInvalidContractOrder,
+    _revertInvalidERC721TransferAmount,
+    _revertInvalidMsgValue,
+    _revertInvalidNativeOfferItem,
+    _revertInvalidProof,
+    _revertInvalidTime,
+    _revertMismatchedFulfillmentOfferAndConsiderationComponents,
+    _revertMissingFulfillmentComponentOnAggregation,
+    _revertMissingOriginalConsiderationItems,
+    _revertNoReentrantCalls,
+    _revertNoSpecifiedOrdersAvailable,
+    _revertOfferAndConsiderationRequiredOnFulfillment,
+    _revertOrderAlreadyFilled,
+    _revertOrderCriteriaResolverOutOfRange,
+    _revertOrderIsCancelled,
+    _revertOrderPartiallyFilled,
+    _revertPartialFillsNotEnabledForOrder,
+    _revertUnresolvedConsiderationCriteria,
+    _revertUnresolvedOfferCriteria,
+    _revertUnusedItemParameters
+} from "../../../contracts/lib/ConsiderationErrors.sol";
 
 contract ConsiderationErrorsWrapper {
     /**

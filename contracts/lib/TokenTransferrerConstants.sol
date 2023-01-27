@@ -38,8 +38,8 @@ uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 
-uint256 constant OneWordShift = 5;
-uint256 constant TwoWordsShift = 6;
+uint256 constant OneWordShift = 0x5;
+uint256 constant TwoWordsShift = 0x6;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
@@ -84,11 +84,13 @@ uint256 constant ERC1155_safeBatchTransferFrom_signature = (
     0x2eb2c2d600000000000000000000000000000000000000000000000000000000
 );
 
-bytes4 constant ERC1155_safeBatchTransferFrom_selector = bytes4(
-    bytes32(ERC1155_safeBatchTransferFrom_signature)
-);
+// bytes4 constant ERC1155_safeBatchTransferFrom_selector = bytes4(
+//     bytes32(ERC1155_safeBatchTransferFrom_signature)
+// );
 
-uint256 constant ERC721_transferFrom_signature = ERC20_transferFrom_signature;
+uint256 constant ERC721_transferFrom_signature = (
+    0x23b872dd00000000000000000000000000000000000000000000000000000000
+);
 uint256 constant ERC721_transferFrom_sig_ptr = 0x0;
 uint256 constant ERC721_transferFrom_from_ptr = 0x04;
 uint256 constant ERC721_transferFrom_to_ptr = 0x24;
@@ -129,8 +131,8 @@ uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0xa0;
 uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 
 uint256 constant ExtraGasBuffer = 0x20;
-uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficientShift = 9;
+uint256 constant CostPerWord = 0x3;
+uint256 constant MemoryExpansionCoefficientShift = 0x9;
 
 // Values are offset by 32 bytes in order to write the token to the beginning
 // in the event of a revert
@@ -144,17 +146,17 @@ uint256 constant BatchTransfer1155Params_calldata_baseSize = 0xc4;
 uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
 
 uint256 constant BatchTransfer1155Params_ids_length_offset = 0xa0;
-uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
-uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
+// uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
+// uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
 
 uint256 constant ConduitBatch1155Transfer_usable_head_size = 0x80;
 
 uint256 constant ConduitBatch1155Transfer_from_offset = 0x20;
 uint256 constant ConduitBatch1155Transfer_ids_head_offset = 0x60;
-uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
+// uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
 uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
 uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
-uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
+// uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
 
 // Note: abbreviated version of above constant to adhere to line length limit.
 uint256 constant ConduitBatchTransfer_amounts_head_offset = 0x80;

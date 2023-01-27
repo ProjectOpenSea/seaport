@@ -3,7 +3,10 @@ pragma solidity ^0.8.13;
 
 import { IERC721Receiver } from "../interfaces/IERC721Receiver.sol";
 
-import {TransferHelperItem, TransferHelperItemsWithRecipient} from "./TransferHelperStructs.sol";
+import {
+    TransferHelperItem,
+    TransferHelperItemsWithRecipient
+} from "./TransferHelperStructs.sol";
 
 import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
 
