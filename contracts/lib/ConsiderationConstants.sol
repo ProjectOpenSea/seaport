@@ -162,7 +162,7 @@ uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipient_size = 0x40;
-uint256 constant AdditionalRecipient_size_shift = 6;
+uint256 constant AdditionalRecipient_size_shift = 0x6;
 
 uint256 constant EIP712_DomainSeparator_offset = 0x02;
 uint256 constant EIP712_OrderHash_offset = 0x22;
@@ -501,7 +501,7 @@ uint256 constant CriteriaResolver_fixed_segment_0 = 0x80;
 uint256 constant CriteriaResolver_criteriaProof_offset = 0x80;
 
 uint256 constant FulfillmentComponent_mem_tail_size = 0x40;
-uint256 constant FulfillmentComponent_mem_tail_size_shift = 6;
+uint256 constant FulfillmentComponent_mem_tail_size_shift = 0x6;
 uint256 constant Fulfillment_head_size = 0x40;
 uint256 constant Fulfillment_considerationComponents_offset = 0x20;
 
