@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.17;
 
 import { OrderParameters } from "./ConsiderationStructs.sol";
 
@@ -11,7 +11,29 @@ import {
 
 import { CounterManager } from "./CounterManager.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    AdditionalRecipient_size_shift,
+    BasicOrder_additionalRecipients_head_cdPtr,
+    BasicOrder_additionalRecipients_head_ptr,
+    BasicOrder_additionalRecipients_length_cdPtr,
+    BasicOrder_basicOrderType_cdPtr,
+    BasicOrder_basicOrderType_range,
+    BasicOrder_parameters_cdPtr,
+    BasicOrder_parameters_ptr,
+    BasicOrder_signature_cdPtr,
+    BasicOrder_signature_ptr
+} from "./ConsiderationConstants.sol";
+
+import {
+    Error_selector_offset,
+    MissingItemAmount_error_length,
+    MissingItemAmount_error_selector
+} from "./ConsiderationErrorConstants.sol";
+
+import {
+    _revertInvalidBasicOrderParameterEncoding,
+    _revertMissingOriginalConsiderationItems
+} from "./ConsiderationErrors.sol";
 
 /**
  * @title Assertions
@@ -32,9 +54,9 @@ contract Assertions is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        GettersAndDerivers(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) GettersAndDerivers(conduitController) {}
 
     /**
      * @dev Internal view function to ensure that the supplied consideration
@@ -80,7 +102,7 @@ contract Assertions is
     ) internal pure {
         // Ensure supplied consideration array length is not less than original.
         if (suppliedConsiderationItemTotal < originalConsiderationItemTotal) {
-            revert MissingOriginalConsiderationItems();
+            _revertMissingOriginalConsiderationItems();
         }
     }
 
@@ -91,9 +113,14 @@ contract Assertions is
      * @param amount The amount to check.
      */
     function _assertNonZeroAmount(uint256 amount) internal pure {
-        // Revert if the supplied amount is equal to zero.
-        if (amount == 0) {
-            revert MissingItemAmount();
+        assembly {
+            if iszero(amount) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, MissingItemAmount_error_selector)
+
+                // revert(abi.encodeWithSignature("MissingItemAmount()"))
+                revert(Error_selector_offset, MissingItemAmount_error_length)
+            }
         }
     }
 
@@ -140,13 +167,13 @@ contract Assertions is
                     // Derive expected offset as start of recipients + len * 64.
                     add(
                         BasicOrder_signature_ptr,
-                        mul(
+                        shl(
+                            // Each additional recipient has a length of 0x40.
+                            AdditionalRecipient_size_shift,
                             // Additional recipients length at calldata 0x264.
                             calldataload(
                                 BasicOrder_additionalRecipients_length_cdPtr
-                            ),
-                            // Each additional recipient has a length of 0x40.
-                            AdditionalRecipients_size
+                            )
                         )
                     )
                 )
@@ -165,7 +192,7 @@ contract Assertions is
 
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
-            revert InvalidBasicOrderParameterEncoding();
+            _revertInvalidBasicOrderParameterEncoding();
         }
     }
 }

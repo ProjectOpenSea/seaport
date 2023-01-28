@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-// prettier-ignore
 enum OrderType {
     // 0: no partial fills, anyone can execute
     FULL_OPEN,
@@ -13,10 +12,12 @@ enum OrderType {
     FULL_RESTRICTED,
 
     // 3: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED
+    PARTIAL_RESTRICTED,
+
+    // 4: contract order type
+    CONTRACT
 }
 
-// prettier-ignore
 enum BasicOrderType {
     // 0: no partial fills, anyone can execute
     ETH_TO_ERC721_FULL_OPEN,
@@ -91,7 +92,6 @@ enum BasicOrderType {
     ERC1155_TO_ERC20_PARTIAL_RESTRICTED
 }
 
-// prettier-ignore
 enum BasicOrderRouteType {
     // 0: provide Ether (or other native token) to receive offered ERC721 item.
     ETH_TO_ERC721,
@@ -112,7 +112,6 @@ enum BasicOrderRouteType {
     ERC1155_TO_ERC20
 }
 
-// prettier-ignore
 enum ItemType {
     // 0: ETH on mainnet, MATIC on polygon, etc.
     NATIVE,
@@ -133,7 +132,6 @@ enum ItemType {
     ERC1155_WITH_CRITERIA
 }
 
-// prettier-ignore
 enum Side {
     // 0: Items that can be spent
     OFFER,

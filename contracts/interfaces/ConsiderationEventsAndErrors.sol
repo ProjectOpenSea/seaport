@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
+import {
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors
@@ -51,21 +55,24 @@ interface ConsiderationEventsAndErrors {
      *      this event will not be emitted on partial fills even though they do
      *      validate the order as part of partial fulfillment.
      *
-     * @param orderHash The hash of the validated order.
-     * @param offerer   The offerer of the validated order.
-     * @param zone      The zone of the validated order.
+     * @param orderHash        The hash of the validated order.
+     * @param orderParameters  The parameters of the validated order.
      */
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone
-    );
+    event OrderValidated(bytes32 orderHash, OrderParameters orderParameters);
+
+    /**
+     * @dev Emit an event whenever one or more orders are matched using either
+     *      matchOrders or matchAdvancedOrders.
+     *
+     * @param orderHashes The order hashes of the matched orders.
+     */
+    event OrdersMatched(bytes32[] orderHashes);
 
     /**
      * @dev Emit an event whenever a counter for a given offerer is incremented.
      *
      * @param newCounter The new counter for the offerer.
-     * @param offerer  The offerer in question.
+     * @param offerer    The offerer in question.
      */
     event CounterIncremented(uint256 newCounter, address indexed offerer);
 
@@ -80,8 +87,11 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when attempting to fill an order outside the
      *      specified start time and end time.
+     *
+     * @param startTime The time at which the order becomes active.
+     * @param endTime   The time at which the order becomes inactive.
      */
-    error InvalidTime();
+    error InvalidTime(uint256 startTime, uint256 endTime);
 
     /**
      * @dev Revert with an error when attempting to fill an order referencing an
@@ -94,6 +104,15 @@ interface ConsiderationEventsAndErrors {
      *      a consideration array that is shorter than the original array.
      */
     error MissingOriginalConsiderationItems();
+
+    /**
+     * @dev Revert with an error when an order is validated and the length of
+     *      the consideration array is not equal to the supplied total original
+     *      consideration items value. This error is also thrown when contract
+     *      orders supply a total original consideration items value that does
+     *      not match the supplied consideration array length.
+     */
+    error ConsiderationLengthNotEqualToTotalOriginal();
 
     /**
      * @dev Revert with an error when a call to a conduit fails with revert data
@@ -118,15 +137,15 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Revert with an error when insufficient ether is supplied as part of
-     *      msg.value when fulfilling orders.
+     * @dev Revert with an error when insufficient native tokens are supplied as
+     *      part of msg.value when fulfilling orders.
      */
-    error InsufficientEtherSupplied();
+    error InsufficientNativeTokensSupplied();
 
     /**
-     * @dev Revert with an error when an ether transfer reverts.
+     * @dev Revert with an error when a native token transfer reverts.
      */
-    error EtherTransferGenericFailure(address account, uint256 amount);
+    error NativeTokenTransferGenericFailure(address account, uint256 amount);
 
     /**
      * @dev Revert with an error when a partial fill is attempted on an order
@@ -152,9 +171,10 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to cancel an order as a caller
-     *      other than the indicated offerer or zone.
+     *      other than the indicated offerer or zone or when attempting to
+     *      cancel a contract order.
      */
-    error InvalidCanceller();
+    error CannotCancelOrder();
 
     /**
      * @dev Revert with an error when supplying a fraction with a value of zero
@@ -184,7 +204,7 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fulfill an order with an
-     *      offer for ETH outside of matching orders.
+     *      offer for a native token outside of matching orders.
      */
     error InvalidNativeOfferItem();
 }

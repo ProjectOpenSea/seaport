@@ -23,6 +23,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
   - [Install](#install)
   - [Usage](#usage)
     - [Foundry Tests](#foundry-tests)
+    - [Linting](#linting)
   - [Audits](#audits)
   - [Contributing](#contributing)
   - [License](#license)
@@ -42,37 +43,182 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <th>ConduitController</th>
 </tr>
 
-<tr><td>Ethereum</td><td rowspan="14">
+<tr><td>Ethereum</td><td>
 
 [0x00000000006c3852cbEf3e08E8dF289169EdE581](https://etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
 
-</td><td rowspan="14">
+</td><td>
 
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
 
-<tr><td>Rinkeby</td></tr>
-<tr><td>Goerli</td></tr>
-<tr><td>Kovan</td></tr>
-<tr><td>Sepolia</td></tr>
-<tr><td>Polygon</td></tr>
-<tr><td>Mumbai</td></tr>
-<tr><td>Optimism</td></tr>
-<tr><td>Optimistic Kovan</td></tr>
-<tr><td>Arbitrum</td></tr>
-<tr><td>Arbitrum Nova</td></tr>
-<tr><td>Arbitrum Rinkeby</td></tr>
-<tr><td>Avalanche Fuji</td></tr>
-<tr><td>Avalanche C-Chain</td></tr>
-<tr><td>Gnosis Chain</td></tr>
-<tr><td>BSC</td></tr>
+<tr><td>Rinkeby</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://rinkeby.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://rinkeby.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Kovan</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://kovan.etherscan/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://kovan.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Sepolia</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://sepolia.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Polygon</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Mumbai</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://mumbai.polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://mumbai.polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Klaytn</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Baobab</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://baobab.scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://baobab.scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Optimism</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://optimistic.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://optimistic.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Optimistic Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli-optimism.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli-optimism.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum Goerli</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli.arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Arbitrum Nova</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://nova.arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Avalanche C-Chain</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Avalanche Fuji</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>Gnosis Chain</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://gnosisscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnossiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>BSC</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+<tr><td>BSC Testnet</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
 
-- Klaytn
-- Baobab
 - Skale
 - Celo
 - Fantom
@@ -144,6 +290,12 @@ yarn test:ref
 yarn coverage:ref
 ```
 
+To open the generated Hardhat coverage report locally after running `yarn coverage` or `yarn coverage:ref`:
+
+```bash
+open coverage/index.html
+```
+
 To profile gas usage:
 
 ```bash
@@ -154,59 +306,36 @@ yarn profile
 
 Seaport also includes a suite of fuzzing tests written in solidity with Foundry.
 
-To install Foundry (assuming a Linux or macOS system):
+To run tests with full traces and debugging with source, create an `.env` file with the following line:
 
 ```bash
-curl -L https://foundry.paradigm.xyz | bash
+FOUNDRY_PROFILE=debug
 ```
 
-This will download foundryup. To start Foundry, run:
+You may then run tests with `forge test`, optionally specifying a level of verbosity (anywhere from one to five `v`'s, eg, `-vvv`)
 
-```bash
-foundryup
-```
+This will compile tests and contracts without `via-ir` enabled, which is must faster, but will not exactly match the deployed bytecode.
 
-To install dependencies:
-
-```
-forge install
-```
-
-To precompile contracts:
-
-The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
+To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code.
 
 ```bash
 FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=reference forge build
 ```
 
-There are three Foundry profiles for running the test suites, which bypass the IR pipeline to speed up compilation. To run tests, run any of the following:
+To run Forge coverage tests and open the generated coverage report locally:
 
 ```bash
-FOUNDRY_PROFILE=test forge test # with 5000 fuzz runs
-FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
-FOUNDRY_PROFILE=local-ffi forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
+brew install lcov
+SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && genhtml lcov.info -o html --branch
+open html/index.htmlg
 ```
 
-You may wish to include a `.env` file that `export`s a specific profile when developing locally.
+**Note** that Forge does not yet ignore specific filepaths when running coverage tests.
 
-**Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local-ffi` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
+For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).
 
-**Note** the `local-ffi` profile uses Forge's `ffi` flag. `ffi` can potentially be unsafe, as it allows Forge to execute arbitrary code. Use with caution, and always ensure you trust the code in this repository, especially when working on third-party forks.
-
-The following modifiers are also available:
-
-- Level 2 (-vv): Logs emitted during tests are also displayed.
-- Level 3 (-vvv): Stack traces for failing tests are also displayed.
-- Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
-- Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
-
-```bash
-FOUNDRY_PROFILE=test forge test  -vv
-```
-
-For more information on foundry testing and use, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
+### Linting
 
 To run lint checks:
 
@@ -245,7 +374,7 @@ When making a pull request, ensure that:
 
 ## License
 
-[MIT](LICENSE) Copyright 2022 Ozone Networks, Inc.
+[MIT](LICENSE) Copyright 2023 Ozone Networks, Inc.
 
 [version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
 [version-link]: https://github.com/ProjectOpenSea/seaport/releases

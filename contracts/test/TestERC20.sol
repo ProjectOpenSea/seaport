@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import "@rari-capital/solmate/src/tokens/ERC20.sol";
+import { ERC20 } from "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 // Used for minting test ERC20s in our tests
 contract TestERC20 is ERC20("Test20", "TST20", 18) {

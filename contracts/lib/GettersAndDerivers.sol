@@ -1,11 +1,37 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.17;
 
 import { OrderParameters } from "./ConsiderationStructs.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-import "./ConsiderationConstants.sol";
+import {
+    Create2AddressDerivation_length,
+    Create2AddressDerivation_ptr,
+    EIP_712_PREFIX,
+    EIP712_ConsiderationItem_size,
+    EIP712_DigestPayload_size,
+    EIP712_DomainSeparator_offset,
+    EIP712_OfferItem_size,
+    EIP712_Order_size,
+    EIP712_OrderHash_offset,
+    FreeMemoryPointerSlot,
+    information_conduitController_offset,
+    information_domainSeparator_offset,
+    information_length,
+    information_version_cd_offset,
+    information_version_offset,
+    information_versionLengthPtr,
+    information_versionWithLength,
+    MaskOverByteTwelve,
+    MaskOverLastTwentyBytes,
+    OneWord,
+    OneWordShift,
+    OrderParameters_consideration_head_offset,
+    OrderParameters_counter_offset,
+    OrderParameters_offer_head_offset,
+    TwoWords
+} from "./ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers
@@ -22,9 +48,9 @@ contract GettersAndDerivers is ConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ConsiderationBase(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ConsiderationBase(conduitController) {}
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
@@ -33,7 +59,7 @@ contract GettersAndDerivers is ConsiderationBase {
      *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
-     * @param counter           The counter of the order to hash.
+     * @param counter         The counter of the order to hash.
      *
      * @return orderHash The hash.
      */
@@ -76,7 +102,6 @@ contract GettersAndDerivers is ConsiderationBase {
             offerArrPtr := add(offerArrPtr, OneWord)
 
             // Iterate over the offer items.
-            // prettier-ignore
             for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
@@ -104,7 +129,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // Derive the offer hash using the hashes of each item.
             offerHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(offerLength, OneWord)
+                shl(OneWordShift, offerLength)
             )
         }
 
@@ -131,7 +156,6 @@ contract GettersAndDerivers is ConsiderationBase {
             )
 
             // Iterate over the consideration items (not including tips).
-            // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
@@ -162,7 +186,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // Derive the consideration hash using the hashes of each item.
             considerationHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, OneWord)
+                shl(OneWordShift, originalConsiderationLength)
             )
         }
 
@@ -242,11 +266,9 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _deriveConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Read conduit controller address from runtime and place on the stack.
         address conduitController = address(_CONDUIT_CONTROLLER);
 
@@ -295,7 +317,6 @@ contract GettersAndDerivers is ConsiderationBase {
      * @return The domain separator.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
             : _deriveDomainSeparator();
@@ -305,31 +326,32 @@ contract GettersAndDerivers is ConsiderationBase {
      * @dev Internal view function to retrieve configuration information for
      *      this contract.
      *
-     * @return version           The contract version.
-     * @return domainSeparator   The domain separator for this contract.
-     * @return conduitController The conduit Controller set for this contract.
+     * @return The contract version.
+     * @return The domain separator for this contract.
+     * @return The conduit Controller set for this contract.
      */
     function _information()
         internal
         view
         returns (
-            string memory version,
-            bytes32 domainSeparator,
-            address conduitController
+            string memory /* version */,
+            bytes32 /* domainSeparator */,
+            address /* conduitController */
         )
     {
         // Derive the domain separator.
-        domainSeparator = _domainSeparator();
+        bytes32 domainSeparator = _domainSeparator();
 
         // Declare variable as immutables cannot be accessed within assembly.
-        conduitController = address(_CONDUIT_CONTROLLER);
+        address conduitController = address(_CONDUIT_CONTROLLER);
 
-        // Allocate a string with the intended length.
-        version = new string(Version_length);
-
-        // Set the version as data on the newly allocated string.
+        // Return the version, domain separator, and conduit controller.
         assembly {
-            mstore(add(version, OneWord), shl(Version_shift, Version))
+            mstore(information_version_offset, information_version_cd_offset)
+            mstore(information_domainSeparator_offset, domainSeparator)
+            mstore(information_conduitController_offset, conduitController)
+            mstore(information_versionLengthPtr, information_versionWithLength)
+            return(information_version_offset, information_length)
         }
     }
 
@@ -342,11 +364,10 @@ contract GettersAndDerivers is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
+    function _deriveEIP712Digest(
+        bytes32 domainSeparator,
+        bytes32 orderHash
+    ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.

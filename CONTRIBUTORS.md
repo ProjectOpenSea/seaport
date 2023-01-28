@@ -5,13 +5,14 @@ Contributor                    | ENS
 0age                           | `0age.eth`
 d1ll0n                         | `d1ll0n.eth`
 transmissions11                | `t11s.eth`
+James Wenzel                   | `emo.eth`
 Kartik                         | `slokh.eth`
 LeFevre                        | `lefevre.eth`
 Joseph Schiarizzi              | `CupOJoseph.eth`
 Aspyn Palatnick                | `stuckinaboot.eth`
-James Wenzel                   | `emo.eth`
 Stephan Min                    | `stephanm.eth`
 Ryan Ghods                     | `ralxz.eth`
+Daniel Viau                    | `snotrocket.eth`
 0xPatissier                    |
 pcaversaccio                   |
 David Eiber                    |
@@ -70,3 +71,4 @@ shuklaayush                    | `shuklaayush.eth`
 Riley Holterhus                |
 big-tech-sux                   |
 naps62                         | `naps62.eth`
+Dravee                         | `dravee.eth`

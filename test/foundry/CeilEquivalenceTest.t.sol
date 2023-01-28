@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 
 contract CeilEquivalenceTest {
-    function testCeilEquivalence(uint256 numerator, uint256 denominator)
-        public
-        pure
-    {
+    function testCeilEquivalence(
+        uint256 numerator,
+        uint256 denominator
+    ) public pure {
         // There is intermediate overflow for the unoptimized ceil
         // but for the sake of this test we'll ignore those cases.
         numerator %= type(uint128).max;

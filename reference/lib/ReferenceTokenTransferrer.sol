@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
-
-import "contracts/lib/ConsiderationConstants.sol";
+pragma solidity ^0.8.13;
 
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "../../contracts/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     TokenTransferrerErrors
-} from "contracts/interfaces/TokenTransferrerErrors.sol";
+} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 contract ReferenceTokenTransferrer is TokenTransferrerErrors {
     /**
@@ -30,10 +28,12 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
         address to,
         uint256 amount
     ) internal {
+        // If the provided token is not a contract, revert.
         if (token.code.length == 0) {
             revert NoContract(token);
         }
 
+        // Attempt to transfer the tokens.
         (bool ok, bytes memory data) = token.call(
             abi.encodeWithSelector(
                 ERC20Interface.transferFrom.selector,
@@ -48,6 +48,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
             revert TokenTransferGenericFailure(token, from, to, 0, amount);
         }
 
+        // If the token does not return a boolean, revert.
         if (data.length != 0 && data.length >= 32) {
             if (!abi.decode(data, (bool))) {
                 revert BadReturnValueFromERC20OnTransfer(
@@ -76,6 +77,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
         address to,
         uint256 identifier
     ) internal {
+        // If the provided token is not a contract, revert.
         if (token.code.length == 0) {
             revert NoContract(token);
         }
@@ -103,6 +105,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
         uint256 identifier,
         uint256 amount
     ) internal {
+        // If the provided token is not a contract, revert.
         if (token.code.length == 0) {
             revert NoContract(token);
         }
@@ -136,6 +139,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
         uint256[] memory identifiers,
         uint256[] memory amounts
     ) internal {
+        // If the provided token is not a contract, revert.
         if (token.code.length == 0) {
             revert NoContract(token);
         }

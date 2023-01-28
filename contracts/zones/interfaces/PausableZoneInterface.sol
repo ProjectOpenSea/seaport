@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
     CriteriaResolver,
-    Order,
-    OrderComponents,
+    Execution,
     Fulfillment,
-    Execution
+    Order,
+    OrderComponents
 } from "../../lib/ConsiderationStructs.sol";
 
 /**

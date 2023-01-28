@@ -93,3 +93,7 @@ export type AdvancedOrder = {
   signature: string;
   extraData: string;
 };
+
+export type BulkOrder = {
+  tree: Array<Array<Array<Array<Array<Array<Array<OrderComponents>>>>>>>;
+};

@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import { randomBytes as nodeRandomBytes } from "crypto";
 import { BigNumber, constants, utils } from "ethers";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
@@ -68,9 +69,7 @@ export const convertSignatureToEIP2098 = (signature: string) => {
     return signature;
   }
 
-  if (signature.length !== 132) {
-    throw Error("invalid signature length (must be 64 or 65 bytes)");
-  }
+  expect(signature.length, "signature must be 64 or 65 bytes").to.eq(132);
 
   return utils.splitSignature(signature).compact;
 };

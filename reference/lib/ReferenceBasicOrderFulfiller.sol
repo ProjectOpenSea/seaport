@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import {
-    OrderType,
+    BasicOrderRouteType,
     BasicOrderType,
     ItemType,
-    BasicOrderRouteType
-} from "contracts/lib/ConsiderationEnums.sol";
+    OrderType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    OfferItem,
     ConsiderationItem,
-    SpentItem,
-    ReceivedItem
-} from "contracts/lib/ConsiderationStructs.sol";
+    OfferItem,
+    ReceivedItem,
+    SpentItem
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -24,8 +24,6 @@ import {
 } from "./ReferenceConsiderationStructs.sol";
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
-
-import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller
@@ -47,9 +45,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceOrderValidator(conduitController)
-    {
+    constructor(
+        address conduitController
+    ) ReferenceOrderValidator(conduitController) {
         createMappings();
     }
 
@@ -338,7 +336,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         }
 
         // Derive & validate order using parameters and update order status.
-        _prepareBasicFulfillment(
+        bytes32 orderHash = _prepareBasicFulfillment(
             parameters,
             orderType,
             receivedItemType,
@@ -346,9 +344,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             additionalRecipientsToken,
             offeredItemType
         );
-
-        // Read offerer from calldata and place on the stack.
-        address payable offerer = parameters.offerer;
 
         // Determine conduitKey argument used by transfer functions.
         bytes32 conduitKey;
@@ -387,7 +382,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -401,7 +396,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -415,7 +410,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -426,7 +421,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
@@ -437,7 +432,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -448,7 +443,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
@@ -460,7 +455,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             _transferERC721(
                 parameters.considerationToken,
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
                 conduitKey,
@@ -469,7 +464,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
@@ -484,7 +479,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             _transferERC1155(
                 parameters.considerationToken,
                 msg.sender,
-                offerer,
+                parameters.offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
                 conduitKey,
@@ -493,7 +488,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
@@ -505,6 +500,15 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulatorStruct);
+
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(
+            orderHash,
+            orderType,
+            parameters,
+            offeredItemType,
+            receivedItemType
+        );
 
         return true;
     }
@@ -562,6 +566,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
+     *
+     * @return orderHash                   The calculated order hash.
      */
     function _prepareBasicFulfillment(
         BasicOrderParameters calldata parameters,
@@ -570,7 +576,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal {
+    ) internal returns (bytes32 orderHash) {
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
@@ -808,14 +814,6 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 consideration
             );
         }
-        // Determine whether order is restricted and, if so, that it is valid.
-        _assertRestrictedBasicOrderValidity(
-            hashes.orderHash,
-            parameters.zoneHash,
-            orderType,
-            parameters.offerer,
-            parameters.zone
-        );
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
@@ -823,6 +821,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             parameters.offerer,
             parameters.signature
         );
+
+        // Return the derived order hash.
+        return hashes.orderHash;
     }
 
     /**
@@ -838,8 +839,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) internal {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Put native token value supplied by the caller on the stack.
+        uint256 nativeTokensRemaining = msg.value;
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
@@ -848,36 +849,39 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 parameters.additionalRecipients[i]
             );
 
-            // Read ether amount to transfer to recipient and place on stack.
+            // Read native token amount to transfer to recipient & put on stack.
             uint256 additionalRecipientAmount = additionalRecipient.amount;
 
-            // Ensure that sufficient Ether is available.
-            if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
+            // Ensure that sufficient native tokens are available.
+            if (additionalRecipientAmount > nativeTokensRemaining) {
+                revert InsufficientNativeTokensSupplied();
             }
 
-            // Transfer Ether to the additional recipient.
-            _transferEth(
+            // Transfer native token to the additional recipient.
+            _transferNativeTokens(
                 additionalRecipient.recipient,
                 additionalRecipientAmount
             );
 
-            // Reduce ether value available.
-            etherRemaining -= additionalRecipientAmount;
+            // Reduce native token value available.
+            nativeTokensRemaining -= additionalRecipientAmount;
         }
 
-        // Ensure that sufficient Ether is still available.
-        if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
+        // Ensure that sufficient native token is still available.
+        if (amount > nativeTokensRemaining) {
+            revert InsufficientNativeTokensSupplied();
         }
 
-        // Transfer Ether to the offerer.
-        _transferEth(parameters.offerer, amount);
+        // Transfer native token to the offerer.
+        _transferNativeTokens(parameters.offerer, amount);
 
-        // If any Ether remains after transfers, return it to the caller.
-        if (etherRemaining > amount) {
-            // Transfer remaining Ether to the caller.
-            _transferEth(payable(msg.sender), etherRemaining - amount);
+        // If any native token remains after transfers, return it to the caller.
+        if (nativeTokensRemaining > amount) {
+            // Transfer remaining native token to the caller.
+            _transferNativeTokens(
+                payable(msg.sender),
+                nativeTokensRemaining - amount
+            );
         }
     }
 

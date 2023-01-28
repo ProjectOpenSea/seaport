@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
-
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "../conduit/lib/ConduitStructs.sol";
 
 contract ConduitMockRevertNoReason is ConduitInterface {
@@ -25,7 +23,7 @@ contract ConduitMockRevertNoReason is ConduitInterface {
     ) external view override returns (bytes4 magicValue) {}
 
     function executeWithBatch1155(
-        ConduitTransfer[] calldata, /* standardTransfers */
+        ConduitTransfer[] calldata /* standardTransfers */,
         ConduitBatch1155Transfer[] calldata /*  batch1155Transfers */
     ) external view override returns (bytes4 magicValue) {}
 
