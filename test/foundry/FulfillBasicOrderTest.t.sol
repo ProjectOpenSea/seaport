@@ -41,6 +41,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     uint256 badIdentifier;
     address badToken;
     BasicOrderParameters basicOrderParameters;
+    address payable invalidRecipientAddress;
 
     struct FuzzInputsCommon {
         address zone;
@@ -436,13 +437,28 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs, 0)) {
         InvalidEthRecipient invalidRecipient = new InvalidEthRecipient();
+        invalidRecipientAddress = payable(address(invalidRecipient));
+        vm.deal(invalidRecipientAddress, UINT256_MAX);
 
         addErc721OfferItem(inputs.tokenId);
-        addEthConsiderationItem(
-            payable(address(invalidRecipient)),
-            inputs.paymentAmount
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+
+        AdditionalRecipient[]
+            storage _additionalRecipients = additionalRecipients;
+        _additionalRecipients.push(
+            AdditionalRecipient({
+                recipient: invalidRecipientAddress,
+                amount: 1
+            })
         );
+        addEthConsiderationItem(invalidRecipientAddress, 1);
+
         _configureBasicOrderParametersEthTo721(inputs);
+        basicOrderParameters.additionalRecipients = _additionalRecipients;
+        basicOrderParameters.considerationAmount = inputs.paymentAmount;
+        basicOrderParameters.totalOriginalAdditionalRecipients = 1;
+
+        test(this.revertInvalidEthRecipient, Context(consideration, inputs, 0));
     }
 
     function revertInvalidEthRecipient(
@@ -450,14 +466,14 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     ) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
-        _configureOrderParameters(
-            alice,
-            address(0),
-            bytes32(0),
-            globalSalt++,
-            false
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
         );
-        configureOrderComponents(context.consideration.getCounter(alice));
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
 
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
@@ -469,18 +485,16 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             orderHash
         );
 
-        BasicOrderParameters
-            memory _basicOrderParameters = toBasicOrderParameters(
-                baseOrderComponents,
-                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
-                signature
-            );
+        basicOrderParameters.signature = signature;
 
         bytes
-            memory expectedRevert = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            memory expectedRevert = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+        vm.prank(invalidRecipientAddress);
         vm.expectRevert(expectedRevert);
-        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+        context.consideration.fulfillBasicOrder{ value: 10000000 }(
+            basicOrderParameters
+        );
     }
 
     function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
