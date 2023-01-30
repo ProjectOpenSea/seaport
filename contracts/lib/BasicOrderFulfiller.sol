@@ -412,16 +412,9 @@ contract BasicOrderFulfiller is OrderValidator {
         // Utilize assembly so that constant calldata pointers can be applied.
         assembly {
             // Ensure current timestamp is between order start time & end time.
-            if iszero(
-                and(
-                    iszero(
-                        gt(
-                            calldataload(BasicOrder_startTime_cdPtr),
-                            timestamp()
-                        )
-                    ),
-                    gt(calldataload(BasicOrder_endTime_cdPtr), timestamp())
-                )
+            if or(
+                gt(calldataload(BasicOrder_startTime_cdPtr), timestamp()),
+                iszero(gt(calldataload(BasicOrder_endTime_cdPtr), timestamp()))
             ) {
                 // Store left-padded selector with push4 (reduces bytecode),
                 // mem[28:32] = selector
@@ -956,7 +949,7 @@ contract BasicOrderFulfiller is OrderValidator {
              *  - 0x140: recipient 0
              */
 
-            // Derive pointer to start of OrderFulfilled event data
+            // Derive pointer to start of OrderFulfilled event data.
             let eventDataPtr := add(
                 OrderFulfilled_baseOffset,
                 shl(

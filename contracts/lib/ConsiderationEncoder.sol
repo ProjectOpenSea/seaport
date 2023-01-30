@@ -227,12 +227,13 @@ contract ConsiderationEncoder {
     }
 
     /**
-     * @dev Takes an order hash (e.g. offerer + contract nonce in the case of
-     *      contract orders), OrderParameters struct, context bytes array, and
-     *      array of order hashes for each order included as part of the current
-     *      fulfillment and encodes it as `ratifyOrder` calldata.
+     * @dev Takes an order hash (e.g. offerer shifted 96 bits to the left XOR'd
+     *      with the contract nonce in the case of contract orders), an
+     *      OrderParameters struct, context bytes array, and an array of order
+     *      hashes for each order included as part of the current fulfillment
+     *      and encodes it as `ratifyOrder` calldata.
      *
-     * @param orderHash       The order hash (e.g. offerer + contract nonce).
+     * @param orderHash       The order hash (e.g. shl(0x60, offerer) ^ nonce).
      * @param orderParameters The OrderParameters struct used to construct the
      *                        encoded `ratifyOrder` calldata.
      * @param context         The context bytes array used to construct the
@@ -248,7 +249,7 @@ contract ConsiderationEncoder {
      * @return size The size of the bytes array.
      */
     function _encodeRatifyOrder(
-        bytes32 orderHash, // e.g. offerer + contract nonce
+        bytes32 orderHash, // e.g. shl(0x60, offerer) ^ contract nonce
         OrderParameters memory orderParameters,
         bytes memory context, // encoded based on the schemaID
         bytes32[] memory orderHashes,
