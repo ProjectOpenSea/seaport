@@ -780,6 +780,64 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         }(basicOrderParameters);
     }
 
+    function testRevertMissingOriginalConsiderationItems(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+
+        _configureBasicOrderParametersEthTo721(inputs);
+        basicOrderParameters.considerationAmount = inputs.paymentAmount;
+        basicOrderParameters.totalOriginalAdditionalRecipients = 5;
+
+        test(
+            this.revertMissingOriginalConsiderationItems,
+            Context(consideration, inputs, 0)
+        );
+        test(
+            this.revertMissingOriginalConsiderationItems,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
+    function revertMissingOriginalConsiderationItems(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConsiderationEventsAndErrors
+                    .MissingOriginalConsiderationItems
+                    .selector
+            )
+        );
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
+    }
+
     function prepareBasicOrder(
         uint256 tokenId
     )
