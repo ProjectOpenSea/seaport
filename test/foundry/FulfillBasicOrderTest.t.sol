@@ -724,6 +724,62 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
+    function testRevertInvalidTimestamp(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        basicOrderParameters.startTime = block.timestamp + 1 days;
+        basicOrderParameters.endTime = block.timestamp + 2 days;
+
+        test(this.revertInvalidTimestamp, Context(consideration, inputs, 0));
+        test(
+            this.revertInvalidTimestamp,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
+    function revertInvalidTimestamp(Context memory context) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        baseOrderComponents.startTime = block.timestamp + 1 days;
+        baseOrderComponents.endTime = block.timestamp + 2 days;
+
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConsiderationEventsAndErrors.InvalidTime.selector,
+                basicOrderParameters.startTime,
+                basicOrderParameters.endTime
+            )
+        );
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
+    }
+
     function prepareBasicOrder(
         uint256 tokenId
     )
