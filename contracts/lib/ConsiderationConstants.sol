@@ -102,7 +102,7 @@ uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
 // uint256 constant OrderParameters_offerer_offset = 0x00;
-// uint256 constant OrderParameters_zone_offset = 0x20;
+uint256 constant OrderParameters_zone_offset = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 // uint256 constant OrderParameters_orderType_offset = 0x80;
@@ -380,6 +380,9 @@ uint256 constant MaskOverByteTwelve = (
 );
 uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+);
+uint256 constant AddressDirtyUpperBitThreshold = (
+    0x0000000000000000000000010000000000000000000000000000000000000000
 );
 uint256 constant MaskOverFirstFourBytes = (
     0xffffffff00000000000000000000000000000000000000000000000000000000

@@ -20,7 +20,8 @@ import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 import {
     ContractOrder_orderHash_offerer_shift,
     MaskOverFirstFourBytes,
-    OneWord
+    OneWord,
+    OrderParameters_zone_offset
 } from "./ConsiderationConstants.sol";
 
 import {
@@ -117,13 +118,18 @@ contract ZoneInteraction is
             );
 
             // Set the target to the zone.
-            target = parameters.zone;
+            target = (
+                parameters
+                    .toMemoryPointer()
+                    .offset(OrderParameters_zone_offset)
+                    .readAddress()
+            );
 
             // Set the restricted-order-specific error selector.
             errorSelector = InvalidRestrictedOrder_error_selector;
         } else if (parameters.orderType == OrderType.CONTRACT) {
-            // Set the target to the offerer.
-            target = parameters.offerer;
+            // Set the target to the offerer (note the offerer has no offset).
+            target = parameters.toMemoryPointer().readAddress();
 
             // Shift the target 96 bits to the left.
             uint256 shiftedOfferer;
