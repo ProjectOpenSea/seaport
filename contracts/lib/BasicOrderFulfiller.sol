@@ -77,6 +77,7 @@ import {
     FiveWords,
     FourWords,
     FreeMemoryPointerSlot,
+    MaskOverLastTwentyBytes,
     OneConduitExecute_size,
     OneWord,
     OneWordShift,
@@ -601,7 +602,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
                 // Declare a stack variable where all additional recipients will
                 // be combined to guard against providing dirty upper bits.
-                let combinedAdditionalRecipients;
+                let combinedAdditionalRecipients
 
                 // Read length of the additionalRecipients array from calldata
                 // and iterate.
