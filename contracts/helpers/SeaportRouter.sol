@@ -119,7 +119,7 @@ contract SeaportRouter is
                 // Subtract the number of orders fulfilled.
                 uint256 newAvailableOrdersLength = newAvailableOrders.length;
                 for (uint256 j = 0; j < newAvailableOrdersLength; ) {
-                    if (availableOrders[i][j]) {
+                    if (newAvailableOrders[j]) {
                         unchecked {
                             --fulfillmentsLeft;
                             ++j;
