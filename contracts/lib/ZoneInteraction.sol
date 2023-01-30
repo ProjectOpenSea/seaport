@@ -20,7 +20,8 @@ import { MemoryPointer } from "../helpers/PointerLibraries.sol";
 import {
     ContractOrder_orderHash_offerer_shift,
     MaskOverFirstFourBytes,
-    OneWord
+    OneWord,
+    OrderParameters_zone_offset
 } from "./ConsiderationConstants.sol";
 
 import {
