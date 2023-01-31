@@ -281,11 +281,6 @@ contract ReferenceSignedZone is
         if (extraData[93] != 0x00) {
             revert InvalidSubstandardVersion(orderHash);
         }
-
-        // extraData bytes 1-21: expected fulfiller
-        // (zero address means not restricted)
-        address expectedFulfiller = address(bytes20(extraData[1:21]));
-
         // extraData bytes 21-29: expiration timestamp (uint64)
         uint64 expiration = uint64(bytes8(extraData[21:29]));
 
@@ -311,44 +306,10 @@ contract ReferenceSignedZone is
             );
         }
 
-        // Put fulfiller on the stack for more efficient access.
-        address actualFulfiller = zoneParameters.fulfiller;
-
-        uint256 expectedReceivedIdentifier = uint256(bytes32(context[1:33]));
-        uint256 actualReceivedIdentifier = zoneParameters
-            .consideration[0]
-            .identifier;
-
-        // Revert if the expected fulfiller is not the zero address and does
-        // not match the actual fulfiller or if the expected received
-        // identifier does not match the actual received identifier.
-        bool validFulfiller;
-        bool validReceivedItems;
-        assembly {
-            validFulfiller := or(
-                iszero(expectedFulfiller),
-                eq(expectedFulfiller, actualFulfiller)
-            )
-
-            validReceivedItems := eq(
-                expectedReceivedIdentifier,
-                actualReceivedIdentifier
-            )
-        }
-        if (!validFulfiller) {
-            revert InvalidFulfiller(
-                expectedFulfiller,
-                actualFulfiller,
+        address expectedFulfiller = _assertValidSubstandardAndGetExpectedFulfiller(
+                zoneParameters,
                 orderHash
             );
-        }
-        if (!validReceivedItems) {
-            revert InvalidReceivedItem(
-                expectedReceivedIdentifier,
-                actualReceivedIdentifier,
-                orderHash
-            );
-        }
 
         // Derive the signedOrder hash.
         bytes32 signedOrderHash = _deriveSignedOrderHash(
@@ -744,6 +705,56 @@ contract ReferenceSignedZone is
 
             // Clear out the dirtied bits in the memory pointer.
             mstore(EIP712_SignedOrderHash_offset, 0)
+        }
+    }
+
+    function _assertValidSubstandardAndGetExpectedFulfiller(
+        ZoneParameters calldata zoneParameters,
+        bytes32 orderHash
+    ) internal pure returns (address expectedFulfiller) {
+        // extraData bytes 1-21: expected fulfiller
+        // (zero address means not restricted)
+        expectedFulfiller = address(bytes20(zoneParameters.extraData[1:21]));
+        // Put fulfiller on the stack for more efficient access.
+        address actualFulfiller = zoneParameters.fulfiller;
+
+        // extraData bytes 94-126: expected received identifier
+        uint256 expectedReceivedIdentifier = uint256(
+            bytes32(zoneParameters.extraData[94:126])
+        );
+        uint256 actualReceivedIdentifier = zoneParameters
+            .consideration[0]
+            .identifier;
+
+        // Revert if the expected fulfiller is not the zero address and does
+        // not match the actual fulfiller or if the expected received
+        // identifier does not match the actual received identifier.
+        bool validFulfiller;
+        bool validReceivedItems;
+        assembly {
+            validFulfiller := or(
+                iszero(expectedFulfiller),
+                eq(expectedFulfiller, actualFulfiller)
+            )
+
+            validReceivedItems := eq(
+                expectedReceivedIdentifier,
+                actualReceivedIdentifier
+            )
+        }
+        if (!validFulfiller) {
+            revert InvalidFulfiller(
+                expectedFulfiller,
+                actualFulfiller,
+                orderHash
+            );
+        }
+        if (!validReceivedItems) {
+            revert InvalidReceivedItem(
+                expectedReceivedIdentifier,
+                actualReceivedIdentifier,
+                orderHash
+            );
         }
     }
 }

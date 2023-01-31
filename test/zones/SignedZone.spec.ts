@@ -28,9 +28,9 @@ import {
 
 import type {
   ConsiderationInterface,
+  ReferenceSignedZone__factory,
   SignedZone,
   SignedZone__factory,
-  ReferenceSignedZone__factory,
 } from "../../typechain-types";
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { Contract, Wallet } from "ethers";
