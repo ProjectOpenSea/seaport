@@ -196,10 +196,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Declare an error buffer indicating status of any native offer items.
         // Note that contract orders may still designate native offer items.
-        // {00} == 0 => In a match function, no native offer items: allow.
-        // {01} == 1 => In a match function, some native offer items: allow.
-        // {10} == 2 => Not in a match function, no native offer items: allow.
-        // {11} == 3 => Not in a match function, some native offer items: THROW.
+        // {0...0} => In a match function, no native offer items: allow.
+        // {0...1} => In a match function, some native offer items: allow.
+        // {1...0} => Not in a match function, no native offer items: allow.
+        // {1...1} => Not in a match function, some native offer items: THROW.
+        //  ^ 231st bit
         uint256 invalidNativeOfferItemErrorBuffer;
 
         // Use assembly to set the value for the second bit of the error buffer.
@@ -214,7 +215,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
              * 1111001011010001001010110 0 010010 matchAdvancedOrders
              * 1110110110011000101001010 1 110100 fulfillAvailableOrders
              * 1000011100100000000110110 1 000001 fulfillAvailableAdvancedOrders
-             *                           ^ 7th bit
+             *                           ^ 7th bit of the signature or 231st bit of calldataload(0)
              */
             invalidNativeOfferItemErrorBuffer := and(
                 NonMatchSelector_MagicMask,
@@ -448,10 +449,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
-        // If the first bit is set, a native offer item was encountered. If the
-        // second bit is set in the error buffer, the current function is not
-        // matchOrders or matchAdvancedOrders. If the value is three, both the
-        // first and second bits were set; in that case, revert with an error.
+        // If the 1st bit is set, a native offer item was encountered for a
+        // non-contract order. If the 231st bit is set in the error buffer,
+        // the current function is not matchOrders or matchAdvancedOrders. 
+        // If the value is `NonMatchSelector_InvalidErrorValue` = 1 + (1 << 230), 
+        // both the 1st and 231st bits were set; in that case, revert with an error.
         if (
             invalidNativeOfferItemErrorBuffer ==
             NonMatchSelector_InvalidErrorValue
