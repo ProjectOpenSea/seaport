@@ -6,6 +6,7 @@ pragma solidity ^0.8.17;
  */
 enum EntryPoint {
     FulfillBasicOrder,
+    FulfillBasicOrderEfficient,
     FulfillOrder,
     FulfillAdvancedOrder,
     FulfillAvailableOrders,
@@ -19,6 +20,7 @@ enum EntryPoint {
  */
 enum ReentryPoint {
     FulfillBasicOrder,
+    FulfillBasicOrderEfficient,
     FulfillOrder,
     FulfillAdvancedOrder,
     FulfillAvailableOrders,
