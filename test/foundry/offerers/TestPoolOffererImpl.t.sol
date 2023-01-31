@@ -591,14 +591,6 @@ contract TestPoolOffererImpl is Test {
         });
         vm.startPrank(seaport);
         vm.expectRevert(TestPoolOfferer.InvalidItemType.selector);
-        (
-            SpentItem[] memory spentItems,
-            ReceivedItem[] memory receivedItems
-        ) = test.generateOrder(
-                address(this),
-                minimumReceived,
-                maximumSpent,
-                ""
-            );
+        test.generateOrder(address(this), minimumReceived, maximumSpent, "");
     }
 }
