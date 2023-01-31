@@ -726,8 +726,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     }
 
     function testRevertInvalidTimestamp(
-        FuzzInputsCommon memory inputs,
-        uint128 tokenAmount
+        FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
@@ -782,8 +781,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     }
 
     function testRevertMissingOriginalConsiderationItems(
-        FuzzInputsCommon memory inputs,
-        uint128 tokenAmount
+        FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
