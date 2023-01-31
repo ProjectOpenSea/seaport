@@ -195,11 +195,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         _setReentrancyGuard(true); // Native tokens accepted during execution.
 
         // Declare an error buffer indicating status of any native offer items.
-        // Note that contract orders may still designate native offer items.
-        // {00} == 0 => In a match function, no native offer items: allow.
-        // {01} == 1 => In a match function, some native offer items: allow.
-        // {10} == 2 => Not in a match function, no native offer items: allow.
-        // {11} == 3 => Not in a match function, some native offer items: THROW.
+        // Native tokens may only be provided as part of contract orders or when
+        // fulfilling via matchOrders or matchAdvancedOrders; if bits indicating
+        // these conditions are not met have been set, throw.
         uint256 invalidNativeOfferItemErrorBuffer;
 
         // Use assembly to set the value for the second bit of the error buffer.
@@ -448,10 +446,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
-        // If the first bit is set, a native offer item was encountered. If the
-        // second bit is set in the error buffer, the current function is not
-        // matchOrders or matchAdvancedOrders. If the value is three, both the
-        // first and second bits were set; in that case, revert with an error.
+        // If the first bit is set, a native offer item was encountered on an
+        // order that is not a contract order. If the 231st bit is set in the
+        // error buffer, the current function is not matchOrders or
+        // matchAdvancedOrders. If the value is 1 + (1 << 230), then both the
+        // 1st and 231st bits were set; in that case, revert with an error.
         if (
             invalidNativeOfferItemErrorBuffer ==
             NonMatchSelector_InvalidErrorValue
