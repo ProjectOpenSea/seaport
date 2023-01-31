@@ -77,6 +77,7 @@ import {
     FiveWords,
     FourWords,
     FreeMemoryPointerSlot,
+    MaskOverLastTwentyBytes,
     OneConduitExecute_size,
     OneWord,
     OneWordShift,
@@ -100,6 +101,8 @@ import {
 
 import {
     Error_selector_offset,
+    InvalidBasicOrderParameterEncoding_error_length,
+    InvalidBasicOrderParameterEncoding_error_selector,
     InvalidTime_error_endTime_ptr,
     InvalidTime_error_length,
     InvalidTime_error_selector,
@@ -597,6 +600,10 @@ contract BasicOrderFulfiller is OrderValidator {
                 )
                 mstore(BasicOrder_considerationItem_identifier_ptr, 0)
 
+                // Declare a stack variable where all additional recipients will
+                // be combined to guard against providing dirty upper bits.
+                let combinedAdditionalRecipients
+
                 // Read length of the additionalRecipients array from calldata
                 // and iterate.
                 totalAdditionalRecipients := calldataload(
@@ -630,6 +637,12 @@ contract BasicOrderFulfiller is OrderValidator {
                         BasicOrder_considerationItem_endAmount_ptr,
                         additionalRecipientCdPtr,
                         AdditionalRecipient_size
+                    )
+
+                    // Include the recipient as part of combined recipients.
+                    combinedAdditionalRecipients := or(
+                        combinedAdditionalRecipients,
+                        calldataload(add(additionalRecipientCdPtr, OneWord))
                     )
 
                     // Add 1 word to the pointer as part of each loop to reduce
@@ -750,6 +763,27 @@ contract BasicOrderFulfiller is OrderValidator {
                         ),
                         additionalRecipientCdPtr,
                         TwoWords
+                    )
+
+                    // Include the recipient as part of combined recipients.
+                    combinedAdditionalRecipients := or(
+                        combinedAdditionalRecipients,
+                        calldataload(add(additionalRecipientCdPtr, OneWord))
+                    )
+                }
+
+                // Ensure no dirty upper bits on combined additional recipients.
+                if gt(combinedAdditionalRecipients, MaskOverLastTwentyBytes) {
+                    // Store left-padded selector with push4 (reduces bytecode),
+                    // mem[28:32] = selector
+                    mstore(0, InvalidBasicOrderParameterEncoding_error_selector)
+
+                    // revert(abi.encodeWithSignature(
+                    //     "InvalidBasicOrderParameterEncoding()"
+                    // ))
+                    revert(
+                        Error_selector_offset,
+                        InvalidBasicOrderParameterEncoding_error_length
                     )
                 }
             }
