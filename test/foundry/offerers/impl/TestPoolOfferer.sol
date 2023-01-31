@@ -517,7 +517,10 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
             receivedItems[i] = ReceivedItem({
                 itemType: ItemType.ERC721,
                 token: erc721,
-                identifier: spentItem.identifier,
+                identifier: (spentItem.itemType ==
+                    ItemType.ERC721_WITH_CRITERIA)
+                    ? 106
+                    : spentItem.identifier,
                 amount: spentItem.amount,
                 recipient: payable(address(this))
             });
