@@ -546,11 +546,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs(
-        "SIP-6 version byte must be 0x00 to indicate SIP-7 Substandard support.",
-        orderHash
-      );
+      .to.be.revertedWithCustomError(signedZone, "InvalidSubstandardVersion")
+      .withArgs(orderHash);
   });
   it("Revert: Try to fulfill an order with an incorrect token identifier", async () => {
     // Execute 721 <=> ETH order
@@ -818,8 +815,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("extraData length must be at least 126 bytes", orderHash);
+      .to.be.revertedWithCustomError(signedZone, "InvalidExtraDataLength")
+      .withArgs(orderHash);
 
     // Expect failure with invalid length extraData
     order.extraData = validExtraData.slice(0, 50);
@@ -836,8 +833,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("extraData length must be at least 126 bytes", orderHash);
+      .to.be.revertedWithCustomError(signedZone, "InvalidExtraDataLength")
+      .withArgs(orderHash);
 
     // Expect failure with non-zero SIP-6 version byte
     order.extraData = "0x" + "01" + validExtraData.slice(4);
@@ -854,8 +851,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           }
         )
     )
-      .to.be.revertedWithCustomError(signedZone, "InvalidExtraData")
-      .withArgs("SIP-6 version byte must be 0x00", orderHash);
+      .to.be.revertedWithCustomError(signedZone, "InvalidSIP6Version")
+      .withArgs(orderHash);
 
     // Expect success with valid extraData
     order.extraData = validExtraData;
