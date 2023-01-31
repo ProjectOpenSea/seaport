@@ -116,6 +116,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.considerationAmount = 1;
         basicOrderParameters
             .totalOriginalAdditionalRecipients = finalAdditionalRecipients;
+        basicOrderParameters.fulfillerConduitKey = inputs.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test(
             this.basicEthTo721WithAdditionalRecipients,
