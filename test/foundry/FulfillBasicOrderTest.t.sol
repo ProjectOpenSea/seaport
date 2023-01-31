@@ -49,6 +49,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         uint128 paymentAmount;
         bytes32 zoneHash;
         uint256 salt;
+        bool useConduit;
     }
     struct Context {
         ConsiderationInterface consideration;
@@ -470,7 +471,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -656,7 +657,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
 
         uint256 counter = context.consideration.getCounter(alice);
@@ -862,7 +863,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -890,7 +891,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -920,7 +921,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -949,7 +950,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -989,7 +990,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -1028,7 +1029,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.endTime = block.timestamp + 100;
         basicOrderParameters.zoneHash = args.zoneHash;
         basicOrderParameters.salt = args.salt;
-        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.offererConduitKey = args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
         basicOrderParameters.fulfillerConduitKey = bytes32(0);
         basicOrderParameters.totalOriginalAdditionalRecipients = 0;
         // additional recipients should always be empty
@@ -1053,7 +1056,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.endTime = block.timestamp + 100;
         basicOrderParameters.zoneHash = args.zoneHash;
         basicOrderParameters.salt = args.salt;
-        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.offererConduitKey = args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
         basicOrderParameters.fulfillerConduitKey = bytes32(0);
         basicOrderParameters.totalOriginalAdditionalRecipients = 0;
         // additional recipients should always be empty
