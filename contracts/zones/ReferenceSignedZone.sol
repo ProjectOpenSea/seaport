@@ -18,13 +18,13 @@ import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
- * @title  SignedZone
+ * @title  ReferenceSignedZone
  * @author ryanio, BCLeFevre
  * @notice SignedZone is an implementation of SIP-7 that requires orders
  *         to be signed by an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
  */
-contract SignedZone is
+contract ReferenceSignedZone is
     SignedZoneEventsAndErrors,
     ZoneInterface,
     SignedZoneInterface,
@@ -113,136 +113,6 @@ contract SignedZone is
     uint256 internal constant EIP_712_PREFIX = (
         0x1901000000000000000000000000000000000000000000000000000000000000
     );
-
-    /*
-     *  error InvalidFulfiller(address expectedFulfiller, address actualFulfiller, bytes32 orderHash)
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: expectedFulfiller
-     *    - 0x40: actualFullfiller
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0x80]
-     */
-    uint256 constant InvalidFulfiller_error_selector = 0x1bcf9bb7;
-    uint256 constant InvalidFulfiller_error_expectedFulfiller_ptr = 0x20;
-    uint256 constant InvalidFulfiller_error_actualFulfiller_ptr = 0x40;
-    uint256 constant InvalidFulfiller_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidFulfiller_error_length = 0x64;
-
-    /*
-     *  error InvalidReceivedItem(uint256 expectedReceivedIdentifier, uint256 actualReceievedIdentifier, bytes32 orderHash)
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: expectedReceivedIdentifier
-     *    - 0x40: actualReceievedIdentifier
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0x80]
-     */
-    uint256 constant InvalidReceivedItem_error_selector = 0xb36c03e8;
-    uint256 constant InvalidReceivedItem_error_expectedReceivedItem_ptr = 0x20;
-    uint256 constant InvalidReceivedItem_error_actualReceivedItem_ptr = 0x40;
-    uint256 constant InvalidReceivedItem_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidReceivedItem_error_length = 0x64;
-
-    /*
-     *  error InvalidZoneParameterEncoding()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     * Revert buffer is memory[0x1c:0x20]
-     */
-    uint256 constant InvalidZoneParameterEncoding_error_selector = 0x46d5d895;
-    uint256 constant InvalidZoneParameterEncoding_error_length = 0x04;
-
-    /*
-     * error InvalidExtraDataLength()
-     *   - Defined in SignedZoneEventsAndErrors.sol
-     * Memory layout:
-     *   - 0x00: Left-padded selector (data begins at 0x1c)
-     *   - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidExtraDataLength_error_selector = 0xd232fd2c;
-    uint256 constant InvalidExtraDataLength_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidExtraDataLength_error_length = 0x24;
-    uint256 constant InvalidExtraDataLength_epected_length = 0x7e;
-
-    uint256 constant ExtraData_expiration_offset = 0x35;
-    uint256 constant ExtraData_substandard_version_byte_offset = 0x7d;
-    /*
-     *  error InvalidSIP6Version()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidSIP6Version_error_selector = 0x64115774;
-    uint256 constant InvalidSIP6Version_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidSIP6Version_error_length = 0x24;
-
-    /*
-     *  error InvalidSubstandardVersion()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidSubstandardVersion_error_selector = 0x26787999;
-    uint256 constant InvalidSubstandardVersion_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidSubstandardVersion_error_length = 0x24;
-
-    /*
-     *  error InvalidSubstandardSupport()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: reason
-     *    - 0x40: substandardVersion
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0xe0]
-     */
-    uint256 constant InvalidSubstandardSupport_error_selector = 0x2be76224;
-    uint256 constant InvalidSubstandardSupport_error_reason_offset_ptr = 0x20;
-    uint256 constant InvalidSubstandardSupport_error_substandard_version_ptr =
-        0x40;
-    uint256 constant InvalidSubstandardSupport_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidSubstandardSupport_error_reason_length_ptr = 0x80;
-    uint256 constant InvalidSubstandardSupport_error_reason_ptr = 0xa0;
-    uint256 constant InvalidSubstandardSupport_error_reason_2_ptr = 0xc0;
-    uint256 constant InvalidSubstandardSupport_error_length = 0xc4;
-
-    /*
-     * error SignatureExpired()
-     *   - Defined in SignedZoneEventsAndErrors.sol
-     * Memory layout:
-     *   - 0x00: Left-padded selector (data begins at 0x1c)
-     *   - 0x20: expiration
-     *   - 0x40: orderHash
-     * Revert buffer is memory[0x1c:0x60]
-     */
-    uint256 constant SignatureExpired_error_selector = 0x16546071;
-    uint256 constant SignatureExpired_error_expiration_ptr = 0x20;
-    uint256 constant SignatureExpired_error_orderHash_ptr = 0x40;
-    uint256 constant SignatureExpired_error_length = 0x44;
-
-    // Zone parameter calldata pointers
-    uint256 constant Zone_parameters_cdPtr = 0x04;
-    uint256 constant Zone_parameters_fulfiller_cdPtr = 0x44;
-    uint256 constant Zone_consideration_head_cdPtr = 0xa4;
-    uint256 constant Zone_extraData_cdPtr = 0xc4;
-
-    // Zone parameter memory pointers
-    uint256 constant Zone_parameters_ptr = 0x20;
-
-    // Zone parameter offsets
-    uint256 constant Zone_parameters_offset = 0x24;
-    uint256 constant expectedFulfiller_offset = 0x45;
-    uint256 constant actualReceivedIdentifier_offset = 0x84;
-    uint256 constant expectedReceivedIdentifier_offset = 0xa2;
 
     /* solhint-enable private-vars-leading-underscore */
     /* solhint-enable const-name-snakecase */
@@ -393,110 +263,31 @@ contract SignedZone is
         override
         returns (bytes4 validOrderMagicValue)
     {
-        // Check Zone parameters validity.
-        _assertValidZoneParameters();
-
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
 
-        // Declare a variable to hold the expiration.
-        uint64 expiration;
-
-        // Validate the extraData.
-        assembly {
-            // Get the length of the extraData.
-            let extraDataPtr := add(0x24, calldataload(Zone_extraData_cdPtr))
-            let extraDataLength := calldataload(extraDataPtr)
-
-            if iszero(
-                eq(extraDataLength, InvalidExtraDataLength_epected_length)
-            ) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidExtraDataLength_error_selector)
-                mstore(InvalidExtraDataLength_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "InvalidExtraDataLength(bytes32)", orderHash)
-                // )
-                revert(0x1c, InvalidExtraDataLength_error_length)
-            }
-
-            // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
-            let versionByte := shr(248, calldataload(add(extraDataPtr, 0x20)))
-
-            if iszero(eq(versionByte, 0x00)) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidSIP6Version_error_selector)
-                mstore(InvalidSIP6Version_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "InvalidSIP6Version(bytes32)", orderHash)
-                // )
-                revert(0x1c, InvalidSIP6Version_error_length)
-            }
-
-            // extraData bytes 93-94: Substandard #1 (MUST be 0x00)
-            let subStandardVersionByte := shr(
-                248,
-                calldataload(
-                    add(extraDataPtr, ExtraData_substandard_version_byte_offset)
-                )
-            )
-
-            if iszero(eq(subStandardVersionByte, 0x00)) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidSubstandardVersion_error_selector)
-                mstore(InvalidSubstandardVersion_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "InvalidSubstandardVersion(bytes32)", orderHash)
-                // )
-                revert(0x1c, InvalidSubstandardVersion_error_length)
-            }
-
-            // extraData bytes 21-29: expiration timestamp (uint64)
-            expiration := shr(
-                192,
-                calldataload(add(extraDataPtr, ExtraData_expiration_offset))
-            )
-            // Revert if expired.
-            if lt(expiration, timestamp()) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, SignatureExpired_error_selector)
-                mstore(SignatureExpired_error_expiration_ptr, expiration)
-                mstore(SignatureExpired_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "SignatureExpired(uint256, bytes32)", expiration orderHash)
-                // )
-                revert(0x1c, SignatureExpired_error_length)
-            }
-
-            // Get the length of the consideration array.
-            let considerationLength := calldataload(
-                add(0x24, calldataload(Zone_consideration_head_cdPtr))
-            )
-
-            // Revert if the order does not have any consideration items.
-            // (Substandard #1 requirement)
-            if iszero(considerationLength) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidSubstandardSupport_error_selector)
-                mstore(InvalidSubstandardSupport_error_reason_offset_ptr, 0x60)
-                mstore(
-                    InvalidSubstandardSupport_error_substandard_version_ptr,
-                    1
-                )
-                mstore(InvalidSubstandardSupport_error_orderHash_ptr, orderHash)
-                mstore(InvalidSubstandardSupport_error_reason_length_ptr, 0x2a) // 42 length
-                mstore(
-                    InvalidSubstandardSupport_error_reason_ptr,
-                    "Consideration must have at least"
-                )
-                mstore(
-                    InvalidSubstandardSupport_error_reason_2_ptr,
-                    " one item."
-                )
-                revert(0x1c, InvalidSubstandardSupport_error_length)
-            }
+        // Revert with an error if the extraData does not have valid length.
+        if (extraData.length != 126) {
+            revert InvalidExtraDataLength(orderHash);
         }
+
+        // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
+        if (extraData[0] != 0x00) {
+            revert InvalidSIP6Version(orderHash);
+        }
+
+        // extraData bytes 93-94: Substandard #1 (MUST be 0x00)
+        if (extraData[93] != 0x00) {
+            revert InvalidSubstandardVersion(orderHash);
+        }
+
+        // extraData bytes 1-21: expected fulfiller
+        // (zero address means not restricted)
+        address expectedFulfiller = address(bytes20(extraData[1:21]));
+
+        // extraData bytes 21-29: expiration timestamp (uint64)
+        uint64 expiration = uint64(bytes8(extraData[21:29]));
 
         // extraData bytes 29-93: signature
         // (strictly requires 64 byte compact sig, EIP-2098)
@@ -505,11 +296,59 @@ contract SignedZone is
         // extraData bytes 93-end: context (optional, variable length)
         bytes calldata context = extraData[93:];
 
-        // Check the validity of the Substandard #1 extraData and get the
-        // expected fulfiller address.
-        address expectedFulfiller = _assertValidSubstandardAndGetExpectedFulfiller(
+        // Revert if expired.
+        if (block.timestamp > expiration) {
+            revert SignatureExpired(expiration, orderHash);
+        }
+
+        // Revert if the order does not have any consideration items.
+        // (Substandard #1 requirement)
+        if (zoneParameters.consideration.length == 0) {
+            revert InvalidSubstandardSupport(
+                "Consideration must have at least one item.",
+                1, // Substandard #1
                 orderHash
             );
+        }
+
+        // Put fulfiller on the stack for more efficient access.
+        address actualFulfiller = zoneParameters.fulfiller;
+
+        uint256 expectedReceivedIdentifier = uint256(bytes32(context[1:33]));
+        uint256 actualReceivedIdentifier = zoneParameters
+            .consideration[0]
+            .identifier;
+
+        // Revert if the expected fulfiller is not the zero address and does
+        // not match the actual fulfiller or if the expected received
+        // identifier does not match the actual received identifier.
+        bool validFulfiller;
+        bool validReceivedItems;
+        assembly {
+            validFulfiller := or(
+                iszero(expectedFulfiller),
+                eq(expectedFulfiller, actualFulfiller)
+            )
+
+            validReceivedItems := eq(
+                expectedReceivedIdentifier,
+                actualReceivedIdentifier
+            )
+        }
+        if (!validFulfiller) {
+            revert InvalidFulfiller(
+                expectedFulfiller,
+                actualFulfiller,
+                orderHash
+            );
+        }
+        if (!validReceivedItems) {
+            revert InvalidReceivedItem(
+                expectedReceivedIdentifier,
+                actualReceivedIdentifier,
+                orderHash
+            );
+        }
 
         // Derive the signedOrder hash.
         bytes32 signedOrderHash = _deriveSignedOrderHash(
@@ -905,119 +744,6 @@ contract SignedZone is
 
             // Clear out the dirtied bits in the memory pointer.
             mstore(EIP712_SignedOrderHash_offset, 0)
-        }
-    }
-
-    /**
-     * @dev Internal pure function to validate calldata offsets for the
-     *      dyanamic type in ZoneParameters. This ensures that functions using
-     *      the calldata object normally will be using the same data as the
-     *      assembly functions and that values that are bound to a given range
-     *      are within that range.
-     */
-    function _assertValidZoneParameters() internal pure {
-        // Utilize assembly in order to read offset data directly from calldata.
-        assembly {
-            /*
-             * Checks:
-             * 1. Zone parameters struct offset == 0x20
-             */
-
-            // Zone parameters at calldata 0x04 must have offset of 0x20.
-            if iszero(
-                eq(calldataload(Zone_parameters_cdPtr), Zone_parameters_ptr)
-            ) {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-                mstore(0, InvalidZoneParameterEncoding_error_selector)
-                // revert(abi.encodeWithSignature("InvalidZoneParameterEncoding()"))
-                revert(0x1c, InvalidZoneParameterEncoding_error_length)
-            }
-        }
-    }
-
-    /**
-     * @dev Internal pure function to ensure that the context argument for the
-     *      supplied extra data follows the substandard #1 format. Returns the
-     *      expected fulfiller of the order for deriving the signed order hash.
-     *
-     * @param orderHash The order hash.
-     *
-     * @return expectedFulfiller The expected fulfiller of the order.
-     */
-    function _assertValidSubstandardAndGetExpectedFulfiller(bytes32 orderHash)
-        internal
-        pure
-        returns (address expectedFulfiller)
-    {
-        // Revert if the expected fulfiller is not the zero address and does
-        // not match the actual fulfiller or if the expected received
-        // identifier does not match the actual received identifier.
-        assembly {
-            // Get the actual fulfiller.
-            let actualFulfiller := calldataload(Zone_parameters_fulfiller_cdPtr)
-            let extraDataPtr := calldataload(Zone_extraData_cdPtr)
-            let considerationPtr := calldataload(Zone_consideration_head_cdPtr)
-
-            // Get the expected fulfiller.
-            expectedFulfiller := shr(
-                96,
-                calldataload(add(expectedFulfiller_offset, extraDataPtr))
-            )
-
-            // Get the actual received identifier.
-            let actualReceivedIdentifier := calldataload(
-                add(actualReceivedIdentifier_offset, considerationPtr)
-            )
-
-            // Get the expected received identifier.
-            let expectedReceivedIdentifier := calldataload(
-                add(expectedReceivedIdentifier_offset, extraDataPtr)
-            )
-
-            // Revert if expected fulfiller is not the zero address and does
-            // not match the actual fulfiller.
-            if and(
-                iszero(iszero(expectedFulfiller)),
-                iszero(eq(expectedFulfiller, actualFulfiller))
-            ) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidFulfiller_error_selector)
-                mstore(
-                    InvalidFulfiller_error_expectedFulfiller_ptr,
-                    expectedFulfiller
-                )
-                mstore(
-                    InvalidFulfiller_error_actualFulfiller_ptr,
-                    actualFulfiller
-                )
-                mstore(InvalidFulfiller_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "InvalidFulfiller(address,address,bytes32)", expectedFulfiller, actualFulfiller, orderHash)
-                // )
-                revert(0x1c, InvalidFulfiller_error_length)
-            }
-
-            // Revert if expected received item does not match the actual
-            // received item.
-            if iszero(
-                eq(expectedReceivedIdentifier, actualReceivedIdentifier)
-            ) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InvalidReceivedItem_error_selector)
-                mstore(
-                    InvalidReceivedItem_error_expectedReceivedItem_ptr,
-                    expectedReceivedIdentifier
-                )
-                mstore(
-                    InvalidReceivedItem_error_actualReceivedItem_ptr,
-                    actualReceivedIdentifier
-                )
-                mstore(InvalidReceivedItem_error_orderHash_ptr, orderHash)
-                // revert(abi.encodeWithSignature(
-                //   "InvalidReceivedItem(uint256,uint256,bytes32)", expectedReceivedIdentifier, actualReceievedIdentifier, orderHash)
-                // )
-                revert(0x1c, InvalidReceivedItem_error_length)
-            }
         }
     }
 }

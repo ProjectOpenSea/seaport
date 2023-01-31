@@ -30,6 +30,7 @@ import type {
   ConsiderationInterface,
   SignedZone,
   SignedZone__factory,
+  ReferenceSignedZone__factory,
 } from "../../typechain-types";
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { Contract, Wallet } from "ethers";
@@ -47,8 +48,12 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   // Version byte for SIP-6 using Substandard 1
   const sip6VersionByte = "00";
 
+  // Set to run tests against the reference implementation
+  const isReference = false;
+
   let marketplaceContract: ConsiderationInterface;
   let signedZoneFactory: SignedZone__factory;
+  let referenceSignedZoneFactory: ReferenceSignedZone__factory;
   let signedZone: SignedZone;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
@@ -99,12 +104,24 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const documentationURI =
       "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md";
 
-    signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
-    signedZone = await signedZoneFactory.deploy(
-      "OpenSeaSignedZone",
-      "https://api.opensea.io/api/v2/sign",
-      documentationURI
-    );
+    if (!isReference) {
+      signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
+      signedZone = await signedZoneFactory.deploy(
+        "OpenSeaSignedZone",
+        "https://api.opensea.io/api/v2/sign",
+        documentationURI
+      );
+    } else {
+      referenceSignedZoneFactory = await ethers.getContractFactory(
+        "ReferenceSignedZone",
+        owner
+      );
+      signedZone = await referenceSignedZoneFactory.deploy(
+        "OpenSeaSignedZone",
+        "https://api.opensea.io/api/v2/sign",
+        documentationURI
+      );
+    }
   });
 
   const toPaddedBytes = (value: number, numBytes = 32) =>
