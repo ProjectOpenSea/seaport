@@ -57,10 +57,32 @@ interface SignedZoneEventsAndErrors {
     error SignatureExpired(uint256 expiration, bytes32 orderHash);
 
     /**
-     * @dev Revert with an error if supplied order extraData is invalid
-     *      or improperly formatted.
+     * @dev Revert with an error if supplied order extraData is an invalid
+     *      length.
      */
-    error InvalidExtraData(string reason, bytes32 orderHash);
+    error InvalidExtraDataLength(bytes32 orderHash);
+
+    /**
+     * @dev Revert with an error if the supplied order extraData does not
+     *      support the zone's SIP6 version.
+     */
+    error InvalidSIP6Version(bytes32 orderHash);
+
+    /**
+     * @dev Revert with an error if the supplied order extraData does not
+     *      support the zone's substandard requirements.
+     */
+    error InvalidSubstandardSupport(
+        string reason,
+        uint256 substandardVersion,
+        bytes32 orderHash
+    );
+
+    /**
+     * @dev Revert with an error if the supplied order extraData does not
+     *      support the zone's substandard version.
+     */
+    error InvalidSubstandardVersion(bytes32 orderHash);
 
     /**
      * @dev Revert with an error if the fulfiller does not match.
@@ -77,15 +99,6 @@ interface SignedZoneEventsAndErrors {
     error InvalidReceivedItem(
         uint256 expectedReceivedIdentifier,
         uint256 actualReceievedIdentifier,
-        bytes32 orderHash
-    );
-
-    /**
-     * @dev Revert with an error if the context does not support a required substandard.
-     */
-    error InvalidSubstandardSupport(
-        string reason,
-        uint256 substandard,
         bytes32 orderHash
     );
 

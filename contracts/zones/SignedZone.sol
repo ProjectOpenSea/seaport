@@ -131,7 +131,7 @@ contract SignedZone is
     uint256 constant InvalidFulfiller_error_length = 0x64;
 
     /*
-     *  error InvalidReceiver(uint256 expectedReceivedIdentifier, uint256 actualReceievedIdentifier, bytes32 orderHash)
+     *  error InvalidReceivedItem(uint256 expectedReceivedIdentifier, uint256 actualReceievedIdentifier, bytes32 orderHash)
      *    - Defined in SignedZoneEventsAndErrors.sol
      *  Memory layout:
      *    - 0x00: Left-padded selector (data begins at 0x1c)
@@ -154,7 +154,80 @@ contract SignedZone is
      * Revert buffer is memory[0x1c:0x20]
      */
     uint256 constant InvalidZoneParameterEncoding_error_selector = 0x46d5d895;
-    uint256 constant InvalidZoneParameterEncoding_error_length = 0x1c;
+    uint256 constant InvalidZoneParameterEncoding_error_length = 0x04;
+
+    /*
+     * error InvalidExtraDataLength()
+     *   - Defined in SignedZoneEventsAndErrors.sol
+     * Memory layout:
+     *   - 0x00: Left-padded selector (data begins at 0x1c)
+     *   - 0x20: orderHash
+     * Revert buffer is memory[0x1c:0x40]
+     */
+    uint256 constant InvalidExtraDataLength_error_selector = 0xd232fd2c;
+    uint256 constant InvalidExtraDataLength_error_orderHash_ptr = 0x20;
+    uint256 constant InvalidExtraDataLength_error_length = 0x24;
+    uint256 constant InvalidExtraDataLength_epected_length = 0x7e;
+
+    uint256 constant ExtraData_expiration_offset = 0x35;
+    uint256 constant ExtraData_substandard_version_byte_offset = 0x7d;
+    /*
+     *  error InvalidSIP6Version()
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     *    - 0x20: orderHash
+     * Revert buffer is memory[0x1c:0x40]
+     */
+    uint256 constant InvalidSIP6Version_error_selector = 0x64115774;
+    uint256 constant InvalidSIP6Version_error_orderHash_ptr = 0x20;
+    uint256 constant InvalidSIP6Version_error_length = 0x24;
+
+    /*
+     *  error InvalidSubstandardVersion()
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     *    - 0x20: orderHash
+     * Revert buffer is memory[0x1c:0x40]
+     */
+    uint256 constant InvalidSubstandardVersion_error_selector = 0x26787999;
+    uint256 constant InvalidSubstandardVersion_error_orderHash_ptr = 0x20;
+    uint256 constant InvalidSubstandardVersion_error_length = 0x24;
+
+    /*
+     *  error InvalidSubstandardSupport()
+     *    - Defined in SignedZoneEventsAndErrors.sol
+     *  Memory layout:
+     *    - 0x00: Left-padded selector (data begins at 0x1c)
+     *    - 0x20: reason
+     *    - 0x40: substandardVersion
+     *    - 0x60: orderHash
+     * Revert buffer is memory[0x1c:0xe0]
+     */
+    uint256 constant InvalidSubstandardSupport_error_selector = 0x2be76224;
+    uint256 constant InvalidSubstandardSupport_error_reason_offset_ptr = 0x20;
+    uint256 constant InvalidSubstandardSupport_error_substandard_version_ptr =
+        0x40;
+    uint256 constant InvalidSubstandardSupport_error_orderHash_ptr = 0x60;
+    uint256 constant InvalidSubstandardSupport_error_reason_length_ptr = 0x80;
+    uint256 constant InvalidSubstandardSupport_error_reason_ptr = 0xa0;
+    uint256 constant InvalidSubstandardSupport_error_reason_2_ptr = 0xc0;
+    uint256 constant InvalidSubstandardSupport_error_length = 0xc4;
+
+    /*
+     * error SignatureExpired()
+     *   - Defined in SignedZoneEventsAndErrors.sol
+     * Memory layout:
+     *   - 0x00: Left-padded selector (data begins at 0x1c)
+     *   - 0x20: expiration
+     *   - 0x40: orderHash
+     * Revert buffer is memory[0x1c:0x60]
+     */
+    uint256 constant SignatureExpired_error_selector = 0x16546071;
+    uint256 constant SignatureExpired_error_expiration_ptr = 0x20;
+    uint256 constant SignatureExpired_error_orderHash_ptr = 0x40;
+    uint256 constant SignatureExpired_error_length = 0x44;
 
     // Zone parameter calldata pointers
     uint256 constant Zone_parameters_cdPtr = 0x04;
@@ -327,54 +400,110 @@ contract SignedZone is
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
 
-        // Revert with an error if the extraData does not have valid length.
-        if (extraData.length != 126) {
-            revert InvalidExtraData(
-                "extraData length must be at least 126 bytes",
-                orderHash
-            );
-        }
+        // Declare a variable to hold the expiration.
+        uint64 expiration;
 
-        // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
-        if (extraData[0] != 0x00) {
-            revert InvalidExtraData(
-                "SIP-6 version byte must be 0x00",
-                orderHash
-            );
-        }
+        // Validate the extraData.
+        assembly {
+            // Get the length of the extraData.
+            let extraDataPtr := add(0x24, calldataload(Zone_extraData_cdPtr))
+            let extraDataLength := calldataload(extraDataPtr)
 
-        // extraData bytes 93-94: Substandard #1 (MUST be 0x00)
-        if (extraData[93] != 0x00) {
-            revert InvalidExtraData(
-                "SIP-6 version byte must be 0x00 to indicate SIP-7 Substandard support.",
-                orderHash
-            );
-        }
+            if iszero(
+                eq(extraDataLength, InvalidExtraDataLength_epected_length)
+            ) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidExtraDataLength_error_selector)
+                mstore(InvalidExtraDataLength_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidExtraDataLength(bytes32)", orderHash)
+                // )
+                revert(0x1c, InvalidExtraDataLength_error_length)
+            }
 
-        // extraData bytes 21-29: expiration timestamp (uint64)
-        uint64 expiration = uint64(bytes8(extraData[21:29]));
+            // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
+            let versionByte := shr(248, calldataload(add(extraDataPtr, 0x20)))
+
+            if iszero(eq(versionByte, 0x00)) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidSIP6Version_error_selector)
+                mstore(InvalidSIP6Version_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidSIP6Version(bytes32)", orderHash)
+                // )
+                revert(0x1c, InvalidSIP6Version_error_length)
+            }
+
+            // extraData bytes 93-94: Substandard #1 (MUST be 0x00)
+            let subStandardVersionByte := shr(
+                248,
+                calldataload(
+                    add(extraDataPtr, ExtraData_substandard_version_byte_offset)
+                )
+            )
+
+            if iszero(eq(subStandardVersionByte, 0x00)) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidSubstandardVersion_error_selector)
+                mstore(InvalidSubstandardVersion_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidSubstandardVersion(bytes32)", orderHash)
+                // )
+                revert(0x1c, InvalidSubstandardVersion_error_length)
+            }
+
+            // extraData bytes 21-29: expiration timestamp (uint64)
+            expiration := shr(
+                192,
+                calldataload(add(extraDataPtr, ExtraData_expiration_offset))
+            )
+            // Revert if expired.
+            if lt(expiration, timestamp()) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, SignatureExpired_error_selector)
+                mstore(SignatureExpired_error_expiration_ptr, expiration)
+                mstore(SignatureExpired_error_orderHash_ptr, orderHash)
+                // revert(abi.encodeWithSignature(
+                //   "SignatureExpired(uint256, bytes32)", expiration orderHash)
+                // )
+                revert(0x1c, SignatureExpired_error_length)
+            }
+
+            // Get the length of the consideration array.
+            let considerationLength := calldataload(
+                add(0x24, calldataload(Zone_consideration_head_cdPtr))
+            )
+
+            // // Revert if the order does not have any consideration items.
+            // // (Substandard #1 requirement)
+            if iszero(considerationLength) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidSubstandardSupport_error_selector)
+                mstore(InvalidSubstandardSupport_error_reason_offset_ptr, 0x60)
+                mstore(
+                    InvalidSubstandardSupport_error_substandard_version_ptr,
+                    1
+                )
+                mstore(InvalidSubstandardSupport_error_orderHash_ptr, orderHash)
+                mstore(InvalidSubstandardSupport_error_reason_length_ptr, 0x2a) // 42 length
+                mstore(
+                    InvalidSubstandardSupport_error_reason_ptr,
+                    "Consideration must have at least"
+                )
+                mstore(
+                    InvalidSubstandardSupport_error_reason_2_ptr,
+                    " one item."
+                )
+                revert(0x1c, InvalidSubstandardSupport_error_length)
+            }
+        }
 
         // extraData bytes 29-93: signature
         // (strictly requires 64 byte compact sig, EIP-2098)
         bytes calldata signature = extraData[29:93];
 
-        // extraData bytes 93-end: context (optional, variable length)
+        // // extraData bytes 93-end: context (optional, variable length)
         bytes calldata context = extraData[93:];
-
-        // Revert if expired.
-        if (block.timestamp > expiration) {
-            revert SignatureExpired(expiration, orderHash);
-        }
-
-        // Revert if the order does not have any consideration items.
-        // (Substandard #1 requirement)
-        if (zoneParameters.consideration.length == 0) {
-            revert InvalidSubstandardSupport(
-                "Consideration must have at least one item.",
-                1, // Substandard #1
-                orderHash
-            );
-        }
 
         // Check the validity of the Substandard #1 extraData and get the
         // expected fulfiller address.
