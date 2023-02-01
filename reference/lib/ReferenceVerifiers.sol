@@ -133,10 +133,12 @@ contract ReferenceVerifiers is
     }
 
     /**
-     * @dev Computes the bulk order hash for the specified proof and leaf.
+     * @dev Computes the bulk order hash for the specified proof and leaf. Note
+     *      that if an index that exceeds the number of orders in the bulk order
+     *      payload will instead "wrap around" and refer to an earlier index.
      *
-     * @param proofAndSignature  The proof and signature of the bulk order.
-     * @param leaf               The leaf of the bulk order tree.
+     * @param proofAndSignature The proof and signature of the bulk order.
+     * @param leaf              The leaf of the bulk order tree.
      *
      * @return bulkOrderHash The bulk order hash.
      * @return signature     The signature of the bulk order.
@@ -230,7 +232,7 @@ contract ReferenceVerifiers is
      *                        order has been cancelled or filled beyond the
      *                        allowable amount.
      *
-     * @return valid          A boolean indicating whether the order is valid.
+     * @return valid A boolean indicating whether the order is valid.
      */
     function _verifyOrderStatus(
         bytes32 orderHash,
