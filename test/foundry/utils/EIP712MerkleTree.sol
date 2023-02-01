@@ -91,11 +91,6 @@ contract EIP712MerkleTree is Test {
 
         bytes32[] memory proof = merkle.getProof(leaves, orderIndex);
         // orderIndex should only take up 3 bytes but proof needs to be abi-encoded to include its length
-        return
-            abi.encodePacked(
-                abi.encode(v, r, s),
-                orderIndex,
-                abi.encode(proof)
-            );
+        return abi.encodePacked(abi.encode(r, s, v), orderIndex, proof);
     }
 }
