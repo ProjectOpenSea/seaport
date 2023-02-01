@@ -80,17 +80,17 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     function testNonReentrant() public {
-        for (uint256 i; i < 7; ++i) {
-            for (uint256 j; j < 10; ++j) {
+        for (uint256 i; i < 8; ++i) {
+            for (uint256 j; j < 11; ++j) {
                 NonReentrantInputs memory inputs = NonReentrantInputs(
                     EntryPoint(i),
                     ReentryPoint(j)
                 );
+                test(this.nonReentrant, Context(consideration, inputs));
                 test(
                     this.nonReentrant,
                     Context(referenceConsideration, inputs)
                 );
-                test(this.nonReentrant, Context(consideration, inputs));
             }
         }
     }
@@ -125,6 +125,24 @@ contract NonReentrantTest is BaseOrderTest {
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.fulfillBasicOrder(_basicOrderParameters);
+            shouldReenter = false;
+        } else if (entryPoint == EntryPoint.FulfillBasicOrderEfficient) {
+            BasicOrderParameters
+                memory _basicOrderParameters = prepareBasicOrder(tokenId);
+            if (!reentering) {
+                shouldReenter = true;
+                vm.expectEmit(
+                    true,
+                    false,
+                    false,
+                    false,
+                    address(address(this))
+                );
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
+            currentConsideration.fulfillBasicOrder_efficient_6GL6yc(
+                _basicOrderParameters
+            );
             shouldReenter = false;
         } else if (entryPoint == EntryPoint.FulfillOrder) {
             (
@@ -587,7 +605,7 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     function _doReenter() internal {
-        if (uint256(reentryPoint) < 7) {
+        if (uint256(reentryPoint) < uint256(ReentryPoint.Cancel)) {
             try
                 this._entryPoint(EntryPoint(uint256(reentryPoint)), 10, true)
             {} catch (bytes memory reason) {

@@ -10,7 +10,9 @@ import { TestPoolFactory, TestPoolOfferer } from "./impl/TestPoolFactory.sol";
 import {
     SpentItem,
     AdvancedOrder,
+    ConsiderationItem,
     CriteriaResolver,
+    OfferItem,
     OrderType
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
@@ -22,7 +24,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
-        factory = new TestPoolFactory(address(referenceConsideration));
+        factory = new TestPoolFactory(address(consideration));
         uint256[] memory tokenIds = new uint256[](5);
         tokenIds[0] = 101;
         tokenIds[1] = 102;
@@ -75,11 +77,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -91,7 +91,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -139,11 +139,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -155,7 +153,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -203,11 +201,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -219,7 +215,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -279,11 +275,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -295,7 +289,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -309,23 +303,15 @@ contract TestPoolOffererTest is BaseOrderTest {
     }
 
     function testBuyOneWildCard() public {
-        SpentItem[] memory minimumReceived = new SpentItem[](1);
-        minimumReceived[0] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: 300 // will not spend entire amount
-        });
-
-        addOfferItem(ItemType.ERC721, 101, 1);
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
         addConsiderationItem(payable(address(offerer)), ItemType.ERC20, 0, 250);
 
         _configureOrderParameters({
@@ -337,11 +323,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -353,7 +337,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -366,30 +350,24 @@ contract TestPoolOffererTest is BaseOrderTest {
     }
 
     function testBuyTwoWildCard() public {
-        SpentItem[] memory minimumReceived = new SpentItem[](2);
-        minimumReceived[0] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-        minimumReceived[1] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: 1000000
-        });
-
-        addOfferItem(ItemType.ERC721, 101, 1);
-        addOfferItem(ItemType.ERC721, 102, 1);
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
         addConsiderationItem(payable(address(offerer)), ItemType.ERC20, 0, 666);
 
         _configureOrderParameters({
@@ -401,11 +379,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -417,7 +393,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),
@@ -427,6 +403,56 @@ contract TestPoolOffererTest is BaseOrderTest {
         assertEq(test721_1.balanceOf(address(this)), 2);
         assertEq(test721_1.ownerOf(101), address(this));
         assertEq(token1.balanceOf(address(offerer)), 1666);
+    }
+
+    function testSellOneWildCard() public {
+        test721_1.mint(address(this), 106);
+
+        addOfferItem(ItemType.ERC20, 0, 166);
+        addConsiderationItem(
+            ConsiderationItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1,
+                recipient: payable(address(offerer))
+            })
+        );
+
+        _configureOrderParameters({
+            offerer: address(offerer),
+            zone: address(0),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: false
+        });
+        baseOrderParameters.orderType = OrderType.CONTRACT;
+
+        configureOrderComponents(consideration.getCounter(address(offerer)));
+
+        consideration.getOrderHash(baseOrderComponents);
+
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: 1,
+            denominator: 1,
+            signature: "",
+            extraData: ""
+        });
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        consideration.fulfillAdvancedOrder({
+            advancedOrder: order,
+            criteriaResolvers: criteriaResolvers,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(0)
+        });
+
+        assertEq(test721_1.balanceOf(address(offerer)), 6);
+        assertEq(test721_1.ownerOf(106), address(offerer));
+        assertEq(token1.balanceOf(address(offerer)), 833);
     }
 
     function testBuyTwoHeterogenous() public {
@@ -465,11 +491,9 @@ contract TestPoolOffererTest is BaseOrderTest {
         });
         baseOrderParameters.orderType = OrderType.CONTRACT;
 
-        configureOrderComponents(
-            referenceConsideration.getCounter(address(offerer))
-        );
+        configureOrderComponents(consideration.getCounter(address(offerer)));
 
-        referenceConsideration.getOrderHash(baseOrderComponents);
+        consideration.getOrderHash(baseOrderComponents);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -481,7 +505,7 @@ contract TestPoolOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        referenceConsideration.fulfillAdvancedOrder({
+        consideration.fulfillAdvancedOrder({
             advancedOrder: order,
             criteriaResolvers: criteriaResolvers,
             fulfillerConduitKey: bytes32(0),

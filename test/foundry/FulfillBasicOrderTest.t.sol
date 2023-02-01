@@ -42,6 +42,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     address badToken;
     BasicOrderParameters basicOrderParameters;
     address payable invalidRecipientAddress;
+    FuzzInputsCommon empty;
 
     struct FuzzInputsCommon {
         address zone;
@@ -49,6 +50,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         uint128 paymentAmount;
         bytes32 zoneHash;
         uint256 salt;
+        bool useConduit;
     }
     struct Context {
         ConsiderationInterface consideration;
@@ -88,6 +90,20 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
+    function testBasicEthTo721Efficient(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(this.basicEthTo721Efficient, Context(consideration, inputs, 0));
+        test(
+            this.basicEthTo721Efficient,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
     function testBasicEthTo721WithAdditionalRecipients(
         FuzzInputsCommon memory inputs,
         uint256 numAdditionalRecipients
@@ -115,6 +131,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.considerationAmount = 1;
         basicOrderParameters
             .totalOriginalAdditionalRecipients = finalAdditionalRecipients;
+        basicOrderParameters.fulfillerConduitKey = inputs.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test(
             this.basicEthTo721WithAdditionalRecipients,
@@ -253,6 +272,51 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             _basicOrderParameters.additionalRecipients.length,
             amountToSubtractFromTotalRecipients
         );
+    }
+
+    function testRevertDirtyUpperBitsForAdditionalRecipients() public {
+        test(
+            this.revertDirtyUpperBitsForAdditionalRecipients,
+            Context(consideration, empty, 0)
+        );
+        test(
+            this.revertDirtyUpperBitsForAdditionalRecipients,
+            Context(referenceConsideration, empty, 0)
+        );
+    }
+
+    function revertDirtyUpperBitsForAdditionalRecipients(
+        Context memory context
+    ) external stateless {
+        // Create basic order
+        (
+            ,
+            BasicOrderParameters memory _basicOrderParameters
+        ) = prepareBasicOrder(1);
+
+        // Add additional recipients
+        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            4
+        );
+        for (uint256 i = 0; i < 4; i++) {
+            _basicOrderParameters.additionalRecipients[
+                i
+            ] = AdditionalRecipient({ recipient: alice, amount: 1 });
+        }
+
+        // Get the calldata that will be passed into fulfillBasicOrder.
+        bytes memory fulfillBasicOrderCalldata = abi.encodeWithSelector(
+            consideration.fulfillBasicOrder.selector,
+            _basicOrderParameters
+        );
+
+        _dirtyFirstAdditionalRecipient(fulfillBasicOrderCalldata);
+
+        (bool success, ) = address(context.consideration).call(
+            fulfillBasicOrderCalldata
+        );
+
+        require(!success, "Expected revert");
     }
 
     function testRevertUnusedItemParametersAddressSetOnNativeConsideration(
@@ -470,7 +534,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -488,7 +552,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.signature = signature;
 
         bytes
-            memory expectedRevert = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            memory expectedRevert = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
         vm.prank(invalidRecipientAddress);
         vm.expectRevert(expectedRevert);
@@ -656,7 +720,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
 
         uint256 counter = context.consideration.getCounter(alice);
@@ -725,8 +789,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     }
 
     function testRevertInvalidTimestamp(
-        FuzzInputsCommon memory inputs,
-        uint128 tokenAmount
+        FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
@@ -781,8 +844,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     }
 
     function testRevertMissingOriginalConsiderationItems(
-        FuzzInputsCommon memory inputs,
-        uint128 tokenAmount
+        FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs, 0)) {
         addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
@@ -862,7 +924,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -890,7 +952,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -920,7 +982,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -940,6 +1002,33 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
     }
 
+    function basicEthTo721Efficient(Context memory context) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
+        );
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+        context.consideration.fulfillBasicOrder_efficient_6GL6yc{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
+    }
+
     function basicEthTo721WithAdditionalRecipients(
         Context memory context
     ) external stateless {
@@ -949,7 +1038,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -989,7 +1078,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             context.args.zone,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0)
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
         baseOrderComponents.counter = counter;
@@ -1028,7 +1117,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.endTime = block.timestamp + 100;
         basicOrderParameters.zoneHash = args.zoneHash;
         basicOrderParameters.salt = args.salt;
-        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.offererConduitKey = args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
         basicOrderParameters.fulfillerConduitKey = bytes32(0);
         basicOrderParameters.totalOriginalAdditionalRecipients = 0;
         // additional recipients should always be empty
@@ -1053,7 +1144,9 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         basicOrderParameters.endTime = block.timestamp + 100;
         basicOrderParameters.zoneHash = args.zoneHash;
         basicOrderParameters.salt = args.salt;
-        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.offererConduitKey = args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
         basicOrderParameters.fulfillerConduitKey = bytes32(0);
         basicOrderParameters.totalOriginalAdditionalRecipients = 0;
         // additional recipients should always be empty
