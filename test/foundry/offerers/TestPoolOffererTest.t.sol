@@ -10,7 +10,9 @@ import { TestPoolFactory, TestPoolOfferer } from "./impl/TestPoolFactory.sol";
 import {
     SpentItem,
     AdvancedOrder,
+    ConsiderationItem,
     CriteriaResolver,
+    OfferItem,
     OrderType
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
@@ -301,23 +303,15 @@ contract TestPoolOffererTest is BaseOrderTest {
     }
 
     function testBuyOneWildCard() public {
-        SpentItem[] memory minimumReceived = new SpentItem[](1);
-        minimumReceived[0] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: 300 // will not spend entire amount
-        });
-
-        addOfferItem(ItemType.ERC721, 101, 1);
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
         addConsiderationItem(payable(address(offerer)), ItemType.ERC20, 0, 250);
 
         _configureOrderParameters({
@@ -356,30 +350,24 @@ contract TestPoolOffererTest is BaseOrderTest {
     }
 
     function testBuyTwoWildCard() public {
-        SpentItem[] memory minimumReceived = new SpentItem[](2);
-        minimumReceived[0] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-        minimumReceived[1] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: 1000000
-        });
-
-        addOfferItem(ItemType.ERC721, 101, 1);
-        addOfferItem(ItemType.ERC721, 102, 1);
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
+        addOfferItem(
+            OfferItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1
+            })
+        );
         addConsiderationItem(payable(address(offerer)), ItemType.ERC20, 0, 666);
 
         _configureOrderParameters({
@@ -420,28 +408,16 @@ contract TestPoolOffererTest is BaseOrderTest {
     function testSellOneWildCard() public {
         test721_1.mint(address(this), 106);
 
-        SpentItem[] memory minimumReceived = new SpentItem[](1);
-        minimumReceived[0] = SpentItem({
-            itemType: ItemType.ERC20,
-            token: address(token1),
-            identifier: 0,
-            amount: 300
-        });
-
-        SpentItem[] memory maximumSpent = new SpentItem[](1);
-        maximumSpent[0] = SpentItem({
-            itemType: ItemType.ERC721_WITH_CRITERIA,
-            token: address(test721_1),
-            identifier: 0,
-            amount: 1
-        });
-
         addOfferItem(ItemType.ERC20, 0, 166);
         addConsiderationItem(
-            payable(address(offerer)),
-            ItemType.ERC721,
-            106,
-            1
+            ConsiderationItem({
+                itemType: ItemType.ERC721_WITH_CRITERIA,
+                token: address(test721_1),
+                identifierOrCriteria: 0,
+                startAmount: 1,
+                endAmount: 1,
+                recipient: payable(address(offerer))
+            })
         );
 
         _configureOrderParameters({
