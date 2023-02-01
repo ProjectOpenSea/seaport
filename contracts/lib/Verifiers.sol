@@ -159,7 +159,9 @@ contract Verifiers is Assertions, SignatureVerification {
     }
 
     /**
-     * @dev Computes the bulk order hash for the specified proof and leaf.
+     * @dev Computes the bulk order hash for the specified proof and leaf. Be
+     *      aware that if the index exceeds the number of orders in the bulk
+     *      order payload, it will wrap around and refer to an earlier index.
      *
      * @param proofAndSignature  The proof and signature of the bulk order.
      * @param leaf               The leaf of the bulk order tree.
