@@ -10,6 +10,10 @@ import {
 import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
+    BasicOrder_additionalRecipients_data_cdPtr,
+    TwoWords
+} from "../../../contracts/lib/ConsiderationConstants.sol";
+import {
     AdditionalRecipient,
     Fulfillment,
     FulfillmentComponent,
@@ -161,6 +165,19 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         assembly {
             let length := mload(lengthPtr)
             mstore(lengthPtr, sub(length, amtToSubtractFromLength))
+        }
+    }
+
+    function _dirtyFirstAdditionalRecipient(
+        bytes memory orderCalldata
+    ) internal pure {
+        assembly {
+            let firstAdditionalRecipientOffset := add(
+                orderCalldata,
+                add(TwoWords, BasicOrder_additionalRecipients_data_cdPtr)
+            )
+            // Dirty the top byte of the first additional recipient address.
+            mstore8(firstAdditionalRecipientOffset, 1)
         }
     }
 

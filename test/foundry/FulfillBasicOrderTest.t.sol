@@ -42,6 +42,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     address badToken;
     BasicOrderParameters basicOrderParameters;
     address payable invalidRecipientAddress;
+    FuzzInputsCommon empty;
 
     struct FuzzInputsCommon {
         address zone;
@@ -257,6 +258,51 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
             _basicOrderParameters.additionalRecipients.length,
             amountToSubtractFromTotalRecipients
         );
+    }
+
+    function testRevertDirtyUpperBitsForAdditionalRecipients() public {
+        test(
+            this.revertDirtyUpperBitsForAdditionalRecipients,
+            Context(consideration, empty, 0)
+        );
+        test(
+            this.revertDirtyUpperBitsForAdditionalRecipients,
+            Context(referenceConsideration, empty, 0)
+        );
+    }
+
+    function revertDirtyUpperBitsForAdditionalRecipients(
+        Context memory context
+    ) external stateless {
+        // Create basic order
+        (
+            ,
+            BasicOrderParameters memory _basicOrderParameters
+        ) = prepareBasicOrder(1);
+
+        // Add additional recipients
+        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            4
+        );
+        for (uint256 i = 0; i < 4; i++) {
+            _basicOrderParameters.additionalRecipients[
+                i
+            ] = AdditionalRecipient({ recipient: alice, amount: 1 });
+        }
+
+        // Get the calldata that will be passed into fulfillBasicOrder.
+        bytes memory fulfillBasicOrderCalldata = abi.encodeWithSelector(
+            consideration.fulfillBasicOrder.selector,
+            _basicOrderParameters
+        );
+
+        _dirtyFirstAdditionalRecipient(fulfillBasicOrderCalldata);
+
+        (bool success, ) = address(context.consideration).call(
+            fulfillBasicOrderCalldata
+        );
+
+        require(!success, "Expected revert");
     }
 
     function testRevertUnusedItemParametersAddressSetOnNativeConsideration(
