@@ -19,6 +19,7 @@ module.exports = {
     "test/EIP1271Wallet.sol",
     "test/ExcessReturnDataRecipient.sol",
     "test/ERC1155BatchRecipient.sol",
+    "test/InvalidEthRecipient.sol",
     "test/Reenterer.sol",
     "test/TestERC1155.sol",
     "test/TestERC1155Revert.sol",
