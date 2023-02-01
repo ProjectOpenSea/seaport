@@ -52,8 +52,9 @@ contract EIP712MerkleTree is Test {
         ConsiderationInterface consideration,
         uint256 privateKey,
         OrderComponents[] memory orderComponents,
-        uint24 orderIndex
-    ) public returns (bytes memory) {
+        uint24 orderIndex,
+        bool useCompact2098
+    ) public view returns (bytes memory) {
         bytes32 emptyComponentsHash = consideration.getOrderHash(
             emptyOrderComponents
         );
@@ -61,7 +62,7 @@ contract EIP712MerkleTree is Test {
         bytes32 bulkOrderTypehash;
         {
             uint256 height = Math.log2(orderComponents.length);
-            if (2 ** height != orderComponents.length) {
+            if (2 ** height != orderComponents.length || height == 0) {
                 height += 1;
             }
             bulkOrderTypehash = _lookupBulkOrderTypehash(height);
@@ -75,22 +76,35 @@ contract EIP712MerkleTree is Test {
             }
         }
 
-        emit log_named_bytes32("bulkOrderTypehash", bulkOrderTypehash);
-        bytes32 rootHash = merkle.getRoot(leaves);
         bytes32 bulkOrderHash = keccak256(
-            abi.encode(bulkOrderTypehash, rootHash)
+            abi.encode(bulkOrderTypehash, merkle.getRoot(leaves))
         );
 
         (, bytes32 domainSeparator, ) = consideration.information();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            privateKey,
-            keccak256(
-                abi.encodePacked(bytes2(0x1901), domainSeparator, bulkOrderHash)
-            )
-        );
+
+        bytes memory signature;
+        {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+                privateKey,
+                keccak256(
+                    abi.encodePacked(
+                        bytes2(0x1901),
+                        domainSeparator,
+                        bulkOrderHash
+                    )
+                )
+            );
+            if (useCompact2098) {
+                uint256 yParity = (v == 27) ? 0 : 1;
+                bytes32 yAndS = bytes32(uint256(s) | (yParity << 255));
+                signature = abi.encodePacked(r, yAndS);
+            } else {
+                signature = abi.encodePacked(r, s, v);
+            }
+        }
 
         bytes32[] memory proof = merkle.getProof(leaves, orderIndex);
         // orderIndex should only take up 3 bytes but proof needs to be abi-encoded to include its length
-        return abi.encodePacked(abi.encode(r, s, v), orderIndex, proof);
+        return abi.encodePacked(signature, orderIndex, proof);
     }
 }

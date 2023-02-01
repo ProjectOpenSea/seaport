@@ -18,6 +18,7 @@ contract BulkSignatureTest is BaseOrderTest {
 
     struct Context {
         ConsiderationInterface seaport;
+        bool useCompact2098;
     }
 
     function test(
@@ -30,10 +31,21 @@ contract BulkSignatureTest is BaseOrderTest {
     }
 
     function testBulkSignature() public {
-        test(this.execBulkSignature, Context({ seaport: consideration }));
         test(
             this.execBulkSignature,
-            Context({ seaport: referenceConsideration })
+            Context({ seaport: consideration, useCompact2098: false })
+        );
+        test(
+            this.execBulkSignature,
+            Context({ seaport: referenceConsideration, useCompact2098: false })
+        );
+        test(
+            this.execBulkSignature,
+            Context({ seaport: consideration, useCompact2098: true })
+        );
+        test(
+            this.execBulkSignature,
+            Context({ seaport: referenceConsideration, useCompact2098: true })
         );
     }
 
@@ -58,21 +70,17 @@ contract BulkSignatureTest is BaseOrderTest {
         configureOrderComponents(context.seaport);
         OrderComponents[] memory orderComponents = new OrderComponents[](3);
         orderComponents[0] = baseOrderComponents;
-        // orderComponents[1] = _empty;
+        // other order components can remain empty
 
         EIP712MerkleTree merkleTree = new EIP712MerkleTree();
         bytes memory bulkSignature = merkleTree.signBulkOrder(
             context.seaport,
             key,
             orderComponents,
-            uint24(0)
+            uint24(0),
+            context.useCompact2098
         );
         bytes32 orderHash = context.seaport.getOrderHash(baseOrderComponents);
-        bytes memory regularSignature = signOrder(
-            context.seaport,
-            key,
-            orderHash
-        );
         Order memory order = Order({
             parameters: baseOrderParameters,
             signature: bulkSignature
