@@ -14,6 +14,8 @@ import {
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
+///@dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky
+///     does, so implement a custom hashLeafPairs function
 contract MerkleUnsorted is MurkyBase {
     function hashLeafPairs(
         bytes32 left,
@@ -28,6 +30,7 @@ contract MerkleUnsorted is MurkyBase {
 }
 
 contract EIP712MerkleTree is Test {
+    // data contract to retrieve bulk order typehashes
     TypehashDirectory internal immutable _typehashDirectory;
     OrderComponents private emptyOrderComponents;
     MerkleUnsorted private merkle;
@@ -37,6 +40,7 @@ contract EIP712MerkleTree is Test {
         merkle = new MerkleUnsorted();
     }
 
+    /// @dev same lookup seaport optimized does
     function _lookupBulkOrderTypehash(
         uint256 treeHeight
     ) internal view returns (bytes32 typeHash) {
@@ -55,34 +59,50 @@ contract EIP712MerkleTree is Test {
         uint24 orderIndex,
         bool useCompact2098
     ) public view returns (bytes memory) {
+        // cache the hash of an empty order components struct to fill out any
+        // nodes required to make the length a power of 2
         bytes32 emptyComponentsHash = consideration.getOrderHash(
             emptyOrderComponents
         );
+        // declare vars here to avoid stack too deep errors
         bytes32[] memory leaves;
         bytes32 bulkOrderTypehash;
+        // block scope to avoid stacc 2 dank
         {
+            // height of merkle tree is log2(length), rounded up to next power
+            // of 2
             uint256 height = Math.log2(orderComponents.length);
+            // Murky won't let you compute a merkle tree with only 1 leaf, so
+            // if height is 0 (length is 1), set height to 1
             if (2 ** height != orderComponents.length || height == 0) {
                 height += 1;
             }
+            // get the typehash for a bulk order of this height
             bulkOrderTypehash = _lookupBulkOrderTypehash(height);
+            // allocate array for leaf hashes
             leaves = new bytes32[](2 ** height);
+            // hash each original order component
             for (uint256 i = 0; i < orderComponents.length; i++) {
                 leaves[i] = consideration.getOrderHash(orderComponents[i]);
             }
-
+            // fill out empty node hashes
             for (uint256 i = orderComponents.length; i < 2 ** height; i++) {
                 leaves[i] = emptyComponentsHash;
             }
         }
 
+        // bulkOrder hash is keccak256 of the specific bulk order typehash and
+        // the merkle root of the order hashes
         bytes32 bulkOrderHash = keccak256(
             abi.encode(bulkOrderTypehash, merkle.getRoot(leaves))
         );
 
+        // get domain separator from the particular seaport instance
         (, bytes32 domainSeparator, ) = consideration.information();
 
+        // declare out here to avoid stack too deep errors
         bytes memory signature;
+        // avoid stacc 2 thicc
         {
             (uint8 v, bytes32 r, bytes32 s) = vm.sign(
                 privateKey,
@@ -94,6 +114,7 @@ contract EIP712MerkleTree is Test {
                     )
                 )
             );
+            // if useCompact2098 is true, encode yParity (v) into s
             if (useCompact2098) {
                 uint256 yParity = (v == 27) ? 0 : 1;
                 bytes32 yAndS = bytes32(uint256(s) | (yParity << 255));
@@ -102,9 +123,14 @@ contract EIP712MerkleTree is Test {
                 signature = abi.encodePacked(r, s, v);
             }
         }
-
+        // get the proof for the order index
         bytes32[] memory proof = merkle.getProof(leaves, orderIndex);
-        // orderIndex should only take up 3 bytes but proof needs to be abi-encoded to include its length
+        // return the packed signature, order index, and proof
+        // encodePacked will pack everything tightly without lengths
+        // ie, long-style rsv signatures will have 1 byte for v
+        // orderIndex will be the next 3 bytes
+        // then proof will be each element one after another; its offset and
+        // length will not be encoded
         return abi.encodePacked(signature, orderIndex, proof);
     }
 }
