@@ -997,4 +997,40 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             address(0)
         );
     }
+
+    function encode(
+        uint key,
+        uint[] memory proof
+    ) public pure returns (bytes memory) {
+        bytes32 defaultSignature = hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        bytes32 encodedKey = uint256ToBytes32(key);
+        bytes32[] memory encodedProof = new bytes32[](proof.length);
+        for (uint i = 0; i < proof.length; i++) {
+            encodedProof[i] = uint256ToBytes32(proof[i]);
+        }
+
+        return
+            hexConcat(
+                defaultSignature,
+                encodedKey,
+                abi.encodePacked(encodedProof)
+            );
+    }
+
+    function uint256ToBytes32(uint x) private pure returns (bytes32) {
+        return abi.encodePacked(x);
+    }
+
+    function hexConcat(
+        bytes32 a,
+        bytes32 b,
+        bytes memory c
+    ) private pure returns (bytes memory) {
+        bytes memory result = new bytes(a.length + b.length + c.length);
+        result[0:a.length] = a;
+        result[a.length:a.length + b.length] = b;
+        result[a.length + b.length:result.length] = c;
+
+        return result;
+    }
 }
