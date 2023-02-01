@@ -7106,6 +7106,69 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       }
     });
 
+    it("Reverts on a reentrant call to fulfillBasicOrder_efficient_6GL6yc", async () => {
+      // Seller mints nft
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), reenterer.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const basicOrderParameters = getBasicOrderParameters(
+        0, // EthForERC721
+        order
+      );
+
+      const callData = marketplaceContract.interface.encodeFunctionData(
+        "fulfillBasicOrder_efficient_6GL6yc",
+        [basicOrderParameters]
+      );
+      const tx = await reenterer.prepare(
+        marketplaceContract.address,
+        value,
+        callData
+      );
+      await tx.wait();
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters, { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NoReentrantCalls"
+        );
+      } else {
+        // NoReentrantCalls gets bubbled up in _transferNativeTokens, which
+        // reverts with NativeTokenTransferGenericFailure.
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters, { value })
+        ).to.be.revertedWithCustomError(
+          marketplaceContract,
+          "NativeTokenTransferGenericFailure"
+        );
+      }
+    });
+
     it("Reverts on a reentrant call to fulfillAdvancedOrder", async () => {
       // Seller mints nft
       const { nftId, amount } = await mintAndApprove1155(
