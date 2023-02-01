@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-import { ConsiderationItem, OfferItem, OrderParameters } from "contracts/lib/ConsiderationStructs.sol";
+import {
+    ConsiderationItem,
+    OfferItem,
+    OrderParameters
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
-
-import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers
@@ -22,9 +24,9 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ReferenceConsiderationBase(conduitController)
-    {}
+    constructor(
+        address conduitController
+    ) ReferenceConsiderationBase(conduitController) {}
 
     /**
      * @dev Internal view function to derive the EIP-712 hash for an offer item.
@@ -33,11 +35,9 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return The hash.
      */
-    function _hashOfferItem(OfferItem memory offerItem)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _hashOfferItem(
+        OfferItem memory offerItem
+    ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encode(
@@ -59,11 +59,9 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return The hash.
      */
-    function _hashConsiderationItem(ConsiderationItem memory considerationItem)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _hashConsiderationItem(
+        ConsiderationItem memory considerationItem
+    ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encode(
@@ -149,11 +147,10 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
+    function _deriveEIP712Digest(
+        bytes32 domainSeparator,
+        bytes32 orderHash
+    ) internal pure returns (bytes32 value) {
         value = keccak256(
             abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
         );
@@ -171,11 +168,9 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(bytes32 conduitKey)
-        internal
-        view
-        returns (address conduit)
-    {
+    function _deriveConduit(
+        bytes32 conduitKey
+    ) internal view returns (address conduit) {
         // Derive the address of the conduit.
         conduit = address(
             uint160(
@@ -200,12 +195,14 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
-            _NAME_HASH,
-            _VERSION_HASH);
+        return
+            block.chainid == _CHAIN_ID
+                ? _DOMAIN_SEPARATOR
+                : _deriveDomainSeparator(
+                    _EIP_712_DOMAIN_TYPEHASH,
+                    _NAME_HASH,
+                    _VERSION_HASH
+                );
     }
 
     /**

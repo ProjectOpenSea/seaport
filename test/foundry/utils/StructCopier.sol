@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.13;
-import { BasicOrderParameters, CriteriaResolver, AdvancedOrder, AdditionalRecipient, OfferItem, Order, ConsiderationItem, Fulfillment, FulfillmentComponent, OrderParameters, OrderComponents } from "../../../contracts/lib/ConsiderationStructs.sol";
-import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+pragma solidity ^0.8.17;
+
+import {
+    BasicOrderParameters,
+    CriteriaResolver,
+    AdvancedOrder,
+    AdditionalRecipient,
+    OfferItem,
+    Order,
+    ConsiderationItem,
+    Fulfillment,
+    FulfillmentComponent,
+    OrderParameters,
+    OrderComponents
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 contract StructCopier {
     Order _tempOrder;
@@ -65,9 +77,10 @@ contract StructCopier {
         }
     }
 
-    function setBytes32Array(bytes32[] storage dest, bytes32[] memory src)
-        internal
-    {
+    function setBytes32Array(
+        bytes32[] storage dest,
+        bytes32[] memory src
+    ) internal {
         while (dest.length != 0) {
             dest.pop();
         }
@@ -149,9 +162,10 @@ contract StructCopier {
             .totalOriginalConsiderationItems;
     }
 
-    function setOfferItems(OfferItem[] storage dest, OfferItem[] memory src)
-        internal
-    {
+    function setOfferItems(
+        OfferItem[] storage dest,
+        OfferItem[] memory src
+    ) internal {
         while (dest.length != 0) {
             dest.pop();
         }
@@ -172,9 +186,10 @@ contract StructCopier {
         }
     }
 
-    function setFulfillment(Fulfillment storage dest, Fulfillment memory src)
-        internal
-    {
+    function setFulfillment(
+        Fulfillment storage dest,
+        Fulfillment memory src
+    ) internal {
         setFulfillmentComponents(dest.offerComponents, src.offerComponents);
         setFulfillmentComponents(
             dest.considerationComponents,
@@ -246,11 +261,9 @@ contract StructCopier {
         return considerationItems;
     }
 
-    function toOfferItems(ConsiderationItem[] memory _considerationItems)
-        internal
-        pure
-        returns (OfferItem[] memory)
-    {
+    function toOfferItems(
+        ConsiderationItem[] memory _considerationItems
+    ) internal pure returns (OfferItem[] memory) {
         OfferItem[] memory _offerItems = new OfferItem[](
             _considerationItems.length
         );

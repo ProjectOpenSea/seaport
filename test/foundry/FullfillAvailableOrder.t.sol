@@ -1,15 +1,29 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.17;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
+import {
+    OrderType,
+    ItemType
+} from "../../contracts/lib/ConsiderationEnums.sol";
+
+import {
+    ConsiderationInterface
+} from "../../contracts/interfaces/ConsiderationInterface.sol";
+
+import {
+    Order,
+    OfferItem,
+    OrderParameters,
+    ConsiderationItem,
+    OrderComponents,
+    FulfillmentComponent
+} from "../../contracts/lib/ConsiderationStructs.sol";
+
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+
 import { stdError } from "forge-std/Test.sol";
+
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillAvailableOrder is BaseOrderTest {
@@ -44,22 +58,23 @@ contract FulfillAvailableOrder is BaseOrderTest {
         vm.assume(
             inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
                 inputs.paymentAmts[2]
-            ) <= 2**128 - 1
+            ) <= 2 ** 128 - 1
         );
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testNoNativeOffersFulfillAvailable(uint8[8] memory itemTypes)
-        public
-    {
+    function testNoNativeOffersFulfillAvailable(
+        uint8[8] memory itemTypes
+    ) public {
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
             ItemType itemType = ItemType(itemTypes[i] % 4);
@@ -92,13 +107,12 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAvailable(Context memory context)
-        external
-        stateless
-    {
+    function noNativeOfferItemsFulfillAvailable(
+        Context memory context
+    ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -123,7 +137,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         addEthConsiderationItem(alice, 1);
         configureOrderParameters(alice);
         counter = context.consideration.getCounter(alice);
-        _configureOrderComponents(counter);
+        configureOrderComponents(counter);
         bytes32 orderHash2 = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -222,10 +236,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableOrdersOverflowOfferSide(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAvailableOrdersOverflowOfferSide(
+        Context memory context
+    ) external stateless {
         // mint consideration nfts to the test contract
         test721_1.mint(address(this), 1);
         test721_1.mint(address(this), 2);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.13;
 
 contract ERC1155BatchRecipient {
     error UnexpectedBatchData();

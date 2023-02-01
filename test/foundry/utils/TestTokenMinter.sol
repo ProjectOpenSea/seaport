@@ -1,5 +1,5 @@
 // SPDX-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.13;
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
@@ -8,12 +8,12 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
-import { ERC721 } from "../token/ERC721.sol";
+import { CustomERC721 } from "../token/CustomERC721.sol";
 
-contract PreapprovedERC721 is ERC721 {
+contract PreapprovedERC721 is CustomERC721 {
     mapping(address => bool) public preapprovals;
 
-    constructor(address[] memory preapproved) ERC721("", "") {
+    constructor(address[] memory preapproved) CustomERC721("", "") {
         for (uint256 i = 0; i < preapproved.length; i++) {
             preapprovals[preapproved[i]] = true;
         }
@@ -24,12 +24,10 @@ contract PreapprovedERC721 is ERC721 {
         return true;
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override returns (bool) {
         return
             preapprovals[operator] || super.isApprovedForAll(owner, operator);
     }
@@ -73,23 +71,35 @@ contract TestTokenMinter is
     address[] preapprovals;
 
     modifier only1155Receiver(address recipient) {
-        vm.assume(recipient != address(0));
+        vm.assume(
+            recipient != address(0) &&
+                recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
+                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
+        );
+
         if (recipient.code.length > 0) {
-            try
-                ERC1155Recipient(recipient).onERC1155Received(
+            (bool success, bytes memory returnData) = recipient.call(
+                abi.encodeWithSelector(
+                    ERC1155Recipient.onERC1155Received.selector,
                     address(1),
                     address(1),
                     1,
                     1,
                     ""
                 )
-            returns (bytes4 response) {
+            );
+            vm.assume(success);
+            try this.decodeBytes4(returnData) returns (bytes4 response) {
                 vm.assume(response == onERC1155Received.selector);
             } catch (bytes memory reason) {
                 vm.assume(false);
             }
         }
         _;
+    }
+
+    function decodeBytes4(bytes memory data) external pure returns (bytes4) {
+        return abi.decode(data, (bytes4));
     }
 
     function setUp() public virtual override {
@@ -116,6 +126,14 @@ contract TestTokenMinter is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+    }
+
+    function makeAddrWithAllocationsAndApprovals(
+        string memory label
+    ) internal returns (address) {
+        address addr = makeAddr(label);
+        allocateTokensAndApprovals(addr, uint128(MAX_INT));
+        return addr;
     }
 
     function mintErc721TokenTo(address to, uint256 id) internal {
@@ -203,7 +221,7 @@ contract TestTokenMinter is
     }
 
     /**
-    @dev deploy test token contracts
+     * @dev deploy test token contracts
      */
     function _deployTestTokenContracts() internal {
         token1 = new TestERC20();
@@ -221,19 +239,16 @@ contract TestTokenMinter is
         vm.label(address(test721_1), "test721_1");
         vm.label(address(test1155_1), "test1155_1");
         vm.label(address(preapproved721), "preapproved721");
-
-        emit log("Deployed test token contracts");
     }
 
     /**
-    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
-    */
+     * @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s
+     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
         }
-        emit log_named_address("Allocated tokens to", _to);
         _setApprovals(_to);
     }
 
@@ -262,13 +277,5 @@ contract TestTokenMinter is
         }
 
         vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
     }
 }

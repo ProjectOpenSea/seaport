@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-// prettier-ignore
 import {
-    OrderType,
-    ItemType
-} from "contracts/lib/ConsiderationEnums.sol";
+    ItemType,
+    OrderType
+} from "../../contracts/lib/ConsiderationEnums.sol";
 
-import { SpentItem, ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
+import {
+    ReceivedItem,
+    SpentItem
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
-import { ConduitTransfer } from "contracts/conduit/lib/ConduitStructs.sol";
+import {
+    ConduitTransfer
+} from "../../contracts/conduit/lib/ConduitStructs.sol";
 
 // This file should only be used by the Reference Implementation
 
@@ -20,6 +24,7 @@ struct ConsiderationItemIndicesAndValidity {
     uint256 orderIndex;
     uint256 itemIndex;
     bool invalidFulfillment;
+    bool missingItemAmount;
 }
 
 /**
@@ -59,6 +64,8 @@ struct OrderToExecute {
     ReceivedItem[] receivedItems; // Consideration
     bytes32 conduitKey;
     uint120 numerator;
+    uint256[] spentItemOriginalAmounts;
+    uint256[] receivedItemOriginalAmounts;
 }
 
 /**

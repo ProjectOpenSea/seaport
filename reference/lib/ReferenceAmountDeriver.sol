@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.13;
 
-// prettier-ignore
 import {
     AmountDerivationErrors
-} from "contracts/interfaces/AmountDerivationErrors.sol";
+} from "../../contracts/interfaces/AmountDerivationErrors.sol";
 
 import { FractionData } from "./ReferenceConsiderationStructs.sol";
 

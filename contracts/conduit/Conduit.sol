@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.13;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
@@ -7,13 +7,20 @@ import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
-// prettier-ignore
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "./lib/ConduitStructs.sol";
 
-import "./lib/ConduitConstants.sol";
+import {
+    ChannelClosed_channel_ptr,
+    ChannelClosed_error_length,
+    ChannelClosed_error_ptr,
+    ChannelClosed_error_signature,
+    ChannelKey_channel_ptr,
+    ChannelKey_length,
+    ChannelKey_slot_ptr
+} from "./lib/ConduitConstants.sol";
 
 /**
  * @title Conduit
@@ -59,7 +66,11 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 // Next, set the caller as the argument.
                 mstore(ChannelClosed_channel_ptr, caller())
 
-                // Finally, revert, returning full custom error with argument.
+                // Finally, revert, returning full custom error with argument
+                // data in memory.
+                // revert(abi.encodeWithSignature(
+                //     "ChannelClosed(address)", caller()
+                // ))
                 revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
             }
         }
@@ -90,12 +101,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        override
-        onlyOpenChannel
-        returns (bytes4 magicValue)
-    {
+    function execute(
+        ConduitTransfer[] calldata transfers
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = transfers.length;
 
@@ -224,7 +232,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         } else if (item.itemType == ConduitItemType.ERC721) {
             // Ensure that exactly one 721 item is being transferred.
             if (item.amount != 1) {
-                revert InvalidERC721TransferAmount();
+                revert InvalidERC721TransferAmount(item.amount);
             }
 
             // Transfer ERC721 token.

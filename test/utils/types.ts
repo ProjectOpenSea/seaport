@@ -1,6 +1,4 @@
-import { BigNumber } from "ethers";
-
-export type BigNumberish = string | BigNumber | number | boolean;
+import type { BigNumber } from "ethers";
 
 export type AdditionalRecipient = {
   amount: BigNumber;
@@ -10,6 +8,11 @@ export type AdditionalRecipient = {
 export type FulfillmentComponent = {
   orderIndex: number;
   itemIndex: number;
+};
+
+export type Fulfillment = {
+  offerComponents: FulfillmentComponent[];
+  considerationComponents: FulfillmentComponent[];
 };
 
 export type CriteriaResolver = {
@@ -89,4 +92,8 @@ export type AdvancedOrder = {
   denominator: string | BigNumber | number;
   signature: string;
   extraData: string;
+};
+
+export type BulkOrder = {
+  tree: Array<Array<Array<Array<Array<Array<Array<OrderComponents>>>>>>>;
 };

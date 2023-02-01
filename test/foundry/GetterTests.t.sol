@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.17;
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
@@ -36,12 +36,12 @@ contract TestGetters is BaseConsiderationTest {
         // Length of "Consideration"
         assertEq(length, 13);
         // Check if there are dirty bits
-        assertEq(value, bytes32("Consideration"));
+        assertEq(value, bytes32(abi.encodePacked(name)));
     }
 
     function testGetsCorrectVersion() public {
         (string memory version, , ) = consideration.information();
-        assertEq(version, "1.1");
+        assertEq(version, "1.2");
     }
 
     function testGetCorrectDomainSeparator() public {
@@ -70,7 +70,7 @@ contract TestGetters is BaseConsiderationTest {
         );
     }
 
-    function testGetCorrectDomainSeparator(uint256 _chainId) public {
+    function testGetCorrectDomainSeparator(uint64 _chainId) public {
         // ignore case where _chainId is the same as block.chainid
         vm.assume(_chainId != block.chainid);
         bytes memory typeName = abi.encodePacked(

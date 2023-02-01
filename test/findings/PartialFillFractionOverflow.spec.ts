@@ -1,15 +1,19 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
-import {
+
+import { buildOrderStatus, toBN, toKey } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
+import { seaportFixture } from "../utils/fixtures";
+
+import type {
   ConsiderationInterface,
   TestERC1155,
   TestERC20,
 } from "../../typechain-types";
-import { buildOrderStatus, toBN, toKey } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 
@@ -17,16 +21,19 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
+
   let order: AdvancedOrder;
   let orderHash: string;
-  let testERC20: TestERC20;
-  let testERC1155: TestERC1155;
+
   let marketplaceContract: ConsiderationInterface;
+  let testERC1155: TestERC1155;
+  let testERC20: TestERC20;
+
+  let createOrder: SeaportFixtures["createOrder"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
+  let getTestItem20: SeaportFixtures["getTestItem20"];
   let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
-  let getTestItem20: SeaportFixtures["getTestItem20"];
-  let getTestItem1155: SeaportFixtures["getTestItem1155"];
-  let createOrder: SeaportFixtures["createOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -38,19 +45,22 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
     if (process.env.REFERENCE) {
       this.skip();
     }
+
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();
+
     ({
+      createOrder,
+      getTestItem1155,
+      getTestItem20,
+      marketplaceContract,
       mintAndApprove1155,
       mintAndApproveERC20,
-      marketplaceContract,
-      getTestItem20,
-      getTestItem1155,
-      createOrder,
-      testERC20,
       testERC1155,
+      testERC20,
     } = await seaportFixture(await getWalletWithEther()));
+
     await mintAndApprove1155(alice, marketplaceContract.address, 1, 1, 10);
     await mintAndApproveERC20(bob, marketplaceContract.address, 500);
     await mintAndApproveERC20(carol, marketplaceContract.address, 4500);
@@ -90,9 +100,72 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
     );
 
     // Bob validates the order
-    await expect(marketplaceContract.connect(bob).validate([order]))
-      .to.emit(marketplaceContract, "OrderValidated")
-      .withArgs(orderHash, alice.address, constants.AddressZero);
+    const tx = await marketplaceContract.connect(bob).validate([order]);
+
+    const receipt = await tx.wait();
+
+    expect(receipt.events?.length).to.equal(1);
+
+    const event = receipt.events && receipt.events[0];
+
+    expect(event?.event).to.equal("OrderValidated");
+
+    expect(event?.args?.orderHash).to.equal(orderHash);
+
+    const parameters = event && event.args && event.args.orderParameters;
+
+    expect(parameters.offerer).to.equal(order.parameters.offerer);
+    expect(parameters.zone).to.equal(order.parameters.zone);
+    expect(parameters.orderType).to.equal(order.parameters.orderType);
+    expect(parameters.startTime).to.equal(order.parameters.startTime);
+    expect(parameters.endTime).to.equal(order.parameters.endTime);
+    expect(parameters.zoneHash).to.equal(order.parameters.zoneHash);
+    expect(parameters.salt).to.equal(order.parameters.salt);
+    expect(parameters.conduitKey).to.equal(order.parameters.conduitKey);
+    expect(parameters.totalOriginalConsiderationItems).to.equal(
+      order.parameters.totalOriginalConsiderationItems
+    );
+    expect(parameters.totalOriginalConsiderationItems).to.equal(
+      parameters.consideration.length
+    );
+
+    expect(parameters.offer.length).to.equal(order.parameters.offer.length);
+    expect(parameters.consideration.length).to.equal(
+      order.parameters.consideration.length
+    );
+
+    for (let i = 0; i < parameters.offer.length; i++) {
+      const eventOffer = parameters.offer[i];
+      const suppliedOffer = order.parameters.offer[i];
+      expect(eventOffer.itemType).to.equal(suppliedOffer.itemType);
+      expect(eventOffer.token).to.equal(suppliedOffer.token);
+      expect(eventOffer.identifierOrCriteria).to.equal(
+        suppliedOffer.identifierOrCriteria
+      );
+      expect(eventOffer.startAmount).to.equal(suppliedOffer.startAmount);
+      expect(eventOffer.endAmount).to.equal(suppliedOffer.endAmount);
+    }
+
+    for (let i = 0; i < parameters.consideration.length; i++) {
+      const eventConsideration = parameters.consideration[i];
+      const suppliedConsideration = order.parameters.consideration[i];
+      expect(eventConsideration.itemType).to.equal(
+        suppliedConsideration.itemType
+      );
+      expect(eventConsideration.token).to.equal(suppliedConsideration.token);
+      expect(eventConsideration.identifierOrCriteria).to.equal(
+        suppliedConsideration.identifierOrCriteria
+      );
+      expect(eventConsideration.startAmount).to.equal(
+        suppliedConsideration.startAmount
+      );
+      expect(eventConsideration.endAmount).to.equal(
+        suppliedConsideration.endAmount
+      );
+      expect(eventConsideration.recipient).to.equal(
+        suppliedConsideration.recipient
+      );
+    }
 
     // OrderStatus is validated
     orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -107,7 +180,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = 2;
       await marketplaceContract
         .connect(bob)
-        .fulfillAdvancedOrder(order, [], toKey(false), bob.address);
+        .fulfillAdvancedOrder(order, [], toKey(0), bob.address);
       expect(await testERC1155.balanceOf(bob.address, 1)).to.eq(1);
     });
 
@@ -122,7 +195,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = toBN(2).pow(119);
       await marketplaceContract
         .connect(carol)
-        .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+        .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
     });
 
     it("Carol receives one 1155 token from Alice", async () => {
@@ -149,12 +222,12 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
           order.denominator = toBN(2).pow(2);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+            .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
           order.numerator = toBN(2).pow(118);
           order.denominator = toBN(2).pow(119);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+            .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
         }
       });
 

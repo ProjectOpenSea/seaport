@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.13;
+
+import { Side } from "../lib/ConsiderationEnums.sol";
 
 /**
  * @title CriteriaResolutionErrors
@@ -11,20 +13,34 @@ interface CriteriaResolutionErrors {
     /**
      * @dev Revert with an error when providing a criteria resolver that refers
      *      to an order that has not been supplied.
+     *
+     * @param side The side of the order that was not supplied.
      */
-    error OrderCriteriaResolverOutOfRange();
+    error OrderCriteriaResolverOutOfRange(Side side);
 
     /**
      * @dev Revert with an error if an offer item still has unresolved criteria
      *      after applying all criteria resolvers.
+     *
+     * @param orderIndex The index of the order that contains the offer item.
+     * @param offerIndex The index of the offer item that still has unresolved
+     *                   criteria.
      */
-    error UnresolvedOfferCriteria();
+    error UnresolvedOfferCriteria(uint256 orderIndex, uint256 offerIndex);
 
     /**
      * @dev Revert with an error if a consideration item still has unresolved
      *      criteria after applying all criteria resolvers.
+     *
+     * @param orderIndex         The index of the order that contains the
+     *                           consideration item.
+     * @param considerationIndex The index of the consideration item that still
+     *                           has unresolved criteria.
      */
-    error UnresolvedConsiderationCriteria();
+    error UnresolvedConsiderationCriteria(
+        uint256 orderIndex,
+        uint256 considerationIndex
+    );
 
     /**
      * @dev Revert with an error when providing a criteria resolver that refers

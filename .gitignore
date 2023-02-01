@@ -18,9 +18,20 @@ out
 reference-out
 optimized-out
 reference-working
+offerers-out
+
 
 .DS_Store
 
 # VScode
 .vscode
 __pycache__
+
+Seaport.yul
+
+# coverage
+html
+lcov.info
+
+test/utils/eip712/gen.sol
+.gas_reports/*.md

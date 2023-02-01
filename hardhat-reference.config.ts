@@ -1,14 +1,13 @@
-import * as dotenv from "dotenv";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+import { subtask } from "hardhat/config";
 
-import { HardhatUserConfig, subtask, task } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
+import type { HardhatUserConfig } from "hardhat/config";
+
+import "dotenv/config";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-
-dotenv.config();
-
-import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
 
 // Filter Reference Contracts
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
@@ -29,7 +28,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.7",
+        version: "0.8.13",
         settings: {
           viaIR: false,
           optimizer: {

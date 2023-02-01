@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.13;
 
-// prettier-ignore
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
+    ConduitBatch1155Transfer,
+    ConduitTransfer
 } from "../conduit/lib/ConduitStructs.sol";
 
 /**
@@ -55,9 +54,9 @@ interface ConduitInterface {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(ConduitTransfer[] calldata transfers)
-        external
-        returns (bytes4 magicValue);
+    function execute(
+        ConduitTransfer[] calldata transfers
+    ) external returns (bytes4 magicValue);
 
     /**
      * @notice Execute a sequence of batch 1155 transfers. Only a caller with an

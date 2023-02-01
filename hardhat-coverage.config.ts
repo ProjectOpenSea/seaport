@@ -1,12 +1,10 @@
-import * as dotenv from "dotenv";
+import type { HardhatUserConfig } from "hardhat/config";
 
-import { HardhatUserConfig, task } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
+import "dotenv/config";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-
-dotenv.config();
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -15,7 +13,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.14",
+        version: "0.8.17",
         settings: {
           viaIR: false,
           optimizer: {
