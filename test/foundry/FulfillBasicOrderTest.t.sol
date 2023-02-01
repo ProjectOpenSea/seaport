@@ -90,6 +90,20 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
+    function testBasicEthTo721Efficient(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs, 0)) {
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(this.basicEthTo721Efficient, Context(consideration, inputs, 0));
+        test(
+            this.basicEthTo721Efficient,
+            Context(referenceConsideration, inputs, 0)
+        );
+    }
+
     function testBasicEthTo721WithAdditionalRecipients(
         FuzzInputsCommon memory inputs,
         uint256 numAdditionalRecipients
@@ -983,6 +997,33 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
 
         basicOrderParameters.signature = signature;
         context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
+    }
+
+    function basicEthTo721Efficient(Context memory context) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            context.args.useConduit ? conduitKeyOne : bytes32(0)
+        );
+        uint256 counter = context.consideration.getCounter(alice);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        basicOrderParameters.signature = signature;
+        context.consideration.fulfillBasicOrder_efficient_6GL6yc{
             value: context.args.paymentAmount
         }(basicOrderParameters);
         assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
