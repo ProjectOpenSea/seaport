@@ -599,11 +599,11 @@ contract BulkSignatureTest is BaseOrderTest {
         uint24 convertedIndex;
         Order memory order;
 
-        // Iterate over all indexes from the firstExpectedOverflowIndex to the
-        // secondExpectedOverflowIndex, inclusive, and make sure that none of
-        // them work except the expected indexes.
+        // Iterate over all indexes from the firstExpectedOverflowIndex + 1 to
+        // the secondExpectedOverflowIndex, inclusive, and make sure that none
+        // of them work except the expected indexes.
         for (
-            uint256 i = firstExpectedOverflowIndex;
+            uint256 i = firstExpectedOverflowIndex + 1;
             i <= secondExpectedOverflowIndex;
             ++i
         ) {
@@ -624,12 +624,12 @@ contract BulkSignatureTest is BaseOrderTest {
                     0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
                 )
                 // 256 - 24 = 232
-                // Create a new value the same as the old value, except that it uses
-                // the fake index.
+                // Create a new value the same as the old value, except that it
+                // uses the fake index.
                 let fakeIndexAndProofData := or(
                     maskedProofData,
-                    // Shift the fake index left by 232 bits to produce a value to
-                    // `or` with the `maskedProofData`.  For example:
+                    // Shift the fake index left by 232 bits to produce a value
+                    // to `or` with the `maskedProofData`.  For example:
                     // `0x000005000...`
                     shl(232, convertedIndex)
                 )
@@ -638,20 +638,19 @@ contract BulkSignatureTest is BaseOrderTest {
                 mstore(indexAndProofDataPointer, fakeIndexAndProofData)
             }
 
-            // Create an order using the `bulkSignature` that was modified in the
-            // assembly block above.
+            // Create an order using the `bulkSignature` that was modified in
+            // the assembly block above.
             order = Order({
                 parameters: baseOrderParameters,
                 signature: bulkSignature
             });
 
-            // We expect a revert for all indexes except the
-            // firstExpectedOverflowIndex and the secondExpectedOverflowIndex.
-            if (
-                i != firstExpectedOverflowIndex &&
-                i != secondExpectedOverflowIndex
-            ) {
-                // We expect InvalidSigner because we're trying to recover the
+            // Expect a revert for all indexes except the
+            // secondExpectedOverflowIndex. The starting range should revert
+            // with `InvalidSigner`, and the secondExpectedOverflowIndex should
+            // fulfill the order.
+            if (i != secondExpectedOverflowIndex) {
+                // Expect InvalidSigner because we're trying to recover the
                 // signer using a signature and proof for one of the dummy
                 // orders that signSparseBulkOrder filled in.
                 vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
