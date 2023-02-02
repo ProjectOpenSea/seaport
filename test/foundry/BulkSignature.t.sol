@@ -459,7 +459,7 @@ contract BulkSignatureTest is BaseOrderTest {
         // length.
         uint256 signatureLength = context.useCompact2098 ? 64 : 65;
         // Set up an index equal to orderIndex + tree height ** 2.
-        uint256 index = context.args.orderIndex + (context.args.height ** 2);
+        uint256 index = context.args.orderIndex + (2 ** context.args.height);
         uint24 convertedIndex = uint24(index);
 
         // Use assembly to swap in a fake index.
