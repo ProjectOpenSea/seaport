@@ -836,9 +836,25 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     // Try to update the signer directly on the signed zone.
-    await expect(
-      signedZone.connect(owner).updateSigner(buyer.address, false)
-    ).to.be.revertedWithCustomError(signedZone, "InvalidController");
+    // Create interface to decode the updateSigner result.
+    let updateSignerABI = ["function updateSigner(address,bool)"];
+    let updateSignerInterface = new ethers.utils.Interface(updateSignerABI);
+    let updateSignerInputData = updateSignerInterface.encodeFunctionData(
+      "updateSigner(address,bool)",
+      [buyer.address, false]
+    );
+
+    // Expect to be returned the signature for InvalidController().
+    // Below is the representation of what this expect should be testing.
+    // await expect(
+    //   signedZone.connect(owner).updateSigner(buyer.address, false)
+    // ).to.be.revertedWithCustomError(signedZone, "InvalidController");
+    expect(
+      await provider.call({
+        to: signedZone.address,
+        data: updateSignerInputData,
+      })
+    ).to.be.eq("0x6d5769be");
 
     await expect(
       signedZoneController
@@ -852,10 +868,27 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     expect(
       await signedZoneController.getActiveSigners(signedZone.address)
     ).to.deep.equal([approvedSigner.address]);
+
+    // Create interface to decode the getActiveSigners result.
+    let getActiveSignerABI = [
+      "function getActiveSigners() returns (address[] signers)",
+    ];
+    let getActiveSignerInterface = new ethers.utils.Interface(
+      getActiveSignerABI
+    );
+    let getActiveSignerInputData =
+      getActiveSignerInterface.encodeFunctionData("getActiveSigners");
+
     // Check that the signer was added on the signed zone.
-    expect(await signedZone.getActiveSigners()).to.deep.equal([
-      approvedSigner.address,
-    ]);
+    expect(
+      getActiveSignerInterface.decodeFunctionResult(
+        "getActiveSigners",
+        await provider.call({
+          to: signedZone.address,
+          data: getActiveSignerInputData,
+        })
+      )[0]
+    ).to.deep.equal([approvedSigner.address]);
 
     await expect(
       signedZoneController
@@ -879,10 +912,15 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       await signedZoneController.getActiveSigners(signedZone.address)
     ).to.deep.equal([approvedSigner.address, buyer.address]);
     // Check that the additoinal signer was added on the signed zone.
-    expect(await signedZone.getActiveSigners()).to.deep.equal([
-      approvedSigner.address,
-      buyer.address,
-    ]);
+    expect(
+      getActiveSignerInterface.decodeFunctionResult(
+        "getActiveSigners",
+        await provider.call({
+          to: signedZone.address,
+          data: getActiveSignerInputData,
+        })
+      )[0]
+    ).to.deep.equal([approvedSigner.address, buyer.address]);
 
     // The active signer should be remove other signers.
     await expect(
@@ -919,7 +957,15 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       await signedZoneController.getActiveSigners(signedZone.address)
     ).to.deep.equal([]);
     // Check that signers were removed.
-    expect(await signedZone.getActiveSigners()).to.deep.equal([]);
+    expect(
+      getActiveSignerInterface.decodeFunctionResult(
+        "getActiveSigners",
+        await provider.call({
+          to: signedZone.address,
+          data: getActiveSignerInputData,
+        })
+      )[0]
+    ).to.deep.equal([]);
 
     await expect(
       signedZoneController
@@ -1217,30 +1263,70 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         value,
       });
   });
-  it("Should return supportsInterface=true for SIP-5 and ZoneInterface", async () => {
+  it("Should return supportsInterface=true for ERC-165, SIP-5 and ZoneInterface", async () => {
     const supportedInterfacesSIP5Interface = [[SIP5Interface__factory]];
     const supportedInterfacesZoneInterface = [[ZoneInterface__factory]];
-    const supportedInterfacesERC165 = [[ERC165__factory]];
+
+    // Create interface to decode the supportsInterface result.
+    let supportsInterfaceABI = [
+      "function supportsInterface(bytes4 interfaceId) returns (bool)",
+    ];
+    let iface = new ethers.utils.Interface(supportsInterfaceABI);
 
     for (const factories of [
       ...supportedInterfacesSIP5Interface,
       ...supportedInterfacesZoneInterface,
-      ...supportedInterfacesERC165,
     ]) {
       const interfaceId = factories
         .map((factory) => getInterfaceID(factory.createInterface()))
         .reduce((prev, curr) => prev.xor(curr))
         .toHexString();
-      expect(await signedZone.supportsInterface(interfaceId)).to.be.true;
+      let inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
+        interfaceId,
+      ]);
+
+      expect(
+        iface.decodeFunctionResult(
+          "supportsInterface(bytes4)",
+          await provider.call({
+            to: signedZone.address,
+            data: inputData,
+          })
+        )[0]
+      ).to.be.true;
     }
 
-    // Ensure the interface for SIP-5 returns true.
-    expect(await signedZone.supportsInterface("0x2e778efc")).to.be.true;
+    // Ensure the interface for ERC-165 eturns true.
+    const inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
+      "0x01ffc9a7",
+    ]);
+
+    expect(
+      iface.decodeFunctionResult(
+        "supportsInterface(bytes4)",
+        await provider.call({
+          to: signedZone.address,
+          data: inputData,
+        })
+      )[0]
+    ).to.be.true;
 
     // Ensure invalid interfaces return false.
     const invalidInterfaceIds = ["0x00000000", "0x10000000", "0x00000001"];
     for (const interfaceId of invalidInterfaceIds) {
-      expect(await signedZone.supportsInterface(interfaceId)).to.be.false;
+      let inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
+        interfaceId,
+      ]);
+
+      expect(
+        iface.decodeFunctionResult(
+          "supportsInterface(bytes4)",
+          await provider.call({
+            to: signedZone.address,
+            data: inputData,
+          })
+        )[0]
+      ).to.be.false;
     }
   });
   // Note: Run this test last in this file as it hacks changing the hre

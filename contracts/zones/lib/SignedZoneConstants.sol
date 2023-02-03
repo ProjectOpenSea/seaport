@@ -32,6 +32,16 @@ uint256 constant EIP_712_PREFIX = (
 );
 
 /*
+ *  error InvalidController()
+ *    - Defined in SignedZoneEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant InvalidController_error_selector = 0x6d5769be;
+uint256 constant InvalidController_error_length = 0x04;
+
+/*
  *  error InvalidFulfiller(address expectedFulfiller, address actualFulfiller, bytes32 orderHash)
  *    - Defined in SignedZoneEventsAndErrors.sol
  *  Memory layout:

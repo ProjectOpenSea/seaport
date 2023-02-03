@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import { SignedZone } from "./SignedZone.sol";
 
 import { SignedZoneInterface } from "./interfaces/SignedZoneInterface.sol";
+
 import {
     SignedZoneControllerInterface
 } from "./interfaces/SignedZoneControllerInterface.sol";
@@ -17,9 +18,9 @@ import "./lib/SignedZoneConstants.sol";
 /**
  * @title  SignedZoneController
  * @author BCLeFevre
- * @notice SignedZoneController enables the deploying of SignedZones. SignedZones
- *         are an implementation of SIP-7 that requires orders to be signed by
- *         an approved signer.
+ * @notice SignedZoneController enables the deploying of SignedZones.
+ *         SignedZones are an implementation of SIP-7 that requires orders to
+ *         be signed by  an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
  */
 contract SignedZoneController is
@@ -30,15 +31,17 @@ contract SignedZoneController is
      * @dev The struct for storing signer info.
      */
     struct SignerInfo {
-        bool active; /// If the signer is currently active.
-        bool previouslyActive; /// If the signer has been active before.
+        /// @dev If the signer is currently active.
+        bool active;
+        /// @dev If the signer has been active before.
+        bool previouslyActive;
     }
 
     // Properties used by the signed zone, stored on the controller.
     struct SignedZoneProperties {
-        // Owner of the signed zone (used for permissioned functions)
+        /// @dev Owner of the signed zone (used for permissioned functions)
         address owner;
-        // Potential owner of the signed zone
+        /// @dev Potential owner of the signed zone
         address potentialOwner;
         /// @dev The name for this zone returned in getSeaportMetadata().
         string zoneName;
@@ -51,13 +54,14 @@ contract SignedZoneController is
         /// @dev The substandards supported by this zone.
         ///      Substandards are defined in SIP-7.
         uint256[] substandards;
-        // Mapping of signer information keyed by signer Address
+        /// @dev Mapping of signer information keyed by signer Address
         mapping(address => SignerInfo) signers;
-        // List of active signers
+        /// @dev List of active signers
         address[] activeSignerList;
     }
 
-    // Mapping of signed zone properties keyed by the Signed Zone address.
+    /// @dev Mapping of signed zone properties keyed by the Signed Zone
+    ///      address.
     mapping(address => SignedZoneProperties) internal _signedZones;
 
     /// @dev The EIP-712 digest parameters for the SignedZone.
@@ -354,6 +358,15 @@ contract SignedZoneController is
         signedZoneProperties.apiEndpoint = newApiEndpoint;
     }
 
+    /**
+     * @notice Add or remove a signer from the supplied zone.
+     *         Only the owner or an active signer of the supplied zone can call
+     *         this function.
+     *
+     * @param zone     The signed zone to update the signer permissions for.
+     * @param signer   The signer to update the permissions for.
+     * @param active   Whether the signer should be active or not.
+     */
     function updateSigner(
         address zone,
         address signer,

@@ -5,15 +5,11 @@ import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import { SignedZoneInterface } from "./interfaces/SignedZoneInterface.sol";
-
 import {
     SignedZoneEventsAndErrors
 } from "./interfaces/SignedZoneEventsAndErrors.sol";
 
 import { SIP5Interface } from "./interfaces/SIP5Interface.sol";
-
-import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {
     SignedZoneControllerInterface
@@ -28,13 +24,7 @@ import "./lib/SignedZoneConstants.sol";
  *         to be signed by an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
  */
-contract SignedZone is
-    SignedZoneEventsAndErrors,
-    ZoneInterface,
-    SignedZoneInterface,
-    SIP5Interface,
-    ERC165
-{
+contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     /// @dev The zone's controller that is set during deployment.
     address private immutable _controller;
 
@@ -81,46 +71,6 @@ contract SignedZone is
 
         // Emit an event to signal a SIP-5 contract has been deployed.
         emit SeaportCompatibleContractDeployed();
-    }
-
-    /**
-     * @notice Add or remove a signer to the zone.
-     *         Only the controller can call this function.
-     *
-     * @param signer The signer address to add or remove.
-     */
-    function updateSigner(address signer, bool active) external override {
-        // Only the controller can call this function.
-        _assertCallerIsController();
-        // Add or remove the signer.
-        active ? _addSigner(signer) : _removeSigner(signer);
-    }
-
-    /**
-     * @notice Add a new signer to the zone.
-     *         Only the controller or an active signer can call this function.
-     *
-     * @param signer The new signer address to add.
-     */
-    function _addSigner(address signer) internal {
-        // Set the signer info.
-        _signers[signer] = true;
-        // Emit an event that the signer was added.
-        emit SignerAdded(signer);
-    }
-
-    /**
-     * @notice Remove an active signer from the zone.
-     *         Only the controller or an active signer can call this function.
-     *
-     * @param signer The signer address to remove.
-     */
-    function _removeSigner(address signer) internal {
-        // Set the signer's active status to false.
-        _signers[signer] = false;
-
-        // Emit an event that the signer was removed.
-        emit SignerRemoved(signer);
     }
 
     /**
@@ -278,26 +228,8 @@ contract SignedZone is
         if (!_signers[recoveredSigner]) {
             revert SignerNotActive(recoveredSigner, orderHash);
         }
-
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
-    }
-
-    /**
-     * @notice Returns the active signers for the zone.
-     *
-     * @return signers The active signers.
-     */
-    function getActiveSigners()
-        external
-        view
-        override
-        returns (address[] memory signers)
-    {
-        // Return the active signers for the zone by calling the controller.
-        signers = SignedZoneControllerInterface(_controller).getActiveSigners(
-            address(this)
-        );
     }
 
     /**
@@ -339,21 +271,112 @@ contract SignedZone is
     }
 
     /**
+     * @notice The fallback function is used as a dispatcher for the
+     *         `updateSigner`, `getActiveSigners` and `supportsInterface`
+     *         functions.
+     */
+    // prettier-ignore
+    fallback(bytes calldata) external payable returns (bytes memory output) {
+        // Get the function selector.
+        bytes4 selector = msg.sig;
+
+        if (selector == 0xf460590b) {
+            // updateSigner(address,bool)
+
+            // Get the signer, and active status.
+            address signer = abi.decode(msg.data[4:], (address));
+            bool active = abi.decode(msg.data[36:], (bool));
+
+            // Call to update the signer.
+            _updateSigner(signer, active);
+        } else if (selector == 0xa784b80c) {
+            // getActiveSigners()
+
+            // Call the internal function to get the active signers.
+            return abi.encode(_getActiveSigners());
+        } else if (selector == 0x01ffc9a7) {
+            // supportsInterface(bytes4)
+
+            // Get the interface ID.
+            bytes4 interfaceId = abi.decode(msg.data[4:], (bytes4));
+
+            // Call the internal function to determine if the interface is
+            // supported.
+            return abi.encode(_supportsInterface(interfaceId));
+        }
+    }
+
+    /**
+     * @notice Add or remove a signer to the zone.
+     *         Only the controller can call this function.
+     *
+     * @param signer The signer address to add or remove.
+     */
+    function _updateSigner(address signer, bool active) internal {
+        // Only the controller can call this function.
+        _assertCallerIsController();
+        // Add or remove the signer.
+        active ? _addSigner(signer) : _removeSigner(signer);
+    }
+
+    /**
+     * @notice Add a new signer to the zone.
+     *         Only the controller or an active signer can call this function.
+     *
+     * @param signer The new signer address to add.
+     */
+    function _addSigner(address signer) internal {
+        // Set the signer info.
+        _signers[signer] = true;
+        // Emit an event that the signer was added.
+        emit SignerAdded(signer);
+    }
+
+    /**
+     * @notice Remove an active signer from the zone.
+     *         Only the controller or an active signer can call this function.
+     *
+     * @param signer The signer address to remove.
+     */
+    function _removeSigner(address signer) internal {
+        // Set the signer's active status to false.
+        _signers[signer] = false;
+
+        // Emit an event that the signer was removed.
+        emit SignerRemoved(signer);
+    }
+
+    /**
+     * @notice Returns the active signers for the zone.
+     *
+     * @return signers The active signers.
+     */
+    function _getActiveSigners()
+        internal
+        view
+        returns (address[] memory signers)
+    {
+        // Return the active signers for the zone by calling the controller.
+        signers = SignedZoneControllerInterface(_controller).getActiveSigners(
+            address(this)
+        );
+    }
+
+    /**
      * @notice Returns whether the interface is supported.
      *
      * @param interfaceId The interface id to check against.
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC165)
-        returns (bool)
+    function _supportsInterface(bytes4 interfaceId)
+        internal
+        pure
+        returns (bool supportsInterface)
     {
-        return
+        // Determine if the interface is supported.
+        supportsInterface =
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
             interfaceId == type(ZoneInterface).interfaceId || // ZoneInterface
-            super.supportsInterface(interfaceId); // ERC-165
+            interfaceId == 0x01ffc9a7; // ERC-165
     }
 
     /**
@@ -646,8 +669,19 @@ contract SignedZone is
      *      controller.
      */
     function _assertCallerIsController() internal view {
-        if (msg.sender != _controller) {
-            revert InvalidController();
+        // Get the controller address to use in the assembly block.
+        address controller = _controller;
+
+        assembly {
+            // Revert if the caller is not the controller.
+            if iszero(eq(caller(), controller)) {
+                // Store left-padded selector with push4, mem[28:32] = selector
+                mstore(0, InvalidController_error_selector)
+                // revert(abi.encodeWithSignature(
+                //   "InvalidController()")
+                // )
+                revert(0x1c, InvalidController_error_length)
+            }
         }
     }
 
