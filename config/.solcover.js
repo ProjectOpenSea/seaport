@@ -2,6 +2,7 @@ module.exports = {
   skipFiles: [
     "conduit/lib/ConduitEnums.sol",
     "conduit/lib/ConduitStructs.sol",
+    "contractOfferers/GenericAdapter.sol",
     "helpers/PointerLibraries.sol",
     "interfaces/AbridgedProxyInterfaces.sol",
     "interfaces/AbridgedTokenInterfaces.sol",
