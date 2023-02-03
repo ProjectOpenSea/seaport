@@ -4,7 +4,6 @@ import { keccak256, recoverAddress, toUtf8Bytes } from "ethers/lib/utils";
 import hre, { ethers, network } from "hardhat";
 
 import {
-  ERC165__factory,
   SIP5Interface__factory,
   ZoneInterface__factory,
 } from "../../typechain-types";
@@ -837,9 +836,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     // Try to update the signer directly on the signed zone.
     // Create interface to decode the updateSigner result.
-    let updateSignerABI = ["function updateSigner(address,bool)"];
-    let updateSignerInterface = new ethers.utils.Interface(updateSignerABI);
-    let updateSignerInputData = updateSignerInterface.encodeFunctionData(
+    const updateSignerABI = ["function updateSigner(address,bool)"];
+    const updateSignerInterface = new ethers.utils.Interface(updateSignerABI);
+    const updateSignerInputData = updateSignerInterface.encodeFunctionData(
       "updateSigner(address,bool)",
       [buyer.address, false]
     );
@@ -870,13 +869,13 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).to.deep.equal([approvedSigner.address]);
 
     // Create interface to decode the getActiveSigners result.
-    let getActiveSignerABI = [
+    const getActiveSignerABI = [
       "function getActiveSigners() returns (address[] signers)",
     ];
-    let getActiveSignerInterface = new ethers.utils.Interface(
+    const getActiveSignerInterface = new ethers.utils.Interface(
       getActiveSignerABI
     );
-    let getActiveSignerInputData =
+    const getActiveSignerInputData =
       getActiveSignerInterface.encodeFunctionData("getActiveSigners");
 
     // Check that the signer was added on the signed zone.
@@ -1268,10 +1267,10 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const supportedInterfacesZoneInterface = [[ZoneInterface__factory]];
 
     // Create interface to decode the supportsInterface result.
-    let supportsInterfaceABI = [
+    const supportsInterfaceABI = [
       "function supportsInterface(bytes4 interfaceId) returns (bool)",
     ];
-    let iface = new ethers.utils.Interface(supportsInterfaceABI);
+    const iface = new ethers.utils.Interface(supportsInterfaceABI);
 
     for (const factories of [
       ...supportedInterfacesSIP5Interface,
@@ -1281,7 +1280,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         .map((factory) => getInterfaceID(factory.createInterface()))
         .reduce((prev, curr) => prev.xor(curr))
         .toHexString();
-      let inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
+      const inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
         interfaceId,
       ]);
 
@@ -1314,7 +1313,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     // Ensure invalid interfaces return false.
     const invalidInterfaceIds = ["0x00000000", "0x10000000", "0x00000001"];
     for (const interfaceId of invalidInterfaceIds) {
-      let inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
+      const inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
         interfaceId,
       ]);
 
