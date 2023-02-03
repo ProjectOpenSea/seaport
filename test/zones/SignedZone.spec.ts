@@ -29,8 +29,7 @@ import {
 import type {
   ConsiderationInterface,
   SignedZone,
-  SignedZone__factory,
-  ReferenceSignedZone__factory,
+  SignedZoneController,
 } from "../../typechain-types";
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { Contract, Wallet } from "ethers";
@@ -45,16 +44,15 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
+  // Salt for the signed zone deployment
+  const salt = `0x${owner.address.slice(2)}000000000000000000000000`;
+
   // Version byte for SIP-6 using Substandard 1
   const sip6VersionByte = "00";
 
-  // Set to run tests against the reference implementation
-  const isReference = false;
-
   let marketplaceContract: ConsiderationInterface;
-  let signedZoneFactory: SignedZone__factory;
-  let referenceSignedZoneFactory: ReferenceSignedZone__factory;
   let signedZone: SignedZone;
+  let signedZoneController: SignedZoneController;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
@@ -104,24 +102,31 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     const documentationURI =
       "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md";
 
-    if (!isReference) {
-      signedZoneFactory = await ethers.getContractFactory("SignedZone", owner);
-      signedZone = await signedZoneFactory.deploy(
+    const signedZoneControllerFactory = await ethers.getContractFactory(
+      "SignedZoneController",
+      owner
+    );
+    signedZoneController = await signedZoneControllerFactory.deploy();
+
+    signedZoneController
+      .connect(owner)
+      .createZone(
         "OpenSeaSignedZone",
         "https://api.opensea.io/api/v2/sign",
-        documentationURI
+        documentationURI,
+        owner.address,
+        salt
       );
-    } else {
-      referenceSignedZoneFactory = await ethers.getContractFactory(
-        "ReferenceSignedZone",
-        owner
-      );
-      signedZone = await referenceSignedZoneFactory.deploy(
-        "OpenSeaSignedZone",
-        "https://api.opensea.io/api/v2/sign",
-        documentationURI
-      );
-    }
+
+    // Get the address of the signed zone
+    const signedZoneAddress = await signedZoneController.getZone(salt);
+
+    // Attach to the signed zone
+    signedZone = (await ethers.getContractAt(
+      "SignedZone",
+      signedZoneAddress,
+      owner
+    )) as SignedZone;
   });
 
   const toPaddedBytes = (value: number, numBytes = 32) =>
@@ -180,7 +185,22 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     signature = convertSignatureToEIP2098(signature);
     expect(signature.length).to.eq(2 + 64 * 2); // 0x + 64 bytes
 
-    const { domainSeparator } = await zone.sip7Information();
+    // Get the domain separator by decoding the Seaport Metadata
+    const seaportMetadata = await zone.getSeaportMetadata();
+    // Decode the metadata
+    const decodedMetadata = ethers.utils.defaultAbiCoder.decode(
+      [
+        "bytes32 domainSeparator",
+        "string apiEndpoint",
+        "uint256[] substandards",
+        "string documentationURI",
+      ],
+      seaportMetadata[1][0][1]
+    );
+
+    // Get the domain separator
+    const domainSeparator = decodedMetadata.domainSeparator;
+
     const signedOrderHash = calculateSignedOrderHash(
       fulfiller,
       expiration,
@@ -249,7 +269,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect success now that signer is approved
     await withBalanceChecks([order], 0, undefined, async () => {
@@ -311,7 +335,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect failure if fulfiller does not match
     await expect(
@@ -410,7 +438,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     await withBalanceChecks([order], 0, criteriaResolvers, async () => {
       const tx = await marketplaceContract
@@ -464,7 +496,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Get the substandard1 data
     const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
@@ -517,6 +553,113 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(anyValue, orderHash);
   });
+  it("Transfer ownership via a two-stage process", async () => {
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .transferOwnership(signedZone.address, buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .transferOwnership(signedZone.address, ethers.constants.AddressZero)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "NewPotentialOwnerIsZeroAddress"
+    );
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .transferOwnership(seller.address, buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneController, "NoZone");
+
+    let potentialOwner = await signedZoneController.getPotentialOwner(
+      signedZone.address
+    );
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    await signedZoneController.transferOwnership(
+      signedZone.address,
+      buyer.address
+    );
+
+    potentialOwner = await signedZoneController.getPotentialOwner(
+      signedZone.address
+    );
+    expect(potentialOwner).to.equal(buyer.address);
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .transferOwnership(signedZone.address, buyer.address)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "NewPotentialOwnerAlreadySet"
+    );
+
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .cancelOwnershipTransfer(signedZone.address)
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .cancelOwnershipTransfer(seller.address)
+    ).to.be.revertedWithCustomError(signedZoneController, "NoZone");
+
+    await signedZoneController.cancelOwnershipTransfer(signedZone.address);
+
+    potentialOwner = await signedZoneController.getPotentialOwner(
+      signedZone.address
+    );
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .cancelOwnershipTransfer(signedZone.address)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "NoPotentialOwnerCurrentlySet"
+    );
+
+    await signedZoneController.transferOwnership(
+      signedZone.address,
+      buyer.address
+    );
+
+    potentialOwner = await signedZoneController.getPotentialOwner(
+      signedZone.address
+    );
+    expect(potentialOwner).to.equal(buyer.address);
+
+    await expect(
+      signedZoneController.connect(buyer).acceptOwnership(seller.address)
+    ).to.be.revertedWithCustomError(signedZoneController, "NoZone");
+
+    await expect(
+      signedZoneController.connect(seller).acceptOwnership(signedZone.address)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotNewPotentialOwner"
+    );
+
+    await signedZoneController
+      .connect(buyer)
+      .acceptOwnership(signedZone.address);
+
+    potentialOwner = await signedZoneController.getPotentialOwner(
+      signedZone.address
+    );
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    const ownerOf = await signedZoneController.ownerOf(signedZone.address);
+    expect(ownerOf).to.equal(buyer.address);
+  });
   it("Revert: Fulfills an order without the correct substandard version", async () => {
     // Execute 721 <=> ETH order
     const nftId = await mintAndApprove721(seller, marketplaceContract.address);
@@ -547,7 +690,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect failure
     await expect(
@@ -595,7 +742,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect failure if signer is not approved
     await expect(
@@ -642,7 +793,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect failure if signer is not approved
     await expect(
@@ -663,91 +818,268 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   });
   it("Only the owner or active signers can set and remove signers", async () => {
     await expect(
-      signedZone.connect(buyer).addSigner(buyer.address)
-    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
+      signedZoneController
+        .connect(buyer)
+        .updateSigner(signedZone.address, buyer.address, true)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotOwnerOrSigner"
+    );
 
     await expect(
-      signedZone.connect(buyer).removeSigner(buyer.address)
-    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
+      signedZoneController
+        .connect(buyer)
+        .updateSigner(signedZone.address, buyer.address, false)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotOwnerOrSigner"
+    );
 
-    await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
+    // Try to update the signer directly on the signed zone.
+    await expect(
+      signedZone.connect(owner).updateSigner(buyer.address, false)
+    ).to.be.revertedWithCustomError(signedZone, "InvalidController");
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, approvedSigner.address, true)
+    )
       .to.emit(signedZone, "SignerAdded")
       .withArgs(approvedSigner.address);
 
+    // Check that the signer was added on the controller.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([approvedSigner.address]);
+    // Check that the signer was added on the signed zone.
     expect(await signedZone.getActiveSigners()).to.deep.equal([
       approvedSigner.address,
     ]);
 
-    await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
-      .to.be.revertedWithCustomError(signedZone, "SignerAlreadyAdded")
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, approvedSigner.address, true)
+    )
+      .to.be.revertedWithCustomError(signedZoneController, "SignerAlreadyAdded")
       .withArgs(approvedSigner.address);
 
     // The active signer should be able to add other signers.
-    await expect(signedZone.connect(approvedSigner).addSigner(buyer.address))
+    await expect(
+      signedZoneController
+        .connect(approvedSigner)
+        .updateSigner(signedZone.address, buyer.address, true)
+    )
       .to.emit(signedZone, "SignerAdded")
       .withArgs(buyer.address);
 
+    // We should have two active signers now.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([approvedSigner.address, buyer.address]);
+    // Check that the additoinal signer was added on the signed zone.
+    expect(await signedZone.getActiveSigners()).to.deep.equal([
+      approvedSigner.address,
+      buyer.address,
+    ]);
+
     // The active signer should be remove other signers.
-    await expect(signedZone.connect(approvedSigner).removeSigner(buyer.address))
+    await expect(
+      signedZoneController
+        .connect(approvedSigner)
+        .updateSigner(signedZone.address, buyer.address, false)
+    )
       .to.emit(signedZone, "SignerRemoved")
       .withArgs(buyer.address);
 
     // The active signer should be able to update API information.
-    await signedZone.connect(approvedSigner).updateAPIEndpoint("test");
-    expect((await signedZone.sip7Information())[1]).to.equal("test");
+    await signedZoneController
+      .connect(approvedSigner)
+      .updateAPIEndpoint(signedZone.address, "test");
+
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[2]
+    ).to.equal("test");
 
     // The active signer should be able to remove themselves.
     await expect(
-      signedZone.connect(approvedSigner).removeSigner(approvedSigner.address)
+      signedZoneController
+        .connect(approvedSigner)
+        .updateSigner(signedZone.address, approvedSigner.address, false)
     )
       .to.emit(signedZone, "SignerRemoved")
       .withArgs(approvedSigner.address);
 
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([]);
+    // Check that signers were removed.
     expect(await signedZone.getActiveSigners()).to.deep.equal([]);
 
     await expect(
-      signedZone.connect(approvedSigner).addSigner(seller.address)
-    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
-
-    await expect(signedZone.connect(owner).addSigner(approvedSigner.address))
-      .to.be.revertedWithCustomError(signedZone, "SignerCannotBeReauthorized")
-      .withArgs(approvedSigner.address);
-
-    await expect(signedZone.connect(owner).removeSigner(approvedSigner.address))
-      .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
-      .withArgs(approvedSigner.address);
-
-    await expect(
-      signedZone.connect(owner).addSigner(ethers.constants.AddressZero)
-    ).to.be.revertedWithCustomError(signedZone, "SignerCannotBeZeroAddress");
-
-    await expect(
-      signedZone.connect(owner).removeSigner(ethers.constants.AddressZero)
-    )
-      .to.be.revertedWithCustomError(signedZone, "SignerNotPresent")
-      .withArgs(ethers.constants.AddressZero);
-
-    expect(await signedZone.getActiveSigners()).to.deep.equal([]);
-  });
-  it("Only the owner should be able to modify the apiEndpoint", async () => {
-    expect((await signedZone.sip7Information())[1]).to.equal(
-      "https://api.opensea.io/api/v2/sign"
+      signedZoneController
+        .connect(approvedSigner)
+        .updateSigner(signedZone.address, seller.address, true)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotOwnerOrSigner"
     );
 
     await expect(
-      signedZone.connect(buyer).updateAPIEndpoint("test123")
-    ).to.be.revertedWithCustomError(signedZone, "OnlyOwnerOrActiveSigner");
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, approvedSigner.address, true)
+    )
+      .to.be.revertedWithCustomError(
+        signedZoneController,
+        "SignerCannotBeReauthorized"
+      )
+      .withArgs(approvedSigner.address);
 
-    await signedZone.connect(owner).updateAPIEndpoint("test123");
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, approvedSigner.address, false)
+    )
+      .to.be.revertedWithCustomError(signedZoneController, "SignerNotPresent")
+      .withArgs(approvedSigner.address);
 
-    expect((await signedZone.sip7Information())[1]).to.eq("test123");
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, ethers.constants.AddressZero, true)
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "SignerCannotBeZeroAddress"
+    );
+
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .updateSigner(signedZone.address, ethers.constants.AddressZero, false)
+    )
+      .to.be.revertedWithCustomError(signedZoneController, "SignerNotPresent")
+      .withArgs(ethers.constants.AddressZero);
+
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([]);
+  });
+  it("Create a zone setting initial owner not as caller.", async () => {
+    const newSalt = `0x${owner.address.slice(2)}000000000000000000000099`;
+
+    const testSignedZoneOwner = new ethers.Wallet(randomHex(32), provider);
+    await signedZoneController
+      .connect(owner)
+      .createZone(
+        "OpenSeaSignedZone",
+        "https://api.opensea.io/api/v2/sign",
+        "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md",
+        testSignedZoneOwner.address,
+        newSalt
+      );
+
+    // Get the address of the signed zone
+    const newSignedZoneAddress = await signedZoneController.getZone(newSalt);
+
+    // Check the owner of the newly created zone.
+    expect(await signedZoneController.ownerOf(newSignedZoneAddress)).to.be.eq(
+      testSignedZoneOwner.address
+    );
+  });
+  it("Revert: Try to create the zone with a previously used salt", async () => {
+    await expect(
+      signedZoneController
+        .connect(owner)
+        .createZone(
+          "OpenSeaSignedZone",
+          "https://api.opensea.io/api/v2/sign",
+          "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md",
+          owner.address,
+          salt
+        )
+    ).to.be.revertedWithCustomError(signedZoneController, "ZoneAlreadyExists");
+  });
+  it("Revert: Try to create the zone with an invalid creator", async () => {
+    const newSalt = `0x${owner.address.slice(2)}000000000000000000000000`;
+
+    // Try to create a zone with a salt that is not matching the caller.
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .createZone(
+          "OpenSeaSignedZone",
+          "https://api.opensea.io/api/v2/sign",
+          "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md",
+          owner.address,
+          newSalt
+        )
+    ).to.be.revertedWithCustomError(signedZoneController, "InvalidCreator");
+  });
+  it("Revert: Try to create the zone with an invalid initial owner", async () => {
+    const newSalt =
+      "0x0000000000000000000000000000000000000000000000000000000000001337";
+
+    // Try to create a zone with null address as owner.
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .createZone(
+          "OpenSeaSignedZone",
+          "https://api.opensea.io/api/v2/sign",
+          "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md",
+          ethers.constants.AddressZero,
+          newSalt
+        )
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "InvalidInitialOwner"
+    );
+  });
+  it("Only the owner should be able to modify the apiEndpoint", async () => {
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[2]
+    ).to.equal("https://api.opensea.io/api/v2/sign");
+
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .updateAPIEndpoint(signedZone.address, "test123")
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotOwnerOrSigner"
+    );
+
+    await signedZoneController
+      .connect(owner)
+      .updateAPIEndpoint(signedZone.address, "test123");
+
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[2]
+    ).to.eq("test123");
   });
   it("Should return valid data in sip7Information() and getSeaportMetadata()", async () => {
-    const information = await signedZone.sip7Information();
+    const information = await signedZoneController.getAdditionalZoneInformation(
+      signedZone.address
+    );
     expect(information[0].length).to.eq(66);
-    expect(information[1]).to.eq("https://api.opensea.io/api/v2/sign");
-    expect(information[2]).to.deep.eq([1].map((s) => toBN(s)));
-    expect(information[3]).to.eq(
+    expect(information[1]).to.eq("OpenSeaSignedZone");
+    expect(information[2]).to.eq("https://api.opensea.io/api/v2/sign");
+    expect(information[3]).to.deep.eq([1].map((s) => toBN(s)));
+    expect(information[4]).to.eq(
       "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md"
     );
 
@@ -757,7 +1089,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
     // Get the domain separator
     const { domainSeparator, apiEndpoint, substandards, documentationURI } =
-      await signedZone.sip7Information();
+      await signedZoneController.getAdditionalZoneInformation(
+        signedZone.address
+      );
 
     // Create the expected metadata params
     const expectedSeaportMetadata = [
@@ -816,7 +1150,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
 
     // Expect failure with 0 length extraData
     await expect(
@@ -952,7 +1290,13 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZone.addSigner(approvedSigner.address);
+    await signedZoneController.updateSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    // TODO: Get to work on the signed zone, instead of failing on the marketplace.
 
     // Change chainId in-flight to test branch coverage for _deriveDomainSeparator()
     // (hacky way, until https://github.com/NomicFoundation/hardhat/issues/3074 is added)

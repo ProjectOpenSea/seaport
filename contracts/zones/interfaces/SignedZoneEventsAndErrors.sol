@@ -23,38 +23,15 @@ interface SignedZoneEventsAndErrors {
     error OnlyOwnerOrActiveSigner();
 
     /**
-     * @dev Revert with an error if trying to add a signer that is
-     *      already active.
-     */
-    error SignerAlreadyAdded(address signer);
-
-    /**
-     * @dev Revert with an error if trying to remove a signer that is
-     *      not present.
-     */
-    error SignerNotPresent(address signer);
-
-    /**
-     * @dev Revert with an error if a new signer is the zero address.
-     */
-    error SignerCannotBeZeroAddress();
-
-    /**
-     * @dev Revert with an error if a removed signer is trying to be
-     *      reauthorized.
-     */
-    error SignerCannotBeReauthorized(address signer);
-
-    /**
-     * @dev Revert with an error when an order is signed with a signer
-     *      that is not active.
-     */
-    error SignerNotActive(address signer, bytes32 orderHash);
-
-    /**
      * @dev Revert with an error when the signature has expired.
      */
     error SignatureExpired(uint256 expiration, bytes32 orderHash);
+
+    /**
+     * @dev Revert with an error when attempting to update the signers of a
+     *      the zone from a caller that is not the zone's controller.
+     */
+    error InvalidController();
 
     /**
      * @dev Revert with an error if supplied order extraData is an invalid
@@ -106,4 +83,10 @@ interface SignedZoneEventsAndErrors {
      * @dev Revert with an error if the zone parameter encoding is invalid.
      */
     error InvalidZoneParameterEncoding();
+
+    /**
+     * @dev Revert with an error when an order is signed with a signer
+     *      that is not active.
+     */
+    error SignerNotActive(address signer, bytes32 orderHash);
 }

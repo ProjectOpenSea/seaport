@@ -13,9 +13,13 @@ import {
 
 import { SIP5Interface } from "./interfaces/SIP5Interface.sol";
 
-import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {
+    SignedZoneControllerInterface
+} from "./interfaces/SignedZoneControllerInterface.sol";
+
+import "./lib/SignedZoneConstants.sol";
 
 /**
  * @title  SignedZone
@@ -29,29 +33,13 @@ contract SignedZone is
     ZoneInterface,
     SignedZoneInterface,
     SIP5Interface,
-    ERC165,
-    Ownable2Step
+    ERC165
 {
-    /// @dev The authorized signers.
-    mapping(address => SignerInfo) private _signers;
+    /// @dev The zone's controller that is set during deployment.
+    address private immutable _controller;
 
-    /// @dev The currently active signers.
-    address[] private _activeSigners;
-
-    /// @dev The API endpoint where orders for this zone can be signed.
-    ///      Request and response payloads are defined in SIP-7.
-    string private _sip7APIEndpoint;
-
-    /// @dev The substandards supported by this zone.
-    ///      Substandards are defined in SIP-7.
-    uint256[] private _sip7Substandards = [1];
-
-    /// @dev The URI to the documentation describing the behavior of the
-    ///      contract.
-    string private _sip7DocumentationURI;
-
-    /// @dev The name for this zone returned in getSeaportMetadata().
-    string private _ZONE_NAME;
+    /// @dev The authorized signers, and if they are active
+    mapping(address => bool) private _signers;
 
     /// @dev The EIP-712 digest parameters.
     bytes32 internal immutable _NAME_HASH = keccak256(bytes("SignedZone"));
@@ -81,208 +69,12 @@ contract SignedZone is
     uint256 internal immutable _CHAIN_ID = block.chainid;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    /* solhint-disable private-vars-leading-underscore */
-    /* solhint-disable const-name-snakecase */
-
-    /// @dev ECDSA signature offsets.
-    uint256 internal constant ECDSA_MaxLength = 65;
-    uint256 internal constant ECDSA_signature_s_offset = 0x40;
-    uint256 internal constant ECDSA_signature_v_offset = 0x60;
-
-    /// @dev Helpers for memory offsets.
-    uint256 internal constant OneWord = 0x20;
-    uint256 internal constant TwoWords = 0x40;
-    uint256 internal constant ThreeWords = 0x60;
-    uint256 internal constant FourWords = 0x80;
-    uint256 internal constant FiveWords = 0xa0;
-    uint256 internal constant Signature_lower_v = 27;
-    uint256 internal constant MaxUint8 = 0xff;
-    bytes32 internal constant EIP2098_allButHighestBitMask = (
-        0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-    );
-    uint256 internal constant Ecrecover_precompile = 1;
-    uint256 internal constant Ecrecover_args_size = 0x80;
-    uint256 internal constant FreeMemoryPointerSlot = 0x40;
-    uint256 internal constant ZeroSlot = 0x60;
-    uint256 internal constant Slot0x80 = 0x80;
-
-    /// @dev The EIP-712 digest offsets.
-    uint256 internal constant EIP712_DomainSeparator_offset = 0x02;
-    uint256 internal constant EIP712_SignedOrderHash_offset = 0x22;
-    uint256 internal constant EIP712_DigestPayload_size = 0x42;
-    uint256 internal constant EIP_712_PREFIX = (
-        0x1901000000000000000000000000000000000000000000000000000000000000
-    );
-
-    /*
-     *  error InvalidFulfiller(address expectedFulfiller, address actualFulfiller, bytes32 orderHash)
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: expectedFulfiller
-     *    - 0x40: actualFullfiller
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0x80]
-     */
-    uint256 constant InvalidFulfiller_error_selector = 0x1bcf9bb7;
-    uint256 constant InvalidFulfiller_error_expectedFulfiller_ptr = 0x20;
-    uint256 constant InvalidFulfiller_error_actualFulfiller_ptr = 0x40;
-    uint256 constant InvalidFulfiller_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidFulfiller_error_length = 0x64;
-
-    /*
-     *  error InvalidReceivedItem(uint256 expectedReceivedIdentifier, uint256 actualReceievedIdentifier, bytes32 orderHash)
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: expectedReceivedIdentifier
-     *    - 0x40: actualReceievedIdentifier
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0x80]
-     */
-    uint256 constant InvalidReceivedItem_error_selector = 0xb36c03e8;
-    uint256 constant InvalidReceivedItem_error_expectedReceivedItem_ptr = 0x20;
-    uint256 constant InvalidReceivedItem_error_actualReceivedItem_ptr = 0x40;
-    uint256 constant InvalidReceivedItem_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidReceivedItem_error_length = 0x64;
-
-    /*
-     *  error InvalidZoneParameterEncoding()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     * Revert buffer is memory[0x1c:0x20]
-     */
-    uint256 constant InvalidZoneParameterEncoding_error_selector = 0x46d5d895;
-    uint256 constant InvalidZoneParameterEncoding_error_length = 0x04;
-
-    /*
-     * error InvalidExtraDataLength()
-     *   - Defined in SignedZoneEventsAndErrors.sol
-     * Memory layout:
-     *   - 0x00: Left-padded selector (data begins at 0x1c)
-     *   - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidExtraDataLength_error_selector = 0xd232fd2c;
-    uint256 constant InvalidExtraDataLength_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidExtraDataLength_error_length = 0x24;
-    uint256 constant InvalidExtraDataLength_epected_length = 0x7e;
-
-    uint256 constant ExtraData_expiration_offset = 0x35;
-    uint256 constant ExtraData_substandard_version_byte_offset = 0x7d;
-    /*
-     *  error InvalidSIP6Version()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidSIP6Version_error_selector = 0x64115774;
-    uint256 constant InvalidSIP6Version_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidSIP6Version_error_length = 0x24;
-
-    /*
-     *  error InvalidSubstandardVersion()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: orderHash
-     * Revert buffer is memory[0x1c:0x40]
-     */
-    uint256 constant InvalidSubstandardVersion_error_selector = 0x26787999;
-    uint256 constant InvalidSubstandardVersion_error_orderHash_ptr = 0x20;
-    uint256 constant InvalidSubstandardVersion_error_length = 0x24;
-
-    /*
-     *  error InvalidSubstandardSupport()
-     *    - Defined in SignedZoneEventsAndErrors.sol
-     *  Memory layout:
-     *    - 0x00: Left-padded selector (data begins at 0x1c)
-     *    - 0x20: reason
-     *    - 0x40: substandardVersion
-     *    - 0x60: orderHash
-     * Revert buffer is memory[0x1c:0xe0]
-     */
-    uint256 constant InvalidSubstandardSupport_error_selector = 0x2be76224;
-    uint256 constant InvalidSubstandardSupport_error_reason_offset_ptr = 0x20;
-    uint256 constant InvalidSubstandardSupport_error_substandard_version_ptr =
-        0x40;
-    uint256 constant InvalidSubstandardSupport_error_orderHash_ptr = 0x60;
-    uint256 constant InvalidSubstandardSupport_error_reason_length_ptr = 0x80;
-    uint256 constant InvalidSubstandardSupport_error_reason_ptr = 0xa0;
-    uint256 constant InvalidSubstandardSupport_error_reason_2_ptr = 0xc0;
-    uint256 constant InvalidSubstandardSupport_error_length = 0xc4;
-
-    /*
-     * error SignatureExpired()
-     *   - Defined in SignedZoneEventsAndErrors.sol
-     * Memory layout:
-     *   - 0x00: Left-padded selector (data begins at 0x1c)
-     *   - 0x20: expiration
-     *   - 0x40: orderHash
-     * Revert buffer is memory[0x1c:0x60]
-     */
-    uint256 constant SignatureExpired_error_selector = 0x16546071;
-    uint256 constant SignatureExpired_error_expiration_ptr = 0x20;
-    uint256 constant SignatureExpired_error_orderHash_ptr = 0x40;
-    uint256 constant SignatureExpired_error_length = 0x44;
-
-    // Zone parameter calldata pointers
-    uint256 constant Zone_parameters_cdPtr = 0x04;
-    uint256 constant Zone_parameters_fulfiller_cdPtr = 0x44;
-    uint256 constant Zone_consideration_head_cdPtr = 0xa4;
-    uint256 constant Zone_extraData_cdPtr = 0xc4;
-
-    // Zone parameter memory pointers
-    uint256 constant Zone_parameters_ptr = 0x20;
-
-    // Zone parameter offsets
-    uint256 constant Zone_parameters_offset = 0x24;
-    uint256 constant expectedFulfiller_offset = 0x45;
-    uint256 constant actualReceivedIdentifier_offset = 0x84;
-    uint256 constant expectedReceivedIdentifier_offset = 0xa2;
-
-    /* solhint-enable private-vars-leading-underscore */
-    /* solhint-enable const-name-snakecase */
-
-    /**
-     * @dev Modifier to restrict access to the owner or an active signer.
-     */
-    modifier onlyOwnerOrActiveSigner() {
-        if (msg.sender != owner() && !_signers[msg.sender].active) {
-            revert OnlyOwnerOrActiveSigner();
-        }
-
-        _;
-    }
-
     /**
      * @notice Constructor to deploy the contract.
-     *
-     * @param zoneName         The name for the zone returned in
-     *                         getSeaportMetadata().
-     * @param apiEndpoint      The API endpoint where orders for this zone can
-     *                         be signed.
-     *                         Request and response payloads are defined in
-     *                         SIP-7.
-     * @param documentationURI The URI to the documentation describing the
-     *                         behavior of the contract.
      */
-    constructor(
-        string memory zoneName,
-        string memory apiEndpoint,
-        string memory documentationURI
-    ) {
-        // Set the zone name.
-        _ZONE_NAME = zoneName;
-
-        // Set the API endpoint.
-        _sip7APIEndpoint = apiEndpoint;
-
-        // Set the documentation URI.
-        _sip7DocumentationURI = documentationURI;
+    constructor() {
+        // Set the deployer as the controller.
+        _controller = msg.sender;
 
         // Derive and set the domain separator.
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
@@ -292,90 +84,43 @@ contract SignedZone is
     }
 
     /**
+     * @notice Add or remove a signer to the zone.
+     *         Only the controller can call this function.
+     *
+     * @param signer The signer address to add or remove.
+     */
+    function updateSigner(address signer, bool active) external override {
+        // Only the controller can call this function.
+        _assertCallerIsController();
+        // Add or remove the signer.
+        active ? _addSigner(signer) : _removeSigner(signer);
+    }
+
+    /**
      * @notice Add a new signer to the zone.
-     *         Only the owner or an active signer can call this function.
+     *         Only the controller or an active signer can call this function.
      *
      * @param signer The new signer address to add.
      */
-    function addSigner(address signer)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
-        // Do not allow the zero address to be added as a signer.
-        if (signer == address(0)) {
-            revert SignerCannotBeZeroAddress();
-        }
-
-        // Revert if the signer is already added.
-        if (_signers[signer].active) {
-            revert SignerAlreadyAdded(signer);
-        }
-
-        // Revert if the signer was previously authorized.
-        if (_signers[signer].previouslyActive) {
-            revert SignerCannotBeReauthorized(signer);
-        }
-
+    function _addSigner(address signer) internal {
         // Set the signer info.
-        _signers[signer] = SignerInfo(true, true);
-
-        // Add the signer to _activeSigners.
-        _activeSigners.push(signer);
-
+        _signers[signer] = true;
         // Emit an event that the signer was added.
         emit SignerAdded(signer);
     }
 
     /**
      * @notice Remove an active signer from the zone.
-     *         Only the owner or an active signer can call this function.
+     *         Only the controller or an active signer can call this function.
      *
      * @param signer The signer address to remove.
      */
-    function removeSigner(address signer)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
-        // Revert if the signer is not active.
-        if (!_signers[signer].active) {
-            revert SignerNotPresent(signer);
-        }
-
+    function _removeSigner(address signer) internal {
         // Set the signer's active status to false.
-        _signers[signer].active = false;
-
-        // Remove the signer from _activeSigners.
-        for (uint256 i = 0; i < _activeSigners.length; ) {
-            if (_activeSigners[i] == signer) {
-                _activeSigners[i] = _activeSigners[_activeSigners.length - 1];
-                _activeSigners.pop();
-                break;
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
+        _signers[signer] = false;
 
         // Emit an event that the signer was removed.
         emit SignerRemoved(signer);
-    }
-
-    /**
-     * @notice Update the API endpoint returned by this zone.
-     *         Only the owner or an active signer can call this function.
-     *
-     * @param newApiEndpoint The new API endpoint.
-     */
-    function updateAPIEndpoint(string calldata newApiEndpoint)
-        external
-        override
-        onlyOwnerOrActiveSigner
-    {
-        // Update to the new API endpoint.
-        _sip7APIEndpoint = newApiEndpoint;
     }
 
     /**
@@ -530,7 +275,7 @@ contract SignedZone is
         address recoveredSigner = _recoverSigner(digest, signature);
 
         // Revert if the signer is not active.
-        if (!_signers[recoveredSigner].active) {
+        if (!_signers[recoveredSigner]) {
             revert SignerNotActive(recoveredSigner, orderHash);
         }
 
@@ -549,40 +294,18 @@ contract SignedZone is
         override
         returns (address[] memory signers)
     {
-        // Return the active signers for the zone.
-        signers = _activeSigners;
-    }
-
-    /**
-     * @notice External call to return the signing information, substandards,
-     *         and documentation about the zone.
-     *
-     * @return domainSeparator  The domain separator used for signing.
-     * @return apiEndpoint      The API endpoint for the zone.
-     * @return substandards     The substandards supported by the zone.
-     * @return documentationURI The documentation URI for the zone.
-     */
-    function sip7Information()
-        external
-        view
-        override
-        returns (
-            bytes32 domainSeparator,
-            string memory apiEndpoint,
-            uint256[] memory substandards,
-            string memory documentationURI
-        )
-    {
-        // Return the SIP-7 information.
-        return _sip7Information();
+        // Return the active signers for the zone by calling the controller.
+        signers = SignedZoneControllerInterface(_controller).getActiveSigners(
+            address(this)
+        );
     }
 
     /**
      * @dev Returns Seaport metadata for this contract, returning the
      *      contract name and supported schemas.
      *
-     * @return name    The contract name
-     * @return schemas The supported SIPs
+     * @return name The contract name
+     * @return schemas  The supported SIPs
      */
     function getSeaportMetadata()
         external
@@ -590,22 +313,23 @@ contract SignedZone is
         override(SIP5Interface, ZoneInterface)
         returns (string memory name, Schema[] memory schemas)
     {
-        // Return the zone name.
-        name = _ZONE_NAME;
-
         // Return the supported SIPs.
         schemas = new Schema[](1);
         schemas[0].id = 7;
 
-        // Encode the SIP-7 information.
-
+        // Get the SIP-7 information.
         (
             bytes32 domainSeparator,
+            string memory zoneName,
             string memory apiEndpoint,
             uint256[] memory substandards,
             string memory documentationURI
         ) = _sip7Information();
 
+        // Return the zone name.
+        name = zoneName;
+
+        // Encode the SIP-7 information.
         schemas[0].metadata = abi.encode(
             domainSeparator,
             apiEndpoint,
@@ -637,6 +361,7 @@ contract SignedZone is
      *         and documentation about the zone.
      *
      * @return domainSeparator  The domain separator used for signing.
+     * @return zoneName         The zone name.
      * @return apiEndpoint      The API endpoint for the zone.
      * @return substandards     The substandards supported by the zone.
      * @return documentationURI The documentation URI for the zone.
@@ -646,6 +371,7 @@ contract SignedZone is
         view
         returns (
             bytes32 domainSeparator,
+            string memory zoneName,
             string memory apiEndpoint,
             uint256[] memory substandards,
             string memory documentationURI
@@ -653,9 +379,16 @@ contract SignedZone is
     {
         // Return the SIP-7 information.
         domainSeparator = _domainSeparator();
-        apiEndpoint = _sip7APIEndpoint;
-        substandards = _sip7Substandards;
-        documentationURI = _sip7DocumentationURI;
+
+        // Get the SIP-7 information from the controller.
+        (
+            ,
+            zoneName,
+            apiEndpoint,
+            substandards,
+            documentationURI
+        ) = SignedZoneControllerInterface(_controller)
+            .getAdditionalZoneInformation(address(this));
     }
 
     /**
@@ -905,6 +638,16 @@ contract SignedZone is
 
             // Clear out the dirtied bits in the memory pointer.
             mstore(EIP712_SignedOrderHash_offset, 0)
+        }
+    }
+
+    /**
+     * @dev Private view function to revert if the caller is not the
+     *      controller.
+     */
+    function _assertCallerIsController() internal view {
+        if (msg.sender != _controller) {
+            revert InvalidController();
         }
     }
 

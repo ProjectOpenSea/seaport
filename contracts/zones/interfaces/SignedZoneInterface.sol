@@ -11,33 +11,12 @@ pragma solidity ^0.8.13;
  */
 interface SignedZoneInterface {
     /**
-     * @dev The struct for storing signer info.
-     */
-    struct SignerInfo {
-        bool active; /// If the signer is currently active.
-        bool previouslyActive; /// If the signer has been active before.
-    }
-
-    /**
-     * @notice Add a new signer to the zone.
+     * @notice Update the active status of a signer.
      *
-     * @param signer The new signer address to add.
+     * @param signer The signer address to update.
+     * @param active The new active status of the signer.
      */
-    function addSigner(address signer) external;
-
-    /**
-     * @notice Remove an active signer from the zone.
-     *
-     * @param signer The signer address to remove.
-     */
-    function removeSigner(address signer) external;
-
-    /**
-     * @notice Update the API endpoint returned by this zone.
-     *
-     * @param newApiEndpoint The new API endpoint.
-     */
-    function updateAPIEndpoint(string calldata newApiEndpoint) external;
+    function updateSigner(address signer, bool active) external;
 
     /**
      * @notice Returns the active signers for the zone.
@@ -48,22 +27,4 @@ interface SignedZoneInterface {
         external
         view
         returns (address[] memory signers);
-
-    /**
-     * @notice Returns signing information about the zone.
-     *
-     * @return domainSeparator  The domain separator used for signing.
-     * @return apiEndpoint      The API endpoint for the zone.
-     * @return substandards     The substandards supported by the zone.
-     * @return documentationURI The documentation URI for the zone.
-     */
-    function sip7Information()
-        external
-        view
-        returns (
-            bytes32 domainSeparator,
-            string memory apiEndpoint,
-            uint256[] memory substandards,
-            string memory documentationURI
-        );
 }
