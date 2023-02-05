@@ -2,15 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {
-    AdvancedOrderParams,
-    FulfillAvailableAdvancedOrdersParams
-} from "./SeaportRouterStructs.sol";
-
-import {
     SeaportRouterInterface
 } from "../interfaces/SeaportRouterInterface.sol";
-
-import { SeaportRouterErrors } from "../interfaces/SeaportRouterErrors.sol";
 
 import { Execution } from "../lib/ConsiderationStructs.sol";
 
@@ -21,16 +14,12 @@ import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
 /**
  * @title  SeaportRouter
  * @author ryanio
- * @notice A utility contract for interacting with multiple Seaport versions.
+ * @notice A utility contract for fulfilling orders with multiple Seaport versions.
  */
-contract SeaportRouter is
-    SeaportRouterInterface,
-    SeaportRouterErrors,
-    ReentrancyGuard
-{
-    /// @dev The allowed Seaport v1.1 contract usable through this router.
+contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
+    /// @dev The allowed v1.1 contract usable through this router.
     address private immutable _SEAPORT_V1_1;
-    /// @dev The allowed Seaport v1.2 contract usable through this router.
+    /// @dev The allowed v1.2 contract usable through this router.
     address private immutable _SEAPORT_V1_2;
 
     /**
@@ -72,7 +61,7 @@ contract SeaportRouter is
         )
     {
         // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+        _setReentrancyGuard(true);
 
         // Put the number of Seaport contracts on the stack.
         uint256 seaportContractsLength = params.seaportContracts.length;
@@ -171,19 +160,6 @@ contract SeaportRouter is
             0
         ) {
             revert SeaportNotAllowed(seaport);
-        }
-    }
-
-    /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
         }
     }
 

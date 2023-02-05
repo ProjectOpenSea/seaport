@@ -119,16 +119,6 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/helper/SeaportRouter.sol": {
-        version: "0.8.14",
-        settings: {
-          viaIR: true,
-          optimizer: {
-            enabled: true,
-            runs: 1000000,
-          },
-        },
-      },
     },
   },
   networks: {

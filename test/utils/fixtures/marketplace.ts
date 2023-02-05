@@ -50,7 +50,7 @@ export const marketplaceFixture = async (
 
   const directMarketplaceContract =
     await deployContract<ConsiderationInterface>(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
       owner,
       conduitController.address
     );

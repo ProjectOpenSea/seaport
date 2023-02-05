@@ -9,6 +9,7 @@ import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
 import type {
+  ConduitControllerInterface,
   ConduitInterface,
   ConsiderationInterface,
   Reenterer,
@@ -22,6 +23,7 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
+  let conduitController: ConduitControllerInterface;
   let conduitKeyOne: string;
   let conduitOne: ConduitInterface;
   let marketplaceContract: ConsiderationInterface;
@@ -44,10 +46,10 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
     await faucet(owner.address, provider);
 
     ({
+      conduitController,
       conduitKeyOne,
       conduitOne,
       createOrder,
-      directMarketplaceContract: marketplaceContract2,
       getTestItem721,
       marketplaceContract,
       mintAndApprove721,
@@ -55,6 +57,12 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
       set721ApprovalForAll,
       testERC721,
     } = await seaportFixture(owner));
+
+    marketplaceContract2 = await deployContract<ConsiderationInterface>(
+      "Seaport",
+      owner,
+      conduitController.address
+    );
   });
 
   let buyer: Wallet;
@@ -272,6 +280,8 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
         offer2,
         consideration,
         0, // FULL_OPEN
+        undefined,
+        undefined,
         undefined,
         undefined,
         undefined,

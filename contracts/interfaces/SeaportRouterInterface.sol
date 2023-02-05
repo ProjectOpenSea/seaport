@@ -2,12 +2,59 @@
 pragma solidity ^0.8.13;
 
 import {
-    FulfillAvailableAdvancedOrdersParams
-} from "../helpers/SeaportRouterStructs.sol";
+    AdvancedOrder,
+    CriteriaResolver,
+    FulfillmentComponent
+} from "../lib/ConsiderationStructs.sol";
 
 import { Execution } from "../lib/ConsiderationStructs.sol";
 
+/**
+ * @title  SeaportRouterInterface
+ * @author ryanio
+ * @notice A utility contract for fulfilling orders with multiple Seaport versions.
+ */
 interface SeaportRouterInterface {
+    /**
+     * @dev Advanced order parameters for use through the
+     *      FulfillAvailableAdvancedOrdersParams struct.
+     */
+    struct AdvancedOrderParams {
+        AdvancedOrder[] advancedOrders;
+        CriteriaResolver[] criteriaResolvers;
+        FulfillmentComponent[][] offerFulfillments;
+        FulfillmentComponent[][] considerationFulfillments;
+        uint256 value; // The amount of ether value to send with the set of orders.
+    }
+
+    /**
+     * @dev Parameters for using fulfillAvailableAdvancedOrders
+     *      through SeaportRouter.
+     */
+    struct FulfillAvailableAdvancedOrdersParams {
+        address[] seaportContracts;
+        AdvancedOrderParams[] advancedOrderParams;
+        bytes32 fulfillerConduitKey;
+        address recipient;
+        uint256 maximumFulfilled;
+    }
+
+    /**
+     * @dev Revert with an error if a provided Seaport contract is not allowed
+     *      to be used in the router.
+     */
+    error SeaportNotAllowed(address seaport);
+
+    /**
+     * @dev Revert with an error if an ether transfer back to the fulfiller
+     *      fails.
+     */
+    error EtherReturnTransferFailed(
+        address recipient,
+        uint256 amount,
+        bytes returnData
+    );
+
     /**
      * @dev Fallback function to receive excess ether, in case total amount of
      *      ether sent is more than the amount required to fulfill the order.
