@@ -93,6 +93,10 @@ enum ZoneIssue {
     NotSet
 }
 
+enum ContractOffererIssue {
+    InvalidContractOfferer
+}
+
 enum ConduitIssue {
     KeyInvalid
 }

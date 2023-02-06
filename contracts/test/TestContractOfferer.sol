@@ -53,6 +53,14 @@ contract TestContractOfferer is ContractOffererInterface {
 
     receive() external payable {}
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, IERC165) returns (bool) {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`
     /// i.e., the merkle-root.

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import { ItemType } from "./ConsiderationEnums.sol";
+import { ItemType } from "../lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
     BasicOrderParameters,
     OfferItem,
-    ConsiderationItem
-} from "./ConsiderationStructs.sol";
-import { ConsiderationTypeHashes } from "./ConsiderationTypeHashes.sol";
+    ConsiderationItem,
+    ZoneParameters
+} from "../lib/ConsiderationStructs.sol";
+import { ConsiderationTypeHashes } from "./lib/ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
 } from "../interfaces/ConsiderationInterface.sol";
@@ -17,26 +18,33 @@ import {
     ConduitControllerInterface
 } from "../interfaces/ConduitControllerInterface.sol";
 import {
+    ContractOffererInterface
+} from "../interfaces/ContractOffererInterface.sol";
+import {
     SeaportValidatorInterface
 } from "../interfaces/SeaportValidatorInterface.sol";
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-import {
-    IERC721
-} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-import {
-    IERC1155
-} from "openzeppelin-contracts/contracts/token/ERC1155/IERC1155.sol";
-import {
-    IERC20
-} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import { IERC2981 } from "@openzeppelin/contracts/interfaces/IERC2981.sol";
+// import {
+//     IERC721
+// } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+// import {
+//     IERC1155
+// } from "openzeppelin-contracts/contracts/token/ERC1155/IERC1155.sol";
+// import {
+//     IERC20
+// } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+// import {
+//     IERC165
+// } from "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
+// import {
+//     IERC2981
+// } from "openzeppelin-contracts/contracts/interfaces/IERC2981.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
-} from "./ErrorsAndWarnings.sol";
-import { SafeStaticCall } from "./SafeStaticCall.sol";
-import { Murky } from "./Murky.sol";
+} from "./lib/ErrorsAndWarnings.sol";
+import { SafeStaticCall } from "./lib/SafeStaticCall.sol";
+import { Murky } from "murky/Murky.sol";
 import {
     CreatorFeeEngineInterface
 } from "../interfaces/CreatorFeeEngineInterface.sol";
@@ -293,6 +301,26 @@ contract SeaportValidator is
             // Signature is invalid
             errorsAndWarnings.addError(SignatureIssue.Invalid.parseInt());
         }
+    }
+
+    function validateContractOfferer(
+        address contractOfferer
+    ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
+        errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // Check the EIP165 contract offerer interface
+        if (
+            !checkInterface(
+                contractOfferer,
+                type(ContractOffererInterface).interfaceId
+            )
+        ) {
+            errorsAndWarnings.addError(
+                ContractOffererIssue.InvalidContractOfferer.parseInt()
+            );
+        }
+
+        return errorsAndWarnings;
     }
 
     /**
@@ -1482,7 +1510,7 @@ contract SeaportValidator is
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
     function isValidZone(
-        OrderParameters memory orderParameters
+        ZoneParameters memory zoneParameters
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -1512,13 +1540,10 @@ contract SeaportValidator is
         if (
             !orderParameters.zone.safeStaticCallBytes4(
                 abi.encodeWithSelector(
-                    ZoneInterface.isValidOrder.selector,
-                    _deriveOrderHash(orderParameters, currentOffererCounter),
-                    msg.sender,
-                    orderParameters.offerer,
-                    orderParameters.zoneHash
+                    ZoneInterface.validateOrder.selector,
+                    zoneParameters
                 ),
-                ZoneInterface.isValidOrder.selector
+                ZoneInterface.validateOrder.selector
             )
         ) {
             errorsAndWarnings.addWarning(ZoneIssue.RejectedOrder.parseInt());

@@ -2,6 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {
+    IEREC165
+} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+import {
     ReceivedItem,
     Schema,
     SpentItem
@@ -12,7 +15,7 @@ import {
  * @notice Contains the minimum interfaces needed to interact with a contract
  *         offerer.
  */
-interface ContractOffererInterface {
+interface ContractOffererInterface is IERC165 {
     /**
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).
