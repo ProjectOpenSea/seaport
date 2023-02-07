@@ -28,10 +28,6 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
     /// @dev The allowed v1.2 contract usable through this router.
     address private immutable _SEAPORT_V1_2;
 
-    /// @dev We overwrite etherValue in AdvancedOrderParams to avoid stack too deep
-    ///      when formatting the fulfillAvailableAdvancedOrders call.
-    uint256 private constant ENCODED_ADVANCED_ORDER_PARAMS_VALUE_OFFSET = 0xc4;
-
     /**
      * @dev Deploy contract with the supported Seaport contracts.
      *
