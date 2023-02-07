@@ -81,11 +81,14 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
 
         // To help avoid stack too deep errors, we format the calldata
         // params in a struct and put it on the stack.
+        AdvancedOrder[] memory emptyAdvancedOrders;
+        CriteriaResolver[] memory emptyCriteriaResolvers;
+        FulfillmentComponent[][] memory emptyFulfillmentComponents;
         CalldataParams memory calldataParams = CalldataParams({
-            advancedOrders: new AdvancedOrder[](0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            offerFulfillments: new FulfillmentComponent[][](0),
-            considerationFulfillments: new FulfillmentComponent[][](0),
+            advancedOrders: emptyAdvancedOrders,
+            criteriaResolvers: emptyCriteriaResolvers,
+            offerFulfillments: emptyFulfillmentComponents,
+            considerationFulfillments: emptyFulfillmentComponents,
             fulfillerConduitKey: params.fulfillerConduitKey,
             recipient: params.recipient,
             maximumFulfilled: fulfillmentsLeft
