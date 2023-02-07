@@ -20,7 +20,8 @@ import {
  * @title  SeaportRouter
  * @author Ryan Ghods (ralxz.eth), 0age (0age.eth), James Wenzel (emo.eth)
  * @notice A utility contract for fulfilling orders with multiple
- *         Seaport versions.
+ *         Seaport versions. DISCLAIMER: This contract only works when
+ *         all consideration items across all listings are native tokens.
  */
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
     /// @dev The allowed v1.1 contract usable through this router.
