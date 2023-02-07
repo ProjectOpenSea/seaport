@@ -5,22 +5,32 @@ import {
     SeaportRouterInterface
 } from "../interfaces/SeaportRouterInterface.sol";
 
-import { Execution } from "../lib/ConsiderationStructs.sol";
-
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
 import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
 
+import {
+    Execution,
+    AdvancedOrder,
+    CriteriaResolver,
+    FulfillmentComponent
+} from "../lib/ConsiderationStructs.sol";
+
 /**
  * @title  SeaportRouter
- * @author ryanio
- * @notice A utility contract for fulfilling orders with multiple Seaport versions.
+ * @author Ryan Ghods (ralxz.eth), 0age (0age.eth), James Wenzel (emo.eth)
+ * @notice A utility contract for fulfilling orders with multiple
+ *         Seaport versions.
  */
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
     /// @dev The allowed v1.1 contract usable through this router.
     address private immutable _SEAPORT_V1_1;
     /// @dev The allowed v1.2 contract usable through this router.
     address private immutable _SEAPORT_V1_2;
+
+    /// @dev We overwrite etherValue in AdvancedOrderParams to avoid stack too deep
+    ///      when formatting the fulfillAvailableAdvancedOrders call.
+    uint256 private constant ENCODED_ADVANCED_ORDER_PARAMS_VALUE_OFFSET = 0xc4;
 
     /**
      * @dev Deploy contract with the supported Seaport contracts.
@@ -73,31 +83,50 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
         // Track the number of order fulfillments left.
         uint256 fulfillmentsLeft = params.maximumFulfilled;
 
+        // To help avoid stack too deep errors, we format the calldata
+        // params in a struct and put it on the stack.
+        CalldataParams memory calldataParams = CalldataParams({
+            advancedOrders: new AdvancedOrder[](0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            offerFulfillments: new FulfillmentComponent[][](0),
+            considerationFulfillments: new FulfillmentComponent[][](0),
+            fulfillerConduitKey: params.fulfillerConduitKey,
+            recipient: params.recipient,
+            maximumFulfilled: fulfillmentsLeft
+        });
+
         // Iterate through the provided Seaport contracts.
-        for (uint256 i = 0; i < seaportContractsLength; ) {
-            address seaport = params.seaportContracts[i];
+        for (uint256 i = 0; i < params.seaportContracts.length; ) {
             // Ensure the provided Seaport contract is allowed.
-            _assertSeaportAllowed(seaport);
+            _assertSeaportAllowed(params.seaportContracts[i]);
 
             // Put the order params on the stack.
             AdvancedOrderParams calldata orderParams = params
                 .advancedOrderParams[i];
+
+            // Assign the variables to the calldata params.
+            calldataParams.advancedOrders = orderParams.advancedOrders;
+            calldataParams.criteriaResolvers = orderParams.criteriaResolvers;
+            calldataParams.offerFulfillments = orderParams.offerFulfillments;
+            calldataParams.considerationFulfillments = orderParams
+                .considerationFulfillments;
 
             // Execute the orders, collecting availableOrders and executions.
             // This is wrapped in a try/catch in case a single order is
             // executed that is no longer available, leading to a revert
             // with `NoSpecifiedOrdersAvailable()`.
             try
-                SeaportInterface(seaport).fulfillAvailableAdvancedOrders{
-                    value: orderParams.value
+                SeaportInterface(params.seaportContracts[i])
+                    .fulfillAvailableAdvancedOrders{
+                    value: orderParams.etherValue
                 }(
-                    orderParams.advancedOrders,
-                    orderParams.criteriaResolvers,
-                    orderParams.offerFulfillments,
-                    orderParams.considerationFulfillments,
-                    params.fulfillerConduitKey,
-                    params.recipient,
-                    fulfillmentsLeft
+                    calldataParams.advancedOrders,
+                    calldataParams.criteriaResolvers,
+                    calldataParams.offerFulfillments,
+                    calldataParams.considerationFulfillments,
+                    calldataParams.fulfillerConduitKey,
+                    calldataParams.recipient,
+                    calldataParams.maximumFulfilled
                 )
             returns (
                 bool[] memory newAvailableOrders,
@@ -105,6 +134,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             ) {
                 availableOrders[i] = newAvailableOrders;
                 executions[i] = newExecutions;
+
                 // Subtract the number of orders fulfilled.
                 uint256 newAvailableOrdersLength = newAvailableOrders.length;
                 for (uint256 j = 0; j < newAvailableOrdersLength; ) {
@@ -121,6 +151,9 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
                     break;
                 }
             } catch {}
+
+            // Update fulfillments left.
+            calldataParams.maximumFulfilled = fulfillmentsLeft;
 
             unchecked {
                 ++i;

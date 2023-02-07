@@ -11,8 +11,9 @@ import { Execution } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title  SeaportRouterInterface
- * @author ryanio
- * @notice A utility contract for fulfilling orders with multiple Seaport versions.
+ * @author Ryan Ghods (ralxz.eth), 0age (0age.eth), James Wenzel (emo.eth)
+ * @notice A utility contract for fulfilling orders with multiple
+ *         Seaport versions.
  */
 interface SeaportRouterInterface {
     /**
@@ -24,7 +25,7 @@ interface SeaportRouterInterface {
         CriteriaResolver[] criteriaResolvers;
         FulfillmentComponent[][] offerFulfillments;
         FulfillmentComponent[][] considerationFulfillments;
-        uint256 value; // The amount of ether value to send with the set of orders.
+        uint256 etherValue; // The amount of ether value to send with the set of orders.
     }
 
     /**
@@ -34,6 +35,19 @@ interface SeaportRouterInterface {
     struct FulfillAvailableAdvancedOrdersParams {
         address[] seaportContracts;
         AdvancedOrderParams[] advancedOrderParams;
+        bytes32 fulfillerConduitKey;
+        address recipient;
+        uint256 maximumFulfilled;
+    }
+
+    /**
+     * @dev Calldata params for calling FulfillAvailableAdvancedOrders.
+     */
+    struct CalldataParams {
+        AdvancedOrder[] advancedOrders;
+        CriteriaResolver[] criteriaResolvers;
+        FulfillmentComponent[][] offerFulfillments;
+        FulfillmentComponent[][] considerationFulfillments;
         bytes32 fulfillerConduitKey;
         address recipient;
         uint256 maximumFulfilled;
