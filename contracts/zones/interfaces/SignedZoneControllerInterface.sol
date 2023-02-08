@@ -32,7 +32,7 @@ interface SignedZoneControllerInterface {
         string memory documentationURI,
         address initialOwner,
         bytes32 salt
-    ) external returns (address derivedAddress);
+    ) external returns (address signedZone);
 
     /**
      * @notice Returns the active signers for the zone.
