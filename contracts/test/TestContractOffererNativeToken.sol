@@ -10,7 +10,9 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {
+    ERC165
+} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
