@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "./ConsiderationStructs.sol";
+import "../../lib/ConsiderationStructs.sol";
 
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
@@ -133,11 +133,9 @@ contract ConsiderationTypeHashes {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(bytes32 orderHash)
-        internal
-        view
-        returns (bytes32 value)
-    {
+    function _deriveEIP712Digest(
+        bytes32 orderHash
+    ) internal view returns (bytes32 value) {
         bytes32 domainSeparator = _DOMAIN_SEPARATOR;
         // Leverage scratch space to perform an efficient hash.
         assembly {
@@ -168,11 +166,9 @@ contract ConsiderationTypeHashes {
      *
      * @return The hash.
      */
-    function _hashOfferItem(OfferItem memory offerItem)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _hashOfferItem(
+        OfferItem memory offerItem
+    ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encode(
@@ -193,11 +189,9 @@ contract ConsiderationTypeHashes {
      *
      * @return The hash.
      */
-    function _hashConsiderationItem(ConsiderationItem memory considerationItem)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _hashConsiderationItem(
+        ConsiderationItem memory considerationItem
+    ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encode(

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {
-    IEREC165
-} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+    IERC165
+} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {
     ReceivedItem,
     Schema,

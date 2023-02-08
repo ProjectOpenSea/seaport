@@ -24,36 +24,24 @@ import {
     SeaportValidatorInterface
 } from "../interfaces/SeaportValidatorInterface.sol";
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-// import {
-//     IERC721
-// } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-// import {
-//     IERC1155
-// } from "openzeppelin-contracts/contracts/token/ERC1155/IERC1155.sol";
-// import {
-//     IERC20
-// } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-// import {
-//     IERC165
-// } from "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
-// import {
-//     IERC2981
-// } from "openzeppelin-contracts/contracts/interfaces/IERC2981.sol";
+import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "../interfaces/AbridgedTokenInterfaces.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
 } from "./lib/ErrorsAndWarnings.sol";
 import { SafeStaticCall } from "./lib/SafeStaticCall.sol";
-import { Murky } from "murky/Murky.sol";
-import {
-    CreatorFeeEngineInterface
-} from "../interfaces/CreatorFeeEngineInterface.sol";
+import { Murky } from "./lib/Murky.sol";
 import {
     IssueParser,
     ValidationConfiguration,
     TimeIssue,
     StatusIssue,
     OfferIssue,
+    ContractOffererIssue,
     ConsiderationIssue,
     PrimaryFeeIssue,
     ERC721Issue,
@@ -65,8 +53,8 @@ import {
     CreatorFeeIssue,
     SignatureIssue,
     GenericIssue
-} from "./SeaportValidatorTypes.sol";
-import { SignatureVerification } from "./SignatureVerification.sol";
+} from "./lib/SeaportValidatorTypes.sol";
+import { Verifiers } from "../lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator
@@ -75,7 +63,7 @@ import { SignatureVerification } from "./SignatureVerification.sol";
 contract SeaportValidator is
     SeaportValidatorInterface,
     ConsiderationTypeHashes,
-    SignatureVerification,
+    Verifiers,
     Murky
 {
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
@@ -90,6 +78,12 @@ contract SeaportValidator is
         ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
     /// @notice Ethereum creator fee engine address
     CreatorFeeEngineInterface public immutable creatorFeeEngine;
+
+    bytes4 public constant ERC20_INTERFACE_ID = 0x36372b07;
+
+    bytes4 public constant ERC721_INTERFACE_ID = 0x80ac58cd;
+
+    bytes4 public constant ERC1155_INTERFACE_ID = 0xd9b67a26;
 
     constructor() {
         address creatorFeeEngineAddress;
@@ -276,18 +270,18 @@ contract SeaportValidator is
         if (isValid) {
             // Shortcut success, valid on chain
             return errorsAndWarnings;
-        }
-
-        // Get signed digest
-        bytes32 eip712Digest = _deriveEIP712Digest(orderHash);
-        if (
+        } else {
             // Checks EIP712 and EIP1271
-            !_isValidSignature(
-                order.parameters.offerer,
-                eip712Digest,
-                order.signature
-            )
-        ) {
+            try
+                _verifySignature(
+                    order.parameters.offerer,
+                    orderHash,
+                    order.signature
+                )
+            {} catch {
+                // Signature is invalid
+                errorsAndWarnings.addError(SignatureIssue.Invalid.parseInt());
+            }
             if (
                 order.parameters.consideration.length !=
                 order.parameters.totalOriginalConsiderationItems
@@ -315,6 +309,7 @@ contract SeaportValidator is
                 type(ContractOffererInterface).interfaceId
             )
         ) {
+            // Call to supportsInterface does not return the contract offerer EIP165 interface id
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
@@ -557,12 +552,12 @@ contract SeaportValidator is
             }
 
             // Check the EIP165 token interface
-            if (!checkInterface(offerItem.token, type(IERC721).interfaceId)) {
+            if (!checkInterface(offerItem.token, ERC721_INTERFACE_ID)) {
                 errorsAndWarnings.addError(ERC721Issue.InvalidToken.parseInt());
             }
         } else if (offerItem.itemType == ItemType.ERC721_WITH_CRITERIA) {
             // Check the EIP165 token interface
-            if (!checkInterface(offerItem.token, type(IERC721).interfaceId)) {
+            if (!checkInterface(offerItem.token, ERC721_INTERFACE_ID)) {
                 errorsAndWarnings.addError(ERC721Issue.InvalidToken.parseInt());
             }
 
@@ -579,7 +574,7 @@ contract SeaportValidator is
             offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
         ) {
             // Check the EIP165 token interface
-            if (!checkInterface(offerItem.token, type(IERC1155).interfaceId)) {
+            if (!checkInterface(offerItem.token, ERC1155_INTERFACE_ID)) {
                 errorsAndWarnings.addError(
                     ERC1155Issue.InvalidToken.parseInt()
                 );
@@ -651,13 +646,13 @@ contract SeaportValidator is
         OfferItem memory offerItem = orderParameters.offer[offerItemIndex];
 
         if (offerItem.itemType == ItemType.ERC721) {
-            IERC721 token = IERC721(offerItem.token);
+            ERC721Interface token = ERC721Interface(offerItem.token);
 
             // Check that offerer owns token
             if (
                 !address(token).safeStaticCallAddress(
                     abi.encodeWithSelector(
-                        IERC721.ownerOf.selector,
+                        ERC721Interface.ownerOf.selector,
                         offerItem.identifierOrCriteria
                     ),
                     orderParameters.offerer
@@ -670,7 +665,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallAddress(
                     abi.encodeWithSelector(
-                        IERC721.getApproved.selector,
+                        ERC721Interface.getApproved.selector,
                         offerItem.identifierOrCriteria
                     ),
                     approvalAddress
@@ -680,7 +675,7 @@ contract SeaportValidator is
                 if (
                     !address(token).safeStaticCallBool(
                         abi.encodeWithSelector(
-                            IERC721.isApprovedForAll.selector,
+                            ERC721Interface.isApprovedForAll.selector,
                             orderParameters.offerer,
                             approvalAddress
                         ),
@@ -696,13 +691,13 @@ contract SeaportValidator is
         } else if (
             offerItem.itemType == ItemType.ERC721_WITH_CRITERIA
         ) {} else if (offerItem.itemType == ItemType.ERC1155) {
-            IERC1155 token = IERC1155(offerItem.token);
+            ERC1155Interface token = ERC1155Interface(offerItem.token);
 
             // Check for approval
             if (
                 !address(token).safeStaticCallBool(
                     abi.encodeWithSelector(
-                        IERC721.isApprovedForAll.selector,
+                        ERC1155Interface.isApprovedForAll.selector,
                         orderParameters.offerer,
                         approvalAddress
                     ),
@@ -721,7 +716,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC1155.balanceOf.selector,
+                        ERC1155Interface.balanceOf.selector,
                         orderParameters.offerer,
                         offerItem.identifierOrCriteria
                     ),
@@ -736,7 +731,7 @@ contract SeaportValidator is
         } else if (
             offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
         ) {} else if (offerItem.itemType == ItemType.ERC20) {
-            IERC20 token = IERC20(offerItem.token);
+            ERC20Interface token = ERC20Interface(offerItem.token);
 
             // Get min required balance and approval (max(startAmount, endAmount))
             uint256 minBalanceAndAllowance = offerItem.startAmount <
@@ -748,7 +743,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.allowance.selector,
+                        ERC20Interface.allowance.selector,
                         orderParameters.offerer,
                         approvalAddress
                     ),
@@ -764,7 +759,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.balanceOf.selector,
+                        ERC20Interface.balanceOf.selector,
                         orderParameters.offerer
                     ),
                     minBalanceAndAllowance
@@ -956,12 +951,7 @@ contract SeaportValidator is
             }
 
             // Check EIP165 interface
-            if (
-                !checkInterface(
-                    considerationItem.token,
-                    type(IERC721).interfaceId
-                )
-            ) {
+            if (!checkInterface(considerationItem.token, ERC721_INTERFACE_ID)) {
                 errorsAndWarnings.addError(ERC721Issue.InvalidToken.parseInt());
                 return errorsAndWarnings;
             }
@@ -970,7 +960,7 @@ contract SeaportValidator is
             if (
                 !considerationItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC721.ownerOf.selector,
+                        ERC721Interface.ownerOf.selector,
                         considerationItem.identifierOrCriteria
                     ),
                     1
@@ -985,12 +975,7 @@ contract SeaportValidator is
             considerationItem.itemType == ItemType.ERC721_WITH_CRITERIA
         ) {
             // Check EIP165 interface
-            if (
-                !checkInterface(
-                    considerationItem.token,
-                    type(IERC721).interfaceId
-                )
-            ) {
+            if (!checkInterface(considerationItem.token, ERC721_INTERFACE_ID)) {
                 // Does not implement required interface
                 errorsAndWarnings.addError(ERC721Issue.InvalidToken.parseInt());
             }
@@ -1000,10 +985,7 @@ contract SeaportValidator is
         ) {
             // Check EIP165 interface
             if (
-                !checkInterface(
-                    considerationItem.token,
-                    type(IERC1155).interfaceId
-                )
+                !checkInterface(considerationItem.token, ERC1155_INTERFACE_ID)
             ) {
                 // Does not implement required interface
                 errorsAndWarnings.addError(
@@ -1506,7 +1488,7 @@ contract SeaportValidator is
 
     /**
      * @notice Validates the zone call for an order
-     * @param orderParameters The parameters for the order to validate
+     * @param zoneParameters The zone parameters for the order to validate
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
     function isValidZone(
@@ -1536,7 +1518,7 @@ contract SeaportValidator is
             orderParameters.offerer
         );
 
-        // Call zone function `isValidOrder` with `msg.sender` as the caller
+        // Call zone function `validateOrder` with the supplied ZoneParameters
         if (
             !orderParameters.zone.safeStaticCallBytes4(
                 abi.encodeWithSelector(
@@ -1546,6 +1528,7 @@ contract SeaportValidator is
                 ZoneInterface.validateOrder.selector
             )
         ) {
+            // Call to validateOrder reverted or returned invalid magic value
             errorsAndWarnings.addWarning(ZoneIssue.RejectedOrder.parseInt());
         }
     }
@@ -1647,4 +1630,55 @@ contract SeaportValidator is
 
         return _verifyProof(merkleRoot, merkleProof, hashedValue);
     }
+}
+
+interface CreatorFeeEngineInterface {
+    function getRoyaltyView(
+        address tokenAddress,
+        uint256 tokenId,
+        uint256 value
+    )
+        external
+        view
+        returns (address payable[] memory recipients, uint256[] memory amounts);
+}
+
+/**
+ * @dev Interface of the ERC165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[EIP].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
+ */
+interface IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+/**
+ * @dev Interface for the NFT Royalty Standard.
+ *
+ * A standardized way to retrieve royalty payment information for non-fungible tokens (NFTs) to enable universal
+ * support for royalty payments across all NFT marketplaces and ecosystem participants.
+ *
+ * _Available since v4.5._
+ */
+interface IERC2981 is IERC165 {
+    /**
+     * @dev Returns how much royalty is owed and to whom, based on a sale price that may be denominated in any unit of
+     * exchange. The royalty amount is denominated and should be paid in that same unit of exchange.
+     */
+    function royaltyInfo(
+        uint256 tokenId,
+        uint256 salePrice
+    ) external view returns (address receiver, uint256 royaltyAmount);
 }
