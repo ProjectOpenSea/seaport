@@ -10,6 +10,8 @@ import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
+import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -22,7 +24,7 @@ interface ERC20Mintable {
     function mint(address to, uint256 amount) external;
 }
 
-contract BadOfferer is ContractOffererInterface {
+contract BadOfferer is ERC165, ContractOffererInterface {
     error IntentionalRevert();
 
     ERC20Interface token1;
@@ -111,6 +113,20 @@ contract BadOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return BadOfferer.ratifyOrder.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

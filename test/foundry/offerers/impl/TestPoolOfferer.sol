@@ -5,6 +5,8 @@ import {
     ContractOffererInterface
 } from "../../../../contracts/interfaces/ContractOffererInterface.sol";
 
+import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -27,7 +29,7 @@ import {
 
 import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract TestPoolOfferer is ContractOffererInterface, Ownable {
+contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
     using EnumerableSet for EnumerableSet.UintSet;
 
     error OnlySeaport();
@@ -190,6 +192,20 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return ContractOffererInterface.ratifyOrder.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

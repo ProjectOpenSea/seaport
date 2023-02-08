@@ -22,6 +22,12 @@ import {
     IERC20
 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
+import {
+    ContractOffererInterface
+} from "../../../contracts/interfaces/ContractOffererInterface.sol";
+
+import { ERC165 } from "../../../contracts/interfaces/ERC165.sol";
+
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
@@ -58,7 +64,7 @@ contract TestPoolFactoryImpl {
     }
 }
 
-contract TestPoolImpl is TestPoolOfferer {
+contract TestPoolImpl is ERC165, TestPoolOfferer {
     using EnumerableSet for EnumerableSet.UintSet;
 
     constructor(
@@ -80,6 +86,12 @@ contract TestPoolImpl is TestPoolOfferer {
 
     function inTokenIds(uint256 id) external view returns (bool) {
         return tokenIds.contains(id);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, TestPoolOfferer) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 }
 
