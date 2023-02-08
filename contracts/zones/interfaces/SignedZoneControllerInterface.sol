@@ -14,17 +14,17 @@ interface SignedZoneControllerInterface {
     /**
      * @notice Deploy a SignedZone to a precomputed address.
      *
-     * @param zoneName    The name for the zone returned in
-     *                    getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be
-     *                    signed.
-     * @param documentationURI The URI to the documentation describing the
-     *                         behavior of the contract.
-     *                    Request and response payloads are defined in SIP-7.
-     * @param salt        The salt to be used to derive the zone address
-     * @param initialOwner The initial owner to set for the new zone.
+     * @param zoneName          The name for the zone returned in
+     *                          getSeaportMetadata().
+     * @param apiEndpoint       The API endpoint where orders for this zone can
+     *                          be signed.
+     * @param documentationURI  The URI to the documentation describing the
+     *                          behavior of the contract. Request and response
+     *                          payloads are defined in SIP-7.
+     * @param salt              The salt to be used to derive the zone address
+     * @param initialOwner      The initial owner to set for the new zone.
      *
-     * @return derivedAddress The derived address for the zone.
+     * @return signedZone The derived address for the zone.
      */
     function createZone(
         string memory zoneName,
@@ -72,7 +72,7 @@ interface SignedZoneControllerInterface {
      * @notice Update the API endpoint returned by the supplied zone.
      *         Only the owner or an active signer can call this function.
      *
-     * @param signedZone    The signed zone to update the API endpoint for.
+     * @param signedZone     The signed zone to update the API endpoint for.
      * @param newApiEndpoint The new API endpoint.
      */
     function updateAPIEndpoint(
@@ -99,7 +99,8 @@ interface SignedZoneControllerInterface {
      *         may call `acceptOwnership` to claim ownership of the zone.
      *         Only the owner of the zone in question may call this function.
      *
-     * @param zone The zone for which to initiate ownership transfer.
+     * @param zone              The zone for which to initiate ownership
+     *                          transfer.
      * @param newPotentialOwner The new potential owner of the zone.
      */
     function transferOwnership(address zone, address newPotentialOwner)
@@ -149,7 +150,7 @@ interface SignedZoneControllerInterface {
     /**
      * @notice Derive the zone address associated with a salt.
      *
-     * @param salt        The salt to be used to derive the zone address
+     * @param salt The salt to be used to derive the zone address
      *
      * @return derivedAddress The derived address of the signed zone.
      */

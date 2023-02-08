@@ -9,15 +9,16 @@ interface SignedZoneControllerEventsAndErrors {
     /**
      * @dev Emit an event whenever a new zone is created.
      *
-     * @param zoneAddress The address of the zone.
-     * @param zoneName    The name for the zone returned in
-     *                    getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be
-     *                    signed.
-     * @param documentationURI The URI to the documentation describing the
-     *                         behavior of the contract.
-     *                    Request and response payloads are defined in SIP-7.
-     * @param salt        The salt used to deploy the zone.
+     * @param zoneAddress       The address of the zone.
+     * @param zoneName          The name for the zone returned in
+     *                          getSeaportMetadata().
+     * @param apiEndpoint       The API endpoint where orders for this zone can
+     *                          be signed.
+     * @param documentationURI  The URI to the documentation describing the
+     *                          behavior of the contract.
+     *                          Request and response payloads are defined in
+     *                          SIP-7.
+     * @param salt              The salt used to deploy the zone.
      */
     event ZoneCreated(
         address zoneAddress,
