@@ -18,7 +18,8 @@ import "./lib/SignedZoneConstants.sol";
 /**
  * @title  SignedZoneController
  * @author BCLeFevre
- * @notice SignedZoneController enables the deploying of SignedZones.
+ * @notice SignedZoneController enables the deploying of SignedZones and
+ *         managing new SignedZone.
  *         SignedZones are an implementation of SIP-7 that requires orders to
  *         be signed by  an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
@@ -97,17 +98,17 @@ contract SignedZoneController is
     /**
      * @notice Deploy a SignedZone to a precomputed address.
      *
-     * @param zoneName    The name for the zone returned in
-     *                    getSeaportMetadata().
-     * @param apiEndpoint The API endpoint where orders for this zone can be
-     *                    signed.
-     * @param documentationURI The URI to the documentation describing the
-     *                         behavior of the contract.
-     *                    Request and response payloads are defined in SIP-7.
-     * @param salt        The salt to be used to derive the zone address
-     * @param initialOwner The initial owner to set for the new zone.
+     * @param zoneName          The name for the zone returned in
+     *                          getSeaportMetadata().
+     * @param apiEndpoint       The API endpoint where orders for this zone can
+     *                          be signed.
+     * @param documentationURI  The URI to the documentation describing the
+     *                          behavior of the contract. Request and response
+     *                          payloads are defined in SIP-7.
+     * @param salt              The salt to be used to derive the zone address
+     * @param initialOwner      The initial owner to set for the new zone.
      *
-     * @return derivedAddress The derived address for the zone.
+     * @return signedZone The derived address for the zone.
      */
     function createZone(
         string memory zoneName,
@@ -115,7 +116,7 @@ contract SignedZoneController is
         string memory documentationURI,
         address initialOwner,
         bytes32 salt
-    ) external override returns (address derivedAddress) {
+    ) external override returns (address signedZone) {
         // Ensure that an initial owner has been supplied.
         if (initialOwner == address(0)) {
             revert InvalidInitialOwner();
@@ -129,7 +130,7 @@ contract SignedZoneController is
 
         // Derive the SignedZone address from the deployer, salt and creation
         // code hash.
-        derivedAddress = address(
+        signedZone = address(
             uint160(
                 uint256(
                     keccak256(
@@ -147,8 +148,8 @@ contract SignedZoneController is
         // TODO : Check runtime code hash to ensure that the zone is not already
         // deployed.
         // Revert if a zone is currently deployed to the derived address.
-        if (derivedAddress.code.length != 0) {
-            revert ZoneAlreadyExists(derivedAddress);
+        if (signedZone.code.length != 0) {
+            revert ZoneAlreadyExists(signedZone);
         }
 
         // Deploy the zone using the supplied salt.
@@ -156,7 +157,7 @@ contract SignedZoneController is
 
         // Initialize storage variable referencing signed zone properties.
         SignedZoneProperties storage signedZoneProperties = _signedZones[
-            derivedAddress
+            signedZone
         ];
 
         // Set the supplied intial owner as the owner of the zone.
@@ -172,7 +173,7 @@ contract SignedZoneController is
 
         // Emit an event signifying that the zone was created.
         emit ZoneCreated(
-            derivedAddress,
+            signedZone,
             zoneName,
             apiEndpoint,
             documentationURI,
@@ -180,7 +181,7 @@ contract SignedZoneController is
         );
 
         // Emit an event indicating that zone ownership has been assigned.
-        emit OwnershipTransferred(derivedAddress, address(0), initialOwner);
+        emit OwnershipTransferred(signedZone, address(0), initialOwner);
     }
 
     /**
@@ -189,7 +190,8 @@ contract SignedZoneController is
      *         may call `acceptOwnership` to claim ownership of the zone.
      *         Only the owner of the zone in question may call this function.
      *
-     * @param zone The zone for which to initiate ownership transfer.
+     * @param zone              The zone for which to initiate ownership
+     *                          transfer.
      * @param newPotentialOwner The new potential owner of the zone.
      */
     function transferOwnership(address zone, address newPotentialOwner)
@@ -340,7 +342,7 @@ contract SignedZoneController is
      *         Only the owner or an active signer of the supplied zone can call
      *         this function.
      *
-     * @param zone     The signed zone to update the API endpoint for.
+     * @param zone           The signed zone to update the API endpoint for.
      * @param newApiEndpoint The new API endpoint.
      */
     function updateAPIEndpoint(address zone, string calldata newApiEndpoint)
@@ -630,8 +632,9 @@ contract SignedZoneController is
      *      function will revert if the signer is not active.
      *
      * @param signedZoneProperties The signed zone properties for the zone.
-     * @param signer The signer to add or remove.
-     * @param active Whether the signer is being added or removed.
+     * @param signer               The signer to add or remove.
+     * @param active               Whether the signer is being added or
+     *                             removed.
      */
     function _assertSignerPermissions(
         SignedZoneProperties storage signedZoneProperties,

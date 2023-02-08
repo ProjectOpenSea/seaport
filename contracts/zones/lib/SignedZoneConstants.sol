@@ -31,6 +31,11 @@ uint256 constant EIP_712_PREFIX = (
     0x1901000000000000000000000000000000000000000000000000000000000000
 );
 
+// @dev Function selectors used in the fallback function..
+bytes4 constant UPDATE_SIGNER_SELECTOR = 0xf460590b;
+bytes4 constant GET_ACTIVE_SIGNERS_SELECTOR = 0xa784b80c;
+bytes4 constant SUPPORTS_INTERFACE_SELECTOR = 0x01ffc9a7;
+
 /*
  *  error InvalidController()
  *    - Defined in SignedZoneEventsAndErrors.sol

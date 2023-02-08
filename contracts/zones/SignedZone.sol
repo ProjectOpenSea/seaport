@@ -28,7 +28,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     /// @dev The zone's controller that is set during deployment.
     address private immutable _controller;
 
-    /// @dev The authorized signers, and if they are active
+    /// @dev The authorized signers, and if they are active.
     mapping(address => bool) private _signers;
 
     /// @dev The EIP-712 digest parameters.
@@ -88,9 +88,8 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
         override
         returns (bytes4 validOrderMagicValue)
     {
-        // Check Zone parameters validity.
+        // Check Zone Parameters validity.
         _assertValidZoneParameters();
-
         // Put the extraData and orderHash on the stack for cheaper access.
         bytes calldata extraData = zoneParameters.extraData;
         bytes32 orderHash = zoneParameters.orderHash;
@@ -104,6 +103,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             let extraDataPtr := add(0x24, calldataload(Zone_extraData_cdPtr))
             let extraDataLength := calldataload(extraDataPtr)
 
+            // Validate the extra data length.
             if iszero(
                 eq(extraDataLength, InvalidExtraDataLength_epected_length)
             ) {
@@ -119,6 +119,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             // extraData bytes 0-1: SIP-6 version byte (MUST be 0x00)
             let versionByte := shr(248, calldataload(add(extraDataPtr, 0x20)))
 
+            // Validate the SIP6 Version byte.
             if iszero(eq(versionByte, 0x00)) {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, InvalidSIP6Version_error_selector)
@@ -137,6 +138,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 )
             )
 
+            // Validate the substandard version byte.
             if iszero(eq(subStandardVersionByte, 0x00)) {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, InvalidSubstandardVersion_error_selector)
@@ -152,6 +154,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 192,
                 calldataload(add(extraDataPtr, ExtraData_expiration_offset))
             )
+
             // Revert if expired.
             if lt(expiration, timestamp()) {
                 // Store left-padded selector with push4, mem[28:32] = selector
@@ -159,7 +162,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 mstore(SignatureExpired_error_expiration_ptr, expiration)
                 mstore(SignatureExpired_error_orderHash_ptr, orderHash)
                 // revert(abi.encodeWithSignature(
-                //   "SignatureExpired(uint256, bytes32)", expiration orderHash)
+                //   "SignatureExpired(uint256,bytes32)", expiration, orderHash)
                 // )
                 revert(0x1c, SignatureExpired_error_length)
             }
@@ -169,8 +172,8 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 add(0x24, calldataload(Zone_consideration_head_cdPtr))
             )
 
-            // Revert if the order does not have any consideration items.
-            // (Substandard #1 requirement)
+            // Revert if the order does not have any consideration items due to
+            // the Substandard #1 requirement.
             if iszero(considerationLength) {
                 // Store left-padded selector with push4, mem[28:32] = selector
                 mstore(0, InvalidSubstandardSupport_error_selector)
@@ -189,6 +192,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                     InvalidSubstandardSupport_error_reason_2_ptr,
                     " one item."
                 )
+                // revert(abi.encodeWithSignature(
+                //   "InvalidSubstandardSupport(string,uint256,bytes32)", reason, substandardVersion, orderHash)
+                // )
                 revert(0x1c, InvalidSubstandardSupport_error_length)
             }
         }
@@ -236,7 +242,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      * @dev Returns Seaport metadata for this contract, returning the
      *      contract name and supported schemas.
      *
-     * @return name The contract name
+     * @return name     The contract name
      * @return schemas  The supported SIPs
      */
     function getSeaportMetadata()
@@ -280,22 +286,24 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
         // Get the function selector.
         bytes4 selector = msg.sig;
 
-        if (selector == 0xf460590b) {
-            // updateSigner(address,bool)
-
+        if (selector == UPDATE_SIGNER_SELECTOR) {
+            // abi.encodeWithSignature("updateSigner(address,bool)", signer,
+            // active)
+          
             // Get the signer, and active status.
             address signer = abi.decode(msg.data[4:], (address));
             bool active = abi.decode(msg.data[36:], (bool));
 
             // Call to update the signer.
             _updateSigner(signer, active);
-        } else if (selector == 0xa784b80c) {
-            // getActiveSigners()
+        } else if (selector == GET_ACTIVE_SIGNERS_SELECTOR) {
+            // abi.encodeWithSignature("getActiveSigners()")
+        
 
             // Call the internal function to get the active signers.
             return abi.encode(_getActiveSigners());
-        } else if (selector == 0x01ffc9a7) {
-            // supportsInterface(bytes4)
+        } else if (selector == SUPPORTS_INTERFACE_SELECTOR) {
+            // abi.encodeWithSignature("supportsInterface(bytes4)", interfaceId)
 
             // Get the interface ID.
             bytes4 interfaceId = abi.decode(msg.data[4:], (bytes4));
@@ -326,8 +334,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      * @param signer The new signer address to add.
      */
     function _addSigner(address signer) internal {
-        // Set the signer info.
+        // Set the signer's active status to true.
         _signers[signer] = true;
+
         // Emit an event that the signer was added.
         emit SignerAdded(signer);
     }
