@@ -29,6 +29,7 @@ import { GenericAdapterSidecar } from "./GenericAdapterSidecar.sol";
 contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
     address private immutable _SEAPORT;
     address private immutable _SIDECAR;
+    address private immutable _FLASHLOAN_OFFERER;
 
     error InvalidCaller(address caller);
     error InvalidFulfiller(address fulfiller);
@@ -36,11 +37,13 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
     error InvalidExtraDataEncoding(uint8 version);
     error ApprovalFailed(address approvalToken); // 0xe5a0a42f
     error CallFailed(); // 0x3204506f
+    error NativeTokenTransferGenericFailure(address recipient, uint256 amount); // 0xbc806b96
     error NotImplemented();
 
-    constructor(address seaport) {
+    constructor(address seaport, address flashloanOfferer) {
         _SEAPORT = seaport;
         _SIDECAR = address(new GenericAdapterSidecar());
+        _FLASHLOAN_OFFERER = flashloanOfferer;
     }
 
     /**
@@ -50,9 +53,9 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
      * @param fulfiller       The address of the fulfiller.
      * @param minimumReceived The minimum items that the caller must receive.
      *                        Any non-native tokens must be owned by this
-     *                        contract with sufficient allowance granted to
-     *                        Seaport; any native tokens must have been supplied
-     *                        to Seaport.
+     *                        contract with sufficient allowance granted from
+     *                        this contract to Seaport; any native tokens must
+     *                        have been supplied to Seaport.
      * @param maximumSpent    The maximum items the caller is willing to spend.
      *                        Each of these items will be transferred from the
      *                        fulfiller to the sidecar. Sufficient allowance
@@ -304,7 +307,47 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
     }
 
     /**
-     * @dev Enable accepting native tokens.
+     * @dev Allow for the flashloan offerer to retrieve native tokens that may
+     *      have been left over on this contract, especially in the case where
+     *      the request to generate the order fails and the order is skipped. As
+     *      the flashloan offerer has already sent native tokens to the adapter
+     *      beforehand, those native tokens will otherwise be stuck in the
+     *      adapter for the duration of the fulfillment, and therefore at risk
+     *      of being taken by another caller in a subsequent fulfillment.
+     */
+    function cleanup(address recipient) external payable {
+        // Ensure that only designated flashloan offerer can call this function.
+        if (msg.sender != _FLASHLOAN_OFFERER) {
+            revert InvalidCaller(msg.sender);
+        }
+
+        // Send any available native token balance to the supplied recipient.
+        assembly {
+            if selfbalance() {
+                // Call recipient, supplying balance, and revert on failure.
+                if iszero(call(gas(), recipient, selfbalance(), 0, 0, 0, 0)) {
+                    if and(
+                        iszero(iszero(returndatasize())),
+                        lt(returndatasize(), 0xffff)
+                    ) {
+                        returndatacopy(0, 0, returndatasize())
+                        revert(0, returndatasize())
+                    }
+
+                    // NativeTokenTransferGenericFailure(recipient, selfbalance)
+                    mstore(0, 0xbc806b96)
+                    mstore(0x20, recipient)
+                    mstore(0x40, selfbalance())
+                    revert(0x1c, 0x44)
+                }
+            }
+        }
+    }
+
+    /**
+     * @dev Enable accepting native tokens. Note that it may be prudent to only
+     *      allow for receipt of native tokens from either the sidecar or the
+     *      flashloan offerer as an added precaution against accidental loss.
      */
     receive() external payable {}
 
