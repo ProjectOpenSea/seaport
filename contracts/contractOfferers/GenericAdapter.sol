@@ -315,7 +315,7 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
      *      adapter for the duration of the fulfillment, and therefore at risk
      *      of being taken by another caller in a subsequent fulfillment.
      */
-    function cleanup(address recipient) external payable {
+    function cleanup(address recipient) external payable returns (bytes4) {
         // Ensure that only designated flashloan offerer can call this function.
         if (msg.sender != _FLASHLOAN_OFFERER) {
             revert InvalidCaller(msg.sender);
@@ -341,6 +341,9 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
                     revert(0x1c, 0x44)
                 }
             }
+
+            mstore(0, 0xfbacefce) // cleanup(address) selector
+            return(0x1c, 0x04)
         }
     }
 
