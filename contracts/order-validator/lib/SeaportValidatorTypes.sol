@@ -89,6 +89,7 @@ enum NativeIssue {
 }
 
 enum ZoneIssue {
+    InvalidZone,
     RejectedOrder,
     NotSet
 }
@@ -190,5 +191,9 @@ library IssueParser {
 
     function parseInt(MerkleIssue err) internal pure returns (uint16) {
         return uint16(err) + 1500;
+    }
+
+    function parseInt(ContractOffererIssue err) internal pure returns (uint16) {
+        return uint16(err) + 1600;
     }
 }

@@ -2,7 +2,11 @@
 pragma solidity ^0.8.10;
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
-import { Order, OrderParameters } from "../lib/ConsiderationStructs.sol";
+import {
+    Order,
+    OrderParameters,
+    ZoneParameters
+} from "../lib/ConsiderationStructs.sol";
 import {
     ErrorsAndWarnings
 } from "../order-validator/lib/ErrorsAndWarnings.sol";
@@ -28,7 +32,7 @@ interface SeaportValidatorInterface {
      */
     function isValidOrder(
         Order calldata order
-    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
      * @notice Same as `isValidOrder` but allows for more configuration related to fee validation.
@@ -36,7 +40,7 @@ interface SeaportValidatorInterface {
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
         Order memory order
-    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
      * @notice Checks if a conduit key is valid.
@@ -47,14 +51,24 @@ interface SeaportValidatorInterface {
         bytes32 conduitKey
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
+    // TODO: Need to add support for order with extra data
+    /**
+     * @notice Checks that the zone of an order implements the required interface
+     * @param orderParameters The parameters for the order to validate
+     * @return errorsAndWarnings An ErrorsAndWarnings structs with results
+     */
+    function isValidZone(
+        OrderParameters memory orderParameters
+    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+
     function validateSignature(
         Order memory order
-    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     function validateSignatureWithCounter(
         Order memory order,
         uint256 counter
-    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
      * @notice Check the time validity of an order
@@ -175,14 +189,15 @@ interface SeaportValidatorInterface {
         uint256 offerItemIndex
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
-    // TODO: Need to add support for order with extra data
     /**
-     * @notice Validates the zone call for an order
+     * @notice Calls validateOrder on the order's zone with the given zoneParameters
      * @param orderParameters The parameters for the order to validate
+     * @param zoneParameters The parameters for the zone to validate
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
-    function isValidZone(
-        OrderParameters memory orderParameters
+    function validateOrderWithZone(
+        OrderParameters memory orderParameters,
+        ZoneParameters memory zoneParameters
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**

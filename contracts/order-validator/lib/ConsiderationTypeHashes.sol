@@ -22,14 +22,14 @@ contract ConsiderationTypeHashes {
     bytes32 internal immutable _ORDER_TYPEHASH;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
     address internal constant seaportAddress =
-        address(0x00000000006c3852cbEf3e08E8dF289169EdE581);
+        address(0x00000000000006c7676171937C444f6BDe3D6282);
 
     constructor() {
         // Derive hash of the name of the contract.
         _NAME_HASH = keccak256(bytes("Seaport"));
 
         // Derive hash of the version string of the contract.
-        _VERSION_HASH = keccak256(bytes("1.1"));
+        _VERSION_HASH = keccak256(bytes("1.2"));
 
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
