@@ -26,9 +26,11 @@ import {
     SeaportValidatorInterface
 } from "../interfaces/SeaportValidatorInterface.sol";
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "../interfaces/AbridgedTokenInterfaces.sol";
 import { IERC165 } from "../interfaces/IERC165.sol";
 import {
     ErrorsAndWarnings,
@@ -607,7 +609,7 @@ contract SeaportValidator is
             if (
                 !offerItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.allowance.selector,
+                        ERC20Interface.allowance.selector,
                         address(seaport),
                         address(seaport)
                     ),
@@ -662,13 +664,13 @@ contract SeaportValidator is
         OfferItem memory offerItem = orderParameters.offer[offerItemIndex];
 
         if (offerItem.itemType == ItemType.ERC721) {
-            IERC721 token = IERC721(offerItem.token);
+            ERC721Interface token = ERC721Interface(offerItem.token);
 
             // Check that offerer owns token
             if (
                 !address(token).safeStaticCallAddress(
                     abi.encodeWithSelector(
-                        IERC721.ownerOf.selector,
+                        ERC721Interface.ownerOf.selector,
                         offerItem.identifierOrCriteria
                     ),
                     orderParameters.offerer
@@ -681,7 +683,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallAddress(
                     abi.encodeWithSelector(
-                        IERC721.getApproved.selector,
+                        ERC721Interface.getApproved.selector,
                         offerItem.identifierOrCriteria
                     ),
                     approvalAddress
@@ -691,7 +693,7 @@ contract SeaportValidator is
                 if (
                     !address(token).safeStaticCallBool(
                         abi.encodeWithSelector(
-                            IERC721.isApprovedForAll.selector,
+                            ERC721Interface.isApprovedForAll.selector,
                             orderParameters.offerer,
                             approvalAddress
                         ),
@@ -707,13 +709,13 @@ contract SeaportValidator is
         } else if (
             offerItem.itemType == ItemType.ERC721_WITH_CRITERIA
         ) {} else if (offerItem.itemType == ItemType.ERC1155) {
-            IERC1155 token = IERC1155(offerItem.token);
+            ERC1155Interface token = ERC1155Interface(offerItem.token);
 
             // Check for approval
             if (
                 !address(token).safeStaticCallBool(
                     abi.encodeWithSelector(
-                        IERC1155.isApprovedForAll.selector,
+                        ERC1155Interface.isApprovedForAll.selector,
                         orderParameters.offerer,
                         approvalAddress
                     ),
@@ -732,7 +734,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC1155.balanceOf.selector,
+                        ERC1155Interface.balanceOf.selector,
                         orderParameters.offerer,
                         offerItem.identifierOrCriteria
                     ),
@@ -747,7 +749,7 @@ contract SeaportValidator is
         } else if (
             offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
         ) {} else if (offerItem.itemType == ItemType.ERC20) {
-            IERC20 token = IERC20(offerItem.token);
+            ERC20Interface token = ERC20Interface(offerItem.token);
 
             // Get min required balance and approval (max(startAmount, endAmount))
             uint256 minBalanceAndAllowance = offerItem.startAmount <
@@ -759,7 +761,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.allowance.selector,
+                        ERC20Interface.allowance.selector,
                         orderParameters.offerer,
                         approvalAddress
                     ),
@@ -775,7 +777,7 @@ contract SeaportValidator is
             if (
                 !address(token).safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.balanceOf.selector,
+                        ERC20Interface.balanceOf.selector,
                         orderParameters.offerer
                     ),
                     minBalanceAndAllowance
@@ -976,7 +978,7 @@ contract SeaportValidator is
             if (
                 !considerationItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC721.ownerOf.selector,
+                        ERC721Interface.ownerOf.selector,
                         considerationItem.identifierOrCriteria
                     ),
                     1
@@ -1020,7 +1022,7 @@ contract SeaportValidator is
             if (
                 !considerationItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
-                        IERC20.allowance.selector,
+                        ERC20Interface.allowance.selector,
                         address(seaport),
                         address(seaport)
                     ),
