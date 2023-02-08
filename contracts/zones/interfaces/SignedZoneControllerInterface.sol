@@ -81,6 +81,19 @@ interface SignedZoneControllerInterface {
     ) external;
 
     /**
+     * @notice Update the documentationURI returned by a zone.
+     *         Only the owner or an active signer of the supplied zone can call
+     *         this function.
+     *
+     * @param zone             The signed zone to update the API endpoint for.
+     * @param documentationURI The new documentation URI.
+     */
+    function updateDocumentationURI(
+        address zone,
+        string calldata documentationURI
+    ) external;
+
+    /**
      * @notice Update the signer for a given signed zone.
      *
      * @param signedZone The signed zone to update the signer for.

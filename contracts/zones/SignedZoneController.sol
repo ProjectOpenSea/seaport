@@ -361,6 +361,30 @@ contract SignedZoneController is
     }
 
     /**
+     * @notice Update the documentationURI returned by a zone.
+     *         Only the owner or an active signer of the supplied zone can call
+     *         this function.
+     *
+     * @param zone             The signed zone to update the documentationURI
+     *                         for.
+     * @param documentationURI The new documentation URI.
+     */
+    function updateDocumentationURI(
+        address zone,
+        string calldata documentationURI
+    ) external override {
+        // Ensure the caller is the owner or an active signer of the signed zone.
+        _assertCallerIsZoneOwnerOrSigner(zone);
+
+        // Retrieve storage region where the singers for the signedZone are
+        // stored.
+        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
+
+        // Update the documentationURI on the signed zone.
+        signedZoneProperties.documentationURI = documentationURI;
+    }
+
+    /**
      * @notice Add or remove a signer from the supplied zone.
      *         Only the owner or an active signer of the supplied zone can call
      *         this function.

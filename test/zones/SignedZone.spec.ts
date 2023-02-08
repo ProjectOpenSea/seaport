@@ -958,6 +958,22 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       )[2]
     ).to.equal("test");
 
+    // The active should be able to update the documentation URI.
+    await signedZoneController
+      .connect(approvedSigner)
+      .updateDocumentationURI(
+        signedZone.address,
+        "http://newDocumentationURI.com"
+      );
+
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[4]
+    ).to.equal("http://newDocumentationURI.com");
+
     // The active signer should be able to remove themselves.
     await expect(
       signedZoneController
@@ -1130,6 +1146,38 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         )
       )[2]
     ).to.eq("test123");
+  });
+  it("Only the owner should be able to modify the documentationURI", async () => {
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[4]
+    ).to.equal(
+      "https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md"
+    );
+
+    await expect(
+      signedZoneController
+        .connect(buyer)
+        .updateDocumentationURI(signedZone.address, "http://test.com")
+    ).to.be.revertedWithCustomError(
+      signedZoneController,
+      "CallerIsNotOwnerOrSigner"
+    );
+
+    await signedZoneController
+      .connect(owner)
+      .updateDocumentationURI(signedZone.address, "http://test.com");
+
+    expect(
+      (
+        await signedZoneController.getAdditionalZoneInformation(
+          signedZone.address
+        )
+      )[4]
+    ).to.eq("http://test.com");
   });
   it("Should return valid data in sip7Information() and getSeaportMetadata()", async () => {
     const information = await signedZoneController.getAdditionalZoneInformation(
