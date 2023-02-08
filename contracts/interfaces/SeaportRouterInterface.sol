@@ -26,7 +26,7 @@ interface SeaportRouterInterface {
         CriteriaResolver[] criteriaResolvers;
         FulfillmentComponent[][] offerFulfillments;
         FulfillmentComponent[][] considerationFulfillments;
-        uint256 etherValue; // The amount of ether value to send with the set of orders.
+        uint256 etherValue; /// The ether value to send with the set of orders.
     }
 
     /**
