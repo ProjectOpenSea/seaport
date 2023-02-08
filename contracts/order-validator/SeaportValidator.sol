@@ -1532,11 +1532,6 @@ contract SeaportValidator is
             return errorsAndWarnings;
         }
 
-        // Get counter to derive order hash
-        uint256 currentOffererCounter = seaport.getCounter(
-            orderParameters.offerer
-        );
-
         // Call zone function `validateOrder` with the supplied ZoneParameters
         if (
             !orderParameters.zone.safeStaticCallBytes4(

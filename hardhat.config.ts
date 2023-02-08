@@ -119,6 +119,16 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      "contracts/order-validator/SeaportValidator.sol": {
+        version: "0.8.17",
+        settings: {
+          viaIR: false,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
     },
   },
   networks: {
