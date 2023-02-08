@@ -13,8 +13,6 @@ import {
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { IERC165 } from "../interfaces/IERC165.sol";
-
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {

@@ -10,6 +10,8 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
@@ -21,7 +23,7 @@ import {
 /**
  * @title TestContractOffererNativeToken
  */
-contract TestContractOffererNativeToken is ContractOffererInterface {
+contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
@@ -244,6 +246,20 @@ contract TestContractOffererNativeToken is ContractOffererInterface {
         bytes calldata
     ) external pure returns (bytes4) {
         return bytes4(0xf23a6e61);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**
