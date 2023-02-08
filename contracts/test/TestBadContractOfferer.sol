@@ -122,6 +122,12 @@ contract TestBadContractOfferer is ContractOffererInterface {
         return TestBadContractOfferer.ratifyOrder.selector;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
     /**
      * @dev Returns the metadata for this contract offerer.
      */

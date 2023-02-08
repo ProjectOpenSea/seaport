@@ -11,6 +11,10 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import { IERC165 } from "../interfaces/IERC165.sol";
+
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
@@ -28,7 +32,7 @@ import {
  *         an order. The offered item is placed into this contract as part of
  *         deployment and the corresponding token approvals are set for Seaport.
  */
-contract TestContractOfferer is ContractOffererInterface {
+contract TestContractOfferer is ContractOffererInterface, ERC165 {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
@@ -55,7 +59,13 @@ contract TestContractOfferer is ContractOffererInterface {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165, IERC165) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
         return
             interfaceId == type(ContractOffererInterface).interfaceId ||
             super.supportsInterface(interfaceId);
