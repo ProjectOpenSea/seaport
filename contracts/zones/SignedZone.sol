@@ -299,7 +299,6 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
         } else if (selector == GET_ACTIVE_SIGNERS_SELECTOR) {
             // abi.encodeWithSignature("getActiveSigners()")
         
-
             // Call the internal function to get the active signers.
             return abi.encode(_getActiveSigners());
         } else if (selector == SUPPORTS_INTERFACE_SELECTOR) {
@@ -311,6 +310,15 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             // Call the internal function to determine if the interface is
             // supported.
             return abi.encode(_supportsInterface(interfaceId));
+        }
+        else {
+             // Revert if the function selector is not supported.
+            assembly {
+                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                mstore(0, UnsupportedFunctionSelector_error_selector)
+                // revert(abi.encodeWithSignature("UnsupportedFunctionSelector()"))
+                revert(0x1c, UnsupportedFunctionSelector_error_length)
+            }
         }
     }
 
@@ -674,7 +682,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     }
 
     /**
-     * @dev Private view function to revert if the caller is not the
+     * @dev Internal view function to revert if the caller is not the
      *      controller.
      */
     function _assertCallerIsController() internal view {

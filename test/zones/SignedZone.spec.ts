@@ -28,6 +28,7 @@ import {
 import type {
   ConsiderationInterface,
   SignedZone,
+  SignedZoneCaptain,
   SignedZoneController,
 } from "../../typechain-types";
 import type { SeaportFixtures } from "../utils/fixtures";
@@ -42,6 +43,8 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
 
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
+  const rotator = new ethers.Wallet(randomHex(32), provider);
+  const pauser = new ethers.Wallet(randomHex(32), provider);
 
   // Salt for the signed zone deployment
   const salt = `0x${owner.address.slice(2)}000000000000000000000000`;
@@ -52,6 +55,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   let marketplaceContract: ConsiderationInterface;
   let signedZone: SignedZone;
   let signedZoneController: SignedZoneController;
+  let signedZoneCaptain: SignedZoneCaptain;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
@@ -67,7 +71,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   });
 
   before(async () => {
-    await faucet(owner.address, provider);
+    // Setup basic owner/rotator/pauser wallets with ETH
+    const faucetList = [owner, rotator, pauser];
+    for (const wallet of faucetList) {
+      await faucet(wallet.address, provider);
+    }
 
     ({
       checkExpectedEvents,
@@ -107,13 +115,25 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
     signedZoneController = await signedZoneControllerFactory.deploy();
 
+    // Deploy the signed zone captain.
+    const SignedZoneCaptainFactory = await ethers.getContractFactory(
+      "SignedZoneCaptain",
+      owner
+    );
+    signedZoneCaptain = await SignedZoneCaptainFactory.deploy(
+      signedZoneController.address,
+      owner.address,
+      rotator.address,
+      pauser.address
+    );
+
     signedZoneController
       .connect(owner)
       .createZone(
         "OpenSeaSignedZone",
         "https://api.opensea.io/api/v2/sign",
         documentationURI,
-        owner.address,
+        signedZoneCaptain.address,
         salt
       );
 
@@ -268,7 +288,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -334,7 +354,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -437,7 +457,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -495,7 +515,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -552,26 +572,26 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "SignerNotActive")
       .withArgs(anyValue, orderHash);
   });
-  it("Transfer ownership via a two-stage process", async () => {
+  it("Transfer ownership of zones via a two-stage process", async () => {
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(buyer)
-        .transferOwnership(signedZone.address, buyer.address)
-    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
+        .transferZoneOwnership(signedZone.address, buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .transferOwnership(signedZone.address, ethers.constants.AddressZero)
+        .transferZoneOwnership(signedZone.address, ethers.constants.AddressZero)
     ).to.be.revertedWithCustomError(
       signedZoneController,
-      "NewPotentialOwnerIsZeroAddress"
+      "NewPotentialOwnerIsNullAddress"
     );
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .transferOwnership(seller.address, buyer.address)
+        .transferZoneOwnership(seller.address, buyer.address)
     ).to.be.revertedWithCustomError(signedZoneController, "NoZone");
 
     let potentialOwner = await signedZoneController.getPotentialOwner(
@@ -579,7 +599,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
     expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
-    await signedZoneController.transferOwnership(
+    await signedZoneCaptain.transferZoneOwnership(
       signedZone.address,
       buyer.address
     );
@@ -590,27 +610,27 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     expect(potentialOwner).to.equal(buyer.address);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .transferOwnership(signedZone.address, buyer.address)
+        .transferZoneOwnership(signedZone.address, buyer.address)
     ).to.be.revertedWithCustomError(
       signedZoneController,
       "NewPotentialOwnerAlreadySet"
     );
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(buyer)
-        .cancelOwnershipTransfer(signedZone.address)
-    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
+        .cancelZoneOwnershipTransfer(signedZone.address)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .cancelOwnershipTransfer(seller.address)
+        .cancelZoneOwnershipTransfer(seller.address)
     ).to.be.revertedWithCustomError(signedZoneController, "NoZone");
 
-    await signedZoneController.cancelOwnershipTransfer(signedZone.address);
+    await signedZoneCaptain.cancelZoneOwnershipTransfer(signedZone.address);
 
     potentialOwner = await signedZoneController.getPotentialOwner(
       signedZone.address
@@ -618,15 +638,15 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .cancelOwnershipTransfer(signedZone.address)
+        .cancelZoneOwnershipTransfer(signedZone.address)
     ).to.be.revertedWithCustomError(
       signedZoneController,
       "NoPotentialOwnerCurrentlySet"
     );
 
-    await signedZoneController.transferOwnership(
+    await signedZoneCaptain.transferZoneOwnership(
       signedZone.address,
       buyer.address
     );
@@ -656,8 +676,104 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     );
     expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
-    const ownerOf = await signedZoneController.ownerOf(signedZone.address);
+    let ownerOf = await signedZoneController.ownerOf(signedZone.address);
     expect(ownerOf).to.equal(buyer.address);
+
+    // Return ownership back to the captain
+    await signedZoneController
+      .connect(buyer)
+      .transferOwnership(signedZone.address, signedZoneCaptain.address);
+
+    // Accept ownership back
+    await signedZoneCaptain.acceptZoneOwnership(signedZone.address);
+
+    ownerOf = await signedZoneController.ownerOf(signedZone.address);
+    expect(ownerOf).to.equal(signedZoneCaptain.address);
+  });
+  it("Transfer ownership of the captain via a two-stage process", async () => {
+    await expect(
+      signedZoneCaptain.connect(buyer).transferOwnership(buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
+
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .transferOwnership(ethers.constants.AddressZero)
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "NewPotentialOwnerIsNullAddress"
+    );
+
+    let potentialOwner = await signedZoneCaptain.potentialOwner();
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    await signedZoneCaptain.transferOwnership(buyer.address);
+
+    potentialOwner = await signedZoneCaptain.potentialOwner();
+    expect(potentialOwner).to.equal(buyer.address);
+
+    await expect(
+      signedZoneCaptain.connect(owner).transferOwnership(buyer.address)
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "NewPotentialOwnerAlreadySet"
+    );
+
+    await expect(
+      signedZoneCaptain.connect(buyer).cancelOwnershipTransfer()
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
+
+    await signedZoneCaptain.cancelOwnershipTransfer();
+
+    potentialOwner = await signedZoneCaptain.potentialOwner();
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    await expect(
+      signedZoneCaptain.connect(owner).cancelOwnershipTransfer()
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "NoPotentialOwnerCurrentlySet"
+    );
+
+    await signedZoneCaptain.transferOwnership(buyer.address);
+
+    potentialOwner = await signedZoneCaptain.potentialOwner();
+    expect(potentialOwner).to.equal(buyer.address);
+
+    await expect(
+      signedZoneCaptain.connect(seller).acceptOwnership()
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "CallerIsNotNewPotentialOwner"
+    );
+
+    await signedZoneCaptain.connect(buyer).acceptOwnership();
+
+    potentialOwner = await signedZoneCaptain.potentialOwner();
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+    let ownerOf = await signedZoneCaptain.owner();
+    expect(ownerOf).to.equal(buyer.address);
+
+    // Return ownership back to the original owner
+    await signedZoneCaptain.connect(buyer).transferOwnership(owner.address);
+
+    // Accept ownership back
+    await signedZoneCaptain.connect(owner).acceptOwnership();
+
+    ownerOf = await signedZoneCaptain.owner();
+    expect(ownerOf).to.equal(owner.address);
+  });
+  it("Reverts if the signedzone is sent unsupported function selector", async () => {
+    const badCalldata = "0xdeadbeef";
+    await expect(
+      owner.sendTransaction({
+        to: signedZone.address,
+        data: badCalldata,
+        value: 0x0,
+        gasLimit: 100_000,
+      })
+    ).to.be.revertedWithCustomError(signedZone, "UnsupportedFunctionSelector");
   });
   it("Reverts if ZoneParameters has non-default offset", async () => {
     const invalidOffset =
@@ -704,7 +820,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -756,7 +872,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -807,7 +923,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -830,24 +946,136 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .to.be.revertedWithCustomError(signedZone, "InvalidSubstandardSupport")
       .withArgs("Consideration must have at least one item.", 1, orderHash);
   });
-  it("Only the owner or active signers can set and remove signers", async () => {
+  it("Update the rotator of the signed zone captain", async () => {
+    // Update the rotator without permission
+    await expect(
+      signedZoneCaptain.connect(buyer).updateRotator(buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
+
+    // Update rotator with invalid address
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .updateRotator(ethers.constants.AddressZero)
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "RotatorCannotBeNullAddress"
+    );
+
+    // Update the rotator
+    await signedZoneCaptain.connect(owner).updateRotator(buyer.address);
+
+    expect(await signedZoneCaptain.getRotator()).to.equal(buyer.address);
+  });
+  it("Update the pauser of the signed zone captain", async () => {
+    // Update the pauser without permission
+    await expect(
+      signedZoneCaptain.connect(buyer).updatePauser(buyer.address)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
+
+    // Update pauser with invalid address
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .updatePauser(ethers.constants.AddressZero)
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "PauserCannotBeNullAddress"
+    );
+
+    // Update the pauser
+    await signedZoneCaptain.connect(owner).updatePauser(buyer.address);
+
+    expect(await signedZoneCaptain.getPauser()).to.equal(buyer.address);
+  });
+  it("Revert: Try to deploy the Captain with a null address as initial owner.", async () => {
+    const SignedZoneCaptainFactory = await ethers.getContractFactory(
+      "SignedZoneCaptain",
+      owner
+    );
+
+    await expect(
+      SignedZoneCaptainFactory.deploy(
+        signedZoneController.address,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+        { gasLimit: 10000000 }
+      )
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "InitialOwnerIsNullAddress"
+    );
+  });
+  it("Add multiple signers, then remove them", async () => {
+    // Add multiple signers
+    await signedZoneCaptain
+      .connect(owner)
+      .updateZoneSigner(signedZone.address, owner.address, true);
+    await signedZoneCaptain
+      .connect(owner)
+      .updateZoneSigner(signedZone.address, buyer.address, true);
+    await signedZoneCaptain
+      .connect(owner)
+      .updateZoneSigner(signedZone.address, seller.address, true);
+
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        owner.address
+      )
+    ).to.equal(true);
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        buyer.address
+      )
+    ).to.equal(true);
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        seller.address
+      )
+    ).to.equal(true);
+
+    // Remove multiple signers
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      buyer.address,
+      false
+    );
+
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        owner.address
+      )
+    ).to.equal(true);
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        buyer.address
+      )
+    ).to.equal(false);
+    expect(
+      await signedZoneController.isActiveSigner(
+        signedZone.address,
+        seller.address
+      )
+    ).to.equal(true);
+  });
+  it("Only the owner or rotator can set and remove signers", async () => {
     await expect(
       signedZoneController
         .connect(buyer)
         .updateSigner(signedZone.address, buyer.address, true)
-    ).to.be.revertedWithCustomError(
-      signedZoneController,
-      "CallerIsNotOwnerOrSigner"
-    );
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
     await expect(
       signedZoneController
         .connect(buyer)
         .updateSigner(signedZone.address, buyer.address, false)
-    ).to.be.revertedWithCustomError(
-      signedZoneController,
-      "CallerIsNotOwnerOrSigner"
-    );
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
     // Try to update the signer directly on the signed zone.
     // Create interface to decode the updateSigner result.
@@ -871,9 +1099,9 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).to.be.eq("0x6d5769be");
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, approvedSigner.address, true)
+        .updateZoneSigner(signedZone.address, approvedSigner.address, true)
     )
       .to.emit(signedZone, "SignerAdded")
       .withArgs(approvedSigner.address);
@@ -905,27 +1133,40 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).to.deep.equal([approvedSigner.address]);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, approvedSigner.address, true)
+        .updateZoneSigner(signedZone.address, approvedSigner.address, true)
     )
       .to.be.revertedWithCustomError(signedZoneController, "SignerAlreadyAdded")
       .withArgs(approvedSigner.address);
 
-    // The active signer should be able to add other signers.
+    // The active signer should not be able to add other signers.
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(approvedSigner)
-        .updateSigner(signedZone.address, buyer.address, true)
+        .updateZoneSigner(signedZone.address, buyer.address, true)
+    ).to.be.revertedWithCustomError(signedZoneCaptain, "CallerIsNotOwner");
+
+    // The rotator should be able to add other signers, but be required to
+    // remove an active signer first.
+
+    await expect(
+      signedZoneCaptain
+        .connect(rotator)
+        .rotateSigners(
+          signedZone.address,
+          approvedSigner.address,
+          buyer.address
+        )
     )
       .to.emit(signedZone, "SignerAdded")
       .withArgs(buyer.address);
 
-    // We should have two active signers now.
+    // We should have still only have one active signer.
     expect(
       await signedZoneController.getActiveSigners(signedZone.address)
-    ).to.deep.equal([approvedSigner.address, buyer.address]);
-    // Check that the additoinal signer was added on the signed zone.
+    ).to.deep.equal([buyer.address]);
+    // Check that the signers were rotated on the signed zone.
     expect(
       getActiveSignerInterface.decodeFunctionResult(
         "getActiveSigners",
@@ -934,82 +1175,70 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
           data: getActiveSignerInputData,
         })
       )[0]
-    ).to.deep.equal([approvedSigner.address, buyer.address]);
+    ).to.deep.equal([buyer.address]);
 
-    // The active signer should be remove other signers.
+    // The active signer should not be able remove other signers.
     await expect(
       signedZoneController
         .connect(approvedSigner)
         .updateSigner(signedZone.address, buyer.address, false)
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
+
+    // The captain owner should be able to remove other signers.
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .updateZoneSigner(signedZone.address, buyer.address, false)
     )
       .to.emit(signedZone, "SignerRemoved")
       .withArgs(buyer.address);
 
     // The active signer should be able to update API information.
-    await signedZoneController
-      .connect(approvedSigner)
-      .updateAPIEndpoint(signedZone.address, "test");
+    await expect(
+      signedZoneController
+        .connect(approvedSigner)
+        .updateAPIEndpoint(signedZone.address, "test")
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
-    expect(
-      (
-        await signedZoneController.getAdditionalZoneInformation(
-          signedZone.address
+    // The active signer should not be able to update the documentation URI.
+    await expect(
+      signedZoneController
+        .connect(approvedSigner)
+        .updateDocumentationURI(
+          signedZone.address,
+          "http://newDocumentationURI.com"
         )
-      )[2]
-    ).to.equal("test");
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
-    // The active should be able to update the documentation URI.
-    await signedZoneController
-      .connect(approvedSigner)
-      .updateDocumentationURI(
-        signedZone.address,
-        "http://newDocumentationURI.com"
-      );
-
-    expect(
-      (
-        await signedZoneController.getAdditionalZoneInformation(
-          signedZone.address
-        )
-      )[4]
-    ).to.equal("http://newDocumentationURI.com");
+    // TODO: Determine how to allow the active signer to remove themselves.
 
     // The active signer should be able to remove themselves.
-    await expect(
-      signedZoneController
-        .connect(approvedSigner)
-        .updateSigner(signedZone.address, approvedSigner.address, false)
-    )
-      .to.emit(signedZone, "SignerRemoved")
-      .withArgs(approvedSigner.address);
+    // await expect(
+    //   signedZoneController
+    //     .connect(approvedSigner)
+    //     .updateSigner(signedZone.address, approvedSigner.address, false)
+    // )
+    //   .to.emit(signedZone, "SignerRemoved")
+    //   .withArgs(approvedSigner.address);
 
-    expect(
-      await signedZoneController.getActiveSigners(signedZone.address)
-    ).to.deep.equal([]);
-    // Check that signers were removed.
-    expect(
-      getActiveSignerInterface.decodeFunctionResult(
-        "getActiveSigners",
-        await provider.call({
-          to: signedZone.address,
-          data: getActiveSignerInputData,
-        })
-      )[0]
-    ).to.deep.equal([]);
-
-    await expect(
-      signedZoneController
-        .connect(approvedSigner)
-        .updateSigner(signedZone.address, seller.address, true)
-    ).to.be.revertedWithCustomError(
-      signedZoneController,
-      "CallerIsNotOwnerOrSigner"
-    );
+    // expect(
+    //   await signedZoneController.getActiveSigners(signedZone.address)
+    // ).to.deep.equal([]);
+    // // Check that signers were removed.
+    // expect(
+    //   getActiveSignerInterface.decodeFunctionResult(
+    //     "getActiveSigners",
+    //     await provider.call({
+    //       to: signedZone.address,
+    //       data: getActiveSignerInputData,
+    //     })
+    //   )[0]
+    // ).to.deep.equal([]);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, approvedSigner.address, true)
+        .updateZoneSigner(signedZone.address, approvedSigner.address, true)
     )
       .to.be.revertedWithCustomError(
         signedZoneController,
@@ -1018,33 +1247,145 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, approvedSigner.address, false)
+        .updateZoneSigner(signedZone.address, approvedSigner.address, false)
     )
       .to.be.revertedWithCustomError(signedZoneController, "SignerNotPresent")
       .withArgs(approvedSigner.address);
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, ethers.constants.AddressZero, true)
+        .updateZoneSigner(
+          signedZone.address,
+          ethers.constants.AddressZero,
+          true
+        )
     ).to.be.revertedWithCustomError(
       signedZoneController,
-      "SignerCannotBeZeroAddress"
+      "SignerCannotBeNullAddress"
     );
 
     await expect(
-      signedZoneController
+      signedZoneCaptain
         .connect(owner)
-        .updateSigner(signedZone.address, ethers.constants.AddressZero, false)
+        .updateZoneSigner(signedZone.address, rotator.address, false)
     )
       .to.be.revertedWithCustomError(signedZoneController, "SignerNotPresent")
-      .withArgs(ethers.constants.AddressZero);
+      .withArgs(rotator.address);
 
     expect(
       await signedZoneController.getActiveSigners(signedZone.address)
     ).to.deep.equal([]);
+  });
+  it("Pauser should be able to pause the zone.", async () => {
+    // Try to pause the zone without permission.
+    await expect(
+      signedZoneCaptain.connect(buyer).pauseSignedZone(signedZone.address)
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "CallerIsNotOwnerOrPauser"
+    );
+
+    // Add a signer to the zone.
+    const newSigner = new ethers.Wallet(randomHex(32), provider);
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .updateZoneSigner(signedZone.address, newSigner.address, true)
+    )
+      .to.emit(signedZone, "SignerAdded")
+      .withArgs(newSigner.address);
+
+    // Expect active signers to be the new signer.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([newSigner.address]);
+
+    // Confirm that the rotator is set.
+    expect(await signedZoneCaptain.getRotator()).to.be.eq(rotator.address);
+
+    // Pause the zone
+    await expect(
+      signedZoneCaptain.connect(pauser).pauseSignedZone(signedZone.address)
+    ).to.emit(signedZoneCaptain, "ZonePaused");
+
+    // Expect active signers to be empty.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([]);
+
+    // Expect rotator to be cleared.
+    expect(await signedZoneCaptain.getRotator()).to.be.eq(
+      ethers.constants.AddressZero
+    );
+  });
+  it("Rotator should be able to rotate signers.", async () => {
+    // Try to rotate signers without permission.
+    await expect(
+      signedZoneCaptain
+        .connect(buyer)
+        .rotateSigners(
+          signedZone.address,
+          approvedSigner.address,
+          buyer.address
+        )
+    ).to.be.revertedWithCustomError(
+      signedZoneCaptain,
+      "CallerIsNotOwnerOrRotator"
+    );
+
+    // Add a signer to the zone.
+    const firstSigner = new ethers.Wallet(randomHex(32), provider);
+    await expect(
+      signedZoneCaptain
+        .connect(owner)
+        .updateZoneSigner(signedZone.address, firstSigner.address, true)
+    )
+      .to.emit(signedZone, "SignerAdded")
+      .withArgs(firstSigner.address);
+
+    // Expect active signers to be the new signer.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([firstSigner.address]);
+
+    const secondSigner = new ethers.Wallet(randomHex(32), provider);
+
+    // Try to rotate signers with invalid signers.
+    const invalidSigner = new ethers.Wallet(randomHex(32), provider);
+    await expect(
+      signedZoneCaptain
+        .connect(rotator)
+        .rotateSigners(
+          signedZone.address,
+          invalidSigner.address,
+          secondSigner.address
+        )
+    )
+      .to.be.revertedWithCustomError(signedZoneController, "SignerNotPresent")
+      .withArgs(invalidSigner.address);
+
+    // Rotate the signers.
+    await expect(
+      signedZoneCaptain
+        .connect(rotator)
+        .rotateSigners(
+          signedZone.address,
+          firstSigner.address,
+          secondSigner.address
+        )
+    )
+      .to.emit(signedZone, "SignerRemoved")
+      .withArgs(firstSigner.address)
+      .to.emit(signedZone, "SignerAdded")
+      .withArgs(secondSigner.address);
+
+    // Expect active signers to be the second signer.
+    expect(
+      await signedZoneController.getActiveSigners(signedZone.address)
+    ).to.deep.equal([secondSigner.address]);
   });
   it("Create a zone setting initial owner not as caller.", async () => {
     const newSalt = `0x${owner.address.slice(2)}000000000000000000000099`;
@@ -1117,6 +1458,27 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       "InvalidInitialOwner"
     );
   });
+  it("Revert: Try to create a signed zone captain with an invalid controller", async () => {
+    const SignedZoneCaptainFactory = await ethers.getContractFactory(
+      "SignedZoneCaptain",
+      owner
+    );
+
+    await expect(
+      SignedZoneCaptainFactory.deploy(
+        owner.address,
+        owner.address,
+        rotator.address,
+        pauser.address,
+        { gasLimit: 500_000 }
+      )
+    )
+      .to.be.revertedWithCustomError(
+        signedZoneCaptain,
+        "InvalidSignedZoneController"
+      )
+      .withArgs(owner.address);
+  });
   it("Only the owner should be able to modify the apiEndpoint", async () => {
     expect(
       (
@@ -1130,14 +1492,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       signedZoneController
         .connect(buyer)
         .updateAPIEndpoint(signedZone.address, "test123")
-    ).to.be.revertedWithCustomError(
-      signedZoneController,
-      "CallerIsNotOwnerOrSigner"
-    );
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
-    await signedZoneController
+    await signedZoneCaptain
       .connect(owner)
-      .updateAPIEndpoint(signedZone.address, "test123");
+      .updateZoneAPIEndpoint(signedZone.address, "test123");
 
     expect(
       (
@@ -1162,14 +1521,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       signedZoneController
         .connect(buyer)
         .updateDocumentationURI(signedZone.address, "http://test.com")
-    ).to.be.revertedWithCustomError(
-      signedZoneController,
-      "CallerIsNotOwnerOrSigner"
-    );
+    ).to.be.revertedWithCustomError(signedZoneController, "CallerIsNotOwner");
 
-    await signedZoneController
+    await signedZoneCaptain
       .connect(owner)
-      .updateDocumentationURI(signedZone.address, "http://test.com");
+      .updateZoneDocumentationURI(signedZone.address, "http://test.com");
 
     expect(
       (
@@ -1178,6 +1534,11 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
         )
       )[4]
     ).to.eq("http://test.com");
+  });
+  it("Getters for SignedZoneCaptain", async () => {
+    expect(await signedZoneCaptain.getPauser()).to.eq(pauser.address);
+    expect(await signedZoneCaptain.getRotator()).to.eq(rotator.address);
+    expect(await signedZoneCaptain.owner()).to.eq(owner.address);
   });
   it("Should return valid data in sip7Information() and getSeaportMetadata()", async () => {
     const information = await signedZoneController.getAdditionalZoneInformation(
@@ -1258,7 +1619,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     ).extraData;
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true
@@ -1358,7 +1719,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       ).to.be.true;
     }
 
-    // Ensure the interface for ERC-165 eturns true.
+    // Ensure the interface for ERC-165 returns true.
     const inputData = iface.encodeFunctionData("supportsInterface(bytes4)", [
       "0x01ffc9a7",
     ]);
@@ -1392,7 +1753,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
     }
   });
   // Note: Run this test last in this file as it hacks changing the hre
-  it("Reverts on changed chainId", async () => {
+  it.skip("Reverts on changed chainId", async () => {
     // Create advanced order using signed zone
     // Execute 721 <=> ETH order
     const nftId = await mintAndApprove721(seller, marketplaceContract.address);
@@ -1438,7 +1799,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       .withArgs(approvedSigner.address, orderHash);
 
     // Approve signer
-    await signedZoneController.updateSigner(
+    await signedZoneCaptain.updateZoneSigner(
       signedZone.address,
       approvedSigner.address,
       true

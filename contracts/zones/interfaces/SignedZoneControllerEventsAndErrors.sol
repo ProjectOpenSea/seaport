@@ -56,17 +56,11 @@ interface SignedZoneControllerEventsAndErrors {
     event SignerUpdated(address signedZone, address signer, bool active);
 
     /**
-     * @dev Revert with an error when attempting to update channels or transfer
-     *      ownership of a zone when the caller is not the owner of the
-     *      zone in question.
+     * @dev Revert with an error when attempting to update zone information or
+     *      transfer ownership of a zone when the caller is not the owner of
+     *      the zone in question.
      */
     error CallerIsNotOwner(address zone);
-
-    /**
-     * @dev Revert with an error when the caller is not the owner or an active
-     *      signer of the signed zone in question.
-     */
-    error CallerIsNotOwnerOrSigner(address zone);
 
     /**
      * @dev Revert with an error when attempting to claim ownership of a zone
@@ -103,7 +97,7 @@ interface SignedZoneControllerEventsAndErrors {
      * @dev Revert with an error when attempting to register a new potential
      *      owner and supplying the null address.
      */
-    error NewPotentialOwnerIsZeroAddress(address zone);
+    error NewPotentialOwnerIsNullAddress(address zone);
 
     /**
      * @dev Revert with an error when attempting to interact with a zone that
@@ -118,9 +112,9 @@ interface SignedZoneControllerEventsAndErrors {
     error SignerAlreadyAdded(address signer);
 
     /**
-     * @dev Revert with an error if a new signer is the zero address.
+     * @dev Revert with an error if a new signer is the null address.
      */
-    error SignerCannotBeZeroAddress();
+    error SignerCannotBeNullAddress();
 
     /**
      * @dev Revert with an error if a removed signer is trying to be

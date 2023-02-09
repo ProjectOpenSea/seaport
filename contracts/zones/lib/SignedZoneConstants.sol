@@ -160,6 +160,16 @@ uint256 constant SignatureExpired_error_expiration_ptr = 0x20;
 uint256 constant SignatureExpired_error_orderHash_ptr = 0x40;
 uint256 constant SignatureExpired_error_length = 0x44;
 
+/*
+ *  error UnsupportedFunctionSelector()
+ *    - Defined in SignedZoneEventsAndErrors.sol
+ *  Memory layout:
+ *    - 0x00: Left-padded selector (data begins at 0x1c)
+ * Revert buffer is memory[0x1c:0x20]
+ */
+uint256 constant UnsupportedFunctionSelector_error_selector = 0x54c91b87;
+uint256 constant UnsupportedFunctionSelector_error_length = 0x04;
+
 // Zone parameter calldata pointers
 uint256 constant Zone_parameters_cdPtr = 0x04;
 uint256 constant Zone_parameters_fulfiller_cdPtr = 0x44;

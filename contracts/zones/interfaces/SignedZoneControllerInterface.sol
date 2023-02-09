@@ -171,4 +171,20 @@ interface SignedZoneControllerInterface {
         external
         view
         returns (address derivedAddress);
+
+    /**
+     * @notice Returns whether or not the supplied address is an active signer
+     *         for the supplied zone.
+     *
+     * @param zone   The zone to check if the supplied address is an active
+     *               signer for.
+     * @param signer The address to check if it is an active signer for
+     *
+     * @return active If the supplied address is an active signer for the
+     *                supplied zone.
+     */
+    function isActiveSigner(address zone, address signer)
+        external
+        view
+        returns (bool);
 }

@@ -17,12 +17,6 @@ interface SignedZoneEventsAndErrors {
     event SignerRemoved(address signer);
 
     /**
-     * @dev Revert with an error if msg.sender is not the owner
-     *      or an active signer.
-     */
-    error OnlyOwnerOrActiveSigner();
-
-    /**
      * @dev Revert with an error when the signature has expired.
      */
     error SignatureExpired(uint256 expiration, bytes32 orderHash);
@@ -89,4 +83,9 @@ interface SignedZoneEventsAndErrors {
      *      that is not active.
      */
     error SignerNotActive(address signer, bytes32 orderHash);
+
+    /**
+     * @dev Revert when an unsupported function selector is found.
+     */
+    error UnsupportedFunctionSelector();
 }

@@ -21,7 +21,7 @@ import "./lib/SignedZoneConstants.sol";
  * @notice SignedZoneController enables the deploying of SignedZones and
  *         managing new SignedZone.
  *         SignedZones are an implementation of SIP-7 that requires orders to
- *         be signed by  an approved signer.
+ *         be signed by an approved signer.
  *         https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-7.md
  */
 contract SignedZoneController is
@@ -203,7 +203,7 @@ contract SignedZoneController is
 
         // Ensure the new potential owner is not an invalid address.
         if (newPotentialOwner == address(0)) {
-            revert NewPotentialOwnerIsZeroAddress(zone);
+            revert NewPotentialOwnerIsNullAddress(zone);
         }
 
         // Ensure the new potential owner is not already set.
@@ -337,6 +337,23 @@ contract SignedZoneController is
         signers = signedZoneProperties.activeSignerList;
     }
 
+    function isActiveSigner(address zone, address signer)
+        external
+        view
+        override
+        returns (bool)
+    {
+        // Ensure that the zone in question exists.
+        _assertZoneExists(zone);
+
+        // Retrieve storage region where the singers for the signedZone are
+        // stored.
+        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
+
+        // Return whether the signer is an active signer for the zone.
+        return signedZoneProperties.signers[signer].active;
+    }
+
     /**
      * @notice Update the API endpoint returned by a zone.
      *         Only the owner or an active signer of the supplied zone can call
@@ -349,8 +366,8 @@ contract SignedZoneController is
         external
         override
     {
-        // Ensure the caller is the owner or an active signer of the signed zone.
-        _assertCallerIsZoneOwnerOrSigner(zone);
+        // Ensure the caller is the owner of the signed zone.
+        _assertCallerIsZoneOwner(zone);
 
         // Retrieve storage region where the singers for the signedZone are
         // stored.
@@ -373,8 +390,8 @@ contract SignedZoneController is
         address zone,
         string calldata documentationURI
     ) external override {
-        // Ensure the caller is the owner or an active signer of the signed zone.
-        _assertCallerIsZoneOwnerOrSigner(zone);
+        // Ensure the caller is the owner of the signed zone.
+        _assertCallerIsZoneOwner(zone);
 
         // Retrieve storage region where the singers for the signedZone are
         // stored.
@@ -398,8 +415,8 @@ contract SignedZoneController is
         address signer,
         bool active
     ) external override {
-        // Ensure the caller is the owner or an active signer of the signed zone.
-        _assertCallerIsZoneOwnerOrSigner(zone);
+        // Ensure the caller is the owner of the signed zone.
+        _assertCallerIsZoneOwner(zone);
 
         // Retrieve storage region where the singers for the signedZone are
         // stored.
@@ -614,29 +631,6 @@ contract SignedZoneController is
     }
 
     /**
-     * @dev Private view function to revert if the caller is not the owner or
-     *      an active signer of a given zone.
-     *
-     * @param zone The zone for which to assert ownership.
-     */
-    function _assertCallerIsZoneOwnerOrSigner(address zone) private view {
-        // Ensure that the zone in question exists.
-        _assertZoneExists(zone);
-
-        // Initialize storage variable referencing signed zone properties.
-        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
-
-        // Ensure the caller is the owner or an active signer of the signed zone.
-        if (
-            msg.sender != _signedZones[zone].owner &&
-            !signedZoneProperties.signers[msg.sender].active
-        ) {
-            // Revert, indicating that the caller is not the owner.
-            revert CallerIsNotOwnerOrSigner(zone);
-        }
-    }
-
-    /**
      * @dev Private view function to revert if a given zone does not exist.
      *
      * @param zone The zone for which to assert existence.
@@ -651,7 +645,7 @@ contract SignedZoneController is
 
     /**
      * @dev Private view function to revert if a signer being added to a zone
-     *      is the zero address or the signer already exists, or the signer was
+     *      is the null address or the signer already exists, or the signer was
      *      previously authorized.  If the signer is being removed, the
      *      function will revert if the signer is not active.
      *
@@ -665,13 +659,13 @@ contract SignedZoneController is
         address signer,
         bool active
     ) private view {
+        // Do not allow the null address to be added as a signer.
+        if (signer == address(0)) {
+            revert SignerCannotBeNullAddress();
+        }
+
         // If the signer is being added...
         if (active) {
-            // Do not allow the zero address to be added as a signer.
-            if (signer == address(0)) {
-                revert SignerCannotBeZeroAddress();
-            }
-
             // Revert if the signer is already added.
             if (signedZoneProperties.signers[signer].active) {
                 revert SignerAlreadyAdded(signer);
