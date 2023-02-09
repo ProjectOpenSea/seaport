@@ -3,18 +3,18 @@ pragma solidity ^0.8.13;
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "../../contracts/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "../lib/ConsiderationStructs.sol";
+} from "../../contracts/lib/ConsiderationStructs.sol";
 
 /**
- * @title FlashloanOfferer
+ * @title ReferenceFlashloanOfferer
  * @author 0age
  * @notice FlashloanOfferer is a proof of concept for a flashloan contract
  *         offerer. It will send native tokens to each specified recipient in
@@ -24,8 +24,8 @@ import {
  *         single maximumSpent item with itself as the recipient for the total
  *         amount of aggregated native tokens.
  */
-contract FlashloanOfferer is ContractOffererInterface {
-    address private immutable _SEAPORT;
+contract ReferenceFlashloanOfferer is ContractOffererInterface {
+        address private immutable _SEAPORT;
 
     mapping(address => uint256) public balanceOf;
 
@@ -506,7 +506,6 @@ contract FlashloanOfferer is ContractOffererInterface {
         //     mstore(add(receivedItem, 0x80), address())
         // }
 
-        // TODO: @djviau Figure out the `spentItem.offset` issue.
         address _address;
 
         assembly {
