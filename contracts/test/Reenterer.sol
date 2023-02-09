@@ -37,4 +37,14 @@ contract Reenterer {
             isPrepared = false;
         }
     }
+
+    function execute(address to, uint256 value, bytes memory data) external {
+        (bool success, ) = payable(to).call{ value: value }(data);
+        if (!success) {
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
+    }
 }
