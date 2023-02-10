@@ -17,12 +17,12 @@ struct Call {
  *         receive approvals, as there are no access controls preventing an
  *         arbitrary party from taking those tokens. Similarly, any tokens left
  *         on this contract can be taken by an arbitrary party on subsequent
- *         calls.
+ *         calls.  This is the high level reference implementation.
  */
 contract ReferenceGenericAdapterSidecar {
     error InvalidEncodingOrCaller(); // 0x8f183575
     error CallFailed(uint256 index); // 0x3f9a3b48
-    error ExcessNativeTokenReturnFailed(uint256 amount); // 0x3d3f0ba4
+    error NativeTokenTransferGenericFailure(); // 0xbc806b96
 
     address private immutable _DESIGNATED_CALLER;
 
@@ -44,10 +44,7 @@ contract ReferenceGenericAdapterSidecar {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0x150b7a02)
-            return(0x1c, 0x04)
-        }
+        return this.onERC721Received.selector;
     }
 
     /**
@@ -60,84 +57,84 @@ contract ReferenceGenericAdapterSidecar {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0xf23a6e61)
-            return(0x1c, 0x04)
-        }
+        return this.onERC1155Received.selector;
     }
 
     /**
      * @dev Execute an arbitrary sequence of calls. Only callable from the
-     *      designated caller.
+     *      designated caller.  The selector is 0xb252b6e5.
      */
-    function execute(Call[] calldata /* calls */) external payable {
+    function execute(Call[] calldata calls) external payable {
         // Retrieve designated caller from runtime code & place value on stack.
         address designatedCaller = _DESIGNATED_CALLER;
 
-        assembly {
-            // Revert if standard encoding is not utilized or caller is invalid.
-            if or(
-                xor(caller(), designatedCaller),
-                xor(calldataload(0x04), 0x20)
+        // // Revert if standard encoding is not utilized or caller is invalid.
+        // if or(
+        //     // msg.sender != designatedCaller
+        //     xor(caller(), designatedCaller),
+        //     // calldataload(0x04) != 0x20
+        //     xor(calldataload(0x04), 0x20)
+        //     // The first 4 bytes of the calldata are the function selector,
+        //     // I think.
+        //     // So I think `calldataload(0x04)` is getting 32 bytes starting
+        //     // from the fifth byte (the first arg? array length?).
+        //     // And then we're checking that the value doesn't equal 0x20.
+            
+        //     // How does checking that the value of the first 32 bytes
+        //     // doesn't equal 0x20 ensure that the standard encoding is
+        //     // used lol?
+
+        // Revert if the caller is not the designated caller or if the callData
+        // is improperly encoded.
+        if (
+            msg.sender != designatedCaller ||
+            // TODO: Ask 0 or James about this.
+            calls.length != 32
             ) {
-                mstore(0, 0x8f183575)
-                revert(0x1c, 0x04)
+            revert InvalidEncodingOrCaller();
+        }
+
+        // Iterate over each call.
+        for (uint i=0; i < calls.length; ++i) {
+            // // Perform the call to the target, supplying value and calldata.
+            // let success := call(
+            //     gas(),
+            //     calldataload(callOffset), // target
+            //     calldataload(add(callOffset, 0x40)), // value
+            //     add(callDataOffset, 0x20), // callData data
+            //     and(calldataload(callDataOffset), 0xffffffff), // length
+            //     0,
+            //     0
+            // )
+
+            // Do a low-level call to get success status.
+            // TODO: Do I need to do anything with the return data?
+            (bool success, ) = calls[i]
+                .target
+                .call{value: calls[i].value}(
+                    abi.encodeWithSelector(
+                        // Is there a diagram of the contents of calls.callData?
+                        // This is a wild guess.
+                        bytes4(calls[i].callData[0:4]),
+                        calls[i].callData[4:]
+                    )
+                );
+
+            if (calls[i].allowFailure == false && success == false) {
+                revert CallFailed(i);
             }
+        }
 
-            // Derive the calldata offset for the final call.
-            let finalCallOffset := add(
-                0x44,
-                shl(0x05, and(calldataload(0x24), 0xffffffff))
-            )
+        // Return excess native tokens, if any remain, to the caller.
+        if (address(this).balance > 0) {
+            // Declare a variable indicating whether the call was successful or not.
+            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
 
-            // Iterate over each call.
-            for {
-                let callOffset := 0x44
-            } lt(callOffset, finalCallOffset) {
-                callOffset := add(callOffset, 0x20)
-            } {
-                let callDataOffset := and(
-                    calldataload(add(callOffset, 0x60)),
-                    0xffffffff
-                )
-
-                // Perform the call to the target, supplying value and calldata.
-                let success := call(
-                    gas(),
-                    calldataload(callOffset), // target
-                    calldataload(add(callOffset, 0x40)), // value
-                    add(callDataOffset, 0x20), // callData data
-                    and(calldataload(callDataOffset), 0xffffffff), // length
-                    0,
-                    0
-                )
-
-                // Revert if the call fails and failure is not allowed.
-                if iszero(or(calldataload(add(callOffset, 0x20)), success)) {
-                    if and(returndatasize(), lt(returndatasize(), 0xffff)) {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-
-                    mstore(0, 0x3f9a3b48)
-                    mstore(0x20, shr(0x05, sub(callOffset, 0x44)))
-                    revert(0x1c, 0x24)
-                }
-            }
-
-            // Return excess native tokens to the caller.
-            if selfbalance() {
-                let success := call(gas(), caller(), selfbalance(), 0, 0, 0, 0)
-                if iszero(success) {
-                    if and(returndatasize(), lt(returndatasize(), 0xffff)) {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-
-                    mstore(0, 0x3d3f0ba4)
-                    mstore(0x20, selfbalance())
-                    revert(0x1c, 0x24)
-                }
+            // If the call fails...
+            if (!success) {
+                // Note that this reference implementation deviates from the
+                // optimized contract, which "bubbles up" revert data
+                revert NativeTokenTransferGenericFailure();
             }
         }
     }
