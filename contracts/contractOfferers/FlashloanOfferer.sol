@@ -264,7 +264,7 @@ contract FlashloanOfferer is ContractOffererInterface {
                     let success := call(
                         gas(),
                         recipient,
-                        0, // TODO: @djviau Determine if this should be msg.value or something.
+                        value,
                         0x1c,
                         0x24,
                         0,

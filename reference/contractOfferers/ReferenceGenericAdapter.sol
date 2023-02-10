@@ -15,7 +15,9 @@ import {
 
 import { TokenTransferrer } from "../../contracts/lib/TokenTransferrer.sol";
 
-import { ReferenceGenericAdapterSidecar } from "./ReferenceGenericAdapterSidecar.sol";
+import {
+    ReferenceGenericAdapterSidecar
+} from "./ReferenceGenericAdapterSidecar.sol";
 
 /**
  * @title ReferenceGenericAdapter

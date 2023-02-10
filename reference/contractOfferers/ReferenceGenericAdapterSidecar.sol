@@ -67,59 +67,22 @@ contract ReferenceGenericAdapterSidecar {
     function execute(Call[] calldata calls) external payable {
         // Retrieve designated caller from runtime code & place value on stack.
         address designatedCaller = _DESIGNATED_CALLER;
-        // bytes memory cleanupRecipientBytes = context[1:21];
 
-        // // Revert if standard encoding is not utilized or caller is invalid.
-        // if or(
-        //     // msg.sender != designatedCaller
-        //     xor(caller(), designatedCaller),
-        //     // calldataload(0x04) != 0x20
-        //     xor(calldataload(0x04), 0x20)
-        //     // The first 4 bytes of the calldata are the function selector,
-        //     // I think.
-        //     // So I think `calldataload(0x04)` is getting 32 bytes starting
-        //     // from the fifth byte (the offset for the array.)
-        //     // And then we're checking that the value doesn't equal 0x20.
-            
-        //     // How does checking that the value of the first 32 bytes
-        //     // doesn't equal 0x20 ensure that the standard encoding is
-        //     // used lol?
-
-        // Revert if the caller is not the designated caller or if the callData
-        // is improperly encoded.
-        if (
-            msg.sender != designatedCaller
-            // || calls.length == 0
-            ) {
+        // Revert if the caller is not the designated caller.
+        if (msg.sender != designatedCaller) {
             revert InvalidEncodingOrCaller();
         }
 
         // Iterate over each call.
-        for (uint i=0; i < calls.length; ++i) {
-            // // Perform the call to the target, supplying value and calldata.
-            // let success := call(
-            //     gas(),
-            //     calldataload(callOffset), // target
-            //     calldataload(add(callOffset, 0x40)), // value
-            //     add(callDataOffset, 0x20), // callData data
-            //     and(calldataload(callDataOffset), 0xffffffff), // length
-            //     0,
-            //     0
-            // )
-
+        for (uint i = 0; i < calls.length; ++i) {
             // Do a low-level call to get success status.
             // TODO: Do I need to do anything with the return data? I think no.
-            (bool success, ) = calls[i]
-                .target
-                .call{value: calls[i].value}(
-                    abi.encodeWithSelector(
-                        // Is there a diagram of the contents of
-                        // calls[n].callData?
-                        // This is a wild guess.
-                        bytes4(calls[i].callData[0:4]),
-                        calls[i].callData[4:]
-                    )
-                );
+            (bool success, ) = calls[i].target.call{ value: calls[i].value }(
+                abi.encodeWithSelector(
+                    bytes4(calls[i].callData[0:4]),
+                    calls[i].callData[4:]
+                )
+            );
 
             if (calls[i].allowFailure == false && success == false) {
                 revert CallFailed(i);
@@ -129,12 +92,12 @@ contract ReferenceGenericAdapterSidecar {
         // Return excess native tokens, if any remain, to the caller.
         if (address(this).balance > 0) {
             // Declare a variable indicating whether the call was successful or not.
-            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
+            (bool success, ) = msg.sender.call{ value: address(this).balance }(
+                ""
+            );
 
-            // If the call fails...
+            // If the call fails, revert.
             if (!success) {
-                // Note that this reference implementation deviates from the
-                // optimized contract, which "bubbles up" revert data
                 revert NativeTokenTransferGenericFailure();
             }
         }
