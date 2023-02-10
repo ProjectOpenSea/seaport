@@ -67,6 +67,7 @@ contract ReferenceGenericAdapterSidecar {
     function execute(Call[] calldata calls) external payable {
         // Retrieve designated caller from runtime code & place value on stack.
         address designatedCaller = _DESIGNATED_CALLER;
+        // bytes memory cleanupRecipientBytes = context[1:21];
 
         // // Revert if standard encoding is not utilized or caller is invalid.
         // if or(
@@ -77,7 +78,7 @@ contract ReferenceGenericAdapterSidecar {
         //     // The first 4 bytes of the calldata are the function selector,
         //     // I think.
         //     // So I think `calldataload(0x04)` is getting 32 bytes starting
-        //     // from the fifth byte (the first arg? array length?).
+        //     // from the fifth byte (the offset for the array.)
         //     // And then we're checking that the value doesn't equal 0x20.
             
         //     // How does checking that the value of the first 32 bytes
@@ -87,9 +88,8 @@ contract ReferenceGenericAdapterSidecar {
         // Revert if the caller is not the designated caller or if the callData
         // is improperly encoded.
         if (
-            msg.sender != designatedCaller ||
-            // TODO: Ask 0 or James about this.
-            calls.length != 32
+            msg.sender != designatedCaller
+            // || calls.length == 0
             ) {
             revert InvalidEncodingOrCaller();
         }
@@ -108,12 +108,13 @@ contract ReferenceGenericAdapterSidecar {
             // )
 
             // Do a low-level call to get success status.
-            // TODO: Do I need to do anything with the return data?
+            // TODO: Do I need to do anything with the return data? I think no.
             (bool success, ) = calls[i]
                 .target
                 .call{value: calls[i].value}(
                     abi.encodeWithSelector(
-                        // Is there a diagram of the contents of calls.callData?
+                        // Is there a diagram of the contents of
+                        // calls[n].callData?
                         // This is a wild guess.
                         bytes4(calls[i].callData[0:4]),
                         calls[i].callData[4:]

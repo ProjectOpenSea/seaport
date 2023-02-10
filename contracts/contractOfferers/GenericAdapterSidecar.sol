@@ -78,8 +78,18 @@ contract GenericAdapterSidecar {
             // Revert if standard encoding is not utilized or caller is invalid.
             if or(
                 xor(caller(), designatedCaller),
+                // Dynamic elements like arrays are moved to the end of calldata
+                // and a pointer to that offset is encoded in its “normal”
+                // place. Since there’s only one argument and it’s dynamic, the
+                // offset is just one word after the start of calldata. Anything
+                // that’s not 0x20 (or 0) will xor to a non zero value and pass
+                // the conditional.
+                //
+                // Check the bytes from 4 to 36 and make sure they're providing
+                // the offset (one word) we'd expect.
                 xor(calldataload(0x04), 0x20)
             ) {
+                // revert InvalidEncodingOrCaller();
                 mstore(0, 0x8f183575)
                 revert(0x1c, 0x04)
             }
