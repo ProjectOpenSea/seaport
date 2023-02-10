@@ -184,7 +184,11 @@ contract FlashloanOfferer is ContractOffererInterface {
                 }
             }
 
-            _processDepositOrWithdrawal(fulfiller, minimumReceivedItem, context);
+            _processDepositOrWithdrawal(
+                fulfiller,
+                minimumReceivedItem,
+                context
+            );
         } else {
             revert InvalidTotalMinimumReceivedItems();
         }
@@ -245,14 +249,13 @@ contract FlashloanOfferer is ContractOffererInterface {
                     flashloanDataOffset := add(flashloanDataOffset, 0x20)
                 } {
                     // Note: confirm that this is the correct usage of byte opcode
-                    let shouldCall := byte(
-                        12,
-                        calldataload(flashloanDataOffset)
-                    )
+                    let flashloanData := calldataload(flashloanDataOffset)
+                    let shouldCall := byte(12, flashloanData)
                     let recipient := and(
                         0xffffffffffffffffffffffffffffffffffffffff,
-                        calldataload(flashloanDataOffset)
+                        flashloanData
                     )
+                    let value := shr(168, flashloanData)
 
                     // Fire off call to recipient. Revert & bubble up revert data if
                     // present & reasonably-sized, else revert with a custom error.
@@ -293,6 +296,7 @@ contract FlashloanOfferer is ContractOffererInterface {
                 }
             }
 
+            // return RatifyOrderMagicValue
             mstore(0, 0xf4dd92ce)
             return(0x1c, 0x04)
         }
@@ -501,16 +505,9 @@ contract FlashloanOfferer is ContractOffererInterface {
     function _copySpentAsReceivedToSelf(
         SpentItem calldata spentItem
     ) internal view returns (ReceivedItem memory receivedItem) {
-        // assembly {
-        //     calldatacopy(receivedItem, spentItem.offset, 0x80)
-        //     mstore(add(receivedItem, 0x80), address())
-        // }
-
-        // TODO: @djviau Figure out the `spentItem.offset` issue.
-        address _address;
-
         assembly {
-            _address := address()
+            calldatacopy(receivedItem, spentItem, 0x80)
+            mstore(add(receivedItem, 0x80), address())
         }
 
         return
