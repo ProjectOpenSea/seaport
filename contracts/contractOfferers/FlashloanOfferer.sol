@@ -184,7 +184,11 @@ contract FlashloanOfferer is ContractOffererInterface {
                 }
             }
 
-            _processDepositOrWithdrawal(minimumReceivedItem);
+            _processDepositOrWithdrawal(
+                fulfiller,
+                minimumReceivedItem,
+                context
+            );
         } else {
             revert InvalidTotalMinimumReceivedItems();
         }
@@ -242,17 +246,16 @@ contract FlashloanOfferer is ContractOffererInterface {
                 for {
                     let flashloanDataOffset := flashloanDataStarts
                 } lt(flashloanDataOffset, flashloanDataEnds) {
-                    flashloanDataOffset := add(approvalDataOffset, 0x20)
+                    flashloanDataOffset := add(flashloanDataOffset, 0x20)
                 } {
                     // Note: confirm that this is the correct usage of byte opcode
-                    let shouldCall := byte(
-                        12,
-                        calldataload(flashloanDataOffset)
-                    )
+                    let flashloanData := calldataload(flashloanDataOffset)
+                    let shouldCall := byte(12, flashloanData)
                     let recipient := and(
                         0xffffffffffffffffffffffffffffffffffffffff,
-                        calldataload(flashloanDataOffset)
+                        flashloanData
                     )
+                    let value := shr(168, flashloanData)
 
                     // Fire off call to recipient. Revert & bubble up revert data if
                     // present & reasonably-sized, else revert with a custom error.
@@ -293,6 +296,7 @@ contract FlashloanOfferer is ContractOffererInterface {
                 }
             }
 
+            // return RatifyOrderMagicValue
             mstore(0, 0xf4dd92ce)
             return(0x1c, 0x04)
         }
@@ -406,7 +410,7 @@ contract FlashloanOfferer is ContractOffererInterface {
             for {
                 let flashloanDataOffset := flashloanDataStarts
             } lt(flashloanDataOffset, flashloanDataEnds) {
-                flashloanDataOffset := add(approvalDataOffset, 0x20)
+                flashloanDataOffset := add(flashloanDataOffset, 0x20)
             } {
                 let value := shr(168, calldataload(flashloanDataOffset))
                 let recipient := and(
@@ -441,7 +445,8 @@ contract FlashloanOfferer is ContractOffererInterface {
 
     function _processDepositOrWithdrawal(
         address fulfiller,
-        SpentItem calldata spentItem
+        SpentItem calldata spentItem,
+        bytes calldata context
     ) internal {
         {
             // Get the length of the context array from calldata (unmasked).
@@ -499,9 +504,9 @@ contract FlashloanOfferer is ContractOffererInterface {
      */
     function _copySpentAsReceivedToSelf(
         SpentItem calldata spentItem
-    ) internal pure returns (ReceivedItem memory receivedItem) {
+    ) internal view returns (ReceivedItem memory receivedItem) {
         assembly {
-            calldatacopy(receivedItem, spentItem.offset, 0x80)
+            calldatacopy(receivedItem, spentItem, 0x80)
             mstore(add(receivedItem, 0x80), address())
         }
     }

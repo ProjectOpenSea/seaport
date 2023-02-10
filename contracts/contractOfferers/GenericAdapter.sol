@@ -205,6 +205,8 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
 
         // Track cumulative native tokens to be spent.
         uint256 value;
+        // duplicate fulfiller on stack before it's pushed too far down to be accessed
+        address _fulfiller = fulfiller;
 
         // Transfer each maximumSpent item to the sidecar.
         {
@@ -222,21 +224,21 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
                 } else if (itemType == ItemType.ERC20) {
                     _performERC20Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.amount
                     );
                 } else if (itemType == ItemType.ERC721) {
                     _performERC721Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.identifier
                     );
                 } else {
                     _performERC1155Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.identifier,
                         item.amount
