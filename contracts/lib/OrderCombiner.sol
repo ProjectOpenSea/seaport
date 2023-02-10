@@ -746,6 +746,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
+        // Trigger execution prior to post-execution checks.
+        _triggerIfArmed(accumulator);
+
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // duplicate recipient address to stack to avoid stack-too-deep
