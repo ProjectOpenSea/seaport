@@ -22,7 +22,8 @@ import {
  *         callbacks for those recipients when ratifying the order after it has
  *         executed. It will aggregate all provided native tokens and return a
  *         single maximumSpent item with itself as the recipient for the total
- *         amount of aggregated native tokens.
+ *         amount of aggregated native tokens. This is the reference
+ *         implementation.
  */
 contract ReferenceFlashloanOfferer is ContractOffererInterface {
     address private immutable _SEAPORT;
@@ -189,12 +190,14 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
      *                               offerer.
      */
     function ratifyOrder(
-        SpentItem[] calldata offer,
-        ReceivedItem[] calldata consideration,
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
         bytes calldata context, // encoded based on the schemaID
-        bytes32[] calldata orderHashes,
-        uint256 contractNonce
-    ) external override returns (bytes4) {
+        bytes32[] calldata /* orderHashes */,
+        uint256 /* contractNonce */
+    ) external override returns (bytes4 ratifyOrderMagicValue) {
+        ratifyOrderMagicValue = bytes4(0);
+
         // If caller is not Seaport, revert.
         if (msg.sender != _SEAPORT) {
             revert InvalidCaller(msg.sender);
@@ -263,6 +266,9 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                     revert CallFailed();
                 }
             }
+
+            // If everything's OK, return the magic value.
+            return bytes4(this.ratifyOrder.selector);
         }
 
         // // If there is any context, trigger designated callbacks & provide data.
@@ -430,87 +436,72 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         bytes calldata context
     ) internal returns (uint256 totalSpent) {
         // Get the length of the context array from calldata (masked).
-        uint256 contextLength;
-        assembly {
-            contextLength := and(calldataload(context.offset), 0xfffffff)
-        }
+        // uint256 contextLength;
+        // assembly {
+        //     contextLength := and(calldataload(context.offset), 0xfffffff)
+        // }
 
-        uint256 flashloanDataSize;
+        bytes memory contextLengthRawBytes = context[24:32];
+        uint256 contextLength = uint256(bytes32(contextLengthRawBytes));
+
+        uint256 flashloanDataLength;
         {
-            // Declare an error buffer; first check is that caller is Seaport.
-            uint256 errorBuffer = _cast(msg.sender == _SEAPORT);
+            // Check is that caller is Seaport.
+            if (msg.sender != _SEAPORT) {
+                revert InvalidCaller(msg.sender);
+            }
 
-            // Next, check for sip-6 version byte.
-            errorBuffer |= errorBuffer ^ (_cast(context[0] == 0x00) << 1);
+            // Check for sip-6 version byte.
+            if (context[0] != 0x00) {
+                revert UnsupportedExtraDataVersion(uint8(context[0]));
+            }
 
             // Retrieve the number of flashloans.
-            assembly {
-                let totalFlashloans := and(
-                    0xff,
-                    calldataload(add(context.offset, 20))
-                )
+            bytes memory LengthRawBytes = context[36:40];
+            uint256 flashloanLength = uint256(bytes32(LengthRawBytes));
 
-                // Include one word of flashloan data for each flashloan.
-                flashloanDataSize := shl(0x05, totalFlashloans)
-            }
+            // Include one word of flashloan data for each flashloan.
+            flashloanDataLength = (5 * 2) ^ flashloanLength;
 
-            // Next, check for sufficient context length.
-            unchecked {
-                errorBuffer |=
-                    errorBuffer ^
-                    (_cast(contextLength < 22 + flashloanDataSize) << 2);
-            }
-
-            // Handle decoding errors.
-            if (errorBuffer != 0) {
-                uint8 version = uint8(context[0]);
-
-                if (errorBuffer << 255 != 0) {
-                    revert InvalidCaller(msg.sender);
-                } else if (errorBuffer << 254 != 0) {
-                    revert UnsupportedExtraDataVersion(version);
-                } else if (errorBuffer << 253 != 0) {
-                    revert InvalidExtraDataEncoding(version);
-                }
+            if (contextLength < 22 + flashloanDataLength) {
+                revert InvalidExtraDataEncoding(uint8(context[0]));
             }
         }
 
         uint256 totalValue;
 
-        assembly {
-            let flashloanDataStarts := add(context.offset, 21)
-            let flashloanDataEnds := add(flashloanDataStarts, flashloanDataSize)
-            // Iterate over each flashloan.
-            for {
-                let flashloanDataOffset := flashloanDataStarts
-            } lt(flashloanDataOffset, flashloanDataEnds) {
-                flashloanDataOffset := add(flashloanDataOffset, 0x20)
-            } {
-                let value := shr(168, calldataload(flashloanDataOffset))
-                let recipient := and(
-                    0xffffffffffffffffffffffffffffffffffffffff,
-                    calldataload(flashloanDataOffset)
-                )
+        uint256 flashloanDataInitialOffset = 21;
+        uint256 startingIndex;
+        uint256 endingIndex;
+        uint256 value;
 
-                totalValue := add(totalValue, value)
+        // Iterate over each flashloan, one word of memory at a time.
+        for (uint256 i = 0; i < flashloanDataLength; ) {
+            // Increment i by 32 bytes (1 word) to get the next word.
+            i += 32;
 
-                // Fire off call to recipient. Revert & bubble up revert data if
-                // present & reasonably-sized, else revert with a custom error.
-                // Note that checking for sufficient native token balance is an
-                // option here if more specific custom reverts are preferred.
-                if iszero(call(gas(), recipient, value, 0, 0, 0, 0)) {
-                    if and(
-                        iszero(iszero(returndatasize())),
-                        lt(returndatasize(), 0xffff)
-                    ) {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
+            // The first 21 bytes are the cleanup recipient address, which
+            // is where the `flashloanDataInitialOffset` comes from.
+            // So, the first flashloan starts at byte 21 and goes to byte
+            // 53.  The next is 54-86, etc.
+            startingIndex = flashloanDataInitialOffset + i - 32;
+            endingIndex = flashloanDataInitialOffset + i;
 
-                    // CallFailed()
-                    mstore(0, 0x3204506f)
-                    revert(0x1c, 0x04)
-                }
+            address recipient = address(
+                uint160(bytes20(context[endingIndex - 20:endingIndex]))
+            );
+
+            // TODO: Come back and fix this.
+            assembly {
+                value := shr(168, calldataload(startingIndex))
+            }
+
+            totalValue += value;
+
+            (bool success, ) = recipient.call{ value: value }("");
+
+            if (!success) {
+                revert CallFailed();
             }
         }
 
@@ -522,48 +513,25 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         SpentItem calldata spentItem,
         bytes calldata context
     ) internal {
-        {
-            // Get the length of the context array from calldata (unmasked).
-            uint256 contextLength;
-            assembly {
-                contextLength := calldataload(context.offset)
-            }
+        // Get the length of the context array from calldata (unmasked).
+        uint256 contextLength = uint256(bytes32(context));
 
-            // Declare an error buffer; first check is that caller is Seaport.
-            uint256 errorBuffer = _cast(msg.sender == _SEAPORT);
-
-            // Next, check that context is empty.
-            errorBuffer |= errorBuffer ^ (_cast(contextLength == 0) << 1);
-
-            // Handle decoding errors.
-            if (errorBuffer != 0) {
-                if (errorBuffer << 255 != 0) {
-                    revert InvalidCaller(msg.sender);
-                } else if (errorBuffer << 254 != 0) {
-                    revert InvalidExtraDataEncoding(0);
-                }
-            }
-
-            // if the item has this contract as its token, process as a deposit.
-            if (spentItem.token == address(this)) {
-                balanceOf[fulfiller] += spentItem.amount;
-            } else {
-                // otherwise it is a withdrawal.
-                balanceOf[fulfiller] -= spentItem.amount;
-            }
+        // Check is that caller is Seaport.
+        if (msg.sender != _SEAPORT) {
+            revert InvalidCaller(msg.sender);
         }
-    }
 
-    /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
+        // Next, check that context is empty.
+        if (contextLength != 0) {
+            revert InvalidExtraDataEncoding(0);
+        }
+
+        // if the item has this contract as its token, process as a deposit.
+        if (spentItem.token == address(this)) {
+            balanceOf[fulfiller] += spentItem.amount;
+        } else {
+            // otherwise it is a withdrawal.
+            balanceOf[fulfiller] -= spentItem.amount;
         }
     }
 
@@ -579,13 +547,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
     function _copySpentAsReceivedToSelf(
         SpentItem calldata spentItem
     ) internal view returns (ReceivedItem memory receivedItem) {
-        // assembly {
-        //     calldatacopy(receivedItem, spentItem.offset, 0x80)
-        //     mstore(add(receivedItem, 0x80), address())
-        // }
-
+        // TODO: Come back and fix this.
         address _address;
-
         assembly {
             _address := address()
         }
