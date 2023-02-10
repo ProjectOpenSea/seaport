@@ -76,10 +76,10 @@ describe("Validate Orders", function () {
 
     const validator = await Validator.deploy();
 
-    const erc721_1 = await TestERC721Factory.deploy("NFT1", "NFT1");
-    const erc721_2 = await TestERC721Factory.deploy("NFT2", "NFT2");
-    const erc1155_1 = await TestERC1155Factory.deploy("uri_here");
-    const erc20_1 = await TestERC20Factory.deploy("ERC20", "ERC20");
+    const erc721_1 = await TestERC721Factory.deploy();
+    const erc721_2 = await TestERC721Factory.deploy();
+    const erc1155_1 = await TestERC1155Factory.deploy();
+    const erc20_1 = await TestERC20Factory.deploy();
 
     return {
       validator,
