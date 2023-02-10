@@ -509,14 +509,5 @@ contract FlashloanOfferer is ContractOffererInterface {
             calldatacopy(receivedItem, spentItem, 0x80)
             mstore(add(receivedItem, 0x80), address())
         }
-
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(_address)
-            });
     }
 }
