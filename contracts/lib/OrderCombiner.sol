@@ -720,9 +720,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         address recipient,
         bool containsNonOpen
     ) internal returns (bool[] memory /* availableOrders */) {
-        // Declare a variable for the available native token balance.
-        uint256 nativeTokenBalance;
-
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -736,39 +733,44 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // accessed and modified, however.
         bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
-        // Retrieve the length of the executions array and place on stack.
-        uint256 totalExecutions = executions.length;
+        {
+            // Declare a variable for the available native token balance.
+            uint256 nativeTokenBalance;
 
-        // Iterate over each execution.
-        for (uint256 i = 0; i < totalExecutions; ) {
-            // Retrieve the execution and the associated received item.
-            Execution memory execution = executions[i];
-            ReceivedItem memory item = execution.item;
+            // Retrieve the length of the executions array and place on stack.
+            uint256 totalExecutions = executions.length;
 
-            // If execution transfers native tokens, reduce value available.
-            if (item.itemType == ItemType.NATIVE) {
-                // Get the current available balance of native tokens.
-                assembly {
-                    nativeTokenBalance := selfbalance()
+            // Iterate over each execution.
+            for (uint256 i = 0; i < totalExecutions; ) {
+                // Retrieve the execution and the associated received item.
+                Execution memory execution = executions[i];
+                ReceivedItem memory item = execution.item;
+
+                // If execution transfers native tokens, reduce value available.
+                if (item.itemType == ItemType.NATIVE) {
+                    // Get the current available balance of native tokens.
+                    assembly {
+                        nativeTokenBalance := selfbalance()
+                    }
+
+                    // Ensure that sufficient native tokens are still available.
+                    if (item.amount > nativeTokenBalance) {
+                        _revertInsufficientNativeTokensSupplied();
+                    }
                 }
 
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > nativeTokenBalance) {
-                    _revertInsufficientNativeTokensSupplied();
+                // Transfer the item specified by the execution.
+                _transfer(
+                    item,
+                    execution.offerer,
+                    execution.conduitKey,
+                    accumulator
+                );
+
+                // Skip overflow check as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
                 }
-            }
-
-            // Transfer the item specified by the execution.
-            _transfer(
-                item,
-                execution.offerer,
-                execution.conduitKey,
-                accumulator
-            );
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
             }
         }
 
@@ -808,9 +810,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                         // Iterate over each offer item to restore it.
                         for (uint256 j = 0; j < totalOfferItems; ++j) {
+                            // Retrieve the offer item in question.
                             OfferItem memory offerItem = offer[j];
-                            // Retrieve original amount on the offer item.
-                            uint256 originalAmount = offerItem.endAmount;
 
                             // Transfer to recipient if unspent amount is not
                             // zero. Note that the transfer will not be
@@ -828,7 +829,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             }
 
                             // Restore original amount on the offer item.
-                            offerItem.startAmount = originalAmount;
+                            offerItem.startAmount = offerItem.endAmount;
                         }
                     }
 
@@ -918,9 +919,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                         // Iterate over each offer item to restore it.
                         for (uint256 j = 0; j < totalOfferItems; ++j) {
+                            // Retrieve the offer item in question.
                             OfferItem memory offerItem = offer[j];
-                            // Retrieve original amount on the offer item.
-                            uint256 originalAmount = offerItem.endAmount;
 
                             // Transfer to recipient if unspent amount is not
                             // zero. Note that the transfer will not be
@@ -938,7 +938,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             }
 
                             // Restore original amount on the offer item.
-                            offerItem.startAmount = originalAmount;
+                            offerItem.startAmount = offerItem.endAmount;
                         }
                     }
 
@@ -991,6 +991,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         }
 
         // Determine whether any native token balance remains.
+        uint256 nativeTokenBalance;
         assembly {
             nativeTokenBalance := selfbalance()
         }
