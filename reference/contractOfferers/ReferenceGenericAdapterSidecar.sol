@@ -22,7 +22,7 @@ struct Call {
 contract ReferenceGenericAdapterSidecar {
     error InvalidEncodingOrCaller(); // 0x8f183575
     error CallFailed(uint256 index); // 0x3f9a3b48
-    error NativeTokenTransferGenericFailure(); // 0xbc806b96
+    error NativeTokenTransferGenericFailure(); // 0xffce28d3
 
     address private immutable _DESIGNATED_CALLER;
 

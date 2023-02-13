@@ -92,7 +92,6 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
         }
 
         uint256 approvalDataSize;
-
         {
             // Declare an error buffer; first check is that caller is Seaport.
             uint256 errorBuffer = _cast(msg.sender == _SEAPORT);
@@ -420,7 +419,7 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
      *      (supplied as extraData).
      *
      * @custom:param caller      The address of the caller (e.g. Seaport).
-     * @custom:paramfulfiller    The address of the fulfiller (e.g. the account
+     * @custom:param fulfiller    The address of the fulfiller (e.g. the account
      *                           calling Seaport).
      * @custom:param minReceived The minimum items that the caller is willing to
      *                           receive.

@@ -142,6 +142,7 @@ contract GenericAdapterSidecar {
                         revert(0, returndatasize())
                     }
 
+                    // revert CallFailed(index);
                     mstore(0, 0x3f9a3b48)
                     mstore(0x20, shr(0x05, sub(callOffset, 0x44)))
                     revert(0x1c, 0x24)
@@ -157,6 +158,7 @@ contract GenericAdapterSidecar {
                         revert(0, returndatasize())
                     }
 
+                    // ExcessNativeTokenReturnFailed(uint256 amount);
                     mstore(0, 0x3d3f0ba4)
                     mstore(0x20, selfbalance())
                     revert(0x1c, 0x24)

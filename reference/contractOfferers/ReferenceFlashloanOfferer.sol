@@ -89,6 +89,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
+        address _fulfiller = fulfiller;
+        
         if (maximumSpent.length != 1) {
             revert InvalidTotalMaximumSpentItems();
         }
@@ -157,7 +159,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             }
 
             _processDepositOrWithdrawal(
-                fulfiller,
+                _fulfiller,
                 minimumReceivedItem,
                 context
             );
@@ -196,8 +198,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
     ) external override returns (bytes4 ratifyOrderMagicValue) {
-        ratifyOrderMagicValue = bytes4(0);
-
+        ratifyOrderMagicValue = bytes4(0); // Silence compiler warning.
         // If caller is not Seaport, revert.
         if (msg.sender != _SEAPORT) {
             revert InvalidCaller(msg.sender);
@@ -214,9 +215,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 uint160(bytes20(cleanupRecipientBytes))
             );
 
-            bytes memory flashloanDataLengthRawBytes = context[36:40];
             uint256 flashloanDataLengthRaw = uint256(
-                bytes32(flashloanDataLengthRawBytes)
+                bytes32(context[36:40])
             );
             uint256 flashloanDataLength = 5 * (2 ^ flashloanDataLengthRaw);
 
@@ -233,7 +233,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 // The first 21 bytes are the cleanup recipient address, which
                 // is where the `flashloanDataInitialOffset` comes from.
                 // So, the first flashloan starts at byte 21 and goes to byte
-                // 53.  The next is 54-86, etc.
+                // 53.  The next is 54-86, etc. `startingIndex` and
+                // `endingIndex` define the range of bytes for each flashloan.
                 startingIndex = flashloanDataInitialOffset + i - 32;
                 endingIndex = flashloanDataInitialOffset + i;
 
@@ -387,7 +388,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
      *      (supplied as extraData).
      *
      * @custom:param caller      The address of the caller (e.g. Seaport).
-     * @custom:paramfulfiller    The address of the fulfiller (e.g. the account
+     * @custom:param fulfiller    The address of the fulfiller (e.g. the account
      *                           calling Seaport).
      * @custom:param minReceived The minimum items that the caller is willing to
      *                           receive.

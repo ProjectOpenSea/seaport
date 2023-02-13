@@ -88,47 +88,29 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Get the length of the context array from calldata (masked).
-        uint256 contextLength;
-        assembly {
-            contextLength := and(calldataload(context.offset), 0xfffffff)
-        }
+        bytes memory contextLengthRawBytes = context[24:32];
+        uint256 contextLength = uint256(bytes32(contextLengthRawBytes));
 
         uint256 approvalDataSize;
-
         {
-            // Declare an error buffer; first check is that caller is Seaport.
-            uint256 errorBuffer = _cast(msg.sender == _SEAPORT);
-
-            // Next, check for sip-6 version byte.
-            errorBuffer |= errorBuffer ^ (_cast(context[0] == 0x00) << 1);
-
-            // Retrieve the target and the number of approvals to perform.
-            assembly {
-                let totalApprovals := and(
-                    0xff,
-                    calldataload(add(context.offset, 2))
-                )
-                approvalDataSize := mul(totalApprovals, 21)
+            // Check is that caller is Seaport.
+            if (msg.sender != _SEAPORT) {
+                revert InvalidCaller(msg.sender);
             }
 
-            // Next, check for sufficient context length.
-            unchecked {
-                errorBuffer |=
-                    errorBuffer ^
-                    (_cast(contextLength < 2 + approvalDataSize) << 2);
+            // Check for sip-6 version byte.
+            if (context[0] != 0x00) {
+                revert UnsupportedExtraDataVersion(uint8(context[0]));
             }
 
-            // Handle decoding errors.
-            if (errorBuffer != 0) {
-                uint8 version = uint8(context[0]);
+            // Retrieve the number of approvals.
+            bytes memory approvalCountRawBytes = context[34 - 8:34];
+            uint256 approvalCount = uint256(bytes32(approvalCountRawBytes));
+            approvalDataSize = approvalCount * 21;
 
-                if (errorBuffer << 255 != 0) {
-                    revert InvalidCaller(msg.sender);
-                } else if (errorBuffer << 254 != 0) {
-                    revert UnsupportedExtraDataVersion(version);
-                } else if (errorBuffer << 253 != 0) {
-                    revert InvalidExtraDataEncoding(version);
-                }
+            // Check that the context length is acceptable.
+            if (contextLength < 2 + approvalDataSize) {
+                revert InvalidExtraDataEncoding(uint8(context[0]));
             }
         }
 
@@ -140,65 +122,63 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         {
             // Read the approval target from runtime code and place on stack.
             address approvalTarget = _SEAPORT;
-            assembly {
-                // Get the free memory pointer.
-                let freeMemoryPointer := mload(0x40)
 
-                // Write Seaport to memory as the approval target. Reuse this
-                // memory region for all subsequent approvals.
-                mstore(0x20, approvalTarget)
+            // Set up variables.
+            uint256 approvalDataInitialOffset = 33;
+            approvalDataEnds = approvalDataInitialOffset + approvalDataSize;
+            uint256 approvalDataBlockSize = 21;
+            uint256 startingIndex;
+            uint256 endingIndex;
+            address approvalToken;
+            bool success;
 
-                // Derive the location where approval data starts and ends.
-                let approvalDataStarts := add(context.offset, 33)
-                approvalDataEnds := add(approvalDataStarts, approvalDataSize)
+            // Iterate over each approval.
+            for (uint256 i = 0; i < approvalDataSize; ) {
+                i += approvalDataBlockSize;
 
-                // Iterate over each approval.
-                for {
-                    let approvalDataOffset := approvalDataStarts
-                } lt(approvalDataOffset, approvalDataEnds) {
-                    approvalDataOffset := add(approvalDataOffset, 21)
-                } {
-                    // Attempt to process each approval. This only needs to be
-                    // done once per token. The approval type is even for ERC20
-                    // or odd for ERC721 / 1155 and is converted to 0 or 1.
-                    let approvalType := and(
-                        0x01,
-                        calldataload(sub(approvalDataOffset, 32))
+                // TODO: Check for off by one errors, etc.
+
+                // The first approval block starts at byte 33 and goes to byte
+                // 54.  The next is 55-75, etc. `startingIndex` and
+                // `endingIndex` define the range of bytes for the current
+                // approval block.
+                startingIndex =
+                    approvalDataInitialOffset +
+                    i -
+                    approvalDataBlockSize;
+                endingIndex = approvalDataInitialOffset + i;
+
+                approvalToken = address(
+                    uint160(
+                        bytes20(context[startingIndex + 1:startingIndex + 21])
                     )
-                    let approvalToken := shr(
-                        96,
-                        calldataload(approvalDataOffset)
-                    )
-                    let approvalValue := sub(approvalType, iszero(approvalType))
-                    let selector := add(
-                        mul(0x095ea7b3, iszero(approvalType)),
-                        mul(0xa22cb465, approvalType)
-                    )
+                );
 
-                    // Write selector & approval value to memory.
-                    mstore(0, selector)
-                    mstore(0x40, approvalValue)
-
-                    // Fire off call to token. Revert & bubble up revert data if
-                    // present & reasonably-sized or revert with a custom error.
-                    if iszero(call(gas(), approvalToken, 0, 0x1c, 0x44, 0, 0)) {
-                        if and(
-                            iszero(iszero(returndatasize())),
-                            lt(returndatasize(), 0xffff)
-                        ) {
-                            returndatacopy(0, 0, returndatasize())
-                            revert(0, returndatasize())
-                        }
-
-                        // ApprovalFailed(address approvalToken)
-                        mstore(0, 0xe5a0a42f)
-                        mstore(0x20, approvalToken)
-                        revert(0x1c, 0x24)
-                    }
+                // 0x00 flag for ERC20 and 0x01 flag for ERC721.
+                if (context[startingIndex] == 0x00) {
+                    // Approve the Seaport contract to transfer the maximum
+                    // amount of the token.
+                    (success, ) = approvalToken.call{ value: 0 }(
+                        abi.encodeWithSignature(
+                            "approve(address,uint256)",
+                            approvalTarget,
+                            uint256(2 ** 256 - 1)
+                        )
+                    );
+                } else {
+                    // Approve the Seaport contract to transfer all tokens.
+                    (success, ) = approvalToken.call{ value: 0 }(
+                        abi.encodeWithSignature(
+                            "setApprovalForAll(address,bool)",
+                            approvalTarget,
+                            true
+                        )
+                    );
                 }
 
-                // Restore the free memory pointer.
-                mstore(0x40, freeMemoryPointer)
+                if (!success) {
+                    revert ApprovalFailed(approvalToken);
+                }
             }
         }
 
@@ -207,6 +187,8 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
 
         // Track cumulative native tokens to be spent.
         uint256 value;
+
+        address _fulfiller = fulfiller;
 
         // Transfer each maximumSpent item to the sidecar.
         {
@@ -224,21 +206,21 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
                 } else if (itemType == ItemType.ERC20) {
                     _performERC20Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.amount
                     );
                 } else if (itemType == ItemType.ERC721) {
                     _performERC721Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.identifier
                     );
                 } else {
                     _performERC1155Transfer(
                         item.token,
-                        fulfiller,
+                        _fulfiller,
                         target,
                         item.identifier,
                         item.amount
@@ -253,51 +235,16 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
 
         // Call sidecar, performing generic execution consuming supplied items.
         {
-            assembly {
-                // Get the free memory pointer.
-                let freeMemoryPointer := mload(0x40)
+            uint256 payloadSize = contextLength - (2 + approvalDataSize);
+            bytes calldata payload = context[approvalDataEnds:approvalDataEnds +
+                payloadSize];
 
-                // Get the size of the payload.
-                let payloadSize := sub(contextLength, add(2, approvalDataSize))
+            (bool success, ) = target.call{ value: 0 }(
+                abi.encodeWithSignature("execute(Calls[])", payload)
+            );
 
-                // Write the execute(Calls[]) selector. Note this as well as the
-                // single offset can be removed on both ends as an optimization.
-                mstore(freeMemoryPointer, 0xb252b6e5)
-
-                // Copy payload into memory after selector.
-                calldatacopy(
-                    add(freeMemoryPointer, 0x20),
-                    approvalDataEnds,
-                    payloadSize
-                )
-
-                // Fire off call to target. Revert and bubble up revert data if
-                // present & reasonably-sized, else revert with a custom error.
-                // Note that checking for sufficient native token balance is an
-                // option here if more specific custom reverts are preferred.
-                if iszero(
-                    call(
-                        gas(),
-                        target,
-                        value,
-                        add(freeMemoryPointer, 0x1c),
-                        add(payloadSize, 0x04),
-                        0,
-                        0
-                    )
-                ) {
-                    if and(
-                        iszero(iszero(returndatasize())),
-                        lt(returndatasize(), 0xffff)
-                    ) {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-
-                    // CallFailed()
-                    mstore(0, 0x3204506f)
-                    revert(0x1c, 0x04)
-                }
+            if (!success) {
+                revert CallFailed();
             }
         }
 
@@ -324,29 +271,24 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         }
 
         // Send any available native token balance to the supplied recipient.
-        assembly {
-            if selfbalance() {
-                // Call recipient, supplying balance, and revert on failure.
-                if iszero(call(gas(), recipient, selfbalance(), 0, 0, 0, 0)) {
-                    if and(
-                        iszero(iszero(returndatasize())),
-                        lt(returndatasize(), 0xffff)
-                    ) {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
+        if (address(this).balance > 0) {
+            // Declare a variable indicating whether the call was successful or not.
+            (bool success, ) = recipient.call{ value: address(this).balance }(
+                ""
+            );
 
-                    // NativeTokenTransferGenericFailure(recipient, selfbalance)
-                    mstore(0, 0xbc806b96)
-                    mstore(0x20, recipient)
-                    mstore(0x40, selfbalance())
-                    revert(0x1c, 0x44)
-                }
+            // If the call fails, revert.
+            if (!success) {
+                revert NativeTokenTransferGenericFailure(
+                    recipient,
+                    address(this).balance
+                );
             }
 
-            mstore(0, 0xfbacefce) // cleanup(address) selector
-            return(0x1c, 0x04)
+            return this.cleanup.selector;
         }
+
+        return this.cleanup.selector;
     }
 
     /**
@@ -365,10 +307,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0x150b7a02)
-            return(0x1c, 0x04)
-        }
+        return this.onERC721Received.selector;
     }
 
     /**
@@ -381,10 +320,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0xf23a6e61)
-            return(0x1c, 0x04)
-        }
+        return this.onERC1155Received.selector;
     }
 
     /**
@@ -406,12 +342,9 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         bytes calldata /* context */, // encoded based on the schemaID
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4) {
-        // Utilize assembly to efficiently return the ratifyOrder magic value.
-        assembly {
-            mstore(0, 0xf4dd92ce)
-            return(0x1c, 0x04)
-        }
+    ) external pure override returns (bytes4 ratifyOrderMagicValue) {
+        ratifyOrderMagicValue = bytes4(0); // Silence compiler warning.
+        return this.ratifyOrder.selector;
     }
 
     /**
@@ -420,7 +353,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
      *      (supplied as extraData).
      *
      * @custom:param caller      The address of the caller (e.g. Seaport).
-     * @custom:paramfulfiller    The address of the fulfiller (e.g. the account
+     * @custom:param fulfiller    The address of the fulfiller (e.g. the account
      *                           calling Seaport).
      * @custom:param minReceived The minimum items that the caller is willing to
      *                           receive.
@@ -462,18 +395,5 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
     {
         schemas = new Schema[](0);
         return ("GenericAdapter", schemas);
-    }
-
-    /**
-     * @dev Internal pure function to cast a `bool` value to a `uint256` value.
-     *
-     * @param b The `bool` value to cast.
-     *
-     * @return u The `uint256` value.
-     */
-    function _cast(bool b) internal pure returns (uint256 u) {
-        assembly {
-            u := b
-        }
     }
 }
