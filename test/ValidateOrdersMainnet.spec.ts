@@ -223,8 +223,13 @@ describe("Validate Orders", function () {
     });
 
     it("duplicate offer items", async function () {
-      await erc20_1.mint(owner.address, "4");
-      await erc20_1.approve(CROSS_CHAIN_SEAPORT_ADDRESS, "4");
+      await erc20_1.mint(owner.address, "1000");
+      await erc20_1.approve(CROSS_CHAIN_SEAPORT_ADDRESS, "1000");
+
+      console.log(
+        "approval balance: ",
+        await erc20_1.allowance(owner.address, CROSS_CHAIN_SEAPORT_ADDRESS)
+      );
 
       baseOrderParameters.offer = [
         {

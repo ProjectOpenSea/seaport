@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
+import "hardhat/console.sol";
+
 library SafeStaticCall {
     function safeStaticCallBool(
         address target,
@@ -40,6 +42,7 @@ library SafeStaticCall {
             return false;
         }
 
+        console.log("result: ", abi.decode(res, (address)));
         return abi.decode(res, (address)) == expectedReturn;
     }
 
@@ -52,6 +55,7 @@ library SafeStaticCall {
         if (!success) return false;
         if (res.length != 32) return false;
 
+        console.log("result: ", abi.decode(res, (uint256)));
         return abi.decode(res, (uint256)) >= minExpectedReturn;
     }
 

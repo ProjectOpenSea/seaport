@@ -59,6 +59,7 @@ import {
     GenericIssue
 } from "./lib/SeaportValidatorTypes.sol";
 import { Verifiers } from "../lib/Verifiers.sol";
+import "hardhat/console.sol";
 
 /**
  * @title SeaportValidator
@@ -606,6 +607,7 @@ contract SeaportValidator is
                 );
             }
 
+            console.log("validateOfferItemParameters erc20 allowance call: ");
             // Validate contract, should return an uint256 if its an ERC20
             if (
                 !offerItem.token.safeStaticCallUint256(
@@ -655,6 +657,8 @@ contract SeaportValidator is
             ErrorsAndWarnings memory ew
         ) = getApprovalAddress(orderParameters.conduitKey);
 
+        console.log("approvalAddress: %s", approvalAddress);
+
         errorsAndWarnings.concat(ew);
 
         if (ew.hasErrors()) {
@@ -667,6 +671,7 @@ contract SeaportValidator is
         if (offerItem.itemType == ItemType.ERC721) {
             ERC721Interface token = ERC721Interface(offerItem.token);
 
+            console.log("before erc721 ownerOf call");
             // Check that offerer owns token
             if (
                 !address(token).safeStaticCallAddress(
@@ -677,9 +682,11 @@ contract SeaportValidator is
                     orderParameters.offerer
                 )
             ) {
+                console.log("adding NotOwner error");
                 errorsAndWarnings.addError(ERC721Issue.NotOwner.parseInt());
             }
 
+            console.log("before erc721 getApproved call");
             // Check for approval via `getApproved`
             if (
                 !address(token).safeStaticCallAddress(
@@ -690,6 +697,7 @@ contract SeaportValidator is
                     approvalAddress
                 )
             ) {
+                console.log("before erc721 isApprovedForAll call");
                 // Fallback to `isApprovalForAll`
                 if (
                     !address(token).safeStaticCallBool(
@@ -701,6 +709,7 @@ contract SeaportValidator is
                         true
                     )
                 ) {
+                    console.log("adding NotApproved error");
                     // Not approved
                     errorsAndWarnings.addError(
                         ERC721Issue.NotApproved.parseInt()
@@ -712,6 +721,7 @@ contract SeaportValidator is
         ) {} else if (offerItem.itemType == ItemType.ERC1155) {
             ERC1155Interface token = ERC1155Interface(offerItem.token);
 
+            console.log("before erc1155 isApprovedForALl call");
             // Check for approval
             if (
                 !address(token).safeStaticCallBool(
@@ -723,6 +733,7 @@ contract SeaportValidator is
                     true
                 )
             ) {
+                console.log("adding NotApproved error");
                 errorsAndWarnings.addError(ERC1155Issue.NotApproved.parseInt());
             }
 
@@ -731,6 +742,7 @@ contract SeaportValidator is
                 ? offerItem.startAmount
                 : offerItem.endAmount;
 
+            console.log("before erc1155 balanceOf call");
             // Check for sufficient balance
             if (
                 !address(token).safeStaticCallUint256(
@@ -742,6 +754,7 @@ contract SeaportValidator is
                     minBalance
                 )
             ) {
+                console.log("adding InsufficientBalance error");
                 // Insufficient balance
                 errorsAndWarnings.addError(
                     ERC1155Issue.InsufficientBalance.parseInt()
@@ -758,6 +771,7 @@ contract SeaportValidator is
                 ? offerItem.startAmount
                 : offerItem.endAmount;
 
+            console.log("before ERC20Interface.allowance");
             // Check allowance
             if (
                 !address(token).safeStaticCallUint256(
@@ -769,6 +783,7 @@ contract SeaportValidator is
                     minBalanceAndAllowance
                 )
             ) {
+                console.log("adding InsufficientAllowance error");
                 errorsAndWarnings.addError(
                     ERC20Issue.InsufficientAllowance.parseInt()
                 );
@@ -784,6 +799,7 @@ contract SeaportValidator is
                     minBalanceAndAllowance
                 )
             ) {
+                console.log("adding InsufficientBalance error");
                 errorsAndWarnings.addError(
                     ERC20Issue.InsufficientBalance.parseInt()
                 );
