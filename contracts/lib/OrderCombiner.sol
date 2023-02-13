@@ -812,13 +812,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             // Retrieve original amount on the offer item.
                             uint256 originalAmount = offerItem.endAmount;
 
-                            // Retrieve remaining amount on the offer item.
-                            uint256 unspentAmount = offerItem.startAmount;
-
                             // Transfer to recipient if unspent amount is not
                             // zero. Note that the transfer will not be
                             // reflected in the executions array.
-                            if (unspentAmount != 0) {
+                            if (offerItem.startAmount != 0) {
                                 _transfer(
                                     _fromOfferItemToReceivedItemWithRecipient(
                                         offerItem,
@@ -925,13 +922,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             // Retrieve original amount on the offer item.
                             uint256 originalAmount = offerItem.endAmount;
 
-                            // Retrieve remaining amount on the offer item.
-                            uint256 unspentAmount = offerItem.startAmount;
-
                             // Transfer to recipient if unspent amount is not
                             // zero. Note that the transfer will not be
                             // reflected in the executions array.
-                            if (unspentAmount != 0) {
+                            if (offerItem.startAmount != 0) {
                                 _transfer(
                                     _fromOfferItemToReceivedItemWithRecipient(
                                         offerItem,
