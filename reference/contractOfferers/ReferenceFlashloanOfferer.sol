@@ -203,7 +203,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             revert InvalidCaller(msg.sender);
         }
 
-        // TODO: check for off by one errors.
+        // TODO: check all of this stuff for off by one errors, etc.
         // If context is present...
         if (context.length > 0) {
             // ...look for flashloans with callback flags.
@@ -218,10 +218,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             uint256 flashloanDataLengthRaw = uint256(
                 bytes32(flashloanDataLengthRawBytes)
             );
-            uint256 flashloanDataLength = (5 * 2) ^ flashloanDataLengthRaw;
-            // bytes memory flashloanDataBytes = bytes(context[21:flashloanDataLength]);
+            uint256 flashloanDataLength = 5 * (2 ^ flashloanDataLengthRaw);
 
-            bytes memory thisFlashLoan;
             uint256 flashloanDataInitialOffset = 21;
             uint256 startingIndex;
             uint256 endingIndex;
@@ -239,10 +237,11 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 startingIndex = flashloanDataInitialOffset + i - 32;
                 endingIndex = flashloanDataInitialOffset + i;
 
-                thisFlashLoan = context[startingIndex:endingIndex];
+                // Bytes at indexes 0-10 are the value, at index 11 is the flag,
+                // and at indexes 12-31 are the recipient address.
 
                 // Extract the shouldCall flag from the flashloan data.
-                shouldCall = thisFlashLoan[12] == 0x01;
+                shouldCall = context[startingIndex + 11] == 0x01;
 
                 // Extract the recipient address from the flashloan data.
                 address recipient = address(
@@ -461,19 +460,19 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             uint256 flashloanLength = uint256(bytes32(LengthRawBytes));
 
             // Include one word of flashloan data for each flashloan.
-            flashloanDataLength = (5 * 2) ^ flashloanLength;
+            flashloanDataLength = 5 * (2 ^ flashloanLength);
 
             if (contextLength < 22 + flashloanDataLength) {
                 revert InvalidExtraDataEncoding(uint8(context[0]));
             }
         }
 
-        uint256 totalValue;
-
         uint256 flashloanDataInitialOffset = 21;
         uint256 startingIndex;
         uint256 endingIndex;
         uint256 value;
+        address recipient;
+        uint256 totalValue;
 
         // Iterate over each flashloan, one word of memory at a time.
         for (uint256 i = 0; i < flashloanDataLength; ) {
@@ -487,14 +486,12 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             startingIndex = flashloanDataInitialOffset + i - 32;
             endingIndex = flashloanDataInitialOffset + i;
 
-            address recipient = address(
+            // Bytes at indexes 0-10 are the value, at index 11 is the flag, and
+            // at indexes 12-31 are the recipient address.
+            value = uint256(bytes32(context[startingIndex:11]));
+            recipient = address(
                 uint160(bytes20(context[endingIndex - 20:endingIndex]))
             );
-
-            // TODO: Come back and fix this.
-            assembly {
-                value := shr(168, calldataload(startingIndex))
-            }
 
             totalValue += value;
 
@@ -547,19 +544,13 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
     function _copySpentAsReceivedToSelf(
         SpentItem calldata spentItem
     ) internal view returns (ReceivedItem memory receivedItem) {
-        // TODO: Come back and fix this.
-        address _address;
-        assembly {
-            _address := address()
-        }
-
         return
             ReceivedItem({
                 itemType: spentItem.itemType,
                 token: spentItem.token,
                 identifier: spentItem.identifier,
                 amount: spentItem.amount,
-                recipient: payable(_address)
+                recipient: payable(address(this))
             });
     }
 }

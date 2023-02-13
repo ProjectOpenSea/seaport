@@ -76,7 +76,6 @@ contract ReferenceGenericAdapterSidecar {
         // Iterate over each call.
         for (uint i = 0; i < calls.length; ++i) {
             // Do a low-level call to get success status.
-            // TODO: Do I need to do anything with the return data? I think no.
             (bool success, ) = calls[i].target.call{ value: calls[i].value }(
                 abi.encodeWithSelector(
                     bytes4(calls[i].callData[0:4]),
