@@ -991,14 +991,17 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         }
 
         // Determine whether any native token balance remains.
-        uint256 nativeTokenBalance;
+        uint256 remainingNativeTokenBalance;
         assembly {
-            nativeTokenBalance := selfbalance()
+            remainingNativeTokenBalance := selfbalance()
         }
 
         // Return any remaining native token balance to the caller.
-        if (nativeTokenBalance != 0) {
-            _transferNativeTokens(payable(msg.sender), nativeTokenBalance);
+        if (remainingNativeTokenBalance != 0) {
+            _transferNativeTokens(
+                payable(msg.sender),
+                remainingNativeTokenBalance
+            );
         }
 
         // Clear the reentrancy guard.
