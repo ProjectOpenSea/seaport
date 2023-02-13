@@ -75,7 +75,7 @@ contract ReferenceGenericAdapterSidecar {
 
         // Iterate over each call.
         for (uint i = 0; i < calls.length; ++i) {
-            // Do a low-level call to get success status.
+            // Call the target and get success status.
             (bool success, ) = calls[i].target.call{ value: calls[i].value }(
                 abi.encodeWithSelector(
                     bytes4(calls[i].callData[0:4]),
@@ -83,6 +83,7 @@ contract ReferenceGenericAdapterSidecar {
                 )
             );
 
+            // If the call fails and the call is not allowed to fail, revert.
             if (calls[i].allowFailure == false && success == false) {
                 revert CallFailed(i);
             }
@@ -90,7 +91,7 @@ contract ReferenceGenericAdapterSidecar {
 
         // Return excess native tokens, if any remain, to the caller.
         if (address(this).balance > 0) {
-            // Declare a variable indicating whether the call was successful or not.
+            // Declare a variable indicating whether the call was successful.
             (bool success, ) = msg.sender.call{ value: address(this).balance }(
                 ""
             );

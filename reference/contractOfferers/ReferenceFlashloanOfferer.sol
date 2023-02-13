@@ -91,17 +91,12 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
     {
         address _fulfiller = fulfiller;
         
+        // Revert if the maximumSpent array is not exactly 1 item long.
         if (maximumSpent.length != 1) {
             revert InvalidTotalMaximumSpentItems();
         }
 
-        // struct SpentItem {
-        //     ItemType itemType;
-        //     address token;
-        //     uint256 identifier;
-        //     uint256 amount;
-        // }
-
+        // Get the maximumSpent item and amount.
         SpentItem calldata maximumSpentItem = maximumSpent[0];
         uint256 maximumSpentAmount = maximumSpentItem.amount;
 
@@ -145,9 +140,6 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             //  - one of the item types is 1 and the other is 0
             //  - one of the tokens is address(this) and the other is null
             //  - item type 1 has address(this) token and 0 is null token
-            // TODO: add comments on why lol
-            // TODO: Make sure that the reference implementation matches the
-            //       assembly and not just the comments.
             if (
                 minimumReceivedItem.amount > maximumSpentAmount ||
                 unacceptableItemTypePair ||
@@ -158,15 +150,18 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 revert InvalidItems();
             }
 
+            // Process the deposit or withdrawal.
             _processDepositOrWithdrawal(
                 _fulfiller,
                 minimumReceivedItem,
                 context
             );
         } else {
+            // Revert if the minimumReceived array is not 0 or 1 items long.
             revert InvalidTotalMinimumReceivedItems();
         }
 
+        // Convert the maximumSpent item to a ReceivedItem.
         consideration = new ReceivedItem[](1);
         consideration[0] = _copySpentAsReceivedToSelf(maximumSpentItem);
 
@@ -198,28 +193,35 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
     ) external override returns (bytes4 ratifyOrderMagicValue) {
-        ratifyOrderMagicValue = bytes4(0); // Silence compiler warning.
-        // If caller is not Seaport, revert.
+        // Silence compiler warning.
+        ratifyOrderMagicValue = bytes4(0); 
+
+        // If the caller is not Seaport, revert.
         if (msg.sender != _SEAPORT) {
             revert InvalidCaller(msg.sender);
         }
 
-        // TODO: check all of this stuff for off by one errors, etc.
         // If context is present...
         if (context.length > 0) {
             // ...look for flashloans with callback flags.
-            bytes memory cleanupRecipientBytes = context[1:21];
+
+            // The First byte of the context is the schema ID.
+            // Bytes at indexes 1-21 of the context are the cleanup recipient
+            //address.
+            // Bytes n-n of the context are the flashloan data length.
+            // 36-40?  44-52?  24-32?
+
             // Extract the cleanup recipient address from the context.
             address cleanupRecipient = address(
                 // My God the assembly might be clearer than this.
-                uint160(bytes20(cleanupRecipientBytes))
+                uint160(bytes20(context[1:21]))
             );
-
+            // TODO: Come back and figure this out.  I thought I had it but now
+            // I'm confused as hell.
             uint256 flashloanDataLengthRaw = uint256(
                 bytes32(context[36:40])
             );
             uint256 flashloanDataLength = 5 * (2 ^ flashloanDataLengthRaw);
-
             uint256 flashloanDataInitialOffset = 21;
             uint256 startingIndex;
             uint256 endingIndex;
@@ -230,25 +232,29 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 // Increment i by 32 bytes (1 word) to get the next word.
                 i += 32;
 
-                // The first 21 bytes are the cleanup recipient address, which
-                // is where the `flashloanDataInitialOffset` comes from.
-                // So, the first flashloan starts at byte 21 and goes to byte
-                // 53.  The next is 54-86, etc. `startingIndex` and
+                // TODO: Switch all ranges in comments to use indexes.
+                // The first 21 bytes of the context are the cleanup recipient
+                // address, which is where the `flashloanDataInitialOffset`
+                // comes from.
+                // So, the first flashloan starts at byte 22 and goes to byte
+                // 53.  The next is 54-85, etc. `startingIndex` and
                 // `endingIndex` define the range of bytes for each flashloan.
                 startingIndex = flashloanDataInitialOffset + i - 32;
                 endingIndex = flashloanDataInitialOffset + i;
 
-                // Bytes at indexes 0-10 are the value, at index 11 is the flag,
-                // and at indexes 12-31 are the recipient address.
+                // Each flashloan is 32 bytes long.
+                // Bytes at indexes 0-10 are the value, at index 11 is the
+                // callback flag, and indexes 12-31 are the recipient address.
 
                 // Extract the shouldCall flag from the flashloan data.
                 shouldCall = context[startingIndex + 11] == 0x01;
-
                 // Extract the recipient address from the flashloan data.
                 address recipient = address(
                     uint160(bytes20(context[endingIndex - 20:endingIndex]))
                 );
 
+                // TODO: Figure out where I should be using `shouldCall`.
+                // Call the recipient's cleanup function.
                 (bool success, bytes memory returnData) = recipient.call{
                     value: 0
                 }(
@@ -258,7 +264,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                     )
                 );
 
-                // TODO: Fix.
+                // TODO: Fix `this.cleanup.selector`.
                 if (
                     success == false ||
                     bytes4(returnData) != this.cleanup.selector
@@ -270,116 +276,6 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             // If everything's OK, return the magic value.
             return bytes4(this.ratifyOrder.selector);
         }
-
-        // // If there is any context, trigger designated callbacks & provide data.
-        // assembly {
-        //     // If context is present, look for flashloans with callback flags.
-        //     if and(calldataload(context.offset), 0xfffffff) {
-        //         // let cleanupRecipient := calldataload(add(context.offset, 1))
-        //         // let flashloanDataStarts := add(context.offset, 21)
-
-        //         // calldataload(add(context.offset, 20))
-        //         // ==
-        //         // A word of memory starting 20 bytes (1 address worth?) into
-        //         // the context arg.  bytes 20-40?
-
-        //         // and(0xff, calldataload(add(context.offset, 20)))
-        //         // [masks off all but the last 4 bytes of the result]
-        //         // ==
-        //         // maskedValue would be something like 0x0000...0000111111111.
-
-        //         // shl(0x05, and(0xff, calldataload(add(context.offset, 20))))
-        //         // [shl is equivalent to multiplying by 2^n]
-        //         // so this is like 5 * 2^(maskedValue)?
-
-        //         // add(
-        //         //     flashloanDataStarts,
-        //         //     shl(0x05, and(0xff, calldataload(add(context.offset, 20))))
-        //         // )
-
-        //         // I think the net of this is to add the start value to the
-        //         // length of the flashloan data, which is encoded at
-        //         // context[36:40].
-
-        //         // I don't need to worry about the add, since I can do `context`
-
-        //         // let flashloanDataEnds := add(
-        //         //     flashloanDataStarts,
-        //         //     shl(0x05, and(0xff, calldataload(add(context.offset, 20))))
-        //         // )
-
-        //         // // This stores the selector for the cleanup function at 0.
-        //         // mstore(0, 0xfbacefce) // cleanup(address) selector
-        //         // // This stores the cleanup recipient address at 0x20 (so it's)
-        //         // // the first [and only] argument.
-        //         // mstore(0x20, cleanupRecipient)
-
-        //         // // I can skip that stuff.
-
-        //         // Iterate over each flashloan.
-        //         // Set up the iterator already.
-        //         // for {
-        //         //     let flashloanDataOffset := flashloanDataStarts
-        //         // } lt(flashloanDataOffset, flashloanDataEnds) {
-        //         //     flashloanDataOffset := add(flashloanDataOffset, 0x20)
-        //         // } {
-        //         //     // // Note: confirm that this is the correct usage of byte opcode
-        //         //     // let shouldCall := byte(
-        //         //     //     12,
-        //         //     //     calldataload(flashloanDataOffset)
-        //         //     // )
-
-        //         //     // let recipient := and(
-        //         //     //     0xffffffffffffffffffffffffffffffffffffffff,
-        //         //     //     calldataload(flashloanDataOffset)
-        //         //     // )
-
-        //         //     // FROM JAMES: since each word is 32-bytes, storing a 4-byte
-        //         //     // value means the first 28 bytes (0x1C in hex) are empty
-
-        //         //     // Fire off call to recipient. Revert & bubble up revert data if
-        //         //     // present & reasonably-sized, else revert with a custom error.
-        //         //     // Note that checking for sufficient native token balance is an
-        //         //     // option here if more specific custom reverts are preferred.
-        //         //     let success := call(
-        //         //         gas(), // gas
-        //         //         recipient, // address
-        //         //         0, // value
-        //         //         0x1c, // argsOffset, 28
-        //         //         0x24, // argsSize, 36
-        //         //         0, // retOffset, 0
-        //         //         4 // retSize, 4
-        //         //     )
-
-        //         //     if or(
-        //         //         // If it fails or doesn't return the magic value, revert.
-        //         //         iszero(success),
-        //         //         xor(
-        //         //             mload(0),
-        //         //             0xfbacefce000000000000000000000000000000000000000000000000fbacefce
-        //         //         )
-        //         //     ) {
-        //         //         if and(
-        //         //             and(
-        //         //                 iszero(success),
-        //         //                 iszero(iszero(returndatasize()))
-        //         //             ),
-        //         //             lt(returndatasize(), 0xffff)
-        //         //         ) {
-        //         //             returndatacopy(0, 0, returndatasize())
-        //         //             revert(0, returndatasize())
-        //         //         }
-
-        //         //         // CallFailed()
-        //         //         mstore(0, 0x3204506f)
-        //         //         revert(0x1c, 0x04)
-        //         //     }
-        //         // }
-        //     }
-
-        //     mstore(0, 0xf4dd92ce)
-        //     return(0x1c, 0x04)
-        // }
     }
 
     /**
@@ -435,14 +331,8 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
     function _processFlashloan(
         bytes calldata context
     ) internal returns (uint256 totalSpent) {
-        // Get the length of the context array from calldata (masked).
-        // uint256 contextLength;
-        // assembly {
-        //     contextLength := and(calldataload(context.offset), 0xfffffff)
-        // }
-
-        bytes memory contextLengthRawBytes = context[24:32];
-        uint256 contextLength = uint256(bytes32(contextLengthRawBytes));
+        // Get the length of the context array from calldata.
+        uint256 contextLength = uint256(bytes32(context[24:32]));
 
         uint256 flashloanDataLength;
         {
@@ -457,8 +347,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             }
 
             // Retrieve the number of flashloans.
-            bytes memory LengthRawBytes = context[36:40];
-            uint256 flashloanLength = uint256(bytes32(LengthRawBytes));
+            uint256 flashloanLength = uint256(bytes32(context[36:40]));
 
             // Include one word of flashloan data for each flashloan.
             flashloanDataLength = 5 * (2 ^ flashloanLength);
@@ -480,10 +369,13 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             // Increment i by 32 bytes (1 word) to get the next word.
             i += 32;
 
-            // The first 21 bytes are the cleanup recipient address, which
-            // is where the `flashloanDataInitialOffset` comes from.
-            // So, the first flashloan starts at byte 21 and goes to byte
-            // 53.  The next is 54-86, etc.
+            // TODO: Switch all ranges in comments to use indexes.
+            // The first 21 bytes of the context are the cleanup recipient
+            // address, which is where the `flashloanDataInitialOffset`
+            // comes from.
+            // So, the first flashloan starts at byte 22 and goes to byte
+            // 53.  The next is 54-85, etc. `startingIndex` and
+            // `endingIndex` define the range of bytes for each flashloan.
             startingIndex = flashloanDataInitialOffset + i - 32;
             endingIndex = flashloanDataInitialOffset + i;
 
@@ -494,15 +386,20 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
                 uint160(bytes20(context[endingIndex - 20:endingIndex]))
             );
 
+            // Track the total value of all flashloans for a subsequent check in
+            // `generateOrder`.
             totalValue += value;
 
+            // Send the flashloan to the recipient.
             (bool success, ) = recipient.call{ value: value }("");
 
+            // If the call fails, revert.
             if (!success) {
                 revert CallFailed();
             }
         }
 
+        // Return the total value of all flashloans.
         return totalValue;
     }
 
@@ -524,11 +421,11 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             revert InvalidExtraDataEncoding(0);
         }
 
-        // if the item has this contract as its token, process as a deposit.
+        // If the item has this contract as its token, process as a deposit...
         if (spentItem.token == address(this)) {
             balanceOf[fulfiller] += spentItem.amount;
         } else {
-            // otherwise it is a withdrawal.
+            // ...otherwise it is a withdrawal.
             balanceOf[fulfiller] -= spentItem.amount;
         }
     }

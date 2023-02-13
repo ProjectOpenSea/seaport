@@ -26,7 +26,7 @@ import {
  *         source liquidity from arbitrary targets, such as other marketplaces,
  *         and make those liquidity sources available from within Seaport. It
  *         encapsulates arbitrary execution within a companion contract, called
- *         the "sidecar."
+ *         the "sidecar."  This is the reference implementation.
  */
 contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
     address private immutable _SEAPORT;
@@ -88,8 +88,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Get the length of the context array from calldata (masked).
-        bytes memory contextLengthRawBytes = context[24:32];
-        uint256 contextLength = uint256(bytes32(contextLengthRawBytes));
+        uint256 contextLength = uint256(bytes32(context[24:32]));
 
         uint256 approvalDataSize;
         {
@@ -104,12 +103,13 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
             }
 
             // Retrieve the number of approvals.
-            bytes memory approvalCountRawBytes = context[34 - 8:34];
-            uint256 approvalCount = uint256(bytes32(approvalCountRawBytes));
+            uint256 approvalCount = uint256(bytes32(context[34 - 8:34]));
+            // Each approval block is 21 bytes long.
             approvalDataSize = approvalCount * 21;
 
             // Check that the context length is acceptable.
             if (contextLength < 2 + approvalDataSize) {
+                // If it's not, revert.
                 revert InvalidExtraDataEncoding(uint8(context[0]));
             }
         }
@@ -123,7 +123,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
             // Read the approval target from runtime code and place on stack.
             address approvalTarget = _SEAPORT;
 
-            // Set up variables.
+            // Set up variables for use in the iterator.
             uint256 approvalDataInitialOffset = 33;
             approvalDataEnds = approvalDataInitialOffset + approvalDataSize;
             uint256 approvalDataBlockSize = 21;
@@ -136,7 +136,8 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
             for (uint256 i = 0; i < approvalDataSize; ) {
                 i += approvalDataBlockSize;
 
-                // TODO: Check for off by one errors, etc.
+                // TODO: Check all these contracts for off by one errors, etc.
+                // TODO: Convert all comments to use indexes.
 
                 // The first approval block starts at byte 33 and goes to byte
                 // 54.  The next is 55-75, etc. `startingIndex` and
@@ -148,6 +149,9 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
                     approvalDataBlockSize;
                 endingIndex = approvalDataInitialOffset + i;
 
+                // The first byte of the approval block is the approval type.
+                // The bytes at indexes 1-21 are the address of the token to
+                // approve.
                 approvalToken = address(
                     uint160(
                         bytes20(context[startingIndex + 1:startingIndex + 21])
@@ -176,6 +180,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
                     );
                 }
 
+                // Revert if the approval failed.
                 if (!success) {
                     revert ApprovalFailed(approvalToken);
                 }
@@ -188,14 +193,16 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         // Track cumulative native tokens to be spent.
         uint256 value;
 
+        // Reset the fulfiller address to avoid stacc2dank.
         address _fulfiller = fulfiller;
 
         // Transfer each maximumSpent item to the sidecar.
         {
             uint256 totalTokensSpent = maximumSpent.length;
+            // Iterate over each item.  Perform transfers or account for native
+            // tokens.
             for (uint256 i = 0; i < totalTokensSpent; ) {
                 SpentItem calldata item = maximumSpent[i];
-
                 ItemType itemType = item.itemType;
 
                 if (itemType == ItemType.NATIVE) {
@@ -239,10 +246,12 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
             bytes calldata payload = context[approvalDataEnds:approvalDataEnds +
                 payloadSize];
 
+            // Call the sidecar with the supplied payload.
             (bool success, ) = target.call{ value: 0 }(
                 abi.encodeWithSignature("execute(Calls[])", payload)
             );
 
+            // Revert if the call failed.
             if (!success) {
                 revert CallFailed();
             }
@@ -252,6 +261,8 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         // the sidecar execution output be unreliable. Alternatively, this check
         // can be performed from the sidecar itself as the final multicall step.
 
+        // Return the minimumReceived items as the offer and an empty array as
+        // the consideration.
         return (minimumReceived, new ReceivedItem[](0));
     }
 
@@ -272,7 +283,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
 
         // Send any available native token balance to the supplied recipient.
         if (address(this).balance > 0) {
-            // Declare a variable indicating whether the call was successful or not.
+            // Declare a variable indicating whether the call was successful.
             (bool success, ) = recipient.call{ value: address(this).balance }(
                 ""
             );
@@ -288,6 +299,7 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
             return this.cleanup.selector;
         }
 
+        // Required to silence a compiler warning.
         return this.cleanup.selector;
     }
 
@@ -343,7 +355,8 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 ratifyOrderMagicValue) {
-        ratifyOrderMagicValue = bytes4(0); // Silence compiler warning.
+        // Silence compiler warning.
+        ratifyOrderMagicValue = bytes4(0);
         return this.ratifyOrder.selector;
     }
 
