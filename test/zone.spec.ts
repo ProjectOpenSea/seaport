@@ -1002,3 +1002,213 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     expect(await pausableZoneController.owner()).to.equal(buyer.address);
   });
 });
+
+describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
+  const { provider } = ethers;
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
+  let marketplaceContract: ConsiderationInterface;
+
+  let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let getTestItem721: SeaportFixtures["getTestItem721"];
+  let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+
+  after(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
+    });
+  });
+
+  before(async () => {
+    await faucet(owner.address, provider);
+
+    ({
+      checkExpectedEvents,
+      createOrder,
+      getTestItem721,
+      getTestItem721WithCriteria,
+      marketplaceContract,
+      mintAndApprove721,
+      withBalanceChecks,
+    } = await seaportFixture(owner));
+  });
+
+  let buyer: Wallet;
+  let seller: Wallet;
+
+  async function setupFixture() {
+    // Setup basic buyer/seller wallets with ETH
+    const seller = new ethers.Wallet(randomHex(32), provider);
+    const buyer = new ethers.Wallet(randomHex(32), provider);
+
+    for (const wallet of [seller, buyer]) {
+      await faucet(wallet.address, provider);
+    }
+
+    return { seller, buyer };
+  }
+
+  beforeEach(async () => {
+    ({ seller, buyer } = await loadFixture(setupFixture));
+  });
+
+  it("Fulfills an order with a transfer validation zone", async () => {
+    // execute basic 721 <=> ETH order
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+
+    const offer = [getTestItem721(nftId)];
+
+    const TransferValidationZoneOffererFactory =
+      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const { order, orderHash, value } = await createOrder(
+      seller,
+      zoneAddr,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    await withBalanceChecks([order], 0, undefined, async () => {
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .fulfillOrder(order, toKey(0), {
+          value,
+        });
+
+      const receipt = await tx.wait();
+      await checkExpectedEvents(tx, receipt, [
+        {
+          order,
+          orderHash,
+          fulfiller: buyer.address,
+          fulfillerConduitKey: toKey(0),
+        },
+      ]);
+      return receipt;
+    });
+  });
+
+  it("Fulfills an advanced order with criteria with the transfer validation zone", async () => {
+    // execute basic 721 <=> ETH order
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+
+    const { root, proofs } = merkleTree([nftId]);
+
+    const offer = [getTestItem721WithCriteria(root, toBN(1), toBN(1))];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const criteriaResolvers = [
+      buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
+    ];
+
+    const TransferValidationZoneOffererFactory =
+      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+
+    const { order, orderHash, value } = await createOrder(
+      seller,
+      zoneAddr,
+      offer,
+      consideration,
+      2, // FULL_RESTRICTED
+      criteriaResolvers
+    );
+
+    await withBalanceChecks([order], 0, criteriaResolvers, async () => {
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .fulfillAdvancedOrder(
+          order,
+          criteriaResolvers,
+          toKey(0),
+          ethers.constants.AddressZero,
+          {
+            value,
+          }
+        );
+
+      const receipt = await tx.wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order,
+            orderHash,
+            fulfiller: buyer.address,
+            fulfillerConduitKey: toKey(0),
+          },
+        ],
+        undefined,
+        criteriaResolvers
+      );
+      return receipt;
+    });
+  });
+
+  it("Fulfills a PARTIAL_RESTRICTED order with the caller being the offerer through the transfer validation zone", async () => {
+    // execute basic 721 <=> ETH order
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+
+    const offer = [getTestItem721(nftId)];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const TransferValidationZoneOffererFactory =
+      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+
+    const { order, orderHash, value } = await createOrder(
+      seller,
+      zoneAddr,
+      offer,
+      consideration,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    await withBalanceChecks([order], 0, undefined, async () => {
+      const tx = await marketplaceContract
+        .connect(buyer)
+        .fulfillAdvancedOrder(
+          order,
+          [],
+          toKey(0),
+          ethers.constants.AddressZero,
+          {
+            value,
+          }
+        );
+
+      const receipt = await tx.wait();
+      await checkExpectedEvents(tx, receipt, [
+        {
+          order,
+          orderHash,
+          fulfiller: buyer.address,
+          fulfillerConduitKey: toKey(0),
+        },
+      ]);
+      return receipt;
+    });
+  });
+});
