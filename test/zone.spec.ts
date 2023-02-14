@@ -1320,21 +1320,70 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
       ],
     ].map(toFulfillmentComponents);
 
-    await expect(
-      marketplaceContract
-        .connect(buyer)
-        .fulfillAvailableAdvancedOrders(
-          [orderOne, orderTwo],
-          [],
-          offerComponents,
-          considerationComponents,
-          toKey(0),
-          ethers.constants.AddressZero,
-          100,
-          {
-            value: value.mul(2),
-          }
-        )
-    ).to.be.revertedWithCustomError(transferValidationZone, "InvalidBalance");
+    // 1.2 Issue - resolved in 1.3
+    if (VERSION === "1.2") {
+      await expect(
+        marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableAdvancedOrders(
+            [orderOne, orderTwo],
+            [],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            ethers.constants.AddressZero,
+            100,
+            {
+              value: value.mul(2),
+            }
+          )
+      ).to.be.revertedWithCustomError(transferValidationZone, "InvalidBalance");
+    } else {
+      // This should pass in 1.3
+      await withBalanceChecks(
+        [orderOne, orderTwo],
+        0,
+        undefined,
+        async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [orderOne, orderTwo],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(0),
+              ethers.constants.AddressZero,
+              100,
+              {
+                value: value.mul(2),
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+              {
+                order: orderTwo,
+                orderHash: orderHashTwo,
+                fulfiller: buyer.address,
+              },
+            ],
+            [],
+            [],
+            false,
+            2
+          );
+          return receipt;
+        },
+        2
+      );
+    }
   });
 });
