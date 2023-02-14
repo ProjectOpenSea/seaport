@@ -224,7 +224,7 @@ contract ConsiderationBase is
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.2"));
+        versionHash = keccak256(bytes("1.3"));
 
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(
