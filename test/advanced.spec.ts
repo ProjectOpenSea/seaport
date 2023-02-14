@@ -5616,7 +5616,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         executions
       );
     });
-    it.only("Match with fewer executions when one party has multiple orders that coincide", async () => {
+    it("Match with fewer executions when one party has multiple orders that coincide", async () => {
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -5746,7 +5746,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
-    it.only("Does not filter native tokens", async () => {
+    it("Does not filter native tokens", async () => {
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
