@@ -13,6 +13,3 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
-[submodule "lib/seaport-sol"]
-	path = lib/seaport-sol
-	url = https://github.com/projectopensea/seaport-sol
