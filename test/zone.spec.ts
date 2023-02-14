@@ -10,6 +10,7 @@ import {
   toAddress,
   toBN,
   toFulfillment,
+  toFulfillmentComponents,
   toKey,
 } from "./utils/encoding";
 import { decodeEvents } from "./utils/events";
@@ -18,6 +19,7 @@ import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
 import type {
+  ConduitInterface,
   ConsiderationInterface,
   TestERC721,
   TestZone,
@@ -1008,12 +1010,16 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
   const owner = new ethers.Wallet(randomHex(32), provider);
 
   let marketplaceContract: ConsiderationInterface;
+  let conduitKeyOne: string;
+  let conduitOne: ConduitInterface;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
@@ -1027,11 +1033,15 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
 
     ({
       checkExpectedEvents,
+      conduitKeyOne,
+      conduitOne,
       createOrder,
       getTestItem721,
+      getTestItem1155,
       getTestItem721WithCriteria,
       marketplaceContract,
       mintAndApprove721,
+      mintAndApprove1155,
       withBalanceChecks,
     } = await seaportFixture(owner));
   });
@@ -1219,5 +1229,112 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
       ]);
       return receipt;
     });
+  });
+
+  it("Reverts on fulfill and aggregate multiple orders (ERC-1155) via fulfillAvailableAdvancedOrders (via conduit) with balance checking on validation zone (1.2 Issue - resolved in 1.3)", async () => {
+    // Seller mints nft
+    const { nftId, amount } = await mintAndApprove1155(
+      seller,
+      conduitOne.address,
+      1,
+      1,
+      10000
+    );
+
+    const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+    const noZoneAddr = new ethers.Wallet(randomHex(32), provider);
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), noZoneAddr.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const TransferValidationZoneOffererFactory =
+      await ethers.getContractFactory(
+        "TestTransferValidationZoneOfferer",
+        owner
+      );
+
+    const transferValidationZone =
+      await TransferValidationZoneOffererFactory.deploy();
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      value,
+    } = await createOrder(
+      seller,
+      transferValidationZone,
+      offer,
+      consideration,
+      2, // FULL_RESTRICTED
+      [],
+      null,
+      seller,
+      undefined,
+      conduitKeyOne
+    );
+
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      noZoneAddr,
+      offer,
+      consideration,
+      0, // FULL_OPEN
+      [],
+      null,
+      seller,
+      undefined,
+      conduitKeyOne
+    );
+
+    // test orderHashes
+    orderOne.extraData = ethers.utils.defaultAbiCoder.encode(
+      ["bytes32[]"],
+      [[orderHashOne, orderHashTwo]]
+    );
+
+    expect((orderOne.extraData.length - 2) / 64).to.equal(4);
+
+    const offerComponents = [
+      toFulfillmentComponents([
+        [0, 0],
+        [1, 0],
+      ]),
+    ];
+
+    const considerationComponents = [
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [0, 1],
+        [1, 1],
+      ],
+      [
+        [0, 2],
+        [1, 2],
+      ],
+    ].map(toFulfillmentComponents);
+
+    await expect(
+      marketplaceContract
+        .connect(buyer)
+        .fulfillAvailableAdvancedOrders(
+          [orderOne, orderTwo],
+          [],
+          offerComponents,
+          considerationComponents,
+          toKey(0),
+          ethers.constants.AddressZero,
+          100,
+          {
+            value: value.mul(2),
+          }
+        )
+    ).to.be.revertedWithCustomError(transferValidationZone, "InvalidBalance");
   });
 });
