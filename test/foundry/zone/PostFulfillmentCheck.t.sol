@@ -676,15 +676,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 numTips: 0
             })
         );
-        // todo: fix ref impl
-        // test(
-        //     this.execFulfillAvailableAdvancedAscending,
-        //     Context({
-        //         consideration: referenceConsideration,
-        //         numOriginalAdditional: 0,
-        //         numTips: 0
-        //     })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedAscending,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
     }
 
     function execFulfillAvailableAdvancedAscending(
@@ -833,102 +832,6 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             recipient: alice
         });
     }
-
-    // function testMatchAdvancedOrders() external {
-    //     test(
-    //         this.execMatchAdvancedOrders,
-    //         Context({
-    //             consideration: consideration,
-    //             numOriginalAdditional: 0,
-    //             numTips: 0
-    //         })
-    //     );
-    //     test(
-    //         this.execMatchAdvancedOrders,
-    //         Context({
-    //             consideration: referenceConsideration,
-    //             numOriginalAdditional: 0,
-    //             numTips: 0
-    //         })
-    //     );
-    // }
-
-    // function execMatchAdvancedOrders(Context memory context) external {
-    //     addErc20OfferItem(1);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 42);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 43);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 44);
-
-    //     _configureOrderParameters({
-    //         offerer: address(this),
-    //         zone: address(0),
-    //         zoneHash: bytes32(0),
-    //         salt: 0,
-    //         useConduit: false
-    //     });
-    //     baseOrderParameters.orderType = OrderType.CONTRACT;
-
-    //     configureOrderComponents(0);
-
-    //     AdvancedOrder memory order = AdvancedOrder({
-    //         parameters: baseOrderParameters,
-    //         numerator: 1,
-    //         denominator: 1,
-    //         signature: "",
-    //         extraData: "context"
-    //     });
-
-    //     AdvancedOrder memory mirror = createMirrorContractOffererOrder(
-    //         context,
-    //         "mirroroooor",
-    //         order
-    //     );
-
-    //     CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-    //     AdvancedOrder[] memory orders = new AdvancedOrder[](2);
-    //     orders[0] = order;
-    //     orders[1] = mirror;
-
-    //     //match first order offer to second order consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 1,
-    //             itemIndex: 0
-    //         })
-    //     });
-    //     // match second order first offer to first order first consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 0
-    //         })
-    //     });
-    //     // match second order second offer to first order second consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 1
-    //         })
-    //     });
-    //     // match second order third offer to first order third consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 2
-    //         })
-    //     });
-
-    //     context.consideration.matchAdvancedOrders({
-    //         orders: orders,
-    //         criteriaResolvers: criteriaResolvers,
-    //         fulfillments: fulfillments
-    //     });
-    //     assertTrue(zone.called());
-    // }
 
     function createMirrorOrder(
         Context memory context,
