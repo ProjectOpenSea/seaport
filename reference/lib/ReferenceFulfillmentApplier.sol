@@ -215,7 +215,7 @@ contract ReferenceFulfillmentApplier is
             return
                 Execution(
                     ReceivedItem(
-                        ItemType.NATIVE,
+                        ItemType.ERC20,
                         address(0),
                         0,
                         0,
