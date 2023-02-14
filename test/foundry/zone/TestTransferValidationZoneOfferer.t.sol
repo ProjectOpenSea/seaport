@@ -218,14 +218,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withConsideration(considerationArray)
             .withCounter(context.seaport.getCounter(offerer1.addr));
 
-        // second order components only differes by what is offered
+        // second order components only differs by what is offered
         offerArray = SeaportArrays.OfferItems(
             OfferItemLib
                 .fromDefault(SINGLE_721)
                 .withToken(address(test721_2))
                 .withIdentifierOrCriteria(1)
         );
-
+        // technically we do not need to copy() since first order components is
+        // not used again, but to encourage good practices, make a copy and
+        // edit that
         OrderComponents memory orderComponents2 = orderComponents
             .copy()
             .withOffer(offerArray);
