@@ -1339,7 +1339,7 @@ contract ConsiderationDecoder {
      *
      * @return receivedItem The received item.
      */
-    function _convertOfferItemToReceivedItemWithRecipient(
+    function _fromOfferItemToReceivedItemWithRecipient(
         OfferItem memory offerItem,
         address recipient
     ) internal pure returns (ReceivedItem memory receivedItem) {
