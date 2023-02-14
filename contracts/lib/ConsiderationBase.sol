@@ -373,7 +373,7 @@ contract ConsiderationBase is
                     typeHash := xor(
                         BulkOrder_Typehash_Height_Seven,
                         mul(
-                            eq(treeHeight, 4),
+                            eq(treeHeight, 8),
                             xor(
                                 BulkOrder_Typehash_Height_Seven,
                                 BulkOrder_Typehash_Height_Eight
