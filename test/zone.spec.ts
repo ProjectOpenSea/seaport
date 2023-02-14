@@ -1004,6 +1004,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
 });
 
 describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
+  if (process.env.REFERENCE) return;
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
