@@ -39,9 +39,13 @@ contract TestTransferValidationZoneOfferer is
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         // Validate the order.
         // Currently assumes that the balances of all tokens of addresses are
         // zero at the start of the transaction.
@@ -108,12 +112,19 @@ contract TestTransferValidationZoneOfferer is
      * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata minimumReceived, /* offer */
+        ReceivedItem[] calldata maximumSpent, /* consideration */
+        bytes calldata context, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        view
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         // Ratify the order.
 
         // Ensure that the offerer or recipient has received all consideration
@@ -142,9 +153,11 @@ contract TestTransferValidationZoneOfferer is
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -154,9 +167,11 @@ contract TestTransferValidationZoneOfferer is
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
         return
             ReceivedItem({
                 itemType: spentItem.itemType,
@@ -167,9 +182,10 @@ contract TestTransferValidationZoneOfferer is
             });
     }
 
-    function _assertValidReceivedItems(
-        ReceivedItem[] calldata receivedItems
-    ) internal view {
+    function _assertValidReceivedItems(ReceivedItem[] calldata receivedItems)
+        internal
+        view
+    {
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
@@ -257,10 +273,10 @@ contract TestTransferValidationZoneOfferer is
         }
     }
 
-    function _assertNativeTokenTransfer(
-        uint256 amount,
-        address recipient
-    ) internal view {
+    function _assertNativeTokenTransfer(uint256 amount, address recipient)
+        internal
+        view
+    {
         if (amount > address(recipient).balance) {
             revert InvalidBalance();
         }
