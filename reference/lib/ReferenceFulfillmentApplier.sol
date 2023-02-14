@@ -79,10 +79,12 @@ contract ReferenceFulfillmentApplier is
 
         // Skip aggregating offer items if no consideration items are available.
         if (considerationItem.amount == 0) {
-            // Set the offerer and recipient to null address if execution
-            // amount is zero. This will cause the execution item to be skipped.
+            // Set the offerer and recipient to null address and item type to a
+            // non-native item type if execution amount is zero. This will cause
+            // the execution item to be skipped.
             execution.offerer = address(0);
             execution.item.recipient = payable(0);
+            execution.item.itemType = ItemType.ERC20;
             return execution;
         }
 
