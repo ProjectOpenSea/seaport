@@ -251,11 +251,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
             );
         // consideration fulfillments can be aggregated (can batch transfer eth) so there will be one array for both orders
-        FulfillmentComponent[][] memory considerationFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                // two-element fulfillmentcomponents array, one for each order
-                FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
-            );
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    // two-element fulfillmentcomponents array, one for each order
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
+                );
 
         return (
             orders,
