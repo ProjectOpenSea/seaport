@@ -767,109 +767,107 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
-            // If any restricted or contract orders are present in the group of
-            // orders being fulfilled, ensure that all transfers have completed
-            // before making any validateOrder or ratifyOrder calls.
-            if (containsNonOpen) {
-                // Iterate over each order.
-                for (uint256 i = 0; i < totalOrders; ++i) {
-                    // Retrieve the order in question.
-                    AdvancedOrder memory advancedOrder = advancedOrders[i];
+            // Iterate over each order.
+            for (uint256 i = 0; i < totalOrders; ++i) {
+                // Retrieve the order in question.
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-                    // Skip the order in question if not being not fulfilled.
-                    if (advancedOrder.numerator == 0) {
-                        // Explicitly set availableOrders at the given index to
-                        // guard against the possibility of dirtied memory.
-                        availableOrders[i] = false;
-                        continue;
-                    }
+                // Skip the order in question if not being not fulfilled.
+                if (advancedOrder.numerator == 0) {
+                    // Explicitly set availableOrders at the given index to
+                    // guard against the possibility of dirtied memory.
+                    availableOrders[i] = false;
+                    continue;
+                }
 
-                    // Mark the order as available.
-                    availableOrders[i] = true;
+                // Mark the order as available.
+                availableOrders[i] = true;
 
-                    // Retrieve the order parameters.
-                    OrderParameters memory parameters = (
-                        advancedOrder.parameters
-                    );
+                // Retrieve the order parameters.
+                OrderParameters memory parameters = (advancedOrder.parameters);
 
-                    {
-                        // Retrieve offer items.
-                        OfferItem[] memory offer = parameters.offer;
+                {
+                    // Retrieve offer items.
+                    OfferItem[] memory offer = parameters.offer;
 
-                        // Read length of offer array & place on the stack.
-                        uint256 totalOfferItems = offer.length;
+                    // Read length of offer array & place on the stack.
+                    uint256 totalOfferItems = offer.length;
 
-                        // Iterate over each offer item to restore it.
-                        for (uint256 j = 0; j < totalOfferItems; ++j) {
-                            // Retrieve the offer item in question.
-                            OfferItem memory offerItem = offer[j];
+                    // Iterate over each offer item to restore it.
+                    for (uint256 j = 0; j < totalOfferItems; ++j) {
+                        // Retrieve the offer item in question.
+                        OfferItem memory offerItem = offer[j];
 
-                            // Transfer to recipient if unspent amount is not
-                            // zero. Note that the transfer will not be
-                            // reflected in the executions array.
-                            if (offerItem.startAmount != 0) {
-                                _transfer(
-                                    _fromOfferItemToReceivedItemWithRecipient(
-                                        offerItem,
-                                        recipient
-                                    ),
-                                    parameters.offerer,
-                                    parameters.conduitKey,
-                                    accumulator
-                                );
-                            }
-
-                            // Restore original amount on the offer item.
-                            offerItem.startAmount = offerItem.endAmount;
-                        }
-                    }
-
-                    {
-                        // Read consideration items & ensure they are fulfilled.
-                        ConsiderationItem[] memory consideration = (
-                            parameters.consideration
-                        );
-
-                        // Read length of consideration array & place on stack.
-                        uint256 totalConsiderationItems = consideration.length;
-
-                        // Iterate over each consideration item.
-                        for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                            ConsiderationItem memory considerationItem = (
-                                consideration[j]
+                        // Transfer to recipient if unspent amount is not zero.
+                        // Note that the transfer will not be reflected in the
+                        // executions array.
+                        if (offerItem.startAmount != 0) {
+                            _transfer(
+                                _fromOfferItemToReceivedItemWithRecipient(
+                                    offerItem,
+                                    recipient
+                                ),
+                                parameters.offerer,
+                                parameters.conduitKey,
+                                accumulator
                             );
-
-                            // Retrieve remaining amount on consideration item.
-                            uint256 unmetAmount = considerationItem.startAmount;
-
-                            // Revert if the remaining amount is not zero.
-                            if (unmetAmount != 0) {
-                                _revertConsiderationNotMet(i, j, unmetAmount);
-                            }
-
-                            // Utilize assembly to restore the original value.
-                            assembly {
-                                // Write recipient to startAmount.
-                                mstore(
-                                    add(
-                                        considerationItem,
-                                        ReceivedItem_amount_offset
-                                    ),
-                                    mload(
-                                        add(
-                                            considerationItem,
-                                            ConsiderationItem_recipient_offset
-                                        )
-                                    )
-                                )
-                            }
                         }
+
+                        // Restore original amount on the offer item.
+                        offerItem.startAmount = offerItem.endAmount;
                     }
                 }
 
-                // Trigger any accumulated transfers via call to the conduit.
-                _triggerIfArmed(accumulator);
+                {
+                    // Read consideration items & ensure they are fulfilled.
+                    ConsiderationItem[] memory consideration = (
+                        parameters.consideration
+                    );
 
+                    // Read length of consideration array & place on stack.
+                    uint256 totalConsiderationItems = consideration.length;
+
+                    // Iterate over each consideration item.
+                    for (uint256 j = 0; j < totalConsiderationItems; ++j) {
+                        ConsiderationItem memory considerationItem = (
+                            consideration[j]
+                        );
+
+                        // Retrieve remaining amount on consideration item.
+                        uint256 unmetAmount = considerationItem.startAmount;
+
+                        // Revert if the remaining amount is not zero.
+                        if (unmetAmount != 0) {
+                            _revertConsiderationNotMet(i, j, unmetAmount);
+                        }
+
+                        // Utilize assembly to restore the original value.
+                        assembly {
+                            // Write recipient to startAmount.
+                            mstore(
+                                add(
+                                    considerationItem,
+                                    ReceivedItem_amount_offset
+                                ),
+                                mload(
+                                    add(
+                                        considerationItem,
+                                        ConsiderationItem_recipient_offset
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Trigger any accumulated transfers via call to the conduit.
+            _triggerIfArmed(accumulator);
+
+            // If any restricted or contract orders are present in the group of
+            // orders being fulfilled, perform any validateOrder or ratifyOrder
+            // calls after all executions and related transfers are complete.
+            if (containsNonOpen) {
                 // Iterate over each order a second time.
                 for (uint256 i = 0; i < totalOrders; ++i) {
                     // Check restricted orders and contract orders.
@@ -879,105 +877,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         orderHashes[i]
                     );
                 }
-            } else {
-                // Iterate over each order.
-                for (uint256 i = 0; i < totalOrders; ++i) {
-                    // Retrieve the order in question.
-                    AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                    // Skip the order in question if not being not fulfilled.
-                    if (advancedOrder.numerator == 0) {
-                        // Explicitly set availableOrders at the given index to
-                        // guard against the possibility of dirtied memory.
-                        availableOrders[i] = false;
-                        continue;
-                    }
-
-                    // Mark the order as available.
-                    availableOrders[i] = true;
-
-                    // Retrieve the order parameters.
-                    OrderParameters memory parameters = (
-                        advancedOrder.parameters
-                    );
-
-                    {
-                        // Retrieve offer items.
-                        OfferItem[] memory offer = parameters.offer;
-
-                        // Read length of offer array & place on the stack.
-                        uint256 totalOfferItems = offer.length;
-
-                        // Iterate over each offer item to restore it.
-                        for (uint256 j = 0; j < totalOfferItems; ++j) {
-                            // Retrieve the offer item in question.
-                            OfferItem memory offerItem = offer[j];
-
-                            // Transfer to recipient if unspent amount is not
-                            // zero. Note that the transfer will not be
-                            // reflected in the executions array.
-                            if (offerItem.startAmount != 0) {
-                                _transfer(
-                                    _fromOfferItemToReceivedItemWithRecipient(
-                                        offerItem,
-                                        recipient
-                                    ),
-                                    parameters.offerer,
-                                    parameters.conduitKey,
-                                    accumulator
-                                );
-                            }
-
-                            // Restore original amount on the offer item.
-                            offerItem.startAmount = offerItem.endAmount;
-                        }
-                    }
-
-                    {
-                        // Read consideration items & ensure they are fulfilled.
-                        ConsiderationItem[] memory consideration = (
-                            parameters.consideration
-                        );
-
-                        // Read length of consideration array & place on stack.
-                        uint256 totalConsiderationItems = consideration.length;
-
-                        // Iterate over each consideration item.
-                        for (uint256 j = 0; j < totalConsiderationItems; ++j) {
-                            ConsiderationItem memory considerationItem = (
-                                consideration[j]
-                            );
-
-                            // Retrieve remaining amount on consideration item.
-                            uint256 unmetAmount = considerationItem.startAmount;
-
-                            // Revert if the remaining amount is not zero.
-                            if (unmetAmount != 0) {
-                                _revertConsiderationNotMet(i, j, unmetAmount);
-                            }
-
-                            // Utilize assembly to restore the original value.
-                            assembly {
-                                // Write recipient to startAmount.
-                                mstore(
-                                    add(
-                                        considerationItem,
-                                        ReceivedItem_amount_offset
-                                    ),
-                                    mload(
-                                        add(
-                                            considerationItem,
-                                            ConsiderationItem_recipient_offset
-                                        )
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Trigger any remaining accumulated transfers via conduit.
-                _triggerIfArmed(accumulator);
             }
         }
 

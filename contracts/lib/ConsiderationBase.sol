@@ -10,6 +10,30 @@ import {
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
+    BulkOrder_Typehash_Height_One,
+    BulkOrder_Typehash_Height_Two,
+    BulkOrder_Typehash_Height_Three,
+    BulkOrder_Typehash_Height_Four,
+    BulkOrder_Typehash_Height_Five,
+    BulkOrder_Typehash_Height_Six,
+    BulkOrder_Typehash_Height_Seven,
+    BulkOrder_Typehash_Height_Eight,
+    BulkOrder_Typehash_Height_Nine,
+    BulkOrder_Typehash_Height_Ten,
+    BulkOrder_Typehash_Height_Eleven,
+    BulkOrder_Typehash_Height_Twelve,
+    BulkOrder_Typehash_Height_Thirteen,
+    BulkOrder_Typehash_Height_Fourteen,
+    BulkOrder_Typehash_Height_Fifteen,
+    BulkOrder_Typehash_Height_Sixteen,
+    BulkOrder_Typehash_Height_Seventeen,
+    BulkOrder_Typehash_Height_Eighteen,
+    BulkOrder_Typehash_Height_Nineteen,
+    BulkOrder_Typehash_Height_Twenty,
+    BulkOrder_Typehash_Height_TwentyOne,
+    BulkOrder_Typehash_Height_TwentyTwo,
+    BulkOrder_Typehash_Height_TwentyThree,
+    BulkOrder_Typehash_Height_TwentyFour,
     EIP712_domainData_chainId_offset,
     EIP712_domainData_nameHash_offset,
     EIP712_domainData_size,
@@ -27,8 +51,6 @@ import {
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
-
-import { TypehashDirectory } from "./TypehashDirectory.sol";
 
 /**
  * @title ConsiderationBase
@@ -53,9 +75,6 @@ contract ConsiderationBase is
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
-    // BulkOrder typehash storage
-    TypehashDirectory internal immutable _BULK_ORDER_TYPEHASH_DIRECTORY;
-
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
@@ -77,8 +96,6 @@ contract ConsiderationBase is
             _CONSIDERATION_ITEM_TYPEHASH,
             _ORDER_TYPEHASH
         ) = _deriveTypehashes();
-
-        _BULK_ORDER_TYPEHASH_DIRECTORY = new TypehashDirectory();
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
@@ -277,14 +294,185 @@ contract ConsiderationBase is
         orderTypehash = keccak256(orderTypeString);
     }
 
+    /**
+     * @dev Internal pure function to look up one of twenty-four potential bulk
+     *      order typehash constants based on the height of the bulk order tree.
+     *      Note that values between one and twenty-four are supported, which is
+     *      enforced by _isValidBulkOrderSize.
+     *
+     * @param treeHeight The height of the bulk order tree. The value must be
+     *                   between one and twenty-four.
+     *
+     * @return typeHash The EIP-712 typehash for the bulk order type with the
+     *                  given height.
+     */
     function _lookupBulkOrderTypehash(
         uint256 treeHeight
-    ) internal view returns (bytes32 typeHash) {
-        TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
+    ) internal pure returns (bytes32 typeHash) {
         assembly {
-            let typeHashOffset := add(1, shl(OneWordShift, sub(treeHeight, 1)))
-            extcodecopy(directory, 0, typeHashOffset, OneWord)
-            typeHash := mload(0)
+            switch lt(treeHeight, 13)
+            case 1 {
+                switch lt(treeHeight, 7)
+                case 1 {
+                    switch lt(treeHeight, 4)
+                    case 1 {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 1),
+                                    BulkOrder_Typehash_Height_One
+                                ),
+                                mul(
+                                    eq(treeHeight, 2),
+                                    BulkOrder_Typehash_Height_Two
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 3),
+                                BulkOrder_Typehash_Height_Three
+                            )
+                        )
+                    }
+                    default {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 4),
+                                    BulkOrder_Typehash_Height_Four
+                                ),
+                                mul(
+                                    eq(treeHeight, 5),
+                                    BulkOrder_Typehash_Height_Five
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 6),
+                                BulkOrder_Typehash_Height_Six
+                            )
+                        )
+                    }
+                }
+                default {
+                    switch lt(treeHeight, 10)
+                    case 1 {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 7),
+                                    BulkOrder_Typehash_Height_Seven
+                                ),
+                                mul(
+                                    eq(treeHeight, 8),
+                                    BulkOrder_Typehash_Height_Eight
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 9),
+                                BulkOrder_Typehash_Height_Nine
+                            )
+                        )
+                    }
+                    default {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 10),
+                                    BulkOrder_Typehash_Height_Ten
+                                ),
+                                mul(
+                                    eq(treeHeight, 11),
+                                    BulkOrder_Typehash_Height_Eleven
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 12),
+                                BulkOrder_Typehash_Height_Twelve
+                            )
+                        )
+                    }
+                }
+            }
+            default {
+                switch lt(treeHeight, 19)
+                case 1 {
+                    switch lt(treeHeight, 16)
+                    case 1 {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 13),
+                                    BulkOrder_Typehash_Height_Thirteen
+                                ),
+                                mul(
+                                    eq(treeHeight, 14),
+                                    BulkOrder_Typehash_Height_Fourteen
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 15),
+                                BulkOrder_Typehash_Height_Fifteen
+                            )
+                        )
+                    }
+                    default {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 16),
+                                    BulkOrder_Typehash_Height_Sixteen
+                                ),
+                                mul(
+                                    eq(treeHeight, 17),
+                                    BulkOrder_Typehash_Height_Seventeen
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 18),
+                                BulkOrder_Typehash_Height_Eighteen
+                            )
+                        )
+                    }
+                }
+                default {
+                    switch lt(treeHeight, 21)
+                    case 1 {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 19),
+                                    BulkOrder_Typehash_Height_Nineteen
+                                ),
+                                mul(
+                                    eq(treeHeight, 20),
+                                    BulkOrder_Typehash_Height_Twenty
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 21),
+                                BulkOrder_Typehash_Height_TwentyOne
+                            )
+                        )
+                    }
+                    default {
+                        typeHash := add(
+                            add(
+                                mul(
+                                    eq(treeHeight, 22),
+                                    BulkOrder_Typehash_Height_TwentyTwo
+                                ),
+                                mul(
+                                    eq(treeHeight, 23),
+                                    BulkOrder_Typehash_Height_TwentyThree
+                                )
+                            ),
+                            mul(
+                                eq(treeHeight, 24),
+                                BulkOrder_Typehash_Height_TwentyFour
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 }

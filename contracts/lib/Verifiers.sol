@@ -181,7 +181,7 @@ contract Verifiers is Assertions, SignatureVerification {
     function _computeBulkOrderProof(
         bytes memory proofAndSignature,
         bytes32 leaf
-    ) internal view returns (bytes32 bulkOrderHash) {
+    ) internal pure returns (bytes32 bulkOrderHash) {
         // Declare arguments for the root hash and the height of the proof.
         bytes32 root;
         uint256 height;
@@ -232,7 +232,7 @@ contract Verifiers is Assertions, SignatureVerification {
             root := keccak256(0, TwoWords)
         }
 
-        // Retrieve appropriate typehash from runtime storage based on height.
+        // Retrieve appropriate typehash constant based on height.
         bytes32 rootTypeHash = _lookupBulkOrderTypehash(height);
 
         // Use the typehash and the root hash to derive final bulk order hash.
