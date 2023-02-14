@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.13;
 
 import {
     ERC20Interface,
@@ -22,7 +22,7 @@ import {
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-contract TransferValidationZoneOfferer is
+contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface
 {
@@ -39,9 +39,12 @@ contract TransferValidationZoneOfferer is
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         // Validate the order.
         // Currently assumes that the balances of all tokens of addresses are
         // zero at the start of the transaction.
@@ -108,12 +111,19 @@ contract TransferValidationZoneOfferer is
      * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata minimumReceived, /* offer */
+        ReceivedItem[] calldata maximumSpent, /* consideration */
+        bytes calldata context, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        view
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         // Ratify the order.
 
         // Ensure that the offerer or recipient has received all consideration
@@ -136,15 +146,17 @@ contract TransferValidationZoneOfferer is
         returns (string memory name, Schema[] memory schemas)
     {
         // Return the metadata.
-        name = "TransferValidationZoneOfferer";
+        name = "TestTransferValidationZoneOfferer";
         schemas = new Schema[](1);
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -154,9 +166,11 @@ contract TransferValidationZoneOfferer is
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
         return
             ReceivedItem({
                 itemType: spentItem.itemType,
@@ -167,9 +181,10 @@ contract TransferValidationZoneOfferer is
             });
     }
 
-    function _assertValidReceivedItems(
-        ReceivedItem[] calldata receivedItems
-    ) internal view {
+    function _assertValidReceivedItems(ReceivedItem[] calldata receivedItems)
+        internal
+        view
+    {
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
@@ -257,10 +272,10 @@ contract TransferValidationZoneOfferer is
         }
     }
 
-    function _assertNativeTokenTransfer(
-        uint256 amount,
-        address recipient
-    ) internal view {
+    function _assertNativeTokenTransfer(uint256 amount, address recipient)
+        internal
+        view
+    {
         if (amount > address(recipient).balance) {
             revert InvalidBalance();
         }

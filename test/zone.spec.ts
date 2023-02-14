@@ -1004,7 +1004,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
 });
 
 describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
-  if (process.env.REFERENCE) return;
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -1063,7 +1062,10 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
     const offer = [getTestItem721(nftId)];
 
     const TransferValidationZoneOffererFactory =
-      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+      await ethers.getContractFactory(
+        "TestTransferValidationZoneOfferer",
+        owner
+      );
 
     const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
 
@@ -1118,7 +1120,10 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
     ];
 
     const TransferValidationZoneOffererFactory =
-      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+      await ethers.getContractFactory(
+        "TestTransferValidationZoneOfferer",
+        owner
+      );
 
     const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
 
@@ -1175,7 +1180,10 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
     ];
 
     const TransferValidationZoneOffererFactory =
-      await ethers.getContractFactory("TransferValidationZoneOfferer", owner);
+      await ethers.getContractFactory(
+        "TestTransferValidationZoneOfferer",
+        owner
+      );
 
     const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
 
