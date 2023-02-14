@@ -92,11 +92,18 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes32 orderHash,
         bytes memory signature
     ) internal view {
+        // Determine whether the offerer is the caller.
+        bool offererIsCaller;
+        assembly {
+            offererIsCaller := eq(offerer, caller())
+        }
+
         // Skip signature verification if the offerer is the caller.
-        if (_unmaskedAddressComparison(offerer, msg.sender)) {
+        if (offererIsCaller) {
             return;
         }
 
+        // Derive the EIP-712 domain separator.
         bytes32 domainSeparator = _domainSeparator();
 
         // Derive original EIP-712 digest using domain separator and order hash.
@@ -105,14 +112,17 @@ contract Verifiers is Assertions, SignatureVerification {
             orderHash
         );
 
+        // Read the length of the signature from memory and place on the stack.
         uint256 originalSignatureLength = signature.length;
 
+        // Determine effective digest if signature has a valid bulk order size.
         bytes32 digest;
         if (_isValidBulkOrderSize(originalSignatureLength)) {
             // Rederive order hash and digest using bulk order proof.
             (orderHash) = _computeBulkOrderProof(signature, orderHash);
             digest = _deriveEIP712Digest(domainSeparator, orderHash);
         } else {
+            // Supply the original digest as the effective digest.
             digest = originalDigest;
         }
 

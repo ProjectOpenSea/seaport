@@ -29,6 +29,7 @@ import {
 import {
     AccumulatorDisarmed,
     ConsiderationItem_recipient_offset,
+    Execution_offerer_offset,
     NonMatchSelector_InvalidErrorValue,
     NonMatchSelector_MagicMask,
     OneWord,
@@ -186,10 +187,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                          already have a designated recipient and are not
      *                          already used as part of a provided fulfillment.
      *
-     * @return orderHashes      The hashes of the orders being fulfilled.
-     * @return containsNonOpen  A boolean indicating whether any restricted or
-     *                          contract orders are present within the provided
-     *                          array of advanced orders.
+     * @return orderHashes     The hashes of the orders being fulfilled.
+     * @return containsNonOpen A boolean indicating whether any restricted or
+     *                         contract orders are present within the provided
+     *                         array of advanced orders.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
@@ -614,13 +615,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     recipient
                 );
 
-                // If offerer and recipient on the execution are the same...
-                if (
-                    _unmaskedAddressComparison(
-                        execution.item.recipient,
-                        execution.offerer
-                    )
-                ) {
+                // If the execution is filterable...
+                if (_isFilterableExecution(execution)) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
@@ -643,13 +639,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     address(0) // unused
                 );
 
-                // If offerer and recipient on the execution are the same...
-                if (
-                    _unmaskedAddressComparison(
-                        execution.item.recipient,
-                        execution.offerer
-                    )
-                ) {
+                // If the execution is filterable...
+                if (_isFilterableExecution(execution)) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
@@ -697,21 +688,21 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *      item for an arbitrary number of fulfilled orders has been met and to
      *      trigger associated executions, transferring the respective items.
      *
-     * @param advancedOrders     The orders to check and perform executions for.
-     * @param executions         An array of elements indicating the sequence of
-     *                           transfers to perform when fulfilling the given
-     *                           orders.
-     * @param orderHashes        An array of order hashes for each order.
-     * @param recipient          The intended recipient for all items that do
-     *                           not already have a designated recipient and are
-     *                           not used as part of a provided fulfillment.
-     * @param containsNonOpen    A boolean indicating whether any restricted or
-     *                           contract orders are present within the provided
-     *                           array of advanced orders.
+     * @param advancedOrders  The orders to check and perform executions for.
+     * @param executions      An array of elements indicating the sequence of
+     *                        transfers to perform when fulfilling the given
+     *                        orders.
+     * @param orderHashes     An array of order hashes for each order.
+     * @param recipient       The intended recipient for all items that do not
+     *                        already have a designated recipient and are not
+     *                        used as part of a provided fulfillment.
+     * @param containsNonOpen A boolean indicating whether any restricted or
+     *                        contract orders are present within the provided
+     *                        array of advanced orders.
      *
-     * @return availableOrders   An array of booleans indicating if each order
-     *                           with an index corresponding to the index of the
-     *                           returned boolean was fulfillable or not.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
      */
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -1120,24 +1111,23 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
-     * @param advancedOrders     The orders to match, including a fraction to
-     *                           attempt to fill for each order.
-     * @param fulfillments       An array of elements allocating offer
-     *                           components to consideration components. Note
-     *                           that the final amount of each consideration
-     *                           component must be zero for a match operation to
-     *                           be considered valid.
-     * @param orderHashes        An array of order hashes for each order.
-     * @param recipient          The intended recipient for all items that do
-     *                           not already have a designated recipient and are
-     *                           not used as part of a provided fulfillment.
-     * @param containsNonOpen    A boolean indicating whether any restricted or
-     *                           contract orders are present within the provided
-     *                           array of advanced orders.
+     * @param advancedOrders  The orders to match, including a fraction to
+     *                        attempt to fill for each order.
+     * @param fulfillments    An array of elements allocating offer components
+     *                        to consideration components. Note that the final
+     *                        amount of each consideration component must be
+     *                        zero for a match operation to be considered valid.
+     * @param orderHashes     An array of order hashes for each order.
+     * @param recipient       The intended recipient for all items that do not
+     *                        already have a designated recipient and are not
+     *                        used as part of a provided fulfillment.
+     * @param containsNonOpen A boolean indicating whether any restricted or
+     *                        contract orders are present within the provided
+     *                        array of advanced orders.
      *
-     * @return executions        An array of elements indicating the sequence of
-     *                           transfers performed as part of matching the
-     *                           given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -1170,13 +1160,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     i
                 );
 
-                // If offerer and recipient on the execution are the same...
-                if (
-                    _unmaskedAddressComparison(
-                        execution.item.recipient,
-                        execution.offerer
-                    )
-                ) {
+                // If the execution is filterable...
+                if (_isFilterableExecution(execution)) {
                     // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 } else {
@@ -1208,5 +1193,40 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Return the executions array.
         return executions;
+    }
+
+    /**
+     * @dev Internal pure function to determine whether a given execution is
+     *      filterable and may be removed from the executions array. The offerer
+     *      and the recipient must be the same address and the item type cannot
+     *      indicate a native token transfer.
+     *
+     * @param execution The execution to check for filterability.
+     *
+     * @return filterable A boolean indicating whether the execution in question
+     *                    can be filtered from the executions array.
+     */
+    function _isFilterableExecution(
+        Execution memory execution
+    ) internal pure returns (bool filterable) {
+        // Utilize assembly to efficiently determine if execution is filterable.
+        assembly {
+            // Retrieve the received item referenced by the execution.
+            let item := mload(execution)
+
+            // Determine whether the execution is filterable.
+            filterable := and(
+                // Determine if offerer and recipient are the same address.
+                eq(
+                    // Retrieve the recipient's address from the received item.
+                    mload(add(item, ReceivedItem_recipient_offset)),
+                    // Retrieve the offerer's address from the execution.
+                    mload(add(execution, Execution_offerer_offset))
+                ),
+                // Determine if received item's item type is non-zero, thereby
+                // indicating that the execution does not involve native tokens.
+                iszero(iszero(mload(item)))
+            )
+        }
     }
 }
