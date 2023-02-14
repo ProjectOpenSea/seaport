@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
+import { BaseConduitTest } from "../conduit/BaseConduitTest.sol";
+
 import { TestZone } from "./impl/TestZone.sol";
 
 import {
@@ -62,6 +64,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
+        conduitController.updateChannel(address(conduit), address(this), true);
+        referenceConduitController.updateChannel(
+            address(referenceConduit),
+            address(this),
+            true
+        );
         vm.label(address(zone), "TestZone");
     }
 
@@ -789,7 +797,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             extraData: "context"
         });
 
-        AdvancedOrder memory mirror = createMirrorContractOffererOrder(
+        AdvancedOrder memory mirror = createMirrorOrder(
             context,
             "mirroroooor",
             order,
@@ -925,7 +933,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     function createMirrorOrder(
         Context memory context,
         string memory _offerer,
-        AdvancedOrder memory advancedOrder
+        AdvancedOrder memory advancedOrder,
+        bool _useConduit
     ) internal returns (AdvancedOrder memory) {
         delete offerItems;
         delete considerationItems;
@@ -933,8 +942,11 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         (address _offererAddr, uint256 pkey) = makeAddrAndKey(_offerer);
         test721_1.mint(address(_offererAddr), 42);
 
-        vm.prank(_offererAddr);
+        vm.startPrank(_offererAddr);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
         test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
 
         for (uint256 i; i < advancedOrder.parameters.offer.length; i++) {
             OfferItem memory _offerItem = advancedOrder.parameters.offer[i];
@@ -972,7 +984,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             zone: advancedOrder.parameters.zone,
             zoneHash: advancedOrder.parameters.zoneHash,
             salt: advancedOrder.parameters.salt,
-            useConduit: false
+            useConduit: _useConduit
         });
 
         configureOrderComponents(0);
@@ -1016,8 +1028,11 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         test721_1.mint(address(_offererAddr), 43);
         test721_1.mint(address(_offererAddr), 44);
 
-        vm.prank(_offererAddr);
+        vm.startPrank(_offererAddr);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
         test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
 
         for (uint256 i; i < advancedOrder.parameters.offer.length; i++) {
             OfferItem memory _offerItem = advancedOrder.parameters.offer[i];
