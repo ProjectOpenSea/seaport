@@ -73,12 +73,8 @@ const config: HardhatUserConfig = {
         settings: {
           viaIR: true,
           optimizer: {
-            ...(process.env.NO_SPECIALIZER
-              ? optimizerSettingsNoSpecializer
-              : { enabled: true, runs: 4_294_967_295 }),
-          },
-          metadata: {
-            bytecodeHash: "none",
+            enabled: true,
+            runs: 4_294_967_295,
           },
           outputSelection: {
             "*": {
