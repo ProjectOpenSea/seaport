@@ -9,8 +9,8 @@ import {
 
 import {
     ReceivedItem,
-    SpentItem,
     Schema,
+    SpentItem,
     ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
@@ -31,104 +31,34 @@ contract TransferValidationZoneOfferer is
 
     constructor() {}
 
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        override
-        returns (bytes4 validOrderMagicValue)
-    {
+    /**
+     * @dev Validates that the parties have received the correct items.
+     *
+     * @param zoneParameters The zone parameters, including the SpentItem and
+     *                       ReceivedItem arrays.
+     *
+     * @return validOrderMagicValue The magic value to indicate things are OK.
+     */
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view override returns (bytes4 validOrderMagicValue) {
         // Validate the order.
         // Currently assumes that the balances of all tokens of addresses are
         // zero at the start of the transaction.
-        address recipient;
-        ItemType itemType;
-        ReceivedItem memory receivedItem;
 
         // Check if all consideration items have been received.
-        for (uint256 i = 0; i < zoneParameters.consideration.length; i++) {
-            // Check if the consideration item has been received.
-            receivedItem = zoneParameters.consideration[i];
-            // Get the recipient of the consideration item.
-            recipient = receivedItem.recipient;
-
-            // Get item type.
-            itemType = receivedItem.itemType;
-
-            // Check balance/ownerOf depending on item type.
-            if (itemType == ItemType.NATIVE) {
-                // NATIVE Token
-                _assertNativeTokenTransfer(receivedItem.amount, recipient);
-            } else if (itemType == ItemType.ERC20) {
-                // ERC20 Token
-                _assertERC20Transfer(
-                    receivedItem.amount,
-                    receivedItem.token,
-                    recipient
-                );
-            } else if (itemType == ItemType.ERC721) {
-                // ERC721 Token
-                _assertERC721Transfer(
-                    receivedItem.identifier,
-                    receivedItem.token,
-                    recipient
-                );
-            } else if (itemType == ItemType.ERC1155) {
-                // ERC1155 Token
-                _assertERC1155Transfer(
-                    receivedItem.amount,
-                    receivedItem.identifier,
-                    receivedItem.token,
-                    recipient
-                );
-            }
-        }
-
-        // Fulfiller should receive all offer items.
-        address fulfiller = zoneParameters.fulfiller;
-        SpentItem memory spentItem;
+        _assertValidReceivedItems(zoneParameters.consideration);
 
         // Check if all offer items have been spent.
-        for (uint256 i = 0; i < zoneParameters.offer.length; i++) {
-            // Check if the offer item has been spent.
-            spentItem = zoneParameters.offer[i];
-            // Get item type.
-            itemType = spentItem.itemType;
-
-            // Check balance/ownerOf depending on item type.
-            if (itemType == ItemType.NATIVE) {
-                // NATIVE Token
-                _assertNativeTokenTransfer(spentItem.amount, fulfiller);
-            } else if (itemType == ItemType.ERC20) {
-                // ERC20 Token
-                _assertERC20Transfer(
-                    spentItem.amount,
-                    spentItem.token,
-                    fulfiller
-                );
-            } else if (itemType == ItemType.ERC721) {
-                // ERC721 Token
-                _assertERC721Transfer(
-                    spentItem.identifier,
-                    spentItem.token,
-                    fulfiller
-                );
-            } else if (itemType == ItemType.ERC1155) {
-                // ERC1155 Token
-                _assertERC1155Transfer(
-                    spentItem.amount,
-                    spentItem.identifier,
-                    spentItem.token,
-                    fulfiller
-                );
-            }
-        }
+        _assertValidSpentItems(zoneParameters.fulfiller, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     *      items.
      */
     function generateOrder(
         address,
@@ -164,23 +94,30 @@ contract TransferValidationZoneOfferer is
         return (a, _convertSpentToReceived(b));
     }
 
+    /**
+     * @dev Ratifies that the parties have received the correct items.
+     *
+     * @param minimumReceived The minimum items that the caller was willing to
+     *                        receive.
+     * @param maximumSpent    The maximum items that the caller was willing to
+     *                        spend.
+     * @param context         The context of the order.
+     * @ param orderHashes     The order hashes, unused here.
+     * @ param contractNonce   The contract nonce, unused here.
+     *
+     * @return ratifyOrderMagicValue The magic value to indicate things are OK.
+     */
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived, /* offer */
-        ReceivedItem[] calldata maximumSpent, /* consideration */
-        bytes calldata context, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata minimumReceived /* offer */,
+        ReceivedItem[] calldata maximumSpent /* consideration */,
+        bytes calldata context /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    )
-        external
-        view
-        override
-        returns (
-            bytes4 /* ratifyOrderMagicValue */
-        )
-    {
-        // Ratify the order
+    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
+        // Ratify the order.
 
-        // Ensure that the offerer or recipient has received all consideration items.
+        // Ensure that the offerer or recipient has received all consideration
+        // items.
         _assertValidReceivedItems(maximumSpent);
 
         // Get the fulfiller address from the context.
@@ -189,7 +126,7 @@ contract TransferValidationZoneOfferer is
         // Ensure that the fulfiller has received all offer items.
         _assertValidSpentItems(fulfiller, minimumReceived);
 
-        return TransferValidationZoneOfferer.ratifyOrder.selector;
+        return this.ratifyOrder.selector;
     }
 
     function getSeaportMetadata()
@@ -205,11 +142,9 @@ contract TransferValidationZoneOfferer is
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(SpentItem[] calldata spentItems)
-        internal
-        view
-        returns (ReceivedItem[] memory)
-    {
+    function _convertSpentToReceived(
+        SpentItem[] calldata spentItems
+    ) internal view returns (ReceivedItem[] memory) {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -219,11 +154,9 @@ contract TransferValidationZoneOfferer is
         return receivedItems;
     }
 
-    function _convertSpentToReceived(SpentItem calldata spentItem)
-        internal
-        view
-        returns (ReceivedItem memory)
-    {
+    function _convertSpentToReceived(
+        SpentItem calldata spentItem
+    ) internal view returns (ReceivedItem memory) {
         return
             ReceivedItem({
                 itemType: spentItem.itemType,
@@ -234,10 +167,9 @@ contract TransferValidationZoneOfferer is
             });
     }
 
-    function _assertValidReceivedItems(ReceivedItem[] calldata receivedItems)
-        internal
-        view
-    {
+    function _assertValidReceivedItems(
+        ReceivedItem[] calldata receivedItems
+    ) internal view {
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
@@ -325,10 +257,10 @@ contract TransferValidationZoneOfferer is
         }
     }
 
-    function _assertNativeTokenTransfer(uint256 amount, address recipient)
-        internal
-        view
-    {
+    function _assertNativeTokenTransfer(
+        uint256 amount,
+        address recipient
+    ) internal view {
         if (amount > address(recipient).balance) {
             revert InvalidBalance();
         }
