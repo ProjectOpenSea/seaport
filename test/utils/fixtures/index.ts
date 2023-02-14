@@ -683,7 +683,10 @@ export const seaportFixture = async (owner: Wallet) => {
           (x) => x.address === offerItem.token
         );
 
-        if (offer.itemType === 1) {
+        if (
+          offer.itemType === 1 &&
+          standardExecutions.map((x) => x.item.itemType).includes(1)
+        ) {
           // ERC20
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
@@ -702,7 +705,10 @@ export const seaportFixture = async (owner: Wallet) => {
           // TODO: check each transferred amount
           // for (const transferLog of transferLogs) {
           // }
-        } else if (offer.itemType === 2) {
+        } else if (
+          offer.itemType === 2 &&
+          standardExecutions.map((x) => x.item.itemType).includes(2)
+        ) {
           // ERC721
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
@@ -722,7 +728,10 @@ export const seaportFixture = async (owner: Wallet) => {
           expect(transferLog.args.id.toString()).to.equal(
             offer.identifier.toString()
           );
-        } else if (offer.itemType === 3) {
+        } else if (
+          offer.itemType === 3 &&
+          standardExecutions.map((x) => x.item.itemType).includes(3)
+        ) {
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC1155.interface.parseLog(x))
@@ -780,7 +789,10 @@ export const seaportFixture = async (owner: Wallet) => {
           (x) => x.address === considerationItem.token
         );
 
-        if (consideration.itemType === 1) {
+        if (
+          consideration.itemType === 1 &&
+          standardExecutions.map((x) => x.item.itemType).includes(1)
+        ) {
           // ERC20
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
@@ -795,7 +807,10 @@ export const seaportFixture = async (owner: Wallet) => {
           // TODO: check each transferred amount
           // for (const transferLog of transferLogs) {
           // }
-        } else if (consideration.itemType === 2) {
+        } else if (
+          consideration.itemType === 2 &&
+          standardExecutions.map((x) => x.item.itemType).includes(2)
+        ) {
           // ERC721
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
@@ -811,7 +826,10 @@ export const seaportFixture = async (owner: Wallet) => {
           expect(transferLog.args.id.toString()).to.equal(
             consideration.identifier.toString()
           );
-        } else if (consideration.itemType === 3) {
+        } else if (
+          consideration.itemType === 3 &&
+          standardExecutions.map((x) => x.item.itemType).includes(3)
+        ) {
           // search for transfer
           const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC1155.interface.parseLog(x))
