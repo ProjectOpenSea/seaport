@@ -57,8 +57,8 @@ contract BasicOrderParametersLibTest is BaseTest {
             blob.considerationToken
         );
         basicOrderParameters = basicOrderParameters.withConsiderationIdentifier(
-                blob.considerationIdentifier
-            );
+            blob.considerationIdentifier
+        );
         basicOrderParameters = basicOrderParameters.withConsiderationAmount(
             blob.considerationAmount
         );
