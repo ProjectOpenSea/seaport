@@ -39,6 +39,7 @@ contract TestTransferValidationZoneOfferer is
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
+
     function validateOrder(ZoneParameters calldata zoneParameters)
         external
         view

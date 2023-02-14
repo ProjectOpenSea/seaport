@@ -30,6 +30,7 @@ interface ERC20Interface {
      *
      * @return success True if the approval was successful.
      */
+     
     function approve(address spender, uint256 value)
         external
         returns (bool success);
@@ -137,6 +138,7 @@ interface ERC1155Interface {
      *
      * @return balance The balance of the token.
      */
+
     function balanceOf(address account, uint256 id)
         external
         view
