@@ -434,7 +434,7 @@ contract ConsiderationBase is
                     }
                 }
                 default {
-                    switch lt(treeHeight, 21)
+                    switch lt(treeHeight, 22)
                     case 1 {
                         typeHash := add(
                             add(
