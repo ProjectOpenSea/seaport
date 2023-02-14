@@ -30,10 +30,18 @@ interface ERC20Interface {
      *
      * @return success True if the approval was successful.
      */
-    function approve(
-        address spender,
-        uint256 value
-    ) external returns (bool success);
+    function approve(address spender, uint256 value)
+        external
+        returns (bool success);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     *
+     * @param account The address of the account to check the balance of.
+     *
+     * @return balance The amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
 }
 
 /**
@@ -48,7 +56,11 @@ interface ERC721Interface {
      * @param to      The address of the recipient.
      * @param tokenId The ID of the token to transfer.
      */
-    function transferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external;
 
     /**
      * @dev Allows an owner to approve an operator to transfer all tokens on a
@@ -116,4 +128,17 @@ interface ERC1155Interface {
      * @param approved Whether the operator is approved.
      */
     function setApprovalForAll(address to, bool approved) external;
+
+    /**
+     * @dev Returns the owner of a given token ID.
+     *
+     * @param account The address of the account to check the balance of.
+     * @param id      The token ID.
+     *
+     * @return balance The balance of the token.
+     */
+    function balanceOf(address account, uint256 id)
+        external
+        view
+        returns (uint256);
 }

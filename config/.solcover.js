@@ -44,6 +44,7 @@ module.exports = {
     "test/ConduitMockInvalidMagic.sol",
     "test/ConduitMockRevertBytes.sol",
     "test/ConduitMockRevertNoReason.sol",
+    "test/TestTransferValidationZoneOfferer.sol",
     "zones/PausableZone.sol",
     "zones/PausableZoneController.sol",
     "zones/interfaces/PausableZoneControllerInterface.sol",
