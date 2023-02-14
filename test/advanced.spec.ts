@@ -5812,14 +5812,13 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ),
       ];
 
-      const { order: orderThree } =
-        await createOrder(
-          buyer,
-          zone,
-          offerThree,
-          considerationThree,
-          0 // FULL_OPEN
-        );
+      const { order: orderThree } = await createOrder(
+        buyer,
+        zone,
+        offerThree,
+        considerationThree,
+        0 // FULL_OPEN
+      );
 
       const fulfillments = [
         [[[1, 0]], [[0, 0]]],
