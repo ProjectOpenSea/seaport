@@ -784,7 +784,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 availableOrders[i] = true;
 
                 // Retrieve the order parameters.
-                OrderParameters memory parameters = (advancedOrder.parameters);
+                OrderParameters memory parameters = advancedOrder.parameters;
 
                 {
                     // Retrieve offer items.
@@ -860,25 +860,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     }
                 }
             }
-
-            // Trigger any accumulated transfers via call to the conduit.
-            _triggerIfArmed(accumulator);
-
-            // If any restricted or contract orders are present in the group of
-            // orders being fulfilled, perform any validateOrder or ratifyOrder
-            // calls after all executions and related transfers are complete.
-            if (containsNonOpen) {
-                // Iterate over each order a second time.
-                for (uint256 i = 0; i < totalOrders; ++i) {
-                    // Check restricted orders and contract orders.
-                    _assertRestrictedAdvancedOrderValidity(
-                        advancedOrders[i],
-                        orderHashes,
-                        orderHashes[i]
-                    );
-                }
-            }
         }
+
+        // Trigger any accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
 
         // Determine whether any native token balance remains.
         uint256 remainingNativeTokenBalance;
@@ -892,6 +877,26 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 payable(msg.sender),
                 remainingNativeTokenBalance
             );
+        }
+
+        // If any restricted or contract orders are present in the group of
+        // orders being fulfilled, perform any validateOrder or ratifyOrder
+        // calls after all executions and related transfers are complete.
+        if (containsNonOpen) {
+            // Iterate over each order a second time.
+            for (uint256 i = 0; i < totalOrders; ) {
+                // Check restricted orders and contract orders.
+                _assertRestrictedAdvancedOrderValidity(
+                    advancedOrders[i],
+                    orderHashes,
+                    orderHashes[i]
+                );
+
+                // Skip overflow checks as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
+                }
+            }
         }
 
         // Clear the reentrancy guard.
