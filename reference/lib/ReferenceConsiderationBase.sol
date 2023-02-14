@@ -25,7 +25,7 @@ contract ReferenceConsiderationBase is
 {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "1.2-reference";
+    string internal constant _VERSION = "1.3-reference";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 
@@ -195,15 +195,16 @@ contract ReferenceConsiderationBase is
         bytes32 _nameHash,
         bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _eip712DomainTypeHash,
-                _nameHash,
-                _versionHash,
-                block.chainid,
-                address(this)
-            )
-        );
+        return
+            keccak256(
+                abi.encode(
+                    _eip712DomainTypeHash,
+                    _nameHash,
+                    _versionHash,
+                    block.chainid,
+                    address(this)
+                )
+            );
     }
 
     /**
@@ -245,40 +246,40 @@ contract ReferenceConsiderationBase is
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount",
             ")"
         );
 
         // Construct the ConsiderationItem type string.
         bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount,",
-                "address recipient",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount,",
+            "address recipient",
             ")"
         );
 
         // Construct the OrderComponents type string, not including the above.
         bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
-                "address offerer,",
-                "address zone,",
-                "OfferItem[] offer,",
-                "ConsiderationItem[] consideration,",
-                "uint8 orderType,",
-                "uint256 startTime,",
-                "uint256 endTime,",
-                "bytes32 zoneHash,",
-                "uint256 salt,",
-                "bytes32 conduitKey,",
-                "uint256 counter",
+            "address offerer,",
+            "address zone,",
+            "OfferItem[] offer,",
+            "ConsiderationItem[] consideration,",
+            "uint8 orderType,",
+            "uint256 startTime,",
+            "uint256 endTime,",
+            "bytes32 zoneHash,",
+            "uint256 salt,",
+            "bytes32 conduitKey,",
+            "uint256 counter",
             ")"
         );
 
@@ -286,10 +287,10 @@ contract ReferenceConsiderationBase is
         eip712DomainTypehash = keccak256(
             abi.encodePacked(
                 "EIP712Domain(",
-                    "string name,",
-                    "string version,",
-                    "uint256 chainId,",
-                    "address verifyingContract",
+                "string name,",
+                "string version,",
+                "uint256 chainId,",
+                "address verifyingContract",
                 ")"
             )
         );

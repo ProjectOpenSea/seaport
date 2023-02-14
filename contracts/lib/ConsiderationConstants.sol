@@ -46,7 +46,7 @@ uint256 constant information_version_cd_offset = 0x60;
 uint256 constant information_domainSeparator_offset = 0x20;
 uint256 constant information_conduitController_offset = 0x40;
 uint256 constant information_versionLengthPtr = 0x63;
-uint256 constant information_versionWithLength = 0x03312e32; // 1.2
+uint256 constant information_versionWithLength = 0x03312e33; // 1.3
 uint256 constant information_length = 0xa0;
 
 uint256 constant _NOT_ENTERED = 1;

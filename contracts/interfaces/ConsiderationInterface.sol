@@ -15,7 +15,7 @@ import {
 /**
  * @title ConsiderationInterface
  * @author 0age
- * @custom:version 1.2
+ * @custom:version 1.3
  * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
  *         marketplace. It minimizes external calls to the greatest extent
  *         possible and provides lightweight methods for common routes as well
