@@ -503,8 +503,12 @@ contract ReferenceOrderCombiner is
                 recipient
             );
 
-            // If offerer and recipient on the execution are the same...
-            if (execution.item.recipient == execution.offerer) {
+            // If offerer and recipient on the execution are the same and the
+            // execution item has a non-native item type...
+            if (
+                execution.item.recipient == execution.offerer &&
+                execution.item.itemType != ItemType.NATIVE
+            ) {
                 // Increment total filtered executions.
                 ++totalFilteredExecutions;
             } else {
@@ -529,8 +533,12 @@ contract ReferenceOrderCombiner is
                 recipient // unused
             );
 
-            // If offerer and recipient on the execution are the same...
-            if (execution.item.recipient == execution.offerer) {
+            // If offerer and recipient on the execution are the same and the
+            // execution item has a non-native item type...
+            if (
+                execution.item.recipient == execution.offerer &&
+                execution.item.itemType != ItemType.NATIVE
+            ) {
                 // Increment total filtered executions.
                 ++totalFilteredExecutions;
             } else {
@@ -926,8 +934,12 @@ contract ReferenceOrderCombiner is
                 i
             );
 
-            // If offerer and recipient on the execution are the same...
-            if (execution.item.recipient == execution.offerer) {
+            // If offerer and recipient on the execution are the same and the
+            // execution item has a non-native item type...
+            if (
+                execution.item.recipient == execution.offerer &&
+                execution.item.itemType != ItemType.NATIVE
+            ) {
                 // Increment total filtered executions.
                 ++totalFilteredExecutions;
             } else {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import { Side } from "./ConsiderationEnums.sol";
+import { ItemType, Side } from "./ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -104,10 +104,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
         // Skip aggregating offer items if no consideration items are available.
         if (considerationItem.amount == 0) {
-            // Set the offerer and recipient to null address if execution
-            // amount is zero. This will cause the execution item to be skipped.
+            // Set the offerer and recipient to null address and the item type
+            // to a non-native item type if the execution amount is zero. This
+            // will cause the execution item to be skipped.
             considerationExecution.offerer = address(0);
             considerationExecution.item.recipient = payable(0);
+            considerationExecution.item.itemType = ItemType.ERC20;
             return considerationExecution;
         }
 
@@ -213,10 +215,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 _revertMissingFulfillmentComponentOnAggregation(side);
             }
 
+            // Retrieve the received item on the execution being returned.
+            ReceivedItem memory item = execution.item;
+
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
                 // Set the supplied recipient on the execution item.
-                execution.item.recipient = payable(recipient);
+                item.recipient = payable(recipient);
 
                 // Return execution for aggregated items provided by offerer.
                 _aggregateValidFulfillmentOfferItems(
@@ -241,11 +246,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer and recipient to null address if execution
-            // amount is zero. This will cause the execution item to be skipped.
-            if (execution.item.amount == 0) {
+            // Set the offerer and recipient to null address and the item type
+            // to a non-native item type if the execution amount is zero. This
+            // will cause the execution item to be skipped.
+            if (item.amount == 0) {
                 execution.offerer = address(0);
-                execution.item.recipient = payable(0);
+                item.recipient = payable(0);
+                item.itemType = ItemType.ERC20;
             }
         }
     }
@@ -273,9 +280,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Declare a variable to track errors encountered with amount.
             let errorBuffer
 
-            // Declare a variable for the hash of itemType, token, identifier
+            // Declare a variable for the hash of itemType, token, & identifier.
             let dataHash
 
+            // Iterate over each offer component.
             for {
                 // Create variable to track position in offerComponents head.
                 let fulfillmentHeadPtr := offerComponents
@@ -373,11 +381,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Retrieve ReceivedItem pointer from Execution.
                 let receivedItem := mload(execution)
 
-                // Check if this is the first valid fulfillment item
+                // Check if this is the first valid fulfillment item.
                 switch iszero(dataHash)
                 case 1 {
-                    // On first valid item, populate the received item in
-                    // memory for later comparison.
+                    // On first valid item, populate the received item in memory
+                    // for later comparison.
 
                     // Set the item type on the received item.
                     mstore(receivedItem, mload(offerItemPtr))
@@ -425,7 +433,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     }
                 }
                 default {
-                    // Compare every subsequent item to the first
+                    // Compare every subsequent item to the first.
                     if or(
                         or(
                             // The offerer must match on both items.
@@ -543,6 +551,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Declare variable for hash(itemType, token, identifier, recipient)
             let dataHash
 
+            // Iterate over each consideration component.
             for {
                 // Track position in considerationComponents head.
                 let fulfillmentHeadPtr := considerationComponents
@@ -613,7 +622,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
                 }
 
-                // Declare a separate scope for the amount update
+                // Declare a separate scope for the amount update.
                 {
                     // Retrieve amount pointer using consideration item pointer.
                     let amountPtr := add(
@@ -666,9 +675,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                         )
                     )
 
-                    // Set the recipient on the received item.
-                    // Note that this depends on the memory layout affected by
-                    // _validateOrdersAndPrepareToFulfill.
+                    // Set the recipient on the received item. Note that this
+                    // depends on the memory layout established by the
+                    // _validateOrdersAndPrepareToFulfill function.
                     mstore(
                         add(receivedItem, ReceivedItem_recipient_offset),
                         mload(
@@ -704,8 +713,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     }
                 }
                 default {
-                    // Compare every subsequent item to the first
-                    // The itemType, token, identifier and recipient must match.
+                    // Compare every subsequent item to the first; the item
+                    // type, token, identifier and recipient must match.
                     if xor(
                         dataHash,
                         // Calculate the hash of (itemType, token, identifier,
