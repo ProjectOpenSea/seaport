@@ -300,232 +300,182 @@ contract ConsiderationBase is
      *      Note that values between one and twenty-four are supported, which is
      *      enforced by _isValidBulkOrderSize.
      *
-     * @param treeHeight The height of the bulk order tree. The value must be
-     *                   between one and twenty-four.
+     * @param _treeHeight The height of the bulk order tree. The value must be
+     *                    between one and twenty-four.
      *
-     * @return typeHash The EIP-712 typehash for the bulk order type with the
-     *                  given height.
+     * @return _typeHash The EIP-712 typehash for the bulk order type with the
+     *                   given height.
      */
-    function _lookupBulkOrderTypehash(
-        uint256 treeHeight
-    ) internal pure returns (bytes32 typeHash) {
+    function _lookupBulkOrderTypehash(uint256 _treeHeight)
+        internal
+        pure
+        returns (bytes32 _typeHash)
+    {
         // Utilize assembly to efficiently retrieve correct bulk order typehash.
         assembly {
-            // Progress until typehash is located; break before loop completes.
-            for {} 1 {} {
+            // Use a Yul function to enable use of the `leave` keyword
+            // to stop searching once the appropriate type hash is found.
+            function lookupTypeHash(treeHeight) -> typeHash {
                 // Handle tree heights one through eight.
-                if iszero(gt(treeHeight, 8)) {
+                if lt(treeHeight, 9) {
                     // Handle tree heights one through four.
-                    if iszero(gt(treeHeight, 4)) {
+                    if lt(treeHeight, 5) {
                         // Handle tree heights one and two.
-                        if iszero(gt(treeHeight, 2)) {
+                        if lt(treeHeight, 3) {
                             // Utilize branchless logic to determine typehash.
-                            typeHash := xor(
+                            typeHash := ternary(
+                                eq(treeHeight, 1),
                                 BulkOrder_Typehash_Height_One,
-                                mul(
-                                    eq(treeHeight, 2),
-                                    xor(
-                                        BulkOrder_Typehash_Height_One,
-                                        BulkOrder_Typehash_Height_Two
-                                    )
-                                )
+                                BulkOrder_Typehash_Height_Two
                             )
 
-                            // Exit the loop once typehash has been located.
-                            break
+                            // Exit the function once typehash has been located.
+                            leave
                         }
 
                         // Handle height three and four via branchless logic.
-                        typeHash := xor(
+                        typeHash := ternary(
+                            eq(treeHeight, 3),
                             BulkOrder_Typehash_Height_Three,
-                            mul(
-                                eq(treeHeight, 4),
-                                xor(
-                                    BulkOrder_Typehash_Height_Three,
-                                    BulkOrder_Typehash_Height_Four
-                                )
-                            )
+                            BulkOrder_Typehash_Height_Four
                         )
 
-                        // Exit the loop once typehash has been located.
-                        break
+                        // Exit the function once typehash has been located.
+                        leave
                     }
 
                     // Handle tree height five and six.
-                    if iszero(gt(treeHeight, 6)) {
+                    if lt(treeHeight, 7) {
                         // Utilize branchless logic to determine typehash.
-                        typeHash := xor(
+                        typeHash := ternary(
+                            eq(treeHeight, 5),
                             BulkOrder_Typehash_Height_Five,
-                            mul(
-                                eq(treeHeight, 6),
-                                xor(
-                                    BulkOrder_Typehash_Height_Five,
-                                    BulkOrder_Typehash_Height_Six
-                                )
-                            )
+                            BulkOrder_Typehash_Height_Six
                         )
 
-                        // Exit the loop once typehash has been located.
-                        break
+                        // Exit the function once typehash has been located.
+                        leave
                     }
 
                     // Handle height seven and eight via branchless logic.
-                    typeHash := xor(
+                    typeHash := ternary(
+                        eq(treeHeight, 7),
                         BulkOrder_Typehash_Height_Seven,
-                        mul(
-                            eq(treeHeight, 8),
-                            xor(
-                                BulkOrder_Typehash_Height_Seven,
-                                BulkOrder_Typehash_Height_Eight
-                            )
-                        )
+                        BulkOrder_Typehash_Height_Eight
                     )
 
-                    // Exit the loop once typehash has been located.
-                    break
+                    // Exit the function once typehash has been located.
+                    leave
                 }
 
                 // Handle tree height nine through sixteen.
-                if iszero(gt(treeHeight, 16)) {
+                if lt(treeHeight, 17) {
                     // Handle tree height nine through twelve.
-                    if iszero(gt(treeHeight, 12)) {
+                    if lt(treeHeight, 13) {
                         // Handle tree height nine and ten.
-                        if iszero(gt(treeHeight, 10)) {
+                        if lt(treeHeight, 11) {
                             // Utilize branchless logic to determine typehash.
-                            typeHash := xor(
+                            typeHash := ternary(
+                                eq(treeHeight, 9),
                                 BulkOrder_Typehash_Height_Nine,
-                                mul(
-                                    eq(treeHeight, 10),
-                                    xor(
-                                        BulkOrder_Typehash_Height_Nine,
-                                        BulkOrder_Typehash_Height_Ten
-                                    )
-                                )
+                                BulkOrder_Typehash_Height_Ten
                             )
 
-                            // Exit the loop once typehash has been located.
-                            break
+                            // Exit the function once typehash has been located.
+                            leave
                         }
 
                         // Handle height eleven and twelve via branchless logic.
-                        typeHash := xor(
+                        typeHash := ternary(
+                            eq(treeHeight, 11),
                             BulkOrder_Typehash_Height_Eleven,
-                            mul(
-                                eq(treeHeight, 12),
-                                xor(
-                                    BulkOrder_Typehash_Height_Eleven,
-                                    BulkOrder_Typehash_Height_Twelve
-                                )
-                            )
+                            BulkOrder_Typehash_Height_Twelve
                         )
 
-                        // Exit the loop once typehash has been located.
-                        break
+                        // Exit the function once typehash has been located.
+                        leave
                     }
 
                     // Handle tree height thirteen and fourteen.
-                    if iszero(gt(treeHeight, 14)) {
+                    if lt(treeHeight, 15) {
                         // Utilize branchless logic to determine typehash.
-                        typeHash := xor(
+                        typeHash := ternary(
+                            eq(treeHeight, 13),
                             BulkOrder_Typehash_Height_Thirteen,
-                            mul(
-                                eq(treeHeight, 14),
-                                xor(
-                                    BulkOrder_Typehash_Height_Thirteen,
-                                    BulkOrder_Typehash_Height_Fourteen
-                                )
-                            )
+                            BulkOrder_Typehash_Height_Fourteen
                         )
 
-                        // Exit the loop once typehash has been located.
-                        break
+                        // Exit the function once typehash has been located.
+                        leave
                     }
-
                     // Handle height fifteen and sixteen via branchless logic.
-                    typeHash := xor(
+                    typeHash := ternary(
+                        eq(treeHeight, 15),
                         BulkOrder_Typehash_Height_Fifteen,
-                        mul(
-                            eq(treeHeight, 16),
-                            xor(
-                                BulkOrder_Typehash_Height_Fifteen,
-                                BulkOrder_Typehash_Height_Sixteen
-                            )
-                        )
+                        BulkOrder_Typehash_Height_Sixteen
                     )
 
-                    // Exit the loop once typehash has been located.
-                    break
+                    // Exit the function once typehash has been located.
+                    leave
                 }
 
                 // Handle tree height seventeen through twenty.
-                if iszero(gt(treeHeight, 20)) {
+                if lt(treeHeight, 21) {
                     // Handle tree height seventeen and eighteen.
-                    if iszero(gt(treeHeight, 18)) {
+                    if lt(treeHeight, 19) {
                         // Utilize branchless logic to determine typehash.
-                        typeHash := xor(
+                        typeHash := ternary(
+                            eq(treeHeight, 17),
                             BulkOrder_Typehash_Height_Seventeen,
-                            mul(
-                                eq(treeHeight, 18),
-                                xor(
-                                    BulkOrder_Typehash_Height_Seventeen,
-                                    BulkOrder_Typehash_Height_Eighteen
-                                )
-                            )
+                            BulkOrder_Typehash_Height_Eighteen
                         )
 
-                        // Exit the loop once typehash has been located.
-                        break
+                        // Exit the function once typehash has been located.
+                        leave
                     }
 
                     // Handle height nineteen and twenty via branchless logic.
-                    typeHash := xor(
+                    typeHash := ternary(
+                        eq(treeHeight, 19),
                         BulkOrder_Typehash_Height_Nineteen,
-                        mul(
-                            eq(treeHeight, 20),
-                            xor(
-                                BulkOrder_Typehash_Height_Nineteen,
-                                BulkOrder_Typehash_Height_Twenty
-                            )
-                        )
+                        BulkOrder_Typehash_Height_Twenty
                     )
 
-                    // Exit the loop once typehash has been located.
-                    break
+                    // Exit the function once typehash has been located.
+                    leave
                 }
 
                 // Handle tree height twenty-one and twenty-two.
-                if iszero(gt(treeHeight, 22)) {
+                if lt(treeHeight, 23) {
                     // Utilize branchless logic to determine typehash.
-                    typeHash := xor(
+                    typeHash := ternary(
+                        eq(treeHeight, 21),
                         BulkOrder_Typehash_Height_TwentyOne,
-                        mul(
-                            eq(treeHeight, 22),
-                            xor(
-                                BulkOrder_Typehash_Height_TwentyOne,
-                                BulkOrder_Typehash_Height_TwentyTwo
-                            )
-                        )
+                        BulkOrder_Typehash_Height_TwentyTwo
                     )
 
-                    // Exit the loop once typehash has been located.
-                    break
+                    // Exit the function once typehash has been located.
+                    leave
                 }
 
                 // Handle height twenty-three & twenty-four w/ branchless logic.
-                typeHash := xor(
+                typeHash := ternary(
+                    eq(treeHeight, 23),
                     BulkOrder_Typehash_Height_TwentyThree,
-                    mul(
-                        eq(treeHeight, 24),
-                        xor(
-                            BulkOrder_Typehash_Height_TwentyThree,
-                            BulkOrder_Typehash_Height_TwentyFour
-                        )
-                    )
+                    BulkOrder_Typehash_Height_TwentyFour
                 )
 
-                // Exit the loop once typehash has been located.
-                break
+                // Exit the function once typehash has been located.
+                leave
             }
+
+            // Implement ternary conditional using branchless logic.
+            function ternary(cond, ifTrue, ifFalse) -> c {
+                c := xor(ifFalse, mul(cond, xor(ifFalse, ifTrue)))
+            }
+
+            // Look up the typehash using the supplied tree height.
+            _typeHash := lookupTypeHash(_treeHeight)
         }
     }
 }
