@@ -329,7 +329,7 @@ contract ConsiderationBase is
                                 BulkOrder_Typehash_Height_One
                             )
 
-                            // Exit the loop once typehash has been located.
+                            // Exit the function once typehash has been located.
                             leave
                         }
 
@@ -340,7 +340,7 @@ contract ConsiderationBase is
                             BulkOrder_Typehash_Height_Three
                         )
 
-                        // Exit the loop once typehash has been located.
+                        // Exit the function once typehash has been located.
                         leave
                     }
 
@@ -353,7 +353,7 @@ contract ConsiderationBase is
                             BulkOrder_Typehash_Height_Five
                         )
 
-                        // Exit the loop once typehash has been located.
+                        // Exit the function once typehash has been located.
                         leave
                     }
 
@@ -364,7 +364,7 @@ contract ConsiderationBase is
                         BulkOrder_Typehash_Height_Seven
                     )
 
-                    // Exit the loop once typehash has been located.
+                    // Exit the function once typehash has been located.
                     leave
                 }
 
@@ -381,7 +381,7 @@ contract ConsiderationBase is
                                 BulkOrder_Typehash_Height_Nine
                             )
 
-                            // Exit the loop once typehash has been located.
+                            // Exit the function once typehash has been located.
                             leave
                         }
 
@@ -392,7 +392,7 @@ contract ConsiderationBase is
                             BulkOrder_Typehash_Height_Eleven
                         )
 
-                        // Exit the loop once typehash has been located.
+                        // Exit the function once typehash has been located.
                         leave
                     }
 
@@ -405,7 +405,7 @@ contract ConsiderationBase is
                             BulkOrder_Typehash_Height_Thirteen
                         )
 
-                        // Exit the loop once typehash has been located.
+                        // Exit the function once typehash has been located.
                         leave
                     }
                     // Handle height fifteen and sixteen via branchless logic.
@@ -415,7 +415,7 @@ contract ConsiderationBase is
                         BulkOrder_Typehash_Height_Fifteen
                     )
 
-                    // Exit the loop once typehash has been located.
+                    // Exit the function once typehash has been located.
                     leave
                 }
 
@@ -430,7 +430,7 @@ contract ConsiderationBase is
                             BulkOrder_Typehash_Height_Seventeen
                         )
 
-                        // Exit the loop once typehash has been located.
+                        // Exit the function once typehash has been located.
                         leave
                     }
 
@@ -441,7 +441,7 @@ contract ConsiderationBase is
                         BulkOrder_Typehash_Height_Nineteen
                     )
 
-                    // Exit the loop once typehash has been located.
+                    // Exit the function once typehash has been located.
                     leave
                 }
 
@@ -454,7 +454,7 @@ contract ConsiderationBase is
                         BulkOrder_Typehash_Height_TwentyOne
                     )
 
-                    // Exit the loop once typehash has been located.
+                    // Exit the function once typehash has been located.
                     leave
                 }
 
@@ -465,7 +465,7 @@ contract ConsiderationBase is
                     BulkOrder_Typehash_Height_TwentyThree
                 )
 
-                // Exit the loop once typehash has been located.
+                // Exit the function once typehash has been located.
                 leave
             }
             function ternary(cond, ifTrue, ifFalse) -> c {
