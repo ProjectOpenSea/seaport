@@ -38,7 +38,10 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
     ) external returns (bytes4 validOrderMagicValue) {
         // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
-            revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
+            revert IncorrectAmount(
+                zoneParameters.offer[0].amount,
+                amountToCheck
+            );
         }
 
         // Check that the item type in the consideration is correct.
