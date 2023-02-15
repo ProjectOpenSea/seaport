@@ -325,6 +325,9 @@ contract ReferenceOrderCombiner is
 
                 // Modify the OrderToExecute Spent Item Amount.
                 orderToExecute.spentItems[j].amount = offerItem.startAmount;
+                // Modify the OrderToExecute Spent Item Original Amount.
+                orderToExecute.spentItemOriginalAmounts[j] = offerItem
+                    .startAmount;
             }
 
             // Yoink it up the stacc.
@@ -392,6 +395,10 @@ contract ReferenceOrderCombiner is
                 // Modify the OrderToExecute Received item amount.
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
+                // Modify the OrderToExecute Received item original amount.
+                orderToExecute.receivedItemOriginalAmounts[
+                    j
+                ] = considerationItem.startAmount;
             }
         }
 
@@ -779,35 +786,40 @@ contract ReferenceOrderCombiner is
                     ];
                 }
             }
-
-            // Trigger any remaining accumulated transfers via call to the conduit.
-            _triggerIfArmed(accumulatorStruct);
-
-            // If any restricted or contract orders are present in the group of
-            // orders being fulfilled, perform any validateOrder or ratifyOrder
-            // calls after all executions and related transfers are complete.
-            if (containsNonOpen) {
-                // Iterate over each order a second time.
-                for (uint256 j = 0; j < totalOrders; ++j) {
-                    // Check restricted orders and contract orders.
-                    _assertRestrictedAdvancedOrderValidity(
-                        advancedOrder,
-                        orderToExecute,
-                        orderHashes,
-                        orderHashes[i],
-                        advancedOrder.parameters.zoneHash,
-                        advancedOrder.parameters.orderType,
-                        orderToExecute.offerer,
-                        advancedOrder.parameters.zone
-                    );
-                }
-            }
         }
+
+        // Trigger any remaining accumulated transfers via call to the
+        // conduit.
+        _triggerIfArmed(accumulatorStruct);
 
         // If any native token remains after fulfillments, return it to the
         // caller.
         if (address(this).balance != 0) {
             _transferNativeTokens(payable(msg.sender), address(this).balance);
+        }
+
+        // Here!  Grab this vine!
+        AdvancedOrder[] memory _advancedOrders = advancedOrders;
+        OrderToExecute[] memory _ordersToExecute = ordersToExecute;
+
+        // If any restricted or contract orders are present in the group of
+        // orders being fulfilled, perform any validateOrder or ratifyOrder
+        // calls after all executions and related transfers are complete.
+        if (containsNonOpen) {
+            // Iterate over each order a second time.
+            for (uint256 i = 0; i < totalOrders; ++i) {
+                // Check restricted orders and contract orders.
+                _assertRestrictedAdvancedOrderValidity(
+                    _advancedOrders[i],
+                    _ordersToExecute[i],
+                    orderHashes,
+                    orderHashes[i],
+                    _advancedOrders[i].parameters.zoneHash,
+                    _advancedOrders[i].parameters.orderType,
+                    _ordersToExecute[i].offerer,
+                    _advancedOrders[i].parameters.zone
+                );
+            }
         }
 
         // Return the array containing available orders.

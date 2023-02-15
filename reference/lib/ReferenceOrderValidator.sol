@@ -156,7 +156,8 @@ contract ReferenceOrderValidator is
                 );
         }
 
-        // Ensure that the supplied numerator and denominator are valid.
+        // Ensure that the supplied numerator and denominator are valid.  The
+        // numerator should not exceed denominator and should not be zero.
         if (numerator > denominator || numerator == 0) {
             revert BadFraction();
         }
