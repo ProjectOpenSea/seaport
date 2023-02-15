@@ -301,10 +301,10 @@ contract ConsiderationBase is
      *      enforced by _isValidBulkOrderSize.
      *
      * @param _treeHeight The height of the bulk order tree. The value must be
-     *                   between one and twenty-four.
+     *                    between one and twenty-four.
      *
      * @return _typeHash The EIP-712 typehash for the bulk order type with the
-     *                  given height.
+     *                   given height.
      */
     function _lookupBulkOrderTypehash(uint256 _treeHeight)
         internal
@@ -324,9 +324,9 @@ contract ConsiderationBase is
                         if lt(treeHeight, 3) {
                             // Utilize branchless logic to determine typehash.
                             typeHash := ternary(
-                                eq(treeHeight, 2),
-                                BulkOrder_Typehash_Height_Two,
-                                BulkOrder_Typehash_Height_One
+                                eq(treeHeight, 1),
+                                BulkOrder_Typehash_Height_One,
+                                BulkOrder_Typehash_Height_Two
                             )
 
                             // Exit the function once typehash has been located.
@@ -335,9 +335,9 @@ contract ConsiderationBase is
 
                         // Handle height three and four via branchless logic.
                         typeHash := ternary(
-                            eq(treeHeight, 4),
-                            BulkOrder_Typehash_Height_Four,
-                            BulkOrder_Typehash_Height_Three
+                            eq(treeHeight, 3),
+                            BulkOrder_Typehash_Height_Three,
+                            BulkOrder_Typehash_Height_Four
                         )
 
                         // Exit the function once typehash has been located.
@@ -348,9 +348,9 @@ contract ConsiderationBase is
                     if lt(treeHeight, 7) {
                         // Utilize branchless logic to determine typehash.
                         typeHash := ternary(
-                            eq(treeHeight, 6),
-                            BulkOrder_Typehash_Height_Six,
-                            BulkOrder_Typehash_Height_Five
+                            eq(treeHeight, 5),
+                            BulkOrder_Typehash_Height_Five,
+                            BulkOrder_Typehash_Height_Six
                         )
 
                         // Exit the function once typehash has been located.
@@ -359,9 +359,9 @@ contract ConsiderationBase is
 
                     // Handle height seven and eight via branchless logic.
                     typeHash := ternary(
-                        eq(treeHeight, 8),
-                        BulkOrder_Typehash_Height_Eight,
-                        BulkOrder_Typehash_Height_Seven
+                        eq(treeHeight, 7),
+                        BulkOrder_Typehash_Height_Seven,
+                        BulkOrder_Typehash_Height_Eight
                     )
 
                     // Exit the function once typehash has been located.
@@ -376,9 +376,9 @@ contract ConsiderationBase is
                         if lt(treeHeight, 11) {
                             // Utilize branchless logic to determine typehash.
                             typeHash := ternary(
-                                eq(treeHeight, 10),
-                                BulkOrder_Typehash_Height_Ten,
-                                BulkOrder_Typehash_Height_Nine
+                                eq(treeHeight, 9),
+                                BulkOrder_Typehash_Height_Nine,
+                                BulkOrder_Typehash_Height_Ten
                             )
 
                             // Exit the function once typehash has been located.
@@ -387,9 +387,9 @@ contract ConsiderationBase is
 
                         // Handle height eleven and twelve via branchless logic.
                         typeHash := ternary(
-                            eq(treeHeight, 12),
-                            BulkOrder_Typehash_Height_Twelve,
-                            BulkOrder_Typehash_Height_Eleven
+                            eq(treeHeight, 11),
+                            BulkOrder_Typehash_Height_Eleven,
+                            BulkOrder_Typehash_Height_Twelve
                         )
 
                         // Exit the function once typehash has been located.
@@ -400,9 +400,9 @@ contract ConsiderationBase is
                     if lt(treeHeight, 15) {
                         // Utilize branchless logic to determine typehash.
                         typeHash := ternary(
-                            eq(treeHeight, 14),
-                            BulkOrder_Typehash_Height_Fourteen,
-                            BulkOrder_Typehash_Height_Thirteen
+                            eq(treeHeight, 13),
+                            BulkOrder_Typehash_Height_Thirteen,
+                            BulkOrder_Typehash_Height_Fourteen
                         )
 
                         // Exit the function once typehash has been located.
@@ -410,9 +410,9 @@ contract ConsiderationBase is
                     }
                     // Handle height fifteen and sixteen via branchless logic.
                     typeHash := ternary(
-                        eq(treeHeight, 16),
-                        BulkOrder_Typehash_Height_Sixteen,
-                        BulkOrder_Typehash_Height_Fifteen
+                        eq(treeHeight, 15),
+                        BulkOrder_Typehash_Height_Fifteen,
+                        BulkOrder_Typehash_Height_Sixteen
                     )
 
                     // Exit the function once typehash has been located.
@@ -425,9 +425,9 @@ contract ConsiderationBase is
                     if lt(treeHeight, 19) {
                         // Utilize branchless logic to determine typehash.
                         typeHash := ternary(
-                            eq(treeHeight, 18),
-                            BulkOrder_Typehash_Height_Eighteen,
-                            BulkOrder_Typehash_Height_Seventeen
+                            eq(treeHeight, 17),
+                            BulkOrder_Typehash_Height_Seventeen,
+                            BulkOrder_Typehash_Height_Eighteen
                         )
 
                         // Exit the function once typehash has been located.
@@ -436,9 +436,9 @@ contract ConsiderationBase is
 
                     // Handle height nineteen and twenty via branchless logic.
                     typeHash := ternary(
-                        eq(treeHeight, 20),
-                        BulkOrder_Typehash_Height_Twenty,
-                        BulkOrder_Typehash_Height_Nineteen
+                        eq(treeHeight, 19),
+                        BulkOrder_Typehash_Height_Nineteen,
+                        BulkOrder_Typehash_Height_Twenty
                     )
 
                     // Exit the function once typehash has been located.
@@ -449,9 +449,9 @@ contract ConsiderationBase is
                 if lt(treeHeight, 23) {
                     // Utilize branchless logic to determine typehash.
                     typeHash := ternary(
-                        eq(treeHeight, 22),
-                        BulkOrder_Typehash_Height_TwentyTwo,
-                        BulkOrder_Typehash_Height_TwentyOne
+                        eq(treeHeight, 21),
+                        BulkOrder_Typehash_Height_TwentyOne,
+                        BulkOrder_Typehash_Height_TwentyTwo
                     )
 
                     // Exit the function once typehash has been located.
@@ -460,17 +460,21 @@ contract ConsiderationBase is
 
                 // Handle height twenty-three & twenty-four w/ branchless logic.
                 typeHash := ternary(
-                    eq(treeHeight, 24),
-                    BulkOrder_Typehash_Height_TwentyFour,
-                    BulkOrder_Typehash_Height_TwentyThree
+                    eq(treeHeight, 23),
+                    BulkOrder_Typehash_Height_TwentyThree,
+                    BulkOrder_Typehash_Height_TwentyFour
                 )
 
                 // Exit the function once typehash has been located.
                 leave
             }
+
+            // Implement ternary conditional using branchless logic.
             function ternary(cond, ifTrue, ifFalse) -> c {
                 c := xor(ifFalse, mul(cond, xor(ifFalse, ifTrue)))
             }
+
+            // Look up the typehash using the supplied tree height.
             _typeHash := lookupTypeHash(_treeHeight)
         }
     }
