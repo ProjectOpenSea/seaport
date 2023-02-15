@@ -46,7 +46,7 @@ contract GenericAdapterSidecar {
     ) external payable returns (bytes4) {
         assembly {
             mstore(0, 0x150b7a02)
-            return(0x1c, 0x04)
+            return(0x1c, 0x20)
         }
     }
 
@@ -62,7 +62,20 @@ contract GenericAdapterSidecar {
     ) external payable returns (bytes4) {
         assembly {
             mstore(0, 0xf23a6e61)
-            return(0x1c, 0x04)
+            return(0x1c, 0x20)
+        }
+    }
+
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
+    ) external payable returns (bytes4) {
+        assembly {
+            mstore(0, 0xbc197c81)
+            return(0x1c, 0x20)
         }
     }
 
