@@ -32,9 +32,9 @@ contract CreatorEarningsEnforcer is
     ERC721("CreatorEarningsEnforcer", "CEE")
 {
     address private immutable _SEAPORT;
-    address private immutable _CREATOR;
+    address payable private immutable _CREATOR;
 
-    mapping(address => bool) _canTransfer;
+    mapping(uint256 => bool) _canTransfer;
 
     error InvalidCaller(address caller);
     error UnsupportedExtraDataVersion(uint8 version);
@@ -43,7 +43,7 @@ contract CreatorEarningsEnforcer is
     error CreatorEarningsMustBeEnforced();
     error OnlyCreator();
 
-    constructor(address seaport, address creatorAccount) {
+    constructor(address seaport, address payable creatorAccount) {
         // Note: this could optionally be a mapping of whitelisted marketplaces.
         _SEAPORT = seaport;
 
@@ -55,14 +55,14 @@ contract CreatorEarningsEnforcer is
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).
      *
-     * @param fulfiller       The address of the fulfiller.
-     * @param minimumReceived The minimum items that the caller must receive.
-     *                        Must be empty.
-     * @param maximumSpent    The maximum items the caller is willing to spend.
-     *                        This must match or exceed the creator earnings
-     *                        requirement.
-     * @param context         Additional context of the order, comprised of the
-     *                        NFT tokenID with activated transfers. (32 bytes)
+     * @custom:param fulfiller       The address of the fulfiller.
+     * @custom:param minimumReceived The Minimum items that the caller must
+     *                               receive. Must be empty.
+     * @custom:param maximumSpent    Maximum items the caller is willing to
+     *                               spend. Must meet or exceed the requirement.
+     * @param context                Additional context of the order, comprised
+     *                               of the NFT tokenID with transfer activation
+     *                               (32 bytes) including the 0x00 version byte.
      *
      * @return offer         A tuple containing the offer items.
      * @return consideration A tuple containing the consideration items.
@@ -110,10 +110,10 @@ contract CreatorEarningsEnforcer is
         }
 
         // Extract the tokenId in question from context.
-        bytes32 tokenId = bytes32(context[1:33]);
+        uint256 tokenId = abi.decode(context[1:33], (uint256));
 
         // Populate the enforced creator earnings as the consideration.
-        ReceivedItem memory creatorEarnings = new ReceivedItem[](1);
+        ReceivedItem[] memory creatorEarnings = new ReceivedItem[](1);
         creatorEarnings[0] = _getEnforcedCreatorEarnings();
 
         // Toggle the flag to indicate that the token can be transferred for the
@@ -144,11 +144,11 @@ contract CreatorEarningsEnforcer is
     ) external override returns (bytes4) {
         // Ensure that Seaport is the caller.
         if (msg.sender != _SEAPORT) {
-            revert InvalidCaller();
+            revert InvalidCaller(msg.sender);
         }
 
         // Extract the tokenId in question from context.
-        bytes32 tokenId = bytes32(context[1:33]);
+        uint256 tokenId = abi.decode(context[1:33], (uint256));
 
         // Toggle flag to indicate that the token can no longer be transferred.
         _canTransfer[tokenId] = false;
@@ -236,13 +236,13 @@ contract CreatorEarningsEnforcer is
     }
 
     /**
-     * @dev Internal pure function to get the required creator earnings payment.
+     * @dev Internal function to get the required creator earnings payment.
      *
      * @return The required received item.
      */
     function _getEnforcedCreatorEarnings()
         internal
-        pure
+        view
         returns (ReceivedItem memory)
     {
         // NOTE: this can utilize any number of mechanics, including a reference
@@ -252,7 +252,7 @@ contract CreatorEarningsEnforcer is
             ReceivedItem({
                 itemType: ItemType.NATIVE,
                 token: address(0),
-                identifier: bytes32(0),
+                identifier: uint256(0),
                 amount: 0.01 ether,
                 recipient: _CREATOR
             });
