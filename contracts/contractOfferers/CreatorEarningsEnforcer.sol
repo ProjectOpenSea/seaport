@@ -174,7 +174,8 @@ contract CreatorEarningsEnforcer is
         address to,
         uint256 tokenId
     ) public override {
-        if (!_canTransfer[tokenId]) {
+        // Note: the creator could optionally toggle the _canTransfer check.
+        if (msg.sender != from && !_canTransfer[tokenId]) {
             revert CreatorEarningsMustBeEnforced();
         }
 
