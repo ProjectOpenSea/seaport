@@ -16,9 +16,9 @@ import {
 import { ERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
 
 /**
- * @title CreatorEarningsEnforcer
+ * @title SeaportExtendedNFT
  * @author 0age
- * @notice CreatorEarningsEnforcer is a basic proof of concept for an NFT that
+ * @notice SeaportExtendedNFT is a basic proof of concept for an ERC721 NFT that
  *         also acts as a Seaport contract offerer. It only allows operators to
  *         transfer tokens if a flag has been activated by Seaport as part of a
  *         call to generateOrder requesting permission to move the token; that
@@ -28,18 +28,20 @@ import { ERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
  *         set of fulfillments. The contract also performs primary sales via the
  *         same mechanic using a lazy-minting approach.
  */
-contract CreatorEarningsEnforcer is
+contract SeaportExtendedNFT is
     ContractOffererInterface,
-    ERC721("CreatorEarningsEnforcer", "CEE")
+    ERC721("SeaportExtendedNFT", "SXT")
 {
     address private immutable _SEAPORT;
     address payable private immutable _CREATOR;
 
-    mapping(uint256 => bool) _canTransfer;
+    // Track current transferability of tokens and make available externally.
+    mapping(uint256 => bool) public canTransfer;
 
     error InvalidCaller(address caller);
     error UnsupportedExtraDataVersion(uint8 version);
     error InvalidExtraDataEncoding(uint8 version);
+    error InvalidSubstandard(uint8 substandard);
     error NotImplemented();
     error CreatorEarningsMustBeEnforced();
 
@@ -121,9 +123,12 @@ contract CreatorEarningsEnforcer is
             // Next, check for sip-6 version byte.
             errorBuffer |= errorBuffer ^ (_cast(context[0] == 0x00) << 1);
 
+            // Next, check for supported substandard.
+            errorBuffer |= errorBuffer ^ (_cast(context[1] == 0x01) << 2);
+
             // Next, check for correct context length.
             unchecked {
-                errorBuffer |= errorBuffer ^ (_cast(contextLength == 33) << 2);
+                errorBuffer |= errorBuffer ^ (_cast(contextLength == 34) << 3);
             }
 
             // Handle decoding errors.
@@ -135,20 +140,22 @@ contract CreatorEarningsEnforcer is
                 } else if (errorBuffer << 254 != 0) {
                     revert UnsupportedExtraDataVersion(version);
                 } else if (errorBuffer << 253 != 0) {
+                    revert InvalidSubstandard(uint8(context[1]));
+                } else if (errorBuffer << 252 != 0) {
                     revert InvalidExtraDataEncoding(version);
                 }
             }
         }
 
         // Extract the tokenId in question from context.
-        uint256 tokenId = abi.decode(context[1:33], (uint256));
+        uint256 tokenId = abi.decode(context[2:34], (uint256));
 
         // Populate the enforced creator earnings as the consideration.
         creatorEarnings[0] = _getEnforcedSecondaryCreatorEarnings();
 
         // Toggle the flag to indicate that the token can be transferred for the
         // duration of the Seaport fulfillment.
-        _canTransfer[tokenId] = true;
+        canTransfer[tokenId] = true;
 
         return (new SpentItem[](0), creatorEarnings);
     }
@@ -178,13 +185,13 @@ contract CreatorEarningsEnforcer is
             revert InvalidCaller(msg.sender);
         }
 
-        // Clear _canTransfer flag in cases where tokens are not being minted.
+        // Clear canTransfer flag in cases where tokens are not being minted.
         if (offer.length == 0) {
             // Extract the tokenId in question from context.
-            uint256 tokenId = abi.decode(context[1:33], (uint256));
+            uint256 tokenId = abi.decode(context[2:34], (uint256));
 
             // Toggle flag to indicate that token can no longer be transferred.
-            _canTransfer[tokenId] = false;
+            canTransfer[tokenId] = false;
         }
 
         // Utilize assembly to efficiently return the ratifyOrder magic value.
@@ -225,11 +232,11 @@ contract CreatorEarningsEnforcer is
 
         require(to != address(0), "INVALID_RECIPIENT");
 
-        // Note: the creator could optionally toggle the _canTransfer check or
+        // Note: the creator could optionally toggle the canTransfer check or
         // the auto-approval for Seaport.
         require(
             msg.sender == from ||
-                (_canTransfer[tokenId] &&
+                (canTransfer[tokenId] &&
                     (msg.sender == _SEAPORT ||
                         isApprovedForAll[from][msg.sender] ||
                         msg.sender == getApproved[tokenId])),
@@ -301,8 +308,20 @@ contract CreatorEarningsEnforcer is
             Schema[] memory schemas // map to Seaport Improvement Proposal IDs
         )
     {
-        schemas = new Schema[](0);
-        return ("CreatorEarningsEnforcer", schemas);
+        schemas = new Schema[](1);
+
+        schemas[0].id = 10;
+
+        // Encode the SIP-10 information.
+        uint256[] memory substandards = new uint256[](2);
+        substandards[0] = 0;
+        substandards[1] = 1;
+        schemas[0].metadata = abi.encode(
+            substandards,
+            "No documentation"
+        );
+
+        return ("SeaportExtendedNFT", schemas);
     }
 
     /**
