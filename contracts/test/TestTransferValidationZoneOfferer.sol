@@ -21,6 +21,7 @@ import {
 } from "../interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import "forge-std/console.sol";
 
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
@@ -29,7 +30,16 @@ contract TestTransferValidationZoneOfferer is
     error InvalidBalance();
     error InvalidOwner();
 
-    constructor() {}
+    address internal _expectedRecipient;
+
+    // Pass in the null address if you want to expect the fulfiller.
+    constructor(address expectedRecipient) {
+        _expectedRecipient = expectedRecipient;
+    }
+
+    bool public called = false;
+
+    receive() external payable {}
 
     /**
      * @dev Validates that the parties have received the correct items.
@@ -42,16 +52,22 @@ contract TestTransferValidationZoneOfferer is
 
     function validateOrder(
         ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
-        // Validate the order.
-        // Currently assumes that the balances of all tokens of addresses are
-        // zero at the start of the transaction.
+    ) external override returns (bytes4 validOrderMagicValue) {
+        // Set the global called flag to true.
+        called = true;
 
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
 
+        address expectedRecipient = _expectedRecipient == address(0)
+            ? zoneParameters.fulfiller
+            : _expectedRecipient;
+
+        console.log("fulfiller");
+        console.log(zoneParameters.fulfiller);
+
         // Check if all offer items have been spent.
-        _assertValidSpentItems(zoneParameters.fulfiller, zoneParameters.offer);
+        _assertValidSpentItems(expectedRecipient, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
@@ -121,11 +137,12 @@ contract TestTransferValidationZoneOfferer is
         // items.
         _assertValidReceivedItems(maximumSpent);
 
-        // Get the fulfiller address from the context.
-        address fulfiller = address(bytes20(context[0:20]));
+        address expectedRecipient = _expectedRecipient == address(0)
+            ? address(bytes20(context[0:20]))
+            : _expectedRecipient;
 
         // Ensure that the fulfiller has received all offer items.
-        _assertValidSpentItems(fulfiller, minimumReceived);
+        _assertValidSpentItems(_expectedRecipient, minimumReceived);
 
         return this.ratifyOrder.selector;
     }
@@ -296,5 +313,9 @@ contract TestTransferValidationZoneOfferer is
         if (amount > ERC1155Interface(token).balanceOf(recipient, identifier)) {
             revert InvalidBalance();
         }
+    }
+
+    function setExpectedRecipient(address expectedRecipient) public {
+        _expectedRecipient = expectedRecipient;
     }
 }

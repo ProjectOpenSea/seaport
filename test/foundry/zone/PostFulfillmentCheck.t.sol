@@ -642,7 +642,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     function execMatchAdvancedOrdersWithConduit(
         Context memory context
     ) external stateless {
-        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer();
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
 
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
