@@ -25,7 +25,8 @@ import { ERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
  *         flag will then be unset once fulfillment is completed. This contract
  *         can specify a consideration item as a condition when generating the
  *         order, which must be received by the named recipient as part of the
- *         set of fulfillments.
+ *         set of fulfillments. The contract also performs primary sales via the
+ *         same mechanic using a lazy-minting approach.
  */
 contract CreatorEarningsEnforcer is
     ContractOffererInterface,
@@ -41,7 +42,6 @@ contract CreatorEarningsEnforcer is
     error InvalidExtraDataEncoding(uint8 version);
     error NotImplemented();
     error CreatorEarningsMustBeEnforced();
-    error OnlyCreator();
 
     constructor(address seaport, address payable creatorAccount) {
         // Note: this could optionally be a mapping of whitelisted marketplaces.
@@ -56,20 +56,29 @@ contract CreatorEarningsEnforcer is
      *      items, and optional context (supplied as extraData).
      *
      * @custom:param fulfiller       The address of the fulfiller.
-     * @custom:param minimumReceived The Minimum items that the caller must
-     *                               receive. Must be empty.
+     * @param minimumReceived        The Minimum items that the caller must
+     *                               receive. If empty, the fulfiller receives
+     *                               the ability to transfer the NFT in question
+     *                               for a secondary fee; if a single item is
+     *                               provided and that item is an unminted NFT,
+     *                               the fulfiller receives the ability to
+     *                               transfer the NFT in question for a primary
+     *                               fee.
      * @custom:param maximumSpent    Maximum items the caller is willing to
      *                               spend. Must meet or exceed the requirement.
      * @param context                Additional context of the order, comprised
      *                               of the NFT tokenID with transfer activation
      *                               (32 bytes) including the 0x00 version byte.
+     *                               Unminted tokens do not need to supply any
+     *                               context as the minimumReceived item holds
+     *                               all necessary information.
      *
      * @return offer         A tuple containing the offer items.
      * @return consideration A tuple containing the consideration items.
      */
     function generateOrder(
         address /* fulfiller */,
-        SpentItem[] calldata /* minimumReceived */,
+        SpentItem[] calldata minimumReceived,
         SpentItem[] calldata /* maximumSpent */,
         bytes calldata context // encoded based on the schemaID
     )
@@ -77,6 +86,28 @@ contract CreatorEarningsEnforcer is
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
+        // Declare array for returned consideration containing creator earnings.
+        ReceivedItem[] memory creatorEarnings = new ReceivedItem[](1);
+
+        // Handle cases where a new, unminted NFT is being requested.
+        if (
+            minimumReceived.length == 1 &&
+            minimumReceived[0].itemType == ItemType.ERC721 &&
+            minimumReceived[0].token == address(this)
+        ) {
+            SpentItem calldata item = minimumReceived[0];
+            // Ensure the item is spending this NFT; otherwise, tokens that are
+            // held by this contract that Seaport has approval to transfer can
+            // be taken.
+            if (
+                item.itemType == ItemType.ERC721 && item.token == address(this)
+            ) {
+                // Populate the enforced creator earnings as the consideration.
+                creatorEarnings[0] = _getEnforcedPrimaryCreatorEarnings();
+                return (minimumReceived, creatorEarnings);
+            }
+        }
+
         // Get the length of the context array from calldata (masked).
         uint256 contextLength;
         assembly {
@@ -113,8 +144,7 @@ contract CreatorEarningsEnforcer is
         uint256 tokenId = abi.decode(context[1:33], (uint256));
 
         // Populate the enforced creator earnings as the consideration.
-        ReceivedItem[] memory creatorEarnings = new ReceivedItem[](1);
-        creatorEarnings[0] = _getEnforcedCreatorEarnings();
+        creatorEarnings[0] = _getEnforcedSecondaryCreatorEarnings();
 
         // Toggle the flag to indicate that the token can be transferred for the
         // duration of the Seaport fulfillment.
@@ -127,7 +157,8 @@ contract CreatorEarningsEnforcer is
      * @dev Ratifies an order with the specified offer, consideration, and
      *      optional context (supplied as extraData).
      *
-     * @custom:param offer         The offer items.
+     * @param offer                The offer items. One item will be present in
+     *                             cases where a token has been minted.
      * @custom:param consideration The consideration items.
      * @param context              Additional context of the order.
      * @custom:param orderHashes   The hashes to ratify.
@@ -136,7 +167,7 @@ contract CreatorEarningsEnforcer is
      * @return The magic value required by Seaport.
      */
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
+        SpentItem[] calldata offer,
         ReceivedItem[] calldata /* consideration */,
         bytes calldata context, // encoded based on the schemaID
         bytes32[] calldata /* orderHashes */,
@@ -147,11 +178,14 @@ contract CreatorEarningsEnforcer is
             revert InvalidCaller(msg.sender);
         }
 
-        // Extract the tokenId in question from context.
-        uint256 tokenId = abi.decode(context[1:33], (uint256));
+        // Clear _canTransfer flag in cases where tokens are not being minted.
+        if (offer.length == 0) {
+            // Extract the tokenId in question from context.
+            uint256 tokenId = abi.decode(context[1:33], (uint256));
 
-        // Toggle flag to indicate that the token can no longer be transferred.
-        _canTransfer[tokenId] = false;
+            // Toggle flag to indicate that token can no longer be transferred.
+            _canTransfer[tokenId] = false;
+        }
 
         // Utilize assembly to efficiently return the ratifyOrder magic value.
         assembly {
@@ -160,20 +194,33 @@ contract CreatorEarningsEnforcer is
         }
     }
 
-    function mint(address to, uint256 tokenId) public returns (bool) {
-        if (msg.sender != _CREATOR) {
-            revert OnlyCreator();
-        }
-
-        _mint(to, tokenId);
-        return true;
-    }
-
+    /**
+     * @dev Transfers the token. Unminted tokens transferred from this contract
+     *      via Seaport (which are only offered via contract orders with an
+     *      accompanying consideration item) will be lazily minted; otherwise,
+     *      a flag indicating that a contract order with an accompanying
+     *      consideration item has been generated must be present on the token.
+     *
+     * @param from    The address of the source of the token.
+     * @param to      The address of the recipient of the token.
+     * @param tokenId A uint256 value representing the ID of the token.
+     */
     function transferFrom(
         address from,
         address to,
         uint256 tokenId
     ) public override {
+        // Handle lazy minting. This contract will only authorize Seaport to
+        // transfer tokens on its behalf by declaring an offer item as part of a
+        // contract order that includes a consideration item for a primary sale.
+        if (from == address(this) && msg.sender == _SEAPORT) {
+            // Mint the token to the recipient if it is not currently minted.
+            _mint(to, tokenId);
+
+            // Return early.
+            return;
+        }
+
         require(from == _ownerOf[tokenId], "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
@@ -189,8 +236,8 @@ contract CreatorEarningsEnforcer is
             "NOT_AUTHORIZED"
         );
 
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
+        // Underflow of the sender's balance is impossible because ownership is
+        // checked above and recipient's balance can't realistically overflow.
         unchecked {
             _balanceOf[from]--;
 
@@ -259,11 +306,36 @@ contract CreatorEarningsEnforcer is
     }
 
     /**
-     * @dev Internal function to get the required creator earnings payment.
+     * @dev Internal function to get the required creator earnings payment on a
+     *      transfer from this contract resulting in minting an unminted NFT.
      *
      * @return The required received item.
      */
-    function _getEnforcedCreatorEarnings()
+    function _getEnforcedPrimaryCreatorEarnings()
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        // NOTE: this can utilize any number of mechanics, including a reference
+        // to the sale price in question, an oracle, a harbinger-like method, a
+        // VRGDA function, a registry lookup, or any other arbitrary method.
+        return
+            ReceivedItem({
+                itemType: ItemType.NATIVE,
+                token: address(0),
+                identifier: uint256(0),
+                amount: 0.1 ether,
+                recipient: _CREATOR
+            });
+    }
+
+    /**
+     * @dev Internal function to get the required creator earnings payment on a
+     *      standard transfer from an operator account.
+     *
+     * @return The required received item.
+     */
+    function _getEnforcedSecondaryCreatorEarnings()
         internal
         view
         returns (ReceivedItem memory)
