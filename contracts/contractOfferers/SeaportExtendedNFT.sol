@@ -75,8 +75,8 @@ contract SeaportExtendedNFT is
      *                               context as the minimumReceived item holds
      *                               all necessary information.
      *
-     * @return offer         A tuple containing the offer items.
-     * @return consideration A tuple containing the consideration items.
+     * @return offer         An array containing the offer items.
+     * @return consideration An array containing the consideration items.
      */
     function generateOrder(
         address /* fulfiller */,
@@ -88,76 +88,17 @@ contract SeaportExtendedNFT is
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        // Declare array for returned consideration containing creator earnings.
-        ReceivedItem[] memory creatorEarnings = new ReceivedItem[](1);
-
-        // Handle cases where a new, unminted NFT is being requested.
-        if (
-            minimumReceived.length == 1 &&
-            minimumReceived[0].itemType == ItemType.ERC721 &&
-            minimumReceived[0].token == address(this)
-        ) {
-            SpentItem calldata item = minimumReceived[0];
-            // Ensure the item is spending this NFT; otherwise, tokens that are
-            // held by this contract that Seaport has approval to transfer can
-            // be taken.
-            if (
-                item.itemType == ItemType.ERC721 && item.token == address(this)
-            ) {
-                // Populate the enforced creator earnings as the consideration.
-                creatorEarnings[0] = _getEnforcedPrimaryCreatorEarnings();
-                return (minimumReceived, creatorEarnings);
-            }
-        }
-
-        // Get the length of the context array from calldata (masked).
-        uint256 contextLength;
-        assembly {
-            contextLength := and(calldataload(context.offset), 0xfffffff)
-        }
-
-        {
-            // Declare an error buffer; first check is that caller is Seaport.
-            uint256 errorBuffer = _cast(msg.sender == _SEAPORT);
-
-            // Next, check for sip-6 version byte.
-            errorBuffer |= errorBuffer ^ (_cast(context[0] == 0x00) << 1);
-
-            // Next, check for supported substandard.
-            errorBuffer |= errorBuffer ^ (_cast(context[1] == 0x01) << 2);
-
-            // Next, check for correct context length.
-            unchecked {
-                errorBuffer |= errorBuffer ^ (_cast(contextLength == 34) << 3);
-            }
-
-            // Handle decoding errors.
-            if (errorBuffer != 0) {
-                uint8 version = uint8(context[0]);
-
-                if (errorBuffer << 255 != 0) {
-                    revert InvalidCaller(msg.sender);
-                } else if (errorBuffer << 254 != 0) {
-                    revert UnsupportedExtraDataVersion(version);
-                } else if (errorBuffer << 253 != 0) {
-                    revert InvalidSubstandard(uint8(context[1]));
-                } else if (errorBuffer << 252 != 0) {
-                    revert InvalidExtraDataEncoding(version);
-                }
-            }
-        }
-
-        // Extract the tokenId in question from context.
-        uint256 tokenId = abi.decode(context[2:34], (uint256));
-
-        // Populate the enforced creator earnings as the consideration.
-        creatorEarnings[0] = _getEnforcedSecondaryCreatorEarnings();
+        // Derive the offer, consideration, and transferable tokenId.
+        uint256 tokenId;
+        (offer, consideration, tokenId) = _processOrder(
+            msg.sender,
+            minimumReceived,
+            context
+        );
 
         // Toggle the flag to indicate that the token can be transferred for the
         // duration of the Seaport fulfillment.
         canTransfer[tokenId] = true;
-
-        return (new SpentItem[](0), creatorEarnings);
     }
 
     /**
@@ -258,39 +199,50 @@ contract SeaportExtendedNFT is
         emit Transfer(from, to, tokenId);
     }
 
-    function tokenURI(uint256) public pure override returns (string memory) {
-        return "tokenURI";
-    }
-
     /**
      * @dev View function to preview an order generated in response to a minimum
      *      set of received items, maximum set of spent items, and context
      *      (supplied as extraData).
      *
-     * @custom:param caller      The address of the caller (e.g. Seaport).
-     * @custom:paramfulfiller    The address of the fulfiller (e.g. the account
-     *                           calling Seaport).
-     * @custom:param minReceived The minimum items that the caller is willing to
-     *                           receive.
-     * @custom:param maxSpent    The maximum items caller is willing to spend.
-     * @custom:param context     Additional context of the order.
+     * @param caller              The address of the caller (e.g. Seaport).
+     * @custom:param fulfiller    The address of the fulfiller.
+     * @param minimumReceived     The Minimum items that the caller must
+     *                            receive. If empty, the fulfiller receives the
+     *                            ability to transfer the NFT in question for a
+     *                            secondary fee; if a single item is provided
+     *                            and that item is an unminted NFT, the
+     *                            fulfiller receives the ability to transfer
+     *                            the NFT in question for a primary fee.
+     * @custom:param maximumSpent Maximum items the caller is willing to spend.
+     *                            Must meet or exceed the requirement.
+     * @param context             Additional context of the order, comprised of
+     *                            the NFT tokenID with transfer activation
+     *                            (32 bytes) including the 0x00 version byte.
+     *                            Unminted tokens do not need to supply any
+     *                            context as the minimumReceived item holds all
+     *                            necessary information.
      *
-     * @return offer         A tuple containing the offer items.
-     * @return consideration A tuple containing the consideration items.
+     * @return offer         An array containing the offer items.
+     * @return consideration An array containing the consideration items.
      */
     function previewOrder(
+        address caller,
         address,
-        address,
+        SpentItem[] calldata minimumReceived,
         SpentItem[] calldata,
-        SpentItem[] calldata,
-        bytes calldata
+        bytes calldata context
     )
         external
-        pure
+        view
         override
-        returns (SpentItem[] memory, ReceivedItem[] memory)
+        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        revert NotImplemented();
+        // Derive the offer and consideration.
+        (offer, consideration, ) = _processOrder(
+            caller,
+            minimumReceived,
+            context
+        );
     }
 
     /**
@@ -316,12 +268,121 @@ contract SeaportExtendedNFT is
         uint256[] memory substandards = new uint256[](2);
         substandards[0] = 0;
         substandards[1] = 1;
-        schemas[0].metadata = abi.encode(
-            substandards,
-            "No documentation"
-        );
+        schemas[0].metadata = abi.encode(substandards, "No documentation");
 
         return ("SeaportExtendedNFT", schemas);
+    }
+
+    /**
+     * @dev Gets the tokenURI for a given tokenId. Simple stub for this example.
+     */
+    function tokenURI(uint256) public pure override returns (string memory) {
+        return "tokenURI";
+    }
+
+    /**
+     * @dev Generates an order with the specified enforced consideration items.
+     *
+     * @param caller                 The address of the caller; must be Seaport.
+     * @param minimumReceived        The Minimum items that the caller must
+     *                               receive. If empty, the fulfiller receives
+     *                               the ability to transfer the NFT in question
+     *                               for a secondary fee; if a single item is
+     *                               provided and that item is an unminted NFT,
+     *                               the fulfiller receives the ability to
+     *                               transfer the NFT in question for a primary
+     *                               fee.
+     * @param context                Additional context of the order, comprised
+     *                               of the NFT tokenID with transfer activation
+     *                               (32 bytes) including the 0x00 version byte.
+     *                               Unminted tokens do not need to supply any
+     *                               context as the minimumReceived item holds
+     *                               all necessary information.
+     *
+     * @return               An array containing the offer items.
+     * @return consideration An array containing the consideration items.
+     * @return tokenId       The tokenId of the transferable token.
+     */
+    function _processOrder(
+        address caller,
+        SpentItem[] calldata minimumReceived,
+        bytes calldata context
+    )
+        internal
+        view
+        returns (
+            SpentItem[] memory,
+            ReceivedItem[] memory consideration,
+            uint256 tokenId
+        )
+    {
+        // Declare an error buffer; first check is that caller is Seaport.
+        uint256 errorBuffer = _cast(caller == _SEAPORT);
+
+        // Declare array for returned consideration containing creator earnings.
+        consideration = new ReceivedItem[](1);
+
+        // Handle cases where a new, unminted NFT is being requested.
+        if (
+            errorBuffer != 0 &&
+            minimumReceived.length == 1 &&
+            minimumReceived[0].itemType == ItemType.ERC721 &&
+            minimumReceived[0].token == address(this)
+        ) {
+            SpentItem calldata item = minimumReceived[0];
+            // Ensure the item is spending this NFT; otherwise, tokens that are
+            // held by this contract that Seaport has approval to transfer can
+            // be taken.
+            if (
+                item.itemType == ItemType.ERC721 && item.token == address(this)
+            ) {
+                // Populate the enforced creator earnings as the consideration.
+                consideration[0] = _getEnforcedPrimaryCreatorEarnings();
+                return (minimumReceived, consideration, tokenId);
+            }
+        }
+
+        // Get the length of the context array from calldata (masked).
+        uint256 contextLength;
+        assembly {
+            contextLength := and(calldataload(context.offset), 0xfffffff)
+        }
+
+        {
+            // Next, check for sip-6 version byte.
+            errorBuffer |= errorBuffer ^ (_cast(context[0] == 0x00) << 1);
+
+            // Next, check for supported substandard.
+            errorBuffer |= errorBuffer ^ (_cast(context[1] == 0x01) << 2);
+
+            // Next, check for correct context length.
+            unchecked {
+                errorBuffer |= errorBuffer ^ (_cast(contextLength == 34) << 3);
+            }
+
+            // Handle decoding errors.
+            if (errorBuffer != 0) {
+                uint8 version = uint8(context[0]);
+
+                if (errorBuffer << 255 != 0) {
+                    revert InvalidCaller(msg.sender);
+                } else if (errorBuffer << 254 != 0) {
+                    revert UnsupportedExtraDataVersion(version);
+                } else if (errorBuffer << 253 != 0) {
+                    revert InvalidSubstandard(uint8(context[1]));
+                } else if (errorBuffer << 252 != 0) {
+                    revert InvalidExtraDataEncoding(version);
+                }
+            }
+        }
+
+        // Extract the tokenId in question from context.
+        tokenId = abi.decode(context[2:34], (uint256));
+
+        // Populate the enforced creator earnings as the consideration.
+        consideration[0] = _getEnforcedSecondaryCreatorEarnings();
+
+        return (new SpentItem[](0), consideration, tokenId);
     }
 
     /**
