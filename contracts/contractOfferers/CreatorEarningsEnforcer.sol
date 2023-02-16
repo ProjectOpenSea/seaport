@@ -174,12 +174,34 @@ contract CreatorEarningsEnforcer is
         address to,
         uint256 tokenId
     ) public override {
-        // Note: the creator could optionally toggle the _canTransfer check.
-        if (msg.sender != from && !_canTransfer[tokenId]) {
-            revert CreatorEarningsMustBeEnforced();
+        require(from == _ownerOf[tokenId], "WRONG_FROM");
+
+        require(to != address(0), "INVALID_RECIPIENT");
+
+        // Note: the creator could optionally toggle the _canTransfer check or
+        // the auto-approval for Seaport.
+        require(
+            msg.sender == from ||
+                (_canTransfer[tokenId] &&
+                    (msg.sender == _SEAPORT ||
+                        isApprovedForAll[from][msg.sender] ||
+                        msg.sender == getApproved[tokenId])),
+            "NOT_AUTHORIZED"
+        );
+
+        // Underflow of the sender's balance is impossible because we check for
+        // ownership above and the recipient's balance can't realistically overflow.
+        unchecked {
+            _balanceOf[from]--;
+
+            _balanceOf[to]++;
         }
 
-        super.transferFrom(from, to, tokenId);
+        _ownerOf[tokenId] = to;
+
+        delete getApproved[tokenId];
+
+        emit Transfer(from, to, tokenId);
     }
 
     function tokenURI(uint256) public pure override returns (string memory) {
