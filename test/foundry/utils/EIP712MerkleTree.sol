@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import { MurkyBase } from "murky/common/MurkyBase.sol";
 import {
     TypehashDirectory
-} from "../../../contracts/lib/TypehashDirectory.sol";
+} from "../../../contracts/test/TypehashDirectory.sol";
 import { Test } from "forge-std/Test.sol";
 import {
     ConsiderationInterface
@@ -40,18 +40,10 @@ contract EIP712MerkleTree is Test {
         merkle = new MerkleUnsorted();
     }
 
-    /// @dev same lookup seaport optimized does
-    function _lookupBulkOrderTypehash(
-        uint256 treeHeight
-    ) internal view returns (bytes32 typeHash) {
-        TypehashDirectory directory = _typehashDirectory;
-        assembly {
-            let typeHashOffset := add(1, shl(0x5, sub(treeHeight, 1)))
-            extcodecopy(directory, 0, typeHashOffset, 0x20)
-            typeHash := mload(0)
-        }
-    }
-
+    /// @dev Creates a single bulk signature: a base signature + a three byte
+    ///      index + a series of 32 byte proofs.  The height of the tree is
+    ///      determined by the length of the orderComponents array and only
+    ///      fills empty orders into the tree to make the length a power of 2.
     function signBulkOrder(
         ConsiderationInterface consideration,
         uint256 privateKey,
@@ -107,55 +99,10 @@ contract EIP712MerkleTree is Test {
             );
     }
 
-    function _getSignature(
-        ConsiderationInterface consideration,
-        uint256 privateKey,
-        bytes32 bulkOrderTypehash,
-        bytes32 root,
-        bytes32[] memory proof,
-        uint24 orderIndex,
-        bool useCompact2098
-    ) internal view returns (bytes memory) {
-        // bulkOrder hash is keccak256 of the specific bulk order typehash and
-        // the merkle root of the order hashes
-        bytes32 bulkOrderHash = keccak256(abi.encode(bulkOrderTypehash, root));
-
-        // get domain separator from the particular seaport instance
-        (, bytes32 domainSeparator, ) = consideration.information();
-
-        // declare out here to avoid stack too deep errors
-        bytes memory signature;
-        // avoid stacc 2 thicc
-        {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                privateKey,
-                keccak256(
-                    abi.encodePacked(
-                        bytes2(0x1901),
-                        domainSeparator,
-                        bulkOrderHash
-                    )
-                )
-            );
-            // if useCompact2098 is true, encode yParity (v) into s
-            if (useCompact2098) {
-                uint256 yParity = (v == 27) ? 0 : 1;
-                bytes32 yAndS = bytes32(uint256(s) | (yParity << 255));
-                signature = abi.encodePacked(r, yAndS);
-            } else {
-                signature = abi.encodePacked(r, s, v);
-            }
-        }
-
-        // return the packed signature, order index, and proof
-        // encodePacked will pack everything tightly without lengths
-        // ie, long-style rsv signatures will have 1 byte for v
-        // orderIndex will be the next 3 bytes
-        // then proof will be each element one after another; its offset and
-        // length will not be encoded
-        return abi.encodePacked(signature, orderIndex, proof);
-    }
-
+    /// @dev Creates a single bulk signature: a base signature + a three byte
+    ///      index + a series of 32 byte proofs.  The height of the tree is
+    ///      determined by the height parameter and this function will fill
+    ///      empty orders into the tree until the specified height is reached.
     function signSparseBulkOrder(
         ConsiderationInterface consideration,
         uint256 privateKey,
@@ -230,5 +177,66 @@ contract EIP712MerkleTree is Test {
                 orderIndex,
                 useCompact2098
             );
+    }
+
+    /// @dev same lookup seaport optimized does
+    function _lookupBulkOrderTypehash(
+        uint256 treeHeight
+    ) internal view returns (bytes32 typeHash) {
+        TypehashDirectory directory = _typehashDirectory;
+        assembly {
+            let typeHashOffset := add(1, shl(0x5, sub(treeHeight, 1)))
+            extcodecopy(directory, 0, typeHashOffset, 0x20)
+            typeHash := mload(0)
+        }
+    }
+
+    function _getSignature(
+        ConsiderationInterface consideration,
+        uint256 privateKey,
+        bytes32 bulkOrderTypehash,
+        bytes32 root,
+        bytes32[] memory proof,
+        uint24 orderIndex,
+        bool useCompact2098
+    ) internal view returns (bytes memory) {
+        // bulkOrder hash is keccak256 of the specific bulk order typehash and
+        // the merkle root of the order hashes
+        bytes32 bulkOrderHash = keccak256(abi.encode(bulkOrderTypehash, root));
+
+        // get domain separator from the particular seaport instance
+        (, bytes32 domainSeparator, ) = consideration.information();
+
+        // declare out here to avoid stack too deep errors
+        bytes memory signature;
+        // avoid stacc 2 thicc
+        {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+                privateKey,
+                keccak256(
+                    abi.encodePacked(
+                        bytes2(0x1901),
+                        domainSeparator,
+                        bulkOrderHash
+                    )
+                )
+            );
+            // if useCompact2098 is true, encode yParity (v) into s
+            if (useCompact2098) {
+                uint256 yParity = (v == 27) ? 0 : 1;
+                bytes32 yAndS = bytes32(uint256(s) | (yParity << 255));
+                signature = abi.encodePacked(r, yAndS);
+            } else {
+                signature = abi.encodePacked(r, s, v);
+            }
+        }
+
+        // return the packed signature, order index, and proof
+        // encodePacked will pack everything tightly without lengths
+        // ie, long-style rsv signatures will have 1 byte for v
+        // orderIndex will be the next 3 bytes
+        // then proof will be each element one after another; its offset and
+        // length will not be encoded
+        return abi.encodePacked(signature, orderIndex, proof);
     }
 }

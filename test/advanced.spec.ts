@@ -5631,7 +5631,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       ];
 
       const considerationOne = [
-        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getTestItem20(parseEther("10"), parseEther("10"), seller.address),
       ];
 
       const { order: orderOne, orderHash: orderHashOne } = await createOrder(
@@ -5642,7 +5642,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerTwo = [getItemETH(parseEther("10"), parseEther("10"))];
+      const offerTwo = [getTestItem20(parseEther("10"), parseEther("10"))];
 
       const considerationTwo = [
         getTestItem721(
@@ -5745,6 +5745,105 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         executions
       );
       return receipt;
+    });
+    it("Does not filter native tokens", async () => {
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
+      ];
+
+      const considerationOne = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      ];
+
+      const { order: orderOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        0 // FULL_OPEN
+      );
+
+      const offerTwo = [getItemETH(parseEther("10"), parseEther("10"))];
+
+      const considerationTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+
+      const { order: orderTwo } = await createOrder(
+        seller,
+        zone,
+        offerTwo,
+        considerationTwo,
+        0 // FULL_OPEN
+      );
+
+      const offerThree = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+
+      const { order: orderThree } = await createOrder(
+        buyer,
+        zone,
+        offerThree,
+        considerationThree,
+        0 // FULL_OPEN
+      );
+
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [orderOne, orderTwo, orderThree],
+            [],
+            fulfillments,
+            ethers.constants.AddressZero,
+            {
+              value: 0,
+            }
+          )
+      ).to.be.revertedWithCustomError(
+        marketplaceContract,
+        "InsufficientNativeTokensSupplied"
+      );
     });
   });
 
