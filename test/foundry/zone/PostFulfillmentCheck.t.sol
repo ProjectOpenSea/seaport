@@ -554,15 +554,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 numTips: 0
             })
         );
-        // todo: fix ref impl
-        // test(
-        //     this.execFulfillAvailableAdvancedAscending,
-        //     Context({
-        //         consideration: referenceConsideration,
-        //         numOriginalAdditional: 0,
-        //         numTips: 0
-        //     })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedAscending,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
     }
 
     function execFulfillAvailableAdvancedAscending(

@@ -311,6 +311,9 @@ contract ReferenceOrderCombiner is
 
                 // Modify the OrderToExecute Spent Item Amount.
                 orderToExecute.spentItems[j].amount = offerItem.startAmount;
+                // Modify the OrderToExecute Spent Item Original Amount.
+                orderToExecute.spentItemOriginalAmounts[j] = offerItem
+                    .startAmount;
             }
 
             // Retrieve array of consideration items for order in question.
@@ -362,6 +365,10 @@ contract ReferenceOrderCombiner is
                 // Modify the OrderToExecute Received item amount.
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
+                // Modify the OrderToExecute Received item original amount.
+                orderToExecute.receivedItemOriginalAmounts[
+                    j
+                ] = considerationItem.startAmount;
             }
         }
 
