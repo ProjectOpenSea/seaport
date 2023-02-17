@@ -57,10 +57,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant VALIDATION_ZONE = "validation zone";
     string constant FIRST_FIRST = "first first";
     string constant SECOND_FIRST = "second first";
+    string constant THIRD_FIRST = "third second";
     string constant FIRST_SECOND = "first second";
     string constant SECOND_SECOND = "second second";
     string constant FIRST_SECOND__FIRST = "first&second first";
     string constant FIRST_SECOND__SECOND = "first&second second";
+    string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
 
     function setUp() public virtual override {
         super.setUp();
@@ -125,39 +127,52 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withOrderIndex(1)
             .withItemIndex(0)
             .saveDefault(SECOND_FIRST);
-        // create a default fulfillmentComponent for first_first
-        // corresponds to first offer or consideration item in the first order
+        // create a default fulfillmentComponent for third_first
+        // corresponds to first offer or consideration item in the third order
+        FulfillmentComponent memory thirdFirst = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(2)
+            .withItemIndex(0)
+            .saveDefault(THIRD_FIRST);
+        // create a default fulfillmentComponent for first_second
+        // corresponds to second offer or consideration item in the first order
         FulfillmentComponent memory firstSecond = FulfillmentComponentLib
             .empty()
             .withOrderIndex(0)
             .withItemIndex(1)
             .saveDefault(FIRST_SECOND);
-        // create a default fulfillmentComponent for second_first
-        // corresponds to first offer or consideration item in the second order
+        // create a default fulfillmentComponent for second_second
+        // corresponds to second offer or consideration item in the second order
         FulfillmentComponent memory secondSecond = FulfillmentComponentLib
             .empty()
             .withOrderIndex(1)
             .withItemIndex(1)
             .saveDefault(SECOND_SECOND);
 
-        // create a one-element array comtaining first_first
+        // create a one-element array containing first_first
         SeaportArrays.FulfillmentComponents(firstFirst).saveDefaultMany(
             FIRST_FIRST
         );
-        // create a one-element array comtaining second_first
+        // create a one-element array containing second_first
         SeaportArrays.FulfillmentComponents(secondFirst).saveDefaultMany(
             SECOND_FIRST
         );
 
-        // create a two-element array comtaining first_first and second_first
+        // create a two-element array containing first_first and second_first
         SeaportArrays
             .FulfillmentComponents(firstFirst, secondFirst)
             .saveDefaultMany(FIRST_SECOND__FIRST);
 
-        // create a two-element array comtaining first_second and second_second
+        // create a two-element array containing first_second and second_second
         SeaportArrays
             .FulfillmentComponents(firstSecond, secondSecond)
             .saveDefaultMany(FIRST_SECOND__SECOND);
+
+        // create a three-element array containing first_first, second_first,
+        // and third_first
+        SeaportArrays
+            .FulfillmentComponents(firstFirst, secondFirst, thirdFirst)
+            .saveDefaultMany(FIRST_SECOND_THIRD__FIRST);
     }
 
     struct Context {
@@ -502,13 +517,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         });
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    // BEGIN CURRENT WORKSPACE
-
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision()
         public
     {
@@ -660,12 +668,218 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         assertTrue(transferValidationZone.callCount() == 2);
     }
 
-    // END CURRENT WORKSPACE
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
+    function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
+        public
+    {
+        prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple();
+        test(
+            this
+                .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
+            Context({ seaport: consideration })
+        );
+    }
+
+    function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
+        internal
+    {
+        test721_1.mint(offerer1.addr, 42);
+        test721_1.mint(offerer1.addr, 43);
+        test721_1.mint(offerer1.addr, 44);
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple(
+        Context memory context
+    ) external stateless {
+        // The idea here is to fulfill one, skinny through a second using the
+        // collision trick, and then see what happens on the third.
+
+        string memory stranger = "stranger";
+        address strangerAddress = makeAddr(stranger);
+        uint256 strangerAddressUint = uint256(
+            uint160(address(strangerAddress))
+        );
+
+        // Make sure the fulfiller has enough to cover the consideration.
+        token1.mint(address(this), strangerAddressUint * 3);
+
+        // Make the stranger rich enough that the balance check passes.
+        token1.mint(strangerAddress, strangerAddressUint);
+
+        // This instance of the zone expects offerer1 to be the recipient of all
+        // spent items (the ERC721s). This permits bypassing the ERC721 transfer
+        // checks, which would otherwise block the consideration transfer
+        // checks, which we want to tinker with.
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(offerer1.addr)
+            );
+
+        // Set up variables we'll use below the following block.
+        OrderComponents memory orderComponentsOne;
+        OrderComponents memory orderComponentsTwo;
+        OrderComponents memory orderComponentsThree;
+        AdvancedOrder[] memory advancedOrders;
+        OfferItem[] memory offerItems;
+        ConsiderationItem[] memory considerationItems;
+
+        // Create a block to deal with stack depth issues.
+        {
+            // Create the offer items for the first order.
+            offerItems = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(42)
+            );
+
+            // Create the consideration items for the first order.
+            considerationItems = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(1 ether)
+                        .withEndAmount(1 ether)
+                        .withRecipient(payable(offerer1.addr))
+                );
+
+            // Create the order components for the first order.
+            orderComponentsOne = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItems)
+                .withConsideration(considerationItems)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the second order.
+            offerItems = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(43)
+            );
+
+            // Create the consideration items for the first order.
+            considerationItems = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(strangerAddressUint)
+                        .withEndAmount(strangerAddressUint)
+                        .withRecipient(payable(offerer1.addr))
+                );
+
+            // Create the order components for the second order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItems)
+                .withConsideration(considerationItems)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the third order.
+            offerItems = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(44)
+            );
+
+            // Create the consideration items for the third order.
+            considerationItems = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(3 ether) // Not necessary, but explicit
+                        .withEndAmount(3 ether)
+                        .withRecipient(payable(offerer1.addr))
+                );
+
+            // Create the order components for the third order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItems)
+                .withConsideration(considerationItems)
+                .withZone(address(transferValidationZone));
+
+            // Create the orders.
+            Order[] memory orders = _buildOrders(
+                context,
+                SeaportArrays.OrderComponentsArray(
+                    orderComponentsOne,
+                    orderComponentsTwo,
+                    orderComponentsThree
+                ),
+                offerer1.key
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, ""),
+                orders[2].toAdvancedOrder(1, 1, "")
+            );
+        }
+
+        // Create the fulfillments for the offers.
+        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
+            .FulfillmentComponentArrays(
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                )
+            );
+
+        // Create the fulfillments for the considerations.
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND_THIRD__FIRST
+                    )
+                );
+
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // The first should make it through validation for real.
+        //
+        // The malformed second validation call doesn't revert here because the
+        // amount value that ends up in the memory position normally used for
+        // the address-to-balance-check is the consideration value, which is
+        // equal to the strangerAddress and the strangerAddress has plenty of
+        // tokens.
+        //
+        // The third should revert because we'll be checking an address that has
+        // no tokens (the address at the hex value of 3 ether).
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidERC20Balance(uint256,uint256,address,address)",
+                // expected balance
+                3 ether,
+                // actual balance
+                uint256(0),
+                // checked owner address (hex version of uint value of 3 ether)
+                address(0x00000000000000000000000029A2241aF62C0000),
+                // checked token address
+                address(token1)
+            )
+        );
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: offerer1.addr,
+            maximumFulfilled: advancedOrders.length - 2
+        });
+    }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
         internal
