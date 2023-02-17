@@ -885,12 +885,15 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         if (containsNonOpen) {
             // Iterate over each order a second time.
             for (uint256 i = 0; i < totalOrders; ) {
-                // Check restricted orders and contract orders.
-                _assertRestrictedAdvancedOrderValidity(
-                    advancedOrders[i],
-                    orderHashes,
-                    orderHashes[i]
-                );
+                // Ensure the order in question is being fulfilled.
+                if (availableOrders[i]) {
+                    // Check restricted orders and contract orders.
+                    _assertRestrictedAdvancedOrderValidity(
+                        advancedOrders[i],
+                        orderHashes,
+                        orderHashes[i]
+                    );
+                }
 
                 // Skip overflow checks as for loop is indexed starting at zero.
                 unchecked {
