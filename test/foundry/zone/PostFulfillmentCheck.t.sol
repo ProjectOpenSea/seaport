@@ -16,20 +16,22 @@ import {
 } from "./impl/PostFullfillmentStatefulTestZone.sol";
 
 import {
-    ConsiderationItem,
-    OfferItem,
-    ItemType,
-    AdvancedOrder,
-    CriteriaResolver,
-    BasicOrderParameters,
     AdditionalRecipient,
-    FulfillmentComponent
+    AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
+    CriteriaResolver,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    OrderComponents,
+    OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
+    BasicOrderType,
     OrderType,
-    Side,
-    BasicOrderType
+    Side
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -636,12 +638,538 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 numTips: 0
             })
         );
+        test(
+            this.execMatchAdvancedOrdersWithConduit,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduit(
+        Context memory context
+    ) external stateless {
+        // This instance of the zone expects bob to be the recipient of all
+        // spent items.
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(bob)
+            );
+
+        // Set up an offerer.
+        string memory offerer = "offerer";
+        (address offererAddress, uint256 offererAddressKey) = makeAddrAndKey(
+            offerer
+        );
+
+        // Give the offerer two NFTs.
+        test721_1.mint(address(offererAddress), 42);
+        test721_1.mint(address(offererAddress), 43);
+
+        // Do the approvals.
+        vm.startPrank(offererAddress);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
+        test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
+
+        // Set up the offer for the first listing.
+        addErc721OfferItem(42);
+
+        // Set up the consideration for the first listing.
+        addErc20ConsiderationItem(payable(offererAddress), 50);
+
+        // Offerer is the offerer, the zone is the transfer validation zone, and
+        // the order uses a conduit.
+        _configureOrderParameters({
+            offerer: offererAddress,
+            zone: address(transferValidationZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: true
+        });
+
+        // Set the order to full restricted to trigger zone validation.
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        // Use helper to set up order components. The 0 arg is the counter.
+        configureOrderComponents(0);
+
+        // Set up variables.
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        // This will remain empty.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // Create a block to help with stack depth issues.
+        {
+            // Set up the variables we're only using in this block.
+            bytes32 orderHash;
+            bytes memory signature;
+            AdvancedOrder memory order;
+
+            // Create the first order.
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[0] = order;
+
+            delete offerItems;
+            // Set up the offer for the second listing.
+            addErc721OfferItem(43);
+
+            delete considerationItems;
+            // Set up the consideration for the second listing.
+            addErc20ConsiderationItem(payable(offererAddress), 50);
+
+            delete baseOrderParameters;
+            // Offerer is the offerer, the zone is the transfer validation zone, and
+            // the order uses a conduit.  Same as the first order.
+            _configureOrderParameters({
+                offerer: offererAddress,
+                zone: address(transferValidationZone),
+                zoneHash: bytes32(0),
+                salt: 0,
+                useConduit: true
+            });
+
+            // Set the order to full restricted to trigger zone validation.
+            baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+            delete baseOrderComponents;
+            // Set up the order components.
+            configureOrderComponents(0);
+
+            // Create the second order.
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[1] = order;
+        }
+
+        // Build the Fulfillments.
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+
+        // Expect this to revert because the zone is set up to expect bob to be
+        // the recipient of all spent items.
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidOwner(address,address,address,uint256)",
+                address(bob),
+                address(this),
+                address(test721_1),
+                42
+            )
+        );
+        context.consideration.fulfillAvailableAdvancedOrders({
+            advancedOrders: orders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerComponentsArray,
+            considerationFulfillments: considerationComponentsArray,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(this),
+            maximumFulfilled: 2
+        });
+
+        // This one should work because the zone expects bob to be the recipient
+        // of all spent items.
+        context.consideration.fulfillAvailableAdvancedOrders({
+            advancedOrders: orders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerComponentsArray,
+            considerationFulfillments: considerationComponentsArray,
+            fulfillerConduitKey: bytes32(0),
+            recipient: bob,
+            maximumFulfilled: 2
+        });
+
+        assertTrue(transferValidationZone.called());
+        assertTrue(transferValidationZone.callCount() == 2);
+    }
+
+    function testExecFulfillAvailableAdvancedOrdersWithConduit() public {
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduit,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduit,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    // NOTE: This demonstrates undocumented behavior. If the maxFulfilled is
+    //  less than the number of orders, we fire off an ill-formed
+    // `validateOrder` call.
+
+    // This function is nearly identical to
+    // execFulfillAvailableAdvancedOrdersWithConduit, so the stock comments are
+    // removed.
+    function execFulfillAvailableAdvancedOrdersMaxMismatch(
+        Context memory context
+    ) external stateless {
+        uint256 considerationAmount = 50;
+
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
+
+        string memory offerer = "offerer";
+        (address offererAddress, uint256 offererAddressKey) = makeAddrAndKey(
+            offerer
+        );
+
+        test721_1.mint(address(offererAddress), 42);
+        test721_1.mint(address(offererAddress), 43);
+
+        vm.startPrank(offererAddress);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
+        test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
+
+        addErc721OfferItem(42);
+
+        addErc20ConsiderationItem(payable(offererAddress), considerationAmount);
+
+        _configureOrderParameters({
+            offerer: offererAddress,
+            zone: address(transferValidationZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: true
+        });
+
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        configureOrderComponents(0);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        CriteriaResolver[] memory criteriaResolvers;
+
+        {
+            bytes32 orderHash;
+            bytes memory signature;
+            AdvancedOrder memory order;
+
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[0] = order;
+
+            delete offerItems;
+            addErc721OfferItem(43);
+
+            delete considerationItems;
+            addErc20ConsiderationItem(payable(offererAddress), considerationAmount);
+
+            delete baseOrderParameters;
+            _configureOrderParameters({
+                offerer: offererAddress,
+                zone: address(transferValidationZone),
+                zoneHash: bytes32(0),
+                salt: 0,
+                useConduit: true
+            });
+
+            baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+            delete baseOrderComponents;
+            configureOrderComponents(0);
+
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[1] = order;
+        }
+
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+
+        // In the malformed calldata to `validateOrder`, the memory location
+        // normally used for the `recipient` parameter is dirtied with the
+        // consideration amount value (50).
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidERC20Balance(uint256,uint256,address,address)",
+                // expected balance
+                uint256(considerationAmount),
+                // actual balance
+                uint256(0),
+                // checked owner address
+                address(0x0000000000000000000000000000000000000032),
+                // checked token address
+                address(token1)
+            )
+        );
+        context.consideration.fulfillAvailableAdvancedOrders({
+            advancedOrders: orders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerComponentsArray,
+            considerationFulfillments: considerationComponentsArray,
+            fulfillerConduitKey: bytes32(0),
+            recipient: address(this),
+            maximumFulfilled: orders.length - 1
+        });
+    }
+
+    function testExecFulfillAvailableAdvancedOrdersMaxMismatch() public {
+        // The function call suceeds on reference and reverts on optimized.
+        test(
+            this.execFulfillAvailableAdvancedOrdersMaxMismatch,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execFulfillAvailableAdvancedOrdersMaxMismatchCollision(
+        Context memory context
+    ) external stateless {
+        string memory offerer = "offerer";
+        (address offererAddress, uint256 offererAddressKey) = makeAddrAndKey(
+            offerer
+        );
+
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                offererAddress
+            );
+
+        test721_1.mint(address(offererAddress), 42);
+        test721_1.mint(address(offererAddress), 43);
+
+        vm.startPrank(offererAddress);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
+        test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
+
+        addErc721OfferItem(42);
+
+        token1.mint(address(this), uint256(uint160(address(offererAddress))));
+
+        addErc20ConsiderationItem(
+            payable(offererAddress),
+            uint256(uint160(address(offererAddress)))
+        );
+
+        _configureOrderParameters({
+            offerer: offererAddress,
+            zone: address(transferValidationZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: true
+        });
+
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        configureOrderComponents(0);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        CriteriaResolver[] memory criteriaResolvers;
+
+        {
+            bytes32 orderHash;
+            bytes memory signature;
+            AdvancedOrder memory order;
+
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[0] = order;
+
+            delete offerItems;
+            addErc721OfferItem(43);
+
+            delete considerationItems;
+            addErc20ConsiderationItem(
+                payable(offererAddress),
+                uint256(uint160(address(offererAddress)))
+            );
+
+            delete baseOrderParameters;
+            _configureOrderParameters({
+                offerer: offererAddress,
+                zone: address(transferValidationZone),
+                zoneHash: bytes32(0),
+                salt: 0,
+                useConduit: true
+            });
+
+            baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+            delete baseOrderComponents;
+            configureOrderComponents(0);
+
+            orderHash = context.consideration.getOrderHash(baseOrderComponents);
+            signature = signOrder(
+                context.consideration,
+                offererAddressKey,
+                orderHash
+            );
+            order = AdvancedOrder({
+                parameters: baseOrderParameters,
+                numerator: 1,
+                denominator: 1,
+                signature: signature,
+                extraData: "extraData"
+            });
+            orders[1] = order;
+        }
+
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        offerComponentsArray.push(offerComponents);
+
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(
+            FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+        );
+        considerationComponentsArray.push(considerationComponents);
+
+        // The malformed extra validation call doesn't revert here because the
+        // amount value that ends up in the memory position normally used for
+        // the address-to-balance-check is a value equal to the offererAddress
+        // and the offerer has plenty of tokens.
+        context.consideration.fulfillAvailableAdvancedOrders({
+            advancedOrders: orders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerComponentsArray,
+            considerationFulfillments: considerationComponentsArray,
+            fulfillerConduitKey: bytes32(0),
+            recipient: offererAddress,
+            maximumFulfilled: orders.length - 1
+        });
+
+        // Should be called only once.
+        assertTrue(transferValidationZone.callCount() == 2);
+    }
+
+    function testExecFulfillAvailableAdvancedOrdersMaxMismatchCollision()
+        public
+    {
+        // The function call suceeds on reference and reverts on optimized.
+        test(
+            this.execFulfillAvailableAdvancedOrdersMaxMismatchCollision,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
     }
 
     function execMatchAdvancedOrdersWithConduit(
         Context memory context
     ) external stateless {
-        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer();
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
 
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);

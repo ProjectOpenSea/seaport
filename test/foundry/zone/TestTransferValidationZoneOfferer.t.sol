@@ -52,15 +52,19 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     // constant strings for recalling struct lib "defaults"
     // ideally these live in a base test class
     string constant ONE_ETH = "one eth";
+    string constant THREE_ERC20 = "three erc20";
     string constant SINGLE_721 = "single 721";
     string constant VALIDATION_ZONE = "validation zone";
     string constant FIRST_FIRST = "first first";
     string constant SECOND_FIRST = "second first";
+    string constant FIRST_SECOND = "first second";
+    string constant SECOND_SECOND = "second second";
     string constant FIRST_SECOND__FIRST = "first&second first";
+    string constant FIRST_SECOND__SECOND = "first&second second";
 
     function setUp() public virtual override {
         super.setUp();
-        zone = new TestTransferValidationZoneOfferer();
+        zone = new TestTransferValidationZoneOfferer(address(0));
 
         // create a default considerationItem for one ether;
         // note that it does not have recipient set
@@ -72,6 +76,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withEndAmount(1 ether)
             .withIdentifierOrCriteria(0)
             .saveDefault(ONE_ETH); // not strictly necessary
+
+        // create a default considerationItem for three erc20;
+        // note that it does not have recipient set
+        ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withStartAmount(3 ether)
+            .withEndAmount(3 ether)
+            .withIdentifierOrCriteria(0)
+            .saveDefault(THREE_ERC20); // not strictly necessary
 
         // create a default offerItem for a single 721;
         // note that it does not have token or identifier set
@@ -111,6 +125,20 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withOrderIndex(1)
             .withItemIndex(0)
             .saveDefault(SECOND_FIRST);
+        // create a default fulfillmentComponent for first_first
+        // corresponds to first offer or consideration item in the first order
+        FulfillmentComponent memory firstSecond = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(0)
+            .withItemIndex(1)
+            .saveDefault(FIRST_SECOND);
+        // create a default fulfillmentComponent for second_first
+        // corresponds to first offer or consideration item in the second order
+        FulfillmentComponent memory secondSecond = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(1)
+            .withItemIndex(1)
+            .saveDefault(SECOND_SECOND);
 
         // create a one-element array comtaining first_first
         SeaportArrays.FulfillmentComponents(firstFirst).saveDefaultMany(
@@ -125,6 +153,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         SeaportArrays
             .FulfillmentComponents(firstFirst, secondFirst)
             .saveDefaultMany(FIRST_SECOND__FIRST);
+
+        // create a two-element array comtaining first_second and second_second
+        SeaportArrays
+            .FulfillmentComponents(firstSecond, secondSecond)
+            .saveDefaultMany(FIRST_SECOND__SECOND);
     }
 
     struct Context {
@@ -140,6 +173,145 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         } catch (bytes memory reason) {
             assertPass(reason);
         }
+    }
+
+    function testExecFulfillAvailableAdvancedOrdersWithConduitAndNative()
+        public
+    {
+        prepareFulfillAvailableAdvancedOrdersWithConduitAndNative();
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndNative,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndNative,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function prepareFulfillAvailableAdvancedOrdersWithConduitAndNative()
+        internal
+    {
+        test721_1.mint(offerer1.addr, 42);
+        test721_1.mint(offerer1.addr, 43);
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduitAndNative(
+        Context memory context
+    ) external stateless {
+        // Set up an NFT recipient.
+        address considerationRecipientAddress = makeAddr(
+            "considerationRecipientAddress"
+        );
+
+        // This instance of the zone expects the fulfiller to be the recipient
+        // recipient of all spent items.
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
+
+        // Set up variables we'll use below the following block.
+        OrderComponents memory orderComponentsOne;
+        OrderComponents memory orderComponentsTwo;
+        AdvancedOrder[] memory advancedOrders;
+
+        // Create a block to deal with stack depth issues.
+        {
+            // Create the offer items for the first order.
+            OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(42)
+            );
+
+            // Create the consideration items for the first order.
+            ConsiderationItem[] memory considerationItemsOne = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                        considerationRecipientAddress
+                    ),
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withRecipient(considerationRecipientAddress)
+                );
+
+            // Create the order components for the first order.
+            orderComponentsOne = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsOne)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the second order.
+            OfferItem[] memory offerItemsTwo = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(43)
+            );
+
+            // Create the order components for the second order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsTwo)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the orders.
+            Order[] memory orders = _buildOrders(
+                context,
+                SeaportArrays.OrderComponentsArray(
+                    orderComponentsOne,
+                    orderComponentsTwo
+                ),
+                offerer1.key
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
+
+        // Create the fulfillments for the offers.
+        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
+            .FulfillmentComponentArrays(
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                )
+            );
+
+        // Create the fulfillments for the considerations.
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__FIRST
+                    ),
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__SECOND
+                    )
+                );
+
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // Make the call to Seaport.
+        context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(0),
+            maximumFulfilled: 2
+        });
     }
 
     function testAggregate() public {
