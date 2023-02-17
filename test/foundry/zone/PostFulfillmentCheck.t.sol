@@ -917,7 +917,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             addErc721OfferItem(43);
 
             delete considerationItems;
-            addErc20ConsiderationItem(payable(offererAddress), considerationAmount);
+            addErc20ConsiderationItem(
+                payable(offererAddress),
+                considerationAmount
+            );
 
             delete baseOrderParameters;
             _configureOrderParameters({
@@ -1016,6 +1019,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             offerer
         );
 
+        string memory stranger = "stranger";
+        address strangerAddress = makeAddr(stranger);
+        uint256 strangerAddressUint = uint256(uint160(address(strangerAddress)));
+
         TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
                 offererAddress
             );
@@ -1031,11 +1038,15 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
         addErc721OfferItem(42);
 
-        token1.mint(address(this), uint256(uint160(address(offererAddress))));
+        // Make sure the fulfiller has enough to cover the consideration.
+        token1.mint(address(this), strangerAddressUint);
+
+        // Make the stranger rich enough that the balance check passes.
+        token1.mint(strangerAddress, strangerAddressUint);
 
         addErc20ConsiderationItem(
             payable(offererAddress),
-            uint256(uint160(address(offererAddress)))
+            strangerAddressUint
         );
 
         _configureOrderParameters({
@@ -1079,7 +1090,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             delete considerationItems;
             addErc20ConsiderationItem(
                 payable(offererAddress),
-                uint256(uint160(address(offererAddress)))
+                strangerAddressUint
             );
 
             delete baseOrderParameters;
@@ -1134,8 +1145,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
         // The malformed extra validation call doesn't revert here because the
         // amount value that ends up in the memory position normally used for
-        // the address-to-balance-check is a value equal to the offererAddress
-        // and the offerer has plenty of tokens.
+        // the address-to-balance-check is the consideration value, which is
+        // equal to the strangerAddress and the strangerAddress has plenty of
+        // tokens.
         context.consideration.fulfillAvailableAdvancedOrders({
             advancedOrders: orders,
             criteriaResolvers: criteriaResolvers,
