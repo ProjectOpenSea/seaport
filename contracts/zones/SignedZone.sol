@@ -32,7 +32,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     mapping(address => bool) private _signers;
 
     /// @dev The EIP-712 digest parameters.
-    bytes32 internal immutable _NAME_HASH = keccak256(bytes("SignedZone"));
+    bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH = keccak256(bytes("1.0"));
     // prettier-ignore
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH = keccak256(
@@ -61,10 +61,16 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
 
     /**
      * @notice Constructor to deploy the contract.
+     *
+     * @param zoneName The name for the zone used in the domain separator
+     *                 derivation.
      */
-    constructor() {
+    constructor(string memory zoneName) {
         // Set the deployer as the controller.
         _controller = msg.sender;
+
+        // Set the name hash.
+        _NAME_HASH = keccak256(bytes(zoneName));
 
         // Derive and set the domain separator.
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
@@ -278,8 +284,8 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
 
     /**
      * @notice The fallback function is used as a dispatcher for the
-     *         `updateSigner`, `getActiveSigners` and `supportsInterface`
-     *         functions.
+     *         `updateSigner`, `isActiveSigner`, `getActiveSigners` and
+     *         `supportsInterface` functions.
      */
     // prettier-ignore
     fallback(bytes calldata) external payable returns (bytes memory output) {
@@ -310,6 +316,14 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             // Call the internal function to determine if the interface is
             // supported.
             return abi.encode(_supportsInterface(interfaceId));
+        } else if (selector == IS_ACTIVE_SIGNER_SELECTOR) {
+            // abi.encodeWithSignature("isActiveSigner(address)", signer)
+
+            // Get the signer.
+            address signer = abi.decode(msg.data[4:], (address));
+
+            // Call the internal function to determine if the signer is active.
+            return abi.encode(_isActiveSigner(signer));
         }
         else {
              // Revert if the function selector is not supported.
@@ -364,7 +378,10 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     }
 
     /**
-     * @notice Returns the active signers for the zone.
+     * @notice Returns the active signers for the zone. Note that the array of
+     *         active signers could grow to a size that this function could not
+     *         return, the array of active signers is  expected to be small,
+     *         and is managed by the controller.
      *
      * @return signers The active signers.
      */
@@ -377,6 +394,18 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
         signers = SignedZoneControllerInterface(_controller).getActiveSigners(
             address(this)
         );
+    }
+
+    /**
+     * @notice Returns if the given address is an active signer for the zone.
+     *
+     * @param signer The address to check if it is an active signer.
+     *
+     * @return The address is an active signer, false otherwise.
+     */
+    function _isActiveSigner(address signer) internal view returns (bool) {
+        // Return the active status of the caller.
+        return _signers[signer];
     }
 
     /**

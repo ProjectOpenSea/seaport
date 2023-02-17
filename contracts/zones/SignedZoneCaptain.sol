@@ -20,8 +20,9 @@ import { TwoStepOwnable } from "../ownable/TwoStepOwnable.sol";
  * @author BCLeFevre
  * @notice SignedZoneCaptain is a contract that owns signed zones and manages
  *         their active signers via two roles. The rotator role can update
- *         the active signers of a zone. The pauser role can pause a zone,
- *         which will remove all active signers and clear the rotator role.
+ *         the active signers of a zone. The sanitizer role can remove all
+ *         active signers of a zone controlled by the captain and clear the
+ *         rotator role on the captain.
  */
 contract SignedZoneCaptain is
     TwoStepOwnable,
@@ -36,26 +37,20 @@ contract SignedZoneCaptain is
     // a zone controlled by this contract.
     address private _rotator;
 
-    // The address of the pauser. The pauser can pause a zone controlled by
-    // this contract. Pausing a zone will remove all active signers and clear
-    // the rotator role.
-    address private _pauser;
+    // The address of the sanitizer. The sanitizer can remove all active
+    // signers of a zone controlled by the captain and clear the rotator role
+    // on the captain.
+    address private _sanitizer;
 
     /**
-     * @dev Initialize contract by setting the signed zone controller, the
-     *      initial owner, the initial rotator, and initial pauser role.
+     * @dev Initialize contract by setting the signed zone controller.
      *
      * @param signedZoneController The address of the signed zone controller.
-     * @param initialOwner         The address of the initial owner.
-     * @param initialRotator       The address of the initial rotator.
-     * @param initialPauser        The address of the initial pauser.
      */
-    constructor(
-        address signedZoneController,
-        address initialOwner,
-        address initialRotator,
-        address initialPauser
-    ) {
+    constructor(address signedZoneController) {
+        // Ensure that the contract is being deployed by an approved deployer.
+        _assertValidDeployer();
+
         // Ensure that a contract is deployed to the given signed zone controller.
         if (signedZoneController.code.length == 0) {
             revert InvalidSignedZoneController(signedZoneController);
@@ -65,15 +60,90 @@ contract SignedZoneCaptain is
         _SIGNED_ZONE_CONTROLLER = SignedZoneControllerInterface(
             signedZoneController
         );
+    }
 
-        // Set the initial owner.
+    /**
+     * @notice External initialization called by the deployer to set the owner,
+     *         rotator and sanitizer, and create a signed zone with the given
+     *         name, API endpoint, documentation URI. This function can only be
+     *         called once, as there is a check to ensure that the current
+     *         owner is address(0) before the initialization is performed, the
+     *         owner must then be set to a non address(0) address during
+     *         initialization and finally the owner cannot be set to address(0)
+     *         after initialization.
+     *
+     * @param initialOwner     The address to be set as the owner.
+     * @param initialRotator   The address to be set as the rotator.
+     * @param initialSanitizer The address to be set as the sanitizer.
+     * @param zoneName         The name of the zone being created.
+     * @param apiEndpoint      The API endpoint of the zone being created.
+     * @param documentationURI The documentation URI of the zone being created.
+     * @param zoneSalt         The salt to use when creating the zone.
+     */
+    function initialize(
+        address initialOwner,
+        address initialRotator,
+        address initialSanitizer,
+        string memory zoneName,
+        string memory apiEndpoint,
+        string memory documentationURI,
+        bytes32 zoneSalt
+    ) external override {
+        // Ensure the origin is an approved deployer.
+        _assertValidDeployer();
+
+        // Call initialize.
+        _initialize(
+            initialOwner,
+            initialRotator,
+            initialSanitizer,
+            zoneName,
+            apiEndpoint,
+            documentationURI,
+            zoneSalt
+        );
+    }
+
+    /**
+     * @notice Internal initialization function to set the owner, rotator, and
+     *         sanitizer and create a new zone with the given name, API
+     *         endpoint, documentation URI and the captain as the zone owner.
+     *
+     * @param initialOwner     The address to be set as the owner.
+     * @param initialRotator   The address to be set as the rotator.
+     * @param initialSanitizer The address to be set as the sanitizer.
+     * @param zoneName         The name of the zone being created.
+     * @param apiEndpoint      The API endpoint of the zone being created.
+     * @param documentationURI The documentation URI of the zone being created.
+     * @param zoneSalt         The salt to use when creating the zone.
+     */
+    function _initialize(
+        address initialOwner,
+        address initialRotator,
+        address initialSanitizer,
+        string memory zoneName,
+        string memory apiEndpoint,
+        string memory documentationURI,
+        bytes32 zoneSalt
+    ) internal {
+        // Set the owner of the captain.
         _setInitialOwner(initialOwner);
 
-        // Set the initial rotator.
+        // Set the rotator.
         _setRotator(initialRotator);
 
-        // Set the initial pauser.
-        _setPauser(initialPauser);
+        // Set the sanitizer.
+        _setSanitizer(initialSanitizer);
+
+        // Create a new zone, with the captain as the zone owner, the given
+        // zone name, API endpoint, and documentation URI.
+        SignedZoneControllerInterface(_SIGNED_ZONE_CONTROLLER).createZone(
+            zoneName,
+            apiEndpoint,
+            documentationURI,
+            address(this),
+            zoneSalt
+        );
     }
 
     /**
@@ -149,16 +219,16 @@ contract SignedZoneCaptain is
     }
 
     /**
-     * @notice Update the pauser role on the captain.
+     * @notice Update the sanitizer role on the captain.
      *
-     * @param newPauser The new pauser of the captain.
+     * @param newSanitizer The new sanitizer of the captain.
      */
-    function updatePauser(address newPauser) external override {
+    function updateSanitizer(address newSanitizer) external override {
         // Ensure caller is owner.
         _assertCallerIsOwner();
 
-        // Set the new pauser.
-        _setPauser(newPauser);
+        // Set the new sanitizer.
+        _setSanitizer(newSanitizer);
     }
 
     /**
@@ -230,17 +300,17 @@ contract SignedZoneCaptain is
     }
 
     /**
-     * @notice Pause a zone, this will remove all active signers and clear the
-     *         rotator address on the captain. Only callable by the owner or
-     *         the pauser of the zone.
+     * @notice This will remove all active signers of the given zone and clear
+     *         the rotator address on the captain. Only callable by the owner
+     *         or the sanitizer of the zone.
      *
-     * @param zone The zone to pause.
+     * @param zone The zone to revoke.
      */
-    function pauseSignedZone(address zone) external override {
-        // Ensure caller is the owner or the pauser.
-        _assertCallerIsOwnerOrPauser();
+    function sanitizeSignedZone(address zone) external override {
+        // Ensure caller is the owner or the sanitizer.
+        _assertCallerIsOwnerOrSanitizer();
 
-        // Call to the signed zone controller to pause the signed zone.
+        // Call to the signed zone controller to sanitize the signed zone.
         address[] memory signers = _SIGNED_ZONE_CONTROLLER.getActiveSigners(
             zone
         );
@@ -253,8 +323,8 @@ contract SignedZoneCaptain is
         // Clear the rotator role.
         delete _rotator;
 
-        // Emit the paused event.
-        emit ZonePaused(zone);
+        // Emit the sanitized event.
+        emit ZoneSanitized(zone);
     }
 
     /**
@@ -267,12 +337,12 @@ contract SignedZoneCaptain is
     }
 
     /**
-     * @notice Get the pauser address.
+     * @notice Get the sanitizer address.
      *
-     * @return The pauser address.
+     * @return The sanitizer address.
      */
-    function getPauser() external view override returns (address) {
-        return _pauser;
+    function getSanitizer() external view override returns (address) {
+        return _sanitizer;
     }
 
     /**
@@ -294,31 +364,50 @@ contract SignedZoneCaptain is
     }
 
     /**
-     * @notice Internal function to set the pauser role on the contract,
+     * @notice Internal function to set the sanitizer role on the contract,
      *         checking to make sure the provided address is not the null
      *         address
      *
-     * @param newPauser The new pauser address.
+     * @param newSanitizer The new sanitizer address.
      */
-    function _setPauser(address newPauser) internal {
-        // Ensure new pauser is not null.
-        if (newPauser == address(0)) {
-            revert PauserCannotBeNullAddress();
+    function _setSanitizer(address newSanitizer) internal {
+        // Ensure new sanitizer is not null.
+        if (newSanitizer == address(0)) {
+            revert SanitizerCannotBeNullAddress();
         }
 
-        _pauser = newPauser;
+        _sanitizer = newSanitizer;
 
-        emit PauserUpdated(newPauser);
+        emit SanitizerUpdated(newSanitizer);
+    }
+
+    /**
+     * @notice Internal function to assert that the caller is a valid deployer.
+     */
+    function _assertValidDeployer() internal view {
+        // Ensure that the contract is being deployed by an approved
+        // deployer.
+        // tx.origin is used here, because we use the SignedZoneDeployer
+        // contract to deploy this contract, and initailize the owner,
+        // rotator, and sanitizer roles.
+        if (
+            tx.origin != address(0x939C8d89EBC11fA45e576215E2353673AD0bA18A) &&
+            tx.origin != address(0xe80a65eB7a3018DedA407e621Ef5fb5B416678CA) &&
+            tx.origin != address(0x86D26897267711ea4b173C8C124a0A73612001da) &&
+            tx.origin != address(0x3B52ad533687Ce908bA0485ac177C5fb42972962)
+        ) {
+            revert InvalidDeployer();
+        }
     }
 
     /**
      * @dev Internal view function to revert if the caller is not the owner or
-     *      the pauser.
+     *      the sanitizer.
      */
-    function _assertCallerIsOwnerOrPauser() internal view {
-        // Ensure caller is the owner or the pauser.
-        if (msg.sender != owner() && msg.sender != _pauser) {
-            revert CallerIsNotOwnerOrPauser();
+    function _assertCallerIsOwnerOrSanitizer() internal view {
+        // Ensure caller is the owner or the sanitizer.
+        if (msg.sender != owner() && msg.sender != _sanitizer) {
+            revert CallerIsNotOwnerOrSanitizer();
         }
     }
 

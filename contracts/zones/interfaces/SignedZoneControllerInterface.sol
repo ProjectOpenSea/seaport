@@ -163,11 +163,12 @@ interface SignedZoneControllerInterface {
     /**
      * @notice Derive the zone address associated with a salt.
      *
-     * @param salt The salt to be used to derive the zone address
+     * @param zoneName The name of the zone.
+     * @param salt     The salt to be used to derive the zone address.
      *
      * @return derivedAddress The derived address of the signed zone.
      */
-    function getZone(bytes32 salt)
+    function getZone(string memory zoneName, bytes32 salt)
         external
         view
         returns (address derivedAddress);

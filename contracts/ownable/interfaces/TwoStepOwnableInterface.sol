@@ -37,6 +37,12 @@ interface TwoStepOwnableInterface {
     error InitialOwnerIsNullAddress();
 
     /**
+     * @dev Revert with an error when attempting to call a function that
+     *      requires the owner to not have been set.
+     */
+    error OwnerAlreadySet(address owner);
+
+    /**
      * @dev Revert with an error when attempting to register a new potential
      *      owner and supplying the null address.
      */

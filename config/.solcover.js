@@ -47,6 +47,7 @@ module.exports = {
     "test/TestTransferValidationZoneOfferer.sol",
     "zones/PausableZone.sol",
     "zones/PausableZoneController.sol",
+    "zones/SignedZoneDeployer.sol",
     "zones/interfaces/PausableZoneControllerInterface.sol",
     "zones/interfaces/PausableZoneEventsAndErrors.sol",
     "zones/interfaces/PausableZoneInterface.sol",

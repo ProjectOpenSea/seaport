@@ -9,6 +9,29 @@ pragma solidity ^0.8.13;
  */
 interface SignedZoneCaptainInterface {
     /**
+     * @notice External initialization called by the deployer to set the owner,
+     *         rotator and sanitizer, and create a signed zone with the given
+     *         name, API endpoint, documentation URI.
+     *
+     * @param initialOwner     The address to be set as the owner.
+     * @param initialRotator   The address to be set as the rotator.
+     * @param initialSanitizer The address to be set as the sanitizer.
+     * @param zoneName         The name of the zone being created.
+     * @param apiEndpoint      The API endpoint of the zone being created.
+     * @param documentationURI The documentation URI of the zone being created.
+     * @param zoneSalt         The salt to use when creating the zone.
+     */
+    function initialize(
+        address initialOwner,
+        address initialRotator,
+        address initialSanitizer,
+        string calldata zoneName,
+        string calldata apiEndpoint,
+        string calldata documentationURI,
+        bytes32 zoneSalt
+    ) external;
+
+    /**
      * @notice Update the signer for a given signed zone.
      *
      * @param zone       The signed zone to update the signer for.
@@ -86,13 +109,13 @@ interface SignedZoneCaptainInterface {
     ) external;
 
     /**
-     * @notice Pause a zone, this will remove all active signers and clear the
-     *         rotator address on the captain. Only callable by the owner or
-     *         the pauser of the zone.
+     * @notice This will remove all active signers and clear the rotator
+     *         address on the captain. Only callable by the owner or the
+     *         sanitizer of the zone.
      *
-     * @param zone The zone to pause.
+     * @param zone The zone to sanitize.
      */
-    function pauseSignedZone(address zone) external;
+    function sanitizeSignedZone(address zone) external;
 
     /**
      * @notice Update the rotator role on the captain.
@@ -102,11 +125,11 @@ interface SignedZoneCaptainInterface {
     function updateRotator(address newRotator) external;
 
     /**
-     * @notice Update the pauser role on the captain.
+     * @notice Update the sanitizer role on the captain.
      *
-     * @param newPauser The new pauser of the captain.
+     * @param newSanitizer The new sanitizer of the captain.
      */
-    function updatePauser(address newPauser) external;
+    function updateSanitizer(address newSanitizer) external;
 
     /**
      * @notice Get the rotator address.
@@ -116,9 +139,9 @@ interface SignedZoneCaptainInterface {
     function getRotator() external view returns (address);
 
     /**
-     * @notice Get the pauser address.
+     * @notice Get the sanitizer address.
      *
-     * @return The pauser address.
+     * @return The sanitizer address.
      */
-    function getPauser() external view returns (address);
+    function getSanitizer() external view returns (address);
 }

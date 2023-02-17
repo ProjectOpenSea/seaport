@@ -66,7 +66,6 @@ contract SignedZoneController is
     mapping(address => SignedZoneProperties) internal _signedZones;
 
     /// @dev The EIP-712 digest parameters for the SignedZone.
-    bytes32 internal immutable _NAME_HASH = keccak256(bytes("SignedZone"));
     bytes32 internal immutable _VERSION_HASH = keccak256(bytes("1.0"));
     // prettier-ignore
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH = keccak256(
@@ -81,19 +80,10 @@ contract SignedZoneController is
         );
     uint256 internal immutable _CHAIN_ID = block.chainid;
 
-    // Set the signed zone creation code as an immutable argument.
-    bytes32 internal immutable _SIGNED_ZONE_CREATION_CODE_HASH;
-
     /**
      * @dev Initialize contract
      */
-    constructor() {
-        // Derive the signed zone creation code hash and set it as an
-        // immutable.
-        _SIGNED_ZONE_CREATION_CODE_HASH = keccak256(
-            type(SignedZone).creationCode
-        );
-    }
+    constructor() {}
 
     /**
      * @notice Deploy a SignedZone to a precomputed address.
@@ -128,32 +118,25 @@ contract SignedZoneController is
             revert InvalidCreator();
         }
 
-        // Derive the SignedZone address from the deployer, salt and creation
-        // code hash.
-        signedZone = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            salt,
-                            _SIGNED_ZONE_CREATION_CODE_HASH
-                        )
-                    )
-                )
-            )
+        // Get the creation code for the signed zone.
+        bytes memory _SIGNED_ZONE_CREATION_CODE = abi.encodePacked(
+            type(SignedZone).creationCode,
+            abi.encode(zoneName)
         );
 
-        // TODO : Check runtime code hash to ensure that the zone is not already
-        // deployed.
-        // Revert if a zone is currently deployed to the derived address.
-        if (signedZone.code.length != 0) {
-            revert ZoneAlreadyExists(signedZone);
-        }
+        // Using assembly try to deploy the zone.
+        assembly {
+            signedZone := create2(
+                0,
+                add(0x20, _SIGNED_ZONE_CREATION_CODE),
+                mload(_SIGNED_ZONE_CREATION_CODE),
+                salt
+            )
 
-        // Deploy the zone using the supplied salt.
-        new SignedZone{ salt: salt }();
+            if iszero(extcodesize(signedZone)) {
+                revert(0, 0)
+            }
+        }
 
         // Initialize storage variable referencing signed zone properties.
         SignedZoneProperties storage signedZoneProperties = _signedZones[
@@ -314,7 +297,10 @@ contract SignedZoneController is
     }
 
     /**
-     * @notice Returns the active signers for the zone.
+     * @notice Returns the active signers for the zone. Note that the array of
+     *         active signers could grow to a size that this function could not
+     *         return, the array of active signers is expected to be small,
+     *         and is managed by the controller.
      *
      * @param zone The zone to return the active signers for.
      *
@@ -337,6 +323,14 @@ contract SignedZoneController is
         signers = signedZoneProperties.activeSignerList;
     }
 
+    /**
+     * @notice Returns if the given address is an active signer for the zone.
+     *
+     * @param zone   The zone to return the active signers for.
+     * @param signer The address to check if it is an active signer.
+     *
+     * @return The address is an active signer, false otherwise.
+     */
     function isActiveSigner(address zone, address signer)
         external
         view
@@ -468,12 +462,19 @@ contract SignedZoneController is
      *
      * @return derivedAddress The derived address of the signed zone.
      */
-    function getZone(bytes32 salt)
+    function getZone(string memory zoneName, bytes32 salt)
         external
         view
         override
         returns (address derivedAddress)
     {
+        // Get the zone creation code hash.
+        bytes32 _SIGNED_ZONE_CREATION_CODE_HASH = keccak256(
+            abi.encodePacked(
+                type(SignedZone).creationCode,
+                abi.encode(zoneName)
+            )
+        );
         // Derive the SignedZone address from deployer, salt and creation code
         // hash.
         derivedAddress = address(
@@ -577,7 +578,9 @@ contract SignedZoneController is
         returns (bytes32 domainSeparator)
     {
         bytes32 typehash = _EIP_712_DOMAIN_TYPEHASH;
-        bytes32 nameHash = _NAME_HASH;
+        // Get the name hash from the zone properties.
+        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
+        bytes32 nameHash = keccak256(bytes(signedZoneProperties.zoneName));
         bytes32 versionHash = _VERSION_HASH;
 
         // Leverage scratch space and other memory to perform an efficient hash.

@@ -124,6 +124,11 @@ abstract contract TwoStepOwnable is TwoStepOwnableInterface {
             revert InitialOwnerIsNullAddress();
         }
 
+        // Ensure that the owner has not already been set.
+        if (_owner != address(0)) {
+            revert OwnerAlreadySet(_owner);
+        }
+
         // Set the initial owner.
         _setOwner(initialOwner);
     }

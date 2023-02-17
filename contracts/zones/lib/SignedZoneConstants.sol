@@ -34,6 +34,7 @@ uint256 constant EIP_712_PREFIX = (
 // @dev Function selectors used in the fallback function..
 bytes4 constant UPDATE_SIGNER_SELECTOR = 0xf460590b;
 bytes4 constant GET_ACTIVE_SIGNERS_SELECTOR = 0xa784b80c;
+bytes4 constant IS_ACTIVE_SIGNER_SELECTOR = 0x7dff5a79;
 bytes4 constant SUPPORTS_INTERFACE_SELECTOR = 0x01ffc9a7;
 
 /*

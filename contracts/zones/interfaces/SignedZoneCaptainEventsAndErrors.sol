@@ -14,18 +14,24 @@ interface SignedZoneCaptainEventsAndErrors {
     event RotatorUpdated(address newRotator);
 
     /**
-     * @dev Emit an event when the contract owner updates the pauser.
+     * @dev Emit an event when the contract owner updates the sanitizer.
      *
-     * @param newPauser The new pauser of the contract.
+     * @param newSanitizer The new sanitizer of the contract.
      */
-    event PauserUpdated(address newPauser);
+    event SanitizerUpdated(address newSanitizer);
 
     /**
-     * @dev Emit an event when the pauser pauses a zone.
+     * @dev Emit an event when the sanitizer sanitizes a zone.
      *
-     * @param zone The zone address being paused.
+     * @param zone The zone address being sanitized.
      */
-    event ZonePaused(address zone);
+    event ZoneSanitized(address zone);
+
+    /**
+     * @dev Revert with an error when attempting to deploy the contract with an
+     *      invalid deployer.
+     */
+    error InvalidDeployer();
 
     /**
      * @dev Revert with an error when attempting to set a zone controller
@@ -42,16 +48,16 @@ interface SignedZoneCaptainEventsAndErrors {
     error RotatorCannotBeNullAddress();
 
     /**
-     * @dev Revert with an error when attempting to set the pauser
+     * @dev Revert with an error when attempting to set the sanitizer
      *      to the null address.
      */
-    error PauserCannotBeNullAddress();
+    error SanitizerCannotBeNullAddress();
 
     /**
      * @dev Revert with an error when attempting to call a function that
-     *      requires the caller to be the owner or pauser of the zone.
+     *      requires the caller to be the owner or sanitizer of the zone.
      */
-    error CallerIsNotOwnerOrPauser();
+    error CallerIsNotOwnerOrSanitizer();
 
     /**
      * @dev Revert with an error when attempting to call a function that
