@@ -52,6 +52,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <td><code>0x00000000000006c7676171937C444f6BDe3D6282</code></td>
 </tr>
 <tr>
+<td>Seaport 1.3</td>
+<td><code>0x0000000000000aD24e80fd803C6ac37206a45f15</code></td>
+</tr>
+<tr>
 <td>ConduitController</td>
 <td><code>0x00000000F9490004C11Cef243f5400493c00Ad63</code></td>
 </tr>
@@ -64,6 +68,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <th>Network</th>
 <th>Seaport 1.1</th>
 <th>Seaport 1.2</th>
+<th>Seaport 1.3</th>
 <th>ConduitController</th>
 </tr>
 
@@ -74,6 +79,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://etherscan.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://etherscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -90,6 +99,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://goerli.etherscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -100,6 +113,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://sepolia.etherscan.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://sepolia.etherscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -116,6 +133,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://polygonscan.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -126,6 +147,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://mumbai.polygonscan.com/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://mumbai.polygonscan.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -142,6 +167,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://scope.klaytn.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -152,6 +181,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://baobab.scope.klaytn.com/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://baobab.scope.klaytn.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -168,6 +201,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://optimistic.etherscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://optimistic.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -178,6 +215,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://goerli-optimism.etherscan.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://goerli-optimism.etherscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -194,6 +235,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://arbiscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -204,6 +249,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://goerli.arbiscan.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://goerli.arbiscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -220,6 +269,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://nova.arbiscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -230,6 +283,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://snowtrace.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://snowtrace.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -246,6 +303,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://testnet.snowtrace.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -256,6 +317,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://gnosisscan.io/address/0x00000000000006c7676171937C444f6BDe3D6282#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://gnosisscan.io/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
@@ -272,6 +337,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://bscscan.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -282,6 +351,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000006c7676171937C444f6BDe3D6282](https://testnet.bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x0000000000000aD24e80fd803C6ac37206a45f15](https://testnet.bscscan.com/address/0x0000000000000ad24e80fd803c6ac37206a45f15#code)
 
 </td><td>
 
