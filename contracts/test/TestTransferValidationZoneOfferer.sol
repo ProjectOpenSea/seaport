@@ -57,7 +57,7 @@ contract TestTransferValidationZoneOfferer is
 
     address internal _expectedOfferRecipient;
 
-    // Pass in the null address if you want to expect the fulfiller.
+    // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient) {
         _expectedOfferRecipient = expectedOfferRecipient;
     }
