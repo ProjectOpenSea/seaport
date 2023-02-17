@@ -43,6 +43,7 @@ contract TestTransferValidationZoneOfferer is
         address checkedAddress,
         address checkedToken
     );
+    // 0x38fb386a
     error InvalidOwner(
         address expectedOwner,
         address actualOwner,

@@ -175,28 +175,506 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
     }
 
-    function testExecFulfillAvailableAdvancedOrdersWithConduitAndNative()
+    function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20()
         public
     {
-        prepareFulfillAvailableAdvancedOrdersWithConduitAndNative();
+        prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20();
         test(
-            this.execFulfillAvailableAdvancedOrdersWithConduitAndNative,
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20,
             Context({ seaport: consideration })
         );
         test(
-            this.execFulfillAvailableAdvancedOrdersWithConduitAndNative,
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20,
             Context({ seaport: referenceConsideration })
         );
     }
 
-    function prepareFulfillAvailableAdvancedOrdersWithConduitAndNative()
+    function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20()
         internal
     {
         test721_1.mint(offerer1.addr, 42);
         test721_1.mint(offerer1.addr, 43);
     }
 
-    function execFulfillAvailableAdvancedOrdersWithConduitAndNative(
+    function execFulfillAvailableAdvancedOrdersWithConduitAndERC20(
+        Context memory context
+    ) external stateless {
+        // Set up an NFT recipient.
+        address considerationRecipientAddress = makeAddr(
+            "considerationRecipientAddress"
+        );
+
+        // This instance of the zone expects bob to be the recipient of all
+        // spent items (the ERC721s).
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(bob)
+            );
+
+        // Set up variables we'll use below the following block.
+        OrderComponents memory orderComponentsOne;
+        OrderComponents memory orderComponentsTwo;
+        AdvancedOrder[] memory advancedOrders;
+
+        // Create a block to deal with stack depth issues.
+        {
+            // Create the offer items for the first order.
+            OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(42)
+            );
+
+            // Create the consideration items for the first order.
+            ConsiderationItem[] memory considerationItemsOne = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withRecipient(considerationRecipientAddress)
+                );
+
+            // Create the order components for the first order.
+            orderComponentsOne = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsOne)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the second order.
+            OfferItem[] memory offerItemsTwo = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(43)
+            );
+
+            // Create the order components for the second order using the same
+            // consideration items as the first order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsTwo)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the orders.
+            Order[] memory orders = _buildOrders(
+                context,
+                SeaportArrays.OrderComponentsArray(
+                    orderComponentsOne,
+                    orderComponentsTwo
+                ),
+                offerer1.key
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
+
+        // Create the fulfillments for the offers.
+        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
+            .FulfillmentComponentArrays(
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                )
+            );
+
+        // Create the fulfillments for the considerations.
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
+                );
+
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // Expect this to revert because the zone is set up to expect bob to be
+        // the recipient of all spent items.
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidOwner(address,address,address,uint256)",
+                address(bob),
+                address(this),
+                address(test721_1),
+                42
+            )
+        );
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(this),
+            maximumFulfilled: 2
+        });
+
+        // Make the call to Seaport.
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(bob),
+            maximumFulfilled: 2
+        });
+
+        assertTrue(transferValidationZone.called());
+        assertTrue(transferValidationZone.callCount() == 2);
+    }
+
+    // NOTE: This demonstrates undocumented behavior. If the maxFulfilled is
+    //  less than the number of orders, we fire off an ill-formed
+    // `validateOrder` call.
+    function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast()
+        public
+    {
+        prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast();
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast,
+            Context({ seaport: consideration })
+        );
+    }
+
+    function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast()
+        internal
+    {
+        test721_1.mint(offerer1.addr, 42);
+        test721_1.mint(offerer1.addr, 43);
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast(
+        Context memory context
+    ) external stateless {
+        // Set up an NFT recipient.
+        address considerationRecipientAddress = makeAddr(
+            "considerationRecipientAddress"
+        );
+
+        // This instance of the zone expects bob to be the recipient of all
+        // spent items (the ERC721s).
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
+
+        // Set up variables we'll use below the following block.
+        OrderComponents memory orderComponentsOne;
+        OrderComponents memory orderComponentsTwo;
+        AdvancedOrder[] memory advancedOrders;
+
+        // Create a block to deal with stack depth issues.
+        {
+            // Create the offer items for the first order.
+            OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(42)
+            );
+
+            // Create the consideration items for the first order.
+            ConsiderationItem[] memory considerationItemsOne = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withRecipient(considerationRecipientAddress),
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(5 ether)
+                        .withEndAmount(5 ether)
+                        .withRecipient(considerationRecipientAddress)
+                );
+
+            // Create the order components for the first order.
+            orderComponentsOne = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsOne)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the second order.
+            OfferItem[] memory offerItemsTwo = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(43)
+            );
+
+            // Create the consideration items for the second order.
+            ConsiderationItem[] memory considerationItemsTwo = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(7 ether)
+                        .withEndAmount(7 ether)
+                        .withRecipient(considerationRecipientAddress),
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(9 ether)
+                        .withEndAmount(9 ether)
+                        .withRecipient(considerationRecipientAddress)
+                );
+
+            // Create the order components for the second order using the same
+            // consideration items as the first order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsTwo)
+                .withConsideration(considerationItemsTwo)
+                .withZone(address(transferValidationZone));
+
+            // Create the orders.
+            Order[] memory orders = _buildOrders(
+                context,
+                SeaportArrays.OrderComponentsArray(
+                    orderComponentsOne,
+                    orderComponentsTwo
+                ),
+                offerer1.key
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
+
+        // Create the fulfillments for the offers.
+        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
+            .FulfillmentComponentArrays(
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                )
+            );
+
+        // Create the fulfillments for the considerations.
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__FIRST
+                    ),
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__SECOND
+                    )
+                );
+
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidERC20Balance(uint256,uint256,address,address)",
+                // expected balance (7 ether)
+                7000000000000000000,
+                // actual balance
+                uint256(0),
+                // checked owner address (hex version of uint value of 7 ether)
+                address(0x0000000000000000000000006124feE993BC0000),
+                // checked token address
+                address(token1)
+            )
+        );
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(0),
+            maximumFulfilled: advancedOrders.length - 1
+        });
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    // BEGIN CURRENT WORKSPACE
+
+    function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision()
+        public
+    {
+        prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision();
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
+            Context({ seaport: consideration })
+        );
+    }
+
+    function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision()
+        internal
+    {
+        test721_1.mint(offerer1.addr, 42);
+        test721_1.mint(offerer1.addr, 43);
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision(
+        Context memory context
+    ) external stateless {
+        string memory stranger = "stranger";
+        address strangerAddress = makeAddr(stranger);
+        uint256 strangerAddressUint = uint256(
+            uint160(address(strangerAddress))
+        );
+
+        // Make sure the fulfiller has enough to cover the consideration.
+        token1.mint(address(this), strangerAddressUint);
+
+        // Make the stranger rich enough that the balance check passes.
+        token1.mint(strangerAddress, strangerAddressUint);
+
+        // This instance of the zone expects offerer1 to be the recipient of all
+        // spent items (the ERC721s). This permits bypassing the ERC721 transfer
+        // checks, which would otherwise block the consideration transfer
+        // checks, which we want to tinker with.
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(offerer1.addr)
+            );
+
+        // Set up variables we'll use below the following block.
+        OrderComponents memory orderComponentsOne;
+        OrderComponents memory orderComponentsTwo;
+        AdvancedOrder[] memory advancedOrders;
+
+        // Create a block to deal with stack depth issues.
+        {
+            // Create the offer items for the first order.
+            OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(42)
+            );
+
+            // Create the consideration items for the first order.
+            ConsiderationItem[] memory considerationItemsOne = SeaportArrays
+                .ConsiderationItems(
+                    ConsiderationItemLib
+                        .fromDefault(THREE_ERC20)
+                        .withToken(address(token1))
+                        .withStartAmount(strangerAddressUint)
+                        .withEndAmount(strangerAddressUint)
+                        .withRecipient(payable(offerer1.addr))
+                );
+
+            // Create the order components for the first order.
+            orderComponentsOne = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsOne)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the offer items for the second order.
+            OfferItem[] memory offerItemsTwo = SeaportArrays.OfferItems(
+                OfferItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_1))
+                    .withIdentifierOrCriteria(43)
+            );
+
+            // Create the order components for the second order using the same
+            // consideration items as the first order.
+            orderComponentsTwo = OrderComponentsLib
+                .fromDefault(VALIDATION_ZONE)
+                .withOffer(offerItemsTwo)
+                .withConsideration(considerationItemsOne)
+                .withZone(address(transferValidationZone));
+
+            // Create the orders.
+            Order[] memory orders = _buildOrders(
+                context,
+                SeaportArrays.OrderComponentsArray(
+                    orderComponentsOne,
+                    orderComponentsTwo
+                ),
+                offerer1.key
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
+
+        // Create the fulfillments for the offers.
+        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
+            .FulfillmentComponentArrays(
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                ),
+                SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                )
+            );
+
+        // Create the fulfillments for the considerations.
+        FulfillmentComponent[][]
+            memory considerationFulfillments = SeaportArrays
+                .FulfillmentComponentArrays(
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__FIRST
+                    ),
+                    FulfillmentComponentLib.fromDefaultMany(
+                        FIRST_SECOND__SECOND
+                    )
+                );
+
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
+
+        // The malformed extra validation call doesn't revert here because the
+        // amount value that ends up in the memory position normally used for
+        // the address-to-balance-check is the consideration value, which is
+        // equal to the strangerAddress and the strangerAddress has plenty of
+        // tokens.
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(offerer1.addr),
+            maximumFulfilled: advancedOrders.length - 1
+        });
+
+        // Should be called only once, tho.
+        assertTrue(transferValidationZone.callCount() == 2);
+    }
+
+    // END CURRENT WORKSPACE
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
+    function prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
+        internal
+    {
+        test721_1.mint(offerer1.addr, 42);
+        test721_1.mint(offerer1.addr, 43);
+    }
+
+    function execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20(
         Context memory context
     ) external stateless {
         // Set up an NFT recipient.
