@@ -1,6 +1,6 @@
 {
   "name": "seaport",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
   "main": "contracts/Seaport.sol",
   "author": "0age",
