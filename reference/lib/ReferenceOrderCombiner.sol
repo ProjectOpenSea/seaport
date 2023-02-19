@@ -311,6 +311,9 @@ contract ReferenceOrderCombiner is
 
                 // Modify the OrderToExecute Spent Item Amount.
                 orderToExecute.spentItems[j].amount = offerItem.startAmount;
+                // Modify the OrderToExecute Spent Item Original Amount.
+                orderToExecute.spentItemOriginalAmounts[j] = offerItem
+                    .startAmount;
             }
 
             // Retrieve array of consideration items for order in question.
@@ -362,6 +365,10 @@ contract ReferenceOrderCombiner is
                 // Modify the OrderToExecute Received item amount.
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
+                // Modify the OrderToExecute Received item original amount.
+                orderToExecute.receivedItemOriginalAmounts[
+                    j
+                ] = considerationItem.startAmount;
             }
         }
 
@@ -661,6 +668,7 @@ contract ReferenceOrderCombiner is
 
         // duplicate recipient onto stack to avoid stack-too-deep
         address _recipient = recipient;
+
         // Iterate over orders to ensure all consideration items are met.
         for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
@@ -757,6 +765,29 @@ contract ReferenceOrderCombiner is
                     ];
                 }
             }
+        }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulatorStruct);
+
+        // If any native token remains after fulfillments, return it to the
+        // caller.
+        if (nativeTokensRemaining != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
+        }
+
+        // Iterate over orders to ensure all consideration items are met.
+        for (uint256 i = 0; i < ordersToExecute.length; ++i) {
+            // Retrieve the order in question.
+            OrderToExecute memory orderToExecute = ordersToExecute[i];
+
+            // Skip consideration item checks for order if not fulfilled.
+            if (orderToExecute.numerator == 0) {
+                continue;
+            }
+
+            // Retrieve the original order in question.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
             // Ensure restricted orders have valid submitter or pass check.
             _assertRestrictedAdvancedOrderValidity(
@@ -769,15 +800,6 @@ contract ReferenceOrderCombiner is
                 orderToExecute.offerer,
                 advancedOrder.parameters.zone
             );
-        }
-
-        // Trigger any remaining accumulated transfers via call to the conduit.
-        _triggerIfArmed(accumulatorStruct);
-
-        // If any native token remains after fulfillments, return it to the
-        // caller.
-        if (nativeTokensRemaining != 0) {
-            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
         }
 
         // Return the array containing available orders.

@@ -3061,7 +3061,182 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         "ConsiderationLengthNotEqualToTotalOriginal"
       );
     });
-    it("Can fulfill and aggregate contract orders via fulfillAvailableAdvancedOrders with failing orders", async () => {
+    it("Can fulfill and aggregate contract orders via fulfillAvailableAdvancedOrders with failing orders due to reverts", async () => {
+      // Seller mints nfts
+      const { nftId: nftIdOne, amount: amountOne } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+      const { nftId: nftIdTwo, amount: amountTwo } = await mintAndApprove1155(
+        seller,
+        marketplaceContract.address,
+        10000
+      );
+
+      await mintAndApprove1155(seller, marketplaceContract.address, 10000);
+
+      await mintAndApprove1155(seller, marketplaceContract.address, 10000);
+
+      // seller deploys offererContracts and approves them for 1155 token
+      const offererContractOne = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractOne.address, true);
+
+      const offererContractTwo = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractTwo.address, true);
+
+      const offererContractThree = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractThree.address, true);
+
+      const offererContractFour = await deployContract(
+        "TestContractOfferer",
+        owner,
+        marketplaceContract.address
+      );
+
+      await set1155ApprovalForAll(seller, offererContractFour.address, true);
+
+      const offerOne = [
+        getTestItem1155(nftIdOne, amountOne.mul(10), amountOne.mul(10)) as any,
+      ];
+
+      const considerationOne = [
+        getItemETH(
+          amountOne.mul(1000),
+          amountOne.mul(1000),
+          offererContractOne.address
+        ) as any,
+      ];
+
+      offerOne[0].identifier = offerOne[0].identifierOrCriteria;
+      offerOne[0].amount = offerOne[0].endAmount;
+
+      considerationOne[0].identifier = considerationOne[0].identifierOrCriteria;
+      considerationOne[0].amount = considerationOne[0].endAmount;
+
+      await offererContractOne
+        .connect(seller)
+        .activate(offerOne[0], considerationOne[0]);
+
+      const { order: orderOne, value } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        4 // CONTRACT
+      );
+
+      const contractOffererOneNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContractOne.address
+        );
+
+      const orderHashOne =
+        offererContractOne.address.toLowerCase() +
+        contractOffererOneNonce.toHexString().slice(2).padStart(24, "0");
+
+      orderOne.parameters.offerer = offererContractOne.address;
+      orderOne.numerator = 1;
+      orderOne.denominator = 1;
+      orderOne.signature = "0x";
+
+      // test orderHashes
+      orderOne.extraData = ethers.utils.defaultAbiCoder.encode(
+        ["bytes32[]"],
+        [[orderHashOne, ethers.constants.HashZero]]
+      );
+
+      expect((orderOne.extraData.length - 2) / 64).to.equal(4);
+
+      // second order reverts when generating the order
+      const offerTwo = [
+        getTestItem1155(nftIdTwo, amountTwo.mul(10), amountTwo.mul(10)) as any,
+      ];
+
+      const considerationTwo = [
+        getItemETH(
+          amountTwo.mul(1000),
+          amountTwo.mul(1000),
+          offererContractTwo.address
+        ) as any,
+      ];
+
+      offerTwo[0].identifier = offerTwo[0].identifierOrCriteria;
+      offerTwo[0].amount = offerTwo[0].endAmount;
+
+      considerationTwo[0].identifier = considerationTwo[0].identifierOrCriteria;
+      considerationTwo[0].amount = considerationTwo[0].endAmount;
+
+      await offererContractTwo
+        .connect(seller)
+        .activate(offerTwo[0], considerationTwo[0]);
+
+      const { order: orderTwo, value: valueTwo } = await createOrder(
+        seller,
+        zone,
+        offerTwo,
+        considerationTwo,
+        4 // CONTRACT
+      );
+
+      orderTwo.parameters.offerer = offererContractTwo.address;
+      orderTwo.numerator = 1;
+      orderTwo.denominator = 1;
+      orderTwo.signature = "0x";
+      orderTwo.extraData = "0x1234"; // causes call to revert
+
+      const offerComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+      ];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 1, itemIndex: 0 }],
+      ];
+
+      await withBalanceChecks([orderOne], 0, undefined, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableAdvancedOrders(
+            [orderOne, orderTwo],
+            [],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            ethers.constants.AddressZero,
+            100,
+            {
+              value: value.add(valueTwo).mul(2),
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(tx, receipt, [
+          {
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: buyer.address,
+          },
+        ]);
+
+        return receipt;
+      });
+    });
+    it("Cannot fulfill and aggregate contract orders via fulfillAvailableAdvancedOrders with failing orders due to bad data", async () => {
       // Seller mints nfts
       const { nftId: nftIdOne, amount: amountOne } = await mintAndApprove1155(
         seller,
@@ -3259,6 +3434,15 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       orderThree.denominator = 1;
       orderThree.signature = "0x";
 
+      const contractOffererThreeNonce =
+        await marketplaceContract.getContractOffererNonce(
+          offererContractThree.address
+        );
+
+      const orderHashThree =
+        offererContractThree.address.toLowerCase() +
+        contractOffererThreeNonce.toHexString().slice(2).padStart(24, "0");
+
       // fourth order: generated order exceeds expected consideration items
       const offerFour = [
         getTestItem1155(
@@ -3317,8 +3501,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         [{ orderIndex: 3, itemIndex: 0 }],
       ];
 
-      await withBalanceChecks([orderOne], 0, undefined, async () => {
-        const tx = marketplaceContract
+      await expect(
+        marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(
             [orderOne, orderTwo, orderThree, orderFour],
@@ -3331,18 +3515,13 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             {
               value: value.add(valueTwo).add(valueThree).add(valueFour).mul(2),
             }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(tx, receipt, [
-          {
-            order: orderOne,
-            orderHash: orderHashOne,
-            fulfiller: buyer.address,
-          },
-        ]);
-
-        return receipt;
-      });
+          )
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHashThree);
     });
   });
 

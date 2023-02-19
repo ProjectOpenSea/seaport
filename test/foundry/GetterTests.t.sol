@@ -41,7 +41,7 @@ contract TestGetters is BaseConsiderationTest {
 
     function testGetsCorrectVersion() public {
         (string memory version, , ) = consideration.information();
-        assertEq(version, "1.3");
+        assertEq(version, "1.4");
     }
 
     function testGetCorrectDomainSeparator() public {
