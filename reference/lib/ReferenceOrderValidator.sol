@@ -357,8 +357,8 @@ contract ReferenceOrderValidator is
                     offer = _offer;
                     consideration = _consideration;
                 } catch {
-                    // If decoding fails, revert or return empty.
-                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                    // If decoding fails, revert.
+                    revert InvalidContractOrder(orderHash);
                 }
             } else {
                 // If the call fails, revert or return empty.
@@ -373,7 +373,7 @@ contract ReferenceOrderValidator is
 
             // Explicitly specified offer items cannot be removed.
             if (originalOfferLength > newOfferLength) {
-                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                revert InvalidContractOrder(orderHash);
             } else if (newOfferLength > originalOfferLength) {
                 // If new offer items are added, extend the original offer.
                 OfferItem[] memory extendedOffer = new OfferItem[](
@@ -418,7 +418,7 @@ contract ReferenceOrderValidator is
                     originalOffer.token != newOffer.token ||
                     originalOffer.identifierOrCriteria != newOffer.identifier
                 ) {
-                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                    revert InvalidContractOrder(orderHash);
                 }
 
                 // Update the original amounts to use the generated amounts.
@@ -448,7 +448,7 @@ contract ReferenceOrderValidator is
 
             // New consideration items cannot be created.
             if (newConsiderationLength > originalConsiderationArray.length) {
-                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                revert InvalidContractOrder(orderHash);
             }
 
             // Loop through and check consideration.
@@ -485,7 +485,7 @@ contract ReferenceOrderValidator is
                         originalConsideration.recipient !=
                         (newConsideration.recipient))
                 ) {
-                    return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                    revert InvalidContractOrder(orderHash);
                 }
 
                 // Update the original amounts to use the generated amounts.

@@ -654,6 +654,9 @@ contract ReferenceOrderCombiner is
         address recipient,
         bool containsNonOpen
     ) internal returns (bool[] memory availableOrders) {
+        // Put ether value supplied by the caller on the stack.
+        uint256 nativeTokensRemaining = msg.value;
+
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -690,6 +693,7 @@ contract ReferenceOrderCombiner is
 
         // Duplicate recipient onto stack to avoid stack-too-deep.
         address _recipient = recipient;
+
         // Iterate over orders to ensure all consideration items are met.
         for (uint256 i = 0; i < ordersToExecute.length; ++i) {
             // Retrieve the order in question.
@@ -798,26 +802,39 @@ contract ReferenceOrderCombiner is
             _transferNativeTokens(payable(msg.sender), address(this).balance);
         }
 
-        // Here!  Grab this vine!
-        AdvancedOrder[] memory _advancedOrders = advancedOrders;
-        OrderToExecute[] memory _ordersToExecute = ordersToExecute;
+        // If any native token remains after fulfillments, return it to the
+        // caller.
+        if (nativeTokensRemaining != 0) {
+            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
+        }
 
         // If any restricted or contract orders are present in the group of
         // orders being fulfilled, perform any validateOrder or ratifyOrder
         // calls after all executions and related transfers are complete.
         if (containsNonOpen) {
-            // Iterate over each order a second time.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Check restricted orders and contract orders.
+            // Iterate over orders to ensure all consideration items are met.
+            for (uint256 i = 0; i < ordersToExecute.length; ++i) {
+                // Retrieve the order in question.
+                OrderToExecute memory orderToExecute = ordersToExecute[i];
+
+                // Skip consideration item checks for order if not fulfilled.
+                if (orderToExecute.numerator == 0) {
+                    continue;
+                }
+
+                // Retrieve the original order in question.
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
+
+                // Ensure restricted orders have valid submitter or pass check.
                 _assertRestrictedAdvancedOrderValidity(
-                    _advancedOrders[i],
-                    _ordersToExecute[i],
+                    advancedOrder,
+                    orderToExecute,
                     orderHashes,
                     orderHashes[i],
-                    _advancedOrders[i].parameters.zoneHash,
-                    _advancedOrders[i].parameters.orderType,
-                    _ordersToExecute[i].offerer,
-                    _advancedOrders[i].parameters.zone
+                    advancedOrder.parameters.zoneHash,
+                    advancedOrder.parameters.orderType,
+                    orderToExecute.offerer,
+                    advancedOrder.parameters.zone
                 );
             }
         }
