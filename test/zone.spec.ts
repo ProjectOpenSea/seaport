@@ -1077,7 +1077,9 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
         owner
       );
 
-    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy(
+      ethers.constants.AddressZero
+    );
 
     const consideration = [
       getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -1086,7 +1088,7 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
 
     const { order, orderHash, value } = await createOrder(
       seller,
-      zoneAddr,
+      zoneAddr.address,
       offer,
       consideration,
       2 // FULL_RESTRICTED
@@ -1135,11 +1137,13 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
         owner
       );
 
-    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy(
+      ethers.constants.AddressZero
+    );
 
     const { order, orderHash, value } = await createOrder(
       seller,
-      zoneAddr,
+      zoneAddr.address,
       offer,
       consideration,
       2, // FULL_RESTRICTED
@@ -1195,11 +1199,13 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
         owner
       );
 
-    const zoneAddr = await TransferValidationZoneOffererFactory.deploy();
+    const zoneAddr = await TransferValidationZoneOffererFactory.deploy(
+      ethers.constants.AddressZero
+    );
 
     const { order, orderHash, value } = await createOrder(
       seller,
-      zoneAddr,
+      zoneAddr.address,
       offer,
       consideration,
       3 // PARTIAL_RESTRICTED
@@ -1258,7 +1264,9 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
       );
 
     const transferValidationZone =
-      await TransferValidationZoneOffererFactory.deploy();
+      await TransferValidationZoneOffererFactory.deploy(
+        ethers.constants.AddressZero
+      );
 
     const {
       order: orderOne,
@@ -1266,7 +1274,7 @@ describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
       value,
     } = await createOrder(
       seller,
-      transferValidationZone,
+      transferValidationZone.address,
       offer,
       consideration,
       2, // FULL_RESTRICTED
