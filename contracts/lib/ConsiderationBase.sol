@@ -224,7 +224,7 @@ contract ConsiderationBase is
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.3"));
+        versionHash = keccak256(bytes("1.4"));
 
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(
@@ -306,11 +306,9 @@ contract ConsiderationBase is
      * @return _typeHash The EIP-712 typehash for the bulk order type with the
      *                   given height.
      */
-    function _lookupBulkOrderTypehash(uint256 _treeHeight)
-        internal
-        pure
-        returns (bytes32 _typeHash)
-    {
+    function _lookupBulkOrderTypehash(
+        uint256 _treeHeight
+    ) internal pure returns (bytes32 _typeHash) {
         // Utilize assembly to efficiently retrieve correct bulk order typehash.
         assembly {
             // Use a Yul function to enable use of the `leave` keyword
