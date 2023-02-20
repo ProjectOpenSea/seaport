@@ -136,7 +136,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             Execution[] memory /* executions */
         )
     {
-        // Validate orders, apply amounts, & determine if they utilize conduits.
+        // Validate orders, apply amounts, & determine if they use conduits.
         (
             bytes32[] memory orderHashes,
             bool containsNonOpen

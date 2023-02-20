@@ -348,7 +348,6 @@ contract OrderFulfiller is
                     )
                 }
 
-                // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
                     // Get the current available balance of native tokens.
                     assembly {
