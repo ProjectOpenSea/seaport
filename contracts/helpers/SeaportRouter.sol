@@ -95,6 +95,11 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             maximumFulfilled: fulfillmentsLeft
         });
 
+        // If recipient is not provided assign to msg.sender.
+        if (calldataParams.recipient == address(0)) {
+            calldataParams.recipient = msg.sender;
+        }
+
         // Iterate through the provided Seaport contracts.
         for (uint256 i = 0; i < params.seaportContracts.length; ) {
             // Ensure the provided Seaport contract is allowed.

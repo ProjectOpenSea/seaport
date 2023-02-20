@@ -141,7 +141,7 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
           },
         ],
         fulfillerConduitKey: toKey(0),
-        recipient: buyer.address,
+        recipient: ethers.constants.AddressZero,
         maximumFulfilled: 100,
       };
 
