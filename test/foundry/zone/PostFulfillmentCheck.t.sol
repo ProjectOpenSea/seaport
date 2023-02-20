@@ -16,20 +16,22 @@ import {
 } from "./impl/PostFullfillmentStatefulTestZone.sol";
 
 import {
-    ConsiderationItem,
-    OfferItem,
-    ItemType,
-    AdvancedOrder,
-    CriteriaResolver,
-    BasicOrderParameters,
     AdditionalRecipient,
-    FulfillmentComponent
+    AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
+    CriteriaResolver,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    OrderComponents,
+    OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
+    BasicOrderType,
     OrderType,
-    Side,
-    BasicOrderType
+    Side
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -636,12 +638,22 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 numTips: 0
             })
         );
+        test(
+            this.execMatchAdvancedOrdersWithConduit,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
     }
 
     function execMatchAdvancedOrdersWithConduit(
         Context memory context
     ) external stateless {
-        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer();
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
 
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
