@@ -411,7 +411,7 @@ To run Forge coverage tests and open the generated coverage report locally:
 ```bash
 brew install lcov
 SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && genhtml lcov.info -o html --branch
-open html/index.htmlg
+open html/index.html
 ```
 
 **Note** that Forge does not yet ignore specific filepaths when running coverage tests.

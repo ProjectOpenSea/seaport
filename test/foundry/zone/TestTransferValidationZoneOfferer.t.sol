@@ -517,11 +517,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
             Context({ seaport: consideration })
         );
-        // TODO: Look into why this fails on reference.
-        // test(
-        //     this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
-        //     Context({ seaport: referenceConsideration })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision()
