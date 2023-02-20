@@ -271,71 +271,70 @@ contract ReferenceOrderCombiner is
             // restricted and contract orders (or non-open orders).
             OrderType orderType = advancedOrder.parameters.orderType;
 
-            bool isNonContractOrder = orderType != OrderType.CONTRACT;
-            bool isNonOpenOrder = orderType != OrderType.FULL_OPEN &&
-                orderType != OrderType.PARTIAL_OPEN;
+            {
+                bool isNonContractOrder = orderType != OrderType.CONTRACT;
+                bool isNonOpenOrder = orderType != OrderType.FULL_OPEN &&
+                    orderType != OrderType.PARTIAL_OPEN;
 
-            if (containsNonOpen == true || isNonOpenOrder == true) {
-                containsNonOpen = true;
-            }
-
-            // Iterate over each offer item on the order.
-            for (uint256 j = 0; j < offer.length; ++j) {
-                // Retrieve the offer item.
-                OfferItem memory offerItem = offer[j];
-
-                // Determine if there are any native offer items on non-contract
-                // orders.
-                anyNativeOfferItemsOnNonContractOrders =
-                    anyNativeOfferItemsOnNonContractOrders ||
-                    (offerItem.itemType == ItemType.NATIVE &&
-                        isNonContractOrder);
-
-                // Apply order fill fraction to offer item end amount.
-                uint256 endAmount = _getFraction(
-                    numerator,
-                    denominator,
-                    offerItem.endAmount
-                );
-
-                // Reuse same fraction if start and end amounts are equal.
-                if (offerItem.startAmount == offerItem.endAmount) {
-                    // Apply derived amount to both start and end amount.
-                    offerItem.startAmount = endAmount;
-                } else {
-                    // Apply order fill fraction to offer item start amount.
-                    offerItem.startAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        offerItem.startAmount
-                    );
+                if (containsNonOpen == true || isNonOpenOrder == true) {
+                    containsNonOpen = true;
                 }
 
-                // Update end amount in memory to match the derived amount.
-                offerItem.endAmount = endAmount;
+                // Iterate over each offer item on the order.
+                for (uint256 j = 0; j < offer.length; ++j) {
+                    // Retrieve the offer item.
+                    OfferItem memory offerItem = offer[j];
 
-                // Adjust offer amount using current time; round down.
-                offerItem.startAmount = _locateCurrentAmount(
-                    offerItem.startAmount,
-                    offerItem.endAmount,
-                    advancedOrder.parameters.startTime,
-                    advancedOrder.parameters.endTime,
-                    false // Round down.
-                );
+                    // Determine if there are any native offer items on non-contract
+                    // orders.
+                    anyNativeOfferItemsOnNonContractOrders =
+                        anyNativeOfferItemsOnNonContractOrders ||
+                        (offerItem.itemType == ItemType.NATIVE &&
+                            isNonContractOrder);
 
-                // Modify the OrderToExecute Spent Item Amount.
-                orderToExecute.spentItems[j].amount = offerItem.startAmount;
-                // Modify the OrderToExecute Spent Item Original Amount.
-                orderToExecute.spentItemOriginalAmounts[j] = offerItem
-                    .startAmount;
+                    // Apply order fill fraction to offer item end amount.
+                    uint256 endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        offerItem.endAmount
+                    );
+
+                    // Reuse same fraction if start and end amounts are equal.
+                    if (offerItem.startAmount == offerItem.endAmount) {
+                        // Apply derived amount to both start and end amount.
+                        offerItem.startAmount = endAmount;
+                    } else {
+                        // Apply order fill fraction to offer item start amount.
+                        offerItem.startAmount = _getFraction(
+                            numerator,
+                            denominator,
+                            offerItem.startAmount
+                        );
+                    }
+
+                    // Update end amount in memory to match the derived amount.
+                    offerItem.endAmount = endAmount;
+
+                    // Adjust offer amount using current time; round down.
+                    offerItem.startAmount = _locateCurrentAmount(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        advancedOrder.parameters.startTime,
+                        advancedOrder.parameters.endTime,
+                        false // Round down.
+                    );
+
+                    // Modify the OrderToExecute Spent Item Amount.
+                    orderToExecute.spentItems[j].amount = offerItem.startAmount;
+                    // Modify the OrderToExecute Spent Item Original Amount.
+                    orderToExecute.spentItemOriginalAmounts[j] = offerItem
+                        .startAmount;
+                }
             }
-
-            // Yoink it up the stacc.
-            AdvancedOrder memory _advancedOrder = advancedOrder;
 
             // Retrieve array of consideration items for order in question.
             ConsiderationItem[] memory consideration = (
-                _advancedOrder.parameters.consideration
+                advancedOrder.parameters.consideration
             );
 
             // Iterate over each consideration item on the order.
@@ -365,27 +364,16 @@ contract ReferenceOrderCombiner is
                     );
                 }
 
-                // TODO: Check.  Appears to be no longer in optimized.
+                // TODO: Check with 0.  Appears to be no longer in optimized.
                 // // Update end amount in memory to match the derived amount.
                 // considerationItem.endAmount = endAmount;
-
-                // // Adjust consideration amount using current time; round up.
-                // considerationItem.startAmount = (
-                //     _locateCurrentAmount(
-                //         considerationItem.startAmount,
-                //         considerationItem.endAmount,
-                //         startTime,
-                //         endTime,
-                //         true // Round up.
-                //     )
-                // );
 
                 uint256 currentAmount = (
                     _locateCurrentAmount(
                         considerationItem.startAmount,
                         endAmount,
-                        _advancedOrder.parameters.startTime,
-                        _advancedOrder.parameters.endTime,
+                        advancedOrder.parameters.startTime,
+                        advancedOrder.parameters.endTime,
                         true // round up
                     )
                 );
@@ -654,9 +642,6 @@ contract ReferenceOrderCombiner is
         address recipient,
         bool containsNonOpen
     ) internal returns (bool[] memory availableOrders) {
-        // Put ether value supplied by the caller on the stack.
-        uint256 nativeTokensRemaining = msg.value;
-
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -800,12 +785,6 @@ contract ReferenceOrderCombiner is
         // caller.
         if (address(this).balance != 0) {
             _transferNativeTokens(payable(msg.sender), address(this).balance);
-        }
-
-        // If any native token remains after fulfillments, return it to the
-        // caller.
-        if (nativeTokensRemaining != 0) {
-            _transferNativeTokens(payable(msg.sender), nativeTokensRemaining);
         }
 
         // If any restricted or contract orders are present in the group of
