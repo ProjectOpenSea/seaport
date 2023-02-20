@@ -357,6 +357,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast,
             Context({ seaport: consideration })
         );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast()
@@ -493,19 +497,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidERC20Balance(uint256,uint256,address,address)",
-                // expected balance (7 ether)
-                7000000000000000000,
-                // actual balance
-                uint256(0),
-                // checked owner address (hex version of uint value of 7 ether)
-                address(0x0000000000000000000000006124feE993BC0000),
-                // checked token address
-                address(token1)
-            )
-        );
+        // Should not revert.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
             criteriaResolvers: criteriaResolvers,
@@ -524,6 +516,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         test(
             this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
             Context({ seaport: consideration })
+        );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitAndERC20Collision,
+            Context({ seaport: referenceConsideration })
         );
     }
 
@@ -664,8 +660,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             maximumFulfilled: advancedOrders.length - 1
         });
 
-        // Should be called only once, tho.
-        assertTrue(transferValidationZone.callCount() == 2);
+        assertTrue(transferValidationZone.callCount() == 1);
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
@@ -676,6 +671,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             this
                 .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
             Context({ seaport: consideration })
+        );
+        test(
+            this
+                .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
+            Context({ seaport: referenceConsideration })
         );
     }
 
@@ -732,15 +732,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
             // Create the consideration items for the first order.
-            considerationItems = SeaportArrays
-                .ConsiderationItems(
-                    ConsiderationItemLib
-                        .fromDefault(THREE_ERC20)
-                        .withToken(address(token1))
-                        .withStartAmount(1 ether)
-                        .withEndAmount(1 ether)
-                        .withRecipient(payable(offerer1.addr))
-                );
+            considerationItems = SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib
+                    .fromDefault(THREE_ERC20)
+                    .withToken(address(token1))
+                    .withStartAmount(1 ether)
+                    .withEndAmount(1 ether)
+                    .withRecipient(payable(offerer1.addr))
+            );
 
             // Create the order components for the first order.
             orderComponentsOne = OrderComponentsLib
@@ -758,15 +757,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
             // Create the consideration items for the first order.
-            considerationItems = SeaportArrays
-                .ConsiderationItems(
-                    ConsiderationItemLib
-                        .fromDefault(THREE_ERC20)
-                        .withToken(address(token1))
-                        .withStartAmount(strangerAddressUint)
-                        .withEndAmount(strangerAddressUint)
-                        .withRecipient(payable(offerer1.addr))
-                );
+            considerationItems = SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib
+                    .fromDefault(THREE_ERC20)
+                    .withToken(address(token1))
+                    .withStartAmount(strangerAddressUint)
+                    .withEndAmount(strangerAddressUint)
+                    .withRecipient(payable(offerer1.addr))
+            );
 
             // Create the order components for the second order.
             orderComponentsTwo = OrderComponentsLib
@@ -784,15 +782,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
             // Create the consideration items for the third order.
-            considerationItems = SeaportArrays
-                .ConsiderationItems(
-                    ConsiderationItemLib
-                        .fromDefault(THREE_ERC20)
-                        .withToken(address(token1))
-                        .withStartAmount(3 ether) // Not necessary, but explicit
-                        .withEndAmount(3 ether)
-                        .withRecipient(payable(offerer1.addr))
-                );
+            considerationItems = SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib
+                    .fromDefault(THREE_ERC20)
+                    .withToken(address(token1))
+                    .withStartAmount(3 ether)
+                    .withEndAmount(3 ether)
+                    .withRecipient(payable(offerer1.addr)) // Not necessary, but explicit
+            );
 
             // Create the order components for the third order.
             orderComponentsTwo = OrderComponentsLib
@@ -846,30 +843,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
-        // The first should make it through validation for real.
-        //
-        // The malformed second validation call doesn't revert here because the
-        // amount value that ends up in the memory position normally used for
-        // the address-to-balance-check is the consideration value, which is
-        // equal to the strangerAddress and the strangerAddress has plenty of
-        // tokens.
-        //
-        // The third should revert because we'll be checking an address that has
-        // no tokens (the address at the hex value of 3 ether).
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidERC20Balance(uint256,uint256,address,address)",
-                // expected balance
-                3 ether,
-                // actual balance
-                uint256(0),
-                // checked owner address (hex version of uint value of 3 ether)
-                address(0x00000000000000000000000029A2241aF62C0000),
-                // checked token address
-                address(token1)
-            )
-        );
+        // Should not revert.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
             criteriaResolvers: criteriaResolvers,
@@ -879,6 +853,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             recipient: offerer1.addr,
             maximumFulfilled: advancedOrders.length - 2
         });
+    }
+
+    function testFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
+        internal
+    {
+        prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20();
+
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
