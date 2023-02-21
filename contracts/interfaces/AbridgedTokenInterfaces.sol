@@ -135,7 +135,6 @@ interface ERC1155Interface {
      *
      * @return balance The balance of the token.
      */
-
     function balanceOf(
         address account,
         uint256 id

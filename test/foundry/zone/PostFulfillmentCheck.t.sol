@@ -16,20 +16,22 @@ import {
 } from "./impl/PostFullfillmentStatefulTestZone.sol";
 
 import {
-    ConsiderationItem,
-    OfferItem,
-    ItemType,
-    AdvancedOrder,
-    CriteriaResolver,
-    BasicOrderParameters,
     AdditionalRecipient,
-    FulfillmentComponent
+    AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
+    CriteriaResolver,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    OrderComponents,
+    OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
+    BasicOrderType,
     OrderType,
-    Side,
-    BasicOrderType
+    Side
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -632,6 +634,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             this.execMatchAdvancedOrdersWithConduit,
             Context({
                 consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execMatchAdvancedOrdersWithConduit,
+            Context({
+                consideration: referenceConsideration,
                 numOriginalAdditional: 0,
                 numTips: 0
             })

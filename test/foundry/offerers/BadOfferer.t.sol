@@ -28,13 +28,18 @@ import {
     OrderType
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
-contract BadOffererTest is BaseOrderTest {
+import {
+    ZoneInteractionErrors
+} from "../../../contracts/interfaces/ZoneInteractionErrors.sol";
+
+contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
     BadOfferer badOfferer;
 
     struct Context {
         ConsiderationInterface seaport;
         uint256 id;
         bool eoa;
+        bool shouldFail;
     }
 
     function setUp() public override {
@@ -52,50 +57,90 @@ contract BadOffererTest is BaseOrderTest {
     }
 
     function testNormalOrder() public {
-        uint256 id = 1;
+        uint256 id = uint256(BadOfferer.Path.NORMAL);
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({
+                seaport: consideration,
+                id: id,
+                eoa: false,
+                shouldFail: false
+            })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({
+                seaport: referenceConsideration,
+                id: id,
+                eoa: false,
+                shouldFail: false
+            })
         );
     }
 
     function testOrderNothing() public {
-        uint256 id = 2;
+        uint256 id = uint256(BadOfferer.Path.RETURN_NOTHING);
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({
+                seaport: consideration,
+                id: id,
+                eoa: false,
+                shouldFail: true
+            })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({
+                seaport: referenceConsideration,
+                id: id,
+                eoa: false,
+                shouldFail: true
+            })
         );
     }
 
     function testOrderRevert() public {
-        uint256 id = 3;
+        uint256 id = uint256(BadOfferer.Path.REVERT);
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({
+                seaport: consideration,
+                id: id,
+                eoa: false,
+                shouldFail: false // shouldn't fail because the revert happens within GenerateOrder, so it can be safely skipped
+            })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({
+                seaport: referenceConsideration,
+                id: id,
+                eoa: false,
+                shouldFail: false
+            })
         );
     }
 
     function testOrderGarbage() public {
-        uint256 id = 4;
+        uint256 id = uint256(BadOfferer.Path.RETURN_GARBAGE);
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: false })
+            Context({
+                seaport: consideration,
+                id: id,
+                eoa: false,
+                shouldFail: true
+            })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: false })
+            Context({
+                seaport: referenceConsideration,
+                id: id,
+                eoa: false,
+                shouldFail: true
+            })
         );
     }
 
@@ -103,11 +148,21 @@ contract BadOffererTest is BaseOrderTest {
         uint256 id = 1;
         test(
             this.execOrderWithContext,
-            Context({ seaport: consideration, id: id, eoa: true })
+            Context({
+                seaport: consideration,
+                id: id,
+                eoa: true,
+                shouldFail: true
+            })
         );
         test(
             this.execOrderWithContext,
-            Context({ seaport: referenceConsideration, id: id, eoa: true })
+            Context({
+                seaport: referenceConsideration,
+                id: id,
+                eoa: true,
+                shouldFail: true
+            })
         );
     }
 
@@ -132,6 +187,18 @@ contract BadOffererTest is BaseOrderTest {
         advancedOrders[1] = normalOrder;
         CriteriaResolver[] memory resolvers;
 
+        if (context.shouldFail) {
+            if (context.seaport == consideration) {
+                vm.expectRevert(
+                    abi.encodeWithSelector(
+                        InvalidContractOrder.selector,
+                        bytes32(uint256(uint160(address(badOfferer))) << 96)
+                    )
+                );
+            } else {
+                vm.expectRevert();
+            }
+        }
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
             criteriaResolvers: resolvers,

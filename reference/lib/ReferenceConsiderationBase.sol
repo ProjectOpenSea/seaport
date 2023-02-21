@@ -25,7 +25,7 @@ contract ReferenceConsiderationBase is
 {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "1.3-reference";
+    string internal constant _VERSION = "1.4-reference";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 

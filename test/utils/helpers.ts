@@ -9,7 +9,7 @@ import type {
   Order,
 } from "./types";
 
-export const VERSION = `1.3${process.env.REFERENCE ? "-reference" : ""}`;
+export const VERSION = `1.4${process.env.REFERENCE ? "-reference" : ""}`;
 
 export const minRandom = (min: ethers.BigNumberish) => randomBN(10).add(min);
 

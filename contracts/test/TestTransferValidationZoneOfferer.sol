@@ -21,25 +21,51 @@ import {
 } from "../interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-import "forge-std/console.sol";
 
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface
 {
-    error InvalidBalance();
-    error InvalidOwner();
+    error InvalidNativeTokenBalance(
+        uint256 expectedBalance,
+        uint256 actualBalance,
+        address checkedAddress
+    );
+    error InvalidERC20Balance(
+        uint256 expectedBalance,
+        uint256 actualBalance,
+        address checkedAddress,
+        address checkedToken
+    );
+    error InvalidERC1155Balance(
+        uint256 expectedBalance,
+        uint256 actualBalance,
+        address checkedAddress,
+        address checkedToken
+    );
+    // 0x38fb386a
+    error InvalidOwner(
+        address expectedOwner,
+        address actualOwner,
+        address checkedToken,
+        uint256 checkedTokenId
+    );
+    error IncorrectSeaportBalance(
+        uint256 expectedBalance,
+        uint256 actualBalance
+    );
 
-    address internal _expectedRecipient;
+    receive() external payable {}
 
-    // Pass in the null address if you want to expect the fulfiller.
-    constructor(address expectedRecipient) {
-        _expectedRecipient = expectedRecipient;
+    address internal _expectedOfferRecipient;
+
+    // Pass in the null address to expect the fulfiller.
+    constructor(address expectedOfferRecipient) {
+        _expectedOfferRecipient = expectedOfferRecipient;
     }
 
     bool public called = false;
-
-    receive() external payable {}
+    uint public callCount = 0;
 
     /**
      * @dev Validates that the parties have received the correct items.
@@ -49,28 +75,39 @@ contract TestTransferValidationZoneOfferer is
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external override returns (bytes4 validOrderMagicValue) {
-        // Set the global called flag to true.
-        called = true;
+        // Validate the order.
+
+        // Currently assumes that the balances of all tokens of addresses are
+        // zero at the start of the transaction.  Accordingly, take care to
+        // use an address in tests that is not pre-populated with tokens.
+
+        // Check if Seaport is empty. This makes sure that we've transferred
+        // all native token balance out of Seaport before we do the validation.
+        uint256 seaportBalance = address(msg.sender).balance;
+
+        if (seaportBalance > 0) {
+            revert IncorrectSeaportBalance(0, seaportBalance);
+        }
 
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
 
-        address expectedRecipient = _expectedRecipient == address(0)
+        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
             ? zoneParameters.fulfiller
-            : _expectedRecipient;
+            : _expectedOfferRecipient;
 
-        console.log("fulfiller");
-        console.log(zoneParameters.fulfiller);
+        // Ensure that the expected recipient has received all offer items.
+        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
-        // Check if all offer items have been spent.
-        _assertValidSpentItems(expectedRecipient, zoneParameters.offer);
+        // Set the global called flag to true.
+        called = true;
+        callCount++;
 
         // Return the selector of validateOrder as the magic value.
-        validOrderMagicValue = ZoneInterface.validateOrder.selector;
+        validOrderMagicValue = this.validateOrder.selector;
     }
 
     /**
@@ -130,19 +167,34 @@ contract TestTransferValidationZoneOfferer is
         bytes calldata context /* context */,
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         // Ratify the order.
+
+        // Check if Seaport is empty. This makes sure that we've transferred
+        // all native token balance out of Seaport before we do the validation.
+        uint256 seaportBalance = address(msg.sender).balance;
+
+        if (seaportBalance > 0) {
+            revert IncorrectSeaportBalance(0, seaportBalance);
+        }
 
         // Ensure that the offerer or recipient has received all consideration
         // items.
         _assertValidReceivedItems(maximumSpent);
 
-        address expectedRecipient = _expectedRecipient == address(0)
-            ? address(bytes20(context[0:20]))
-            : _expectedRecipient;
+        // Get the fulfiller address from the context.
+        address fulfiller = address(bytes20(context[0:20]));
 
-        // Ensure that the fulfiller has received all offer items.
-        _assertValidSpentItems(_expectedRecipient, minimumReceived);
+        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
+            ? fulfiller
+            : _expectedOfferRecipient;
+
+        // Ensure that the expected recipient has received all offer items.
+        _assertValidSpentItems(expectedOfferRecipient, minimumReceived);
+
+        // Set the global called flag to true.
+        called = true;
+        callCount++;
 
         return this.ratifyOrder.selector;
     }
@@ -191,13 +243,13 @@ contract TestTransferValidationZoneOfferer is
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
-        // Check if all consideration items have been received.
+
+        // Iterate over all received items.
         for (uint256 i = 0; i < receivedItems.length; i++) {
             // Check if the consideration item has been received.
             receivedItem = receivedItems[i];
             // Get the recipient of the consideration item.
             recipient = receivedItem.recipient;
-
             // Get item type.
             itemType = receivedItem.itemType;
 
@@ -232,13 +284,13 @@ contract TestTransferValidationZoneOfferer is
     }
 
     function _assertValidSpentItems(
-        address fulfiller,
+        address expectedRecipient,
         SpentItem[] calldata spentItems
     ) internal view {
         SpentItem memory spentItem;
         ItemType itemType;
 
-        // Check if all offer items have been spent.
+        // Iterate over all spent items.
         for (uint256 i = 0; i < spentItems.length; i++) {
             // Check if the offer item has been spent.
             spentItem = spentItems[i];
@@ -248,20 +300,20 @@ contract TestTransferValidationZoneOfferer is
             // Check balance/ownerOf depending on item type.
             if (itemType == ItemType.NATIVE) {
                 // NATIVE Token
-                _assertNativeTokenTransfer(spentItem.amount, fulfiller);
+                _assertNativeTokenTransfer(spentItem.amount, expectedRecipient);
             } else if (itemType == ItemType.ERC20) {
                 // ERC20 Token
                 _assertERC20Transfer(
                     spentItem.amount,
                     spentItem.token,
-                    fulfiller
+                    expectedRecipient
                 );
             } else if (itemType == ItemType.ERC721) {
                 // ERC721 Token
                 _assertERC721Transfer(
                     spentItem.identifier,
                     spentItem.token,
-                    fulfiller
+                    expectedRecipient
                 );
             } else if (itemType == ItemType.ERC1155) {
                 // ERC1155 Token
@@ -269,53 +321,94 @@ contract TestTransferValidationZoneOfferer is
                     spentItem.amount,
                     spentItem.identifier,
                     spentItem.token,
-                    fulfiller
+                    expectedRecipient
                 );
             }
         }
     }
 
     function _assertNativeTokenTransfer(
-        uint256 amount,
-        address recipient
+        uint256 expectedAmount,
+        address expectedRecipient
     ) internal view {
-        if (amount > address(recipient).balance) {
-            revert InvalidBalance();
+        // If the amount we read from the spent item or received item (the
+        // expected transfer value) is greater than the balance of the expected
+        // recipient then revert, because that means the recipient did not
+        // receive the expected amount at the time the order was ratified or
+        // validated.
+        if (expectedAmount > address(expectedRecipient).balance) {
+            revert InvalidNativeTokenBalance(
+                expectedAmount,
+                address(expectedRecipient).balance,
+                expectedRecipient
+            );
         }
     }
 
     function _assertERC20Transfer(
-        uint256 amount,
+        uint256 expectedAmount,
         address token,
-        address recipient
+        address expectedRecipient
     ) internal view {
-        if (amount > ERC20Interface(token).balanceOf(recipient)) {
-            revert InvalidBalance();
+        // If the amount we read from the spent item or received item (the
+        // expected transfer value) is greater than the balance of the expected
+        // recipient, revert.
+        if (
+            expectedAmount > ERC20Interface(token).balanceOf(expectedRecipient)
+        ) {
+            revert InvalidERC20Balance(
+                expectedAmount,
+                ERC20Interface(token).balanceOf(expectedRecipient),
+                expectedRecipient,
+                token
+            );
         }
     }
 
     function _assertERC721Transfer(
-        uint256 identifier,
+        uint256 checkedTokenId,
         address token,
-        address recipient
+        address expectedRecipient
     ) internal view {
-        if (recipient != ERC721Interface(token).ownerOf(identifier)) {
-            revert InvalidOwner();
+        // If the actual owner of the token is not the expected recipient,
+        // revert.
+        address actualOwner = ERC721Interface(token).ownerOf(checkedTokenId);
+        if (expectedRecipient != actualOwner) {
+            revert InvalidOwner(
+                expectedRecipient,
+                actualOwner,
+                token,
+                checkedTokenId
+            );
         }
     }
 
     function _assertERC1155Transfer(
-        uint256 amount,
+        uint256 expectedAmount,
         uint256 identifier,
         address token,
-        address recipient
+        address expectedRecipient
     ) internal view {
-        if (amount > ERC1155Interface(token).balanceOf(recipient, identifier)) {
-            revert InvalidBalance();
+        // If the amount we read from the spent item or received item (the
+        // expected transfer value) is greater than the balance of the expected
+        // recipient, revert.
+        if (
+            expectedAmount >
+            ERC1155Interface(token).balanceOf(expectedRecipient, identifier)
+        ) {
+            revert InvalidERC1155Balance(
+                expectedAmount,
+                ERC1155Interface(token).balanceOf(
+                    expectedRecipient,
+                    identifier
+                ),
+                expectedRecipient,
+                token
+            );
         }
     }
 
-    function setExpectedRecipient(address expectedRecipient) public {
-        _expectedRecipient = expectedRecipient;
+    function setExpectedOfferRecipient(address expectedOfferRecipient) public {
+        _expectedOfferRecipient = expectedOfferRecipient;
     }
 }
