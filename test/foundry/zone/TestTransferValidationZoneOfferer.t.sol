@@ -1078,7 +1078,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        context.seaport.matchOrders{ value: 2 ether }({
+        context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
             fulfillments: fulfillments
         });
@@ -1107,7 +1107,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        context.seaport.matchOrders{ value: 2 ether }({
+        context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
             fulfillments: fulfillments
         });
@@ -1268,8 +1268,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             address(transferValidationOfferer1)
         );
 
-        vm.label(address(transferValidationOfferer1), "offerer1");
-        vm.label(address(transferValidationOfferer2), "offerer2");
+        vm.label(address(transferValidationOfferer1), "contractOfferer1");
+        vm.label(address(transferValidationOfferer2), "contractOfferer2");
 
         // Mint 721 to contract offerer 1
         test721_1.mint(address(transferValidationOfferer1), 1);
@@ -1372,12 +1372,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     {
         // Create contract offerer
         TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
-                address(0)
+                offerer1.addr
             );
 
-        transferValidationOfferer1.setExpectedOfferRecipient(offerer1.addr);
-
         vm.label(address(transferValidationOfferer1), "contractOfferer");
+
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(transferValidationOfferer1)
+            );
 
         // Mint 721 to contract offerer 1
         test721_1.mint(address(transferValidationOfferer1), 1);
@@ -1387,13 +1389,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             uint128(MAX_INT)
         );
 
-        // Create one eth consideration for contract order 1
-        ConsiderationItem[] memory considerationArray = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
-                    address(transferValidationOfferer1)
-                )
-            );
         // Create single 721 offer for contract order 1
         OfferItem[] memory offerArray = SeaportArrays.OfferItems(
             OfferItemLib
@@ -1401,6 +1396,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .withToken(address(test721_1))
                 .withIdentifierOrCriteria(1)
         );
+        // Create one eth consideration for contract order 1
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    address(transferValidationOfferer1)
+                )
+            );
+
         // Build first order components
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(CONTRACT_ORDER)
@@ -1430,6 +1433,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .fromDefault(VALIDATION_ZONE)
             .withOffer(offerArray)
             .withConsideration(considerationArray)
+            .withZone(address(transferValidationZone))
             .withCounter(context.seaport.getCounter(offerer1.addr));
 
         Order[] memory orders = _buildOrders(

@@ -21,6 +21,7 @@ import {
 } from "../interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import "hardhat/console.sol";
 
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
@@ -169,25 +170,22 @@ contract TestTransferValidationZoneOfferer is
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         // Ratify the order.
-
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
         uint256 seaportBalance = address(msg.sender).balance;
-
         if (seaportBalance > 0) {
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
+        console.log("before asssert valid received items");
 
         // Ensure that the offerer or recipient has received all consideration
         // items.
         _assertValidReceivedItems(maximumSpent);
 
-        // Get the fulfiller address from the context.
-        address fulfiller = address(bytes20(context[0:20]));
-
         address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-            ? fulfiller
+            ? address(bytes20(context[0:20]))
             : _expectedOfferRecipient;
+        console.log("expectedOfferRecipient", expectedOfferRecipient);
 
         // Ensure that the expected recipient has received all offer items.
         _assertValidSpentItems(expectedOfferRecipient, minimumReceived);
