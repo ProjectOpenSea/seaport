@@ -382,7 +382,7 @@ contract ExampleContractOfferer is ContractOffererInterface {
 
 Seaport v1.2 introduced a bulk order creation feature.  In brief, a buyer or seller can now sign a single bulk order payload that creates multiple orders with one ECDSA signature.  So, instead of signing a dozen single order payloads to create a dozen orders, a user can now create the same dozen orders with a single click in their wallet UI.
 
-Bulk signature payloads of depth 1 (2 orders) to depth 24 (16,777,215 orders) are fully supported as of v1.2.  Just as with single order signing, bulk order payloads will be typed, human-readable EIP 712 data.  Any individual order created in the course of bulk order creation is fulfillable independently.  In other words, one order or multiple orders created in the course of bulk order creation can be included in a fulfillment transaction.  
+Bulk signature payloads of depth 1 (2 orders) to depth 24 (16,777,216 orders) are fully supported as of v1.2.  Just as with single order signing, bulk order payloads will be typed, human-readable EIP 712 data.  Any individual order created in the course of bulk order creation is fulfillable independently.  In other words, one order or multiple orders created in the course of bulk order creation can be included in a fulfillment transaction.  
 
 Note that there is a gas cost increase associated with fulfilling orders created in the course of bulk order creation.  The cost increases logarithmically with the number of orders in the bulk order payload: roughly 4,000 gas for a tree height of 1 and then roughly an additional 700 gas per extra unit of height.  Accordingly, it’s advisable to balance the convenience of creating multiple orders at once against the additional gas cost imposed on fulfillers.
 
