@@ -79,10 +79,12 @@ contract ReferenceFulfillmentApplier is
 
         // Skip aggregating offer items if no consideration items are available.
         if (considerationItem.amount == 0) {
-            // Set the offerer and recipient to null address if execution
-            // amount is zero. This will cause the execution item to be skipped.
+            // Set the offerer and recipient to null address and item type to a
+            // non-native item type if execution amount is zero. This will cause
+            // the execution item to be skipped.
             execution.offerer = address(0);
             execution.item.recipient = payable(0);
+            execution.item.itemType = ItemType.ERC20;
             return execution;
         }
 
@@ -164,7 +166,7 @@ contract ReferenceFulfillmentApplier is
      * @param recipient             The intended recipient for all received
      *                              items.
      *
-     * @return execution The transfer performed as a result of the fulfillment.
+     * @return _execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateAvailable(
         OrderToExecute[] memory ordersToExecute,
@@ -172,10 +174,7 @@ contract ReferenceFulfillmentApplier is
         FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey,
         address recipient
-    ) internal view returns (Execution memory execution) {
-        // Retrieve orders array length and place on the stack.
-        uint256 totalOrders = ordersToExecute.length;
-
+    ) internal view returns (Execution memory _execution) {
         // Retrieve fulfillment components array length and place on stack.
         uint256 totalFulfillmentComponents = fulfillmentComponents.length;
 
@@ -184,36 +183,32 @@ contract ReferenceFulfillmentApplier is
             revert MissingFulfillmentComponentOnAggregation(side);
         }
 
-        // Determine component index after first available (0 implies none).
-        uint256 nextComponentIndex = 0;
+        Execution memory execution;
 
-        // Iterate over components until finding one with a fulfilled order.
-        for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
-            // Retrieve the fulfillment component index.
-            uint256 orderIndex = fulfillmentComponents[i].orderIndex;
-
-            // Ensure that the order index is in range.
-            if (orderIndex >= totalOrders) {
-                revert InvalidFulfillmentComponentData();
-            }
-
-            // If order is being fulfilled (i.e. it is still available)...
-            if (ordersToExecute[orderIndex].numerator != 0) {
-                // Update the next potential component index.
-                nextComponentIndex = i + 1;
-
-                // Exit the loop.
-                break;
-            }
+        // If the fulfillment components are offer components...
+        if (side == Side.OFFER) {
+            // Return execution for aggregated items provided by offerer.
+            execution = _aggregateValidFulfillmentOfferItems(
+                ordersToExecute,
+                fulfillmentComponents,
+                recipient
+            );
+        } else {
+            // Otherwise, fulfillment components are consideration
+            // components. Return execution for aggregated items provided by
+            // the fulfiller.
+            execution = _aggregateConsiderationItems(
+                ordersToExecute,
+                fulfillmentComponents,
+                fulfillerConduitKey
+            );
         }
 
-        // If no available order was located...
-        if (nextComponentIndex == 0) {
-            // Return with an empty execution element that will be filtered.
+        if (execution.item.amount == 0) {
             return
                 Execution(
                     ReceivedItem(
-                        ItemType.NATIVE,
+                        ItemType.ERC20,
                         address(0),
                         0,
                         0,
@@ -224,26 +219,7 @@ contract ReferenceFulfillmentApplier is
                 );
         }
 
-        // If the fulfillment components are offer components...
-        if (side == Side.OFFER) {
-            // Return execution for aggregated items provided by offerer.
-            return
-                _aggregateValidFulfillmentOfferItems(
-                    ordersToExecute,
-                    fulfillmentComponents,
-                    recipient
-                );
-        } else {
-            // Otherwise, fulfillment components are consideration
-            // components. Return execution for aggregated items provided by
-            // the fulfiller.
-            return
-                _aggregateConsiderationItems(
-                    ordersToExecute,
-                    fulfillmentComponents,
-                    fulfillerConduitKey
-                );
-        }
+        return execution;
     }
 
     /**

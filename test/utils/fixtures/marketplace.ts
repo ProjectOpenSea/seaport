@@ -124,17 +124,18 @@ export const marketplaceFixture = async (
   // Returns signature
   const signOrder = async (
     orderComponents: OrderComponents,
-    signer: Wallet | Contract
+    signer: Wallet | Contract,
+    marketplace = marketplaceContract
   ) => {
     const signature = await signer._signTypedData(
-      domainData,
+      { ...domainData, verifyingContract: marketplace.address },
       orderType,
       orderComponents
     );
 
     const orderHash = await getAndVerifyOrderHash(orderComponents);
 
-    const { domainSeparator } = await marketplaceContract.information();
+    const { domainSeparator } = await marketplace.information();
     const digest = keccak256(
       `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
     );
@@ -215,9 +216,10 @@ export const marketplaceFixture = async (
     extraCheap = false,
     useBulkSignature = false,
     bulkSignatureIndex?: number,
-    bulkSignatureHeight?: number
+    bulkSignatureHeight?: number,
+    marketplace = marketplaceContract
   ) => {
-    const counter = await marketplaceContract.getCounter(offerer.address);
+    const counter = await marketplace.getCounter(offerer.address);
 
     const salt = !extraCheap ? randomHex() : constants.HashZero;
     const startTime =
@@ -249,7 +251,7 @@ export const marketplaceFixture = async (
     const orderHash = await getAndVerifyOrderHash(orderComponents);
 
     const { isValidated, isCancelled, totalFilled, totalSize } =
-      await marketplaceContract.getOrderStatus(orderHash);
+      await marketplace.getOrderStatus(orderHash);
 
     expect(isCancelled).to.equal(false);
 
@@ -260,7 +262,11 @@ export const marketplaceFixture = async (
       totalSize,
     };
 
-    const flatSig = await signOrder(orderComponents, signer ?? offerer);
+    const flatSig = await signOrder(
+      orderComponents,
+      signer ?? offerer,
+      marketplace
+    );
 
     const order = {
       parameters: orderParameters,
