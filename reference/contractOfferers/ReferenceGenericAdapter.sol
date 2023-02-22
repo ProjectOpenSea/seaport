@@ -37,9 +37,12 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
     error InvalidFulfiller(address fulfiller);
     error UnsupportedExtraDataVersion(uint8 version);
     error InvalidExtraDataEncoding(uint8 version);
-    error ApprovalFailed(address approvalToken); // 0xe5a0a42f
-    error CallFailed(); // 0x3204506f
-    error NativeTokenTransferGenericFailure(address recipient, uint256 amount); // 0xbc806b96
+    // 0xe5a0a42f
+    error ApprovalFailed(address approvalToken);
+    // 0x3204506f
+    error CallFailed();
+    // 0xbc806b96
+    error NativeTokenTransferGenericFailure(address recipient, uint256 amount);
     error NotImplemented();
 
     constructor(address seaport, address flashloanOfferer) {

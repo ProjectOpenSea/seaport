@@ -250,17 +250,18 @@ contract FlashloanOfferer is ContractOffererInterface {
                 } {
                     // Note: confirm that this is the correct usage of byte opcode
                     let flashloanData := calldataload(flashloanDataOffset)
-                    let shouldCall := byte(12, flashloanData)
+                    // let shouldCall := byte(12, flashloanData)
                     let recipient := and(
                         0xffffffffffffffffffffffffffffffffffffffff,
                         flashloanData
                     )
                     let value := shr(168, flashloanData)
 
-                    // Fire off call to recipient. Revert & bubble up revert data if
-                    // present & reasonably-sized, else revert with a custom error.
-                    // Note that checking for sufficient native token balance is an
-                    // option here if more specific custom reverts are preferred.
+                    // Fire off call to recipient. Revert & bubble up revert
+                    // data if present & reasonably-sized, else revert with a
+                    // custom error. Note that checking for sufficient native
+                    // token balance is an option here if more specific custom
+                    // reverts are preferred.
                     let success := call(
                         gas(),
                         recipient,
