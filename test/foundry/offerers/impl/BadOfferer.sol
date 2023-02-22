@@ -13,9 +13,9 @@ import {
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
@@ -47,7 +47,8 @@ contract BadOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     *      items.
      */
     function generateOrder(
         address a,

@@ -43,13 +43,13 @@ import {
     NameLengthPtr,
     NameWithLength,
     OneWord,
-    OneWordShift,
     Slot0x80,
     ThreeWords,
     ZeroSlot
 } from "./ConsiderationConstants.sol";
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 /**

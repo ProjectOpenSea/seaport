@@ -2,31 +2,35 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
+
 import {
-    OrderParameters,
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    Execution,
     AdditionalRecipient,
+    ConsiderationItem,
     CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
+    OfferItem,
+    Order,
     OrderComponents,
     OrderParameters,
-    Order
+    ReceivedItem,
+    SpentItem
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
+
 import {
     ItemType,
     OrderType
 } from "../../../../contracts/lib/ConsiderationEnums.sol";
+
 import {
     OrderComponentsLib
 } from "../../../../contracts/helpers/sol/lib/OrderComponentsLib.sol";
+
 import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
+
 import { OrderLib } from "../../../../contracts/helpers/sol/lib/OrderLib.sol";
 
 contract BaseTest is Test {

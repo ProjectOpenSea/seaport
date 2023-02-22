@@ -2,9 +2,18 @@
 pragma solidity ^0.8.17;
 
 import { Execution, ReceivedItem } from "../../../lib/ConsiderationStructs.sol";
+
 import { ReceivedItemLib } from "./ReceivedItemLib.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title ExecutionLib
+ * @author James Wenzel (emo.eth)
+ * @notice ExecutionLib is a library for managing Execution structs and arrays.
+ *         It allows chaining of functions to make struct creation more
+ *         readable.
+ */
 library ExecutionLib {
     bytes32 private constant EXECUTION_MAP_POSITION =
         keccak256("seaport.ExecutionDefaults");
@@ -15,8 +24,9 @@ library ExecutionLib {
     using ReceivedItemLib for ReceivedItem[];
 
     /**
-     * @notice clears a default Execution from storage
-     * @param defaultName the name of the default to clear
+     * @dev Clears a default Execution from storage.
+     *
+     * @param defaultName the name of the default to clear.
      */
     function clear(string memory defaultName) internal {
         mapping(string => Execution) storage executionMap = _executionMap();
@@ -24,6 +34,11 @@ library ExecutionLib {
         clear(item);
     }
 
+    /**
+     * @dev Clears all fields on an Execution.
+     *
+     * @param execution the Execution to clear
+     */
     function clear(Execution storage execution) internal {
         // clear all fields
         execution.item = ReceivedItemLib.empty();
@@ -31,6 +46,11 @@ library ExecutionLib {
         execution.conduitKey = bytes32(0);
     }
 
+    /**
+     * @dev Clears an array of Executions from storage.
+     *
+     * @param executions the name of the default to clear
+     */
     function clear(Execution[] storage executions) internal {
         while (executions.length > 0) {
             clear(executions[executions.length - 1]);
@@ -39,8 +59,11 @@ library ExecutionLib {
     }
 
     /**
-     * @notice gets a default Execution from storage
+     * @dev Gets a default Execution from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the Execution retrieved from storage
      */
     function fromDefault(
         string memory defaultName
@@ -49,6 +72,13 @@ library ExecutionLib {
         item = executionMap[defaultName];
     }
 
+    /**
+     * @dev Gets an array of default Executions from storage.
+     *
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return items the Executions retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (Execution[] memory items) {
@@ -57,9 +87,12 @@ library ExecutionLib {
     }
 
     /**
-     * @notice saves an Execution as a named default
-     * @param execution the Execution to save as a default
+     * @dev Saves an Execution as a named default.
+     *
+     * @param execution   the Execution to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _execution the Execution saved as a default
      */
     function saveDefault(
         Execution memory execution,
@@ -70,6 +103,14 @@ library ExecutionLib {
         return execution;
     }
 
+    /**
+     * @dev Saves an array of Executions as a named default.
+     *
+     * @param executions  the Executions to save as a default
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return _executions the Executions saved as a default
+     */
     function saveDefaultMany(
         Execution[] memory executions,
         string memory defaultName
@@ -80,8 +121,11 @@ library ExecutionLib {
     }
 
     /**
-     * @notice makes a copy of an Execution in-memory
+     * @dev Makes a copy of an Execution in-memory.
+     *
      * @param item the Execution to make a copy of in-memory
+     *
+     * @custom:return copy the copy of the Execution in-memory
      */
     function copy(
         Execution memory item
@@ -94,16 +138,28 @@ library ExecutionLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of Executions in-memory.
+     *
+     * @param items the array of Executions to make a copy of in-memory
+     *
+     * @custom:return copy the copy of the array of Executions in-memory
+     */
     function copy(
-        Execution[] memory item
+        Execution[] memory items
     ) internal pure returns (Execution[] memory) {
-        Execution[] memory copies = new Execution[](item.length);
-        for (uint256 i = 0; i < item.length; i++) {
-            copies[i] = copy(item[i]);
+        Execution[] memory copies = new Execution[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            copies[i] = copy(items[i]);
         }
         return copies;
     }
 
+    /**
+     * @dev Creates an empty Execution.
+     *
+     * @custom:return empty the empty Execution
+     */
     function empty() internal pure returns (Execution memory) {
         return
             Execution({
@@ -114,7 +170,9 @@ library ExecutionLib {
     }
 
     /**
-     * @notice gets the storage position of the default Execution map
+     * @dev Gets the storage position of the default Execution map.
+     *
+     * @return executionMap the storage position of the default Execution map
      */
     function _executionMap()
         private
@@ -127,6 +185,11 @@ library ExecutionLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default array of Executions map.
+     *
+     * @return executionsMap the storage position of the default Executions map
+     */
     function _executionsMap()
         private
         pure
@@ -138,10 +201,17 @@ library ExecutionLib {
         }
     }
 
-    // methods for configuring a single of each of an Execution's fields, which modifies the Execution
-    // in-place and
-    // returns it
+    // Methods for configuring a single of each of an Execution's fields, which
+    // modify the Execution in-place and return it.
 
+    /**
+     * @dev Configures an Execution's item field.
+     *
+     * @param execution the Execution to configure
+     * @param item      the value to set the Execution's item field to
+     *
+     * @return _execution the configured Execution
+     */
     function withItem(
         Execution memory execution,
         ReceivedItem memory item
@@ -150,6 +220,14 @@ library ExecutionLib {
         return execution;
     }
 
+    /**
+     * @dev Configures an Execution's offerer field.
+     *
+     * @param execution the Execution to configure
+     * @param offerer   the value to set the Execution's offerer field to
+     *
+     * @return _execution the configured Execution
+     */
     function withOfferer(
         Execution memory execution,
         address offerer
@@ -158,6 +236,14 @@ library ExecutionLib {
         return execution;
     }
 
+    /**
+     * @dev Configures an Execution's conduitKey field.
+     *
+     * @param execution the Execution to configure
+     * @param conduitKey the value to set the Execution's conduitKey field to
+     *
+     * @return _execution the configured Execution
+     */
     function withConduitKey(
         Execution memory execution,
         bytes32 conduitKey
