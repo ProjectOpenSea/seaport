@@ -1072,16 +1072,53 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 conduitKey,
-            uint256 numOrders
-        ) = _buildFulfillmentDataMirrorContractOrders(context);
+            ,
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        ) = _buildFulfillmentDataMirrorContractOrders(context);
 
         context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
             fulfillments: fulfillments
         });
+    }
+
+    function testExecMatchAdvancedContractOrdersWithConduit() public {
+        test(
+            this.execMatchAdvancedContractOrdersWithConduit,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchAdvancedContractOrdersWithConduit,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchAdvancedContractOrdersWithConduit(
+        Context memory context
+    ) external stateless {
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments,
+            ,
+
+        ) = _buildFulfillmentDataMirrorContractOrders(context);
+
+        AdvancedOrder[] memory advancedOrders;
+
+        // Convert the orders to advanced orders.
+        advancedOrders = SeaportArrays.AdvancedOrders(
+            orders[0].toAdvancedOrder(1, 1, ""),
+            orders[1].toAdvancedOrder(1, 1, "")
+        );
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        context.seaport.matchAdvancedOrders{ value: 1 ether }(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillments,
+            address(0)
+        );
     }
 
     function testMatchOpenAndContractOrdersWithConduit() public {
@@ -1101,11 +1138,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 conduitKey,
-            uint256 numOrders
-        ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
+            ,
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
 
         context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
@@ -1137,8 +1172,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         ) = _buildFulfillmentDataMirrorOrdersNoConduit(context);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-
         context.seaport.matchOrders{ value: 2 ether }({
             orders: orders,
             fulfillments: fulfillments
@@ -1154,10 +1187,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         Order[] memory orders = new Order[](orderComponents.length);
         for (uint256 i = 0; i < orderComponents.length; i++) {
             if (orderComponents[i].orderType == OrderType.CONTRACT)
-                orders[i] = toUnsignedOrder(
-                    context.seaport,
-                    orderComponents[i]
-                );
+                orders[i] = toUnsignedOrder(orderComponents[i]);
             else orders[i] = toOrder(context.seaport, orderComponents[i], key);
         }
         return orders;
@@ -1559,9 +1589,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     }
 
     function toUnsignedOrder(
-        ConsiderationInterface seaport,
         OrderComponents memory orderComponents
-    ) internal view returns (Order memory order) {
+    ) internal pure returns (Order memory order) {
         order = OrderLib.empty().withParameters(
             orderComponents.toOrderParameters()
         );
