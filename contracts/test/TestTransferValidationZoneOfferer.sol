@@ -183,7 +183,7 @@ contract TestTransferValidationZoneOfferer is
 
         // It's necessary to pass in either an expected offerer or an address
         // in the context.  If neither is provided, this ternary will revert
-        // with a generic, hard-to-debug error when it tries to slice bytes
+        // with a generic, hard-to-debug revert when it tries to slice bytes
         // from the context.
         address expectedOfferRecipient = _expectedOfferRecipient == address(0)
             ? address(bytes20(context[0:20]))
