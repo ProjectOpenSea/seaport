@@ -60,6 +60,7 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     AdditionalRecipient[] additionalRecipients;
 
     Account offerer1;
+    Account offerer2;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -123,8 +124,10 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
         allocateTokensAndApprovals(offerer1.addr, uint128(MAX_INT));
+        allocateTokensAndApprovals(offerer2.addr, uint128(MAX_INT));
 
         offerer1 = makeAndAllocateAccount("offerer1");
+        offerer2 = makeAndAllocateAccount("offerer2");
     }
 
     function resetOfferComponents() internal {

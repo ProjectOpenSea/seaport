@@ -65,6 +65,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant FIRST_SECOND__FIRST = "first&second first";
     string constant FIRST_SECOND__SECOND = "first&second second";
     string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
+    string constant CONTRACT_ORDER = "contract order";
 
     function setUp() public virtual override {
         super.setUp();
@@ -80,6 +81,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withEndAmount(1 ether)
             .withIdentifierOrCriteria(0)
             .saveDefault(ONE_ETH); // not strictly necessary
+
+        // create a default offerItem for one ether;
+        // note that it does not have recipient set
+        OfferItemLib
+        .empty()
+        .withItemType(ItemType.NATIVE)
+        .withToken(address(0)) // not strictly necessary
+            .withStartAmount(1 ether)
+            .withEndAmount(1 ether)
+            .withIdentifierOrCriteria(0)
+            .saveDefault(ONE_ETH); // not strictly necessary
+
+        // create a default consideration for a single 721;
+        // note that it does not have recipient, token or
+        // identifier set
+        ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withStartAmount(1)
+            .withEndAmount(1)
+            .saveDefault(SINGLE_721);
 
         // create a default considerationItem for three erc20;
         // note that it does not have recipient set
@@ -114,6 +136,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withConduitKey(conduitKeyOne)
             .saveDefault(VALIDATION_ZONE); // not strictly necessary
         // fill in counter later
+
+        // create a default orderComponents for a contract order
+        OrderComponentsLib
+        .empty()
+        .withOrderType(OrderType.CONTRACT)
+        .withStartTime(block.timestamp)
+        .withEndTime(block.timestamp + 1)
+        .withZoneHash(bytes32(0)) // not strictly necessary
+            .withSalt(0)
+            .withConduitKey(conduitKeyOne)
+            .saveDefault(CONTRACT_ORDER);
 
         // create a default fulfillmentComponent for first_first
         // corresponds to first offer or consideration item in the first order
@@ -1024,6 +1057,96 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         });
     }
 
+    function testMatchContractOrdersWithConduit() public {
+        test(
+            this.execMatchContractOrdersWithConduit,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchContractOrdersWithConduit,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchContractOrdersWithConduit(
+        Context memory context
+    ) external stateless {
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments,
+            bytes32 conduitKey,
+            uint256 numOrders
+        ) = _buildFulfillmentDataMirrorContractOrders(context);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        context.seaport.matchOrders{ value: 1 ether }({
+            orders: orders,
+            fulfillments: fulfillments
+        });
+    }
+
+    function testMatchOpenAndContractOrdersWithConduit() public {
+        test(
+            this.execMatchOpenAndContractOrdersWithConduit,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchOpenAndContractOrdersWithConduit,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchOpenAndContractOrdersWithConduit(
+        Context memory context
+    ) external stateless {
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments,
+            bytes32 conduitKey,
+            uint256 numOrders
+        ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        context.seaport.matchOrders{ value: 1 ether }({
+            orders: orders,
+            fulfillments: fulfillments
+        });
+    }
+
+    function testMatchFullRestrictedOrdersNoConduit() public {
+        test(
+            this.execMatchFullRestrictedOrdersNoConduit,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchFullRestrictedOrdersNoConduit,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchFullRestrictedOrdersNoConduit(
+        Context memory context
+    ) external stateless {
+        // set offerer2 as the expected offer recipient
+        zone.setExpectedOfferRecipient(offerer2.addr);
+
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments,
+            ,
+
+        ) = _buildFulfillmentDataMirrorOrdersNoConduit(context);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        context.seaport.matchOrders{ value: 2 ether }({
+            orders: orders,
+            fulfillments: fulfillments
+        });
+    }
+
     ///@dev build multiple orders from the same offerer
     function _buildOrders(
         Context memory context,
@@ -1032,7 +1155,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     ) internal view returns (Order[] memory) {
         Order[] memory orders = new Order[](orderComponents.length);
         for (uint256 i = 0; i < orderComponents.length; i++) {
-            orders[i] = toOrder(context.seaport, orderComponents[i], key);
+            if (orderComponents[i].orderType == OrderType.CONTRACT)
+                orders[i] = toUnsignedOrder(
+                    context.seaport,
+                    orderComponents[i]
+                );
+            else orders[i] = toOrder(context.seaport, orderComponents[i], key);
         }
         return orders;
     }
@@ -1123,6 +1251,307 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
+    //@dev builds fulfillment data for a contract order from the
+    //     TestTransferValidationZoneOfferer and its mirror order
+    //     (one offerItem and one considerationItem)
+    function _buildFulfillmentDataMirrorContractOrders(
+        Context memory context
+    )
+        internal
+        returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
+    {
+        // Create contract offerers
+        TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
+        TestTransferValidationZoneOfferer transferValidationOfferer2 = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
+
+        transferValidationOfferer1.setExpectedOfferRecipient(
+            address(transferValidationOfferer2)
+        );
+        transferValidationOfferer2.setExpectedOfferRecipient(
+            address(transferValidationOfferer1)
+        );
+
+        vm.label(address(transferValidationOfferer1), "contractOfferer1");
+        vm.label(address(transferValidationOfferer2), "contractOfferer2");
+
+        // Mint 721 to contract offerer 1
+        test721_1.mint(address(transferValidationOfferer1), 1);
+
+        allocateTokensAndApprovals(
+            address(transferValidationOfferer1),
+            uint128(MAX_INT)
+        );
+        allocateTokensAndApprovals(
+            address(transferValidationOfferer2),
+            uint128(MAX_INT)
+        );
+
+        // Create one eth consideration for contract order 1
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    address(transferValidationOfferer1)
+                )
+            );
+        // Create single 721 offer for contract order 1
+        OfferItem[] memory offerArray = SeaportArrays.OfferItems(
+            OfferItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+        );
+        // Build first order components
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(CONTRACT_ORDER)
+            .withOfferer(address(transferValidationOfferer1))
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withCounter(
+                context.seaport.getCounter(address(transferValidationOfferer1))
+            );
+
+        // Second order components mirror first order components
+        // Create one eth offer for contract order 2
+        offerArray = SeaportArrays.OfferItems(
+            OfferItemLib.fromDefault(ONE_ETH)
+        );
+
+        // Create one 721 consideration for contract order 2
+        considerationArray = SeaportArrays.ConsiderationItems(
+            ConsiderationItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+                .withRecipient(address(transferValidationOfferer2))
+        );
+        // technically we do not need to copy() since first order components is
+        // not used again, but to encourage good practices, make a copy and
+        // edit that
+        OrderComponents memory orderComponents2 = orderComponents
+            .copy()
+            .withOfferer(address(transferValidationOfferer2))
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withCounter(
+                context.seaport.getCounter(address(transferValidationOfferer2))
+            );
+
+        Order[] memory orders = _buildOrders(
+            context,
+            SeaportArrays.OrderComponentsArray(
+                orderComponents,
+                orderComponents2
+            ),
+            offerer1.key
+        );
+
+        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                ),
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+        );
+
+        return (orders, fulfillments, conduitKeyOne, 2);
+    }
+
+    function _buildFulfillmentDataOpenOrderAndMirrorContractOrder(
+        Context memory context
+    )
+        internal
+        returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
+    {
+        // Create contract offerer
+        TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
+                offerer1.addr
+            );
+
+        vm.label(address(transferValidationOfferer1), "contractOfferer");
+
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(transferValidationOfferer1)
+            );
+
+        // Mint 721 to contract offerer 1
+        test721_1.mint(address(transferValidationOfferer1), 1);
+
+        allocateTokensAndApprovals(
+            address(transferValidationOfferer1),
+            uint128(MAX_INT)
+        );
+
+        // Create single 721 offer for contract order 1
+        OfferItem[] memory offerArray = SeaportArrays.OfferItems(
+            OfferItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+        );
+        // Create one eth consideration for contract order 1
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    address(transferValidationOfferer1)
+                )
+            );
+
+        // Build first order components
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(CONTRACT_ORDER)
+            .withOfferer(address(transferValidationOfferer1))
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withCounter(
+                context.seaport.getCounter(address(transferValidationOfferer1))
+            );
+
+        // Second order components mirror first order components
+        // Create one eth offer for open order
+        offerArray = SeaportArrays.OfferItems(
+            OfferItemLib.fromDefault(ONE_ETH)
+        );
+
+        // Create one 721 consideration for open order
+        considerationArray = SeaportArrays.ConsiderationItems(
+            ConsiderationItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+                .withRecipient(offerer1.addr)
+        );
+
+        OrderComponents memory orderComponents2 = OrderComponentsLib
+            .fromDefault(VALIDATION_ZONE)
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withZone(address(transferValidationZone))
+            .withCounter(context.seaport.getCounter(offerer1.addr));
+
+        Order[] memory orders = _buildOrders(
+            context,
+            SeaportArrays.OrderComponentsArray(
+                orderComponents,
+                orderComponents2
+            ),
+            offerer1.key
+        );
+
+        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                ),
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+        );
+
+        return (orders, fulfillments, conduitKeyOne, 2);
+    }
+
+    function _buildFulfillmentDataMirrorOrdersNoConduit(
+        Context memory context
+    )
+        internal
+        returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
+    {
+        // mint 721 to offerer 1
+        test721_1.mint(offerer1.addr, 1);
+
+        OfferItem[] memory offerArray = SeaportArrays.OfferItems(
+            OfferItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+        );
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    offerer1.addr
+                )
+            );
+
+        // build first order components, remove conduit key
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(VALIDATION_ZONE)
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withConduitKey(bytes32(0))
+            .withCounter(context.seaport.getCounter(offerer1.addr));
+
+        // create mirror offer and consideration
+        offerArray = SeaportArrays.OfferItems(
+            OfferItemLib.fromDefault(ONE_ETH)
+        );
+
+        considerationArray = SeaportArrays.ConsiderationItems(
+            ConsiderationItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+                .withRecipient(offerer2.addr)
+        );
+
+        OrderComponents memory orderComponents2 = OrderComponentsLib
+            .fromDefault(VALIDATION_ZONE)
+            .withOfferer(offerer2.addr)
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withConduitKey(bytes32(0))
+            .withCounter(context.seaport.getCounter(offerer2.addr));
+
+        Order[] memory orders = new Order[](2);
+
+        orders[0] = toOrder(context.seaport, orderComponents, offerer1.key);
+        orders[1] = toOrder(context.seaport, orderComponents2, offerer2.key);
+
+        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                ),
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+        );
+
+        return (orders, fulfillments, bytes32(0), 2);
+    }
+
     function toOrder(
         ConsiderationInterface seaport,
         OrderComponents memory orderComponents,
@@ -1134,5 +1563,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .empty()
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
+    }
+
+    function toUnsignedOrder(
+        ConsiderationInterface seaport,
+        OrderComponents memory orderComponents
+    ) internal view returns (Order memory order) {
+        order = OrderLib.empty().withParameters(
+            orderComponents.toOrderParameters()
+        );
     }
 }

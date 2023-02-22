@@ -55,6 +55,8 @@ contract TestTransferValidationZoneOfferer is
         uint256 actualBalance
     );
 
+    receive() external payable {}
+
     address internal _expectedOfferRecipient;
 
     // Pass in the null address to expect the fulfiller.
@@ -167,7 +169,6 @@ contract TestTransferValidationZoneOfferer is
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         // Ratify the order.
-
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
         uint256 seaportBalance = address(msg.sender).balance;
@@ -180,11 +181,8 @@ contract TestTransferValidationZoneOfferer is
         // items.
         _assertValidReceivedItems(maximumSpent);
 
-        // Get the fulfiller address from the context.
-        address fulfiller = address(bytes20(context[0:20]));
-
         address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-            ? fulfiller
+            ? address(bytes20(context[0:20]))
             : _expectedOfferRecipient;
 
         // Ensure that the expected recipient has received all offer items.
@@ -404,5 +402,9 @@ contract TestTransferValidationZoneOfferer is
                 token
             );
         }
+    }
+
+    function setExpectedOfferRecipient(address expectedOfferRecipient) public {
+        _expectedOfferRecipient = expectedOfferRecipient;
     }
 }
