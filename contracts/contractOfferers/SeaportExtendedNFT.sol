@@ -38,6 +38,10 @@ contract SeaportExtendedNFT is
     // Track current transferability of tokens and make available externally.
     mapping(uint256 => bool) public canTransfer;
 
+    // Track last direct transfer block number, only allow one direct per block.
+    // Note: this value can be packed alongside canTransfer as they share a key.
+    mapping(uint256 => uint256) private _blockNumberOfLastDirectTransfer;
+
     error InvalidCaller(address caller);
     error UnsupportedExtraDataVersion(uint8 version);
     error InvalidExtraDataEncoding(uint8 version);
@@ -173,16 +177,29 @@ contract SeaportExtendedNFT is
 
         require(to != address(0), "INVALID_RECIPIENT");
 
-        // Note: the creator could optionally toggle the canTransfer check or
-        // the auto-approval for Seaport.
-        require(
-            msg.sender == from ||
-                (canTransfer[tokenId] &&
+        if (msg.sender == from) {
+            // Ensure that the canTransfer flag has been set if multiple token
+            // transfers are being attempted as part of the same block.
+            uint256 lastBlockNumber = _blockNumberOfLastDirectTransfer[tokenId];
+            require(
+                lastBlockNumber != block.number || canTransfer[tokenId],
+                "NO_MULTIPLE_DIRECT_TRANSFERS"
+            );
+
+            // Set the block number of the transfer to prevent subsequent direct
+            // transfers without the canTransfer flag as part of the same block.
+            _blockNumberOfLastDirectTransfer[tokenId] = block.number;
+        } else {
+            // Note: the creator could optionally toggle the canTransfer check
+            // for the auto-approval for Seaport.
+            require(
+                canTransfer[tokenId] &&
                     (msg.sender == _SEAPORT ||
                         isApprovedForAll[from][msg.sender] ||
-                        msg.sender == getApproved[tokenId])),
-            "NOT_AUTHORIZED"
-        );
+                        msg.sender == getApproved[tokenId]),
+                "NOT_AUTHORIZED"
+            );
+        }
 
         // Underflow of the sender's balance is impossible because ownership is
         // checked above and recipient's balance can't realistically overflow.
