@@ -1263,6 +1263,50 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
+    function testExecMatchAdvancedMirrorOrdersRestrictedAndUnrestricted()
+        public
+    {
+        test(
+            this.execMatchAdvancedMirrorOrdersRestrictedAndUnrestricted,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchAdvancedMirrorOrdersRestrictedAndUnrestricted,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
+    function execMatchAdvancedMirrorOrdersRestrictedAndUnrestricted(
+        Context memory context
+    ) external stateless {
+        // set offerer2 as the expected offer recipient
+        zone.setExpectedOfferRecipient(offerer2.addr);
+
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments,
+            ,
+
+        ) = _buildFulfillmentDataMirrorOrdersRestrictedAndUnrestricted(context);
+
+        AdvancedOrder[] memory advancedOrders;
+
+        // Convert the orders to advanced orders.
+        advancedOrders = SeaportArrays.AdvancedOrders(
+            orders[0].toAdvancedOrder(1, 1, ""),
+            orders[1].toAdvancedOrder(1, 1, "")
+        );
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        context.seaport.matchAdvancedOrders{ value: 1 ether }(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillments,
+            address(0)
+        );
+    }
+
     ///@dev build multiple orders from the same offerer
     function _buildOrders(
         Context memory context,
@@ -1697,6 +1741,86 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
 
         return (orders, fulfillments, conduitKeyOne, 2);
+    }
+
+    function _buildFulfillmentDataMirrorOrdersRestrictedAndUnrestricted(
+        Context memory context
+    )
+        internal
+        returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
+    {
+        // mint 721 to offerer 1
+        test721_1.mint(offerer1.addr, 1);
+
+        OfferItem[] memory offerArray = SeaportArrays.OfferItems(
+            OfferItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+        );
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    offerer1.addr
+                )
+            );
+
+        // build first restricted order components, remove conduit key
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(VALIDATION_ZONE)
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withConduitKey(bytes32(0))
+            .withCounter(context.seaport.getCounter(offerer1.addr));
+
+        // create mirror offer and consideration
+        offerArray = SeaportArrays.OfferItems(
+            OfferItemLib.fromDefault(ONE_ETH)
+        );
+
+        considerationArray = SeaportArrays.ConsiderationItems(
+            ConsiderationItemLib
+                .fromDefault(SINGLE_721)
+                .withToken(address(test721_1))
+                .withIdentifierOrCriteria(1)
+                .withRecipient(offerer2.addr)
+        );
+
+        // build second unrestricted order components, remove zone
+        OrderComponents memory orderComponents2 = orderComponents
+            .copy()
+            .withOrderType(OrderType.FULL_OPEN)
+            .withOfferer(offerer2.addr)
+            .withOffer(offerArray)
+            .withConsideration(considerationArray)
+            .withZone(address(0))
+            .withCounter(context.seaport.getCounter(offerer2.addr));
+
+        Order[] memory orders = new Order[](2);
+
+        orders[0] = toOrder(context.seaport, orderComponents, offerer1.key);
+        orders[1] = toOrder(context.seaport, orderComponents2, offerer2.key);
+
+        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                ),
+            FulfillmentLib
+                .empty()
+                .withOfferComponents(
+                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+                )
+                .withConsiderationComponents(
+                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                )
+        );
+
+        return (orders, fulfillments, bytes32(0), 2);
     }
 
     function _buildFulfillmentDataMirrorOrdersNoConduit(
