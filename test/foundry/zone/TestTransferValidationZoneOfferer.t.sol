@@ -4,17 +4,16 @@ pragma solidity ^0.8.17;
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
 import {
-    ConsiderationItem,
-    OfferItem,
-    ItemType,
-    OrderType,
     AdvancedOrder,
-    Order,
+    ConsiderationItem,
     CriteriaResolver,
-    FulfillmentComponent,
     Fulfillment,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    Order,
     OrderComponents,
-    OrderParameters
+    OrderType
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
@@ -22,13 +21,12 @@ import {
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
 import {
-    FulfillmentLib,
+    ConsiderationItemLib,
     FulfillmentComponentLib,
-    OrderParametersLib,
+    FulfillmentLib,
+    OfferItemLib,
     OrderComponentsLib,
     OrderLib,
-    OfferItemLib,
-    ConsiderationItemLib,
     SeaportArrays
 } from "../../../contracts/helpers/sol/lib/SeaportStructLib.sol";
 
@@ -45,7 +43,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
     using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using OrderLib for Order[];
 
@@ -1074,11 +1071,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 conduitKey,
-            uint256 numOrders
-        ) = _buildFulfillmentDataMirrorContractOrders(context);
+            ,
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        ) = _buildFulfillmentDataMirrorContractOrders(context);
 
         context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
@@ -1103,11 +1098,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 conduitKey,
-            uint256 numOrders
-        ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
+            ,
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
 
         context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
@@ -1138,8 +1131,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ,
 
         ) = _buildFulfillmentDataMirrorOrdersNoConduit(context);
-
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
         context.seaport.matchOrders{ value: 2 ether }({
             orders: orders,
@@ -1566,9 +1557,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     }
 
     function toUnsignedOrder(
-        ConsiderationInterface seaport,
+        ConsiderationInterface /* seaport */,
         OrderComponents memory orderComponents
-    ) internal view returns (Order memory order) {
+    ) internal pure returns (Order memory order) {
         order = OrderLib.empty().withParameters(
             orderComponents.toOrderParameters()
         );
