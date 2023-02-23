@@ -15,6 +15,6 @@ import { OrderComponentsLib } from "./OrderComponentsLib.sol";
 import { OrderLib } from "./OrderLib.sol";
 import { OrderParametersLib } from "./OrderParametersLib.sol";
 import { ReceivedItemLib } from "./ReceivedItemLib.sol";
+import { SeaportArrays } from "./SeaportArrays.sol";
 import { SpentItemLib } from "./SpentItemLib.sol";
 import { StructCopier } from "./StructCopier.sol";
-import { SeaportArrays } from "./SeaportArrays.sol";

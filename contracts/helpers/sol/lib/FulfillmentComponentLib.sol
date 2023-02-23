@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    FulfillmentComponent,
-    OfferItem
-} from "../../../lib/ConsiderationStructs.sol";
-import { Side } from "../../../lib/ConsiderationEnums.sol";
+import { FulfillmentComponent } from "../../../lib/ConsiderationStructs.sol";
+
 import { ArrayLib } from "./ArrayLib.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title FulfillmentComponentLib
+ * @author James Wenzel (emo.eth)
+ * @notice FulfillmentComponentLib is a library for managing FulfillmentComponent
+ *         structs and arrays. It allows chaining of functions to make
+ *         struct creation more readable.
+ */
 library FulfillmentComponentLib {
     bytes32 private constant FULFILLMENT_COMPONENT_MAP_POSITION =
         keccak256("seaport.FulfillmentComponentDefaults");
@@ -18,10 +23,10 @@ library FulfillmentComponentLib {
     using ArrayLib for bytes32[];
 
     /**
-     * @notice clears a default FulfillmentComponent from storage
+     * @dev Clears a default FulfillmentComponent from storage.
+     *
      * @param defaultName the name of the default to clear
      */
-
     function clear(string memory defaultName) internal {
         mapping(string => FulfillmentComponent)
             storage fulfillmentComponentMap = _fulfillmentComponentMap();
@@ -31,11 +36,21 @@ library FulfillmentComponentLib {
         clear(component);
     }
 
+    /**
+     * @dev Clears all fields on a FulfillmentComponent.
+     *
+     * @param component the FulfillmentComponent to clear
+     */
     function clear(FulfillmentComponent storage component) internal {
         component.orderIndex = 0;
         component.itemIndex = 0;
     }
 
+    /**
+     * @dev Clears an array of FulfillmentComponents from storage.
+     *
+     * @param components the FulfillmentComponents to clear
+     */
     function clear(FulfillmentComponent[] storage components) internal {
         while (components.length > 0) {
             clear(components[components.length - 1]);
@@ -44,8 +59,11 @@ library FulfillmentComponentLib {
     }
 
     /**
-     * @notice gets a default FulfillmentComponent from storage
+     * @dev Gets a default FulfillmentComponent from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return component the FulfillmentComponent retrieved from storage
      */
     function fromDefault(
         string memory defaultName
@@ -55,6 +73,13 @@ library FulfillmentComponentLib {
         component = fulfillmentComponentMap[defaultName];
     }
 
+    /**
+     * @dev Gets an array of default FulfillmentComponents from storage.
+     *
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return components the FulfillmentComponents retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (FulfillmentComponent[] memory components) {
@@ -64,9 +89,12 @@ library FulfillmentComponentLib {
     }
 
     /**
-     * @notice saves an FulfillmentComponent as a named default
+     * @dev Saves an FulfillmentComponent as a named default.
+     *
      * @param fulfillmentComponent the FulfillmentComponent to save as a default
-     * @param defaultName the name of the default for retrieval
+     * @param defaultName          the name of the default for retrieval
+     *
+     * @return _fulfillmentComponent the FulfillmentComponent saved as a default
      */
     function saveDefault(
         FulfillmentComponent memory fulfillmentComponent,
@@ -82,6 +110,16 @@ library FulfillmentComponentLib {
         return fulfillmentComponent;
     }
 
+    /**
+     * @dev Saves an array of FulfillmentComponents as a named default.
+     *
+     * @param fulfillmentComponents the FulfillmentComponents to save as a
+     *                              default
+     * @param defaultName           the name of the default for retrieval
+     *
+     * @return _fulfillmentComponents the FulfillmentComponents saved as a
+     *                                default
+     */
     function saveDefaultMany(
         FulfillmentComponent[] memory fulfillmentComponents,
         string memory defaultName
@@ -101,8 +139,11 @@ library FulfillmentComponentLib {
     }
 
     /**
-     * @notice makes a copy of an FulfillmentComponent in-memory
-     * @param component the FulfillmentComponent to make a copy of in-memory
+     * @dev Makes a copy of an FulfillmentComponent in-memory.
+     *
+     * @param component the FulfillmentComponent to make a copy of in-memory.
+     *
+     * @return copiedComponent the copied FulfillmentComponent
      */
     function copy(
         FulfillmentComponent memory component
@@ -114,6 +155,13 @@ library FulfillmentComponentLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of FulfillmentComponents in-memory.
+     *
+     * @param components the FulfillmentComponents to make a copy of in-memory.
+     *
+     * @return copiedComponents the copied FulfillmentComponents
+     */
     function copy(
         FulfillmentComponent[] memory components
     ) internal pure returns (FulfillmentComponent[] memory) {
@@ -126,12 +174,22 @@ library FulfillmentComponentLib {
         return copiedItems;
     }
 
+    /**
+     * @dev Creates an empty FulfillmentComponent.
+     *
+     * @return component the empty FulfillmentComponent
+     *
+     * @custom:return emptyComponent the empty FulfillmentComponent
+     */
     function empty() internal pure returns (FulfillmentComponent memory) {
         return FulfillmentComponent({ orderIndex: 0, itemIndex: 0 });
     }
 
     /**
-     * @notice gets the storage position of the default FulfillmentComponent map
+     * @dev Gets the storage position of the default FulfillmentComponent map.
+     *
+     * @custom:return position the storage position of the default
+     *                         FulfillmentComponent
      */
     function _fulfillmentComponentMap()
         private
@@ -147,6 +205,13 @@ library FulfillmentComponentLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default FulfillmentComponent array
+     * map.
+     *
+     * @custom:return position the storage position of the default
+     *                         FulfillmentComponent array
+     */
     function _fulfillmentComponentsMap()
         private
         pure
@@ -161,11 +226,17 @@ library FulfillmentComponentLib {
         }
     }
 
-    // methods for configuring a single of each of an FulfillmentComponent's fields, which modifies the
-    // FulfillmentComponent
-    // in-place and
-    // returns it
+    // Methods for configuring a single of each of a FulfillmentComponent's
+    // fields, which modify the FulfillmentComponent in-place and return it.
 
+    /**
+     * @dev Sets the orderIndex of a FulfillmentComponent.
+     *
+     * @param component  the FulfillmentComponent to set the orderIndex of
+     * @param orderIndex the orderIndex to set
+     *
+     * @return component the FulfillmentComponent with the orderIndex set
+     */
     function withOrderIndex(
         FulfillmentComponent memory component,
         uint256 orderIndex
@@ -174,6 +245,14 @@ library FulfillmentComponentLib {
         return component;
     }
 
+    /**
+     * @dev Sets the itemIndex of a FulfillmentComponent.
+     *
+     * @param component the FulfillmentComponent to set the itemIndex of
+     * @param itemIndex the itemIndex to set
+     *
+     * @return component the FulfillmentComponent with the itemIndex set
+     */
     function withItemIndex(
         FulfillmentComponent memory component,
         uint256 itemIndex
