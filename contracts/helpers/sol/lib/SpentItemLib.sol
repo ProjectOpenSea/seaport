@@ -1,20 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { SpentItem, OfferItem } from "../../../lib/ConsiderationStructs.sol";
-import { ItemType } from "../../../lib/ConsiderationEnums.sol";
-import { StructCopier } from "./StructCopier.sol";
+import { OfferItem, SpentItem } from "../../../lib/ConsiderationStructs.sol";
 
+import { ItemType } from "../../../lib/ConsiderationEnums.sol";
+
+/**
+ * @title SpentItemLib
+ * @author James Wenzel (emo.eth)
+ * @notice SpentItemLib is a library for managing SpentItem structs and arrays.
+ *         It allows chaining of functions to make struct creation more
+ *         readable.
+ */
 library SpentItemLib {
     bytes32 private constant SPENT_ITEM_MAP_POSITION =
         keccak256("seaport.SpentItemDefaults");
     bytes32 private constant SPENT_ITEMS_MAP_POSITION =
         keccak256("seaport.SpentItemsDefaults");
 
+    /**
+     * @dev Creates an empty SpentItem.
+     *
+     * @return the empty SpentItem
+     */
     function empty() internal pure returns (SpentItem memory) {
         return SpentItem(ItemType(0), address(0), 0, 0);
     }
 
+    /**
+     * @dev Clears an SpentItem from storage.
+     *
+     * @param item the item to clear
+     */
     function clear(SpentItem storage item) internal {
         // clear all fields
         item.itemType = ItemType(0);
@@ -23,6 +40,11 @@ library SpentItemLib {
         item.amount = 0;
     }
 
+    /**
+     * @dev Clears an array of SpentItems from storage.
+     *
+     * @param items the items to clear
+     */
     function clearMany(SpentItem[] storage items) internal {
         while (items.length > 0) {
             clear(items[items.length - 1]);
@@ -31,16 +53,21 @@ library SpentItemLib {
     }
 
     /**
-     * @notice clears a default SpentItem from storage
+     * @dev Clears a default SpentItem from storage.
+     *
      * @param defaultName the name of the default to clear
      */
-
     function clear(string memory defaultName) internal {
         mapping(string => SpentItem) storage spentItemMap = _spentItemMap();
         SpentItem storage item = spentItemMap[defaultName];
         clear(item);
     }
 
+    /**
+     * @dev Clears an array of default SpentItems from storage.
+     *
+     * @param defaultsName the name of the default to clear
+     */
     function clearMany(string memory defaultsName) internal {
         mapping(string => SpentItem[]) storage spentItemsMap = _spentItemsMap();
         SpentItem[] storage items = spentItemsMap[defaultsName];
@@ -48,8 +75,11 @@ library SpentItemLib {
     }
 
     /**
-     * @notice gets a default SpentItem from storage
+     * @dev Gets a default SpentItem from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the SpentItem
      */
     function fromDefault(
         string memory defaultName
@@ -58,6 +88,13 @@ library SpentItemLib {
         item = spentItemMap[defaultName];
     }
 
+    /**
+     * @dev Gets an array of default SpentItems from storage.
+     *
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return items the SpentItems
+     */
     function fromDefaultMany(
         string memory defaultsName
     ) internal view returns (SpentItem[] memory items) {
@@ -66,9 +103,12 @@ library SpentItemLib {
     }
 
     /**
-     * @notice saves an SpentItem as a named default
+     * @dev Saves an SpentItem as a named default.
+     *
      * @param spentItem the SpentItem to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _spentItem the saved SpentItem
      */
     function saveDefault(
         SpentItem memory spentItem,
@@ -79,6 +119,14 @@ library SpentItemLib {
         return spentItem;
     }
 
+    /**
+     * @dev Saves an array of SpentItems as a named default.
+     *
+     * @param spentItems the SpentItems to save as a default
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return _spentItems the saved SpentItems
+     */
     function saveDefaultMany(
         SpentItem[] memory spentItems,
         string memory defaultsName
@@ -89,6 +137,14 @@ library SpentItemLib {
         return spentItems;
     }
 
+    /**
+     * @dev Sets an array of in-memory SpentItems to an array of SpentItems in
+     *      storage.
+     *
+     * @param items    the SpentItem array in storage to push to
+     * @param newItems the SpentItem array in memory to push onto the items
+     *                 array
+     */
     function setSpentItems(
         SpentItem[] storage items,
         SpentItem[] memory newItems
@@ -100,8 +156,11 @@ library SpentItemLib {
     }
 
     /**
-     * @notice makes a copy of an SpentItem in-memory
+     * @dev Makes a copy of an SpentItem in-memory.
+     *
      * @param item the SpentItem to make a copy of in-memory
+     *
+     * @custom:return copiedItem the copied SpentItem
      */
     function copy(
         SpentItem memory item
@@ -115,6 +174,13 @@ library SpentItemLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of SpentItems in-memory.
+     *
+     * @param items the SpentItems to make a copy of in-memory
+     *
+     * @custom:return copiedItems the copied SpentItems
+     */
     function copy(
         SpentItem[] memory items
     ) internal pure returns (SpentItem[] memory) {
@@ -126,7 +192,9 @@ library SpentItemLib {
     }
 
     /**
-     * @notice gets the storage position of the default SpentItem map
+     * @dev Gets the storage position of the default SpentItem map.
+     *
+     * @custom:return position the storage position of the default SpentItem map
      */
     function _spentItemMap()
         private
@@ -139,6 +207,12 @@ library SpentItemLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default SpentItem array map.
+     *
+     * @custom:return position the storage position of the default SpentItem
+     *                         array map
+     */
     function _spentItemsMap()
         private
         pure
@@ -150,14 +224,16 @@ library SpentItemLib {
         }
     }
 
-    // methods for configuring a single of each of an SpentItem's fields, which modifies the SpentItem in-place and
-    // returns it
+    // Methods for configuring a single of each of a SpentItem's fields, which
+    // modify the SpentItem struct in-place and return it.
 
     /**
-     * @notice sets the item type
-     * @param item the SpentItem to modify
-     * @param itemType the item type to set
-     * @return the modified SpentItem
+     * @dev Sets the itemType field of a SpentItem.
+     *
+     * @param item     the SpentItem to set the itemType field of
+     * @param itemType the itemType to set the itemType field to
+     *
+     * @custom:return item the SpentItem with the itemType field set
      */
     function withItemType(
         SpentItem memory item,
@@ -168,10 +244,12 @@ library SpentItemLib {
     }
 
     /**
-     * @notice sets the token address
-     * @param item the SpentItem to modify
-     * @param token the token address to set
-     * @return the modified SpentItem
+     * @dev Sets the token field of a SpentItem.
+     *
+     * @param item  the SpentItem to set the token field of
+     * @param token the token to set the token field to
+     *
+     * @custom:return item the SpentItem with the token field set
      */
     function withToken(
         SpentItem memory item,
@@ -182,10 +260,12 @@ library SpentItemLib {
     }
 
     /**
-     * @notice sets the identifier or criteria
-     * @param item the SpentItem to modify
-     * @param identifier the identifier or criteria to set
-     * @return the modified SpentItem
+     * @dev Sets the identifier field of a SpentItem.
+     *
+     * @param item       the SpentItem to set the identifier field of
+     * @param identifier the identifier to set the identifier field to
+     *
+     * @custom:return item the SpentItem with the identifier field set
      */
     function withIdentifier(
         SpentItem memory item,
@@ -196,10 +276,12 @@ library SpentItemLib {
     }
 
     /**
-     * @notice sets the start amount
-     * @param item the SpentItem to modify
-     * @param amount the start amount to set
-     * @return the modified SpentItem
+     * @dev Sets the amount field of a SpentItem.
+     *
+     * @param item   the SpentItem to set the amount field of
+     * @param amount the amount to set the amount field to
+     *
+     * @custom:return item the SpentItem with the amount field set
      */
     function withAmount(
         SpentItem memory item,
@@ -209,6 +291,13 @@ library SpentItemLib {
         return item;
     }
 
+    /**
+     * @dev Converts a SpentItem to an OfferItem.
+     *
+     * @param item the SpentItem to convert to an OfferItem
+     *
+     * @custom:return offerItem the converted OfferItem
+     */
     function toOfferItem(
         SpentItem memory item
     ) internal pure returns (OfferItem memory) {

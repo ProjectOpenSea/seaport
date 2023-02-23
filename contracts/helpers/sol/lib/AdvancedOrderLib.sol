@@ -6,9 +6,18 @@ import {
     Order,
     OrderParameters
 } from "../../../lib/ConsiderationStructs.sol";
+
 import { OrderParametersLib } from "./OrderParametersLib.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title AdvancedOrderLib
+ * @author James Wenzel (emo.eth)
+ * @notice AdditionalRecipientLib is a library for managing AdvancedOrder
+ *         structs and arrays. It allows chaining of functions to make struct
+ *         creation more readable.
+ */
 library AdvancedOrderLib {
     bytes32 private constant ADVANCED_ORDER_MAP_POSITION =
         keccak256("seaport.AdvancedOrderDefaults");
@@ -18,7 +27,8 @@ library AdvancedOrderLib {
     using OrderParametersLib for OrderParameters;
 
     /**
-     * @notice clears a default AdvancedOrder from storage
+     * @dev Clears a default AdvancedOrder from storage.
+     *
      * @param defaultName the name of the default to clear
      */
     function clear(string memory defaultName) internal {
@@ -28,6 +38,11 @@ library AdvancedOrderLib {
         clear(item);
     }
 
+    /**
+     * @dev Clears all fields on an AdvancedOrder.
+     *
+     * @param item the AdvancedOrder to clear
+     */
     function clear(AdvancedOrder storage item) internal {
         // clear all fields
         item.parameters.clear();
@@ -37,6 +52,11 @@ library AdvancedOrderLib {
         item.extraData = "";
     }
 
+    /**
+     * @dev Clears an array of AdvancedOrders from storage.
+     *
+     * @param items the AdvancedOrders to clear
+     */
     function clear(AdvancedOrder[] storage items) internal {
         while (items.length > 0) {
             clear(items[items.length - 1]);
@@ -45,8 +65,11 @@ library AdvancedOrderLib {
     }
 
     /**
-     * @notice gets a default AdvancedOrder from storage
+     * @dev Gets a default AdvancedOrder from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the AdvancedOrder retrieved from storage
      */
     function fromDefault(
         string memory defaultName
@@ -56,6 +79,13 @@ library AdvancedOrderLib {
         item = advancedOrderMap[defaultName];
     }
 
+    /**
+     * @dev Gets an array of default AdvancedOrders from storage.
+     *
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return items the AdvancedOrders retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (AdvancedOrder[] memory items) {
@@ -64,14 +94,22 @@ library AdvancedOrderLib {
         items = advancedOrdersMap[defaultName];
     }
 
+    /**
+     * @dev Returns an empty AdvancedOrder.
+     *
+     * @custom:return item the empty AdvancedOrder
+     */
     function empty() internal pure returns (AdvancedOrder memory) {
         return AdvancedOrder(OrderParametersLib.empty(), 0, 0, "", "");
     }
 
     /**
-     * @notice saves an AdvancedOrder as a named default
+     * @dev Saves an AdvancedOrder as a named default.
+     *
      * @param advancedOrder the AdvancedOrder to save as a default
-     * @param defaultName the name of the default for retrieval
+     * @param defaultName   the name of the new default
+     *
+     * @return _advancedOrder the AdvancedOrder saved as a default
      */
     function saveDefault(
         AdvancedOrder memory advancedOrder,
@@ -86,6 +124,14 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Saves an array of AdvancedOrders as a named default.
+     *
+     * @param advancedOrders the AdvancedOrders to save as a default
+     * @param defaultName    the name of the new default
+     *
+     * @return _advancedOrders the AdvancedOrders saved as a default
+     */
     function saveDefaultMany(
         AdvancedOrder[] memory advancedOrders,
         string memory defaultName
@@ -100,8 +146,11 @@ library AdvancedOrderLib {
     }
 
     /**
-     * @notice makes a copy of an AdvancedOrder in-memory
+     * @dev Makes a copy of an AdvancedOrder in-memory.
+     *
      * @param item the AdvancedOrder to make a copy of in-memory
+     *
+     * @custom:return item the copied AdvancedOrder
      */
     function copy(
         AdvancedOrder memory item
@@ -116,6 +165,13 @@ library AdvancedOrderLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of AdvancedOrders in-memory.
+     *
+     * @param items the AdvancedOrders to make a copy of in-memory
+     *
+     * @custom:return items the copied AdvancedOrders
+     */
     function copy(
         AdvancedOrder[] memory items
     ) internal pure returns (AdvancedOrder[] memory) {
@@ -127,7 +183,10 @@ library AdvancedOrderLib {
     }
 
     /**
-     * @notice gets the storage position of the default AdvancedOrder map
+     * @dev Gets the storage position of the default AdvancedOrder map.
+     *
+     * @return advancedOrderMap the storage position of the default
+     *                          AdvancedOrder map
      */
     function _advancedOrderMap()
         private
@@ -140,6 +199,12 @@ library AdvancedOrderLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default AdvancedOrder array map.
+     *
+     * @return advancedOrdersMap the storage position of the default
+     *                           AdvancedOrder array map
+     */
     function _advancedOrdersMap()
         private
         pure
@@ -151,10 +216,17 @@ library AdvancedOrderLib {
         }
     }
 
-    // methods for configuring a single of each of an AdvancedOrder's fields, which modifies the AdvancedOrder in-place
-    // and
-    // returns it
+    // Methods for configuring a single of each of an AdvancedOrder's fields,
+    // which modify the AdvancedOrder in-place and return it.
 
+    /**
+     * @dev Configures an AdvancedOrder's parameters.
+     *
+     * @param advancedOrder the AdvancedOrder to configure
+     * @param parameters    the parameters to set
+     *
+     * @custom:return _advancedOrder the configured AdvancedOrder
+     */
     function withParameters(
         AdvancedOrder memory advancedOrder,
         OrderParameters memory parameters
@@ -163,6 +235,14 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Configures an AdvancedOrder's numerator.
+     *
+     * @param advancedOrder the AdvancedOrder to configure
+     * @param numerator     the numerator to set
+     *
+     * @custom:return _advancedOrder the configured AdvancedOrder
+     */
     function withNumerator(
         AdvancedOrder memory advancedOrder,
         uint120 numerator
@@ -171,6 +251,14 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Configures an AdvancedOrder's denominator.
+     *
+     * @param advancedOrder the AdvancedOrder to configure
+     * @param denominator   the denominator to set
+     *
+     * @custom:return _advancedOrder the configured AdvancedOrder
+     */
     function withDenominator(
         AdvancedOrder memory advancedOrder,
         uint120 denominator
@@ -179,6 +267,14 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Configures an AdvancedOrder's signature.
+     *
+     * @param advancedOrder the AdvancedOrder to configure
+     * @param signature     the signature to set
+     *
+     * @custom:return _advancedOrder the configured AdvancedOrder
+     */
     function withSignature(
         AdvancedOrder memory advancedOrder,
         bytes memory signature
@@ -187,6 +283,14 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Configures an AdvancedOrder's extra data.
+     *
+     * @param advancedOrder the AdvancedOrder to configure
+     * @param extraData     the extra data to set
+     *
+     * @custom:return _advancedOrder the configured AdvancedOrder
+     */
     function withExtraData(
         AdvancedOrder memory advancedOrder,
         bytes memory extraData
@@ -195,6 +299,13 @@ library AdvancedOrderLib {
         return advancedOrder;
     }
 
+    /**
+     * @dev Converts an AdvancedOrder to an Order.
+     *
+     * @param advancedOrder the AdvancedOrder to convert
+     *
+     * @return order the converted Order
+     */
     function toOrder(
         AdvancedOrder memory advancedOrder
     ) internal pure returns (Order memory order) {

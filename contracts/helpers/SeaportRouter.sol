@@ -10,9 +10,9 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
 
 import {
-    Execution,
     AdvancedOrder,
     CriteriaResolver,
+    Execution,
     FulfillmentComponent
 } from "../lib/ConsiderationStructs.sol";
 

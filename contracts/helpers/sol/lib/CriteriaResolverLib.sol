@@ -1,14 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    CriteriaResolver,
-    OfferItem
-} from "../../../lib/ConsiderationStructs.sol";
+import { CriteriaResolver } from "../../../lib/ConsiderationStructs.sol";
+
 import { Side } from "../../../lib/ConsiderationEnums.sol";
+
 import { ArrayLib } from "./ArrayLib.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title CriteriaResolverLib
+ * @author James Wenzel (emo.eth)
+ * @notice CriteriaResolverLib is a library for managing CriteriaResolver
+ *         structs and arrays. It allows chaining of functions to make
+ *         struct creation more readable.
+ */
 library CriteriaResolverLib {
     bytes32 private constant CRITERIA_RESOLVER_MAP_POSITION =
         keccak256("seaport.CriteriaResolverDefaults");
@@ -18,10 +25,10 @@ library CriteriaResolverLib {
     using ArrayLib for bytes32[];
 
     /**
-     * @notice clears a default CriteriaResolver from storage
+     * @dev Clears a default CriteriaResolver from storage.
+     *
      * @param defaultName the name of the default to clear
      */
-
     function clear(string memory defaultName) internal {
         mapping(string => CriteriaResolver)
             storage criteriaResolverMap = _criteriaResolverMap();
@@ -30,6 +37,11 @@ library CriteriaResolverLib {
         clear(resolver);
     }
 
+    /**
+     * @dev Clears all fields on a CriteriaResolver.
+     *
+     * @param resolver the CriteriaResolver to clear
+     */
     function clear(CriteriaResolver storage resolver) internal {
         bytes32[] memory criteriaProof;
         resolver.orderIndex = 0;
@@ -39,6 +51,11 @@ library CriteriaResolverLib {
         ArrayLib.setBytes32s(resolver.criteriaProof, criteriaProof);
     }
 
+    /**
+     * @dev Clears an array of CriteriaResolvers from storage.
+     *
+     * @param resolvers the CriteriaResolvers to clear
+     */
     function clear(CriteriaResolver[] storage resolvers) internal {
         while (resolvers.length > 0) {
             clear(resolvers[resolvers.length - 1]);
@@ -47,7 +64,8 @@ library CriteriaResolverLib {
     }
 
     /**
-     * @notice gets a default CriteriaResolver from storage
+     * @dev Gets a default CriteriaResolver from storage.
+     *
      * @param defaultName the name of the default for retrieval
      */
     function fromDefault(
@@ -58,6 +76,13 @@ library CriteriaResolverLib {
         resolver = criteriaResolverMap[defaultName];
     }
 
+    /**
+     * @dev Gets an array of CriteriaResolvers from storage.
+     *
+     * @param defaultsName the name of the default array for retrieval
+     *
+     * @return resolvers the CriteriaResolvers retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultsName
     ) internal view returns (CriteriaResolver[] memory resolvers) {
@@ -67,9 +92,12 @@ library CriteriaResolverLib {
     }
 
     /**
-     * @notice saves an CriteriaResolver as a named default
+     * @dev Saves an CriteriaResolver as a named default.
+     *
      * @param criteriaResolver the CriteriaResolver to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _criteriaResolver the CriteriaResolver that was saved
      */
     function saveDefault(
         CriteriaResolver memory criteriaResolver,
@@ -89,6 +117,14 @@ library CriteriaResolverLib {
         return criteriaResolver;
     }
 
+    /**
+     * @dev Saves an array of CriteriaResolvers as a named default.
+     *
+     * @param criteriaResolvers the CriteriaResolvers to save as a default
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return _criteriaResolvers the CriteriaResolvers that were saved
+     */
     function saveDefaultMany(
         CriteriaResolver[] memory criteriaResolvers,
         string memory defaultName
@@ -105,8 +141,11 @@ library CriteriaResolverLib {
     }
 
     /**
-     * @notice makes a copy of an CriteriaResolver in-memory
+     * @dev Makes a copy of a CriteriaResolver in-memory.
+     *
      * @param resolver the CriteriaResolver to make a copy of in-memory
+     *
+     * @custom:return copiedItem the copied CriteriaResolver
      */
     function copy(
         CriteriaResolver memory resolver
@@ -121,6 +160,13 @@ library CriteriaResolverLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of CriteriaResolvers in-memory.
+     *
+     * @param resolvers the CriteriaResolvers to make a copy of in-memory
+     *
+     * @custom:return copiedItems the copied CriteriaResolvers
+     */
     function copy(
         CriteriaResolver[] memory resolvers
     ) internal pure returns (CriteriaResolver[] memory) {
@@ -133,6 +179,11 @@ library CriteriaResolverLib {
         return copiedItems;
     }
 
+    /**
+     * @dev Creates an empty CriteriaResolver.
+     *
+     * @custom:return emptyResolver the empty CriteriaResolver
+     */
     function empty() internal pure returns (CriteriaResolver memory) {
         bytes32[] memory proof;
         return
@@ -146,7 +197,11 @@ library CriteriaResolverLib {
     }
 
     /**
-     * @notice gets the storage position of the default CriteriaResolver map
+     * @dev Gets the storage position of the default CriteriaResolver map.
+     *
+     * @custom:return position the storage position of the default
+     *                CriteriaResolver map.
+     *
      */
     function _criteriaResolverMap()
         private
@@ -161,6 +216,13 @@ library CriteriaResolverLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default CriteriaResolver array map.
+     *
+     * @custom:return position the storage position of the default
+     *                CriteriaResolver array map.
+     *
+     */
     function _criteriaResolversMap()
         private
         pure
@@ -174,10 +236,17 @@ library CriteriaResolverLib {
         }
     }
 
-    // methods for configuring a single of each of an CriteriaResolver's fields, which modifies the CriteriaResolver
-    // in-place and
-    // returns it
+    // Methods for configuring a single of each of an CriteriaResolver's fields,
+    // which modify the CriteriaResolver in-place and return it.
 
+    /**
+     * @dev Sets the orderIndex of a CriteriaResolver.
+     *
+     * @param resolver   the CriteriaResolver to set the orderIndex of
+     * @param orderIndex the orderIndex to set
+     *
+     * @return _resolver the CriteriaResolver with the orderIndex set
+     */
     function withOrderIndex(
         CriteriaResolver memory resolver,
         uint256 orderIndex
@@ -186,6 +255,14 @@ library CriteriaResolverLib {
         return resolver;
     }
 
+    /**
+     * @dev Sets the side of a CriteriaResolver.
+     *
+     * @param resolver the CriteriaResolver to set the side of
+     * @param side     the side to set
+     *
+     * @return _resolver the CriteriaResolver with the side set
+     */
     function withSide(
         CriteriaResolver memory resolver,
         Side side
@@ -194,6 +271,14 @@ library CriteriaResolverLib {
         return resolver;
     }
 
+    /**
+     * @dev Sets the index of a CriteriaResolver.
+     *
+     * @param resolver the CriteriaResolver to set the index of
+     * @param index    the index to set
+     *
+     * @return _resolver the CriteriaResolver with the index set
+     */
     function withIndex(
         CriteriaResolver memory resolver,
         uint256 index
@@ -202,6 +287,14 @@ library CriteriaResolverLib {
         return resolver;
     }
 
+    /**
+     * @dev Sets the identifier of a CriteriaResolver.
+     *
+     * @param resolver   the CriteriaResolver to set the identifier of
+     * @param identifier the identifier to set
+     *
+     * @return _resolver the CriteriaResolver with the identifier set
+     */
     function withIdentifier(
         CriteriaResolver memory resolver,
         uint256 identifier
@@ -210,6 +303,14 @@ library CriteriaResolverLib {
         return resolver;
     }
 
+    /**
+     * @dev Sets the criteriaProof of a CriteriaResolver.
+     *
+     * @param resolver      the CriteriaResolver to set the criteriaProof of
+     * @param criteriaProof the criteriaProof to set
+     *
+     * @return _resolver the CriteriaResolver with the criteriaProof set
+     */
     function withCriteriaProof(
         CriteriaResolver memory resolver,
         bytes32[] memory criteriaProof

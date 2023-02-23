@@ -2,22 +2,27 @@
 pragma solidity ^0.8.17;
 
 import {
-    BasicOrderParameters,
     OrderComponents,
     ConsiderationItem,
     OrderParameters,
-    OfferItem,
-    AdditionalRecipient
+    OfferItem
 } from "../../../lib/ConsiderationStructs.sol";
-import {
-    OrderType,
-    ItemType,
-    BasicOrderType
-} from "../../../lib/ConsiderationEnums.sol";
+
+import { OrderType } from "../../../lib/ConsiderationEnums.sol";
+
 import { StructCopier } from "./StructCopier.sol";
+
 import { OfferItemLib } from "./OfferItemLib.sol";
+
 import { ConsiderationItemLib } from "./ConsiderationItemLib.sol";
 
+/**
+ * @title OrderParametersLib
+ * @author James Wenzel (emo.eth)
+ * @notice OrderParametersLib is a library for managing OrderParameters structs
+ *         and arrays. It allows chaining of functions to make struct creation
+ *         more readable.
+ */
 library OrderParametersLib {
     using OrderParametersLib for OrderParameters;
     using OfferItemLib for OfferItem[];
@@ -30,6 +35,11 @@ library OrderParametersLib {
     bytes32 private constant ORDER_PARAMETERS_ARRAY_MAP_POSITION =
         keccak256("seaport.OrderParametersArrayDefaults");
 
+    /**
+     * @dev Clears an OrderParameters from storage.
+     *
+     * @param parameters the OrderParameters to clear
+     */
     function clear(OrderParameters storage parameters) internal {
         // uninitialized pointers take up no new memory (versus one word for initializing length-0)
         OfferItem[] memory offer;
@@ -52,6 +62,11 @@ library OrderParametersLib {
         parameters.totalOriginalConsiderationItems = 0;
     }
 
+    /**
+     * @dev Clears an array of OrderParameters from storage.
+     *
+     * @param parameters the OrderParameters array to clear
+     */
     function clear(OrderParameters[] storage parameters) internal {
         while (parameters.length > 0) {
             clear(parameters[parameters.length - 1]);
@@ -60,7 +75,8 @@ library OrderParametersLib {
     }
 
     /**
-     * @notice clears a default OrderParameters from storage
+     * @dev Clears a default OrderParameters from storage.
+     *
      * @param defaultName the name of the default to clear
      */
     function clear(string memory defaultName) internal {
@@ -70,6 +86,11 @@ library OrderParametersLib {
         parameters.clear();
     }
 
+    /**
+     * @dev Creates a new empty OrderParameters struct.
+     *
+     * @return item the new OrderParameters
+     */
     function empty() internal pure returns (OrderParameters memory item) {
         OfferItem[] memory offer;
         ConsiderationItem[] memory consideration;
@@ -89,8 +110,11 @@ library OrderParametersLib {
     }
 
     /**
-     * @notice gets a default OrderParameters from storage
+     * @dev Gets a default OrderParameters from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the default OrderParameters
      */
     function fromDefault(
         string memory defaultName
@@ -100,6 +124,13 @@ library OrderParametersLib {
         item = orderParametersMap[defaultName];
     }
 
+    /**
+     * @dev Gets a default OrderParameters array from storage.
+     *
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return items the default OrderParameters array
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (OrderParameters[] memory items) {
@@ -109,9 +140,12 @@ library OrderParametersLib {
     }
 
     /**
-     * @notice saves an OrderParameters as a named default
+     * @dev Saves an OrderParameters as a named default.
+     *
      * @param orderParameters the OrderParameters to save as a default
-     * @param defaultName the name of the default for retrieval
+     * @param defaultName     the name of the default for retrieval
+     *
+     * @return _orderParameters the OrderParameters that was saved
      */
     function saveDefault(
         OrderParameters memory orderParameters,
@@ -124,6 +158,14 @@ library OrderParametersLib {
         return orderParameters;
     }
 
+    /**
+     * @dev Saves an OrderParameters array as a named default.
+     *
+     * @param orderParameters the OrderParameters array to save as a default
+     * @param defaultName     the name of the default for retrieval
+     *
+     * @return _orderParameters the OrderParameters array that was saved
+     */
     function saveDefaultMany(
         OrderParameters[] memory orderParameters,
         string memory defaultName
@@ -138,8 +180,11 @@ library OrderParametersLib {
     }
 
     /**
-     * @notice makes a copy of an OrderParameters in-memory
+     * @dev Makes a copy of an OrderParameters in-memory.
+     *
      * @param item the OrderParameters to make a copy of in-memory
+     *
+     * @custom:return copiedOrderParameters the copied OrderParameters
      */
     function copy(
         OrderParameters memory item
@@ -162,7 +207,10 @@ library OrderParametersLib {
     }
 
     /**
-     * @notice gets the storage position of the default OrderParameters map
+     * @dev Gets the storage position of the default OrderParameters map.
+     *
+     * @custom:return position the storage position of the default
+     *                         OrderParameters map
      */
     function _orderParametersMap()
         private
@@ -175,6 +223,12 @@ library OrderParametersLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default OrderParameters array map.
+     *
+     * @custom:return position the storage position of the default
+     *                         OrderParameters array map
+     */
     function _orderParametersArrayMap()
         private
         pure
@@ -188,9 +242,17 @@ library OrderParametersLib {
         }
     }
 
-    // methods for configuring a single of each of an in-memory OrderParameters's fields, which modifies the
-    // OrderParameters in-memory and returns it
+    // Methods for configuring a single of each of a OrderParameters's fields,
+    // which modify the OrderParameters struct in-place and return it.
 
+    /**
+     * @dev Sets the offerer field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param offerer    the new value for the offerer field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withOfferer(
         OrderParameters memory parameters,
         address offerer
@@ -199,6 +261,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the zone field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param zone       the new value for the zone field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withZone(
         OrderParameters memory parameters,
         address zone
@@ -207,6 +277,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the offer field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param offer      the new value for the offer field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withOffer(
         OrderParameters memory parameters,
         OfferItem[] memory offer
@@ -215,6 +293,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the consideration field of a OrderParameters struct in-place.
+     *
+     * @param parameters    the OrderParameters struct to modify
+     * @param consideration the new value for the consideration field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withConsideration(
         OrderParameters memory parameters,
         ConsiderationItem[] memory consideration
@@ -223,6 +309,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the orderType field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param orderType  the new value for the orderType field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withOrderType(
         OrderParameters memory parameters,
         OrderType orderType
@@ -231,6 +325,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the startTime field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param startTime  the new value for the startTime field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withStartTime(
         OrderParameters memory parameters,
         uint256 startTime
@@ -239,6 +341,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the endTime field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param endTime    the new value for the endTime field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withEndTime(
         OrderParameters memory parameters,
         uint256 endTime
@@ -247,6 +357,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the zoneHash field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param zoneHash   the new value for the zoneHash field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withZoneHash(
         OrderParameters memory parameters,
         bytes32 zoneHash
@@ -255,6 +373,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the salt field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param salt       the new value for the salt field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withSalt(
         OrderParameters memory parameters,
         uint256 salt
@@ -263,6 +389,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the conduitKey field of a OrderParameters struct in-place.
+     *
+     * @param parameters the OrderParameters struct to modify
+     * @param conduitKey the new value for the conduitKey field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withConduitKey(
         OrderParameters memory parameters,
         bytes32 conduitKey
@@ -271,6 +405,18 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Sets the totalOriginalConsiderationItems field of a OrderParameters
+     *      struct in-place.
+     *
+     * @param parameters                      the OrderParameters struct to
+     *                                        modify
+     * @param totalOriginalConsiderationItems the new value for the
+     *                                        totalOriginalConsiderationItems
+     *                                        field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
     function withTotalOriginalConsiderationItems(
         OrderParameters memory parameters,
         uint256 totalOriginalConsiderationItems
@@ -280,6 +426,14 @@ library OrderParametersLib {
         return parameters;
     }
 
+    /**
+     * @dev Converts an OrderParameters struct into an OrderComponents struct.
+     *
+     * @param parameters the OrderParameters struct to convert
+     * @param counter    the counter to use for the OrderComponents struct
+     *
+     * @return components the OrderComponents struct
+     */
     function toOrderComponents(
         OrderParameters memory parameters,
         uint256 counter

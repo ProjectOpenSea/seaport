@@ -2,15 +2,28 @@
 pragma solidity ^0.8.17;
 
 import { OfferItem, SpentItem } from "../../../lib/ConsiderationStructs.sol";
+
 import { ItemType } from "../../../lib/ConsiderationEnums.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title OfferItemLib
+ * @author James Wenzel (emo.eth)
+ * @notice OfferItemLib is a library for managing OfferItem structs and arrays.
+ *         It allows chaining of functions to make struct creation more readable.
+ */
 library OfferItemLib {
     bytes32 private constant OFFER_ITEM_MAP_POSITION =
         keccak256("seaport.OfferItemDefaults");
     bytes32 private constant OFFER_ITEMS_MAP_POSITION =
         keccak256("seaport.OfferItemsDefaults");
 
+    /**
+     * @dev Clears an OfferItem from storage.
+     *
+     * @param item the item to clear
+     */
     function _clear(OfferItem storage item) internal {
         // clear all fields
         item.itemType = ItemType.NATIVE;
@@ -21,7 +34,8 @@ library OfferItemLib {
     }
 
     /**
-     * @notice clears a default OfferItem from storage
+     * @dev Clears an OfferItem from storage.
+     *
      * @param defaultName the name of the default to clear
      */
     function clear(string memory defaultName) internal {
@@ -30,6 +44,11 @@ library OfferItemLib {
         _clear(item);
     }
 
+    /**
+     * @dev Clears an array of OfferItems from storage.
+     *
+     * @param defaultsName the name of the default to clear
+     */
     function clearMany(string memory defaultsName) internal {
         mapping(string => OfferItem[]) storage offerItemsMap = _offerItemsMap();
         OfferItem[] storage items = offerItemsMap[defaultsName];
@@ -40,8 +59,11 @@ library OfferItemLib {
     }
 
     /**
-     * @notice gets a default OfferItem from storage
+     * @dev Gets a default OfferItem from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the OfferItem retrieved from storage
      */
     function fromDefault(
         string memory defaultName
@@ -50,6 +72,13 @@ library OfferItemLib {
         item = offerItemMap[defaultName];
     }
 
+    /**
+     * @dev Gets a default OfferItem from storage.
+     *
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return items the OfferItems retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultsName
     ) internal view returns (OfferItem[] memory items) {
@@ -58,9 +87,12 @@ library OfferItemLib {
     }
 
     /**
-     * @notice saves an OfferItem as a named default
-     * @param offerItem the OfferItem to save as a default
+     * @dev Saves an OfferItem as a named default.
+     *
+     * @param offerItem   the OfferItem to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _offerItem the OfferItem saved as a default
      */
     function saveDefault(
         OfferItem memory offerItem,
@@ -71,6 +103,14 @@ library OfferItemLib {
         return offerItem;
     }
 
+    /**
+     * @dev Saves an array of OfferItems as a named default.
+     *
+     * @param offerItems   the OfferItems to save as a default
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return _offerItems the OfferItems saved as a default
+     */
     function saveDefaultMany(
         OfferItem[] memory offerItems,
         string memory defaultsName
@@ -83,8 +123,11 @@ library OfferItemLib {
     }
 
     /**
-     * @notice makes a copy of an OfferItem in-memory
+     * @dev Makes a copy of an OfferItem in-memory.
+     *
      * @param item the OfferItem to make a copy of in-memory
+     *
+     * @custom:return copiedItem the copied OfferItem
      */
     function copy(
         OfferItem memory item
@@ -99,6 +142,13 @@ library OfferItemLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of OfferItems in-memory.
+     *
+     * @param items the OfferItems to make a copy of in-memory
+     *
+     * @custom:return copiedItems the copied OfferItems
+     */
     function copy(
         OfferItem[] memory items
     ) internal pure returns (OfferItem[] memory) {
@@ -109,6 +159,11 @@ library OfferItemLib {
         return copiedItems;
     }
 
+    /**
+     * @dev Creates an empty OfferItem.
+     *
+     * @custom:return emptyItem the empty OfferItem
+     */
     function empty() internal pure returns (OfferItem memory) {
         return
             OfferItem({
@@ -121,7 +176,9 @@ library OfferItemLib {
     }
 
     /**
-     * @notice gets the storage position of the default OfferItem map
+     * @dev Gets the storage position of the default OfferItem map.
+     *
+     * @custom:return offerItemMap the default OfferItem map position
      */
     function _offerItemMap()
         private
@@ -135,7 +192,9 @@ library OfferItemLib {
     }
 
     /**
-     * @notice gets the storage position of the default OfferItem[] map
+     * @dev Gets the storage position of the default OfferItem array map
+     *
+     * @custom:return offerItemMap the default OfferItem array map position
      */
     function _offerItemsMap()
         private
@@ -148,14 +207,16 @@ library OfferItemLib {
         }
     }
 
-    // methods for configuring a single of each of an OfferItem's fields, which modifies the OfferItem in-place and
-    // returns it
+    // Methods for configuring a single of each of a OfferItem's fields, which
+    // modify the OfferItem in-place and return it.
 
     /**
-     * @notice sets the item type
+     * @dev Sets the item type of an OfferItem.
+     *
      * @param item the OfferItem to modify
      * @param itemType the item type to set
-     * @return the modified OfferItem
+     *
+     * @custom:return _offerItem the modified OfferItem
      */
     function withItemType(
         OfferItem memory item,
@@ -166,10 +227,12 @@ library OfferItemLib {
     }
 
     /**
-     * @notice sets the token address
+     * @dev Sets the token of an OfferItem.
+     *
      * @param item the OfferItem to modify
-     * @param token the token address to set
-     * @return the modified OfferItem
+     * @param token the token to set
+     *
+     * @custom:return _offerItem the modified OfferItem
      */
     function withToken(
         OfferItem memory item,
@@ -180,10 +243,12 @@ library OfferItemLib {
     }
 
     /**
-     * @notice sets the identifier or criteria
+     * @dev Sets the identifierOrCriteria of an OfferItem.
+     *
      * @param item the OfferItem to modify
      * @param identifierOrCriteria the identifier or criteria to set
-     * @return the modified OfferItem
+     *
+     * @custom:return _offerItem the modified OfferItem
      */
     function withIdentifierOrCriteria(
         OfferItem memory item,
@@ -194,10 +259,12 @@ library OfferItemLib {
     }
 
     /**
-     * @notice sets the start amount
+     * @dev Sets the startAmount of an OfferItem.
+     *
      * @param item the OfferItem to modify
      * @param startAmount the start amount to set
-     * @return the modified OfferItem
+     *
+     * @custom:return _offerItem the modified OfferItem
      */
     function withStartAmount(
         OfferItem memory item,
@@ -208,10 +275,12 @@ library OfferItemLib {
     }
 
     /**
-     * @notice sets the end amount
+     * @dev Sets the endAmount of an OfferItem.
+     *
      * @param item the OfferItem to modify
      * @param endAmount the end amount to set
-     * @return the modified OfferItem
+     *
+     * @custom:return _offerItem the modified OfferItem
      */
     function withEndAmount(
         OfferItem memory item,
@@ -221,6 +290,13 @@ library OfferItemLib {
         return item;
     }
 
+    /**
+     * @dev Converts an OfferItem to a SpentItem.
+     *
+     * @param item the OfferItem to convert
+     *
+     * @custom:return spentItem the converted SpentItem
+     */
     function toSpentItem(
         OfferItem memory item
     ) internal pure returns (SpentItem memory) {
