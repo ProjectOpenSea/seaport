@@ -30,6 +30,7 @@ interface ERC20Interface {
      *
      * @return success True if the approval was successful.
      */
+
     function approve(
         address spender,
         uint256 value

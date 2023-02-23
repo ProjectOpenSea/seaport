@@ -3,27 +3,35 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
+import { BaseConduitTest } from "../conduit/BaseConduitTest.sol";
+
 import { TestZone } from "./impl/TestZone.sol";
+
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 import {
     PostFulfillmentStatefulTestZone
 } from "./impl/PostFullfillmentStatefulTestZone.sol";
 
 import {
-    ConsiderationItem,
-    OfferItem,
-    ItemType,
-    AdvancedOrder,
-    CriteriaResolver,
-    BasicOrderParameters,
     AdditionalRecipient,
-    FulfillmentComponent
+    AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
+    CriteriaResolver,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    OrderComponents,
+    OrderParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
+    BasicOrderType,
     OrderType,
-    Side,
-    BasicOrderType
+    Side
 } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -58,6 +66,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
+        conduitController.updateChannel(address(conduit), address(this), true);
+        referenceConduitController.updateChannel(
+            address(referenceConduit),
+            address(this),
+            true
+        );
         vm.label(address(zone), "TestZone");
     }
 
@@ -340,6 +354,80 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
+    function testExectBasicStatefulWithConduit() public {
+        test(
+            this.execBasicStatefulWithConduit,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execBasicStatefulWithConduit,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
+
+    function execBasicStatefulWithConduit(
+        Context memory context
+    ) public stateless {
+        addErc20OfferItem(50);
+        addErc721ConsiderationItem(alice, 42);
+        addErc20ConsiderationItem(bob, 1);
+        addErc20ConsiderationItem(cal, 1);
+
+        test721_1.mint(address(this), 42);
+
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(statefulZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: true
+        });
+        baseOrderParameters.startTime = 1;
+        baseOrderParameters.endTime = 101;
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
+
+        configureOrderComponents(0);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
+                signature
+            );
+        basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            2
+        );
+        basicOrderParameters.additionalRecipients[0] = AdditionalRecipient({
+            recipient: bob,
+            amount: 1
+        });
+        basicOrderParameters.additionalRecipients[1] = AdditionalRecipient({
+            recipient: cal,
+            amount: 1
+        });
+        basicOrderParameters.totalOriginalAdditionalRecipients = 2;
+        vm.warp(50);
+        context.consideration.fulfillBasicOrder({
+            parameters: basicOrderParameters
+        });
+    }
+
     function testBasicStateful(
         uint8 numOriginalAdditional,
         uint8 numTips
@@ -468,15 +556,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
                 numTips: 0
             })
         );
-        // todo: fix ref impl
-        // test(
-        //     this.execFulfillAvailableAdvancedAscending,
-        //     Context({
-        //         consideration: referenceConsideration,
-        //         numOriginalAdditional: 0,
-        //         numTips: 0
-        //     })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedAscending,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
     }
 
     function execFulfillAvailableAdvancedAscending(
@@ -542,106 +629,105 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         assertTrue(statefulZone.called());
     }
 
-    // function testMatchAdvancedOrders() external {
-    //     test(
-    //         this.execMatchAdvancedOrders,
-    //         Context({
-    //             consideration: consideration,
-    //             numOriginalAdditional: 0,
-    //             numTips: 0
-    //         })
-    //     );
-    //     test(
-    //         this.execMatchAdvancedOrders,
-    //         Context({
-    //             consideration: referenceConsideration,
-    //             numOriginalAdditional: 0,
-    //             numTips: 0
-    //         })
-    //     );
-    // }
+    function testExecMatchAdvancedOrdersWithConduit() public {
+        test(
+            this.execMatchAdvancedOrdersWithConduit,
+            Context({
+                consideration: consideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.execMatchAdvancedOrdersWithConduit,
+            Context({
+                consideration: referenceConsideration,
+                numOriginalAdditional: 0,
+                numTips: 0
+            })
+        );
+    }
 
-    // function execMatchAdvancedOrders(Context memory context) external {
-    //     addErc20OfferItem(1);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 42);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 43);
-    //     addErc721ConsiderationItem(payable(address(offerer)), 44);
+    function execMatchAdvancedOrdersWithConduit(
+        Context memory context
+    ) external stateless {
+        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+                address(0)
+            );
 
-    //     _configureOrderParameters({
-    //         offerer: address(this),
-    //         zone: address(0),
-    //         zoneHash: bytes32(0),
-    //         salt: 0,
-    //         useConduit: false
-    //     });
-    //     baseOrderParameters.orderType = OrderType.CONTRACT;
+        addErc20OfferItem(50);
+        addErc721ConsiderationItem(alice, 42);
 
-    //     configureOrderComponents(0);
+        _configureOrderParameters({
+            offerer: alice,
+            zone: address(transferValidationZone),
+            zoneHash: bytes32(0),
+            salt: 0,
+            useConduit: true
+        });
+        baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
-    //     AdvancedOrder memory order = AdvancedOrder({
-    //         parameters: baseOrderParameters,
-    //         numerator: 1,
-    //         denominator: 1,
-    //         signature: "",
-    //         extraData: "context"
-    //     });
+        configureOrderComponents(0);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
 
-    //     AdvancedOrder memory mirror = createMirrorContractOffererOrder(
-    //         context,
-    //         "mirroroooor",
-    //         order
-    //     );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
-    //     CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-    //     AdvancedOrder[] memory orders = new AdvancedOrder[](2);
-    //     orders[0] = order;
-    //     orders[1] = mirror;
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: 1,
+            denominator: 1,
+            signature: signature,
+            extraData: "context"
+        });
 
-    //     //match first order offer to second order consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 1,
-    //             itemIndex: 0
-    //         })
-    //     });
-    //     // match second order first offer to first order first consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 0
-    //         })
-    //     });
-    //     // match second order second offer to first order second consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 1
-    //         })
-    //     });
-    //     // match second order third offer to first order third consideration
-    //     createFulfillmentFromComponentsAndAddToFulfillments({
-    //         _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
-    //         _consideration: FulfillmentComponent({
-    //             orderIndex: 0,
-    //             itemIndex: 2
-    //         })
-    //     });
+        AdvancedOrder memory mirror = createMirrorOrder(
+            context,
+            "mirroroooor",
+            order,
+            true
+        );
 
-    //     context.consideration.matchAdvancedOrders({
-    //         orders: orders,
-    //         criteriaResolvers: criteriaResolvers,
-    //         fulfillments: fulfillments
-    //     });
-    //     assertTrue(zone.called());
-    // }
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = order;
+        orders[1] = mirror;
+
+        //match first order offer to second order consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 1,
+                itemIndex: 0
+            })
+        });
+        // match second order first offer to first order first consideration
+        createFulfillmentFromComponentsAndAddToFulfillments({
+            _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+            _consideration: FulfillmentComponent({
+                orderIndex: 0,
+                itemIndex: 0
+            })
+        });
+
+        context.consideration.matchAdvancedOrders({
+            orders: orders,
+            criteriaResolvers: criteriaResolvers,
+            fulfillments: fulfillments,
+            recipient: alice
+        });
+    }
 
     function createMirrorOrder(
         Context memory context,
         string memory _offerer,
-        AdvancedOrder memory advancedOrder
+        AdvancedOrder memory advancedOrder,
+        bool _useConduit
     ) internal returns (AdvancedOrder memory) {
         delete offerItems;
         delete considerationItems;
@@ -649,8 +735,11 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         (address _offererAddr, uint256 pkey) = makeAddrAndKey(_offerer);
         test721_1.mint(address(_offererAddr), 42);
 
-        vm.prank(_offererAddr);
+        vm.startPrank(_offererAddr);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
         test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
 
         for (uint256 i; i < advancedOrder.parameters.offer.length; i++) {
             OfferItem memory _offerItem = advancedOrder.parameters.offer[i];
@@ -688,7 +777,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             zone: advancedOrder.parameters.zone,
             zoneHash: advancedOrder.parameters.zoneHash,
             salt: advancedOrder.parameters.salt,
-            useConduit: false
+            useConduit: _useConduit
         });
 
         configureOrderComponents(0);
@@ -716,5 +805,85 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         for (uint256 i = 0; i < considerationItems.length; i++) {
             sum += considerationItems[i].startAmount;
         }
+    }
+
+    function createMirrorContractOffererOrder(
+        Context memory context,
+        string memory _offerer,
+        AdvancedOrder memory advancedOrder,
+        bool _useConduit
+    ) internal returns (AdvancedOrder memory) {
+        delete offerItems;
+        delete considerationItems;
+
+        (address _offererAddr, uint256 pkey) = makeAddrAndKey(_offerer);
+        test721_1.mint(address(_offererAddr), 42);
+        test721_1.mint(address(_offererAddr), 43);
+        test721_1.mint(address(_offererAddr), 44);
+
+        vm.startPrank(_offererAddr);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_1.setApprovalForAll(address(referenceConduit), true);
+        test721_1.setApprovalForAll(address(context.consideration), true);
+        vm.stopPrank();
+
+        for (uint256 i; i < advancedOrder.parameters.offer.length; i++) {
+            OfferItem memory _offerItem = advancedOrder.parameters.offer[i];
+
+            addConsiderationItem({
+                itemType: _offerItem.itemType,
+                token: _offerItem.token,
+                identifier: _offerItem.identifierOrCriteria,
+                startAmount: _offerItem.startAmount,
+                endAmount: _offerItem.endAmount,
+                recipient: payable(_offererAddr)
+            });
+        }
+        // do the same for considerationItem -> offerItem
+        for (
+            uint256 i;
+            i < advancedOrder.parameters.consideration.length;
+            i++
+        ) {
+            ConsiderationItem memory _considerationItem = advancedOrder
+                .parameters
+                .consideration[i];
+
+            addOfferItem({
+                itemType: _considerationItem.itemType,
+                token: _considerationItem.token,
+                identifier: _considerationItem.identifierOrCriteria,
+                startAmount: _considerationItem.startAmount,
+                endAmount: _considerationItem.endAmount
+            });
+        }
+
+        _configureOrderParameters({
+            offerer: _offererAddr,
+            zone: advancedOrder.parameters.zone,
+            zoneHash: advancedOrder.parameters.zoneHash,
+            salt: advancedOrder.parameters.salt,
+            useConduit: _useConduit
+        });
+
+        configureOrderComponents(0);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            pkey,
+            orderHash
+        );
+
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: baseOrderParameters,
+            numerator: advancedOrder.denominator,
+            denominator: advancedOrder.numerator,
+            signature: signature,
+            extraData: ""
+        });
+
+        return order;
     }
 }

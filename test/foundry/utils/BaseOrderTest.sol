@@ -35,6 +35,12 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
+    ///@dev used to store address and key outputs from makeAddrAndKey(name)
+    struct Account {
+        address addr;
+        uint256 key;
+    }
+
     FulfillmentComponent firstOrderFirstItem;
     FulfillmentComponent firstOrderSecondItem;
     FulfillmentComponent secondOrderFirstItem;
@@ -49,6 +55,9 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     Fulfillment fourthFulfillment;
 
     AdditionalRecipient[] additionalRecipients;
+
+    Account offerer1;
+    Account offerer2;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -73,6 +82,22 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         _;
     }
 
+    /// @dev convenience wrapper for makeAddrAndKey
+    function makeAccount(string memory name) internal returns (Account memory) {
+        (address addr, uint256 key) = makeAddrAndKey(name);
+        return Account(addr, key);
+    }
+
+    /// @dev convenience wrapper for makeAddrAndKey that also allocates tokens,
+    /// ether, and approvals
+    function makeAndAllocateAccount(
+        string memory name
+    ) internal returns (Account memory) {
+        Account memory account = makeAccount(name);
+        allocateTokensAndApprovals(account.addr, uint128(MAX_INT));
+        return account;
+    }
+
     function setUp() public virtual override {
         super.setUp();
 
@@ -91,6 +116,11 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+        allocateTokensAndApprovals(offerer1.addr, uint128(MAX_INT));
+        allocateTokensAndApprovals(offerer2.addr, uint128(MAX_INT));
+
+        offerer1 = makeAndAllocateAccount("offerer1");
+        offerer2 = makeAndAllocateAccount("offerer2");
     }
 
     function resetOfferComponents() internal {

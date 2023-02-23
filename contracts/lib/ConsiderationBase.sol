@@ -10,6 +10,30 @@ import {
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
+    BulkOrder_Typehash_Height_One,
+    BulkOrder_Typehash_Height_Two,
+    BulkOrder_Typehash_Height_Three,
+    BulkOrder_Typehash_Height_Four,
+    BulkOrder_Typehash_Height_Five,
+    BulkOrder_Typehash_Height_Six,
+    BulkOrder_Typehash_Height_Seven,
+    BulkOrder_Typehash_Height_Eight,
+    BulkOrder_Typehash_Height_Nine,
+    BulkOrder_Typehash_Height_Ten,
+    BulkOrder_Typehash_Height_Eleven,
+    BulkOrder_Typehash_Height_Twelve,
+    BulkOrder_Typehash_Height_Thirteen,
+    BulkOrder_Typehash_Height_Fourteen,
+    BulkOrder_Typehash_Height_Fifteen,
+    BulkOrder_Typehash_Height_Sixteen,
+    BulkOrder_Typehash_Height_Seventeen,
+    BulkOrder_Typehash_Height_Eighteen,
+    BulkOrder_Typehash_Height_Nineteen,
+    BulkOrder_Typehash_Height_Twenty,
+    BulkOrder_Typehash_Height_TwentyOne,
+    BulkOrder_Typehash_Height_TwentyTwo,
+    BulkOrder_Typehash_Height_TwentyThree,
+    BulkOrder_Typehash_Height_TwentyFour,
     EIP712_domainData_chainId_offset,
     EIP712_domainData_nameHash_offset,
     EIP712_domainData_size,
@@ -27,8 +51,6 @@ import {
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
-
-import { TypehashDirectory } from "./TypehashDirectory.sol";
 
 /**
  * @title ConsiderationBase
@@ -53,9 +75,6 @@ contract ConsiderationBase is
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
-    // BulkOrder typehash storage
-    TypehashDirectory internal immutable _BULK_ORDER_TYPEHASH_DIRECTORY;
-
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
@@ -77,8 +96,6 @@ contract ConsiderationBase is
             _CONSIDERATION_ITEM_TYPEHASH,
             _ORDER_TYPEHASH
         ) = _deriveTypehashes();
-
-        _BULK_ORDER_TYPEHASH_DIRECTORY = new TypehashDirectory();
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
@@ -207,45 +224,45 @@ contract ConsiderationBase is
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.2"));
+        versionHash = keccak256(bytes("1.4"));
 
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(
             "OfferItem("
-                "uint8 itemType,"
-                "address token,"
-                "uint256 identifierOrCriteria,"
-                "uint256 startAmount,"
-                "uint256 endAmount"
+            "uint8 itemType,"
+            "address token,"
+            "uint256 identifierOrCriteria,"
+            "uint256 startAmount,"
+            "uint256 endAmount"
             ")"
         );
 
         // Construct the ConsiderationItem type string.
         bytes memory considerationItemTypeString = bytes(
             "ConsiderationItem("
-                "uint8 itemType,"
-                "address token,"
-                "uint256 identifierOrCriteria,"
-                "uint256 startAmount,"
-                "uint256 endAmount,"
-                "address recipient"
+            "uint8 itemType,"
+            "address token,"
+            "uint256 identifierOrCriteria,"
+            "uint256 startAmount,"
+            "uint256 endAmount,"
+            "address recipient"
             ")"
         );
 
         // Construct the OrderComponents type string, not including the above.
         bytes memory orderComponentsPartialTypeString = bytes(
             "OrderComponents("
-                "address offerer,"
-                "address zone,"
-                "OfferItem[] offer,"
-                "ConsiderationItem[] consideration,"
-                "uint8 orderType,"
-                "uint256 startTime,"
-                "uint256 endTime,"
-                "bytes32 zoneHash,"
-                "uint256 salt,"
-                "bytes32 conduitKey,"
-                "uint256 counter"
+            "address offerer,"
+            "address zone,"
+            "OfferItem[] offer,"
+            "ConsiderationItem[] consideration,"
+            "uint8 orderType,"
+            "uint256 startTime,"
+            "uint256 endTime,"
+            "bytes32 zoneHash,"
+            "uint256 salt,"
+            "bytes32 conduitKey,"
+            "uint256 counter"
             ")"
         );
 
@@ -253,10 +270,10 @@ contract ConsiderationBase is
         eip712DomainTypehash = keccak256(
             bytes(
                 "EIP712Domain("
-                    "string name,"
-                    "string version,"
-                    "uint256 chainId,"
-                    "address verifyingContract"
+                "string name,"
+                "string version,"
+                "uint256 chainId,"
+                "address verifyingContract"
                 ")"
             )
         );
@@ -277,14 +294,186 @@ contract ConsiderationBase is
         orderTypehash = keccak256(orderTypeString);
     }
 
+    /**
+     * @dev Internal pure function to look up one of twenty-four potential bulk
+     *      order typehash constants based on the height of the bulk order tree.
+     *      Note that values between one and twenty-four are supported, which is
+     *      enforced by _isValidBulkOrderSize.
+     *
+     * @param _treeHeight The height of the bulk order tree. The value must be
+     *                    between one and twenty-four.
+     *
+     * @return _typeHash The EIP-712 typehash for the bulk order type with the
+     *                   given height.
+     */
     function _lookupBulkOrderTypehash(
-        uint256 treeHeight
-    ) internal view returns (bytes32 typeHash) {
-        TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
+        uint256 _treeHeight
+    ) internal pure returns (bytes32 _typeHash) {
+        // Utilize assembly to efficiently retrieve correct bulk order typehash.
         assembly {
-            let typeHashOffset := add(1, shl(OneWordShift, sub(treeHeight, 1)))
-            extcodecopy(directory, 0, typeHashOffset, OneWord)
-            typeHash := mload(0)
+            // Use a Yul function to enable use of the `leave` keyword
+            // to stop searching once the appropriate type hash is found.
+            function lookupTypeHash(treeHeight) -> typeHash {
+                // Handle tree heights one through eight.
+                if lt(treeHeight, 9) {
+                    // Handle tree heights one through four.
+                    if lt(treeHeight, 5) {
+                        // Handle tree heights one and two.
+                        if lt(treeHeight, 3) {
+                            // Utilize branchless logic to determine typehash.
+                            typeHash := ternary(
+                                eq(treeHeight, 1),
+                                BulkOrder_Typehash_Height_One,
+                                BulkOrder_Typehash_Height_Two
+                            )
+
+                            // Exit the function once typehash has been located.
+                            leave
+                        }
+
+                        // Handle height three and four via branchless logic.
+                        typeHash := ternary(
+                            eq(treeHeight, 3),
+                            BulkOrder_Typehash_Height_Three,
+                            BulkOrder_Typehash_Height_Four
+                        )
+
+                        // Exit the function once typehash has been located.
+                        leave
+                    }
+
+                    // Handle tree height five and six.
+                    if lt(treeHeight, 7) {
+                        // Utilize branchless logic to determine typehash.
+                        typeHash := ternary(
+                            eq(treeHeight, 5),
+                            BulkOrder_Typehash_Height_Five,
+                            BulkOrder_Typehash_Height_Six
+                        )
+
+                        // Exit the function once typehash has been located.
+                        leave
+                    }
+
+                    // Handle height seven and eight via branchless logic.
+                    typeHash := ternary(
+                        eq(treeHeight, 7),
+                        BulkOrder_Typehash_Height_Seven,
+                        BulkOrder_Typehash_Height_Eight
+                    )
+
+                    // Exit the function once typehash has been located.
+                    leave
+                }
+
+                // Handle tree height nine through sixteen.
+                if lt(treeHeight, 17) {
+                    // Handle tree height nine through twelve.
+                    if lt(treeHeight, 13) {
+                        // Handle tree height nine and ten.
+                        if lt(treeHeight, 11) {
+                            // Utilize branchless logic to determine typehash.
+                            typeHash := ternary(
+                                eq(treeHeight, 9),
+                                BulkOrder_Typehash_Height_Nine,
+                                BulkOrder_Typehash_Height_Ten
+                            )
+
+                            // Exit the function once typehash has been located.
+                            leave
+                        }
+
+                        // Handle height eleven and twelve via branchless logic.
+                        typeHash := ternary(
+                            eq(treeHeight, 11),
+                            BulkOrder_Typehash_Height_Eleven,
+                            BulkOrder_Typehash_Height_Twelve
+                        )
+
+                        // Exit the function once typehash has been located.
+                        leave
+                    }
+
+                    // Handle tree height thirteen and fourteen.
+                    if lt(treeHeight, 15) {
+                        // Utilize branchless logic to determine typehash.
+                        typeHash := ternary(
+                            eq(treeHeight, 13),
+                            BulkOrder_Typehash_Height_Thirteen,
+                            BulkOrder_Typehash_Height_Fourteen
+                        )
+
+                        // Exit the function once typehash has been located.
+                        leave
+                    }
+                    // Handle height fifteen and sixteen via branchless logic.
+                    typeHash := ternary(
+                        eq(treeHeight, 15),
+                        BulkOrder_Typehash_Height_Fifteen,
+                        BulkOrder_Typehash_Height_Sixteen
+                    )
+
+                    // Exit the function once typehash has been located.
+                    leave
+                }
+
+                // Handle tree height seventeen through twenty.
+                if lt(treeHeight, 21) {
+                    // Handle tree height seventeen and eighteen.
+                    if lt(treeHeight, 19) {
+                        // Utilize branchless logic to determine typehash.
+                        typeHash := ternary(
+                            eq(treeHeight, 17),
+                            BulkOrder_Typehash_Height_Seventeen,
+                            BulkOrder_Typehash_Height_Eighteen
+                        )
+
+                        // Exit the function once typehash has been located.
+                        leave
+                    }
+
+                    // Handle height nineteen and twenty via branchless logic.
+                    typeHash := ternary(
+                        eq(treeHeight, 19),
+                        BulkOrder_Typehash_Height_Nineteen,
+                        BulkOrder_Typehash_Height_Twenty
+                    )
+
+                    // Exit the function once typehash has been located.
+                    leave
+                }
+
+                // Handle tree height twenty-one and twenty-two.
+                if lt(treeHeight, 23) {
+                    // Utilize branchless logic to determine typehash.
+                    typeHash := ternary(
+                        eq(treeHeight, 21),
+                        BulkOrder_Typehash_Height_TwentyOne,
+                        BulkOrder_Typehash_Height_TwentyTwo
+                    )
+
+                    // Exit the function once typehash has been located.
+                    leave
+                }
+
+                // Handle height twenty-three & twenty-four w/ branchless logic.
+                typeHash := ternary(
+                    eq(treeHeight, 23),
+                    BulkOrder_Typehash_Height_TwentyThree,
+                    BulkOrder_Typehash_Height_TwentyFour
+                )
+
+                // Exit the function once typehash has been located.
+                leave
+            }
+
+            // Implement ternary conditional using branchless logic.
+            function ternary(cond, ifTrue, ifFalse) -> c {
+                c := xor(ifFalse, mul(cond, xor(ifFalse, ifTrue)))
+            }
+
+            // Look up the typehash using the supplied tree height.
+            _typeHash := lookupTypeHash(_treeHeight)
         }
     }
 }

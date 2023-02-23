@@ -551,6 +551,10 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
+        // From this point onward, do not allow for skipping orders as the
+        // contract offerer may have modified state in expectation of any named
+        // consideration items being sent to their designated recipients.
+
         // Decode the returned contract order and/or update the error buffer.
         (
             uint256 errorBuffer,
@@ -558,9 +562,9 @@ contract OrderValidator is Executor, ZoneInteraction {
             ConsiderationItem[] memory consideration
         ) = _convertGetGeneratedOrderResult(_decodeGenerateOrderReturndata)();
 
-        // Revert or skip if the returndata could not be decoded correctly.
+        // Revert if the returndata could not be decoded correctly.
         if (errorBuffer != 0) {
-            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            _revertInvalidContractOrder(orderHash);
         }
 
         {
@@ -570,7 +574,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // Explicitly specified offer items cannot be removed.
             if (originalOfferLength > newOfferLength) {
-                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                _revertInvalidContractOrder(orderHash);
             }
 
             // Iterate over each specified offer (e.g. minimumReceived) item.
@@ -612,7 +616,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
             // New consideration items cannot be created.
             if (newConsiderationLength > originalConsiderationArray.length) {
-                return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+                _revertInvalidContractOrder(orderHash);
             }
 
             // Iterate over returned consideration & do not exceed maximumSpent.
@@ -653,9 +657,9 @@ contract OrderValidator is Executor, ZoneInteraction {
             orderParameters.consideration = consideration;
         }
 
-        // Revert or skip if any item comparison failed.
+        // Revert if any item comparison failed.
         if (errorBuffer != 0) {
-            return _revertOrReturnEmpty(revertOnInvalid, orderHash);
+            _revertInvalidContractOrder(orderHash);
         }
 
         // Return order hash and full fill amount (numerator & denominator = 1).
