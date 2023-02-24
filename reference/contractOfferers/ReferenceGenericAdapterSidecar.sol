@@ -23,6 +23,7 @@ contract ReferenceGenericAdapterSidecar {
     error InvalidEncodingOrCaller(); // 0x8f183575
     error CallFailed(uint256 index); // 0x3f9a3b48
     error NativeTokenTransferGenericFailure(); // 0xffce28d3
+    error NoContract(address);
 
     address private immutable _DESIGNATED_CALLER;
 
@@ -75,6 +76,10 @@ contract ReferenceGenericAdapterSidecar {
 
         // Iterate over each call.
         for (uint i = 0; i < calls.length; ++i) {
+            if (calls[i].target.code.length == 0) {
+                revert NoContract(calls[i].target);
+            }
+
             // Call the target and get success status.
             (bool success, ) = calls[i].target.call{ value: calls[i].value }(
                 abi.encodeWithSelector(
