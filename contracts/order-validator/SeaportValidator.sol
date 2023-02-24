@@ -203,6 +203,12 @@ contract SeaportValidator is
         (, errorsAndWarnings) = getApprovalAddress(conduitKey);
     }
 
+    /**
+     * @notice Checks if the zone of an order is set and implements EIP165
+     * @dev To validate the zone call for an order, see validateOrderWithZone
+     * @param orderParameters The order parameters to check.
+     * @return errorsAndWarnings The errors and warnings
+     */
     function isValidZone(
         OrderParameters memory orderParameters
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
@@ -215,7 +221,6 @@ contract SeaportValidator is
 
         if (orderParameters.zone == address(0)) {
             // Zone is not set
-            console.log("Not Set: ", ZoneIssue.NotSet.parseInt());
             errorsAndWarnings.addError(ZoneIssue.NotSet.parseInt());
             return errorsAndWarnings;
         }
@@ -1623,6 +1628,7 @@ contract SeaportValidator is
     /**
      * @notice Validates the zone call for an order
      * @param orderParameters The order parameters for the order to validate
+     * @param zoneParameters The zone parameters for the order to validate
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
     function validateOrderWithZone(
@@ -1631,22 +1637,8 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
-        // If not restricted, zone isn't checked
-        if (uint8(orderParameters.orderType) < 2) {
-            return errorsAndWarnings;
-        }
-
-        if (orderParameters.zone == address(0)) {
-            // Zone is not set
-            errorsAndWarnings.addError(ZoneIssue.NotSet.parseInt());
-            return errorsAndWarnings;
-        }
-
-        // EOA zone is always valid
-        if (address(orderParameters.zone).code.length == 0) {
-            // Address is EOA. Valid order
-            return errorsAndWarnings;
-        }
+        // Call isValidZone to check if zone is set and implements EIP165
+        errorsAndWarnings.concat(isValidZone(orderParameters));
 
         // Call zone function `validateOrder` with the supplied ZoneParameters
         if (
