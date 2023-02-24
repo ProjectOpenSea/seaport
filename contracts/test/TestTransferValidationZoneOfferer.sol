@@ -7,6 +7,8 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
+import { ERC165 } from "../interfaces/ERC165.sol";
+
 import {
     ReceivedItem,
     Schema,
@@ -24,7 +26,8 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
-    ZoneInterface
+    ZoneInterface,
+    ERC165
 {
     error InvalidNativeTokenBalance(
         uint256 expectedBalance,
@@ -410,5 +413,20 @@ contract TestTransferValidationZoneOfferer is
 
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
         _expectedOfferRecipient = expectedOfferRecipient;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface, ZoneInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

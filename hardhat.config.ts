@@ -136,6 +136,10 @@ const config: HardhatUserConfig = {
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
       allowUnlimitedContractSize: true,
+      forking: {
+        enabled: true,
+        url: process.env.ETH_RPC_URL ?? "",
+      },
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",

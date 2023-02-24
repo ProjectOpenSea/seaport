@@ -16,115 +16,115 @@ struct ValidationConfiguration {
     uint256 distantOrderExpiration;
 }
 
-enum TimeIssue {
-    EndTimeBeforeStartTime,
-    Expired,
-    DistantExpiration,
-    NotActive,
-    ShortOrder
-}
-
-enum StatusIssue {
-    Cancelled,
-    FullyFilled
-}
-
-enum OfferIssue {
-    ZeroItems,
-    AmountZero,
-    MoreThanOneItem,
-    NativeItem,
-    DuplicateItem,
-    AmountVelocityHigh,
-    AmountStepLarge
-}
-
-enum ConsiderationIssue {
-    AmountZero,
-    NullRecipient,
-    ExtraItems,
-    PrivateSaleToSelf,
-    ZeroItems,
-    DuplicateItem,
-    PrivateSale,
-    AmountVelocityHigh,
-    AmountStepLarge
-}
-
-enum PrimaryFeeIssue {
-    Missing,
-    ItemType,
-    Token,
-    StartAmount,
-    EndAmount,
-    Recipient
-}
-
-enum ERC721Issue {
-    AmountNotOne,
-    InvalidToken,
-    IdentifierDNE,
-    NotOwner,
-    NotApproved,
-    CriteriaNotPartialFill
-}
-
-enum ERC1155Issue {
-    InvalidToken,
-    NotApproved,
-    InsufficientBalance
+enum GenericIssue {
+    InvalidOrderFormat // 100
 }
 
 enum ERC20Issue {
-    IdentifierNonZero,
-    InvalidToken,
-    InsufficientAllowance,
-    InsufficientBalance
+    IdentifierNonZero, // 200
+    InvalidToken, // 201
+    InsufficientAllowance, // 202
+    InsufficientBalance // 203
 }
 
-enum NativeIssue {
-    TokenAddress,
-    IdentifierNonZero,
-    InsufficientBalance
+enum ERC721Issue {
+    AmountNotOne, // 300
+    InvalidToken, // 301
+    IdentifierDNE, // 302
+    NotOwner, // 303
+    NotApproved, // 304
+    CriteriaNotPartialFill // 305
 }
 
-enum ZoneIssue {
-    InvalidZone,
-    RejectedOrder,
-    NotSet
+enum ERC1155Issue {
+    InvalidToken, // 400
+    NotApproved, // 401
+    InsufficientBalance // 402
 }
 
-enum ContractOffererIssue {
-    InvalidContractOfferer
+enum ConsiderationIssue {
+    AmountZero, // 500
+    NullRecipient, // 501
+    ExtraItems, // 502
+    PrivateSaleToSelf, // 503
+    ZeroItems, // 504
+    DuplicateItem, // 505
+    PrivateSale, // 506
+    AmountVelocityHigh, // 507
+    AmountStepLarge // 508
+}
+
+enum OfferIssue {
+    ZeroItems, // 600
+    AmountZero, // 601
+    MoreThanOneItem, // 602
+    NativeItem, // 603
+    DuplicateItem, // 604
+    AmountVelocityHigh, // 605
+    AmountStepLarge // 606
+}
+
+enum PrimaryFeeIssue {
+    Missing, // 700
+    ItemType, // 701
+    Token, // 702
+    StartAmount, // 703
+    EndAmount, // 704
+    Recipient // 705
+}
+
+enum StatusIssue {
+    Cancelled, // 800
+    FullyFilled // 801
+}
+
+enum TimeIssue {
+    EndTimeBeforeStartTime, // 900
+    Expired, // 901
+    DistantExpiration, // 902
+    NotActive, // 903
+    ShortOrder // 904
 }
 
 enum ConduitIssue {
-    KeyInvalid
-}
-
-enum CreatorFeeIssue {
-    Missing,
-    ItemType,
-    Token,
-    StartAmount,
-    EndAmount,
-    Recipient
+    KeyInvalid // 1000
 }
 
 enum SignatureIssue {
-    Invalid,
-    LowCounter,
-    HighCounter,
-    OriginalConsiderationItems
+    Invalid, // 1100
+    LowCounter, // 1101
+    HighCounter, // 1102
+    OriginalConsiderationItems // 1103
 }
 
-enum GenericIssue {
-    InvalidOrderFormat
+enum CreatorFeeIssue {
+    Missing, // 1200
+    ItemType, // 1201
+    Token, // 1202
+    StartAmount, // 1203
+    EndAmount, // 1204
+    Recipient // 1205
+}
+
+enum NativeIssue {
+    TokenAddress, // 1300
+    IdentifierNonZero, // 1301
+    InsufficientBalance // 1302
+}
+
+enum ZoneIssue {
+    InvalidZone, // 1400
+    RejectedOrder, // 1401
+    NotSet // 1402
 }
 
 enum MerkleIssue {
-    SingleLeaf,
-    Unsorted
+    SingleLeaf, // 1500
+    Unsorted // 1501
+}
+
+enum ContractOffererIssue {
+    InvalidContractOfferer // 1600
 }
 
 /**

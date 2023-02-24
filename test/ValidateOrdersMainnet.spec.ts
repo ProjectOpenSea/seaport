@@ -42,11 +42,12 @@ import type {
   OrderParametersStruct,
   OrderStruct,
   ValidationConfigurationStruct,
-} from "../typechain-types/contracts/lib/SeaportValidator";
+} from "../typechain-types/contracts/order-validator/SeaportValidator.sol/SeaportValidator";
 import type { TestERC20 } from "../typechain-types/contracts/test/TestERC20";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Validate Orders", function () {
+  const { provider } = ethers;
   const feeRecipient = "0x0000000000000000000000000000000000000FEE";
   const coder = new ethers.utils.AbiCoder();
   let baseOrderParameters: OrderParametersStruct;

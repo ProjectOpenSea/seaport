@@ -86,54 +86,21 @@ export const KNOWN_CONDUIT_KEYS_TO_CONDUIT = {
 };
 
 export const CROSS_CHAIN_SEAPORT_ADDRESS =
-  "0x00000000000006c7676171937C444f6BDe3D6282";
+  "0x00000000000001ad428e4906aE43D8F9852d0dD6";
 
 export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const EMPTY_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-export enum TimeIssue {
-  EndTimeBeforeStartTime = 900,
-  Expired,
-  DistantExpiration,
-  NotActive,
-  ShortOrder,
+export enum GenericIssue {
+  InvalidOrderFormat = 100,
 }
 
-export enum StatusIssue {
-  Cancelled = 800,
-  FullyFilled,
-}
-
-export enum OfferIssue {
-  ZeroItems = 600,
-  AmountZero,
-  MoreThanOneItem,
-  NativeItem,
-  DuplicateItem,
-  AmountVelocityHigh,
-  AmountStepLarge,
-}
-
-export enum ConsiderationIssue {
-  AmountZero = 500,
-  NullRecipient,
-  ExtraItems,
-  PrivateSaleToSelf,
-  ZeroItems,
-  DuplicateItem,
-  PrivateSale,
-  AmountVelocityHigh,
-  AmountStepLarge,
-}
-
-export enum PrimaryFeeIssue {
-  Missing = 700,
-  ItemType,
-  Token,
-  StartAmount,
-  EndAmount,
-  Recipient,
+export enum ERC20Issue {
+  IdentifierNonZero = 200,
+  InvalidToken,
+  InsufficientAllowance,
+  InsufficientBalance,
 }
 
 export enum ERC721Issue {
@@ -151,26 +118,59 @@ export enum ERC1155Issue {
   InsufficientBalance,
 }
 
-export enum ERC20Issue {
-  IdentifierNonZero = 200,
-  InvalidToken,
-  InsufficientAllowance,
-  InsufficientBalance,
+export enum ConsiderationIssue {
+  AmountZero = 500,
+  NullRecipient,
+  ExtraItems,
+  PrivateSaleToSelf,
+  ZeroItems,
+  DuplicateItem,
+  PrivateSale,
+  AmountVelocityHigh,
+  AmountStepLarge,
 }
 
-export enum NativeIssue {
-  TokenAddress = 1300,
-  IdentifierNonZero,
-  InsufficientBalance,
+export enum OfferIssue {
+  ZeroItems = 600,
+  AmountZero,
+  MoreThanOneItem,
+  NativeItem,
+  DuplicateItem,
+  AmountVelocityHigh,
+  AmountStepLarge,
 }
 
-export enum ZoneIssue {
-  RejectedOrder = 1400,
-  NotSet,
+export enum PrimaryFeeIssue {
+  Missing = 700,
+  ItemType,
+  Token,
+  StartAmount,
+  EndAmount,
+  Recipient,
+}
+
+export enum StatusIssue {
+  Cancelled = 800,
+  FullyFilled,
+}
+
+export enum TimeIssue {
+  EndTimeBeforeStartTime = 900,
+  Expired,
+  DistantExpiration,
+  NotActive,
+  ShortOrder,
 }
 
 export enum ConduitIssue {
   KeyInvalid = 1000,
+}
+
+export enum SignatureIssue {
+  Invalid = 1100,
+  LowCounter,
+  HighCounter,
+  OriginalConsiderationItems,
 }
 
 export enum CreatorFeeIssue {
@@ -182,20 +182,25 @@ export enum CreatorFeeIssue {
   Recipient,
 }
 
-export enum SignatureIssue {
-  Invalid = 1100,
-  LowCounter,
-  HighCounter,
-  OriginalConsiderationItems,
+export enum NativeIssue {
+  TokenAddress = 1300,
+  IdentifierNonZero,
+  InsufficientBalance,
 }
 
-export enum GenericIssue {
-  InvalidOrderFormat = 100,
+export enum ZoneIssue {
+  InvalidZone = 1400,
+  RejectedOrder,
+  NotSet,
 }
 
 export enum MerkleIssue {
   SingleLeaf = 1500,
   Unsorted,
+}
+
+export enum ContractOffererIssue {
+  InvalidContractOfferer = 1600,
 }
 
 export const THIRTY_MINUTES = 30 * 60;

@@ -76,7 +76,7 @@ contract SeaportValidator is
 
     /// @notice Cross-chain seaport address
     ConsiderationInterface public constant seaport =
-        ConsiderationInterface(0x00000000000006c7676171937C444f6BDe3D6282);
+        ConsiderationInterface(0x00000000000001ad428e4906aE43D8F9852d0dD6);
     /// @notice Cross-chain conduit controller Address
     ConduitControllerInterface public constant conduitController =
         ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
@@ -91,7 +91,7 @@ contract SeaportValidator is
 
     constructor() {
         address creatorFeeEngineAddress;
-        if (block.chainid == 1) {
+        if (block.chainid == 1 || block.chainid == 31337) {
             creatorFeeEngineAddress = 0x0385603ab55642cb4Dd5De3aE9e306809991804f;
         } else if (block.chainid == 3) {
             // Ropsten
@@ -115,7 +115,11 @@ contract SeaportValidator is
             // No creator fee engine for this chain
             creatorFeeEngineAddress = address(0);
         }
-
+        console.log("chainid", block.chainid);
+        console.log(
+            "constructor creatorFeeEngineAddress",
+            creatorFeeEngineAddress
+        );
         creatorFeeEngine = CreatorFeeEngineInterface(creatorFeeEngineAddress);
     }
 
@@ -203,6 +207,24 @@ contract SeaportValidator is
         OrderParameters memory orderParameters
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // If not restricted, zone isn't checked
+        if (uint8(orderParameters.orderType) < 2) {
+            return errorsAndWarnings;
+        }
+
+        if (orderParameters.zone == address(0)) {
+            // Zone is not set
+            console.log("Not Set: ", ZoneIssue.NotSet.parseInt());
+            errorsAndWarnings.addError(ZoneIssue.NotSet.parseInt());
+            return errorsAndWarnings;
+        }
+
+        // EOA zone is always valid
+        if (address(orderParameters.zone).code.length == 0) {
+            // Address is EOA. Valid order
+            return errorsAndWarnings;
+        }
 
         // Check the EIP165 zone interface
         if (
@@ -647,15 +669,18 @@ contract SeaportValidator is
         OrderParameters memory orderParameters,
         uint256 offerItemIndex
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
+        console.log("first line");
         // Note: If multiple items are of the same token, token amounts are not summed for validation
 
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        console.log("before getApprovalAddress call");
         // Get the approval address for the given conduit key
         (
             address approvalAddress,
             ErrorsAndWarnings memory ew
         ) = getApprovalAddress(orderParameters.conduitKey);
+        console.log("after getApprovalAddress call");
 
         console.log("approvalAddress: %s", approvalAddress);
 
@@ -1138,6 +1163,10 @@ contract SeaportValidator is
         // Validate tertiary consideration items if not 0 (0 indicates error).
         // Only if no prior errors
         if (tertiaryConsiderationIndex != 0) {
+            console.log(
+                "tertiaryConsiderationIndex",
+                tertiaryConsiderationIndex
+            );
             errorsAndWarnings.concat(
                 _validateTertiaryConsiderationItems(
                     orderParameters,
@@ -1279,6 +1308,18 @@ contract SeaportValidator is
             transactionAmountStart,
             transactionAmountEnd
         );
+        console.log(
+            "creatorFeeConsideration.recipient",
+            creatorFeeConsideration.recipient
+        );
+        console.log(
+            "creatorFeeConsideration.startAmount",
+            creatorFeeConsideration.startAmount
+        );
+        console.log(
+            "creatorFeeConsideration.endAmount",
+            creatorFeeConsideration.endAmount
+        );
 
         // Flag indicating if creator fee is present in considerations
         bool creatorFeePresent = false;
@@ -1292,7 +1333,10 @@ contract SeaportValidator is
         ) {
             // Calculate index of creator fee consideration item
             uint16 creatorFeeConsiderationIndex = primaryFeePresent ? 2 : 1; // 2 if primary fee, ow 1
-
+            console.log(
+                "creatorFeeConsiderationIndex",
+                creatorFeeConsiderationIndex
+            );
             // Check that creator fee consideration item exists
             if (
                 orderParameters.consideration.length - 1 <
@@ -1304,6 +1348,7 @@ contract SeaportValidator is
 
             ConsiderationItem memory creatorFeeItem = orderParameters
                 .consideration[creatorFeeConsiderationIndex];
+            console.log("creator fee set to true");
             creatorFeePresent = true;
 
             // Check type
@@ -1337,6 +1382,8 @@ contract SeaportValidator is
             }
         }
 
+        console.log("primaryFeePresent: %s", primaryFeePresent);
+        console.log("creatorFeePresent: %s", creatorFeePresent);
         // Calculate index of first tertiary consideration item
         tertiaryConsiderationIndex =
             1 +
@@ -1370,7 +1417,9 @@ contract SeaportValidator is
         )
     {
         // Check if creator fee engine is on this chain
+        console.log("creatorFeeEngine: %s", address(creatorFeeEngine));
         if (address(creatorFeeEngine) != address(0)) {
+            console.log("creatorFeeEngine is not null");
             // Creator fee engine may revert if no creator fees are present.
             try
                 creatorFeeEngine.getRoyaltyView(
@@ -1382,12 +1431,18 @@ contract SeaportValidator is
                 address payable[] memory creatorFeeRecipients,
                 uint256[] memory creatorFeeAmountsStart
             ) {
+                console.log("try entered");
+                console.log(
+                    "creatorFeeRecipients.length",
+                    creatorFeeRecipients.length
+                );
                 if (creatorFeeRecipients.length != 0) {
                     // Use first recipient and amount
                     recipient = creatorFeeRecipients[0];
                     creatorFeeAmountStart = creatorFeeAmountsStart[0];
                 }
             } catch {
+                console.log("Creator fee not found");
                 // Creator fee not found
             }
 
@@ -1463,7 +1518,7 @@ contract SeaportValidator is
     function _validateTertiaryConsiderationItems(
         OrderParameters memory orderParameters,
         uint256 considerationItemIndex
-    ) internal pure returns (ErrorsAndWarnings memory errorsAndWarnings) {
+    ) internal view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         if (orderParameters.consideration.length <= considerationItemIndex) {
@@ -1476,6 +1531,8 @@ contract SeaportValidator is
 
         // Check if offer is payment token. Private sale not possible if so.
         if (isPaymentToken(orderParameters.offer[0].itemType)) {
+            console.log("first extra items");
+
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()
             );
@@ -1502,7 +1559,48 @@ contract SeaportValidator is
             orderParameters.offer[0].identifierOrCriteria !=
             privateSaleConsideration.identifierOrCriteria
         ) {
+            console.log(
+                "privateSaleConsideration.itemType",
+                uint(privateSaleConsideration.itemType)
+            );
+            console.log(
+                "orderParameters.offer[0].itemType",
+                uint(orderParameters.offer[0].itemType)
+            );
+            console.log(
+                "privateSaleConsideration.token",
+                privateSaleConsideration.token
+            );
+            console.log(
+                "orderParameters.offer[0].token",
+                orderParameters.offer[0].token
+            );
+            console.log(
+                "orderParameters.offer[0].startAmount",
+                orderParameters.offer[0].startAmount
+            );
+            console.log(
+                "privateSaleConsideration.startAmount",
+                privateSaleConsideration.startAmount
+            );
+            console.log(
+                "orderParameters.offer[0].endAmount",
+                orderParameters.offer[0].endAmount
+            );
+            console.log(
+                "privateSaleConsideration.endAmount",
+                privateSaleConsideration.endAmount
+            );
+            console.log(
+                "orderParameters.offer[0].identifierOrCriteria",
+                orderParameters.offer[0].identifierOrCriteria
+            );
+            console.log(
+                "privateSaleConsideration.identifierOrCriteria",
+                privateSaleConsideration.identifierOrCriteria
+            );
             // Invalid private sale, say extra consideration item
+            console.log("second extra items");
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()
             );
@@ -1513,6 +1611,7 @@ contract SeaportValidator is
 
         // Should not be any additional consideration items
         if (orderParameters.consideration.length - 1 > considerationItemIndex) {
+            console.log("third extra items");
             // Extra consideration items
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()
