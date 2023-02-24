@@ -42,6 +42,8 @@ contract SeaportExtendedNFT is
     // Note: this value can be packed alongside canTransfer as they share a key.
     mapping(uint256 => uint256) private _blockNumberOfLastDirectTransfer;
 
+    event SeaportCompatibleContractDeployed();
+
     error InvalidCaller(address caller);
     error UnsupportedExtraDataVersion(uint8 version);
     error InvalidExtraDataEncoding(uint8 version);
@@ -55,6 +57,8 @@ contract SeaportExtendedNFT is
 
         // Note: this could optionally support an array of recipients.
         _CREATOR = creatorAccount;
+
+        emit SeaportCompatibleContractDeployed();
     }
 
     /**
