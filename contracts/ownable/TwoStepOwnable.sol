@@ -134,6 +134,16 @@ abstract contract TwoStepOwnable is TwoStepOwnableInterface {
     }
 
     /**
+     * @dev Internal view function to revert if the caller is not the owner.
+     */
+    function _assertCallerIsOwner() internal view {
+        // Ensure caller is the owner.
+        if (msg.sender != owner()) {
+            revert CallerIsNotOwner();
+        }
+    }
+
+    /**
      * @notice Private function that sets a new owner and emits a corresponding
      *         event.
      *
@@ -145,15 +155,5 @@ abstract contract TwoStepOwnable is TwoStepOwnableInterface {
 
         // Set the new owner.
         _owner = newOwner;
-    }
-
-    /**
-     * @dev Internal view function to revert if the caller is not the owner.
-     */
-    function _assertCallerIsOwner() internal view {
-        // Ensure caller is the owner.
-        if (msg.sender != owner()) {
-            revert CallerIsNotOwner();
-        }
     }
 }

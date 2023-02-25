@@ -24,7 +24,7 @@ import { TwoStepOwnable } from "../ownable/TwoStepOwnable.sol";
  *         active signers of a zone controlled by the captain and clear the
  *         rotator role on the captain.
  */
-contract SignedZoneCaptain is
+abstract contract SignedZoneCaptain is
     TwoStepOwnable,
     SignedZoneCaptainInterface,
     SignedZoneCaptainEventsAndErrors
@@ -179,7 +179,8 @@ contract SignedZoneCaptain is
         // Ensure caller is the owner.
         _assertCallerIsOwner();
 
-        // Call to the signed zone controller to update the zone documentation URI.
+        // Call to the signed zone controller to update the zone documentation
+        // URI.
         _SIGNED_ZONE_CONTROLLER.updateDocumentationURI(
             zone,
             newDocumentationURI
@@ -388,8 +389,7 @@ contract SignedZoneCaptain is
      *         permitted to deploy this contract.
      */
     function _assertValidDeployer() internal view virtual {
-        // TODO: Implement this.
-        //revert("Not implemented assertValidDeployer");
+        revert("Not implemented assertValidDeployer");
     }
 
     /**

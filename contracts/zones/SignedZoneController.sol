@@ -254,101 +254,6 @@ contract SignedZoneController is
     }
 
     /**
-     * @notice Retrieve the current owner of a deployed zone.
-     *
-     * @param zone The zone for which to retrieve the associated owner.
-     *
-     * @return owner The owner of the supplied zone.
-     */
-    function ownerOf(address zone)
-        external
-        view
-        override
-        returns (address owner)
-    {
-        // Ensure that the zone in question exists.
-        _assertZoneExists(zone);
-
-        // Retrieve the current owner of the zone in question.
-        owner = _signedZones[zone].owner;
-    }
-
-    /**
-     * @notice Retrieve the potential owner, if any, for a given zone. The
-     *         current owner may set a new potential owner via
-     *         `transferOwnership` and that owner may then accept ownership of
-     *         the zone in question via `acceptOwnership`.
-     *
-     * @param zone The zone for which to retrieve the potential owner.
-     *
-     * @return potentialOwner The potential owner, if any, for the zone.
-     */
-    function getPotentialOwner(address zone)
-        external
-        view
-        override
-        returns (address potentialOwner)
-    {
-        // Ensure that the zone in question exists.
-        _assertZoneExists(zone);
-
-        // Retrieve the current potential owner of the zone in question.
-        potentialOwner = _signedZones[zone].potentialOwner;
-    }
-
-    /**
-     * @notice Returns the active signers for the zone. Note that the array of
-     *         active signers could grow to a size that this function could not
-     *         return, the array of active signers is expected to be small,
-     *         and is managed by the controller.
-     *
-     * @param zone The zone to return the active signers for.
-     *
-     * @return signers The active signers.
-     */
-    function getActiveSigners(address zone)
-        external
-        view
-        override
-        returns (address[] memory signers)
-    {
-        // Ensure that the zone in question exists.
-        _assertZoneExists(zone);
-
-        // Retrieve storage region where the singers for the signedZone are
-        // stored.
-        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
-
-        // Return the active signers for the zone.
-        signers = signedZoneProperties.activeSignerList;
-    }
-
-    /**
-     * @notice Returns if the given address is an active signer for the zone.
-     *
-     * @param zone   The zone to return the active signers for.
-     * @param signer The address to check if it is an active signer.
-     *
-     * @return The address is an active signer, false otherwise.
-     */
-    function isActiveSigner(address zone, address signer)
-        external
-        view
-        override
-        returns (bool)
-    {
-        // Ensure that the zone in question exists.
-        _assertZoneExists(zone);
-
-        // Retrieve storage region where the singers for the signedZone are
-        // stored.
-        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
-
-        // Return whether the signer is an active signer for the zone.
-        return signedZoneProperties.signers[signer].active;
-    }
-
-    /**
      * @notice Update the API endpoint returned by a zone.
      *         Only the owner or an active signer of the supplied zone can call
      *         this function.
@@ -453,6 +358,101 @@ contract SignedZoneController is
 
         // Emit an event signifying that the signer was updated.
         emit SignerUpdated(zone, signer, active);
+    }
+
+    /**
+     * @notice Retrieve the current owner of a deployed zone.
+     *
+     * @param zone The zone for which to retrieve the associated owner.
+     *
+     * @return owner The owner of the supplied zone.
+     */
+    function ownerOf(address zone)
+        external
+        view
+        override
+        returns (address owner)
+    {
+        // Ensure that the zone in question exists.
+        _assertZoneExists(zone);
+
+        // Retrieve the current owner of the zone in question.
+        owner = _signedZones[zone].owner;
+    }
+
+    /**
+     * @notice Retrieve the potential owner, if any, for a given zone. The
+     *         current owner may set a new potential owner via
+     *         `transferOwnership` and that owner may then accept ownership of
+     *         the zone in question via `acceptOwnership`.
+     *
+     * @param zone The zone for which to retrieve the potential owner.
+     *
+     * @return potentialOwner The potential owner, if any, for the zone.
+     */
+    function getPotentialOwner(address zone)
+        external
+        view
+        override
+        returns (address potentialOwner)
+    {
+        // Ensure that the zone in question exists.
+        _assertZoneExists(zone);
+
+        // Retrieve the current potential owner of the zone in question.
+        potentialOwner = _signedZones[zone].potentialOwner;
+    }
+
+    /**
+     * @notice Returns the active signers for the zone. Note that the array of
+     *         active signers could grow to a size that this function could not
+     *         return, the array of active signers is expected to be small,
+     *         and is managed by the controller.
+     *
+     * @param zone The zone to return the active signers for.
+     *
+     * @return signers The active signers.
+     */
+    function getActiveSigners(address zone)
+        external
+        view
+        override
+        returns (address[] memory signers)
+    {
+        // Ensure that the zone in question exists.
+        _assertZoneExists(zone);
+
+        // Retrieve storage region where the singers for the signedZone are
+        // stored.
+        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
+
+        // Return the active signers for the zone.
+        signers = signedZoneProperties.activeSignerList;
+    }
+
+    /**
+     * @notice Returns if the given address is an active signer for the zone.
+     *
+     * @param zone   The zone to return the active signers for.
+     * @param signer The address to check if it is an active signer.
+     *
+     * @return The address is an active signer, false otherwise.
+     */
+    function isActiveSigner(address zone, address signer)
+        external
+        view
+        override
+        returns (bool)
+    {
+        // Ensure that the zone in question exists.
+        _assertZoneExists(zone);
+
+        // Retrieve storage region where the singers for the signedZone are
+        // stored.
+        SignedZoneProperties storage signedZoneProperties = _signedZones[zone];
+
+        // Return whether the signer is an active signer for the zone.
+        return signedZoneProperties.signers[signer].active;
     }
 
     /**

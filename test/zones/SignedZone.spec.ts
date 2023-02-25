@@ -54,7 +54,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   // Salt for the signed zone deployment
   const salt = `0x${testSignedZoneDeployConstants.TEST_SIGNED_ZONE_CAPTAIN_ADDRESS.slice(
     2
-  )}593c66b26f72200017714358`;
+  )}561103d98e847000103b58d5`;
 
   // Version byte for SIP-6 using Substandard 1
   const sip6VersionByte = "00";
@@ -1668,7 +1668,7 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   });
   it("Revert: Try to create a signed zone captain with an invalid controller", async () => {
     const SignedZoneCaptainFactory = await ethers.getContractFactory(
-      "SignedZoneCaptain",
+      "TestSignedZoneCaptain",
       owner
     );
 
@@ -3636,7 +3636,7 @@ describe(`Zone - SignedZone separate deployments without create2 (Seaport v${VER
   });
   it("Revert: Try to create a signed zone captain with an invalid controller", async () => {
     const SignedZoneCaptainFactory = await ethers.getContractFactory(
-      "SignedZoneCaptain",
+      "TestSignedZoneCaptain",
       owner
     );
 
