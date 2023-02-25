@@ -876,6 +876,7 @@ export const seaportFixture = async (owner: Wallet) => {
     conduitImplementation,
     conduitKeyOne,
     conduitOne,
+    create2Factory,
     getTransferSender,
     deployNewConduit,
     testERC20,

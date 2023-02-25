@@ -80,6 +80,63 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
     }
 
     /**
+     * @notice The fallback function is used as a dispatcher for the
+     *         `updateSigner`, `isActiveSigner`, `getActiveSigners` and
+     *         `supportsInterface` functions.
+     */
+    // prettier-ignore
+    fallback(bytes calldata) external payable returns (bytes memory output) {
+        // Get the function selector.
+        bytes4 selector = msg.sig;
+
+        if (selector == UPDATE_SIGNER_SELECTOR) {
+            // abi.encodeWithSignature("updateSigner(address,bool)", signer,
+            // active)
+          
+            // Get the signer, and active status.
+            address signer = abi.decode(msg.data[4:], (address));
+            bool active = abi.decode(msg.data[36:], (bool));
+
+            // Call to update the signer.
+            _updateSigner(signer, active);
+        } else if (selector == GET_ACTIVE_SIGNERS_SELECTOR) {
+            // abi.encodeWithSignature("getActiveSigners()")
+        
+            // Call the internal function to get the active signers.
+            return abi.encode(_getActiveSigners());
+        } else if (selector == SUPPORTS_INTERFACE_SELECTOR) {
+            // abi.encodeWithSignature("supportsInterface(bytes4)", interfaceId)
+
+            // Get the interface ID.
+            bytes4 interfaceId = abi.decode(msg.data[4:], (bytes4));
+
+            // Call the internal function to determine if the interface is
+            // supported.
+            return abi.encode(_supportsInterface(interfaceId));
+        } else if (selector == IS_ACTIVE_SIGNER_SELECTOR) {
+            // abi.encodeWithSignature("isActiveSigner(address)", signer)
+
+            // Get the signer.
+            address signer = abi.decode(msg.data[4:], (address));
+
+            // Call the internal function to determine if the signer is active.
+            return abi.encode(_isActiveSigner(signer));
+        }
+        else {
+             // Revert if the function selector is not supported.
+            assembly {
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
+                mstore(0, UnsupportedFunctionSelector_error_selector)
+                // revert(abi.encodeWithSignature(
+                //  "UnsupportedFunctionSelector()"
+                // ))
+                revert(0x1c, UnsupportedFunctionSelector_error_length)
+            }
+        }
+    }
+
+    /**
      * @notice Check if a given order including extraData is currently valid.
      *
      * @dev This function is called by Seaport whenever any extraData is
@@ -189,7 +246,7 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                     1
                 )
                 mstore(InvalidSubstandardSupport_error_orderHash_ptr, orderHash)
-                mstore(InvalidSubstandardSupport_error_reason_length_ptr, 0x2a) // 42 length
+                mstore(InvalidSubstandardSupport_error_reason_length_ptr, 0x2a)
                 mstore(
                     InvalidSubstandardSupport_error_reason_ptr,
                     "Consideration must have at least"
@@ -199,8 +256,11 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                     " one item."
                 )
                 // revert(abi.encodeWithSignature(
-                //   "InvalidSubstandardSupport(string,uint256,bytes32)", reason, substandardVersion, orderHash)
-                // )
+                //     "InvalidSubstandardSupport(string,uint256,bytes32)",
+                //     reason,
+                //     substandardVersion,
+                //     orderHash
+                // ))
                 revert(0x1c, InvalidSubstandardSupport_error_length)
             }
         }
@@ -214,9 +274,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
 
         // Check the validity of the Substandard #1 extraData and get the
         // expected fulfiller address.
-        address expectedFulfiller = _assertValidSubstandardAndGetExpectedFulfiller(
-                orderHash
-            );
+        address expectedFulfiller = (
+            _assertValidSubstandardAndGetExpectedFulfiller(orderHash)
+        );
 
         // Derive the signedOrder hash.
         bytes32 signedOrderHash = _deriveSignedOrderHash(
@@ -280,60 +340,6 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             substandards,
             documentationURI
         );
-    }
-
-    /**
-     * @notice The fallback function is used as a dispatcher for the
-     *         `updateSigner`, `isActiveSigner`, `getActiveSigners` and
-     *         `supportsInterface` functions.
-     */
-    // prettier-ignore
-    fallback(bytes calldata) external payable returns (bytes memory output) {
-        // Get the function selector.
-        bytes4 selector = msg.sig;
-
-        if (selector == UPDATE_SIGNER_SELECTOR) {
-            // abi.encodeWithSignature("updateSigner(address,bool)", signer,
-            // active)
-          
-            // Get the signer, and active status.
-            address signer = abi.decode(msg.data[4:], (address));
-            bool active = abi.decode(msg.data[36:], (bool));
-
-            // Call to update the signer.
-            _updateSigner(signer, active);
-        } else if (selector == GET_ACTIVE_SIGNERS_SELECTOR) {
-            // abi.encodeWithSignature("getActiveSigners()")
-        
-            // Call the internal function to get the active signers.
-            return abi.encode(_getActiveSigners());
-        } else if (selector == SUPPORTS_INTERFACE_SELECTOR) {
-            // abi.encodeWithSignature("supportsInterface(bytes4)", interfaceId)
-
-            // Get the interface ID.
-            bytes4 interfaceId = abi.decode(msg.data[4:], (bytes4));
-
-            // Call the internal function to determine if the interface is
-            // supported.
-            return abi.encode(_supportsInterface(interfaceId));
-        } else if (selector == IS_ACTIVE_SIGNER_SELECTOR) {
-            // abi.encodeWithSignature("isActiveSigner(address)", signer)
-
-            // Get the signer.
-            address signer = abi.decode(msg.data[4:], (address));
-
-            // Call the internal function to determine if the signer is active.
-            return abi.encode(_isActiveSigner(signer));
-        }
-        else {
-             // Revert if the function selector is not supported.
-            assembly {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
-                mstore(0, UnsupportedFunctionSelector_error_selector)
-                // revert(abi.encodeWithSignature("UnsupportedFunctionSelector()"))
-                revert(0x1c, UnsupportedFunctionSelector_error_length)
-            }
-        }
     }
 
     /**
@@ -750,9 +756,12 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
             if iszero(
                 eq(calldataload(Zone_parameters_cdPtr), Zone_parameters_ptr)
             ) {
-                // Store left-padded selector with push4 (reduces bytecode), mem[28:32] = selector
+                // Store left-padded selector with push4 (reduces bytecode),
+                // mem[28:32] = selector
                 mstore(0, InvalidZoneParameterEncoding_error_selector)
-                // revert(abi.encodeWithSignature("InvalidZoneParameterEncoding()"))
+                // revert(abi.encodeWithSignature(
+                //  "InvalidZoneParameterEncoding()"
+                // ))
                 revert(0x1c, InvalidZoneParameterEncoding_error_length)
             }
         }
@@ -815,8 +824,11 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 )
                 mstore(InvalidFulfiller_error_orderHash_ptr, orderHash)
                 // revert(abi.encodeWithSignature(
-                //   "InvalidFulfiller(address,address,bytes32)", expectedFulfiller, actualFulfiller, orderHash)
-                // )
+                //     "InvalidFulfiller(address,address,bytes32)",
+                //     expectedFulfiller,
+                //     actualFulfiller,
+                //     orderHash
+                // ))
                 revert(0x1c, InvalidFulfiller_error_length)
             }
 
@@ -837,8 +849,11 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
                 )
                 mstore(InvalidReceivedItem_error_orderHash_ptr, orderHash)
                 // revert(abi.encodeWithSignature(
-                //   "InvalidReceivedItem(uint256,uint256,bytes32)", expectedReceivedIdentifier, actualReceievedIdentifier, orderHash)
-                // )
+                //     "InvalidReceivedItem(uint256,uint256,bytes32)",
+                //     expectedReceivedIdentifier,
+                //     actualReceievedIdentifier,
+                //     orderHash
+                // ))
                 revert(0x1c, InvalidReceivedItem_error_length)
             }
         }

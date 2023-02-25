@@ -1,30 +1,30 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { SignedZoneCaptain } from "./SignedZoneCaptain.sol";
+import { SignedZoneCaptain } from "../zones/SignedZoneCaptain.sol";
 
-import { SignedZoneController } from "./SignedZoneController.sol";
+import { SignedZoneController } from "../zones/SignedZoneController.sol";
 
 import {
     ImmutableCreate2FactoryInterface
 } from "../interfaces/ImmutableCreate2FactoryInterface.sol";
 
-import "./lib/SignedZoneDeployerConstants.sol";
+import "./lib/TestSignedZoneDeployerConstants.sol";
 
 /**
- * @title   SignedZoneDeployer
+ * @title   TestSignedZoneDeployer
  * @author  OpenSea Protocol Team
- * @notice  SignedZoneDeployer is a contract that is used to deploy the
+ * @notice  TestSignedZoneDeployer is a contract that is used to deploy the
  *          SignedZoneController, a SignedZone and the SignedZoneCaptain to
  *          deterministic addresses via an immutable create2 factory.
  *
  *          Expected Addresses:
  *
- *          SignedZoneController  -  TODO: Add address
- *          SignedZoneCaptain     -  TODO: Add address
- *          SignedZone            -  TODO: Add address
+ *          TestSignedZoneController  -  0x000066470b8ae18200009a2DB42C895e00d1fB00
+ *          TestSignedZoneCaptain     -  0x000000Ac396B2102db11B86Cdd31005100064cB1
+ *          TestSignedZone            -  0x0000000045CA1F93419BBB768fcE00775EAD9f90
  */
-contract SignedZoneDeployer {
+contract TestSignedZoneDeployer {
     /**
      * @notice Deploys the Signed Zone Controller and the Signed Zone Captain.
      *
@@ -51,17 +51,17 @@ contract SignedZoneDeployer {
         bytes32 zoneSalt
     ) {
         // Check if the controller already exists.
-        if (address(SIGNED_ZONE_CONTROLLER_ADDRESS).code.length == 0) {
+        if (address(TEST_SIGNED_ZONE_CONTROLLER_ADDRESS).code.length == 0) {
             // Deploy the Signed Zone Controller.
-            _deploySignedZoneController();
+            _deployTestSignedZoneController();
         }
 
         // Deploy the Signed Zone Captain via CREATE2.
-        address signedZoneCaptain = _deploySignedZoneCaptain();
+        address testSignedZoneCaptain = _deployTestSignedZoneCaptain();
 
         // Initialize the Signed Zone Captain, setting this contract as the
         // temporary owner.
-        SignedZoneCaptain(signedZoneCaptain).initialize(
+        SignedZoneCaptain(testSignedZoneCaptain).initialize(
             address(this),
             rotatorToAssign,
             sanitizerToAssign,
@@ -72,38 +72,46 @@ contract SignedZoneDeployer {
         );
 
         // Initiate transfer ownership.
-        SignedZoneCaptain(signedZoneCaptain).transferOwnership(ownerOfCaptain);
+        SignedZoneCaptain(testSignedZoneCaptain).transferOwnership(
+            ownerOfCaptain
+        );
     }
 
     /**
      * @notice Deploys the Signed Zone Captain through the immutable create2
      *         factory at TODO: Add address.
      *
-     * @return signedZoneCaptain The address of the Signed Zone Captain.
+     * @return testSignedZoneCaptain The address of the Signed Zone Captain.
      */
-    function _deploySignedZoneCaptain()
+    function _deployTestSignedZoneCaptain()
         internal
-        returns (address signedZoneCaptain)
+        returns (address testSignedZoneCaptain)
     {
         // Deploy the Signed Zone Captain via CREATE2.
-        signedZoneCaptain = ImmutableCreate2FactoryInterface(
+        testSignedZoneCaptain = ImmutableCreate2FactoryInterface(
             CREATE_2_FACTORY_ADDRESS
-        ).safeCreate2(SIGNED_ZONE_CAPTAIN_SALT, SIGNED_ZONE_CAPTAIN_CODE);
+        ).safeCreate2(
+                TEST_SIGNED_ZONE_CAPTAIN_SALT,
+                TEST_SIGNED_ZONE_CAPTAIN_CODE
+            );
     }
 
     /**
      * @notice Deploys the Signed Zone Controller through the immutable create2
      *         factory at TODO: Add address.
      *
-     * @return signedZoneController The address of the Signed Zone Captain.
+     * @return testSignedZoneController The address of the Signed Zone Captain.
      */
-    function _deploySignedZoneController()
+    function _deployTestSignedZoneController()
         internal
-        returns (address signedZoneController)
+        returns (address testSignedZoneController)
     {
         // Deploy the Signed Zone Controller via CREATE2.
-        signedZoneController = ImmutableCreate2FactoryInterface(
+        testSignedZoneController = ImmutableCreate2FactoryInterface(
             CREATE_2_FACTORY_ADDRESS
-        ).safeCreate2(SIGNED_ZONE_CONTROLLER_SALT, SIGNED_ZONE_CONTROLLER_CODE);
+        ).safeCreate2(
+                TEST_SIGNED_ZONE_CONTROLLER_SALT,
+                TEST_SIGNED_ZONE_CONTROLLER_CODE
+            );
     }
 }

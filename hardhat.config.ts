@@ -119,6 +119,46 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      "contracts/zone/SignedZone.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "contracts/zone/SignedZoneCaptain.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "contracts/zone/OpenSeaSignedZoneCaptain.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "contracts/zone/SignedZoneController.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
     },
   },
   networks: {
