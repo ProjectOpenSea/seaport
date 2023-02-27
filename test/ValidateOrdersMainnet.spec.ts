@@ -42,6 +42,7 @@ import type {
   OrderParametersStruct,
   OrderStruct,
   ValidationConfigurationStruct,
+  ZoneParametersStruct,
 } from "../typechain-types/contracts/order-validator/SeaportValidator.sol/SeaportValidator";
 import type { TestERC20 } from "../typechain-types/contracts/test/TestERC20";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -51,6 +52,7 @@ describe("Validate Orders", function () {
   const feeRecipient = "0x0000000000000000000000000000000000000FEE";
   const coder = new ethers.utils.AbiCoder();
   let baseOrderParameters: OrderParametersStruct;
+  let zoneParameters: ZoneParametersStruct;
   let validator: SeaportValidator;
   let seaport: ConsiderationInterface;
   let owner: SignerWithAddress;
@@ -115,6 +117,19 @@ describe("Validate Orders", function () {
       consideration: [],
       zoneHash: EMPTY_BYTES32,
       conduitKey: EMPTY_BYTES32,
+    };
+
+    zoneParameters = {
+      orderHash: EMPTY_BYTES32,
+      fulfiller: feeRecipient,
+      offerer: baseOrderParameters.offerer,
+      offer: [],
+      consideration: [],
+      extraData: EMPTY_BYTES32,
+      orderHashes: [],
+      startTime: baseOrderParameters.startTime,
+      endTime: baseOrderParameters.endTime,
+      zoneHash: baseOrderParameters.zoneHash,
     };
   });
 
@@ -1682,6 +1697,7 @@ describe("Validate Orders", function () {
   });
 
   describe("Validate Zone", function () {
+    // TODO: Update zone to return invalid magic value
     let testZone: TestZone;
     beforeEach(async function () {
       const TestZone = await ethers.getContractFactory("TestZone");
@@ -1725,7 +1741,10 @@ describe("Validate Orders", function () {
       baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
       baseOrderParameters.zoneHash = coder.encode(["uint256"], [1]);
       expect(
-        await validator.isValidZone(baseOrderParameters)
+        await validator.validateOrderWithZone(
+          baseOrderParameters,
+          zoneParameters
+        )
       ).to.include.deep.ordered.members([[], [ZoneIssue.RejectedOrder]]);
     });
 
@@ -1734,7 +1753,10 @@ describe("Validate Orders", function () {
       baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
       baseOrderParameters.zoneHash = coder.encode(["uint256"], [2]);
       expect(
-        await validator.isValidZone(baseOrderParameters)
+        await validator.validateOrderWithZone(
+          baseOrderParameters,
+          zoneParameters
+        )
       ).to.include.deep.ordered.members([[], [ZoneIssue.RejectedOrder]]);
     });
 
@@ -1744,7 +1766,7 @@ describe("Validate Orders", function () {
       baseOrderParameters.zoneHash = coder.encode(["uint256"], [1]);
       expect(
         await validator.isValidZone(baseOrderParameters)
-      ).to.include.deep.ordered.members([[], [ZoneIssue.RejectedOrder]]);
+      ).to.include.deep.ordered.members([[ZoneIssue.InvalidZone], []]);
     });
 
     it("zone not checked on open order", async function () {

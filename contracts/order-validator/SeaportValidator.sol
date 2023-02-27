@@ -221,7 +221,7 @@ contract SeaportValidator is
 
         if (orderParameters.zone == address(0)) {
             // Zone is not set
-            errorsAndWarnings.addError(ZoneIssue.NotSet.parseInt());
+            errorsAndWarnings.addWarning(ZoneIssue.NotSet.parseInt());
             return errorsAndWarnings;
         }
 
