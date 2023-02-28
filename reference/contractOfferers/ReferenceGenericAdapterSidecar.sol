@@ -74,6 +74,8 @@ contract ReferenceGenericAdapterSidecar {
             revert InvalidEncodingOrCaller();
         }
 
+        bool success;
+
         // Iterate over each call.
         for (uint i = 0; i < calls.length; ++i) {
             if (calls[i].target.code.length == 0) {
@@ -81,11 +83,8 @@ contract ReferenceGenericAdapterSidecar {
             }
 
             // Call the target and get success status.
-            (bool success, ) = calls[i].target.call{ value: calls[i].value }(
-                abi.encodeWithSelector(
-                    bytes4(calls[i].callData[0:4]),
-                    calls[i].callData[4:]
-                )
+            (success, ) = calls[i].target.call{ value: calls[i].value }(
+                calls[i].callData
             );
 
             // If the call fails and the call is not allowed to fail, revert.
@@ -97,9 +96,7 @@ contract ReferenceGenericAdapterSidecar {
         // Return excess native tokens, if any remain, to the caller.
         if (address(this).balance > 0) {
             // Declare a variable indicating whether the call was successful.
-            (bool success, ) = msg.sender.call{ value: address(this).balance }(
-                ""
-            );
+            (success, ) = msg.sender.call{ value: address(this).balance }("");
 
             // If the call fails, revert.
             if (!success) {
