@@ -37,4 +37,5 @@ ignore:
   - contracts/test
   - contracts/helpers
   - contracts/zones
+  - contracts/contractOfferers
   - contracts/lib/ConsiderationStructs.sol
