@@ -43,10 +43,14 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
     error NativeTokenTransferGenericFailure(address recipient, uint256 amount);
     error NotImplemented();
 
+    event SeaportCompatibleContractDeployed();
+
     constructor(address seaport, address flashloanOfferer) {
         _SEAPORT = seaport;
         _SIDECAR = address(new GenericAdapterSidecar());
         _FLASHLOAN_OFFERER = flashloanOfferer;
+
+        emit SeaportCompatibleContractDeployed();
     }
 
     /**

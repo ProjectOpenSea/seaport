@@ -132,8 +132,12 @@ contract GenericAdapterSidecar {
                 //     // It'll need to be derived.
                 callOffset := add(callOffset, callSize)
             } {
+                let callPtr := calldataload(callOffset)
+                
+                // TODO: assert that callPtr is not OOR
+            
                 let callDataOffset := and(
-                    calldataload(add(callOffset, 0x60)),
+                    calldataload(add(callPtr, 0x60)),
                     0xffffffff
                 )
 
@@ -155,8 +159,8 @@ contract GenericAdapterSidecar {
                 // Perform the call to the target, supplying value and calldata.
                 let success := call(
                     gas(),
-                    calldataload(callOffset), // target
-                    calldataload(add(callOffset, 0x40)), // value
+                    calldataload(callPtr), // target
+                    calldataload(add(callPtr, 0x40)), // value
                     add(callDataOffset, 0x20), // callData data
                     and(calldataload(callDataOffset), 0xffffffff), // length
                     0,
@@ -169,7 +173,7 @@ contract GenericAdapterSidecar {
                 // revert(0x1c, 0x24)
 
                 // Revert if the call fails and failure is not allowed.
-                if iszero(or(calldataload(add(callOffset, 0x20)), success)) {
+                if iszero(or(calldataload(add(callPtr, 0x20)), success)) {
                     if and(returndatasize(), lt(returndatasize(), 0xffff)) {
                         returndatacopy(0, 0, returndatasize())
                         revert(0, returndatasize())
