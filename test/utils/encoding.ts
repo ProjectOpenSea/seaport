@@ -62,6 +62,8 @@ export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));
 
 export const toAddress = (n: BigNumberish) => getAddress(toHex(n, 20));
 
+export const randomAddress = () => getAddress(randomHex(20));
+
 export const toKey = (n: BigNumberish) => toHex(n, 32);
 
 export const convertSignatureToEIP2098 = (signature: string) => {
