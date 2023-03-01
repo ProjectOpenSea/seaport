@@ -256,14 +256,14 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
                 isReference: false
             })
         );
-        // test(
-        //     this.execExecuteToggleFailureAllowed,
-        //     Context({
-        //         consideration: referenceConsideration,
-        //         sidecar: testSidecarReference,
-        //         isReference: true
-        //     })
-        // );
+        test(
+            this.execExecuteToggleFailureAllowed,
+            Context({
+                consideration: referenceConsideration,
+                sidecar: testSidecarReference,
+                isReference: true
+            })
+        );
     }
 
     function execExecuteToggleFailureAllowed(
@@ -277,122 +277,120 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
 
         // mint(address,uint256) == 0x40c10f19
 
-        // // Test a passing call with failure allowed.
-        // passingCallFailureAllowed = Call({
-        //     target: address(testERC721),
-        //     allowFailure: true,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         42
-        //     )
-        // });
+        // Test a passing call with failure allowed.
+        passingCallFailureAllowed = Call({
+            target: address(testERC721),
+            allowFailure: true,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                42
+            )
+        });
 
         // vm.deal(address(context.sidecar), 10 ether);
 
-        // calls[0] = passingCallFailureAllowed;
-        // context.sidecar.execute(calls);
+        calls[0] = passingCallFailureAllowed;
+        context.sidecar.execute(calls);
 
-        // assertEq(testERC721.ownerOf(42), alice);
+        assertEq(testERC721.ownerOf(42), alice);
 
-        // // Test a passing call with failure disallowed.
-        // passingCallFailureDisallowed = Call({
-        //     target: address(testERC721),
-        //     allowFailure: false,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         43
-        //     )
-        // });
+        // Test a passing call with failure disallowed.
+        passingCallFailureDisallowed = Call({
+            target: address(testERC721),
+            allowFailure: false,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                43
+            )
+        });
 
-        // calls[0] = passingCallFailureDisallowed;
-        // context.sidecar.execute(calls);
+        calls[0] = passingCallFailureDisallowed;
+        context.sidecar.execute(calls);
 
-        // assertEq(testERC721.ownerOf(43), alice);
+        assertEq(testERC721.ownerOf(43), alice);
 
-        // // Test a failing call with failure allowed.
-        // failingCallFailureAllowed = Call({
-        //     target: address(this),
-        //     allowFailure: true,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         43
-        //     )
-        // });
+        // Test a failing call with failure allowed.
+        failingCallFailureAllowed = Call({
+            target: address(this),
+            allowFailure: true,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                43
+            )
+        });
 
-        // calls[0] = failingCallFailureAllowed;
-        // context.sidecar.execute(calls);
+        calls[0] = failingCallFailureAllowed;
+        context.sidecar.execute(calls);
 
-        // // Test a failing call with failure disallowed.
-        // failingCallFailureDisallowed = Call({
-        //     target: address(this),
-        //     allowFailure: false,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         43
-        //     )
-        // });
+        // Test a failing call with failure disallowed.
+        failingCallFailureDisallowed = Call({
+            target: address(this),
+            allowFailure: false,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                43
+            )
+        });
 
-        // calls[0] = failingCallFailureDisallowed;
+        calls[0] = failingCallFailureDisallowed;
 
-        // vm.expectRevert(abi.encodeWithSignature("CallFailed(uint256)", 0));
-        // context.sidecar.execute(calls);
+        vm.expectRevert(abi.encodeWithSelector(0x3f9a3b48, 0));
+        context.sidecar.execute(calls);
 
-        // // Test mixed calls.
-        // Call[] memory mixedCalls = new Call[](2);
+        // Test mixed calls.
+        Call[] memory mixedCalls = new Call[](2);
 
-        // // Test passing/disallowed and failing/allowed.
+        // Test passing/disallowed and failing/allowed.
 
-        // passingCallFailureDisallowed = Call({
-        //     target: address(testERC721),
-        //     allowFailure: false,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         44
-        //     )
-        // });
+        passingCallFailureDisallowed = Call({
+            target: address(testERC721),
+            allowFailure: false,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                44
+            )
+        });
 
-        // mixedCalls[0] = passingCallFailureDisallowed;
-        // mixedCalls[1] = failingCallFailureAllowed;
+        mixedCalls[0] = passingCallFailureDisallowed;
+        mixedCalls[1] = failingCallFailureAllowed;
 
-        // // TODO: Come back and figure out why the test passes when I'm getting a
-        // // `EvmError: OutOfFund` revert (on the first call, which doesn't allow
-        // // failure).
+        // TODO: Come back and figure out why the test passes when I'm getting a
+        // `EvmError: OutOfFund` revert (on the first call, which doesn't allow
+        // failure).
 
-        // context.sidecar.execute(mixedCalls);
+        context.sidecar.execute(mixedCalls);
 
-        // // Test passing/disallowed and failing/disallowed.
-        // passingCallFailureDisallowed = Call({
-        //     target: address(testERC721),
-        //     allowFailure: false,
-        //     value: 0,
-        //     callData: abi.encodeWithSelector(
-        //         TestERC721.mint.selector,
-        //         alice,
-        //         45
-        //     )
-        // });
+        // Test passing/disallowed and failing/disallowed.
+        passingCallFailureDisallowed = Call({
+            target: address(testERC721),
+            allowFailure: false,
+            value: 0,
+            callData: abi.encodeWithSelector(
+                TestERC721.mint.selector,
+                alice,
+                45
+            )
+        });
 
-        // mixedCalls[0] = passingCallFailureDisallowed;
-        // mixedCalls[1] = failingCallFailureDisallowed;
+        mixedCalls[0] = passingCallFailureDisallowed;
+        mixedCalls[1] = failingCallFailureDisallowed;
 
-        // vm.expectRevert(abi.encodeWithSignature("CallFailed(uint256)", 1));
-        // context.sidecar.execute(mixedCalls);
-
+        vm.expectRevert(abi.encodeWithSignature("CallFailed(uint256)", 1));
+        context.sidecar.execute(mixedCalls);
 
         // STUFF ABOVE WORKS ON REFERENCE
 
         // STUFF BELOW IS TO TEST FAIL FUNTIONALITY WITH VALUE INCLUDED
-
 
         ////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
@@ -431,42 +429,36 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
 
         // context.sidecar.execute(calls);
 
-
         ////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
 
-        // STUFF BELOW IS THE EXPERIMENT AGAINST OPTIMIZED
+        // // STUFF BELOW IS THE EXPERIMENT AGAINST OPTIMIZED
 
-        // mint(address,uint256) == 0x40c10f19
+        // // mint(address,uint256) == 0x40c10f19
 
-        Call[] memory mixedCalls = new Call[](2);
+        // Call[] memory mixedCalls = new Call[](2);
 
-        failingCallFailureAllowed = Call({
+        passingCallFailureAllowed = Call({
             target: address(testERC721),
             allowFailure: true,
             value: 0,
-            callData: abi.encodeWithSelector(
-                TestERC721.mint.selector,
-                55
-            )
+            callData: abi.encodeWithSelector(TestERC721.mint.selector, 55)
         });
 
-        passingCallFailureDisallowed = Call({
+        Call memory passingCallFailureAllowedTwo;
+
+        passingCallFailureAllowedTwo = Call({
             target: address(testERC721),
             allowFailure: true,
             value: 0,
-            callData: abi.encodeWithSelector(
-                TestERC721.mint.selector,
-                alice,
-                56
-            )
+            callData: abi.encodeWithSelector(TestERC721.tokenURI.selector, 55)
         });
 
-        mixedCalls[0] = passingCallFailureDisallowed;
-        mixedCalls[1] = failingCallFailureAllowed;
+        mixedCalls[0] = passingCallFailureAllowed;
+        mixedCalls[1] = passingCallFailureAllowedTwo;
 
         context.sidecar.execute(mixedCalls);
     }

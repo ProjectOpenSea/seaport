@@ -91,95 +91,75 @@ contract GenericAdapterSidecar {
             // Revert if standard encoding is not utilized or caller is invalid.
             if or(
                 xor(caller(), designatedCaller),
-                // Dynamic elements like arrays are moved to the end of calldata
-                // and a pointer to that offset is encoded in its “normal”
-                // place. Since there’s only one argument and it’s dynamic, the
-                // offset is just one word after the start of calldata. Anything
-                // that’s not 0x20 (or 0) will xor to a non zero value and pass
-                // the conditional.
-                //
-                // Check the bytes from 4 to 36 and make sure they're providing
-                // the offset (one word) we'd expect.
                 xor(calldataload(0x04), 0x20)
             ) {
-                // revert InvalidEncodingOrCaller();
                 mstore(0, 0x8f183575)
                 revert(0x1c, 0x04)
             }
 
-            let initialJunkLength := 0x44
-            let callSize := 0x144
+            let freeMemoryPtr := mload(0x40)
 
-            let callsCount := and(calldataload(0x24), 0xffffffff)
+            let totalCalls := and(calldataload(0x24), 0xffffffff)
 
             // Derive the calldata offset for the final call.
-            let finalCallOffset := add(
-                initialJunkLength,
-                // `shl(0x05, n) is like multiplying n by 0x20
-                // But I think we want to iterate in chunks of 0x100, not 0x20
-                // EDIT: We don't know?  The size of `Call`'s `callData` arg
-                // can be more or less anything?
-                // Is there a better way to do this other than looping?
-                // shl(0x05, and(calldataload(0x24), 0xffffffff))
-                mul(callsCount, callSize)
-            )
+            let finalCallOffset := add(0x44, shl(0x05, totalCalls)) // -- 0x84 in the doiuble loop case
 
             // Iterate over each call.
             for {
-                let callOffset := initialJunkLength
+                let callOffset := 0x44
             } lt(callOffset, finalCallOffset) {
-                //     // TODO: Come back and move the iteration to the loop itself.
-                //     // It'll need to be derived.
-                callOffset := add(callOffset, callSize)
+                callOffset := add(callOffset, 0x20) // -- 2nd pass it's 0x64
             } {
-                let callPtr := calldataload(callOffset)
-                
+                // 0x84 in the double loop case (first pass)
+                // 0x184 in the second pass
+                let callPtr := add(
+                    calldataload(callOffset), // --> loads 0x40 then 0x140
+                    0x44
+                )
+
                 // TODO: assert that callPtr is not OOR
-            
+
+                
                 let callDataOffset := and(
-                    calldataload(add(callPtr, 0x60)),
+                    // 0xe4
+                    calldataload(add(callPtr, 0x60)), // -- product is 0x80
                     0xffffffff
                 )
 
-                // call(
-                //     gas(),
-                //     sidecarAddress, // Target address.
-                //     0, // No value.
-                //     0x120, // Call data starts at 0x120.
-                //     0x60, // Call data is 0x60 bytes long
-                //     0, // Where to store the data of the subcontext.
-                //     0x20 // Output is 0x20 bytes long.
-                // )
+                let callDataLength := and(
+                    // 0xe4           0x104
+                    calldataload(add(callPtr, callDataOffset)), // --> product is 0x44
+                    0xffffffff
+                )
 
-                // // revert CallFailed(index);
-                // mstore(0, 0x3f9a3b48)
-                // mstore(0x20, shr(0x05, sub(callOffset, 0x44)))
-                // revert(0x1c, 0x24)
+                calldatacopy(
+                    freeMemoryPtr,
+                    // 0x124
+                    add(add(callPtr, 0x20), callDataOffset),
+                    callDataLength
+                )
 
                 // Perform the call to the target, supplying value and calldata.
                 let success := call(
                     gas(),
                     calldataload(callPtr), // target
                     calldataload(add(callPtr, 0x40)), // value
-                    add(callDataOffset, 0x20), // callData data
-                    and(calldataload(callDataOffset), 0xffffffff), // length
+                    freeMemoryPtr, // callData data
+                    callDataLength, // length
                     0,
-                    0 // How do we know how long the return data is?
+                    0
                 )
-
-                // // revert CallFailed(index);
-                // mstore(0, 0x3f9a3b48)
-                // mstore(0x20, shr(0x05, sub(callOffset, 0x44)))
-                // revert(0x1c, 0x24)
 
                 // Revert if the call fails and failure is not allowed.
                 if iszero(or(calldataload(add(callPtr, 0x20)), success)) {
-                    if and(returndatasize(), lt(returndatasize(), 0xffff)) {
+                    if and(
+                        iszero(iszero(returndatasize())),
+                        lt(returndatasize(), 0xffff)
+                    ) {
                         returndatacopy(0, 0, returndatasize())
                         revert(0, returndatasize())
                     }
 
-                    // revert CallFailed(index);
                     mstore(0, 0x3f9a3b48)
                     mstore(0x20, shr(0x05, sub(callOffset, 0x44)))
                     revert(0x1c, 0x24)
@@ -195,7 +175,6 @@ contract GenericAdapterSidecar {
                         revert(0, returndatasize())
                     }
 
-                    // ExcessNativeTokenReturnFailed(uint256 amount);
                     mstore(0, 0x3d3f0ba4)
                     mstore(0x20, selfbalance())
                     revert(0x1c, 0x24)
