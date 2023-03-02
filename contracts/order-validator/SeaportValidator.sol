@@ -90,6 +90,8 @@ contract SeaportValidator is
 
     bytes4 public constant CONTRACT_OFFERER_INTERFACE_ID = 0x1be900b1;
 
+    bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
+
     constructor() {
         address creatorFeeEngineAddress;
         if (block.chainid == 1 || block.chainid == 31337) {
@@ -229,12 +231,7 @@ contract SeaportValidator is
         }
 
         // Check the EIP165 zone interface
-        if (
-            !checkInterface(
-                orderParameters.zone,
-                type(ZoneInterface).interfaceId
-            )
-        ) {
+        if (!checkInterface(orderParameters.zone, 0x3839be19)) {
             errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
         }
     }
