@@ -354,7 +354,7 @@ contract SeaportValidator is
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Check the EIP165 contract offerer interface
-        if (!checkInterface(contractOfferer, CONTRACT_OFFERER_INTERFACE_ID)) {
+        if (!checkInterface(contractOfferer, CONTRACT_OFFERER_ID)) {
             // Call to supportsInterface does not return the contract offerer EIP165 interface id
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
