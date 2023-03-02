@@ -1476,7 +1476,7 @@ contract SeaportValidator is
     function _validateTertiaryConsiderationItems(
         OrderParameters memory orderParameters,
         uint256 considerationItemIndex
-    ) internal view returns (ErrorsAndWarnings memory errorsAndWarnings) {
+    ) internal pure returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         if (orderParameters.consideration.length <= considerationItemIndex) {
