@@ -28,15 +28,16 @@ import {
   TimeIssue,
   WEEKS_26,
   ZoneIssue,
+  ContractOffererIssue,
 } from "./order-validator-constants";
 
 import {
   ConsiderationInterface,
   SeaportValidator,
-  SeaportValidatorViewOnlyInterface,
-  SeaportValidatorViewOnlyInterface__factory,
+  TestContractOfferer,
   TestERC1155,
   TestERC721,
+  TestInvalidContractOfferer165,
   TestInvalidZone,
   TestZone,
 } from "../typechain-types";
@@ -53,13 +54,11 @@ import { ContractFactory, utils } from "ethers";
 import { FormatTypes } from "ethers/lib/utils";
 
 describe("Validate Orders", function () {
-  const { provider } = ethers;
   const feeRecipient = "0x0000000000000000000000000000000000000FEE";
   const coder = new ethers.utils.AbiCoder();
   let baseOrderParameters: OrderParametersStruct;
   let zoneParameters: ZoneParametersStruct;
   let validator: SeaportValidator;
-  let validatorViewOnlyInterface: any;
   let seaport: ConsiderationInterface;
   let owner: SignerWithAddress;
   let otherAccounts: SignerWithAddress[];
@@ -80,16 +79,6 @@ describe("Validate Orders", function () {
 
     const Validator = await ethers.getContractFactory("SeaportValidator");
 
-    const validatorViewOnlyInterface = new ethers.utils.Interface([
-      "constructor()",
-
-      "function validateSignature(tuple(tuple(address offerer, address zone, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint endAmount)[] offer, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint256 endAmount, address recipient)[] consideration, uint256 orderType, uint256 startTime, uint256 endTime, bytes32 zoneHash, uint256 salt, bytes32 conduitKey, uint256 totalOriginalConsiderationItems) orderParameters, bytes signature) order) returns (tuple (uint256[] errors, uint256[] warnings) errorsAndWarnings)",
-
-      "function validateSignatureWithCounter(tuple(tuple(address offerer, address zone, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint endAmount)[] offer, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint256 endAmount, address recipient)[] consideration, uint256 orderType, uint256 startTime, uint256 endTime, bytes32 zoneHash, uint256 salt, bytes32 conduitKey, uint256 totalOriginalConsiderationItems) orderParameters, bytes signature) order, uint256 counter) returns (tuple (uint256[] errors, uint256[] warnings) errorsAndWarnings)",
-    ]);
-
-    console.log(validatorViewOnlyInterface.format(FormatTypes.full));
-
     const TestERC721Factory = await ethers.getContractFactory("TestERC721");
     const TestERC1155Factory = await ethers.getContractFactory("TestERC1155");
     const TestERC20Factory = await ethers.getContractFactory("TestERC20");
@@ -105,7 +94,6 @@ describe("Validate Orders", function () {
 
     return {
       validator,
-      validatorViewOnlyInterface,
       owner,
       otherAccounts,
       erc721_1,
@@ -118,7 +106,6 @@ describe("Validate Orders", function () {
   beforeEach(async function () {
     const res = await loadFixture(deployFixture);
     validator = res.validator;
-    validatorViewOnlyInterface = res.validatorViewOnlyInterface;
     owner = res.owner;
     otherAccounts = res.otherAccounts;
     erc721_1 = res.erc721_1;
@@ -1718,7 +1705,6 @@ describe("Validate Orders", function () {
   });
 
   describe("Validate Zone", function () {
-    // TODO: Update zone to return invalid magic value
     let testZone: TestZone;
     let testInvalidZone: TestInvalidZone;
     beforeEach(async function () {
@@ -2841,6 +2827,40 @@ describe("Validate Orders", function () {
       expect(
         await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[], []]);
+    });
+  });
+
+  describe("Validate Contract Offerer", function () {
+    let contractOfferer: TestContractOfferer;
+    let invalidContractOfferer: TestInvalidContractOfferer165;
+    beforeEach(async function () {
+      const ContractOffererFactory = await ethers.getContractFactory(
+        "TestContractOfferer"
+      );
+      const InvalidCOntractOffererFactory = await ethers.getContractFactory(
+        "TestInvalidContractOfferer165"
+      );
+      contractOfferer = await ContractOffererFactory.deploy(seaport.address);
+      invalidContractOfferer = await InvalidCOntractOffererFactory.deploy(
+        seaport.address
+      );
+    });
+    it("success", async function () {
+      expect(
+        await validator.callStatic.validateContractOfferer(
+          contractOfferer.address
+        )
+      ).to.include.deep.ordered.members([[], []]);
+    });
+    it("failure", async function () {
+      expect(
+        await validator.callStatic.validateContractOfferer(
+          invalidContractOfferer.address
+        )
+      ).to.include.deep.ordered.members([
+        [ContractOffererIssue.InvalidContractOfferer],
+        [],
+      ]);
     });
   });
 

@@ -88,6 +88,8 @@ contract SeaportValidator is
 
     bytes4 public constant ERC1155_INTERFACE_ID = 0xd9b67a26;
 
+    bytes4 public constant CONTRACT_OFFERER_INTERFACE_ID = 0x1be900b1;
+
     constructor() {
         address creatorFeeEngineAddress;
         if (block.chainid == 1 || block.chainid == 31337) {
@@ -344,18 +346,18 @@ contract SeaportValidator is
         }
     }
 
+    /**
+     * @notice Check that a contract offerer implements the EIP165 contract offerer interface
+     * @param contractOfferer The address of the contract offerer
+     * @return errorsAndWarnings The errors and warnings
+     */
     function validateContractOfferer(
         address contractOfferer
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Check the EIP165 contract offerer interface
-        if (
-            !checkInterface(
-                contractOfferer,
-                type(ContractOffererInterface).interfaceId
-            )
-        ) {
+        if (!checkInterface(contractOfferer, CONTRACT_OFFERER_INTERFACE_ID)) {
             // Call to supportsInterface does not return the contract offerer EIP165 interface id
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
