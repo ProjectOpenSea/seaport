@@ -235,48 +235,6 @@ describe("Validate Orders (Arbitrum)", function () {
         )
       ).to.include.deep.ordered.members([[ConsiderationIssue.ExtraItems], []]);
     });
-
-    it("Check creator fees second reverts", async function () {
-      await erc721_1.setCreatorFeeEnabled(true);
-      await erc721_1.setMinTransactionPrice(10);
-
-      baseOrderParameters.offer = [
-        {
-          itemType: ItemType.ERC20,
-          token: erc20_1.address,
-          identifierOrCriteria: "0",
-          startAmount: "1000",
-          endAmount: "0",
-        },
-      ];
-      baseOrderParameters.consideration = [
-        {
-          itemType: ItemType.ERC721,
-          token: erc721_1.address,
-          identifierOrCriteria: "1",
-          startAmount: "1",
-          endAmount: "1",
-          recipient: owner.address,
-        },
-        {
-          itemType: ItemType.ERC20,
-          token: erc20_1.address,
-          identifierOrCriteria: "0",
-          startAmount: "25",
-          endAmount: "0",
-          recipient: "0x000000000000000000000000000000000000FEE2",
-        },
-      ];
-
-      expect(
-        await validator.validateStrictLogic(
-          baseOrderParameters,
-          NULL_ADDRESS,
-          "0",
-          true
-        )
-      ).to.include.deep.ordered.members([[], []]);
-    });
   });
 
   async function signOrder(

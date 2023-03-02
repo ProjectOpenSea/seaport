@@ -59,7 +59,6 @@ import {
     GenericIssue
 } from "./lib/SeaportValidatorTypes.sol";
 import { Verifiers } from "../lib/Verifiers.sol";
-import "hardhat/console.sol";
 
 /**
  * @title SeaportValidator
