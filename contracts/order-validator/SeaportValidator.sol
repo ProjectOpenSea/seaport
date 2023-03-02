@@ -539,6 +539,7 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        // Get the offer item at offerItemIndex
         OfferItem memory offerItem = orderParameters.offer[offerItemIndex];
 
         // Check if start amount and end amount are zero
@@ -688,6 +689,7 @@ contract SeaportValidator is
             return errorsAndWarnings;
         }
 
+        // Get the offer item at offerItemIndex
         OfferItem memory offerItem = orderParameters.offer[offerItemIndex];
 
         if (offerItem.itemType == ItemType.ERC721) {
