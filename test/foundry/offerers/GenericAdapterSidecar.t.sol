@@ -155,14 +155,14 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
     }
 
     function testExecuteNotDesignatedCaller() public {
-        // test(
-        //     this.execExecuteNotDesignatedCaller,
-        //     Context({
-        //         consideration: consideration,
-        //         sidecar: testSidecar,
-        //         isReference: false
-        //     })
-        // );
+        test(
+            this.execExecuteNotDesignatedCaller,
+            Context({
+                consideration: consideration,
+                sidecar: testSidecar,
+                isReference: false
+            })
+        );
         test(
             this.execExecuteNotDesignatedCaller,
             Context({
@@ -275,8 +275,6 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
         Call memory failingCallFailureAllowed;
         Call memory failingCallFailureDisallowed;
 
-        // mint(address,uint256) == 0x40c10f19
-
         // Test a passing call with failure allowed.
         passingCallFailureAllowed = Call({
             target: address(testERC721),
@@ -288,8 +286,6 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
                 42
             )
         });
-
-        // vm.deal(address(context.sidecar), 10 ether);
 
         calls[0] = passingCallFailureAllowed;
         context.sidecar.execute(calls);
@@ -349,7 +345,6 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
         Call[] memory mixedCalls = new Call[](2);
 
         // Test passing/disallowed and failing/allowed.
-
         passingCallFailureDisallowed = Call({
             target: address(testERC721),
             allowFailure: false,
@@ -363,10 +358,6 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
 
         mixedCalls[0] = passingCallFailureDisallowed;
         mixedCalls[1] = failingCallFailureAllowed;
-
-        // TODO: Come back and figure out why the test passes when I'm getting a
-        // `EvmError: OutOfFund` revert (on the first call, which doesn't allow
-        // failure).
 
         context.sidecar.execute(mixedCalls);
 
@@ -388,59 +379,8 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
         vm.expectRevert(abi.encodeWithSignature("CallFailed(uint256)", 1));
         context.sidecar.execute(mixedCalls);
 
-        // STUFF ABOVE WORKS ON REFERENCE
-
-        // STUFF BELOW IS TO TEST FAIL FUNTIONALITY WITH VALUE INCLUDED
-
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-
-        // (bool success, ) = address(context.sidecar).call{ value: 1 ether }("");
-        // require(success);
-        // assertEq(address(context.sidecar).balance, 1 ether);
-
-        // context.sidecar.execute(calls);
-        // assertEq(address(context.sidecar).balance, 0);
-
-        // rejectReceive = true;
-        // (success, ) = address(context.sidecar).call{ value: 1 ether }("");
-
-        // if (context.isReference) {
-        //     vm.expectRevert(
-        //         abi.encodeWithSelector(
-        //             ReferenceGenericAdapterSidecar
-        //                 .NativeTokenTransferGenericFailure
-        //                 .selector
-        //         )
-        //     );
-        // } else {
-        //     vm.expectRevert(
-        //         abi.encodeWithSelector(
-        //             GenericAdapterSidecar
-        //                 .ExcessNativeTokenReturnFailed
-        //                 .selector,
-        //             1 ether
-        //         )
-        //     );
-        // }
-
-        // context.sidecar.execute(calls);
-
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-
-        // // STUFF BELOW IS THE EXPERIMENT AGAINST OPTIMIZED
-
-        // // mint(address,uint256) == 0x40c10f19
-
-        // Call[] memory mixedCalls = new Call[](2);
-
+        // Test passing/allowed and passing/allowed with calls with different
+        // numbers of arguments.
         passingCallFailureAllowed = Call({
             target: address(testERC721),
             allowFailure: true,
@@ -459,6 +399,42 @@ contract GenericAdapterSidecarTest is BaseOrderTest {
 
         mixedCalls[0] = passingCallFailureAllowed;
         mixedCalls[1] = passingCallFailureAllowedTwo;
+
+        context.sidecar.execute(mixedCalls);
+
+        // Test native token handling with populated calls.
+        (bool success, ) = address(context.sidecar).call{ value: 1 ether }("");
+        require(success);
+        assertEq(address(context.sidecar).balance, 1 ether);
+
+        // Not testing the call itself here, so just swap in a passing dummy
+        // call.
+        mixedCalls[0] = passingCallFailureAllowedTwo;
+
+        context.sidecar.execute(mixedCalls);
+        assertEq(address(context.sidecar).balance, 0);
+
+        rejectReceive = true;
+        (success, ) = address(context.sidecar).call{ value: 1 ether }("");
+
+        if (context.isReference) {
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ReferenceGenericAdapterSidecar
+                        .NativeTokenTransferGenericFailure
+                        .selector
+                )
+            );
+        } else {
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    GenericAdapterSidecar
+                        .ExcessNativeTokenReturnFailed
+                        .selector,
+                    1 ether
+                )
+            );
+        }
 
         context.sidecar.execute(mixedCalls);
     }

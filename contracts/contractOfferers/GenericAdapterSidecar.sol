@@ -102,39 +102,30 @@ contract GenericAdapterSidecar {
             let totalCalls := and(calldataload(0x24), 0xffffffff)
 
             // Derive the calldata offset for the final call.
-            let finalCallOffset := add(0x44, shl(0x05, totalCalls)) // -- 0x84 in the doiuble loop case
+            let finalCallOffset := add(0x44, shl(0x05, totalCalls))
 
             // Iterate over each call.
             for {
                 let callOffset := 0x44
             } lt(callOffset, finalCallOffset) {
-                callOffset := add(callOffset, 0x20) // -- 2nd pass it's 0x64
+                callOffset := add(callOffset, 0x20)
             } {
-                // 0x84 in the double loop case (first pass)
-                // 0x184 in the second pass
-                let callPtr := add(
-                    calldataload(callOffset), // --> loads 0x40 then 0x140
-                    0x44
-                )
+                let callPtr := add(calldataload(callOffset), 0x44)
 
                 // TODO: assert that callPtr is not OOR
 
-                
                 let callDataOffset := and(
-                    // 0xe4
-                    calldataload(add(callPtr, 0x60)), // -- product is 0x80
+                    calldataload(add(callPtr, 0x60)),
                     0xffffffff
                 )
 
                 let callDataLength := and(
-                    // 0xe4           0x104
-                    calldataload(add(callPtr, callDataOffset)), // --> product is 0x44
+                    calldataload(add(callPtr, callDataOffset)),
                     0xffffffff
                 )
 
                 calldatacopy(
                     freeMemoryPtr,
-                    // 0x124
                     add(add(callPtr, 0x20), callDataOffset),
                     callDataLength
                 )
