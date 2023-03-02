@@ -88,7 +88,7 @@ contract SeaportValidator is
 
     bytes4 public constant ERC1155_INTERFACE_ID = 0xd9b67a26;
 
-    bytes4 public constant CONTRACT_OFFERER_INTERFACE_ID = 0x1be900b1;
+    bytes4 public constant CONTRACT_OFFERER_ID = 0x1be900b1;
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
