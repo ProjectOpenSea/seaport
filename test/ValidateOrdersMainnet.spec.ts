@@ -50,8 +50,6 @@ import type {
 } from "../typechain-types/contracts/order-validator/SeaportValidator.sol/SeaportValidator";
 import type { TestERC20 } from "../typechain-types/contracts/test/TestERC20";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ContractFactory, utils } from "ethers";
-import { FormatTypes } from "ethers/lib/utils";
 
 describe("Validate Orders", function () {
   const feeRecipient = "0x0000000000000000000000000000000000000FEE";
