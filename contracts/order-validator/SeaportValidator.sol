@@ -203,7 +203,8 @@ contract SeaportValidator is
     }
 
     /**
-     * @notice Checks if the zone of an order is set and implements EIP165
+     * @notice Checks if the zone of an order is set and implements the EIP165
+     *         zone interface
      * @dev To validate the zone call for an order, see validateOrderWithZone
      * @param orderParameters The order parameters to check.
      * @return errorsAndWarnings The errors and warnings
@@ -344,7 +345,8 @@ contract SeaportValidator is
     }
 
     /**
-     * @notice Check that a contract offerer implements the EIP165 contract offerer interface
+     * @notice Check that a contract offerer implements the EIP165
+     *         contract offerer interface
      * @param contractOfferer The address of the contract offerer
      * @return errorsAndWarnings The errors and warnings
      */
@@ -355,7 +357,6 @@ contract SeaportValidator is
 
         // Check the EIP165 contract offerer interface
         if (!checkInterface(contractOfferer, CONTRACT_OFFERER_ID)) {
-            // Call to supportsInterface does not return the contract offerer EIP165 interface id
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
@@ -454,7 +455,7 @@ contract SeaportValidator is
 
     /**
      * @notice Validate all offer items for an order. Ensures that
-     *    offerer has sufficient balance and approval for each item.
+     *         offerer has sufficient balance and approval for each item.
      * @dev Amounts are not summed and verified, just the individual amounts.
      * @param orderParameters The parameters for the order to validate
      * @return errorsAndWarnings  The errors and warnings
@@ -845,6 +846,7 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        // You must have a consideration item
         if (orderParameters.consideration.length == 0) {
             errorsAndWarnings.addWarning(
                 ConsiderationIssue.ZeroItems.parseInt()
@@ -869,7 +871,6 @@ contract SeaportValidator is
             ) {
                 // Iterate over each remaining offer item
                 // (previous items already check with this item)
-
                 ConsiderationItem memory considerationItem2 = orderParameters
                     .consideration[j];
 
@@ -903,6 +904,7 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        // Validate the consideration item at considerationItemIndex
         errorsAndWarnings.concat(
             validateConsiderationItemParameters(
                 orderParameters,
