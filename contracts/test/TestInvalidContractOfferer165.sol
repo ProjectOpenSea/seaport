@@ -20,7 +20,6 @@ import {
     Schema,
     SpentItem
 } from "../lib/ConsiderationStructs.sol";
-import "hardhat/console.sol";
 
 contract TestInvalidContractOfferer165 {
     error OrderUnavailable();
