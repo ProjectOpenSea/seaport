@@ -7,30 +7,21 @@ import { ERC165 } from "../interfaces/ERC165.sol";
 
 import { Schema, ZoneParameters } from "../lib/ConsiderationStructs.sol";
 
-import "hardhat/console.sol";
-
 contract TestZone is ERC165, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
-        console.log("aaaaa");
-        console.log("extraData.length", zoneParameters.extraData.length);
+    ) external pure override returns (bytes4 validOrderMagicValue) {
         if (zoneParameters.extraData.length == 0) {
-            console.log("extradata length 0");
             if (zoneParameters.zoneHash == bytes32(uint256(1))) {
-                console.log("11111");
                 revert("Revert on zone hash 1");
             } else if (zoneParameters.zoneHash == bytes32(uint256(2))) {
-                console.log("2222");
                 assembly {
                     revert(0, 0)
                 }
             }
         } else if (zoneParameters.extraData.length == 4) {
-            console.log("44444");
             revert("Revert on extraData length 4");
         } else if (zoneParameters.extraData.length == 5) {
-            console.log("55555");
             assembly {
                 revert(0, 0)
             }
