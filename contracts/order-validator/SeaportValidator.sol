@@ -115,11 +115,7 @@ contract SeaportValidator is
             // No creator fee engine for this chain
             creatorFeeEngineAddress = address(0);
         }
-        console.log("chainid", block.chainid);
-        console.log(
-            "constructor creatorFeeEngineAddress",
-            creatorFeeEngineAddress
-        );
+
         creatorFeeEngine = CreatorFeeEngineInterface(creatorFeeEngineAddress);
     }
 
@@ -221,7 +217,7 @@ contract SeaportValidator is
 
         if (orderParameters.zone == address(0)) {
             // Zone is not set
-            errorsAndWarnings.addWarning(ZoneIssue.NotSet.parseInt());
+            errorsAndWarnings.addError(ZoneIssue.NotSet.parseInt());
             return errorsAndWarnings;
         }
 
@@ -304,9 +300,10 @@ contract SeaportValidator is
             // Counter strictly increases
             errorsAndWarnings.addError(SignatureIssue.LowCounter.parseInt());
             return errorsAndWarnings;
-        } else if (counter > 2 && currentCounter < counter - 2) {
-            // Will require significant input from offerer to validate, warn
-            errorsAndWarnings.addWarning(SignatureIssue.HighCounter.parseInt());
+        } else if (currentCounter < counter) {
+            // Counter is incremented by random large number
+            errorsAndWarnings.addError(SignatureIssue.HighCounter.parseInt());
+            return errorsAndWarnings;
         }
 
         bytes32 orderHash = _deriveOrderHash(order.parameters, counter);
@@ -325,10 +322,15 @@ contract SeaportValidator is
         // Store order in array
         orderArray[0] = order;
 
-        if (
+        try
             // Call validate on Seaport
-            !seaport.validate(orderArray)
-        ) {
+            seaport.validate(orderArray)
+        returns (bool success) {
+            if (!success) {
+                // Call was unsuccessful, so signature is invalid
+                errorsAndWarnings.addError(SignatureIssue.Invalid.parseInt());
+            }
+        } catch {
             if (
                 order.parameters.consideration.length !=
                 order.parameters.totalOriginalConsiderationItems
@@ -338,8 +340,7 @@ contract SeaportValidator is
                     SignatureIssue.OriginalConsiderationItems.parseInt()
                 );
             }
-
-            // Signature is invalid
+            // Call reverted, so signature is invalid
             errorsAndWarnings.addError(SignatureIssue.Invalid.parseInt());
         }
     }
@@ -634,7 +635,6 @@ contract SeaportValidator is
                 );
             }
 
-            console.log("validateOfferItemParameters erc20 allowance call: ");
             // Validate contract, should return an uint256 if its an ERC20
             if (
                 !offerItem.token.safeStaticCallUint256(
@@ -674,21 +674,15 @@ contract SeaportValidator is
         OrderParameters memory orderParameters,
         uint256 offerItemIndex
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
-        console.log("first line");
         // Note: If multiple items are of the same token, token amounts are not summed for validation
 
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
-        console.log("before getApprovalAddress call");
         // Get the approval address for the given conduit key
         (
             address approvalAddress,
             ErrorsAndWarnings memory ew
         ) = getApprovalAddress(orderParameters.conduitKey);
-        console.log("after getApprovalAddress call");
-
-        console.log("approvalAddress: %s", approvalAddress);
-
         errorsAndWarnings.concat(ew);
 
         if (ew.hasErrors()) {
@@ -701,7 +695,6 @@ contract SeaportValidator is
         if (offerItem.itemType == ItemType.ERC721) {
             ERC721Interface token = ERC721Interface(offerItem.token);
 
-            console.log("before erc721 ownerOf call");
             // Check that offerer owns token
             if (
                 !address(token).safeStaticCallAddress(
@@ -712,11 +705,9 @@ contract SeaportValidator is
                     orderParameters.offerer
                 )
             ) {
-                console.log("adding NotOwner error");
                 errorsAndWarnings.addError(ERC721Issue.NotOwner.parseInt());
             }
 
-            console.log("before erc721 getApproved call");
             // Check for approval via `getApproved`
             if (
                 !address(token).safeStaticCallAddress(
@@ -727,7 +718,6 @@ contract SeaportValidator is
                     approvalAddress
                 )
             ) {
-                console.log("before erc721 isApprovedForAll call");
                 // Fallback to `isApprovalForAll`
                 if (
                     !address(token).safeStaticCallBool(
@@ -739,7 +729,6 @@ contract SeaportValidator is
                         true
                     )
                 ) {
-                    console.log("adding NotApproved error");
                     // Not approved
                     errorsAndWarnings.addError(
                         ERC721Issue.NotApproved.parseInt()
@@ -751,7 +740,6 @@ contract SeaportValidator is
         ) {} else if (offerItem.itemType == ItemType.ERC1155) {
             ERC1155Interface token = ERC1155Interface(offerItem.token);
 
-            console.log("before erc1155 isApprovedForALl call");
             // Check for approval
             if (
                 !address(token).safeStaticCallBool(
@@ -763,7 +751,6 @@ contract SeaportValidator is
                     true
                 )
             ) {
-                console.log("adding NotApproved error");
                 errorsAndWarnings.addError(ERC1155Issue.NotApproved.parseInt());
             }
 
@@ -772,7 +759,6 @@ contract SeaportValidator is
                 ? offerItem.startAmount
                 : offerItem.endAmount;
 
-            console.log("before erc1155 balanceOf call");
             // Check for sufficient balance
             if (
                 !address(token).safeStaticCallUint256(
@@ -784,7 +770,6 @@ contract SeaportValidator is
                     minBalance
                 )
             ) {
-                console.log("adding InsufficientBalance error");
                 // Insufficient balance
                 errorsAndWarnings.addError(
                     ERC1155Issue.InsufficientBalance.parseInt()
@@ -801,7 +786,6 @@ contract SeaportValidator is
                 ? offerItem.startAmount
                 : offerItem.endAmount;
 
-            console.log("before ERC20Interface.allowance");
             // Check allowance
             if (
                 !address(token).safeStaticCallUint256(
@@ -813,7 +797,6 @@ contract SeaportValidator is
                     minBalanceAndAllowance
                 )
             ) {
-                console.log("adding InsufficientAllowance error");
                 errorsAndWarnings.addError(
                     ERC20Issue.InsufficientAllowance.parseInt()
                 );
@@ -829,7 +812,6 @@ contract SeaportValidator is
                     minBalanceAndAllowance
                 )
             ) {
-                console.log("adding InsufficientBalance error");
                 errorsAndWarnings.addError(
                     ERC20Issue.InsufficientBalance.parseInt()
                 );
@@ -1168,10 +1150,6 @@ contract SeaportValidator is
         // Validate tertiary consideration items if not 0 (0 indicates error).
         // Only if no prior errors
         if (tertiaryConsiderationIndex != 0) {
-            console.log(
-                "tertiaryConsiderationIndex",
-                tertiaryConsiderationIndex
-            );
             errorsAndWarnings.concat(
                 _validateTertiaryConsiderationItems(
                     orderParameters,
@@ -1313,18 +1291,6 @@ contract SeaportValidator is
             transactionAmountStart,
             transactionAmountEnd
         );
-        console.log(
-            "creatorFeeConsideration.recipient",
-            creatorFeeConsideration.recipient
-        );
-        console.log(
-            "creatorFeeConsideration.startAmount",
-            creatorFeeConsideration.startAmount
-        );
-        console.log(
-            "creatorFeeConsideration.endAmount",
-            creatorFeeConsideration.endAmount
-        );
 
         // Flag indicating if creator fee is present in considerations
         bool creatorFeePresent = false;
@@ -1338,10 +1304,7 @@ contract SeaportValidator is
         ) {
             // Calculate index of creator fee consideration item
             uint16 creatorFeeConsiderationIndex = primaryFeePresent ? 2 : 1; // 2 if primary fee, ow 1
-            console.log(
-                "creatorFeeConsiderationIndex",
-                creatorFeeConsiderationIndex
-            );
+
             // Check that creator fee consideration item exists
             if (
                 orderParameters.consideration.length - 1 <
@@ -1353,7 +1316,7 @@ contract SeaportValidator is
 
             ConsiderationItem memory creatorFeeItem = orderParameters
                 .consideration[creatorFeeConsiderationIndex];
-            console.log("creator fee set to true");
+
             creatorFeePresent = true;
 
             // Check type
@@ -1386,9 +1349,6 @@ contract SeaportValidator is
                 );
             }
         }
-
-        console.log("primaryFeePresent: %s", primaryFeePresent);
-        console.log("creatorFeePresent: %s", creatorFeePresent);
         // Calculate index of first tertiary consideration item
         tertiaryConsiderationIndex =
             1 +
@@ -1422,9 +1382,7 @@ contract SeaportValidator is
         )
     {
         // Check if creator fee engine is on this chain
-        console.log("creatorFeeEngine: %s", address(creatorFeeEngine));
         if (address(creatorFeeEngine) != address(0)) {
-            console.log("creatorFeeEngine is not null");
             // Creator fee engine may revert if no creator fees are present.
             try
                 creatorFeeEngine.getRoyaltyView(
@@ -1436,18 +1394,12 @@ contract SeaportValidator is
                 address payable[] memory creatorFeeRecipients,
                 uint256[] memory creatorFeeAmountsStart
             ) {
-                console.log("try entered");
-                console.log(
-                    "creatorFeeRecipients.length",
-                    creatorFeeRecipients.length
-                );
                 if (creatorFeeRecipients.length != 0) {
                     // Use first recipient and amount
                     recipient = creatorFeeRecipients[0];
                     creatorFeeAmountStart = creatorFeeAmountsStart[0];
                 }
             } catch {
-                console.log("Creator fee not found");
                 // Creator fee not found
             }
 
@@ -1536,8 +1488,6 @@ contract SeaportValidator is
 
         // Check if offer is payment token. Private sale not possible if so.
         if (isPaymentToken(orderParameters.offer[0].itemType)) {
-            console.log("first extra items");
-
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()
             );
@@ -1564,48 +1514,7 @@ contract SeaportValidator is
             orderParameters.offer[0].identifierOrCriteria !=
             privateSaleConsideration.identifierOrCriteria
         ) {
-            console.log(
-                "privateSaleConsideration.itemType",
-                uint(privateSaleConsideration.itemType)
-            );
-            console.log(
-                "orderParameters.offer[0].itemType",
-                uint(orderParameters.offer[0].itemType)
-            );
-            console.log(
-                "privateSaleConsideration.token",
-                privateSaleConsideration.token
-            );
-            console.log(
-                "orderParameters.offer[0].token",
-                orderParameters.offer[0].token
-            );
-            console.log(
-                "orderParameters.offer[0].startAmount",
-                orderParameters.offer[0].startAmount
-            );
-            console.log(
-                "privateSaleConsideration.startAmount",
-                privateSaleConsideration.startAmount
-            );
-            console.log(
-                "orderParameters.offer[0].endAmount",
-                orderParameters.offer[0].endAmount
-            );
-            console.log(
-                "privateSaleConsideration.endAmount",
-                privateSaleConsideration.endAmount
-            );
-            console.log(
-                "orderParameters.offer[0].identifierOrCriteria",
-                orderParameters.offer[0].identifierOrCriteria
-            );
-            console.log(
-                "privateSaleConsideration.identifierOrCriteria",
-                privateSaleConsideration.identifierOrCriteria
-            );
             // Invalid private sale, say extra consideration item
-            console.log("second extra items");
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()
             );
@@ -1616,7 +1525,6 @@ contract SeaportValidator is
 
         // Should not be any additional consideration items
         if (orderParameters.consideration.length - 1 > considerationItemIndex) {
-            console.log("third extra items");
             // Extra consideration items
             errorsAndWarnings.addError(
                 ConsiderationIssue.ExtraItems.parseInt()

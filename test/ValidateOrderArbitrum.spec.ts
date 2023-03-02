@@ -16,14 +16,14 @@ import type {
   ConsiderationInterface,
   SeaportValidator,
   TestERC1155,
-  TestERC721,
+  TestERC721Fee,
   TestERC721Funky,
 } from "../typechain-types";
 import type { OrderComponentsStruct } from "../typechain-types/contracts/interfaces/ConsiderationInterface";
 import type {
   OrderParametersStruct,
   OrderStruct,
-} from "../typechain-types/contracts/lib/SeaportValidator";
+} from "../typechain-types/contracts/order-validator/SeaportValidator.sol/SeaportValidator";
 import type { TestERC20 } from "../typechain-types/contracts/test/TestERC20";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
@@ -35,8 +35,8 @@ describe("Validate Orders (Arbitrum)", function () {
   let seaport: ConsiderationInterface;
   let owner: SignerWithAddress;
   let otherAccounts: SignerWithAddress[];
-  let erc721_1: TestERC721;
-  let erc721_2: TestERC721;
+  let erc721_1: TestERC721Fee;
+  let erc721_2: TestERC721Fee;
   let erc1155_1: TestERC1155;
   let erc20_1: TestERC20;
   let erc721_funky: TestERC721Funky;
@@ -52,7 +52,7 @@ describe("Validate Orders (Arbitrum)", function () {
     const [owner, ...otherAccounts] = await ethers.getSigners();
 
     const Validator = await ethers.getContractFactory("SeaportValidator");
-    const TestERC721Factory = await ethers.getContractFactory("TestERC721");
+    const TestERC721Factory = await ethers.getContractFactory("TestERC721Fee");
     const TestERC1155Factory = await ethers.getContractFactory("TestERC1155");
     const TestERC20Factory = await ethers.getContractFactory("TestERC20");
     const TestERC721FunkyFactory = await ethers.getContractFactory(
@@ -61,11 +61,11 @@ describe("Validate Orders (Arbitrum)", function () {
 
     const validator = await Validator.deploy();
 
-    const erc721_1 = await TestERC721Factory.deploy("NFT1", "NFT1");
-    const erc721_2 = await TestERC721Factory.deploy("NFT2", "NFT2");
-    const erc1155_1 = await TestERC1155Factory.deploy("uri_here");
-    const erc20_1 = await TestERC20Factory.deploy("ERC20", "ERC20");
-    const erc721_funky = await TestERC721FunkyFactory.deploy("NFT3", "NFT3");
+    const erc721_1 = await TestERC721Factory.deploy();
+    const erc721_2 = await TestERC721Factory.deploy();
+    const erc1155_1 = await TestERC1155Factory.deploy();
+    const erc20_1 = await TestERC20Factory.deploy();
+    const erc721_funky = await TestERC721FunkyFactory.deploy();
 
     return {
       validator,
@@ -238,7 +238,7 @@ describe("Validate Orders (Arbitrum)", function () {
 
     it("Check creator fees second reverts", async function () {
       await erc721_1.setCreatorFeeEnabled(true);
-      await erc721_1.setMinTransactionPrice("10");
+      await erc721_1.setMinTransactionPrice(10);
 
       baseOrderParameters.offer = [
         {

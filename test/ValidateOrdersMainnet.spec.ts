@@ -30,11 +30,14 @@ import {
   ZoneIssue,
 } from "./order-validator-constants";
 
-import type {
+import {
   ConsiderationInterface,
   SeaportValidator,
+  SeaportValidatorViewOnlyInterface,
+  SeaportValidatorViewOnlyInterface__factory,
   TestERC1155,
   TestERC721,
+  TestInvalidZone,
   TestZone,
 } from "../typechain-types";
 import type { OrderComponentsStruct } from "../typechain-types/contracts/interfaces/ConsiderationInterface";
@@ -46,6 +49,8 @@ import type {
 } from "../typechain-types/contracts/order-validator/SeaportValidator.sol/SeaportValidator";
 import type { TestERC20 } from "../typechain-types/contracts/test/TestERC20";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { ContractFactory, utils } from "ethers";
+import { FormatTypes } from "ethers/lib/utils";
 
 describe("Validate Orders", function () {
   const { provider } = ethers;
@@ -54,6 +59,7 @@ describe("Validate Orders", function () {
   let baseOrderParameters: OrderParametersStruct;
   let zoneParameters: ZoneParametersStruct;
   let validator: SeaportValidator;
+  let validatorViewOnlyInterface: any;
   let seaport: ConsiderationInterface;
   let owner: SignerWithAddress;
   let otherAccounts: SignerWithAddress[];
@@ -73,11 +79,24 @@ describe("Validate Orders", function () {
     const [owner, ...otherAccounts] = await ethers.getSigners();
 
     const Validator = await ethers.getContractFactory("SeaportValidator");
+
+    const validatorViewOnlyInterface = new ethers.utils.Interface([
+      "constructor()",
+
+      "function validateSignature(tuple(tuple(address offerer, address zone, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint endAmount)[] offer, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint256 endAmount, address recipient)[] consideration, uint256 orderType, uint256 startTime, uint256 endTime, bytes32 zoneHash, uint256 salt, bytes32 conduitKey, uint256 totalOriginalConsiderationItems) orderParameters, bytes signature) order) returns (tuple (uint256[] errors, uint256[] warnings) errorsAndWarnings)",
+
+      "function validateSignatureWithCounter(tuple(tuple(address offerer, address zone, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint endAmount)[] offer, tuple(uint256 itemType, address token, uint256 identifierOrCriteria, uint256 startAmount, uint256 endAmount, address recipient)[] consideration, uint256 orderType, uint256 startTime, uint256 endTime, bytes32 zoneHash, uint256 salt, bytes32 conduitKey, uint256 totalOriginalConsiderationItems) orderParameters, bytes signature) order, uint256 counter) returns (tuple (uint256[] errors, uint256[] warnings) errorsAndWarnings)",
+    ]);
+
+    console.log(validatorViewOnlyInterface.format(FormatTypes.full));
+
     const TestERC721Factory = await ethers.getContractFactory("TestERC721");
     const TestERC1155Factory = await ethers.getContractFactory("TestERC1155");
     const TestERC20Factory = await ethers.getContractFactory("TestERC20");
 
     const validator = await Validator.deploy();
+
+    // const ViewOnlyValidator = await ethers.getContractFactory("SeaportValidatorViewOnlyInterface");
 
     const erc721_1 = await TestERC721Factory.deploy();
     const erc721_2 = await TestERC721Factory.deploy();
@@ -86,6 +105,7 @@ describe("Validate Orders", function () {
 
     return {
       validator,
+      validatorViewOnlyInterface,
       owner,
       otherAccounts,
       erc721_1,
@@ -98,6 +118,7 @@ describe("Validate Orders", function () {
   beforeEach(async function () {
     const res = await loadFixture(deployFixture);
     validator = res.validator;
+    validatorViewOnlyInterface = res.validatorViewOnlyInterface;
     owner = res.owner;
     otherAccounts = res.otherAccounts;
     erc721_1 = res.erc721_1;
@@ -125,7 +146,7 @@ describe("Validate Orders", function () {
       offerer: baseOrderParameters.offerer,
       offer: [],
       consideration: [],
-      extraData: EMPTY_BYTES32,
+      extraData: [],
       orderHashes: [],
       startTime: baseOrderParameters.startTime,
       endTime: baseOrderParameters.endTime,
@@ -241,11 +262,6 @@ describe("Validate Orders", function () {
     it("duplicate offer items", async function () {
       await erc20_1.mint(owner.address, "1000");
       await erc20_1.approve(CROSS_CHAIN_SEAPORT_ADDRESS, "1000");
-
-      console.log(
-        "approval balance: ",
-        await erc20_1.allowance(owner.address, CROSS_CHAIN_SEAPORT_ADDRESS)
-      );
 
       baseOrderParameters.offer = [
         {
@@ -1531,6 +1547,7 @@ describe("Validate Orders", function () {
           recipient: feeRecipient,
         },
       ];
+      console.log("first call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1548,6 +1565,7 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
+      console.log("second call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1565,6 +1583,7 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
+      console.log("third call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1582,6 +1601,7 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
+      console.log("fourth call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1599,6 +1619,7 @@ describe("Validate Orders", function () {
         endAmount: "2",
         recipient: feeRecipient,
       };
+      console.log("fifth call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1699,9 +1720,15 @@ describe("Validate Orders", function () {
   describe("Validate Zone", function () {
     // TODO: Update zone to return invalid magic value
     let testZone: TestZone;
+    let testInvalidZone: TestInvalidZone;
     beforeEach(async function () {
       const TestZone = await ethers.getContractFactory("TestZone");
       testZone = await TestZone.deploy();
+
+      const TestInvalidZone = await ethers.getContractFactory(
+        "TestInvalidZone"
+      );
+      testInvalidZone = await TestInvalidZone.deploy();
     });
 
     it("No zone", async function () {
@@ -1730,16 +1757,19 @@ describe("Validate Orders", function () {
     it("invalid magic value", async function () {
       baseOrderParameters.zone = testZone.address;
       baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
-      baseOrderParameters.zoneHash = coder.encode(["uint256"], [3]);
+      zoneParameters.zoneHash = coder.encode(["uint256"], [3]);
       expect(
-        await validator.isValidZone(baseOrderParameters)
+        await validator.validateOrderWithZone(
+          baseOrderParameters,
+          zoneParameters
+        )
       ).to.include.deep.ordered.members([[], [ZoneIssue.RejectedOrder]]);
     });
 
     it("zone revert", async function () {
       baseOrderParameters.zone = testZone.address;
       baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
-      baseOrderParameters.zoneHash = coder.encode(["uint256"], [1]);
+      zoneParameters.zoneHash = coder.encode(["uint256"], [1]);
       expect(
         await validator.validateOrderWithZone(
           baseOrderParameters,
@@ -1751,7 +1781,7 @@ describe("Validate Orders", function () {
     it("zone revert2", async function () {
       baseOrderParameters.zone = testZone.address;
       baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
-      baseOrderParameters.zoneHash = coder.encode(["uint256"], [2]);
+      zoneParameters.zoneHash = coder.encode(["uint256"], [2]);
       expect(
         await validator.validateOrderWithZone(
           baseOrderParameters,
@@ -2323,7 +2353,7 @@ describe("Validate Orders", function () {
             identifierOrCriteria: "0",
             startAmount: "50",
             endAmount: "50",
-            recipient: "0xc8A5592031f93dEbeA5D9e67a396944Ee01BB2ca", // Moonbird fee recipient
+            recipient: "0xd1d507b688b518d2b7a4f65007799a5e9d80e974", // Moonbird fee recipient
           },
         ];
 
@@ -2639,7 +2669,7 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, owner);
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2660,7 +2690,7 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, otherAccounts[0]);
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2685,7 +2715,7 @@ describe("Validate Orders", function () {
       order.signature = sig;
 
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2702,7 +2732,7 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, owner);
       expect(
-        await validator.validateSignature(order)
+        await validator.connect(owner).callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2728,8 +2758,9 @@ describe("Validate Orders", function () {
       ];
 
       const order = await signOrder(baseOrderParameters, owner);
+
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([
         [SignatureIssue.Invalid],
         [SignatureIssue.OriginalConsiderationItems],
@@ -2752,7 +2783,7 @@ describe("Validate Orders", function () {
       await seaport.incrementCounter();
 
       expect(
-        await validator.validateSignatureWithCounter(order, 0)
+        await validator.callStatic.validateSignatureWithCounter(order, 0)
       ).to.include.deep.ordered.members([[SignatureIssue.LowCounter], []]);
     });
 
@@ -2770,8 +2801,8 @@ describe("Validate Orders", function () {
       const order = await signOrder(baseOrderParameters, owner, 4);
 
       expect(
-        await validator.validateSignatureWithCounter(order, 4)
-      ).to.include.deep.ordered.members([[], [SignatureIssue.HighCounter]]);
+        await validator.callStatic.validateSignatureWithCounter(order, 4)
+      ).to.include.deep.ordered.members([[SignatureIssue.HighCounter], []]);
     });
 
     it("712: failure", async function () {
@@ -2788,7 +2819,7 @@ describe("Validate Orders", function () {
       const order = { parameters: baseOrderParameters, signature: "0x" };
 
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2808,7 +2839,7 @@ describe("Validate Orders", function () {
       await seaport.validate([order]);
 
       expect(
-        await validator.validateSignature(order)
+        await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[], []]);
     });
   });
@@ -2838,6 +2869,7 @@ describe("Validate Orders", function () {
           recipient: owner.address,
         },
       ];
+      baseOrderParameters.totalOriginalConsiderationItems = 1;
 
       const order: OrderStruct = {
         parameters: baseOrderParameters,
@@ -2847,7 +2879,7 @@ describe("Validate Orders", function () {
       await seaport.validate([order]);
 
       expect(
-        await validator.isValidOrder(order)
+        await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2880,7 +2912,7 @@ describe("Validate Orders", function () {
       const order: OrderStruct = await signOrder(baseOrderParameters, owner);
 
       expect(
-        await validator.isValidOrder(order)
+        await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2940,7 +2972,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrderWithConfiguration(
+        await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
           order
         )
@@ -3010,7 +3042,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrderWithConfiguration(
+        await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
           order
         )
@@ -3055,7 +3087,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrderWithConfiguration(
+        await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
           order
         )
@@ -3094,7 +3126,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrder(order)
+        await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -3121,7 +3153,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrder(order)
+        await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([
         [
           OfferIssue.ZeroItems,
@@ -3165,7 +3197,7 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.isValidOrder(order)
+        await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([
         [
           OfferIssue.AmountZero,
@@ -3185,8 +3217,8 @@ describe("Validate Orders", function () {
     const sig = await signer._signTypedData(
       {
         name: "Seaport",
-        version: "1.1",
-        chainId: "1",
+        version: "1.4",
+        chainId: "31337",
         verifyingContract: seaport.address,
       },
       EIP_712_ORDER_TYPE,
