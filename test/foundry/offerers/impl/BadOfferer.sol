@@ -13,9 +13,9 @@ import {
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
@@ -27,6 +27,13 @@ contract BadOfferer is ContractOffererInterface {
 
     ERC20Interface token1;
     ERC721Interface token2;
+
+    enum Path {
+        RETURN_GARBAGE,
+        NORMAL,
+        RETURN_NOTHING,
+        REVERT
+    }
 
     constructor(
         address seaport,
@@ -40,7 +47,8 @@ contract BadOfferer is ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     *      items.
      */
     function generateOrder(
         address a,
@@ -73,7 +81,10 @@ contract BadOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        if (maximumSpent[0].identifier == 1) {
+        Path path = Path(
+            maximumSpent[0].identifier > 3 ? 0 : maximumSpent[0].identifier
+        );
+        if (path == Path.NORMAL) {
             offer = minimumReceived;
             consideration = new ReceivedItem[](1);
             consideration[0] = ReceivedItem({
@@ -84,12 +95,12 @@ contract BadOfferer is ContractOffererInterface {
                 recipient: payable(address(this))
             });
             return (offer, consideration);
-        } else if (maximumSpent[0].identifier == 2) {
+        } else if (path == Path.RETURN_NOTHING) {
             // return nothing
             assembly {
                 return(0, 0)
             }
-        } else if (maximumSpent[0].identifier == 3) {
+        } else if (path == Path.REVERT) {
             revert IntentionalRevert();
         } else {
             // return garbage

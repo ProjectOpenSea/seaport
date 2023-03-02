@@ -10,11 +10,11 @@ import {
 } from "../../contracts/interfaces/ConsiderationInterface.sol";
 
 import {
-    OrderComponents,
-    OrderParameters,
     ConsiderationItem,
     OfferItem,
     Order,
+    OrderComponents,
+    OrderParameters,
     OrderType
 } from "../../contracts/lib/ConsiderationStructs.sol";
 

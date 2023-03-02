@@ -8296,7 +8296,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         )
         .withArgs(orderHash);
     });
-    it("Fulfillment does not revert when valid order included with invalid contract offerer order", async () => {
+    it("Fulfillment reverts when valid order included with contract order where offerer returns bad data", async () => {
       // Contract offerer mints nft
       const nftId10 = await mint721(
         offererContract,
@@ -8374,8 +8374,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         [{ orderIndex: 1, itemIndex: 0 }],
       ];
 
-      await withBalanceChecks([order2], 0, [], async () => {
-        const tx = marketplaceContract
+      await expect(
+        marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(
             [order, order2],
@@ -8388,25 +8388,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             {
               value: value.mul(2),
             }
-          );
-        const receipt = await (await tx).wait();
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
-            {
-              order: order2,
-              orderHash: orderHash2,
-              fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(0),
-            },
-          ],
-          undefined,
-          []
-        );
-
-        return receipt;
-      });
+          )
+      )
+        .to.be.revertedWithCustomError(
+          marketplaceContract,
+          "InvalidContractOrder"
+        )
+        .withArgs(orderHash);
     });
   });
 
