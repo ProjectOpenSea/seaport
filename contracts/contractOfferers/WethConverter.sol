@@ -5,6 +5,8 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
+import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
+
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
@@ -21,6 +23,15 @@ interface IWETH {
     function approve(address, uint256) external returns (bool);
 }
 
+struct Condition {
+    bytes32 orderHash;
+    uint256 amount;
+    uint256 startTime;
+    uint256 endTime;
+    uint120 fractionToFulfill;
+    uint120 totalSize;
+}
+
 /**
  * @title WethConverter
  * @author 0age
@@ -33,7 +44,7 @@ interface IWETH {
  *         available for fulfillment.
  */
 contract WethConverter is ContractOffererInterface {
-    address private immutable _SEAPORT;
+    SeaportInterface private immutable _SEAPORT;
     IWETH private immutable _WETH;
 
     mapping(address => uint256) public balanceOf;
@@ -52,9 +63,10 @@ contract WethConverter is ContractOffererInterface {
     error NativeTokenTransferFailure(address target, uint256 amount);
     error CallFailed(); // 0x3204506f
     error NotImplemented();
+    error InvalidConditions();
 
     constructor(address seaport, address weth) {
-        _SEAPORT = seaport;
+        _SEAPORT = SeaportInterface(seaport);
         _WETH = IWETH(weth);
 
         _WETH.approve(seaport, type(uint256).max);
@@ -82,11 +94,11 @@ contract WethConverter is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        address seaport = _SEAPORT;
+        address seaport = address(_SEAPORT);
         address weth = address(_WETH);
 
         // Declare an error buffer; first check is that caller is Seaport.
-        uint256 errorBuffer = _cast(msg.sender != _SEAPORT);
+        uint256 errorBuffer = _cast(msg.sender != seaport);
 
         // Next, check the length of the maximum spent array.
         errorBuffer |= _cast(maximumSpent.length != 1) << 1;
@@ -165,7 +177,10 @@ contract WethConverter is ContractOffererInterface {
     }
 
     /**
-     * @dev Enable accepting native tokens.
+     * @dev Enable accepting native tokens. This function could optionally use a
+     *      flag set in storage as part of generateOrder, and unset as part of
+     *      ratifyOrder, to reduce the risk of accidental transfers at the cost
+     *      of increased overhead.
      */
     receive() external payable {}
 
@@ -246,18 +261,84 @@ contract WethConverter is ContractOffererInterface {
      * @return consideration A tuple containing the consideration items.
      */
     function previewOrder(
-        address,
-        address,
-        SpentItem[] calldata,
-        SpentItem[] calldata,
-        bytes calldata
+        address caller,
+        address /* fulfiller */,
+        SpentItem[] calldata minimumReceived,
+        SpentItem[] calldata maximumSpent,
+        bytes calldata context // encoded based on the schemaID
     )
         external
-        pure
+        view
         override
-        returns (SpentItem[] memory, ReceivedItem[] memory)
+        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        revert NotImplemented();
+        address seaport = address(_SEAPORT);
+        address weth = address(_WETH);
+
+        // Declare an error buffer; first check is that caller is Seaport.
+        uint256 errorBuffer = _cast(caller != seaport);
+
+        // Next, check the length of the maximum spent array.
+        errorBuffer |= _cast(maximumSpent.length != 1) << 1;
+
+        SpentItem calldata maximumSpentItem = maximumSpent[0];
+
+        ItemType considerationItemType;
+
+        assembly {
+            considerationItemType := calldataload(maximumSpentItem)
+
+            // If the item type is too high, or if the item is an ERC20
+            // token and the token address is not WETH, the item is invalid.
+            let invalidMaximumSpentItem := or(
+                gt(considerationItemType, 1),
+                and(
+                    considerationItemType,
+                    eq(calldataload(add(maximumSpentItem, 0x20)), weth)
+                )
+            )
+
+            errorBuffer := or(errorBuffer, shl(3, invalidMaximumSpentItem))
+        }
+
+        uint256 amount;
+        assembly {
+            amount := calldataload(add(maximumSpentItem, 0x60))
+        }
+
+        amount = _filterUnavailable(amount, context);
+
+        // If a native token is supplied for maximumSpent, offer WETH.
+        if (considerationItemType == ItemType.NATIVE) {
+            offer = new SpentItem[](1);
+            offer[0].itemType = ItemType.ERC20;
+            offer[0].token = address(_WETH);
+            offer[0].amount = amount;
+        } else {
+            // Otherwise, offer ETH (only supply minimumReceived if a
+            // minimumReceived item was provided).
+            if (minimumReceived.length > 0) {
+                offer = new SpentItem[](1);
+                offer[0].amount = amount;
+            }
+        }
+
+        if (errorBuffer > 0) {
+            if (errorBuffer << 255 != 0) {
+                revert InvalidCaller(msg.sender);
+            } else if (errorBuffer << 254 != 0) {
+                revert InvalidTotalMaximumSpentItems(maximumSpent.length);
+            } else if (errorBuffer << 252 != 0) {
+                revert InvalidMaximumSpentItem(maximumSpent[0]);
+            } else if (errorBuffer << 248 != 0) {
+                revert NativeTokenTransferFailure(seaport, amount);
+            }
+        }
+
+        consideration = new ReceivedItem[](1);
+        consideration[0] = _copySpentAsReceivedToSelf(maximumSpentItem, amount);
+
+        return (offer, consideration);
     }
 
     /**
@@ -343,11 +424,69 @@ contract WethConverter is ContractOffererInterface {
     function _filterUnavailable(
         uint256 amount,
         bytes calldata context
-    ) internal pure returns (uint256 reducedAmount) {
-        // TODO: decode and process context if provided
-        context;
+    ) internal view returns (uint256 reducedAmount) {
+        // Skip if no context is supplied and some amount is supplied.
+        if ((_cast(context.length == 0) & _cast(amount != 0)) != 0) {
+            return amount;
+        }
 
-        reducedAmount = amount;
+        // First, ensure that the correct sip-6 version byte is present.
+        uint256 errorBuffer = _cast(context[0] != 0x00);
+
+        // Next, decode the context array. Note that this can be optimized for
+        // calldata size (via compact encoding) and cost (via custom decoding).
+        Condition[] memory conditions = abi.decode(context[1:], (Condition[]));
+
+        // Iterate over each condition.
+        uint256 totalConditions = conditions.length;
+        for (uint256 i = 0; i < totalConditions; ++i) {
+            Condition memory condition = conditions[i];
+
+            uint256 conditionTotalSize = uint256(condition.totalSize);
+            uint256 conditionTotalFilled = uint256(condition.fractionToFulfill);
+
+            // Retrieve the order status for the condition's provided order hash
+            // (Note that contract orders will always appear to be available).
+            (
+                ,
+                // bool isValidated
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = _SEAPORT.getOrderStatus(condition.orderHash);
+
+            // Derive amount to reduce based on the availability of the order.
+            // Unchecked math can be used as all fill amounts are uint120 types
+            // and underflow will be registered on the error buffer.
+            uint256 amountToReduce;
+            unchecked {
+                amountToReduce =
+                    (_cast(isCancelled) |
+                        _cast(block.timestamp < condition.startTime) |
+                        _cast(block.timestamp >= condition.endTime) |
+                        (_cast(totalFilled != 0) &
+                            _cast(
+                                (conditionTotalFilled * totalSize) +
+                                    (totalFilled * conditionTotalSize) >
+                                    totalSize * conditionTotalSize
+                            ))) *
+                    condition.amount;
+
+                // Set the error buffer if the amount to reduce exceeds amount.
+                errorBuffer |= _cast(amountToReduce > amount);
+
+                // Reduce the amount.
+                amount -= amountToReduce;
+            }
+        }
+
+        // Revert if an error was encountered or if no amount remains.
+        if ((_cast(errorBuffer != 0) | _cast(amount == 0)) != 0) {
+            revert InvalidConditions();
+        }
+
+        // Return the reduced amount.
+        return amount;
     }
 
     /**
