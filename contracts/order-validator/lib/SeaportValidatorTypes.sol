@@ -75,7 +75,8 @@ enum PrimaryFeeIssue {
 
 enum StatusIssue {
     Cancelled, // 800
-    FullyFilled // 801
+    FullyFilled, // 801
+    ContractOrder // 802
 }
 
 enum TimeIssue {
@@ -87,14 +88,16 @@ enum TimeIssue {
 }
 
 enum ConduitIssue {
-    KeyInvalid // 1000
+    KeyInvalid, // 1000
+    MissingCanonicalSeaportChannel // 1001
 }
 
 enum SignatureIssue {
     Invalid, // 1100
-    LowCounter, // 1101
-    HighCounter, // 1102
-    OriginalConsiderationItems // 1103
+    ContractOrder, // 1101
+    LowCounter, // 1102
+    HighCounter, // 1103
+    OriginalConsiderationItems // 1104
 }
 
 enum CreatorFeeIssue {

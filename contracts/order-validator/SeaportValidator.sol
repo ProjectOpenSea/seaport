@@ -266,6 +266,18 @@ contract SeaportValidator is
             conduitAddress = address(0); // Don't return invalid conduit
         }
 
+        // Approval address does not have Seaport v1.4 added as a channel
+        if (
+            !conduitController.getChannelStatus(
+                conduitAddress,
+                address(seaport)
+            )
+        ) {
+            errorsAndWarnings.addError(
+                ConduitIssue.MissingCanonicalSeaportChannel.parseInt()
+            );
+        }
+
         return (conduitAddress, errorsAndWarnings);
     }
 
@@ -291,6 +303,13 @@ contract SeaportValidator is
         uint256 counter
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // Contract orders do not have signatures
+        if (uint8(order.parameters.orderType) == 4) {
+            errorsAndWarnings.addWarning(
+                SignatureIssue.ContractOrder.parseInt()
+            );
+        }
 
         // Get current counter for context
         uint256 currentCounter = seaport.getCounter(order.parameters.offerer);
@@ -429,6 +448,11 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        // Cannot validate status of contract order
+        if (uint8(orderParameters.orderType) == 4) {
+            errorsAndWarnings.addWarning(StatusIssue.ContractOrder.parseInt());
+        }
+
         // Pull current counter from seaport
         uint256 currentOffererCounter = seaport.getCounter(
             orderParameters.offerer
@@ -492,7 +516,7 @@ contract SeaportValidator is
 
         // You must have an offer item
         if (orderParameters.offer.length == 0) {
-            errorsAndWarnings.addError(OfferIssue.ZeroItems.parseInt());
+            errorsAndWarnings.addWarning(OfferIssue.ZeroItems.parseInt());
         }
 
         // Warning if there is more than one offer item
