@@ -388,20 +388,7 @@ contract SeaportValidator is
         // Check if the contract offerer implements SIP-5
         try
             ContractOffererInterface(contractOfferer).getSeaportMetadata()
-        returns (string memory, Schema[] memory schemas) {
-            if (schemas.length == 0) {
-                errorsAndWarnings.addError(
-                    ContractOffererIssue.InvalidContractOfferer.parseInt()
-                );
-            }
-            bool supportsSip5 = false;
-            for (uint256 i = 0; i < schemas.length; ++i) {
-                if (schemas[i].id == 5) {
-                    supportsSip5 = true;
-                    break;
-                }
-            }
-        } catch {
+        {} catch {
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
@@ -922,6 +909,10 @@ contract SeaportValidator is
             return errorsAndWarnings;
         }
 
+        // Declare a boolean to check if offerer is receiving at least
+        // one consideration item
+        bool offererReceivingAtLeastOneItem = false;
+
         // Iterate over each consideration item
         for (uint256 i = 0; i < orderParameters.consideration.length; i++) {
             // Validate consideration item
@@ -932,12 +923,20 @@ contract SeaportValidator is
             ConsiderationItem memory considerationItem1 = orderParameters
                 .consideration[i];
 
+            // Check if the offerer is the recipient
+            if (!offererReceivingAtLeastOneItem) {
+                if (considerationItem1.recipient == orderParameters.offerer) {
+                    offererReceivingAtLeastOneItem = true;
+                }
+            }
+
+            // Check for duplicate consideration items
             for (
                 uint256 j = i + 1;
                 j < orderParameters.consideration.length;
                 j++
             ) {
-                // Iterate over each remaining offer item
+                // Iterate over each remaining consideration item
                 // (previous items already check with this item)
                 ConsiderationItem memory considerationItem2 = orderParameters
                     .consideration[j];
@@ -957,6 +956,13 @@ contract SeaportValidator is
                     );
                 }
             }
+        }
+
+        if (!offererReceivingAtLeastOneItem) {
+            // Offerer is not receiving at least one consideration item
+            errorsAndWarnings.addWarning(
+                ConsiderationIssue.OffererNotReceivingAtLeastOneItem.parseInt()
+            );
         }
     }
 
