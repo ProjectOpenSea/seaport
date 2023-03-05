@@ -8,6 +8,7 @@ import {
     BasicOrderParameters,
     OfferItem,
     ConsiderationItem,
+    Schema,
     ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 import { ConsiderationTypeHashes } from "./lib/ConsiderationTypeHashes.sol";
@@ -215,7 +216,10 @@ contract SeaportValidator is
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // If not restricted, zone isn't checked
-        if (uint8(orderParameters.orderType) < 2) {
+        if (
+            uint8(orderParameters.orderType) < 2 ||
+            uint8(orderParameters.orderType) == 4
+        ) {
             return errorsAndWarnings;
         }
 
@@ -376,6 +380,28 @@ contract SeaportValidator is
 
         // Check the EIP165 contract offerer interface
         if (!checkInterface(contractOfferer, CONTRACT_OFFERER_ID)) {
+            errorsAndWarnings.addError(
+                ContractOffererIssue.InvalidContractOfferer.parseInt()
+            );
+        }
+
+        // Check if the contract offerer implements SIP-5
+        try
+            ContractOffererInterface(contractOfferer).getSeaportMetadata()
+        returns (string memory, Schema[] memory schemas) {
+            if (schemas.length == 0) {
+                errorsAndWarnings.addError(
+                    ContractOffererIssue.InvalidContractOfferer.parseInt()
+                );
+            }
+            bool supportsSip5 = false;
+            for (uint256 i = 0; i < schemas.length; ++i) {
+                if (schemas[i].id == 5) {
+                    supportsSip5 = true;
+                    break;
+                }
+            }
+        } catch {
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
@@ -760,9 +786,27 @@ contract SeaportValidator is
                     );
                 }
             }
+        } else if (offerItem.itemType == ItemType.ERC721_WITH_CRITERIA) {
+            ERC721Interface token = ERC721Interface(offerItem.token);
+
+            // Check for approval
+            if (
+                !address(token).safeStaticCallBool(
+                    abi.encodeWithSelector(
+                        ERC721Interface.isApprovedForAll.selector,
+                        orderParameters.offerer,
+                        approvalAddress
+                    ),
+                    true
+                )
+            ) {
+                // Not approved
+                errorsAndWarnings.addError(ERC721Issue.NotApproved.parseInt());
+            }
         } else if (
-            offerItem.itemType == ItemType.ERC721_WITH_CRITERIA
-        ) {} else if (offerItem.itemType == ItemType.ERC1155) {
+            offerItem.itemType == ItemType.ERC1155 ||
+            offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
             ERC1155Interface token = ERC1155Interface(offerItem.token);
 
             // Check for approval
