@@ -10,9 +10,9 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
 
 import {
-    Execution,
     AdvancedOrder,
     CriteriaResolver,
+    Execution,
     FulfillmentComponent
 } from "../lib/ConsiderationStructs.sol";
 
@@ -26,18 +26,18 @@ import {
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
     /// @dev The allowed v1.1 contract usable through this router.
     address private immutable _SEAPORT_V1_1;
-    /// @dev The allowed v1.2 contract usable through this router.
-    address private immutable _SEAPORT_V1_2;
+    /// @dev The allowed v1.4 contract usable through this router.
+    address private immutable _SEAPORT_V1_4;
 
     /**
      * @dev Deploy contract with the supported Seaport contracts.
      *
      * @param seaportV1point1 The address of the Seaport v1.1 contract.
-     * @param seaportV1point2 The address of the Seaport v1.2 contract.
+     * @param seaportV1point4 The address of the Seaport v1.4 contract.
      */
-    constructor(address seaportV1point1, address seaportV1point2) {
+    constructor(address seaportV1point1, address seaportV1point4) {
         _SEAPORT_V1_1 = seaportV1point1;
-        _SEAPORT_V1_2 = seaportV1point2;
+        _SEAPORT_V1_4 = seaportV1point4;
     }
 
     /**
@@ -94,6 +94,11 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             recipient: params.recipient,
             maximumFulfilled: fulfillmentsLeft
         });
+
+        // If recipient is not provided assign to msg.sender.
+        if (calldataParams.recipient == address(0)) {
+            calldataParams.recipient = msg.sender;
+        }
 
         // Iterate through the provided Seaport contracts.
         for (uint256 i = 0; i < params.seaportContracts.length; ) {
@@ -181,7 +186,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
     {
         seaportContracts = new address[](2);
         seaportContracts[0] = _SEAPORT_V1_1;
-        seaportContracts[1] = _SEAPORT_V1_2;
+        seaportContracts[1] = _SEAPORT_V1_4;
     }
 
     /**
@@ -189,7 +194,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
      */
     function _assertSeaportAllowed(address seaport) internal view {
         if (
-            _cast(seaport == _SEAPORT_V1_1) | _cast(seaport == _SEAPORT_V1_2) ==
+            _cast(seaport == _SEAPORT_V1_1) | _cast(seaport == _SEAPORT_V1_4) ==
             0
         ) {
             revert SeaportNotAllowed(seaport);

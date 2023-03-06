@@ -5,11 +5,18 @@ import {
     Fulfillment,
     FulfillmentComponent
 } from "../../../lib/ConsiderationStructs.sol";
-import { Side } from "../../../lib/ConsiderationEnums.sol";
-import { ArrayLib } from "./ArrayLib.sol";
+
 import { FulfillmentComponentLib } from "./FulfillmentComponentLib.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title FulfillmentLib
+ * @author James Wenzel (emo.eth)
+ * @notice FulfillmentLib is a library for managing Fulfillment structs and
+ *         arrays. It allows chaining of functions to make struct creation more
+ *         readable.
+ */
 library FulfillmentLib {
     bytes32 private constant FULFILLMENT_MAP_POSITION =
         keccak256("seaport.FulfillmentDefaults");
@@ -20,10 +27,10 @@ library FulfillmentLib {
     using StructCopier for FulfillmentComponent[];
 
     /**
-     * @notice clears a default Fulfillment from storage
+     * @dev Clears a default Fulfillment from storage.
+     *
      * @param defaultName the name of the default to clear
      */
-
     function clear(string memory defaultName) internal {
         mapping(string => Fulfillment)
             storage fulfillmentMap = _fulfillmentMap();
@@ -37,8 +44,11 @@ library FulfillmentLib {
     }
 
     /**
-     * @notice gets a default Fulfillment from storage
+     * @dev Gets a default Fulfillment from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _fulfillment the Fulfillment retrieved from storage
      */
     function fromDefault(
         string memory defaultName
@@ -48,6 +58,13 @@ library FulfillmentLib {
         _fulfillment = fulfillmentMap[defaultName];
     }
 
+    /**
+     * @dev Gets a default Fulfillment array from storage.
+     *
+     * @param defaultName the name of the default for retrieval
+     *
+     * @return _fulfillments the Fulfillment array retrieved from storage
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (Fulfillment[] memory _fulfillments) {
@@ -57,9 +74,12 @@ library FulfillmentLib {
     }
 
     /**
-     * @notice saves an Fulfillment as a named default
+     * @dev Saves a Fulfillment as a named default.
+     *
      * @param fulfillment the Fulfillment to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _fulfillment the Fulfillment saved as a default
      */
     function saveDefault(
         Fulfillment memory fulfillment,
@@ -72,6 +92,14 @@ library FulfillmentLib {
         return fulfillment;
     }
 
+    /**
+     * @dev Saves a Fulfillment array as a named default.
+     *
+     * @param fulfillments the Fulfillment array to save as a default
+     * @param defaultName  the name of the default for retrieval
+     *
+     * @return _fulfillments the Fulfillment array saved as a default
+     */
     function saveDefaultMany(
         Fulfillment[] memory fulfillments,
         string memory defaultName
@@ -86,8 +114,11 @@ library FulfillmentLib {
     }
 
     /**
-     * @notice makes a copy of an Fulfillment in-memory
+     * @dev Makes a copy of a Fulfillment in-memory.
+     *
      * @param _fulfillment the Fulfillment to make a copy of in-memory
+     *
+     * @custom:return copiedFulfillment the copied Fulfillment
      */
     function copy(
         Fulfillment memory _fulfillment
@@ -101,6 +132,13 @@ library FulfillmentLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of a Fulfillment array in-memory.
+     *
+     * @param _fulfillments the Fulfillment array to make a copy of in-memory
+     *
+     * @custom:return copiedFulfillments the copied Fulfillment array
+     */
     function copy(
         Fulfillment[] memory _fulfillments
     ) internal pure returns (Fulfillment[] memory) {
@@ -113,6 +151,11 @@ library FulfillmentLib {
         return copiedItems;
     }
 
+    /**
+     * @dev Creates an empty Fulfillment in-memory.
+     *
+     * @custom:return emptyFulfillment the empty Fulfillment
+     */
     function empty() internal pure returns (Fulfillment memory) {
         FulfillmentComponent[] memory components;
         return
@@ -123,7 +166,10 @@ library FulfillmentLib {
     }
 
     /**
-     * @notice gets the storage position of the default Fulfillment map
+     * @dev Gets the storage position of the default Fulfillment map
+     *
+     * @return fulfillmentMap the storage position of the default Fulfillment
+     *                        map
      */
     function _fulfillmentMap()
         private
@@ -136,6 +182,12 @@ library FulfillmentLib {
         }
     }
 
+    /**
+     * @dev Gets the storage position of the default Fulfillment array map
+     *
+     * @return fulfillmentsMap the storage position of the default Fulfillment
+     *                         array map
+     */
     function _fulfillmentsMap()
         private
         pure
@@ -147,11 +199,18 @@ library FulfillmentLib {
         }
     }
 
-    // methods for configuring a single of each of an Fulfillment's fields, which modifies the
-    // Fulfillment
-    // in-place and
-    // returns it
+    // Methods for configuring a single of each of a Fulfillment's fields, which
+    // modify the FulfillmentComponent in-place and return it.
 
+    /**
+     * @dev Sets the offer components of a Fulfillment in-place.
+     *
+     * @param _fulfillment the Fulfillment to set the offer components of
+     * @param components   the FulfillmentComponent array to set as the offer
+     *                     components
+     *
+     * @custom:return _fulfillment the Fulfillment with the offer components set
+     */
     function withOfferComponents(
         Fulfillment memory _fulfillment,
         FulfillmentComponent[] memory components
@@ -160,6 +219,17 @@ library FulfillmentLib {
         return _fulfillment;
     }
 
+    /**
+     * @dev Sets the consideration components of a Fulfillment in-place.
+     *
+     * @param _fulfillment the Fulfillment to set the consideration components
+     *                     of
+     * @param components   the FulfillmentComponent array to set as the
+     *                     consideration components
+     *
+     * @custom:return _fulfillment the Fulfillment with the consideration
+     *                             components set
+     */
     function withConsiderationComponents(
         Fulfillment memory _fulfillment,
         FulfillmentComponent[] memory components

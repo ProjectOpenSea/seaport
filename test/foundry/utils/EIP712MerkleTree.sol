@@ -2,20 +2,27 @@
 pragma solidity ^0.8.17;
 
 import { MurkyBase } from "murky/common/MurkyBase.sol";
+
 import {
     TypehashDirectory
 } from "../../../contracts/test/TypehashDirectory.sol";
+
 import { Test } from "forge-std/Test.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
 import {
     OrderComponents
 } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-///@dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky
-///     does, so implement a custom hashLeafPairs function
+/**
+ * @dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky
+ * does, so implement a custom hashLeafPairs function
+ */
 contract MerkleUnsorted is MurkyBase {
     function hashLeafPairs(
         bytes32 left,
@@ -40,10 +47,12 @@ contract EIP712MerkleTree is Test {
         merkle = new MerkleUnsorted();
     }
 
-    /// @dev Creates a single bulk signature: a base signature + a three byte
-    ///      index + a series of 32 byte proofs.  The height of the tree is
-    ///      determined by the length of the orderComponents array and only
-    ///      fills empty orders into the tree to make the length a power of 2.
+    /**
+     * @dev Creates a single bulk signature: a base signature + a three byte
+     * index + a series of 32 byte proofs.  The height of the tree is determined
+     * by the length of the orderComponents array and only fills empty orders
+     * into the tree to make the length a power of 2.
+     */
     function signBulkOrder(
         ConsiderationInterface consideration,
         uint256 privateKey,
@@ -99,10 +108,12 @@ contract EIP712MerkleTree is Test {
             );
     }
 
-    /// @dev Creates a single bulk signature: a base signature + a three byte
-    ///      index + a series of 32 byte proofs.  The height of the tree is
-    ///      determined by the height parameter and this function will fill
-    ///      empty orders into the tree until the specified height is reached.
+    /**
+     *  @dev Creates a single bulk signature: a base signature + a three byte
+     * index + a series of 32 byte proofs.  The height of the tree is determined
+     * by the height parameter and this function will fill empty orders into the
+     * tree until the specified height is reached.
+     */
     function signSparseBulkOrder(
         ConsiderationInterface consideration,
         uint256 privateKey,
@@ -150,7 +161,8 @@ contract EIP712MerkleTree is Test {
                     mstore(0x20, root)
                 }
                 // else it is even and our "root" is first component
-                // (this can def be done in a branchless way but who has the time??)
+                // (this can def be done in a branchless way but who has the
+                // time??)
                 if iszero(and(hashIndex, 1)) {
                     mstore(0, root)
                     mstore(0x20, heightEmptyHash)
@@ -179,7 +191,9 @@ contract EIP712MerkleTree is Test {
             );
     }
 
-    /// @dev same lookup seaport optimized does
+    /**
+     * @dev same lookup seaport optimized does
+     */
     function _lookupBulkOrderTypehash(
         uint256 treeHeight
     ) internal view returns (bytes32 typeHash) {
