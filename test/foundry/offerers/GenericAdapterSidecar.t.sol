@@ -24,8 +24,6 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
-import "lib/forge-std/src/console.sol";
-
 contract GenericAdapterSidecarTest is BaseOrderTest {
     struct Context {
         ConsiderationInterface consideration;
