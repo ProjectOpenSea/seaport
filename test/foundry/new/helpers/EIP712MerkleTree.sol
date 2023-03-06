@@ -3,16 +3,19 @@ pragma solidity ^0.8.17;
 
 import { MurkyBase } from "murky/common/MurkyBase.sol";
 
-import { TypehashDirectory } from
-    "../../../../contracts/test/TypehashDirectory.sol";
+import {
+    TypehashDirectory
+} from "../../../../contracts/test/TypehashDirectory.sol";
 
 import { Test } from "forge-std/Test.sol";
 
-import { ConsiderationInterface } from
-    "../../../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "../../../../contracts/interfaces/ConsiderationInterface.sol";
 
-import { OrderComponents } from
-    "../../../../contracts/lib/ConsiderationStructs.sol";
+import {
+    OrderComponents
+} from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
@@ -21,12 +24,10 @@ import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
  * does, so implement a custom hashLeafPairs function
  */
 contract MerkleUnsorted is MurkyBase {
-    function hashLeafPairs(bytes32 left, bytes32 right)
-        public
-        pure
-        override
-        returns (bytes32 _hash)
-    {
+    function hashLeafPairs(
+        bytes32 left,
+        bytes32 right
+    ) public pure override returns (bytes32 _hash) {
         assembly {
             mstore(0x0, left)
             mstore(0x20, right)
@@ -61,8 +62,9 @@ contract EIP712MerkleTree is Test {
     ) public view returns (bytes memory) {
         // cache the hash of an empty order components struct to fill out any
         // nodes required to make the length a power of 2
-        bytes32 emptyComponentsHash =
-            consideration.getOrderHash(emptyOrderComponents);
+        bytes32 emptyComponentsHash = consideration.getOrderHash(
+            emptyOrderComponents
+        );
         // declare vars here to avoid stack too deep errors
         bytes32[] memory leaves;
         bytes32 bulkOrderTypehash;
@@ -94,15 +96,16 @@ contract EIP712MerkleTree is Test {
         bytes32[] memory proof = merkle.getProof(leaves, orderIndex);
         bytes32 root = merkle.getRoot(leaves);
 
-        return _getSignature(
-            consideration,
-            privateKey,
-            bulkOrderTypehash,
-            root,
-            proof,
-            orderIndex,
-            useCompact2098
-        );
+        return
+            _getSignature(
+                consideration,
+                privateKey,
+                bulkOrderTypehash,
+                root,
+                proof,
+                orderIndex,
+                useCompact2098
+            );
     }
 
     /**
@@ -123,8 +126,9 @@ contract EIP712MerkleTree is Test {
         // get hash of actual order
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
         // get initial empty order components hash
-        bytes32 emptyComponentsHash =
-            consideration.getOrderHash(emptyOrderComponents);
+        bytes32 emptyComponentsHash = consideration.getOrderHash(
+            emptyOrderComponents
+        );
 
         // calculate intermediate hashes of a sparse order tree
         // this will also serve as our proof
@@ -175,25 +179,24 @@ contract EIP712MerkleTree is Test {
             hashIndex /= 2;
         }
 
-        return _getSignature(
-            consideration,
-            privateKey,
-            _lookupBulkOrderTypehash(height),
-            root,
-            emptyHashes,
-            orderIndex,
-            useCompact2098
-        );
+        return
+            _getSignature(
+                consideration,
+                privateKey,
+                _lookupBulkOrderTypehash(height),
+                root,
+                emptyHashes,
+                orderIndex,
+                useCompact2098
+            );
     }
 
     /**
      * @dev same lookup seaport optimized does
      */
-    function _lookupBulkOrderTypehash(uint256 treeHeight)
-        internal
-        view
-        returns (bytes32 typeHash)
-    {
+    function _lookupBulkOrderTypehash(
+        uint256 treeHeight
+    ) internal view returns (bytes32 typeHash) {
         TypehashDirectory directory = _typehashDirectory;
         assembly {
             let typeHashOffset := add(1, shl(0x5, sub(treeHeight, 1)))
@@ -216,7 +219,7 @@ contract EIP712MerkleTree is Test {
         bytes32 bulkOrderHash = keccak256(abi.encode(bulkOrderTypehash, root));
 
         // get domain separator from the particular seaport instance
-        (, bytes32 domainSeparator,) = consideration.information();
+        (, bytes32 domainSeparator, ) = consideration.information();
 
         // declare out here to avoid stack too deep errors
         bytes memory signature;
@@ -226,7 +229,9 @@ contract EIP712MerkleTree is Test {
                 privateKey,
                 keccak256(
                     abi.encodePacked(
-                        bytes2(0x1901), domainSeparator, bulkOrderHash
+                        bytes2(0x1901),
+                        domainSeparator,
+                        bulkOrderHash
                     )
                 )
             );

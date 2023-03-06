@@ -88,9 +88,9 @@ contract BaseOrderTest is
 
     modifier only1155Receiver(address recipient) {
         vm.assume(
-            recipient != address(0)
-                && recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1
-                && recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
+            recipient != address(0) &&
+                recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
+                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
         );
 
         if (recipient.code.length > 0) {
@@ -137,54 +137,97 @@ contract BaseOrderTest is
     string constant SF_FF = "sf to ff";
 
     function _configureStructDefaults() internal {
-        OfferItemLib.empty().withItemType(ItemType.ERC721).withStartAmount(1)
-            .withEndAmount(1).saveDefault(SINGLE_ERC721);
-        ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-            .withStartAmount(1).withEndAmount(1).saveDefault(SINGLE_ERC721);
+        OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withStartAmount(1)
+            .withEndAmount(1)
+            .saveDefault(SINGLE_ERC721);
+        ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withStartAmount(1)
+            .withEndAmount(1)
+            .saveDefault(SINGLE_ERC721);
 
-        OrderComponentsLib.empty().withOrderType(OrderType.FULL_OPEN)
-            .withStartTime(block.timestamp).withEndTime(block.timestamp + 100)
+        OrderComponentsLib
+            .empty()
+            .withOrderType(OrderType.FULL_OPEN)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 100)
             .saveDefault(STANDARD);
 
-        OrderComponentsLib.fromDefault(STANDARD).withConduitKey(conduitKey)
+        OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withConduitKey(conduitKey)
             .saveDefault(STANDARD_CONDUIT);
 
-        AdvancedOrderLib.empty().withNumerator(1).withDenominator(1).saveDefault(
-            FULL
-        );
+        AdvancedOrderLib
+            .empty()
+            .withNumerator(1)
+            .withDenominator(1)
+            .saveDefault(FULL);
 
-        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(0)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(0)
+            .withItemIndex(0)
             .saveDefault(FIRST_FIRST);
-        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(1)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(0)
+            .withItemIndex(1)
             .saveDefault(FIRST_SECOND);
-        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(0)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(1)
+            .withItemIndex(0)
             .saveDefault(SECOND_FIRST);
-        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(1)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(1)
+            .withItemIndex(1)
             .saveDefault(SECOND_SECOND);
 
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-        ).saveDefaultMany(FIRST_FIRST);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(FIRST_SECOND)
-        ).saveDefaultMany(FIRST_SECOND);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-        ).saveDefaultMany(SECOND_FIRST);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(SECOND_SECOND)
-        ).saveDefaultMany(SECOND_SECOND);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+            )
+            .saveDefaultMany(FIRST_FIRST);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(FIRST_SECOND)
+            )
+            .saveDefaultMany(FIRST_SECOND);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+            )
+            .saveDefaultMany(SECOND_FIRST);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(SECOND_SECOND)
+            )
+            .saveDefaultMany(SECOND_SECOND);
 
-        FulfillmentLib.empty().withOfferComponents(
-            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-        ).withConsiderationComponents(
-            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-        ).saveDefault(SF_FF);
-        FulfillmentLib.empty().withOfferComponents(
-            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-        ).withConsiderationComponents(
-            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-        ).saveDefault(FF_SF);
+        FulfillmentLib
+            .empty()
+            .withOfferComponents(
+                FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+            )
+            .withConsiderationComponents(
+                FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+            )
+            .saveDefault(SF_FF);
+        FulfillmentLib
+            .empty()
+            .withOfferComponents(
+                FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+            )
+            .withConsiderationComponents(
+                FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+            )
+            .saveDefault(FF_SF);
     }
 
     function setUp() public virtual override {
@@ -208,9 +251,10 @@ contract BaseOrderTest is
         _configureStructDefaults();
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {
             fail("Differential test should have reverted with failure status");
         } catch (bytes memory reason) {
@@ -221,10 +265,7 @@ contract BaseOrderTest is
     /**
      * @dev convenience wrapper for makeAddrAndKey
      */
-    function makeAccount(string memory name)
-        internal
-        returns (Account memory)
-    {
+    function makeAccount(string memory name) internal returns (Account memory) {
         (address addr, uint256 key) = makeAddrAndKey(name);
         return Account(addr, key);
     }
@@ -233,19 +274,17 @@ contract BaseOrderTest is
      * @dev convenience wrapper for makeAddrAndKey that also allocates tokens,
      *      ether, and approvals
      */
-    function makeAndAllocateAccount(string memory name)
-        internal
-        returns (Account memory)
-    {
+    function makeAndAllocateAccount(
+        string memory name
+    ) internal returns (Account memory) {
         Account memory account = makeAccount(name);
         allocateTokensAndApprovals(account.addr, type(uint128).max);
         return account;
     }
 
-    function makeAddrWithAllocationsAndApprovals(string memory label)
-        internal
-        returns (address)
-    {
+    function makeAddrWithAllocationsAndApprovals(
+        string memory label
+    ) internal returns (address) {
         address addr = makeAddr(label);
         allocateTokensAndApprovals(addr, type(uint128).max);
         return addr;
@@ -268,7 +307,8 @@ contract BaseOrderTest is
         TestERC20 token = new TestERC20();
         erc20s.push(token);
         vm.label(
-            address(token), string(abi.encodePacked("erc20_", erc20s.length))
+            address(token),
+            string(abi.encodePacked("erc20_", erc20s.length))
         );
     }
 
@@ -277,7 +317,8 @@ contract BaseOrderTest is
         TestERC721 token = new TestERC721();
         erc721s.push(token);
         vm.label(
-            address(token), string(abi.encodePacked("erc721_", erc721s.length))
+            address(token),
+            string(abi.encodePacked("erc721_", erc721s.length))
         );
     }
 
@@ -294,9 +335,7 @@ contract BaseOrderTest is
     /**
      * @dev allocate amount of ether and each erc20 token; set approvals for all tokens
      */
-    function allocateTokensAndApprovals(address _to, uint128 _amount)
-        internal
-    {
+    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
@@ -332,20 +371,16 @@ contract BaseOrderTest is
      * @dev allow signing for this contract since it needs to be recipient of
      *       basic order to reenter on receive
      */
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        virtual
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32,
+        bytes memory
+    ) external pure virtual returns (bytes4) {
         return 0x1626ba7e;
     }
 
-    function toHashedLeaves(uint256[] memory identifiers)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
+    function toHashedLeaves(
+        uint256[] memory identifiers
+    ) internal pure returns (bytes32[] memory) {
         bytes32[] memory hashedLeaves = new bytes32[](identifiers.length);
         for (uint256 i; i < identifiers.length; ++i) {
             hashedLeaves[i] = keccak256(abi.encode(identifiers[i]));
@@ -357,5 +392,5 @@ contract BaseOrderTest is
         return abi.decode(data, (bytes4));
     }
 
-    receive() external payable virtual { }
+    receive() external payable virtual {}
 }

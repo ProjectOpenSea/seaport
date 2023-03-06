@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ConduitController } from
-    "../../../../contracts/conduit/ConduitController.sol";
+import {
+    ConduitController
+} from "../../../../contracts/conduit/ConduitController.sol";
 
-import { ReferenceConduitController } from
-    "../../../../reference/conduit/ReferenceConduitController.sol";
+import {
+    ReferenceConduitController
+} from "../../../../reference/conduit/ReferenceConduitController.sol";
 
-import { ConduitControllerInterface } from
-    "../../../../contracts/interfaces/ConduitControllerInterface.sol";
+import {
+    ConduitControllerInterface
+} from "../../../../contracts/interfaces/ConduitControllerInterface.sol";
 
-import { ConsiderationInterface } from
-    "../../../../contracts/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "../../../../contracts/interfaces/ConsiderationInterface.sol";
 
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
@@ -28,8 +32,9 @@ import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
 
 import { Consideration } from "../../../../contracts/lib/Consideration.sol";
 
-import { ReferenceConsideration } from
-    "../../../../reference/ReferenceConsideration.sol";
+import {
+    ReferenceConsideration
+} from "../../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseSeaportTest is DifferentialTest {
@@ -44,17 +49,17 @@ contract BaseSeaportTest is DifferentialTest {
     Conduit conduit;
     bool coverage_or_debug;
 
-    function stringEq(string memory a, string memory b)
-        internal
-        pure
-        returns (bool)
-    {
+    function stringEq(
+        string memory a,
+        string memory b
+    ) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
     function debugEnabled() internal returns (bool) {
-        return vm.envOr("SEAPORT_COVERAGE", false)
-            || stringEq(vm.envOr("FOUNDRY_PROFILE", string("")), "debug");
+        return
+            vm.envOr("SEAPORT_COVERAGE", false) ||
+            stringEq(vm.envOr("FOUNDRY_PROFILE", string("")), "debug");
     }
 
     function setUp() public virtual {
@@ -72,7 +77,8 @@ contract BaseSeaportTest is DifferentialTest {
         vm.label(address(seaport), "seaport");
         vm.label(address(conduit), "conduit");
         vm.label(
-            address(referenceConduitController), "referenceConduitController"
+            address(referenceConduitController),
+            "referenceConduitController"
         );
         vm.label(address(referenceSeaport), "referenceSeaport");
         vm.label(address(referenceConduit), "referenceConduit");
@@ -99,10 +105,13 @@ contract BaseSeaportTest is DifferentialTest {
             seaport = new Consideration(address(conduitController));
         }
         //create conduit, update channel
-        conduit =
-            Conduit(conduitController.createConduit(conduitKey, address(this)));
+        conduit = Conduit(
+            conduitController.createConduit(conduitKey, address(this))
+        );
         conduitController.updateChannel(
-            address(conduit), address(seaport), true
+            address(conduit),
+            address(seaport),
+            true
         );
     }
 
@@ -134,7 +143,9 @@ contract BaseSeaportTest is DifferentialTest {
             referenceConduitController.createConduit(conduitKey, address(this))
         );
         referenceConduitController.updateChannel(
-            address(referenceConduit), address(referenceSeaport), true
+            address(referenceConduit),
+            address(referenceSeaport),
+            true
         );
     }
 
@@ -143,8 +154,11 @@ contract BaseSeaportTest is DifferentialTest {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes memory) {
-        (bytes32 r, bytes32 s, uint8 v) =
-            getSignatureComponents(_consideration, _pkOfSigner, _orderHash);
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
         return abi.encodePacked(r, s, v);
     }
 
@@ -153,8 +167,11 @@ contract BaseSeaportTest is DifferentialTest {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes memory) {
-        (bytes32 r, bytes32 s, uint8 v) =
-            getSignatureComponents(_consideration, _pkOfSigner, _orderHash);
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
         uint256 yParity;
         if (v == 27) {
             yParity = 0;
@@ -170,7 +187,7 @@ contract BaseSeaportTest is DifferentialTest {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes32, bytes32, uint8) {
-        (, bytes32 domainSeparator,) = _consideration.information();
+        (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(

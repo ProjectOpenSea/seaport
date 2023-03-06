@@ -17,13 +17,12 @@ contract PreapprovedERC721 is CustomERC721 {
         return true;
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override
-        returns (bool)
-    {
-        return preapprovals[operator] || super.isApprovedForAll(owner, operator);
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override returns (bool) {
+        return
+            preapprovals[operator] || super.isApprovedForAll(owner, operator);
     }
 
     function tokenURI(uint256) public pure override returns (string memory) {

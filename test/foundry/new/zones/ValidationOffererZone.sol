@@ -4,21 +4,22 @@ pragma solidity ^0.8.13;
 import "seaport-sol/SeaportStructs.sol";
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { ContractOffererInterface } from
-    "seaport-core/interfaces/ContractOffererInterface.sol";
+import {
+    ContractOffererInterface
+} from "seaport-core/interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
 
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
 
-    uint256 expectedSpentAmount;
+    uint256 expectedMaxSpentAmount;
 
-    constructor(uint256 expected) {
-        expectedSpentAmount = expected;
+    constructor(uint256 expectedMax) {
+        expectedMaxSpentAmount = expectedMax;
     }
 
-    receive() external payable { }
+    receive() external payable {}
 
     /**
      * @dev Validates that the parties have received the correct items.
@@ -28,12 +29,9 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        override
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view override returns (bytes4 validOrderMagicValue) {
         validate(zoneParameters.fulfiller, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.
@@ -77,11 +75,9 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         return (a, _convertSpentToReceived(b));
     }
 
-    function _convertSpentToReceived(SpentItem[] calldata spentItems)
-        internal
-        view
-        returns (ReceivedItem[] memory)
-    {
+    function _convertSpentToReceived(
+        SpentItem[] calldata spentItems
+    ) internal view returns (ReceivedItem[] memory) {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -91,38 +87,39 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         return receivedItems;
     }
 
-    function _convertSpentToReceived(SpentItem calldata spentItem)
-        internal
-        view
-        returns (ReceivedItem memory)
-    {
-        return ReceivedItem({
-            itemType: spentItem.itemType,
-            token: spentItem.token,
-            identifier: spentItem.identifier,
-            amount: spentItem.amount,
-            recipient: payable(address(this))
-        });
+    function _convertSpentToReceived(
+        SpentItem calldata spentItem
+    ) internal view returns (ReceivedItem memory) {
+        return
+            ReceivedItem({
+                itemType: spentItem.itemType,
+                token: spentItem.token,
+                identifier: spentItem.identifier,
+                amount: spentItem.amount,
+                recipient: payable(address(this))
+            });
     }
 
     function ratifyOrder(
-        SpentItem[] calldata spentItems, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata spentItems /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external view override returns (bytes4 /* ratifyOrderMagicValue */ ) {
+    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
         validate(address(0), spentItems);
         return ValidationOffererZone.ratifyOrder.selector;
     }
 
-    function validate(address fulfiller, SpentItem[] calldata offer)
-        internal
-        view
-    {
-        if (offer[0].amount != expectedSpentAmount) {
+    function validate(
+        address fulfiller,
+        SpentItem[] calldata offer
+    ) internal view {
+        if (offer[0].amount > expectedMaxSpentAmount) {
             revert IncorrectSpentAmount(
-                fulfiller, bytes32(offer[0].amount), expectedSpentAmount
+                fulfiller,
+                bytes32(offer[0].amount),
+                expectedMaxSpentAmount
             );
         }
     }

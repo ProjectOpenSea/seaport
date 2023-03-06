@@ -157,7 +157,7 @@ library ReceivedItemLib {
     }
 
     /**
-     * @dev Sets an array of in-memory ReceivedItems to an array of 
+     * @dev Sets an array of in-memory ReceivedItems to an array of
      *      ReceivedItems in storage.
      *
      * @param items    the ReceivedItems array in storage to push to
