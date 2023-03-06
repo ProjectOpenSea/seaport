@@ -9,10 +9,12 @@ import { ContractOffererInterface } from
 
 import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
 
-contract TestTransferValidationZoneOfferer is
+contract ValidationZone is
     // ContractOffererInterface,
     ZoneInterface
 {
+    error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
+
     uint256 expectedSpentAmount;
 
     constructor(uint256 expected) {
@@ -36,7 +38,11 @@ contract TestTransferValidationZoneOfferer is
         returns (bytes4 validOrderMagicValue)
     {
         if (zoneParameters.offer[0].amount != expectedSpentAmount) {
-            revert("Incorrect spent amount");
+            revert IncorrectSpentAmount(
+                zoneParameters.fulfiller,
+                bytes32(zoneParameters.offer[0].amount),
+                expectedSpentAmount
+            );
         }
 
         // Return the selector of validateOrder as the magic value.

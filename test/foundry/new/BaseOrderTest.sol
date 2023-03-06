@@ -26,6 +26,7 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
 import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
+import "seaport-sol/SeaportSol.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -36,6 +37,20 @@ contract BaseOrderTest is
 {
     using Strings for uint256;
     using ArithmeticUtil for *;
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
+    using ConsiderationItemLib for ConsiderationItem;
+    using ConsiderationItemLib for ConsiderationItem[];
+    using OrderLib for Order;
+    using OrderLib for Order[];
+    using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
+    using OrderParametersLib for OrderParameters;
+    using OrderComponentsLib for OrderComponents;
+    using FulfillmentLib for Fulfillment;
+    using FulfillmentLib for Fulfillment[];
+    using FulfillmentComponentLib for FulfillmentComponent;
+    using FulfillmentComponentLib for FulfillmentComponent[];
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event TransferSingle(
@@ -99,16 +114,6 @@ contract BaseOrderTest is
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
-        try fn(context) {
-            fail("Differential test should have reverted with failure status");
-        } catch (bytes memory reason) {
-            assertPass(reason);
-        }
-    }
-
     Account offerer1;
     Account offerer2;
 
@@ -119,6 +124,17 @@ contract BaseOrderTest is
     TestERC1155[] erc1155s;
 
     address[] preapprovals;
+
+    string constant SINGLE_ERC721 = "single erc721";
+    string constant STANDARD = "standard";
+    string constant FULL = "full";
+    string constant FIRST_FIRST = "first first";
+    string constant FIRST_SECOND = "first second";
+    string constant SECOND_FIRST = "second first";
+    string constant SECOND_SECOND = "second second";
+
+    string constant FF_SF = "ff to sf";
+    string constant SF_FF = "sf to ff";
 
     function setUp() public virtual override {
         super.setUp();
@@ -137,6 +153,18 @@ contract BaseOrderTest is
 
         // allocate funds and tokens to test addresses
         allocateTokensAndApprovals(address(this), type(uint128).max);
+
+        configureStructDefaults();
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {
+            fail("Differential test should have reverted with failure status");
+        } catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     /**
@@ -276,6 +304,54 @@ contract BaseOrderTest is
 
     function decodeBytes4(bytes memory data) external pure returns (bytes4) {
         return abi.decode(data, (bytes4));
+    }
+
+    function configureStructDefaults() internal {
+        OfferItemLib.empty().withItemType(ItemType.ERC721).withStartAmount(1)
+            .withEndAmount(1).saveDefault(SINGLE_ERC721);
+        ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
+            .withStartAmount(1).withEndAmount(1).saveDefault(SINGLE_ERC721);
+
+        OrderComponentsLib.empty().withOrderType(OrderType.FULL_OPEN)
+            .withStartTime(block.timestamp).withEndTime(block.timestamp + 100)
+            .saveDefault(STANDARD);
+
+        AdvancedOrderLib.empty().withNumerator(1).withDenominator(1).saveDefault(
+            FULL
+        );
+
+        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(0)
+            .saveDefault(FIRST_FIRST);
+        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(1)
+            .saveDefault(FIRST_SECOND);
+        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(0)
+            .saveDefault(SECOND_FIRST);
+        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(1)
+            .saveDefault(SECOND_SECOND);
+
+        SeaportArrays.FulfillmentComponents(
+            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+        ).saveDefaultMany(FIRST_FIRST);
+        SeaportArrays.FulfillmentComponents(
+            FulfillmentComponentLib.fromDefault(FIRST_SECOND)
+        ).saveDefaultMany(FIRST_SECOND);
+        SeaportArrays.FulfillmentComponents(
+            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+        ).saveDefaultMany(SECOND_FIRST);
+        SeaportArrays.FulfillmentComponents(
+            FulfillmentComponentLib.fromDefault(SECOND_SECOND)
+        ).saveDefaultMany(SECOND_SECOND);
+
+        FulfillmentLib.empty().withOfferComponents(
+            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+        ).withConsiderationComponents(
+            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+        ).saveDefault(SF_FF);
+        FulfillmentLib.empty().withOfferComponents(
+            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+        ).withConsiderationComponents(
+            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+        ).saveDefault(FF_SF);
     }
 
     receive() external payable virtual { }
