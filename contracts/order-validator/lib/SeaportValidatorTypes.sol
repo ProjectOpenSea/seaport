@@ -49,9 +49,10 @@ enum ConsiderationIssue {
     PrivateSaleToSelf, // 503
     ZeroItems, // 504
     DuplicateItem, // 505
-    PrivateSale, // 506
-    AmountVelocityHigh, // 507
-    AmountStepLarge // 508
+    OffererNotReceivingAtLeastOneItem, // 506
+    PrivateSale, // 507
+    AmountVelocityHigh, // 508
+    AmountStepLarge // 509
 }
 
 enum OfferIssue {

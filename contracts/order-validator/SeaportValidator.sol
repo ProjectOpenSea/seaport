@@ -236,7 +236,12 @@ contract SeaportValidator is
         }
 
         // Check the EIP165 zone interface
-        if (!checkInterface(orderParameters.zone, 0x3839be19)) {
+        if (!checkInterface(orderParameters.zone, ZONE_INTERFACE_ID)) {
+            errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
+        }
+
+        // Check if the contract offerer implements SIP-5
+        try ZoneInterface(orderParameters.zone).getSeaportMetadata() {} catch {
             errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
         }
     }
@@ -272,6 +277,7 @@ contract SeaportValidator is
 
         // Approval address does not have Seaport v1.4 added as a channel
         if (
+            exists &&
             !conduitController.getChannelStatus(
                 conduitAddress,
                 address(seaport)
@@ -1159,7 +1165,7 @@ contract SeaportValidator is
      *    Order of consideration items must be as follows:
      *    1. Primary consideration
      *    2. Primary fee
-     *    3. Creator Fee
+     *    3. Creator fee
      *    4. Private sale consideration
      * @param orderParameters The parameters for the order to validate.
      * @param primaryFeeRecipient The primary fee recipient. Set to null address for no primary fee.
@@ -1263,7 +1269,7 @@ contract SeaportValidator is
         ConsiderationItem memory creatorFeeConsideration;
 
         if (isPaymentToken(orderParameters.offer[0].itemType)) {
-            // Offer is an offer. oOffer item is fungible and used for fees
+            // Offer is an offer. Offer item is fungible and used for fees
             creatorFeeConsideration.itemType = orderParameters
                 .offer[0]
                 .itemType;
@@ -1425,6 +1431,7 @@ contract SeaportValidator is
                 );
             }
         }
+
         // Calculate index of first tertiary consideration item
         tertiaryConsiderationIndex =
             1 +

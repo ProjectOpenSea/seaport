@@ -241,7 +241,7 @@ describe("Validate Orders", function () {
     it("Zero offer items", async function () {
       expect(
         await validator.validateOfferItems(baseOrderParameters)
-      ).to.include.deep.ordered.members([[OfferIssue.ZeroItems], []]);
+      ).to.include.deep.ordered.members([[], [OfferIssue.ZeroItems]]);
     });
 
     it("duplicate offer items", async function () {
@@ -1532,7 +1532,6 @@ describe("Validate Orders", function () {
           recipient: feeRecipient,
         },
       ];
-      console.log("first call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1550,7 +1549,6 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
-      console.log("second call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1568,7 +1566,6 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
-      console.log("third call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1586,7 +1583,6 @@ describe("Validate Orders", function () {
         endAmount: "1",
         recipient: feeRecipient,
       };
-      console.log("fourth call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
@@ -1604,7 +1600,6 @@ describe("Validate Orders", function () {
         endAmount: "2",
         recipient: feeRecipient,
       };
-      console.log("fifth call");
       expect(
         await validator.validateStrictLogic(
           baseOrderParameters,
