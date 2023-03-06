@@ -238,6 +238,7 @@ contract SeaportValidator is
         // Check the EIP165 zone interface
         if (!checkInterface(orderParameters.zone, ZONE_INTERFACE_ID)) {
             errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
+            return errorsAndWarnings;
         }
 
         // Check if the contract offerer implements SIP-5
@@ -796,10 +797,7 @@ contract SeaportValidator is
                 // Not approved
                 errorsAndWarnings.addError(ERC721Issue.NotApproved.parseInt());
             }
-        } else if (
-            offerItem.itemType == ItemType.ERC1155 ||
-            offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-        ) {
+        } else if (offerItem.itemType == ItemType.ERC1155) {
             ERC1155Interface token = ERC1155Interface(offerItem.token);
 
             // Check for approval
@@ -837,9 +835,23 @@ contract SeaportValidator is
                     ERC1155Issue.InsufficientBalance.parseInt()
                 );
             }
-        } else if (
-            offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-        ) {} else if (offerItem.itemType == ItemType.ERC20) {
+        } else if (offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            ERC1155Interface token = ERC1155Interface(offerItem.token);
+
+            // Check for approval
+            if (
+                !address(token).safeStaticCallBool(
+                    abi.encodeWithSelector(
+                        ERC1155Interface.isApprovedForAll.selector,
+                        orderParameters.offerer,
+                        approvalAddress
+                    ),
+                    true
+                )
+            ) {
+                errorsAndWarnings.addError(ERC1155Issue.NotApproved.parseInt());
+            }
+        } else if (offerItem.itemType == ItemType.ERC20) {
             ERC20Interface token = ERC20Interface(offerItem.token);
 
             // Get min required balance and approval (max(startAmount, endAmount))

@@ -496,7 +496,25 @@ describe("Validate Orders", function () {
         ]);
       });
 
+      it("ERC721 Criteria offer no approval", async function () {
+        baseOrderParameters.offer = [
+          {
+            itemType: ItemType.ERC721_WITH_CRITERIA,
+            token: erc721_1.address,
+            identifierOrCriteria: "2",
+            startAmount: "1",
+            endAmount: "1",
+          },
+        ];
+
+        expect(
+          await validator.validateOfferItems(baseOrderParameters)
+        ).to.include.deep.ordered.members([[ERC721Issue.NotApproved], []]);
+      });
+
       it("ERC721 Criteria offer", async function () {
+        await erc721_1.setApprovalForAll(CROSS_CHAIN_SEAPORT_ADDRESS, true);
+
         baseOrderParameters.offer = [
           {
             itemType: ItemType.ERC721_WITH_CRITERIA,
@@ -529,6 +547,8 @@ describe("Validate Orders", function () {
       });
 
       it("ERC721 Criteria offer multiple", async function () {
+        await erc721_1.setApprovalForAll(CROSS_CHAIN_SEAPORT_ADDRESS, true);
+
         baseOrderParameters.offer = [
           {
             itemType: ItemType.ERC721_WITH_CRITERIA,
@@ -649,7 +669,25 @@ describe("Validate Orders", function () {
         ).to.include.deep.ordered.members([[], []]);
       });
 
+      it("ERC1155 Criteria offer no approval", async function () {
+        baseOrderParameters.offer = [
+          {
+            itemType: ItemType.ERC1155_WITH_CRITERIA,
+            token: erc1155_1.address,
+            identifierOrCriteria: "2",
+            startAmount: "1",
+            endAmount: "1",
+          },
+        ];
+
+        expect(
+          await validator.validateOfferItems(baseOrderParameters)
+        ).to.include.deep.ordered.members([[ERC1155Issue.NotApproved], []]);
+      });
+
       it("ERC1155 Criteria offer", async function () {
+        await erc1155_1.setApprovalForAll(CROSS_CHAIN_SEAPORT_ADDRESS, true);
+
         baseOrderParameters.offer = [
           {
             itemType: ItemType.ERC1155_WITH_CRITERIA,
@@ -682,6 +720,8 @@ describe("Validate Orders", function () {
       });
 
       it("ERC1155 Criteria offer multiple", async function () {
+        await erc1155_1.setApprovalForAll(CROSS_CHAIN_SEAPORT_ADDRESS, true);
+
         baseOrderParameters.offer = [
           {
             itemType: ItemType.ERC1155_WITH_CRITERIA,
@@ -943,7 +983,7 @@ describe("Validate Orders", function () {
         await validator.validateConsiderationItems(baseOrderParameters)
       ).to.include.deep.ordered.members([
         [ConsiderationIssue.NullRecipient],
-        [],
+        [ConsiderationIssue.OffererNotReceivingAtLeastOneItem],
       ]);
     });
 
@@ -2027,6 +2067,27 @@ describe("Validate Orders", function () {
         await validator.validateOrderStatus(baseOrderParameters)
       ).to.include.deep.ordered.members([[StatusIssue.Cancelled], []]);
     });
+
+    it("contract order", async function () {
+      await erc20_1.mint(owner.address, 1000);
+      await erc20_1.approve(CROSS_CHAIN_SEAPORT_ADDRESS, 1000);
+
+      baseOrderParameters.offer = [
+        {
+          itemType: ItemType.ERC20,
+          token: erc20_1.address,
+          identifierOrCriteria: "0",
+          startAmount: "1000",
+          endAmount: "1000",
+        },
+      ];
+
+      baseOrderParameters.orderType = OrderType.CONTRACT;
+
+      expect(
+        await validator.validateOrderStatus(baseOrderParameters)
+      ).to.include.deep.ordered.members([[], [StatusIssue.ContractOrder]]);
+    });
   });
 
   describe("Fee", function () {
@@ -2821,6 +2882,29 @@ describe("Validate Orders", function () {
         await validator.callStatic.validateSignature(order)
       ).to.include.deep.ordered.members([[], []]);
     });
+
+    it("contract order", async function () {
+      await erc20_1.mint(owner.address, 1000);
+      await erc20_1.approve(CROSS_CHAIN_SEAPORT_ADDRESS, 1000);
+
+      baseOrderParameters.offer = [
+        {
+          itemType: ItemType.ERC20,
+          token: erc20_1.address,
+          identifierOrCriteria: "0",
+          startAmount: "1000",
+          endAmount: "1000",
+        },
+      ];
+
+      baseOrderParameters.orderType = OrderType.CONTRACT;
+
+      const order = { parameters: baseOrderParameters, signature: "0x" };
+
+      expect(
+        await validator.callStatic.validateSignature(order)
+      ).to.include.deep.ordered.members([[], [SignatureIssue.ContractOrder]]);
+    });
   });
 
   describe("Validate Contract Offerer", function () {
@@ -3168,12 +3252,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.callStatic.isValidOrder(order)
       ).to.include.deep.ordered.members([
-        [
-          OfferIssue.ZeroItems,
-          SignatureIssue.Invalid,
-          GenericIssue.InvalidOrderFormat,
-        ],
-        [],
+        [SignatureIssue.Invalid, GenericIssue.InvalidOrderFormat],
+        [OfferIssue.ZeroItems],
       ]);
     });
 

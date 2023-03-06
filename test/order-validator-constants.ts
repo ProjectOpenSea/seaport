@@ -42,6 +42,7 @@ export enum OrderType {
   PARTIAL_OPEN = 1, // Partial fills supported, anyone can execute
   FULL_RESTRICTED = 2, // No partial fills, only offerer or zone can execute
   PARTIAL_RESTRICTED = 3, // Partial fills supported, only offerer or zone can execute
+  CONTRACT, // Contract order
 }
 
 export enum ItemType {
@@ -125,6 +126,7 @@ export enum ConsiderationIssue {
   PrivateSaleToSelf,
   ZeroItems,
   DuplicateItem,
+  OffererNotReceivingAtLeastOneItem,
   PrivateSale,
   AmountVelocityHigh,
   AmountStepLarge,
@@ -152,6 +154,7 @@ export enum PrimaryFeeIssue {
 export enum StatusIssue {
   Cancelled = 800,
   FullyFilled,
+  ContractOrder,
 }
 
 export enum TimeIssue {
@@ -164,10 +167,12 @@ export enum TimeIssue {
 
 export enum ConduitIssue {
   KeyInvalid = 1000,
+  MissingCanonicalSeaportChannel,
 }
 
 export enum SignatureIssue {
   Invalid = 1100,
+  ContractOrder,
   LowCounter,
   HighCounter,
   OriginalConsiderationItems,
