@@ -10,7 +10,8 @@ remappings = [
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
     'openzeppelin-contracts/=lib/openzeppelin-contracts/',
-    'seaport-sol/=contracts/helpers/sol/'
+    'seaport-sol/=contracts/helpers/sol/',
+    'seaport-core/=contracts/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [
