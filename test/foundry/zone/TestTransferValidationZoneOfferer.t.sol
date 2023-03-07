@@ -1330,8 +1330,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function testFulfillAdvancedBasicFuzz(FuzzInputs memory args) public {
         args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
-        vm.assume(args.offerRecipient != address(0));
-        vm.assume(args.considerationRecipient != address(0));
+        args.offerRecipient = address(
+            uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
+        );
         test(
             this.execFulfillAdvancedBasicFuzz,
             Context(referenceConsideration, args)
