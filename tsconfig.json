@@ -8,6 +8,16 @@
     "declaration": true,
     "resolveJsonModule": true
   },
-  "include": ["./scripts", "./test", "./typechain-types", "./eip-712-types", "./*.config.ts", "./docs/prepare-docs.js"],
+  "include": [
+    "./scripts",
+    "./test",
+    "./typechain-types",
+    "./eip-712-types",
+    "./*.config.ts",
+    "./docs/prepare-docs.js",
+    "order-validator/ValidateOrderArbitrum.spec.ts",
+    "order-validator/test/TestErrorsAndWarningsMainnet.spec.ts",
+    "order-validator/test/order-validator-constants.ts"
+  ],
   "files": ["./hardhat.config.ts"]
 }
