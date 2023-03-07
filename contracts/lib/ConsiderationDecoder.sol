@@ -1337,15 +1337,28 @@ contract ConsiderationDecoder {
      * @param offerItem The offer item.
      * @param recipient The recipient.
      *
-     * @return receivedItem The received item.
+     * @return receivedItem      The received item.
+     * @return originalEndAmount The original end amount.
      */
     function _fromOfferItemToReceivedItemWithRecipient(
         OfferItem memory offerItem,
         address recipient
-    ) internal pure returns (ReceivedItem memory receivedItem) {
+    ) internal pure returns (
+        ReceivedItem memory receivedItem,
+        uint256 originalEndAmount
+    ) {
         assembly {
+            // Typecast the offer item to a received item.
             receivedItem := offerItem
-            mstore(add(receivedItem, ReceivedItem_recipient_offset), recipient)
+
+            // Derive the pointer to the end amount on the offer item.
+            let endAmountPtr := add(receivedItem, ReceivedItem_recipient_offset)
+
+            // Retrieve the value of the end amount on the offer item.
+            originalEndAmount := mload(endAmountPtr)
+
+            // Write recipient to received item at the offer end amount pointer.
+            mstore(endAmountPtr, recipient)
         }
     }
 }
