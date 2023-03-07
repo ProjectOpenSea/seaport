@@ -2,22 +2,20 @@
 pragma solidity ^0.8.13;
 
 import {
-    BasicOrderParameters,
-    CriteriaResolver,
-    AdvancedOrder,
     AdditionalRecipient,
-    OfferItem,
-    Order,
+    AdvancedOrder,
+    BasicOrderParameters,
     ConsiderationItem,
+    CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    OrderParameters,
+    OfferItem,
+    Order,
     OrderComponents,
-    Execution
+    OrderParameters
 } from "../../../lib/ConsiderationStructs.sol";
-import {
-    ConsiderationInterface
-} from "../../../interfaces/ConsiderationInterface.sol";
+
 import { ArrayLib } from "./ArrayLib.sol";
 
 library StructCopier {

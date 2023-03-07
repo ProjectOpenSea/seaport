@@ -15,9 +15,9 @@ import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
-    SpentItem,
     ReceivedItem,
-    Schema
+    Schema,
+    SpentItem
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
@@ -49,7 +49,8 @@ contract BadOfferer is ERC165, ContractOffererInterface {
     }
 
     /**
-     * @dev Generates an order with the specified minimum and maximum spent items,
+     * @dev Generates an order with the specified minimum and maximum spent
+     *      items.
      */
     function generateOrder(
         address a,

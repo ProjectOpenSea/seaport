@@ -2,12 +2,21 @@
 pragma solidity ^0.8.17;
 
 import {
-    ReceivedItem,
-    ConsiderationItem
+    ConsiderationItem,
+    ReceivedItem
 } from "../../../lib/ConsiderationStructs.sol";
+
 import { ItemType } from "../../../lib/ConsiderationEnums.sol";
+
 import { StructCopier } from "./StructCopier.sol";
 
+/**
+ * @title ReceivedItemLib
+ * @author James Wenzel (emo.eth)
+ * @notice ReceivedItemLib is a library for managing ReceivedItem structs and
+ *         arrays. It allows chaining of functions to make struct creation more
+ *         readable.
+ */
 library ReceivedItemLib {
     bytes32 private constant RECEIVED_ITEM_MAP_POSITION =
         keccak256("seaport.ReceivedItemDefaults");
@@ -15,7 +24,8 @@ library ReceivedItemLib {
         keccak256("seaport.ReceivedItemsDefaults");
 
     /**
-     * @notice clears a default ReceivedItem from storage
+     * @dev Clears a default ReceivedItem from storage.
+     *
      * @param defaultName the name of the default to clear
      */
     function clear(string memory defaultName) internal {
@@ -25,6 +35,11 @@ library ReceivedItemLib {
         clear(item);
     }
 
+    /**
+     * @dev Clears all fields on a ReceivedItem.
+     *
+     * @param item the ReceivedItem to clear
+     */
     function clear(ReceivedItem storage item) internal {
         // clear all fields
         item.itemType = ItemType.NATIVE;
@@ -34,6 +49,11 @@ library ReceivedItemLib {
         item.recipient = payable(address(0));
     }
 
+    /**
+     * @dev Clears an array of ReceivedItems from storage.
+     *
+     * @param defaultsName the name of the default to clear
+     */
     function clearMany(string memory defaultsName) internal {
         mapping(string => ReceivedItem[])
             storage receivedItemsMap = _receivedItemsMap();
@@ -41,6 +61,11 @@ library ReceivedItemLib {
         clearMany(items);
     }
 
+    /**
+     * @dev Clears an array of ReceivedItems from storage.
+     *
+     * @param items the ReceivedItems to clear
+     */
     function clearMany(ReceivedItem[] storage items) internal {
         while (items.length > 0) {
             clear(items[items.length - 1]);
@@ -48,6 +73,11 @@ library ReceivedItemLib {
         }
     }
 
+    /**
+     * @dev Creates an empty ReceivedItem.
+     *
+     * @return the empty ReceivedItem
+     */
     function empty() internal pure returns (ReceivedItem memory) {
         return
             ReceivedItem({
@@ -60,8 +90,11 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice gets a default ReceivedItem from storage
+     * @dev Gets a default ReceivedItem from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the default ReceivedItem
      */
     function fromDefault(
         string memory defaultName
@@ -71,6 +104,13 @@ library ReceivedItemLib {
         item = receivedItemMap[defaultName];
     }
 
+    /**
+     * @dev Gets a default ReceivedItem from storage.
+     *
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return items the default ReceivedItem
+     */
     function fromDefaultMany(
         string memory defaultsName
     ) internal view returns (ReceivedItem[] memory items) {
@@ -80,9 +120,12 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice saves an ReceivedItem as a named default
+     * @dev Saves an ReceivedItem as a named default.
+     *
      * @param receivedItem the ReceivedItem to save as a default
      * @param defaultName the name of the default for retrieval
+     *
+     * @return _receivedItem the saved ReceivedItem
      */
     function saveDefault(
         ReceivedItem memory receivedItem,
@@ -94,6 +137,14 @@ library ReceivedItemLib {
         return receivedItem;
     }
 
+    /**
+     * @dev Saves an ReceivedItem as a named default.
+     *
+     * @param receivedItems the ReceivedItem to save as a default
+     * @param defaultsName the name of the default for retrieval
+     *
+     * @return _receivedItems the saved ReceivedItem
+     */
     function saveDefaultMany(
         ReceivedItem[] memory receivedItems,
         string memory defaultsName
@@ -105,6 +156,14 @@ library ReceivedItemLib {
         return receivedItems;
     }
 
+    /**
+     * @dev Sets an array of in-memory ReceivedItems to an array of 
+     *      ReceivedItems in storage.
+     *
+     * @param items    the ReceivedItems array in storage to push to
+     * @param newItems the ReceivedItems array in memory to push onto the items
+     *                 array
+     */
     function setReceivedItems(
         ReceivedItem[] storage items,
         ReceivedItem[] memory newItems
@@ -116,8 +175,11 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice makes a copy of an ReceivedItem in-memory
+     * @dev Makes a copy of an ReceivedItem in-memory.
+     *
      * @param item the ReceivedItem to make a copy of in-memory
+     *
+     * @custom:return copiedReceivedItem the copied ReceivedItem
      */
     function copy(
         ReceivedItem memory item
@@ -132,6 +194,13 @@ library ReceivedItemLib {
             });
     }
 
+    /**
+     * @dev Makes a copy of an array of ReceivedItems in-memory.
+     *
+     * @param item the ReceivedItems array to make a copy of in-memory
+     *
+     * @custom:return copiedReceivedItems the copied ReceivedItems
+     */
     function copy(
         ReceivedItem[] memory item
     ) internal pure returns (ReceivedItem[] memory) {
@@ -143,7 +212,10 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice gets the storage position of the default ReceivedItem map
+     * @dev Gets the storage position of the default ReceivedItem map.
+     *
+     * @custom:return receivedItemMap the storage position of the default
+     *                                ReceivedItem map
      */
     function _receivedItemMap()
         private
@@ -157,7 +229,10 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice gets the storage position of the default ReceivedItem map
+     * @dev Gets the storage position of the default ReceivedItem array map.
+     *
+     * @custom:return receivedItemsMap the storage position of the default
+     *                                 ReceivedItem array map
      */
     function _receivedItemsMap()
         private
@@ -170,15 +245,16 @@ library ReceivedItemLib {
         }
     }
 
-    // methods for configuring a single of each of an ReceivedItem's fields, which modifies the ReceivedItem
-    // in-place and
-    // returns it
+    // Methods for configuring a single of each of a ReceivedItem's fields,
+    // which modify the ReceivedItem struct in-place and return it.
 
     /**
-     * @notice sets the item type
-     * @param item the ReceivedItem to modify
-     * @param itemType the item type to set
-     * @return the modified ReceivedItem
+     * @dev Sets the itemType field of an ReceivedItem.
+     *
+     * @param item     the ReceivedItem to set the itemType field of
+     * @param itemType the itemType to set the itemType field to
+     *
+     * @custom:return item the ReceivedItem with the itemType field set
      */
     function withItemType(
         ReceivedItem memory item,
@@ -189,10 +265,12 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice sets the token address
-     * @param item the ReceivedItem to modify
-     * @param token the token address to set
-     * @return the modified ReceivedItem
+     * @dev Sets the token field of an ReceivedItem.
+     *
+     * @param item  the ReceivedItem to set the token field of
+     * @param token the token to set the token field to
+     *
+     * @custom:return item the ReceivedItem with the token field set
      */
     function withToken(
         ReceivedItem memory item,
@@ -203,10 +281,12 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice sets the identifier or criteria
-     * @param item the ReceivedItem to modify
-     * @param identifier the identifier or criteria to set
-     * @return the modified ReceivedItem
+     * @dev Sets the identifier field of an ReceivedItem.
+     *
+     * @param item       the ReceivedItem to set the identifier field of
+     * @param identifier the identifier to set the identifier field to
+     *
+     * @custom:return item the ReceivedItem with the identifier field set
      */
     function withIdentifier(
         ReceivedItem memory item,
@@ -217,10 +297,12 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice sets the start amount
-     * @param item the ReceivedItem to modify
-     * @param amount the start amount to set
-     * @return the modified ReceivedItem
+     * @dev Sets the amount field of an ReceivedItem.
+     *
+     * @param item   the ReceivedItem to set the amount field of
+     * @param amount the amount to set the amount field to
+     *
+     * @custom:return item the ReceivedItem with the amount field set
      */
     function withAmount(
         ReceivedItem memory item,
@@ -231,10 +313,12 @@ library ReceivedItemLib {
     }
 
     /**
-     * @notice sets the recipient
-     * @param item the ReceivedItem to modify
-     * @param recipient the recipient to set
-     * @return the modified ReceivedItem
+     * @dev Sets the recipient field of an ReceivedItem.
+     *
+     * @param item     the ReceivedItem to set the recipient field of
+     * @param recipient the recipient to set the recipient field to
+     *
+     * @custom:return item the ReceivedItem with the recipient field set
      */
     function withRecipient(
         ReceivedItem memory item,
@@ -244,6 +328,13 @@ library ReceivedItemLib {
         return item;
     }
 
+    /**
+     * @dev Converts an ReceivedItem to a ConsiderationItem.
+     *
+     * @param item the ReceivedItem to convert to a ConsiderationItem
+     *
+     * @custom:return considerationItem the converted ConsiderationItem
+     */
     function toConsiderationItem(
         ReceivedItem memory item
     ) internal pure returns (ConsiderationItem memory) {
