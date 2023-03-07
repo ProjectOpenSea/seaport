@@ -83,8 +83,6 @@ describe("Validate Orders", function () {
 
     const validator = await Validator.deploy();
 
-    // const ViewOnlyValidator = await ethers.getContractFactory("SeaportValidatorViewOnlyInterface");
-
     const erc721_1 = await TestERC721Factory.deploy();
     const erc721_2 = await TestERC721Factory.deploy();
     const erc1155_1 = await TestERC1155Factory.deploy();
