@@ -138,6 +138,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       forking: {
         enabled: true,
+        blockNumber: 16778226,
         url: process.env.ETH_RPC_URL ?? "",
       },
     },
