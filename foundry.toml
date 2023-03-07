@@ -20,7 +20,7 @@ fs_permissions = [
 
 [profile.validator]
 solc = '0.8.17'
-src = 'contracts/helpers/order-validator
+src = 'contracts/helpers/order-validator'
 optimizer_runs = 1
 
 [fuzz]
