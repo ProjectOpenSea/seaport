@@ -134,6 +134,9 @@ jobs:
       - name: Precompile optimized using 0.8.17 and via-ir=true
         run: FOUNDRY_PROFILE=optimized forge build
 
+      - name: Precompile validator contracts using 0.8.17 and via-ir=false
+        run: FOUNDRY_PROFILE=validator forge build
+
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
 
@@ -229,3 +232,29 @@ jobs:
         with:
           files: ./coverage/lcov.info
           flags: reference
+
+  # validator:
+  #   name: Run Validator Forge Tests
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: recursive
+
+  #     - name: Install Foundry
+  #       uses: foundry-rs/foundry-toolchain@v1
+  #       with:
+  #         version: nightly
+
+  #     - name: Install forge dependencies
+  #       run: forge install
+
+  #     - name: Precompile reference using 0.8.13 and via-ir=false
+  #       run: FOUNDRY_PROFILE=reference forge build
+
+  #     - name: Precompile optimized using 0.8.17 and via-ir=true
+  #       run: FOUNDRY_PROFILE=optimized forge build
+
+  #     - name: Run tests
+  #       run: FOUNDRY_PROFILE=test forge test -vvv
