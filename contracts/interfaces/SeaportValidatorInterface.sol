@@ -9,10 +9,10 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 import {
     ErrorsAndWarnings
-} from "../helpers/order-validator/lib/ErrorsAndWarnings.sol";
+} from "../../order-validator/lib/ErrorsAndWarnings.sol";
 import {
     ValidationConfiguration
-} from "../helpers/order-validator/lib/SeaportValidatorTypes.sol";
+} from "../../order-validator/lib/SeaportValidatorTypes.sol";
 
 /**
  * @title SeaportValidator

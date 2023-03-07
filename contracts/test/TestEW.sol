@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
-} from "../helpers/order-validator/lib/ErrorsAndWarnings.sol";
+} from "../../order-validator/lib/ErrorsAndWarnings.sol";
 
 contract TestEW {
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
