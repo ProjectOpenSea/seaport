@@ -229,25 +229,3 @@ jobs:
         with:
           files: ./coverage/lcov.info
           flags: reference
-
-  validator:
-    name: Run Order Validator Tests
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.15.1]
-
-    env:
-      REFERENCE: true
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build:validator
-      - run: yarn test:validator

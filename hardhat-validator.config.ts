@@ -1,10 +1,5 @@
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
-import { subtask, task } from "hardhat/config";
-
-import { compareLastTwoReports } from "./scripts/compare_reports";
-import { printLastReport } from "./scripts/print_report";
-import { getReportPathForCommit } from "./scripts/utils";
-import { writeReports } from "./scripts/write_reports";
+import { subtask } from "hardhat/config";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
@@ -14,9 +9,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
-import "solidity-coverage";
 
-// Filter Reference Contracts
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   async (_, __, runSuper) => {
     const paths = await runSuper();
