@@ -5,6 +5,7 @@ pragma solidity ^0.8.17;
 import "forge-std/Test.sol";
 import { Merkle } from "murky/Merkle.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC721 } from "forge-std/interfaces/IERC721.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 
 import { PausableZone } from "../../contracts/zones/PausableZone.sol";
@@ -23,6 +24,9 @@ import {
 import {
     SeaportInterface
 } from "../../contracts/interfaces/SeaportInterface.sol";
+import {
+    TestContractOfferer
+} from "../../contracts/offerer/TestContractOfferer.sol";
 
 import {
     Fulfillment,
@@ -41,7 +45,7 @@ import { Seaport } from "../../contracts/Seaport.sol";
 
 /**
 
-- Contract offerer needs to check if the server-side signature is valid.
+- Zone needs to check if the server-side signature is valid.
 - Zone needs to check if the order uses more gas price than allowed
 - Zone needs to check if the order was fulfilled (eth budget check)
 - Zone needs to check if the trade value is greater than or equal to the minEthPricePerItem
@@ -71,15 +75,17 @@ zoneHash arguments:
 
 contract TestPlayGround is Test {
     TestERC721 erc721;
+    IERC721 apeERC721;
     IERC20 weth;
     SeaportInterface seaport;
     PausableZone pausableZone;
     TestZone testZone;
+    TestContractOfferer contractOfferer;
 
     Merkle merkle = new Merkle();
 
     uint256 alicePk = 1;
-    uint256 bobPk = 1;
+    uint256 bobPk = 2;
     address alice;
     address bob;
     address vasa = address(0x073Ab1C0CAd3677cDe9BDb0cDEEDC2085c029579);
@@ -129,6 +135,8 @@ contract TestPlayGround is Test {
         testZone = new TestZone();
         weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         seaport = SeaportInterface(0x00000000000001ad428e4906aE43D8F9852d0dD6);
+        contractOfferer = new TestContractOfferer(address(seaport));
+        apeERC721 = IERC721(0xD07e72b00431af84AD438CA995Fd9a7F0207542d);
 
         vm.label(alice, "Alice");
         vm.label(bob, "Bob");
@@ -582,8 +590,8 @@ contract TestPlayGround is Test {
                 ItemType.ERC20,
                 address(weth),
                 0,
-                (1000_000_000_00 - 18) * 10,
-                (1000_000_000_00 - 18) * 10,
+                (1000_000_000_00 - 17) * 10,
+                (1000_000_000_00 - 17) * 10,
                 payable(bob)
             );
 
@@ -780,6 +788,270 @@ contract TestPlayGround is Test {
             criteriaResolvers,
             fulfillments,
             recipient
+        );
+    }
+
+    function testMatchAdvancedOrders_3() public {
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](1);
+        Fulfillment[] memory fulfillments = new Fulfillment[](3);
+        bytes32[] memory criteriaProof;
+        address recipient = vasa;
+        bytes32 root;
+
+        // mint an ERC721
+        // erc721.mint(address(contractOfferer), 4);
+
+        // approve the item to seaport
+        // vm.startPrank(address(contractOfferer));
+        // erc721.setApprovalForAll(address(seaport), true);
+        // vm.stopPrank();
+
+        vm.startPrank(vasa);
+        weth.transfer(bob, 2000000000000000);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        weth.approve(conduit, type(uint256).max);
+        weth.approve(address(contractOfferer), type(uint256).max);
+        vm.stopPrank();
+
+        {
+            // create a new array to store bytes32 hashes of identifiers
+            bytes32[] memory hashedIdentifiers = new bytes32[](10000);
+            for (uint256 i = 0; i < 10000; i++) {
+                // hash identifier and store to generate proof
+                hashedIdentifiers[i] = keccak256(abi.encode(i));
+            }
+
+            root = merkle.getRoot(hashedIdentifiers);
+            criteriaProof = merkle.getProof(hashedIdentifiers, 4);
+        }
+
+        {
+            uint256 counter = seaport.getCounter(bob);
+
+            OfferItem[] memory offerItems = new OfferItem[](1);
+            offerItems[0] = OfferItem(
+                ItemType.ERC20,
+                address(weth),
+                0,
+                2000000000000000,
+                2000000000000000
+            );
+
+            ConsiderationItem[]
+                memory considerationItems = new ConsiderationItem[](2);
+            considerationItems[0] = ConsiderationItem(
+                ItemType.ERC721_WITH_CRITERIA,
+                address(apeERC721),
+                uint256(root),
+                2,
+                2,
+                payable(bob)
+            );
+            considerationItems[1] = ConsiderationItem(
+                ItemType.ERC20,
+                address(weth),
+                0,
+                (1000000000000000 - 500000000000000) * 2,
+                (1000000000000000 - 500000000000000) * 2,
+                payable(bob)
+            );
+
+            ConsiderationItem[]
+                memory orderComponentsConsiderationItems = new ConsiderationItem[](
+                    1
+                );
+            orderComponentsConsiderationItems[0] = ConsiderationItem(
+                ItemType.ERC721_WITH_CRITERIA,
+                address(apeERC721),
+                uint256(root),
+                2,
+                2,
+                payable(bob)
+            );
+
+            OrderComponents memory orderComponents = OrderComponents(
+                bob,
+                address(testZone),
+                offerItems,
+                orderComponentsConsiderationItems,
+                OrderType.PARTIAL_RESTRICTED,
+                0,
+                ~uint256(0),
+                zoneHash,
+                0,
+                conduitKey,
+                counter
+            );
+
+            bytes32 orderHash = seaport.getOrderHash(orderComponents);
+
+            bytes memory signature = signOrder(
+                ConsiderationInterface(address(seaport)),
+                bobPk,
+                orderHash
+            );
+
+            OrderParameters memory orderParameters = OrderParameters(
+                bob, // 0x00
+                address(testZone), // 0x20
+                offerItems, // 0x40
+                considerationItems, // 0x60
+                OrderType.PARTIAL_RESTRICTED, // 0x80
+                0, // 0xa0
+                ~uint256(0), // 0xc0
+                zoneHash, // 0xe0
+                0, // 0x100
+                conduitKey, // 0x120
+                1 // 0x140
+            );
+
+            advancedOrders[0] = AdvancedOrder(
+                orderParameters,
+                1,
+                2,
+                signature,
+                "0x" // hex"1010"
+            );
+        }
+
+        ///////////////////////////
+
+        {
+            uint256 counter = seaport.getCounter(address(contractOfferer));
+
+            OfferItem[] memory offerItems = new OfferItem[](1);
+            offerItems[0] = OfferItem(
+                ItemType.ERC721,
+                address(apeERC721),
+                1537,
+                1,
+                1
+            );
+
+            ConsiderationItem[]
+                memory considerationItems = new ConsiderationItem[](1);
+            considerationItems[0] = ConsiderationItem(
+                ItemType.ERC20,
+                address(weth),
+                0,
+                500000000000000,
+                500000000000000,
+                payable(address(contractOfferer))
+            );
+
+            OrderComponents memory orderComponents = OrderComponents(
+                address(contractOfferer),
+                address(testZone),
+                offerItems,
+                considerationItems,
+                OrderType.CONTRACT,
+                0,
+                ~uint256(0),
+                zoneHash,
+                0,
+                emptyConduitKey,
+                counter
+            );
+
+            bytes32 orderHash = seaport.getOrderHash(orderComponents);
+
+            bytes memory signature = signOrder(
+                ConsiderationInterface(address(seaport)),
+                alicePk,
+                orderHash
+            );
+
+            OrderParameters memory orderParameters = OrderParameters(
+                address(contractOfferer), // 0x00
+                address(testZone), // 0x20
+                offerItems, // 0x40
+                considerationItems, // 0x60
+                OrderType.CONTRACT, // 0x80
+                0, // 0xa0
+                ~uint256(0), // 0xc0
+                zoneHash, // 0xe0
+                0, // 0x100
+                emptyConduitKey, // 0x120
+                1 // 0x140
+            );
+
+            advancedOrders[1] = AdvancedOrder(
+                orderParameters,
+                1,
+                1,
+                signature,
+                "0x"
+            );
+        }
+
+        ////////////////////////////
+
+        {
+            FulfillmentComponent[]
+                memory offerComponents = new FulfillmentComponent[](1);
+            FulfillmentComponent[]
+                memory considerationComponents = new FulfillmentComponent[](1);
+
+            offerComponents[0] = FulfillmentComponent(0, 0);
+            considerationComponents[0] = FulfillmentComponent(1, 0);
+
+            fulfillments[0] = Fulfillment(
+                offerComponents,
+                considerationComponents
+            );
+        }
+
+        {
+            FulfillmentComponent[]
+                memory offerComponents = new FulfillmentComponent[](1);
+            FulfillmentComponent[]
+                memory considerationComponents = new FulfillmentComponent[](1);
+
+            offerComponents[0] = FulfillmentComponent(1, 0);
+            considerationComponents[0] = FulfillmentComponent(0, 0);
+
+            fulfillments[1] = Fulfillment(
+                offerComponents,
+                considerationComponents
+            );
+        }
+
+        {
+            FulfillmentComponent[]
+                memory offerComponents = new FulfillmentComponent[](1);
+            FulfillmentComponent[]
+                memory considerationComponents = new FulfillmentComponent[](1);
+
+            offerComponents[0] = FulfillmentComponent(0, 0);
+            considerationComponents[0] = FulfillmentComponent(0, 1);
+
+            fulfillments[2] = Fulfillment(
+                offerComponents,
+                considerationComponents
+            );
+        }
+
+        {
+            criteriaResolvers[0] = CriteriaResolver(
+                0,
+                Side.CONSIDERATION,
+                0,
+                4,
+                criteriaProof
+            );
+        }
+
+        // We would want to send the trx on behalf of vasa
+        vm.startPrank(vasa);
+
+        seaport.matchAdvancedOrders(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillments,
+            address(0)
         );
     }
 }
