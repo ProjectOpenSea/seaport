@@ -4,3 +4,4 @@ contracts/test/
 
 test/
 lib/
+order-validator/test
