@@ -119,7 +119,7 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/helpers/order-validator/SeaportValidator.sol": {
+      "order-validator/SeaportValidator.sol": {
         version: "0.8.17",
         settings: {
           viaIR: false,
