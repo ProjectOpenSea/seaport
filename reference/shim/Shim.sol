@@ -12,6 +12,10 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestZone } from "../../contracts/test/TestZone.sol";
+import { TestEW } from "../../contracts/test/TestEW.sol";
+import {
+    SeaportValidator
+} from "../../contracts/helpers/order-validator/SeaportValidator.sol";
 import { TestPostExecution } from "../../contracts/test/TestPostExecution.sol";
 import {
     TestContractOfferer
