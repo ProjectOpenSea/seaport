@@ -45,7 +45,8 @@ interface ERC20Interface {
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @dev Returns the amount which spender is still allowed to withdraw from owner.
+     * @dev Returns the amount which spender is still allowed to withdraw
+     *      from owner.
      *
      * @param owner   The address of the owner.
      * @param spender The address of the spender.
@@ -157,6 +158,15 @@ interface ERC1155Interface {
     ) external;
 
     /**
+     * @dev Allows an owner to approve an operator to transfer all tokens on a
+     *      contract on behalf of the owner.
+     *
+     * @param to       The address of the operator.
+     * @param approved Whether the operator is approved.
+     */
+    function setApprovalForAll(address to, bool approved) external;
+
+    /**
      * @dev Returns the amount of token type id owned by account.
      *
      * @param account The address of the account.
@@ -168,15 +178,6 @@ interface ERC1155Interface {
         address account,
         uint256 id
     ) external view returns (uint256);
-
-    /**
-     * @dev Allows an owner to approve an operator to transfer all tokens on a
-     *      contract on behalf of the owner.
-     *
-     * @param to       The address of the operator.
-     * @param approved Whether the operator is approved.
-     */
-    function setApprovalForAll(address to, bool approved) external;
 
     /**
      * @dev Returns true if operator is approved to transfer account's tokens.
