@@ -132,10 +132,7 @@ jobs:
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Precompile optimized using 0.8.17 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
-
-      - name: Precompile validator contracts using 0.8.17 and via-ir=false
-        run: FOUNDRY_PROFILE=validator forge build
+        run: FOUNDRY_PROFILE=optimized forge build --skip contracts/helpers/order-validator
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
