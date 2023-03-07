@@ -37,18 +37,6 @@ const config: HardhatUserConfig = {
         },
       },
     ],
-    overrides: {
-      "contracts/order-validator/SeaportValidator.sol": {
-        version: "0.8.17",
-        settings: {
-          viaIR: false,
-          optimizer: {
-            enabled: true,
-            runs: 1,
-          },
-        },
-      },
-    },
   },
   networks: {
     hardhat: {
