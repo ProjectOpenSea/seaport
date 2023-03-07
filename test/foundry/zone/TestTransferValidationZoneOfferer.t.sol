@@ -1332,11 +1332,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
         vm.assume(args.offerRecipient != address(0));
         vm.assume(args.considerationRecipient != address(0));
-        test(this.execFulfillAdvancedBasicFuzz, Context(referenceConsideration, args));
+        test(
+            this.execFulfillAdvancedBasicFuzz,
+            Context(referenceConsideration, args)
+        );
         test(this.execFulfillAdvancedBasicFuzz, Context(consideration, args));
     }
 
-    function execFulfillAdvancedBasicFuzz(Context memory context) external stateless {
+    function execFulfillAdvancedBasicFuzz(
+        Context memory context
+    ) external stateless {
         address fuzzyZone;
         TestZone testZone;
 
