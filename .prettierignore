@@ -11,4 +11,7 @@ lib/forge-std
 lib/murky
 lib/openzeppelin-contracts
 lib/solmate
-
+contracts/interfaces/ERC165.sol
+contracts/interfaces/IERC165.sol
+contracts/interfaces/IERC2981.sol
+contracts/interfaces/IERC1271.sol
