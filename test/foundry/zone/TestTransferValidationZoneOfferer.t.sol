@@ -60,11 +60,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant FIRST_FIRST = "first first";
     string constant SECOND_FIRST = "second first";
     string constant THIRD_FIRST = "third second";
+    string constant FOURTH_FIRST = "fourth first";
+    string constant FIFTH_FIRST = "fifth first";
     string constant FIRST_SECOND = "first second";
     string constant SECOND_SECOND = "second second";
     string constant FIRST_SECOND__FIRST = "first&second first";
     string constant FIRST_SECOND__SECOND = "first&second second";
     string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
+    string constant FIRST_SECOND_THIRD_FOURTH__FIRST =
+        "first&second&third&fourth first";
+    string constant FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST =
+        "first&second&third&fourth&fifth first";
     string constant CONTRACT_ORDER = "contract order";
 
     function setUp() public virtual override {
@@ -169,6 +175,20 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withOrderIndex(2)
             .withItemIndex(0)
             .saveDefault(THIRD_FIRST);
+        // create a default fulfillmentComponent for fourth_first
+        // corresponds to first offer or consideration item in the fourth order
+        FulfillmentComponent memory fourthFirst = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(3)
+            .withItemIndex(0)
+            .saveDefault(FOURTH_FIRST);
+        // create a default fulfillmentComponent for fifth_first
+        // corresponds to first offer or consideration item in the fifth order
+        FulfillmentComponent memory fifthFirst = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(4)
+            .withItemIndex(0)
+            .saveDefault(FIFTH_FIRST);
         // create a default fulfillmentComponent for first_second
         // corresponds to second offer or consideration item in the first order
         FulfillmentComponent memory firstSecond = FulfillmentComponentLib
@@ -208,6 +228,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         SeaportArrays
             .FulfillmentComponents(firstFirst, secondFirst, thirdFirst)
             .saveDefaultMany(FIRST_SECOND_THIRD__FIRST);
+        // create a four-element array containing first_first, second_first,
+        // third_first, and fourth_first
+        SeaportArrays
+            .FulfillmentComponents(
+                firstFirst,
+                secondFirst,
+                thirdFirst,
+                fourthFirst
+            )
+            .saveDefaultMany(FIRST_SECOND_THIRD_FOURTH__FIRST);
+        // create a five-element array containing first_first, second_first,
+        // third_first, fourth_first, and fifth_first
+        SeaportArrays
+            .FulfillmentComponents(
+                firstFirst,
+                secondFirst,
+                thirdFirst,
+                fourthFirst,
+                fifthFirst
+            )
+            .saveDefaultMany(FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST);
     }
 
     struct Context {
@@ -216,10 +257,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     }
 
     struct FuzzInputs {
-        uint128 amount;
         uint256 tokenId;
-        address considerationRecipient;
+        uint128 amount;
+        uint256 nonAggregatableOfferOrderCount;
         address offerRecipient;
+        address considerationRecipient;
         bytes32 zoneHash;
         uint256 salt;
         bool useConduit;
@@ -336,23 +378,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
-            );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 1);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -518,28 +547,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
-            );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -666,28 +677,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
-            );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -860,28 +853,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(THIRD_FIRST)
-                )
-            );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND_THIRD__FIRST
-                    )
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(3, 1);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -1000,28 +975,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
-            );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -1330,6 +1287,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function testFulfillAdvancedBasicFuzz(FuzzInputs memory args) public {
         args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
+        args.nonAggregatableOfferOrderCount = bound(
+            args.nonAggregatableOfferOrderCount,
+            1,
+            5
+        );
         args.offerRecipient = address(
             uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
         );
@@ -1343,170 +1305,433 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function execFulfillAdvancedBasicFuzz(
         Context memory context
     ) external stateless {
-        address fuzzyZone;
-        TestZone testZone;
-
-        if (context.args.useTransferValidationZone) {
-            zone = new TestTransferValidationZoneOfferer(
-                context.args.offerRecipient
-            );
-            fuzzyZone = address(zone);
-        } else {
-            testZone = new TestZone();
-            fuzzyZone = address(testZone);
-        }
-
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(offerer1.addr, context.args.tokenId);
-        test721_1.mint(offerer1.addr, context.args.tokenId + 1);
-
-        token1.mint(address(this), context.args.amount * 2);
-
-        // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
-        AdvancedOrder[] memory advancedOrders;
-
-        // Create a block to deal with stack depth issues.
-        {
-            // Create the offer items for the first order.
-            OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
-                    .withToken(address(test721_1))
-                    .withIdentifierOrCriteria(context.args.tokenId)
-            );
-
-            // Create the consideration items for the first order.
-            ConsiderationItem[] memory considerationItemsOne = SeaportArrays
-                .ConsiderationItems(
-                    ConsiderationItemLib
-                        .fromDefault(THREE_ERC20)
-                        .withToken(address(token1))
-                        .withStartAmount(context.args.amount)
-                        .withEndAmount(context.args.amount)
-                        .withRecipient(context.args.considerationRecipient)
-                );
-
-            // Create the order components for the first order.
-            orderComponentsOne = OrderComponentsLib
-                .fromDefault(VALIDATION_ZONE)
-                .withOffer(offerItemsOne)
-                .withConsideration(considerationItemsOne)
-                .withZone(address(fuzzyZone))
-                .withZoneHash(context.args.zoneHash)
-                .withConduitKey(conduitKey)
-                .withSalt(context.args.salt % 2);
-
-            // Create the offer items for the second order.
-            OfferItem[] memory offerItemsTwo = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
-                    .withToken(address(test721_1))
-                    .withIdentifierOrCriteria(context.args.tokenId + 1)
-            );
-
-            // Create the order components for the second order using the same
-            // consideration items as the first order.
-            orderComponentsTwo = OrderComponentsLib
-                .fromDefault(VALIDATION_ZONE)
-                .withOffer(offerItemsTwo)
-                .withConsideration(considerationItemsOne)
-                .withZone(address(fuzzyZone))
-                .withZoneHash(context.args.zoneHash)
-                .withConduitKey(conduitKey)
-                .withSalt(context.args.salt % 4);
-
-            // Create the orders.
-            Order[] memory orders = _buildOrders(
-                context,
-                SeaportArrays.OrderComponentsArray(
-                    orderComponentsOne,
-                    orderComponentsTwo
-                ),
-                offerer1.key
-            );
-
-            // Convert the orders to advanced orders.
-            advancedOrders = SeaportArrays.AdvancedOrders(
-                orders[0].toAdvancedOrder(1, 1, ""),
-                orders[1].toAdvancedOrder(1, 1, "")
-            );
+        for (uint256 i; i < context.args.nonAggregatableOfferOrderCount; i++) {
+            test721_1.mint(offerer1.addr, context.args.tokenId + i);
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
+        token1.mint(
+            address(this),
+            context.args.amount * context.args.nonAggregatableOfferOrderCount
+        );
+
+        AdvancedOrder[] memory advancedOrders = _buildOrdersFromFuzzArgs(
+            context,
+            offerer1.key
+        );
+
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = _buildFulfillmentsComponentsForMultipleOrders(
+                context.args.nonAggregatableOfferOrderCount,
+                1
             );
 
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
-                );
+        // Create the empty criteria resolvers.
+        CriteriaResolver[] memory criteriaResolvers;
 
-        {
-            // Create the empty criteria resolvers.
-            CriteriaResolver[] memory criteriaResolvers;
+        Context memory _context = context;
 
-            Context memory _context = context;
-
-            if (_context.args.useTransferValidationZone) {
-                vm.expectRevert(
-                    abi.encodeWithSignature(
-                        "InvalidOwner(address,address,address,uint256)",
-                        _context.args.offerRecipient,
-                        address(this),
-                        address(test721_1),
-                        _context.args.tokenId
-                    )
-                );
-                _context.seaport.fulfillAvailableAdvancedOrders({
-                    advancedOrders: advancedOrders,
-                    criteriaResolvers: criteriaResolvers,
-                    offerFulfillments: offerFulfillments,
-                    considerationFulfillments: considerationFulfillments,
-                    fulfillerConduitKey: bytes32(conduitKey),
-                    recipient: address(this),
-                    maximumFulfilled: 2
-                });
-            }
-
-            // Make the call to Seaport.
+        if (_context.args.useTransferValidationZone) {
+            vm.expectRevert(
+                abi.encodeWithSignature(
+                    "InvalidOwner(address,address,address,uint256)",
+                    _context.args.offerRecipient,
+                    address(this),
+                    address(test721_1),
+                    _context.args.tokenId
+                )
+            );
             _context.seaport.fulfillAvailableAdvancedOrders({
                 advancedOrders: advancedOrders,
                 criteriaResolvers: criteriaResolvers,
                 offerFulfillments: offerFulfillments,
                 considerationFulfillments: considerationFulfillments,
                 fulfillerConduitKey: bytes32(conduitKey),
-                recipient: _context.args.offerRecipient,
-                maximumFulfilled: 2
+                recipient: address(this),
+                maximumFulfilled: context.args.nonAggregatableOfferOrderCount
             });
+        }
 
-            if (_context.args.useTransferValidationZone) {
-                assertTrue(zone.called());
-                assertTrue(zone.callCount() == 2);
-            }
+        // Make the call to Seaport.
+        _context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: criteriaResolvers,
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKey),
+            recipient: _context.args.offerRecipient,
+            maximumFulfilled: context.args.nonAggregatableOfferOrderCount
+        });
 
-            assertEq(
-                test721_1.ownerOf(_context.args.tokenId),
-                _context.args.offerRecipient
+        if (_context.args.useTransferValidationZone) {
+            assertTrue(zone.called());
+            assertTrue(
+                zone.callCount() == context.args.nonAggregatableOfferOrderCount
             );
+        }
+
+        for (
+            uint256 i = 0;
+            i < context.args.nonAggregatableOfferOrderCount;
+            i++
+        ) {
             assertEq(
-                test721_1.ownerOf(_context.args.tokenId + 1),
+                test721_1.ownerOf(_context.args.tokenId + i),
                 _context.args.offerRecipient
             );
         }
+    }
+
+    function _buildOrderComponentsArrayFromFuzzArgs(
+        Context memory context
+    ) internal returns (OrderComponents[] memory _orderComponentsArray) {
+        OrderComponents[] memory orderComponentsArray = new OrderComponents[](
+            context.args.nonAggregatableOfferOrderCount
+        );
+        OfferItem[][] memory offerItemsArray = new OfferItem[][](
+            context.args.nonAggregatableOfferOrderCount
+        );
+        ConsiderationItem[][]
+            memory considerationItemsArray = new ConsiderationItem[][](
+                context.args.nonAggregatableOfferOrderCount
+            );
+
+        {
+            for (
+                uint256 i;
+                i < context.args.nonAggregatableOfferOrderCount;
+                i++
+            ) {
+                offerItemsArray[i] = SeaportArrays.OfferItems(
+                    OfferItemLib
+                        .fromDefault(SINGLE_721)
+                        .withToken(address(test721_1))
+                        .withIdentifierOrCriteria(context.args.tokenId + i)
+                );
+                considerationItemsArray[i] = SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC20)
+                        .withIdentifierOrCriteria(0)
+                        .withToken(address(token1))
+                        .withStartAmount(context.args.amount)
+                        .withEndAmount(context.args.amount)
+                        .withRecipient(context.args.considerationRecipient)
+                );
+            }
+        }
+
+        {
+            address fuzzyZone;
+
+            {
+                // TestZone testZone;
+
+                // if (context.args.useTransferValidationZone) {
+                zone = new TestTransferValidationZoneOfferer(
+                    context.args.offerRecipient
+                );
+                fuzzyZone = address(zone);
+                // }
+                // else {
+                //     testZone = new TestZone();
+                //     fuzzyZone = address(testZone);
+                // }
+            }
+            {
+                bytes32 conduitKey = context.args.useConduit
+                    ? conduitKeyOne
+                    : bytes32(0);
+                OrderComponents memory orderComponents;
+                for (
+                    uint256 i = 0;
+                    i < context.args.nonAggregatableOfferOrderCount;
+                    i++
+                ) {
+                    OfferItem[][] memory _offerItemsArray = offerItemsArray;
+                    ConsiderationItem[][]
+                        memory _considerationItemsArray = considerationItemsArray;
+
+                    orderComponents = OrderComponentsLib
+                        .fromDefault(VALIDATION_ZONE)
+                        .withOffer(_offerItemsArray[i])
+                        .withConsideration(_considerationItemsArray[i])
+                        .withZone(fuzzyZone)
+                        .withZoneHash(context.args.zoneHash)
+                        .withConduitKey(conduitKey)
+                        .withSalt(context.args.salt); //  % (i + 1)
+
+                    orderComponentsArray[i] = orderComponents;
+                }
+            }
+        }
+
+        return orderComponentsArray;
+    }
+
+    function _buildOrdersFromFuzzArgs(
+        Context memory context,
+        uint256 key
+    ) internal returns (AdvancedOrder[] memory advancedOrders) {
+        OrderComponents[]
+            memory orderComponents = _buildOrderComponentsArrayFromFuzzArgs(
+                context
+            );
+
+        AdvancedOrder[] memory _advancedOrders = new AdvancedOrder[](
+            context.args.nonAggregatableOfferOrderCount
+        );
+
+        {
+            Order memory order;
+            for (uint256 i = 0; i < orderComponents.length; i++) {
+                if (orderComponents[i].orderType == OrderType.CONTRACT) {
+                    order = toUnsignedOrder(orderComponents[i]);
+                    // TODO: REMOVE: Does this make sense?  Maybe revert here?
+                    _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
+                } else {
+                    order = toOrder(context.seaport, orderComponents[i], key);
+                    _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
+                }
+            }
+        }
+
+        return _advancedOrders;
+    }
+
+    function _buildFulfillmentsComponentsForMultipleOrders(
+        uint256 numberOfOfferSideOrders,
+        uint256 numberOfConsiderationSideOrders
+    )
+        internal
+        view
+        returns (
+            FulfillmentComponent[][] memory _offerFulfillmentComponents,
+            FulfillmentComponent[][] memory _considerationFulfillmentComponents
+        )
+    {
+        FulfillmentComponent[][]
+            memory offerFulfillmentComponents = new FulfillmentComponent[][](
+                numberOfOfferSideOrders
+            );
+        FulfillmentComponent[][]
+            memory considerationFulfillmentComponents = new FulfillmentComponent[][](
+                numberOfConsiderationSideOrders
+            );
+
+        if (numberOfConsiderationSideOrders == 1) {
+            if (numberOfOfferSideOrders == 1) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+                    );
+            } else if (numberOfOfferSideOrders == 2) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__FIRST
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 3) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD__FIRST
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 4) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FOURTH_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD_FOURTH__FIRST
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 5) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FOURTH_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIFTH_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST
+                        )
+                    );
+            }
+        } else if (numberOfConsiderationSideOrders == 2) {
+            if (numberOfOfferSideOrders == 1) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST),
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__SECOND
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 2) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__FIRST
+                        ),
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__SECOND
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 3) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD__FIRST
+                        ),
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__SECOND
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 4) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FOURTH_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD_FOURTH__FIRST
+                        ),
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__SECOND
+                        )
+                    );
+            } else if (numberOfOfferSideOrders == 5) {
+                offerFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(THIRD_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FOURTH_FIRST)
+                        ),
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib.fromDefault(FIFTH_FIRST)
+                        )
+                    );
+                considerationFulfillmentComponents = SeaportArrays
+                    .FulfillmentComponentArrays(
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST
+                        ),
+                        FulfillmentComponentLib.fromDefaultMany(
+                            FIRST_SECOND__SECOND
+                        )
+                    );
+            }
+        }
+
+        return (offerFulfillmentComponents, considerationFulfillmentComponents);
     }
 
     ///@dev build multiple orders from the same offerer
