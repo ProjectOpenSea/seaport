@@ -18,6 +18,11 @@ fs_permissions = [
     { access = "read", path = "./reference-out" },
 ]
 
+[profile.validator]
+solc = '0.8.17'
+src = 'contracts/helpers/order-validator
+optimizer_runs = 1
+
 [fuzz]
 runs = 1_000
 max_test_rejects = 1_000_000
