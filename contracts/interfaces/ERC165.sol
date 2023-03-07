@@ -10,15 +10,10 @@ import "./IERC165.sol";
  *
  * Contracts that want to implement ERC165 should inherit from this contract
  * and override {supportsInterface} to check for the additional interface id
- * that will be supported. For example:
+ * that will be supported.
  *
- * ```solidity
- * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
- *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);
- * }
- * ```
- *
- * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.
+ * Alternatively, {ERC165Storage} provides an easier to use but more
+ * expensive implementation.
  */
 abstract contract ERC165 is IERC165 {
     /**
