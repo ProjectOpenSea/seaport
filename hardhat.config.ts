@@ -109,7 +109,7 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/helper/TransferHelper.sol": {
+      "contracts/helpers/TransferHelper.sol": {
         version: "0.8.14",
         settings: {
           viaIR: true,
@@ -119,7 +119,7 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/order-validator/SeaportValidator.sol": {
+      "contracts/helpers/order-validator/SeaportValidator.sol": {
         version: "0.8.17",
         settings: {
           viaIR: false,
