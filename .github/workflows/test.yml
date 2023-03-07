@@ -128,11 +128,14 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
+      - name: Precompile validator using 0.8.17 and via-ir=false
+        run: FOUNDRY_PROFILE=validator forge build
+
       - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Precompile optimized using 0.8.17 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build --skip contracts/helpers/order-validator
+        run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
