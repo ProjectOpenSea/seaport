@@ -109,7 +109,7 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/helpers/TransferHelper.sol": {
+      "contracts/helper/TransferHelper.sol": {
         version: "0.8.14",
         settings: {
           viaIR: true,
@@ -119,28 +119,13 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "order-validator/SeaportValidator.sol": {
-        version: "0.8.17",
-        settings: {
-          viaIR: false,
-          optimizer: {
-            enabled: true,
-            runs: 1,
-          },
-        },
-      },
     },
   },
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
-      allowUnlimitedContractSize: true,
-      forking: {
-        enabled: true,
-        blockNumber: 16778226,
-        url: process.env.ETH_RPC_URL ?? "",
-      },
+      allowUnlimitedContractSize: false,
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",
