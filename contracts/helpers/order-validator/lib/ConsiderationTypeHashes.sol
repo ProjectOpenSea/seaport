@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "../../lib/ConsiderationStructs.sol";
+import "../../../lib/ConsiderationStructs.sol";
 
 uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;

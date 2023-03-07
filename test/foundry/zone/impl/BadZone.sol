@@ -6,11 +6,13 @@ import {
     Schema
 } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
+import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+
 import {
     ZoneInterface
 } from "../../../../contracts/interfaces/ZoneInterface.sol";
 
-contract BadZone is ZoneInterface {
+contract BadZone is ERC165, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external pure returns (bytes4 validOrderMagicValue) {
@@ -40,5 +42,13 @@ contract BadZone is ZoneInterface {
         schemas[0].metadata = new bytes(0);
 
         return ("BadZone", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.17;
 
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ItemType } from "../../lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
@@ -10,30 +10,30 @@ import {
     ConsiderationItem,
     Schema,
     ZoneParameters
-} from "../lib/ConsiderationStructs.sol";
+} from "../../lib/ConsiderationStructs.sol";
 import { ConsiderationTypeHashes } from "./lib/ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
-} from "../interfaces/ConsiderationInterface.sol";
+} from "../../interfaces/ConsiderationInterface.sol";
 import {
     ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+} from "../../interfaces/ConduitControllerInterface.sol";
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "../lib/GettersAndDerivers.sol";
+} from "../../interfaces/ContractOffererInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { GettersAndDerivers } from "../../lib/GettersAndDerivers.sol";
 import {
     SeaportValidatorInterface
-} from "../interfaces/SeaportValidatorInterface.sol";
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+} from "../../interfaces/SeaportValidatorInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
-import { IERC165 } from "../interfaces/IERC165.sol";
-import { IERC2981 } from "../interfaces/IERC2981.sol";
+} from "../../interfaces/AbridgedTokenInterfaces.sol";
+import { IERC165 } from "../../interfaces/IERC165.sol";
+import { IERC2981 } from "../../interfaces/IERC2981.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
@@ -59,7 +59,7 @@ import {
     SignatureIssue,
     GenericIssue
 } from "./lib/SeaportValidatorTypes.sol";
-import { Verifiers } from "../lib/Verifiers.sol";
+import { Verifiers } from "../../lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator
@@ -89,9 +89,11 @@ contract SeaportValidator is
 
     bytes4 public constant ERC1155_INTERFACE_ID = 0xd9b67a26;
 
-    bytes4 public constant CONTRACT_OFFERER_ID = 0x1be900b1;
+    bytes4 public constant CONTRACT_OFFERER_INTERFACE_ID = 0x1be900b1;
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
+
+    bytes4 public constant SIP_5_INTERFACE_ID = 0x2e778efc;
 
     constructor() {
         address creatorFeeEngineAddress;
@@ -386,7 +388,7 @@ contract SeaportValidator is
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Check the EIP165 contract offerer interface
-        if (!checkInterface(contractOfferer, CONTRACT_OFFERER_ID)) {
+        if (!checkInterface(contractOfferer, CONTRACT_OFFERER_INTERFACE_ID)) {
             errorsAndWarnings.addError(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
