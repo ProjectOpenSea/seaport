@@ -800,10 +800,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // Note that the transfer will not be reflected in the
                         // executions array.
                         if (offerItem.startAmount != 0) {
-                            // Replace the endAmount parameter with the recipient
-                            // so that offerItem can be used in `_transfer` without
-                            // allocating additional memory, caching the original
-                            // endAmount value so that it can be restored after.
+                            // Replace the endAmount parameter with `recipient` to
+                            // make offerItem compatible with the ReceivedItem input
+                            // to `_transfer` and cache the original endAmount so it
+                            // can be restored after the transfer.
                             uint256 originalEndAmount = _replaceEndAmountWithRecipient(
                                   offerItem,
                                   recipient
