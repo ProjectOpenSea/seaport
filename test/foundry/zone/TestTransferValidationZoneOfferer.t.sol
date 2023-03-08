@@ -51,27 +51,40 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     TestTransferValidationZoneOfferer zone;
     FuzzInputs empty;
 
-    // constant strings for recalling struct lib "defaults"
+    // constant strings for recalling struct lib defaults
     // ideally these live in a base test class
     string constant ONE_ETH = "one eth";
     string constant THREE_ERC20 = "three erc20";
     string constant SINGLE_721 = "single 721";
     string constant VALIDATION_ZONE = "validation zone";
+    string constant CONTRACT_ORDER = "contract order";
+
+    // *_FIRST
     string constant FIRST_FIRST = "first first";
     string constant SECOND_FIRST = "second first";
-    string constant THIRD_FIRST = "third second";
+    string constant THIRD_FIRST = "third first";
     string constant FOURTH_FIRST = "fourth first";
     string constant FIFTH_FIRST = "fifth first";
+    // *_SECOND
     string constant FIRST_SECOND = "first second";
     string constant SECOND_SECOND = "second second";
+    string constant THIRD_SECOND = "third second";
+    string constant FOURTH_SECOND = "fourth second";
+    string constant FIFTH_SECOND = "fifth second";
+    // *__FIRST
     string constant FIRST_SECOND__FIRST = "first&second first";
-    string constant FIRST_SECOND__SECOND = "first&second second";
     string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
     string constant FIRST_SECOND_THIRD_FOURTH__FIRST =
         "first&second&third&fourth first";
     string constant FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST =
         "first&second&third&fourth&fifth first";
-    string constant CONTRACT_ORDER = "contract order";
+    // *__SECOND
+    string constant FIRST_SECOND__SECOND = "first&second second";
+    string constant FIRST_SECOND_THIRD__SECOND = "first&second&third second";
+    string constant FIRST_SECOND_THIRD_FOURTH__SECOND =
+        "first&second&third&fourth second";
+    string constant FIRST_SECOND_THIRD_FOURTH_FIFTH__SECOND =
+        "first&second&third&fourth&fifth second";
 
     function setUp() public virtual override {
         super.setUp();
@@ -154,6 +167,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withConduitKey(conduitKeyOne)
             .saveDefault(CONTRACT_ORDER);
 
+        // Default FulfillmentComponent defaults.
+
+        // *_FIRST
         // create a default fulfillmentComponent for first_first
         // corresponds to first offer or consideration item in the first order
         FulfillmentComponent memory firstFirst = FulfillmentComponentLib
@@ -189,6 +205,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withOrderIndex(4)
             .withItemIndex(0)
             .saveDefault(FIFTH_FIRST);
+
+        // *_SECOND
         // create a default fulfillmentComponent for first_second
         // corresponds to second offer or consideration item in the first order
         FulfillmentComponent memory firstSecond = FulfillmentComponentLib
@@ -203,26 +221,33 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withOrderIndex(1)
             .withItemIndex(1)
             .saveDefault(SECOND_SECOND);
+        // create a default fulfillmentComponent for third_second
+        // corresponds to second offer or consideration item in the third order
+        FulfillmentComponent memory thirdSecond = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(2)
+            .withItemIndex(1)
+            .saveDefault(THIRD_SECOND);
+        // create a default fulfillmentComponent for fourth_second
+        // corresponds to second offer or consideration item in the fourth order
+        FulfillmentComponent memory fourthSecond = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(3)
+            .withItemIndex(1)
+            .saveDefault(FOURTH_SECOND);
+        // create a default fulfillmentComponent for fifth_second
+        // corresponds to second offer or consideration item in the fifth order
+        FulfillmentComponent memory fifthSecond = FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(4)
+            .withItemIndex(1)
+            .saveDefault(FIFTH_SECOND);
 
-        // create a one-element array containing first_first
-        SeaportArrays.FulfillmentComponents(firstFirst).saveDefaultMany(
-            FIRST_FIRST
-        );
-        // create a one-element array containing second_first
-        SeaportArrays.FulfillmentComponents(secondFirst).saveDefaultMany(
-            SECOND_FIRST
-        );
-
+        // *__FIRST
         // create a two-element array containing first_first and second_first
         SeaportArrays
             .FulfillmentComponents(firstFirst, secondFirst)
             .saveDefaultMany(FIRST_SECOND__FIRST);
-
-        // create a two-element array containing first_second and second_second
-        SeaportArrays
-            .FulfillmentComponents(firstSecond, secondSecond)
-            .saveDefaultMany(FIRST_SECOND__SECOND);
-
         // create a three-element array containing first_first, second_first,
         // and third_first
         SeaportArrays
@@ -249,6 +274,47 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 fifthFirst
             )
             .saveDefaultMany(FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST);
+
+        // *__SECOND
+        // create a two-element array containing first_second and second_second
+        SeaportArrays
+            .FulfillmentComponents(firstSecond, secondSecond)
+            .saveDefaultMany(FIRST_SECOND__SECOND);
+        // create a three-element array containing first_second, second_second,
+        // and third_second
+        SeaportArrays
+            .FulfillmentComponents(firstSecond, secondSecond, thirdSecond)
+            .saveDefaultMany(FIRST_SECOND_THIRD__SECOND);
+        // create a four-element array containing first_second, second_second,
+        // third_second, and fourth_second
+        SeaportArrays
+            .FulfillmentComponents(
+                firstSecond,
+                secondSecond,
+                thirdSecond,
+                fourthSecond
+            )
+            .saveDefaultMany(FIRST_SECOND_THIRD_FOURTH__SECOND);
+        // create a five-element array containing first_second, second_second,
+        // third_second, fourth_second, and fifth_second
+        SeaportArrays
+            .FulfillmentComponents(
+                firstSecond,
+                secondSecond,
+                thirdSecond,
+                fourthSecond,
+                fifthSecond
+            )
+            .saveDefaultMany(FIRST_SECOND_THIRD_FOURTH_FIFTH__SECOND);
+
+        // create a one-element array containing first_first
+        SeaportArrays.FulfillmentComponents(firstFirst).saveDefaultMany(
+            FIRST_FIRST
+        );
+        // create a one-element array containing second_first
+        SeaportArrays.FulfillmentComponents(secondFirst).saveDefaultMany(
+            SECOND_FIRST
+        );
     }
 
     struct Context {
@@ -259,7 +325,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     struct FuzzInputs {
         uint256 tokenId;
         uint128 amount;
-        uint256 nonAggregatableOfferOrderCount;
+        uint128 excessNativeTokens;
+        uint256 nonAggregatableOfferItemCount;
+        uint256 nonAggregatableConsiderationItemCount;
+        uint256 maximumFulfilledCount;
         address offerRecipient;
         address considerationRecipient;
         bytes32 zoneHash;
@@ -381,7 +450,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 1);
+        ) = _buildFulfillmentComponentsForMultipleOrders(2, 1);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -550,7 +619,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
+        ) = _buildFulfillmentComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -680,7 +749,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
+        ) = _buildFulfillmentComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -856,7 +925,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(3, 1);
+        ) = _buildFulfillmentComponentsForMultipleOrders(3, 1);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -978,7 +1047,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(2, 2);
+        ) = _buildFulfillmentComponentsForMultipleOrders(2, 2);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -1284,58 +1353,108 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
-    function testFulfillAdvancedBasicFuzz(FuzzInputs memory args) public {
+    function testFulfillAvailableAdvancedBasicFuzz(
+        FuzzInputs memory args
+    ) public {
+        // Avoid weird overflow issues.
         args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
-        args.nonAggregatableOfferOrderCount = bound(
-            args.nonAggregatableOfferOrderCount,
+        // There's no good reason for these bounds except that it's a pain to
+        // set up fulfillments manually and hard to do it progromatically.
+        args.nonAggregatableConsiderationItemCount = bound(
+            args.nonAggregatableConsiderationItemCount,
             1,
+            2
+        );
+        // If consideration side is 2 or greater,
+        // then the offer side has to be 2 or greater.
+        uint256 nonAggregatableOfferItemCountLowerBound = args
+            .nonAggregatableConsiderationItemCount > 1
+            ? 2
+            : 1;
+        args.nonAggregatableOfferItemCount = bound(
+            args.nonAggregatableOfferItemCount,
+            nonAggregatableOfferItemCountLowerBound,
             5
         );
+        // Fulfill between 1 and the number of items on the offer side, since
+        // the test sets up one order ber non-aggregatable offer item.
+        args.maximumFulfilledCount = bound(
+            args.maximumFulfilledCount,
+            // TODO: When this is set to 0, there's a reference-only revert
+            // `NoSpecifiedOrdersAvailable`.  Investigate why.
+            1,
+            args.nonAggregatableOfferItemCount
+        );
+        args.excessNativeTokens = uint128(
+            bound(args.excessNativeTokens, 0, uint128(MAX_INT))
+        );
+        // Don't set the offer recipient to the null address, because that
+        // is the way to indicate that the caller should be the recipient.
         args.offerRecipient = address(
             uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
         );
         test(
-            this.execFulfillAdvancedBasicFuzz,
+            this.execFulfillAvailableAdvancedBasicFuzz,
             Context(referenceConsideration, args)
         );
-        test(this.execFulfillAdvancedBasicFuzz, Context(consideration, args));
+        test(
+            this.execFulfillAvailableAdvancedBasicFuzz,
+            Context(consideration, args)
+        );
     }
 
-    function execFulfillAdvancedBasicFuzz(
+    function execFulfillAvailableAdvancedBasicFuzz(
         Context memory context
     ) external stateless {
+        // Use a conduit sometimes.
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        for (uint256 i; i < context.args.nonAggregatableOfferOrderCount; i++) {
+        // Mint enough ERC721s to cover the number of NFTs for sale.
+        for (uint256 i; i < context.args.nonAggregatableOfferItemCount; i++) {
             test721_1.mint(offerer1.addr, context.args.tokenId + i);
         }
 
+        // Mint enough ERC20s to cover price per NFT * NFTs for sale.
         token1.mint(
             address(this),
-            context.args.amount * context.args.nonAggregatableOfferOrderCount
+            context.args.amount * context.args.nonAggregatableOfferItemCount
         );
 
+        if (context.args.nonAggregatableConsiderationItemCount == 2) {
+            // If the fuzz args call for 2 consideration items per order, mint
+            // additional ERC20s.
+            token2.mint(
+                address(this),
+                context.args.amount * context.args.nonAggregatableOfferItemCount
+            );
+        }
+
+        // Create the orders.
         AdvancedOrder[] memory advancedOrders = _buildOrdersFromFuzzArgs(
             context,
             offerer1.key
         );
 
+        // Create the fulfillments.
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = _buildFulfillmentsComponentsForMultipleOrders(
-                context.args.nonAggregatableOfferOrderCount,
-                1
+        ) = _buildFulfillmentComponentsForMultipleOrders(
+                context.args.nonAggregatableOfferItemCount,
+                context.args.nonAggregatableConsiderationItemCount
             );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
+        // Reset to avoid stack depth issues.
         Context memory _context = context;
 
+        // If we're using the transfer validation zone, make sure that it
+        // is actually enforcing what we expect it to.
         if (_context.args.useTransferValidationZone) {
             vm.expectRevert(
                 abi.encodeWithSignature(
@@ -1343,43 +1462,42 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     _context.args.offerRecipient,
                     address(this),
                     address(test721_1),
-                    _context.args.tokenId
+                    _context.args.tokenId // Should revert on the first.
                 )
             );
-            _context.seaport.fulfillAvailableAdvancedOrders({
+            _context.seaport.fulfillAvailableAdvancedOrders{
+                value: context.args.excessNativeTokens
+            }({
                 advancedOrders: advancedOrders,
                 criteriaResolvers: criteriaResolvers,
                 offerFulfillments: offerFulfillments,
                 considerationFulfillments: considerationFulfillments,
                 fulfillerConduitKey: bytes32(conduitKey),
                 recipient: address(this),
-                maximumFulfilled: context.args.nonAggregatableOfferOrderCount
+                maximumFulfilled: context.args.maximumFulfilledCount
             });
         }
 
         // Make the call to Seaport.
-        _context.seaport.fulfillAvailableAdvancedOrders({
+        _context.seaport.fulfillAvailableAdvancedOrders{
+            value: context.args.excessNativeTokens
+        }({
             advancedOrders: advancedOrders,
             criteriaResolvers: criteriaResolvers,
             offerFulfillments: offerFulfillments,
             considerationFulfillments: considerationFulfillments,
             fulfillerConduitKey: bytes32(conduitKey),
             recipient: _context.args.offerRecipient,
-            maximumFulfilled: context.args.nonAggregatableOfferOrderCount
+            maximumFulfilled: context.args.maximumFulfilledCount
         });
 
+        // Check that the zone was called the expected number of times.
         if (_context.args.useTransferValidationZone) {
-            assertTrue(zone.called());
-            assertTrue(
-                zone.callCount() == context.args.nonAggregatableOfferOrderCount
-            );
+            assertTrue(zone.callCount() == context.args.maximumFulfilledCount);
         }
 
-        for (
-            uint256 i = 0;
-            i < context.args.nonAggregatableOfferOrderCount;
-            i++
-        ) {
+        // Check that the NFTs were transferred to the expected recipient.
+        for (uint256 i = 0; i < context.args.maximumFulfilledCount; i++) {
             assertEq(
                 test721_1.ownerOf(_context.args.tokenId + i),
                 _context.args.offerRecipient
@@ -1390,73 +1508,127 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function _buildOrderComponentsArrayFromFuzzArgs(
         Context memory context
     ) internal returns (OrderComponents[] memory _orderComponentsArray) {
+        // Set up the arrays.
+        // This gets returned.
         OrderComponents[] memory orderComponentsArray = new OrderComponents[](
-            context.args.nonAggregatableOfferOrderCount
+            context.args.nonAggregatableOfferItemCount
         );
+        // These are used internally to build the order components.
         OfferItem[][] memory offerItemsArray = new OfferItem[][](
-            context.args.nonAggregatableOfferOrderCount
+            context.args.nonAggregatableOfferItemCount
         );
         ConsiderationItem[][]
             memory considerationItemsArray = new ConsiderationItem[][](
-                context.args.nonAggregatableOfferOrderCount
+                context.args.nonAggregatableOfferItemCount
             );
 
+        // Set up offer and consideration items in their own block to avoid
+        // stack depth issues.
         {
+            // Iterate once for each non-aggregatable offer item (currently
+            // bound 1-5) and set up offer or consderation items.
             for (
                 uint256 i;
-                i < context.args.nonAggregatableOfferOrderCount;
+                i < context.args.nonAggregatableOfferItemCount;
                 i++
             ) {
+                // Add a one-element OfferItems[] to the OfferItems[][].
                 offerItemsArray[i] = SeaportArrays.OfferItems(
                     OfferItemLib
                         .fromDefault(SINGLE_721)
                         .withToken(address(test721_1))
                         .withIdentifierOrCriteria(context.args.tokenId + i)
                 );
-                considerationItemsArray[i] = SeaportArrays.ConsiderationItems(
-                    ConsiderationItemLib
-                        .empty()
-                        .withItemType(ItemType.ERC20)
-                        .withIdentifierOrCriteria(0)
-                        .withToken(address(token1))
-                        .withStartAmount(context.args.amount)
-                        .withEndAmount(context.args.amount)
-                        .withRecipient(context.args.considerationRecipient)
-                );
+
+                // Add a one- or two-element ConsiderationItems[] to the
+                // ConsiderationItems[][].
+                if (context.args.nonAggregatableConsiderationItemCount == 1) {
+                    considerationItemsArray[i] = SeaportArrays
+                        .ConsiderationItems(
+                            ConsiderationItemLib
+                                .empty()
+                                .withItemType(ItemType.ERC20)
+                                .withIdentifierOrCriteria(0)
+                                .withToken(address(token1))
+                                .withStartAmount(context.args.amount)
+                                .withEndAmount(context.args.amount)
+                                .withRecipient(
+                                    context.args.considerationRecipient
+                                )
+                        );
+                } else if (
+                    context.args.nonAggregatableConsiderationItemCount == 2
+                ) {
+                    considerationItemsArray[i] = SeaportArrays
+                        .ConsiderationItems(
+                            ConsiderationItemLib
+                                .empty()
+                                .withItemType(ItemType.ERC20)
+                                .withIdentifierOrCriteria(0)
+                                .withToken(address(token1))
+                                .withStartAmount(context.args.amount)
+                                .withEndAmount(context.args.amount)
+                                .withRecipient(
+                                    context.args.considerationRecipient
+                                ),
+                            ConsiderationItemLib
+                                .empty()
+                                .withItemType(ItemType.ERC20)
+                                .withIdentifierOrCriteria(0)
+                                .withToken(address(token2))
+                                .withStartAmount(context.args.amount)
+                                .withEndAmount(context.args.amount)
+                                .withRecipient(
+                                    context.args.considerationRecipient
+                                )
+                        );
+                }
             }
         }
 
         {
+            // Use either the transfer validation zone or the test zone for all
+            // orders.
+            // TODO: Look into juggling stack depth issues to allow for mixing
+            //       zones within a single call.
             address fuzzyZone;
 
             {
-                // TestZone testZone;
+                TestZone testZone;
 
-                // if (context.args.useTransferValidationZone) {
-                zone = new TestTransferValidationZoneOfferer(
-                    context.args.offerRecipient
-                );
-                fuzzyZone = address(zone);
-                // }
-                // else {
-                //     testZone = new TestZone();
-                //     fuzzyZone = address(testZone);
-                // }
+                if (context.args.useTransferValidationZone) {
+                    zone = new TestTransferValidationZoneOfferer(
+                        context.args.offerRecipient
+                    );
+                    fuzzyZone = address(zone);
+                } else {
+                    testZone = new TestZone();
+                    fuzzyZone = address(testZone);
+                }
             }
+
             {
+                // Use a conduit sometimes.
+                // TODO: Look into juggling stack depth issues to allow for
+                //       mixing within a single call.
                 bytes32 conduitKey = context.args.useConduit
                     ? conduitKeyOne
                     : bytes32(0);
+
+                // Iterate once for each non-aggregatable offer item (currently
+                // bound 1-5) and build the order components.
                 OrderComponents memory orderComponents;
                 for (
                     uint256 i = 0;
-                    i < context.args.nonAggregatableOfferOrderCount;
+                    i < context.args.nonAggregatableOfferItemCount;
                     i++
                 ) {
+                    // Reset array variables to avoid stack depth issues.
                     OfferItem[][] memory _offerItemsArray = offerItemsArray;
                     ConsiderationItem[][]
                         memory _considerationItemsArray = considerationItemsArray;
 
+                    // Build the order components.
                     orderComponents = OrderComponentsLib
                         .fromDefault(VALIDATION_ZONE)
                         .withOffer(_offerItemsArray[i])
@@ -1464,13 +1636,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                         .withZone(fuzzyZone)
                         .withZoneHash(context.args.zoneHash)
                         .withConduitKey(conduitKey)
-                        .withSalt(context.args.salt); //  % (i + 1)
+                        .withSalt(context.args.salt % (i + 1)); // Is this dumb?
 
+                    // Add the OrderComponents to the OrderComponents[].
                     orderComponentsArray[i] = orderComponents;
                 }
             }
         }
 
+        // This returns an array of OrderComponents, which might look like:
+        // [
+        //      [offer 42, consider 20 TKN and 20 COIN],
+        //      [offer 43, consider 20 TKN and 20 COIN],
+        //      [offer 44, consider 20 TKN and 20 COIN],
+        //      etc.
+        // ]
         return orderComponentsArray;
     }
 
@@ -1478,33 +1658,38 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         Context memory context,
         uint256 key
     ) internal returns (AdvancedOrder[] memory advancedOrders) {
+        // Create the OrderComponents array from the fuzz args.
         OrderComponents[]
             memory orderComponents = _buildOrderComponentsArrayFromFuzzArgs(
                 context
             );
 
+        // Set up the AdvancedOrder array.
         AdvancedOrder[] memory _advancedOrders = new AdvancedOrder[](
-            context.args.nonAggregatableOfferOrderCount
+            context.args.nonAggregatableOfferItemCount
         );
 
-        {
-            Order memory order;
-            for (uint256 i = 0; i < orderComponents.length; i++) {
-                if (orderComponents[i].orderType == OrderType.CONTRACT) {
-                    order = toUnsignedOrder(orderComponents[i]);
-                    // TODO: REMOVE: Does this make sense?  Maybe revert here?
-                    _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
-                } else {
-                    order = toOrder(context.seaport, orderComponents[i], key);
-                    _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
-                }
+        // Iterate over the OrderComponents array and build an AdvancedOrder
+        // for each OrderComponents.
+        Order memory order;
+        for (uint256 i = 0; i < orderComponents.length; i++) {
+            if (orderComponents[i].orderType == OrderType.CONTRACT) {
+                revert("Not implemented.");
+            } else {
+                // Create the order.
+                order = toOrder(context.seaport, orderComponents[i], key);
+                // Convert it to an AdvancedOrder and add it to the array.
+                _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
             }
         }
 
         return _advancedOrders;
     }
 
-    function _buildFulfillmentsComponentsForMultipleOrders(
+    // Note that this is set up to work only for up to 5 non-aggregatable
+    // offer items and up to 2 non-aggregatable consideration items.
+    // TODO: Move to a library or base test.
+    function _buildFulfillmentComponentsForMultipleOrders(
         uint256 numberOfOfferSideOrders,
         uint256 numberOfConsiderationSideOrders
     )
@@ -1620,20 +1805,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     );
             }
         } else if (numberOfConsiderationSideOrders == 2) {
-            if (numberOfOfferSideOrders == 1) {
-                offerFulfillmentComponents = SeaportArrays
-                    .FulfillmentComponentArrays(
-                        SeaportArrays.FulfillmentComponents(
-                            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                        )
-                    );
-                considerationFulfillmentComponents = SeaportArrays
-                    .FulfillmentComponentArrays(
-                        FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST),
-                        FulfillmentComponentLib.fromDefaultMany(
-                            FIRST_SECOND__SECOND
-                        )
-                    );
+            if (numberOfOfferSideOrders <= 1) {
+                revert("Not implemented.");
             } else if (numberOfOfferSideOrders == 2) {
                 offerFulfillmentComponents = SeaportArrays
                     .FulfillmentComponentArrays(
@@ -1672,7 +1845,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                             FIRST_SECOND_THIRD__FIRST
                         ),
                         FulfillmentComponentLib.fromDefaultMany(
-                            FIRST_SECOND__SECOND
+                            FIRST_SECOND_THIRD__SECOND
                         )
                     );
             } else if (numberOfOfferSideOrders == 4) {
@@ -1697,7 +1870,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                             FIRST_SECOND_THIRD_FOURTH__FIRST
                         ),
                         FulfillmentComponentLib.fromDefaultMany(
-                            FIRST_SECOND__SECOND
+                            FIRST_SECOND_THIRD_FOURTH__SECOND
                         )
                     );
             } else if (numberOfOfferSideOrders == 5) {
@@ -1725,7 +1898,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                             FIRST_SECOND_THIRD_FOURTH_FIFTH__FIRST
                         ),
                         FulfillmentComponentLib.fromDefaultMany(
-                            FIRST_SECOND__SECOND
+                            FIRST_SECOND_THIRD_FOURTH_FIFTH__SECOND
                         )
                     );
             }
