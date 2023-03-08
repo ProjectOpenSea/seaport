@@ -1331,8 +1331,9 @@ contract ConsiderationDecoder {
     }
 
     /**
-     * @dev Converts an offer item into a received item, applying a given
-     *      recipient.
+     * @dev Caches the endAmount in an offer item and replaces it with
+     * a given recipient so that its memory may be reused as a temporary
+     * ReceivedItem.
      *
      * @param offerItem The offer item.
      * @param recipient The recipient.
