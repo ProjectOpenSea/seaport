@@ -1,12 +1,12 @@
 # Seaport Order Validator
 
-The SeaportValidator contract offers various validation methods to ensure that supplied Seaport orders are being constructed correctly. Contract calls return an `ErrorsAndWarnings` struct with two `uint16` arrays to help developers debug issues with their orders.
+The SeaportValidator contract offers various validation methods to ensure that supplied Seaport orders are being constructed correctly. Most contract calls return an `ErrorsAndWarnings` struct with two `uint16` arrays to help developers debug issues with their orders.
 
 See below for the full list of Errors and Warnings.
 
-The contract has been deployed to [0x00000000be3af6882a06323fd3f400a9e6a0dc42](https://etherscan.io/address/0x00000000be3af6882a06323fd3f400a9e6a0dc42#code).
+The contract has been verified and deployed to [0x00000000be3af6882a06323fd3f400a9e6a0dc42](https://etherscan.io/address/0x00000000be3af6882a06323fd3f400a9e6a0dc42#code).
 
-Special thanks to [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code)
+Special thanks to [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code).
 
 ## Errors and Warnings
 | Code | Issue |
