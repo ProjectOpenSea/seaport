@@ -336,6 +336,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         bool useConduit;
         bool useTransferValidationZone;
         bool useNativeConsideration;
+        bool includeJunkDataInAdvancedOrder;
     }
 
     function test(
@@ -1513,6 +1514,90 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
     }
 
+    // TODO: Clean up the bounds here and maybe rename the FuzzInputs fields or
+    //       make a new struct for fuzz args for Match.
+    function testMatchAdvancedOrdersBasicFuzz(FuzzInputs memory args) public {
+        // Avoid weird overflow issues.
+        args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
+        args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
+        // // TODO: Come back and think about this.
+        // args.nonAggregatableConsiderationItemCount = bound(
+        //     args.nonAggregatableConsiderationItemCount,
+        //     1,
+        //     1
+        // );
+        // // TODO: Come back and think about this.
+        // // If consideration side is 2 or greater,
+        // // then the offer side has to be 2 or greater.
+        // uint256 nonAggregatableOfferItemCountLowerBound = args
+        //     .nonAggregatableConsiderationItemCount > 1
+        //     ? 2
+        //     : 1;
+        args.nonAggregatableOfferItemCount = bound(
+            args.nonAggregatableOfferItemCount,
+            1,
+            8 // More than this causes a revert.  Maybe gas related?
+        );
+        // // Fulfill between 1 and the number of items on the offer side, since
+        // // the test sets up one order ber non-aggregatable offer item.
+        // args.maximumFulfilledCount = bound(
+        //     args.maximumFulfilledCount,
+        //     1,
+        //     args.nonAggregatableOfferItemCount
+        // );
+        args.excessNativeTokens = uint128(
+            bound(args.excessNativeTokens, 0, 0xfffffffff)
+        );
+        // // Don't set the offer recipient to the null address, because that
+        // // is the way to indicate that the caller should be the recipient.
+        // args.offerRecipient = address(
+        //     uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
+        // );
+        test(
+            this.execMatchAdvancedOrdersBasicFuzz,
+            Context(referenceConsideration, args)
+        );
+        test(
+            this.execMatchAdvancedOrdersBasicFuzz,
+            Context(consideration, args)
+        );
+    }
+
+    function execMatchAdvancedOrdersBasicFuzz(
+        Context memory context
+    ) external stateless {
+        // set offerer2 as the expected offer recipient
+        zone.setExpectedOfferRecipient(offerer2.addr);
+
+        (
+            Order[] memory orders,
+            Fulfillment[] memory fulfillments
+        ) = _buildOrdersAndFulfillmentsMirrorOrdersFromFuzzArgs(context);
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
+            orders.length
+        );
+
+        for (uint256 i = 0; i < orders.length; i++) {
+            advancedOrders[i] = orders[i].toAdvancedOrder(
+                1,
+                1,
+                context.args.includeJunkDataInAdvancedOrder
+                    ? bytes(abi.encodePacked(context.args.salt))
+                    : bytes("")
+            );
+        }
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+
+        // TODO: Come back and think about this.
+        context.seaport.matchAdvancedOrders{
+            value: (context.args.amount *
+                context.args.nonAggregatableOfferItemCount) +
+                context.args.excessNativeTokens
+        }(advancedOrders, criteriaResolvers, fulfillments, address(0));
+    }
+
     function _buildOrderComponentsArrayFromFuzzArgs(
         Context memory context
     ) internal returns (OrderComponents[] memory _orderComponentsArray) {
@@ -1736,7 +1821,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 // Create the order.
                 order = toOrder(context.seaport, orderComponents[i], key);
                 // Convert it to an AdvancedOrder and add it to the array.
-                _advancedOrders[i] = order.toAdvancedOrder(1, 1, "");
+                _advancedOrders[i] = order.toAdvancedOrder(
+                    1,
+                    1,
+                    context.args.includeJunkDataInAdvancedOrder
+                        ? bytes(abi.encodePacked(context.args.salt))
+                        : bytes("")
+                );
             }
         }
 
@@ -2561,6 +2652,168 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
 
         return (orders, fulfillments, bytes32(0), 2);
+    }
+
+    struct OrderAndFulfillmentInfra {
+        OfferItem[] offerArray;
+        ConsiderationItem[] considerationArray;
+        OrderComponents orderComponents;
+        Order[] orders;
+        Fulfillment[] fulfillments;
+    }
+
+    function _buildOrdersAndFulfillmentsMirrorOrdersFromFuzzArgs(
+        Context memory context
+    ) internal returns (Order[] memory, Fulfillment[] memory) {
+        OrderAndFulfillmentInfra memory infra = OrderAndFulfillmentInfra(
+            new OfferItem[](context.args.nonAggregatableOfferItemCount),
+            new ConsiderationItem[](context.args.nonAggregatableOfferItemCount),
+            OrderComponentsLib.empty(),
+            new Order[](context.args.nonAggregatableOfferItemCount * 2),
+            new Fulfillment[](context.args.nonAggregatableOfferItemCount * 2)
+        );
+
+        {
+            for (
+                uint256 i;
+                i < context.args.nonAggregatableOfferItemCount;
+                i++
+            ) {
+                // Mint an ERC721 to sell.
+                // TODO: REMOVE: Come back and figure out how to fuzz the offerer.
+                test721_1.mint(offerer1.addr, context.args.tokenId + i);
+
+                {
+                    // Create the OfferItem[] for it.
+                    infra.offerArray = SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .fromDefault(SINGLE_721)
+                            .withToken(address(test721_1))
+                            .withIdentifierOrCriteria(context.args.tokenId + i)
+                    );
+
+                    // Create the ConsiderationItem[] the offerer expects.
+                    infra.considerationArray = SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .fromDefault(ONE_ETH)
+                            .withRecipient(offerer1.addr)
+                            .withStartAmount(context.args.amount)
+                            .withEndAmount(context.args.amount)
+                    );
+
+                    // Build first restricted order components, remove conduit key.
+                    infra.orderComponents = OrderComponentsLib
+                    .fromDefault(VALIDATION_ZONE)
+                    .withOffer(infra.offerArray)
+                    .withConsideration(infra.considerationArray)
+                    // TODO: REMOVE: Come back and figure out how to fuzz the
+                    //               conduit key.
+                        .withConduitKey(bytes32(0))
+                        .withCounter(context.seaport.getCounter(offerer1.addr));
+
+                    infra.orders[i] = toOrder(
+                        context.seaport,
+                        infra.orderComponents,
+                        offerer1.key
+                    );
+                }
+
+                {
+                    // Create mirror offer and consideration.
+                    infra.offerArray = SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .fromDefault(ONE_ETH)
+                            .withStartAmount(context.args.amount)
+                            .withEndAmount(context.args.amount)
+                    );
+
+                    infra.considerationArray = SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .fromDefault(SINGLE_721)
+                            .withToken(address(test721_1))
+                            .withIdentifierOrCriteria(context.args.tokenId + i)
+                            .withRecipient(offerer2.addr)
+                    );
+
+                    // TODO: Come back and think about this.
+                    // Build second unrestricted order components, remove zone.
+                    infra.orderComponents = infra
+                        .orderComponents
+                        .copy()
+                        .withOrderType(OrderType.FULL_OPEN)
+                        .withOfferer(offerer2.addr)
+                        .withOffer(infra.offerArray)
+                        .withConsideration(infra.considerationArray)
+                        .withZone(address(0))
+                        .withCounter(context.seaport.getCounter(offerer2.addr));
+
+                    infra.orders[
+                        i + context.args.nonAggregatableOfferItemCount
+                    ] = toOrder(
+                        context.seaport,
+                        infra.orderComponents,
+                        offerer2.key
+                    );
+                }
+            }
+        }
+
+        {
+            Fulfillment memory testFulfillment;
+
+            // infra.orders.length should always be divisible by 2 bc we create
+            // two orders for each sale.
+
+            for (uint256 i; i < (infra.orders.length / 2); i++) {
+                // Create the fulfillments for the "prime" order.
+                testFulfillment = FulfillmentLib
+                    .empty()
+                    .withOfferComponents(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib
+                                .empty()
+                                .withOrderIndex(i)
+                                .withItemIndex(0) // e.g A
+                        )
+                    )
+                    .withConsiderationComponents(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib
+                                .empty()
+                                .withOrderIndex(i + (infra.orders.length / 2))
+                                .withItemIndex(0)
+                        )
+                    );
+
+                infra.fulfillments[i] = testFulfillment;
+
+                // Create the fulfillments for the "mirror" order.
+                testFulfillment = FulfillmentLib
+                    .empty()
+                    .withOfferComponents(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib
+                                .empty()
+                                .withOrderIndex(i + (infra.orders.length / 2))
+                                .withItemIndex(0)
+                        )
+                    )
+                    .withConsiderationComponents(
+                        SeaportArrays.FulfillmentComponents(
+                            FulfillmentComponentLib
+                                .empty()
+                                .withOrderIndex(i)
+                                .withItemIndex(0)
+                        )
+                    );
+
+                infra.fulfillments[
+                    i + (infra.orders.length / 2)
+                ] = testFulfillment;
+            }
+        }
+
+        return (infra.orders, infra.fulfillments);
     }
 
     function toOrder(
