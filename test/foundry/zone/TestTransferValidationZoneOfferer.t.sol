@@ -335,6 +335,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         uint256 salt;
         bool useConduit;
         bool useTransferValidationZone;
+        bool useNativeConsideration;
     }
 
     function test(
@@ -1387,7 +1388,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             args.nonAggregatableOfferItemCount
         );
         args.excessNativeTokens = uint128(
-            bound(args.excessNativeTokens, 0, uint128(MAX_INT))
+            bound(args.excessNativeTokens, 0, 0xfffffffff)
         );
         // Don't set the offer recipient to the null address, because that
         // is the way to indicate that the caller should be the recipient.
@@ -1466,7 +1467,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 )
             );
             _context.seaport.fulfillAvailableAdvancedOrders{
-                value: context.args.excessNativeTokens
+                value: context.args.useNativeConsideration
+                    ? context.args.excessNativeTokens +
+                        (context.args.amount *
+                            context.args.maximumFulfilledCount)
+                    : context.args.excessNativeTokens
             }({
                 advancedOrders: advancedOrders,
                 criteriaResolvers: criteriaResolvers,
@@ -1480,7 +1485,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         // Make the call to Seaport.
         _context.seaport.fulfillAvailableAdvancedOrders{
-            value: context.args.excessNativeTokens
+            value: context.args.useNativeConsideration
+                ? context.args.excessNativeTokens +
+                    (context.args.amount * context.args.maximumFulfilledCount)
+                : context.args.excessNativeTokens
         }({
             advancedOrders: advancedOrders,
             criteriaResolvers: criteriaResolvers,
@@ -1540,48 +1548,97 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                         .withIdentifierOrCriteria(context.args.tokenId + i)
                 );
 
-                // Add a one- or two-element ConsiderationItems[] to the
-                // ConsiderationItems[][].
+                // If the nonAggregatableConsiderationItemCount is one,
+                // add a single consideration item to the ConsiderationItems[][]
+                // to pair up with this offer item.
                 if (context.args.nonAggregatableConsiderationItemCount == 1) {
-                    considerationItemsArray[i] = SeaportArrays
-                        .ConsiderationItems(
-                            ConsiderationItemLib
-                                .empty()
-                                .withItemType(ItemType.ERC20)
-                                .withIdentifierOrCriteria(0)
-                                .withToken(address(token1))
-                                .withStartAmount(context.args.amount)
-                                .withEndAmount(context.args.amount)
-                                .withRecipient(
-                                    context.args.considerationRecipient
-                                )
-                        );
+                    // If the fuzz args call for native consideration...
+                    if (context.args.useNativeConsideration) {
+                        // ...add a native consideration item...
+                        considerationItemsArray[i] = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.NATIVE)
+                                    .withIdentifierOrCriteria(0)
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    )
+                            );
+                    } else {
+                        // ...otherwise, add an ERC20 consideration item.
+                        considerationItemsArray[i] = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.ERC20)
+                                    .withIdentifierOrCriteria(0)
+                                    .withToken(address(token1))
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    )
+                            );
+                    }
                 } else if (
                     context.args.nonAggregatableConsiderationItemCount == 2
                 ) {
-                    considerationItemsArray[i] = SeaportArrays
-                        .ConsiderationItems(
-                            ConsiderationItemLib
-                                .empty()
-                                .withItemType(ItemType.ERC20)
-                                .withIdentifierOrCriteria(0)
-                                .withToken(address(token1))
-                                .withStartAmount(context.args.amount)
-                                .withEndAmount(context.args.amount)
-                                .withRecipient(
-                                    context.args.considerationRecipient
-                                ),
-                            ConsiderationItemLib
-                                .empty()
-                                .withItemType(ItemType.ERC20)
-                                .withIdentifierOrCriteria(0)
-                                .withToken(address(token2))
-                                .withStartAmount(context.args.amount)
-                                .withEndAmount(context.args.amount)
-                                .withRecipient(
-                                    context.args.considerationRecipient
-                                )
-                        );
+                    // If the fuzz args call for native consideration...
+                    if (context.args.useNativeConsideration) {
+                        // ...add an ERC20 consideration item and a native
+                        // consideration item...
+                        considerationItemsArray[i] = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.ERC20)
+                                    .withIdentifierOrCriteria(0)
+                                    .withToken(address(token1))
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    ),
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.NATIVE)
+                                    .withIdentifierOrCriteria(0)
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    )
+                            );
+                    } else {
+                        // ...otherwise, add two ERC20 consideration items,
+                        // so that they're not aggregatable.
+                        considerationItemsArray[i] = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.ERC20)
+                                    .withIdentifierOrCriteria(0)
+                                    .withToken(address(token1))
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    ),
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withItemType(ItemType.ERC20)
+                                    .withIdentifierOrCriteria(0)
+                                    .withToken(address(token2))
+                                    .withStartAmount(context.args.amount)
+                                    .withEndAmount(context.args.amount)
+                                    .withRecipient(
+                                        context.args.considerationRecipient
+                                    )
+                            );
+                    }
                 }
             }
         }
