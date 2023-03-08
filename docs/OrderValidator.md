@@ -21,7 +21,7 @@ Special thanks to [arr00](https://github.com/arr00), who deployed an earlier ver
 | 302 | ERC721 token with identifier does not exist |
 | 303 | ERC721 not owner of token |
 | 304 | ERC721 conduit not approved |
-| 305 | ERC721 offer item using criteria and more than amount of one requires partial fills. |
+| 305 | ERC721 offer item using criteria and more than amount of one requires partial fills |
 | 400 | ERC1155 invalid token |
 | 401 | ERC1155 conduit not approved |
 | 402 | ERC1155 insufficient balance |
