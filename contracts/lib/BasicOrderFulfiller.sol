@@ -610,7 +610,9 @@ contract BasicOrderFulfiller is OrderValidator {
                     BasicOrder_totalOriginalAdditionalRecipients_cdPtr
                 )
                 let i := 0
-                for {} lt(i, totalAdditionalRecipients) {
+                for {
+
+                } lt(i, totalAdditionalRecipients) {
                     i := add(i, 1)
                 } {
                     /*
@@ -725,7 +727,9 @@ contract BasicOrderFulfiller is OrderValidator {
                     BasicOrder_additionalRecipients_length_cdPtr
                 )
 
-                for {} lt(i, totalAdditionalRecipients) {
+                for {
+
+                } lt(i, totalAdditionalRecipients) {
                     i := add(i, 1)
                 } {
                     // Retrieve calldata pointer for additional recipient.

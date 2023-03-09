@@ -42,7 +42,7 @@ import {
  * @custom:coauthor d1ll0n (d1ll0n.eth)
  * @custom:coauthor transmissions11 (t11s.eth)
  * @custom:coauthor James Wenzel (emo.eth)
- * @custom:version 1.4
+ * @custom:version 1.5
  * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
  *         marketplace that provides lightweight methods for common routes as
  *         well as more flexible methods for composing advanced orders or groups
