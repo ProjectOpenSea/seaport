@@ -884,7 +884,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     }
 
     function testFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
-        internal
+        public
     {
         prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20();
 
@@ -1010,6 +1010,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
+
+        bytes memory data = abi.encodeWithSignature(
+            "fulfillAvailableAdvancedOrders(((address,address,(uint256,address,uint256,uint256,uint256)[],(uint256,address,uint256,uint256,uint256,address)[],uint256,uint256,bytes32,uint256,bytes32,uint256),uint120,uint120,bytes,bytes)[],(uint256,uint256,uint256,uint256,bytes32[])[],(uint256,uint256)[][],(uint256,uint256)[][],bytes32,address,uint256)",
+            advancedOrders,
+            criteriaResolvers,
+            offerFulfillments,
+            considerationFulfillments,
+            bytes32(conduitKeyOne),
+            address(0),
+            advancedOrders.length - 1
+        );
+
+        bytes32 dataHash = keccak256(data);
+
+        transferValidationZone.registerExpectedDataHash(dataHash);
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({

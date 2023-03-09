@@ -94,22 +94,22 @@ contract TestTransferValidationZoneOfferer is
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
-        // uint256 dataLength = msg.data.length;
-        // bytes memory data;
+        uint256 dataLength = msg.data.length;
+        bytes memory data;
 
-        // assembly {
-        //     let ptr := mload(0x40)
-        //     calldatacopy(ptr, 0, dataLength)
-        //     data := mload(ptr)
-        // }
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(ptr, 0, dataLength)
+            data := mload(ptr)
+        }
 
-        // bytes32 actualDataHash = keccak256(data);
+        bytes32 actualDataHash = keccak256(data);
 
-        // if (
-        //     actualDataHash != expectedDataHash && expectedDataHash != bytes32(0)
-        // ) {
-        //     revert InvalidDataHash(expectedDataHash, actualDataHash);
-        // }
+        if (
+            actualDataHash != expectedDataHash && expectedDataHash != bytes32(0)
+        ) {
+            revert InvalidDataHash(expectedDataHash, actualDataHash);
+        }
 
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
