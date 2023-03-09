@@ -7,7 +7,7 @@ import { ConduitInterface } from "./ConduitInterface.sol";
 import { ConduitControllerInterface } from "./ConduitControllerInterface.sol";
 import { ZoneInterface } from "./ZoneInterface.sol";
 import { ContractOffererInterface } from "./ContractOffererInterface.sol";
-import { Solarray } from "solarray/Solarray.sol";
+import { Solarray } from "./Solarray.sol";
 import "./SeaportStructs.sol";
 import "./SeaportEnums.sol";
 import "./lib/SeaportStructLib.sol";
