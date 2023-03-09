@@ -62,8 +62,9 @@ enum Amount {
     DESCENDING
 }
 
-enum AmountDegree {
-    // ZERO, ?
+enum AmountDegree
+// ZERO, ?
+{
     SMALL,
     MEDIUM,
     LARGE,
@@ -71,8 +72,9 @@ enum AmountDegree {
 }
 
 // ConsiderationItem.* / ReceivedItem.* / Method.*ADVANCED <- Recipient
-enum Recipient {
-    // ZERO,?
+enum Recipient
+// ZERO,?
+{
     OFFERER,
     RECIPIENT,
     OTHER,
@@ -164,8 +166,9 @@ enum ContractOffererFailMaxSpent {
     BOTH
 }
 
-enum Time {
-    // valid granularity important for ascending/descending
+enum Time
+// valid granularity important for ascending/descending
+{
     START,
     ONGOING,
     END,
@@ -265,7 +268,8 @@ enum Fraction {
 enum ValidFraction {
     SMALL,
     HALF,
-    LARGE
+    LARGE,
+    ALL
 }
 
 enum InvalidFraction {
