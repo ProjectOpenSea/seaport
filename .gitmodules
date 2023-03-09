@@ -13,3 +13,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "lib/solarray"]
+	path = lib/solarray
+	url = https://github.com/evmcheb/solarray
