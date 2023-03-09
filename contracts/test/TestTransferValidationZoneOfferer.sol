@@ -94,19 +94,6 @@ contract TestTransferValidationZoneOfferer is
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
-        uint256 dataLength = msg.data.length;
-        bytes memory data;
-
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(ptr, 0, dataLength)
-            data := mload(ptr)
-        }
-
-        bytes32 actualDataHash = keccak256(data);
-
-        emit DataHash(actualDataHash);
-
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
 
@@ -120,6 +107,19 @@ contract TestTransferValidationZoneOfferer is
         // Set the global called flag to true.
         called = true;
         callCount++;
+
+        // uint256 dataLength = msg.data.length;
+        // bytes memory data;
+
+        // assembly {
+        //     // let ptr := mload(0x40)
+        //     calldatacopy(0x40, 0, dataLength)
+        //     data := mload(0x40)
+        // }
+
+        // bytes32 actualDataHash = keccak256(data);
+
+        // emit DataHash(actualDataHash);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
