@@ -800,15 +800,33 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // Note that the transfer will not be reflected in the
                         // executions array.
                         if (offerItem.startAmount != 0) {
-                            _transfer(
-                                _fromOfferItemToReceivedItemWithRecipient(
-                                    offerItem,
-                                    recipient
-                                ),
+                            // Replace the endAmount parameter with the recipient to
+                            // make offerItem compatible with the ReceivedItem input
+                            // to _transfer and cache the original endAmount so it
+                            // can be restored after the transfer.
+                            uint256 originalEndAmount = _replaceEndAmountWithRecipient(
+                                  offerItem,
+                                  recipient
+                            );
+
+                            // Transfer excess offer item amount to recipient.
+                            _toOfferItemInput(_transfer)(
+                                offerItem,
                                 parameters.offerer,
                                 parameters.conduitKey,
                                 accumulator
                             );
+
+                            // Restore the original endAmount in offerItem.
+                            assembly {
+                                mstore(
+                                    add(
+                                        offerItem,
+                                        ReceivedItem_recipient_offset
+                                    ),
+                                    originalEndAmount
+                                )
+                            }
                         }
 
                         // Restore original amount on the offer item.
