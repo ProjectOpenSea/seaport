@@ -64,6 +64,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
     string constant CONTRACT_ORDER = "contract order";
 
+    event DataHash(bytes32 dataHash);
+
     function setUp() public virtual override {
         super.setUp();
         zone = new TestTransferValidationZoneOfferer(address(0));
@@ -1026,6 +1028,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         transferValidationZone.registerExpectedDataHash(dataHash);
 
+        vm.expectEmit(
+            false,
+            false,
+            false,
+            true,
+            address(transferValidationZone)
+        );
+        emit DataHash(dataHash);
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
             advancedOrders: advancedOrders,

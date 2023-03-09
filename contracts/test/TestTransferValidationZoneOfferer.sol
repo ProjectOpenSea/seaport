@@ -54,7 +54,7 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
+    event DataHash(bytes32 dataHash);
 
     receive() external payable {}
 
@@ -105,11 +105,7 @@ contract TestTransferValidationZoneOfferer is
 
         bytes32 actualDataHash = keccak256(data);
 
-        if (
-            actualDataHash != expectedDataHash && expectedDataHash != bytes32(0)
-        ) {
-            revert InvalidDataHash(expectedDataHash, actualDataHash);
-        }
+        emit DataHash(actualDataHash);
 
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
