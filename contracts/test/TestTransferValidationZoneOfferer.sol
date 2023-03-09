@@ -54,6 +54,7 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
+    error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
 
     receive() external payable {}
 
@@ -66,6 +67,7 @@ contract TestTransferValidationZoneOfferer is
 
     bool public called = false;
     uint public callCount = 0;
+    bytes32 public expectedDataHash;
 
     /**
      * @dev Validates that the parties have received the correct items.
@@ -91,6 +93,23 @@ contract TestTransferValidationZoneOfferer is
         if (seaportBalance > 0) {
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
+
+        // uint256 dataLength = msg.data.length;
+        // bytes memory data;
+
+        // assembly {
+        //     let ptr := mload(0x40)
+        //     calldatacopy(ptr, 0, dataLength)
+        //     data := mload(ptr)
+        // }
+
+        // bytes32 actualDataHash = keccak256(data);
+
+        // if (
+        //     actualDataHash != expectedDataHash && expectedDataHash != bytes32(0)
+        // ) {
+        //     revert InvalidDataHash(expectedDataHash, actualDataHash);
+        // }
 
         // Check if all consideration items have been received.
         _assertValidReceivedItems(zoneParameters.consideration);
@@ -410,5 +429,9 @@ contract TestTransferValidationZoneOfferer is
 
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
         _expectedOfferRecipient = expectedOfferRecipient;
+    }
+
+    function registerExpectedDataHash(bytes32 _expectedDataHash) external {
+        expectedDataHash = _expectedDataHash;
     }
 }
