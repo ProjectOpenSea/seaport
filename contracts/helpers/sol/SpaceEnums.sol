@@ -269,7 +269,7 @@ enum ValidFraction {
     SMALL,
     HALF,
     LARGE,
-    ALL
+    WHOLE
 }
 
 enum InvalidFraction {
