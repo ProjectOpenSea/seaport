@@ -108,18 +108,16 @@ contract TestTransferValidationZoneOfferer is
         called = true;
         callCount++;
 
-        // uint256 dataLength = msg.data.length;
-        // bytes memory data;
+        uint256 dataLength = msg.data.length;
+        bytes memory data = new bytes(dataLength);
 
-        // assembly {
-        //     // let ptr := mload(0x40)
-        //     calldatacopy(0x40, 0, dataLength)
-        //     data := mload(0x40)
-        // }
+        assembly {
+            calldatacopy(add(data, 0x20), 0, dataLength)
+        }
 
-        // bytes32 actualDataHash = keccak256(data);
+        bytes32 actualDataHash = keccak256(data);
 
-        // emit DataHash(actualDataHash);
+        emit DataHash(actualDataHash);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
