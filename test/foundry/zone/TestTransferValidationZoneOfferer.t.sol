@@ -337,11 +337,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         string mirrorOfferer;
         bytes32 zoneHash;
         uint256 salt;
+        bool aggregateFulfillmentComponents;
         bool useConduit;
         bool useTransferValidationZone;
         bool useTransferValidationZoneForPrime;
         bool useTransferValidationZoneForMirror;
-        bool useNativeConsideration;
+        bool includeNativeConsideration;
         bool useExcessOfferItems;
         bool specifyRecipient;
         bool includeJunkDataInAdvancedOrder;
@@ -1376,27 +1377,25 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
-    function testFulfillAvailableAdvancedNonAggregatedFuzz(
-        FuzzInputs memory args
-    ) public {
-        // Avoid weird overflow issues.
-        args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
-        args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
+    function testFulfillAvailableAdvancedFuzz(FuzzInputs memory args) public {
+        args.amount = uint128(bound(args.amount, 1, 0xffffffffffffffff));
+        args.tokenId = bound(args.tokenId, 1, 0xffffffffffffffff);
         args.considerationItemCount = bound(args.considerationItemCount, 1, 3);
+        // TODO: Think about excess offer items.
         args.nonAggregatableOfferItemCount = bound(
             args.nonAggregatableOfferItemCount,
             1,
             16
         );
-        // Fulfill between 1 and the number of items on the offer side, since
-        // the test sets up one order per non-aggregatable offer item.
+        // Fulfill between 1 and the nonAggregatableOfferItemCount, since the
+        // test sets up one order per non-aggregatable offer item.
         args.maximumFulfilledCount = bound(
             args.maximumFulfilledCount,
             1,
             args.nonAggregatableOfferItemCount
         );
         args.excessNativeTokens = uint128(
-            bound(args.excessNativeTokens, 0, 0xfffffffff)
+            bound(args.excessNativeTokens, 0, 0xfffffffffffffffffffffffffffff)
         );
         // Don't set the offer recipient to the null address, because that
         // is the way to indicate that the caller should be the recipient.
@@ -1414,23 +1413,25 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
         // To put three items in the consideration, we need to have include
         // native tokens.
-        args.useNativeConsideration =
-            args.useNativeConsideration ||
+        args.includeNativeConsideration =
+            args.includeNativeConsideration ||
             args.considerationItemCount >= 3;
         test(
-            this.execFulfillAvailableAdvancedNonAggregatedFuzz,
+            this.execFulfillAvailableAdvancedFuzz,
             Context(consideration, args)
         );
         test(
-            this.execFulfillAvailableAdvancedNonAggregatedFuzz,
+            this.execFulfillAvailableAdvancedFuzz,
             Context(referenceConsideration, args)
         );
     }
 
-    function execFulfillAvailableAdvancedNonAggregatedFuzz(
+    function execFulfillAvailableAdvancedFuzz(
         Context memory context
     ) external stateless {
         // Use a conduit sometimes.
+        // TODO: Think about how this interacts with the unhinged ternary in the
+        //       helper function.
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1445,30 +1446,32 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             address(this),
             context.args.amount * context.args.nonAggregatableOfferItemCount
         );
-
-        if (context.args.considerationItemCount >= 2) {
-            // If the fuzz args call for 2 consideration items per order, mint
-            // additional ERC20s.
-            token2.mint(
-                address(this),
-                context.args.amount * context.args.nonAggregatableOfferItemCount
-            );
-        }
+        token2.mint(
+            address(this),
+            context.args.amount * context.args.nonAggregatableOfferItemCount
+        );
 
         // Create the orders.
         AdvancedOrder[] memory advancedOrders = _buildOrdersFromFuzzArgs(
             context,
-            false,
             offerer1.key
         );
 
+        // Set up the fulfillment arrays.
+        FulfillmentComponent[][] memory offerFulfillments;
+        FulfillmentComponent[][] memory considerationFulfillments;
+
         // Create the fulfillments.
-        (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getNaiveFulfillmentComponents(advancedOrders);
+        if (context.args.aggregateFulfillmentComponents) {
+            (offerFulfillments, considerationFulfillments) = FulfillmentHelper
+                .getAggregatedFulfillmentComponents(advancedOrders);
+        } else {
+            (offerFulfillments, considerationFulfillments) = FulfillmentHelper
+                .getNaiveFulfillmentComponents(advancedOrders);
+        }
 
         // Create the empty criteria resolvers.
+        // TODO: Maybe work on criteria resolvers next.
         CriteriaResolver[] memory criteriaResolvers;
 
         // If we're using the transfer validation zone, make sure that it
@@ -1484,7 +1487,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 )
             );
             context.seaport.fulfillAvailableAdvancedOrders{
-                value: context.args.useNativeConsideration
+                value: context.args.includeNativeConsideration
                     ? context.args.excessNativeTokens +
                         (context.args.amount *
                             context.args.maximumFulfilledCount)
@@ -1500,14 +1503,22 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             });
         }
 
-        if (!context.args.useNativeConsideration) {
-            // This checks that the ERC20 transfers were not all aggregated into
-            // a single transfer.
+        if (!context.args.includeNativeConsideration) {
+            // This checks that the ERC20 transfers were not all aggregated
+            // into a single transfer.
             vm.expectEmit(true, true, true, true, address(token1));
             emit Transfer(
                 address(this), // from
                 address(context.args.considerationRecipient), // to
-                context.args.amount // value
+                // The value should in the transfer event should either be
+                // the amount * the number of NFTs for sale (if aggregating) or
+                // the amount (if not aggregating).
+                context.args.amount *
+                    (
+                        context.args.aggregateFulfillmentComponents
+                            ? context.args.maximumFulfilledCount
+                            : 1
+                    )
             );
 
             if (context.args.considerationItemCount >= 2) {
@@ -1517,14 +1528,23 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 emit Transfer(
                     address(this), // from
                     address(context.args.considerationRecipient), // to
-                    context.args.amount // value
+                    context.args.amount *
+                        (
+                            context.args.aggregateFulfillmentComponents
+                                ? context.args.maximumFulfilledCount
+                                : 1
+                        ) // value
                 );
             }
         }
 
+        uint256 callerBalanceBefore = address(this).balance;
+
         // Make the call to Seaport.
+        // If we're using native consideration, then we need to send enough
+        // native tokens to cover the amount per sale * the number of sales.
         context.seaport.fulfillAvailableAdvancedOrders{
-            value: context.args.useNativeConsideration
+            value: context.args.includeNativeConsideration
                 ? context.args.excessNativeTokens +
                     (context.args.amount * context.args.maximumFulfilledCount)
                 : context.args.excessNativeTokens
@@ -1538,155 +1558,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             maximumFulfilled: context.args.maximumFulfilledCount
         });
 
-        // Check that the zone was called the expected number of times.
-        if (context.args.useTransferValidationZone) {
-            assertTrue(zone.callCount() == context.args.maximumFulfilledCount);
-        }
-
-        // Check that the NFTs were transferred to the expected recipient.
-        for (uint256 i = 0; i < context.args.maximumFulfilledCount; i++) {
-            assertEq(
-                test721_1.ownerOf(context.args.tokenId + i),
-                context.args.offerRecipient
-            );
-        }
-    }
-
-    function testFulfillAvailableAdvancedAggregatedFuzz(
-        FuzzInputs memory args
-    ) public {
-        // Avoid weird overflow issues.
-        args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
-        args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
-        args.nonAggregatableOfferItemCount = bound(
-            args.nonAggregatableOfferItemCount,
-            2,
-            16
-        );
-        // Fulfill between 1 and the number of items on the offer side, since
-        // the test sets up one order per non-aggregatable offer item.
-        args.maximumFulfilledCount = bound(
-            args.maximumFulfilledCount,
-            1,
-            args.nonAggregatableOfferItemCount
-        );
-        args.excessNativeTokens = uint128(
-            bound(args.excessNativeTokens, 0, 0xfffffffff)
-        );
-        // Don't set the offer recipient to the null address, because that
-        // is the way to indicate that the caller should be the recipient.
-        args.offerRecipient = address(
-            uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
-        );
-        test(
-            this.execFulfillAvailableAdvancedAggregatedFuzz,
-            Context(consideration, args)
-        );
-        test(
-            this.execFulfillAvailableAdvancedAggregatedFuzz,
-            Context(referenceConsideration, args)
-        );
-    }
-
-    function execFulfillAvailableAdvancedAggregatedFuzz(
-        Context memory context
-    ) external stateless {
-        // Use a conduit sometimes.
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
-
-        // Mint enough ERC721s to cover the number of NFTs for sale.
-        for (uint256 i; i < context.args.nonAggregatableOfferItemCount; i++) {
-            test721_1.mint(offerer1.addr, context.args.tokenId + i);
-        }
-
-        // Mint enough ERC20s to cover price per NFT * NFTs for sale.
-        token1.mint(
-            address(this),
-            context.args.amount * context.args.nonAggregatableOfferItemCount
-        );
-
-        if (context.args.considerationItemCount >= 2) {
-            // If the fuzz args call for 2 consideration items per order, mint
-            // additional ERC20s.
-            token2.mint(
-                address(this),
-                context.args.amount * context.args.nonAggregatableOfferItemCount
-            );
-        }
-
-        // Create the orders.
-        AdvancedOrder[] memory advancedOrders = _buildOrdersFromFuzzArgs(
-            context,
-            true,
-            offerer1.key
-        );
-
-        // Get the aggregated fulfillment components.
-        (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
-
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
-
-        // If we're using the transfer validation zone, make sure that it
-        // is actually enforcing what we expect it to.
-        if (context.args.useTransferValidationZone) {
-            vm.expectRevert(
-                abi.encodeWithSignature(
-                    "InvalidOwner(address,address,address,uint256)",
-                    context.args.offerRecipient,
-                    address(this),
-                    address(test721_1),
-                    context.args.tokenId // Should revert on the first.
-                )
-            );
-            context.seaport.fulfillAvailableAdvancedOrders{
-                value: context.args.useNativeConsideration
-                    ? context.args.excessNativeTokens +
-                        (context.args.amount *
-                            context.args.maximumFulfilledCount)
-                    : context.args.excessNativeTokens
-            }({
-                advancedOrders: advancedOrders,
-                criteriaResolvers: criteriaResolvers,
-                offerFulfillments: offerFulfillments,
-                considerationFulfillments: considerationFulfillments,
-                fulfillerConduitKey: bytes32(conduitKey),
-                recipient: address(this),
-                maximumFulfilled: context.args.maximumFulfilledCount
-            });
-        }
-
-        // This checks that the ERC20 transfers were all aggregated into a
-        // single transfer.
-        vm.expectEmit(true, true, true, true, address(token1));
-        emit Transfer(
-            address(this), // from
-            address(context.args.considerationRecipient), // to
-            context.args.amount * context.args.maximumFulfilledCount // amount
-        );
-
-        // Make the call to Seaport.
-        context.seaport.fulfillAvailableAdvancedOrders{
-            value: context.args.useNativeConsideration
-                ? context.args.excessNativeTokens +
-                    (context.args.amount * context.args.maximumFulfilledCount)
-                : context.args.excessNativeTokens
-        }({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
-            offerFulfillments: offerFulfillments,
-            considerationFulfillments: considerationFulfillments,
-            fulfillerConduitKey: bytes32(conduitKey),
-            recipient: context.args.offerRecipient,
-            maximumFulfilled: context.args.maximumFulfilledCount
-        });
+        uint256 callerBalanceAfter = address(this).balance;
 
         // Check that the zone was called the expected number of times.
         if (context.args.useTransferValidationZone) {
@@ -1700,13 +1572,40 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 context.args.offerRecipient
             );
         }
+
+        // Check that the ERC20s or native tokens were transferred to the
+        // expected recipient.
+        if (!context.args.includeNativeConsideration) {
+            assertEq(
+                token1.balanceOf(context.args.considerationRecipient),
+                context.args.amount * context.args.maximumFulfilledCount
+            );
+
+            if (context.args.considerationItemCount >= 2) {
+                assertEq(
+                    token2.balanceOf(context.args.considerationRecipient),
+                    context.args.amount * context.args.maximumFulfilledCount
+                );
+            }
+        } else {
+            assertEq(
+                context.args.considerationRecipient.balance,
+                context.args.amount * context.args.maximumFulfilledCount
+            );
+            // Check that excess native tokens are being handled properly.
+            assertEq(
+                callerBalanceAfter +
+                    context.args.amount *
+                    context.args.maximumFulfilledCount,
+                callerBalanceBefore
+            );
+        }
     }
 
-    // TODO: Clean up the bounds here and maybe rename the FuzzInputs fields or
-    //       make a new struct for fuzz args for Match.
     function testMatchAdvancedOrdersBasicFuzz(FuzzInputs memory args) public {
         // Avoid weird overflow issues.
-        args.amount = uint128(bound(args.amount, 0xff, 0xffffffffffffffff));
+        args.amount = uint128(bound(args.amount, 1, 0xffffffffffffffff));
+        // Avoid trying to mint the same token.
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
         // // TODO: Come back and think about this.
         // args.considerationItemCount = bound(
@@ -1720,7 +1619,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             8 // More than this causes a revert.  Maybe gas related?
         );
         args.excessNativeTokens = uint128(
-            bound(args.excessNativeTokens, 0, 0xfffffffff)
+            bound(args.excessNativeTokens, 0, 0xfffffffffffffffffffffffffffff)
         );
         // Don't set the offer recipient to the null address, because that
         // is the way to indicate that the caller should be the recipient.
@@ -1829,8 +1728,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ) {
                 assertEq(
                     test721_1.ownerOf((context.args.tokenId + i) * 2),
-                    context.args.specifyRecipient // This is really excess recipient in this case.
-                        ? context.args.offerRecipient
+                    context.args.specifyRecipient
+                        ? context.args.offerRecipient // This is really excess recipient in this case.
                         : address(this)
                 );
             }
@@ -1839,20 +1738,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
     function _buildOrdersFromFuzzArgs(
         Context memory context,
-        bool aggregated,
         uint256 key
     ) internal returns (AdvancedOrder[] memory advancedOrders) {
         // Create the OrderComponents array from the fuzz args.
         OrderComponents[] memory orderComponents;
-        if (aggregated) {
-            orderComponents = _buildOrderComponentsArrayFromFuzzArgsAggregated(
-                context
-            );
-        } else {
-            orderComponents = _buildOrderComponentsArrayFromFuzzArgsNonAggregated(
-                context
-            );
-        }
+        orderComponents = _buildOrderComponentsArrayFromFuzzArgsNonAggregated(
+            context
+        );
 
         // Set up the AdvancedOrder array.
         AdvancedOrder[] memory _advancedOrders = new AdvancedOrder[](
@@ -1890,133 +1782,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         ConsiderationItem nativeConsiderationItem;
         ConsiderationItem erc20ConsiderationItemOne;
         ConsiderationItem erc20ConsiderationItemTwo;
-    }
-
-    function _buildOrderComponentsArrayFromFuzzArgsAggregated(
-        Context memory context
-    ) internal returns (OrderComponents[] memory _orderComponentsArray) {
-        OrderComponentInfra memory orderComponentInfra = OrderComponentInfra(
-            OrderComponentsLib.empty(),
-            new OrderComponents[](context.args.nonAggregatableOfferItemCount),
-            new OfferItem[][](context.args.nonAggregatableOfferItemCount),
-            new ConsiderationItem[][](
-                context.args.nonAggregatableOfferItemCount
-            ),
-            ConsiderationItemLib.empty(),
-            ConsiderationItemLib.empty(),
-            ConsiderationItemLib.empty()
-        );
-
-        // Create a reusable native consideration item.
-        orderComponentInfra.nativeConsiderationItem = ConsiderationItemLib
-            .empty()
-            .withItemType(ItemType.NATIVE)
-            .withIdentifierOrCriteria(0)
-            .withStartAmount(context.args.amount)
-            .withEndAmount(context.args.amount)
-            .withRecipient(context.args.considerationRecipient);
-
-        // Create a reusable ERC20 consideration item.
-        orderComponentInfra.erc20ConsiderationItemOne = ConsiderationItemLib
-            .empty()
-            .withItemType(ItemType.ERC20)
-            .withToken(address(token1))
-            .withIdentifierOrCriteria(0)
-            .withStartAmount(context.args.amount)
-            .withEndAmount(context.args.amount)
-            .withRecipient(context.args.considerationRecipient);
-
-        // Create a second reusable ERC20 consideration item.
-        orderComponentInfra.erc20ConsiderationItemTwo = ConsiderationItemLib
-            .empty()
-            .withItemType(ItemType.ERC20)
-            .withIdentifierOrCriteria(0)
-            .withToken(address(token2))
-            .withStartAmount(context.args.amount)
-            .withEndAmount(context.args.amount)
-            .withRecipient(context.args.considerationRecipient);
-
-        for (uint256 i; i < context.args.nonAggregatableOfferItemCount; i++) {
-            // Add a one-element OfferItems[] to the OfferItems[][].
-            orderComponentInfra.offerItemsArray[i] = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
-                    .withToken(address(test721_1))
-                    .withIdentifierOrCriteria(context.args.tokenId + i)
-            );
-
-            // Iterate over each offer item and add two
-            // consideration items.
-
-            if (context.args.useNativeConsideration) {
-                orderComponentInfra.considerationItemsArray[i] = SeaportArrays
-                    .ConsiderationItems(
-                        orderComponentInfra.nativeConsiderationItem,
-                        orderComponentInfra.erc20ConsiderationItemOne
-                    );
-            } else {
-                orderComponentInfra.considerationItemsArray[i] = SeaportArrays
-                    .ConsiderationItems(
-                        orderComponentInfra.erc20ConsiderationItemOne,
-                        orderComponentInfra.erc20ConsiderationItemTwo
-                    );
-            }
-        }
-
-        // Use either the transfer validation zone or the test zone for all
-        // orders.
-        address fuzzyZone;
-        TestZone testZone;
-
-        if (context.args.useTransferValidationZone) {
-            zone = new TestTransferValidationZoneOfferer(
-                context.args.offerRecipient
-            );
-            fuzzyZone = address(zone);
-        } else {
-            testZone = new TestZone();
-            fuzzyZone = address(testZone);
-        }
-
-        bytes32 conduitKey;
-
-        for (
-            uint256 i = 0;
-            i < context.args.nonAggregatableOfferItemCount;
-            i++
-        ) {
-            // if context.args.useConduit is false: don't use conduits at all.
-            // if context.args.useConduit is true:
-            //      if context.args.tokenId % 2 == 0:
-            //          use conduits for some and not for others
-            //      if context.args.tokenId % 2 != 0:
-            //          use conduits for all
-            // This is plainly deranged, but it allows for conduit use
-            // for all, for some, and for none without weighing down the stack.
-            conduitKey = !context.args.useNativeConsideration &&
-                context.args.useConduit &&
-                (context.args.tokenId % 2 == 0 ? i % 2 == 0 : true)
-                ? conduitKeyOne
-                : bytes32(0);
-
-            // Build the order components.
-            orderComponentInfra.orderComponents = OrderComponentsLib
-                .fromDefault(VALIDATION_ZONE)
-                .withOffer(orderComponentInfra.offerItemsArray[i])
-                .withConsideration(
-                    orderComponentInfra.considerationItemsArray[i]
-                )
-                .withZone(fuzzyZone)
-                .withZoneHash(context.args.zoneHash)
-                .withConduitKey(conduitKey)
-                .withSalt(context.args.salt % (i + 1)); // Is this dumb?
-
-            // Add the OrderComponents to the OrderComponents[].
-            orderComponentInfra.orderComponentsArray[i] = orderComponentInfra
-                .orderComponents;
-        }
-
-        return orderComponentInfra.orderComponentsArray;
     }
 
     function _buildOrderComponentsArrayFromFuzzArgsNonAggregated(
@@ -2074,7 +1839,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
             if (context.args.considerationItemCount == 1) {
                 // If the fuzz args call for native consideration...
-                if (context.args.useNativeConsideration) {
+                if (context.args.includeNativeConsideration) {
                     // ...add a native consideration item...
                     orderComponentInfra.considerationItemsArray[
                         i
@@ -2091,7 +1856,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 }
             } else if (context.args.considerationItemCount == 2) {
                 // If the fuzz args call for native consideration...
-                if (context.args.useNativeConsideration) {
+                if (context.args.includeNativeConsideration) {
                     // ...add a native consideration item and an ERC20
                     // consideration item...
                     orderComponentInfra.considerationItemsArray[
@@ -2149,7 +1914,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             //          use conduits for all
             // This is plainly deranged, but it allows for conduit use
             // for all, for some, and for none without weighing down the stack.
-            conduitKey = !context.args.useNativeConsideration &&
+            conduitKey = !context.args.includeNativeConsideration &&
                 context.args.useConduit &&
                 (context.args.tokenId % 2 == 0 ? i % 2 == 0 : true)
                 ? conduitKeyOne
