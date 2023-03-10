@@ -418,7 +418,7 @@ To run Forge coverage tests and open the generated coverage report locally:
 
 ```bash
 brew install lcov
-SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && genhtml lcov.info -o html --branch
+SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 "test/*" "script/*" && genhtml lcov.info -o html --branch
 open html/index.html
 ```
 
