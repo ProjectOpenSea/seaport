@@ -387,7 +387,15 @@ yarn profile
 
 ### Foundry Tests
 
-Seaport also includes a suite of fuzzing tests written in solidity with Foundry.
+Seaport also includes a suite of fuzzing tests written in Solidity with Foundry.
+
+Before running these tests, you will need to compile an optimized build by running:
+
+```bash
+FOUNDRY_PROFILE=optimized forge build
+```
+
+This should create an `optimized-out/` directory in your project root.
 
 To run tests with full traces and debugging with source, create an `.env` file with the following line:
 
@@ -397,7 +405,7 @@ FOUNDRY_PROFILE=debug
 
 You may then run tests with `forge test`, optionally specifying a level of verbosity (anywhere from one to five `v`'s, eg, `-vvv`)
 
-This will compile tests and contracts without `via-ir` enabled, which is must faster, but will not exactly match the deployed bytecode.
+This will compile tests and contracts without `via-ir` enabled, which is much faster, but will not exactly match the deployed bytecode.
 
 To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code.
 
