@@ -9,12 +9,14 @@ import {
 } from "../../typechain-types";
 import { merkleTree } from "../utils/criteria";
 import {
+  buildOrderStatus,
   buildResolver,
   convertSignatureToEIP2098,
   getInterfaceID,
   getItemETH,
   randomHex,
   toBN,
+  toFulfillmentComponents,
   toKey,
 } from "../utils/encoding";
 import { faucet } from "../utils/faucet";
@@ -32,6 +34,7 @@ import type {
   SignedZone,
   SignedZoneCaptain,
   SignedZoneController,
+  TestERC20,
   TestSignedZoneCaptain,
 } from "../../typechain-types";
 import type { SeaportFixtures } from "../utils/fixtures";
@@ -64,14 +67,17 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
   let signedZoneController: SignedZoneController;
   let signedZoneCaptain: SignedZoneCaptain;
   let create2Factory: ImmutableCreate2FactoryInterface;
+  let testERC20: TestERC20;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   afterEach(async () => {
@@ -107,9 +113,12 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       getTestItem20,
       getTestItem721,
       getTestItem721WithCriteria,
+      getTestItem1155,
       marketplaceContract,
       mintAndApproveERC20,
       mintAndApprove721,
+      mintAndApprove1155,
+      testERC20,
       withBalanceChecks,
     } = await seaportFixture(owner));
     // Setup basic buyer/seller and approvedSigner wallets with ETH
@@ -649,6 +658,324 @@ describe(`Zone - SignedZone (Seaport v${VERSION})`, function () {
       );
       return receipt;
     });
+  });
+  it("FulfillAvailableAdvancedOrders with partial fulfillment/cancellation through zone", async () => {
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    // Seller mints erc20
+    await mintAndApproveERC20(
+      seller,
+      marketplaceContract.address,
+      parseEther("3")
+    );
+
+    // buyer mints 1155
+    const { nftId, amount } = await mintAndApprove1155(
+      buyer,
+      marketplaceContract.address,
+      10,
+      10,
+      10
+    );
+
+    // buyer approves ERC20
+    await testERC20
+      .connect(buyer)
+      .approve(marketplaceContract.address, parseEther("0.3"));
+
+    const offerOne = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationOne = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      orderComponents,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offerOne,
+      considerationOne,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderOne.denominator = 10;
+
+    let substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationOne[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // cancel order one
+    // can cancel it
+    await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
+      .to.emit(marketplaceContract, "OrderCancelled")
+      .withArgs(orderHashOne, seller.address, signedZone.address);
+
+    const orderStatusOne = await marketplaceContract.getOrderStatus(
+      orderHashOne
+    );
+
+    expect({ ...orderStatusOne }).to.deep.equal(
+      buildOrderStatus(false, true, 0, 0)
+    );
+
+    const offerTwo = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationTwo = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      signedZone.address,
+      offerTwo,
+      considerationTwo,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderTwo.denominator = 10;
+
+    substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationTwo[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderTwo.extraData = (
+      await signOrder(orderHashTwo, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // fill half of order two
+    orderTwo.denominator = 2;
+    const fulfillHalfTx = marketplaceContract
+      .connect(buyer)
+      .fulfillAdvancedOrder(
+        orderTwo,
+        [],
+        toKey(0),
+        ethers.constants.AddressZero
+      );
+    const fulfillHalfReceipt = await (await fulfillHalfTx).wait();
+
+    expect(fulfillHalfReceipt.status).to.eq(1);
+
+    const orderStatusTwo = await marketplaceContract.getOrderStatus(
+      orderHashTwo
+    );
+
+    expect({ ...orderStatusTwo }).to.deep.equal(
+      buildOrderStatus(true, false, 1, 2)
+    );
+
+    orderTwo.denominator = 10;
+
+    const offerThree = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationThree = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderThree, orderHash: orderHashThree } = await createOrder(
+      seller,
+      signedZone.address,
+      offerThree,
+      considerationThree,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderThree.denominator = 10;
+
+    substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationThree[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderThree.extraData = (
+      await signOrder(orderHashThree, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+        { orderIndex: 10, itemIndex: 0 },
+        { orderIndex: 11, itemIndex: 0 },
+        { orderIndex: 12, itemIndex: 0 },
+        { orderIndex: 13, itemIndex: 0 },
+        { orderIndex: 14, itemIndex: 0 },
+        { orderIndex: 15, itemIndex: 0 },
+        { orderIndex: 16, itemIndex: 0 },
+        { orderIndex: 17, itemIndex: 0 },
+        { orderIndex: 18, itemIndex: 0 },
+        { orderIndex: 19, itemIndex: 0 },
+        { orderIndex: 20, itemIndex: 0 },
+        { orderIndex: 21, itemIndex: 0 },
+        { orderIndex: 22, itemIndex: 0 },
+        { orderIndex: 23, itemIndex: 0 },
+        { orderIndex: 24, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+        { orderIndex: 10, itemIndex: 0 },
+        { orderIndex: 11, itemIndex: 0 },
+        { orderIndex: 12, itemIndex: 0 },
+        { orderIndex: 13, itemIndex: 0 },
+        { orderIndex: 14, itemIndex: 0 },
+        { orderIndex: 15, itemIndex: 0 },
+        { orderIndex: 16, itemIndex: 0 },
+        { orderIndex: 17, itemIndex: 0 },
+        { orderIndex: 18, itemIndex: 0 },
+        { orderIndex: 19, itemIndex: 0 },
+        { orderIndex: 20, itemIndex: 0 },
+        { orderIndex: 21, itemIndex: 0 },
+        { orderIndex: 22, itemIndex: 0 },
+        { orderIndex: 23, itemIndex: 0 },
+        { orderIndex: 24, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+        { orderIndex: 2, itemIndex: 1 },
+        { orderIndex: 3, itemIndex: 1 },
+        { orderIndex: 4, itemIndex: 1 },
+        { orderIndex: 5, itemIndex: 1 },
+        { orderIndex: 6, itemIndex: 1 },
+        { orderIndex: 7, itemIndex: 1 },
+        { orderIndex: 8, itemIndex: 1 },
+        { orderIndex: 9, itemIndex: 1 },
+        { orderIndex: 10, itemIndex: 1 },
+        { orderIndex: 11, itemIndex: 1 },
+        { orderIndex: 12, itemIndex: 1 },
+        { orderIndex: 13, itemIndex: 1 },
+        { orderIndex: 14, itemIndex: 1 },
+        { orderIndex: 15, itemIndex: 1 },
+        { orderIndex: 16, itemIndex: 1 },
+        { orderIndex: 17, itemIndex: 1 },
+        { orderIndex: 18, itemIndex: 1 },
+        { orderIndex: 19, itemIndex: 1 },
+        { orderIndex: 20, itemIndex: 1 },
+        { orderIndex: 21, itemIndex: 1 },
+        { orderIndex: 22, itemIndex: 1 },
+        { orderIndex: 23, itemIndex: 1 },
+        { orderIndex: 24, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+        { orderIndex: 2, itemIndex: 2 },
+        { orderIndex: 3, itemIndex: 2 },
+        { orderIndex: 4, itemIndex: 2 },
+        { orderIndex: 5, itemIndex: 2 },
+        { orderIndex: 6, itemIndex: 2 },
+        { orderIndex: 7, itemIndex: 2 },
+        { orderIndex: 8, itemIndex: 2 },
+        { orderIndex: 9, itemIndex: 2 },
+        { orderIndex: 10, itemIndex: 2 },
+        { orderIndex: 11, itemIndex: 2 },
+        { orderIndex: 12, itemIndex: 2 },
+        { orderIndex: 13, itemIndex: 2 },
+        { orderIndex: 14, itemIndex: 2 },
+        { orderIndex: 15, itemIndex: 2 },
+        { orderIndex: 16, itemIndex: 2 },
+        { orderIndex: 17, itemIndex: 2 },
+        { orderIndex: 18, itemIndex: 2 },
+        { orderIndex: 19, itemIndex: 2 },
+        { orderIndex: 20, itemIndex: 2 },
+        { orderIndex: 21, itemIndex: 2 },
+        { orderIndex: 22, itemIndex: 2 },
+        { orderIndex: 23, itemIndex: 2 },
+        { orderIndex: 24, itemIndex: 2 },
+      ],
+    ];
+
+    const tx = marketplaceContract
+      .connect(buyer)
+      .fulfillAvailableAdvancedOrders(
+        [
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderThree,
+          orderThree,
+          orderThree,
+          orderThree,
+          orderThree,
+        ],
+        [],
+        offerComponents,
+        considerationComponents,
+        toKey(0),
+        ethers.constants.AddressZero,
+        10
+      );
+
+    const receipt = await (await tx).wait();
+
+    expect(receipt.status).to.eq(1);
+
+    return receipt;
   });
   it("Does not fulfill an expired signature order with a signed zone", async () => {
     // Create advanced order using signed zone
@@ -2055,14 +2382,17 @@ describe(`Zone - SignedZone separate deployments without create2 (Seaport v${VER
   let signedZone: SignedZone;
   let signedZoneController: SignedZoneController;
   let signedZoneCaptain: TestSignedZoneCaptain;
+  let testERC20: TestERC20;
 
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
   let createOrder: SeaportFixtures["createOrder"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
@@ -2086,9 +2416,12 @@ describe(`Zone - SignedZone separate deployments without create2 (Seaport v${VER
       getTestItem20,
       getTestItem721,
       getTestItem721WithCriteria,
+      getTestItem1155,
       marketplaceContract,
       mintAndApproveERC20,
       mintAndApprove721,
+      mintAndApprove1155,
+      testERC20,
       withBalanceChecks,
     } = await seaportFixture(owner));
   });
@@ -2598,6 +2931,1011 @@ describe(`Zone - SignedZone separate deployments without create2 (Seaport v${VER
       );
       return receipt;
     });
+  });
+  it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders including restricted orders", async () => {
+    // Seller mints nft
+    const { nftId, amount } = await mintAndApprove1155(
+      seller,
+      marketplaceContract.address,
+      1,
+      1,
+      10000
+    );
+
+    const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), approvedSigner.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      value,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    // Get the substandard1 data
+    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      consideration[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      signedZone,
+      offer,
+      consideration,
+      0 // FULL_OPEN
+    );
+
+    orderTwo.extraData = (
+      await signOrder(orderHashTwo, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      toFulfillmentComponents([
+        [0, 0],
+        [1, 0],
+      ]),
+    ];
+
+    const considerationComponents = [
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [0, 1],
+        [1, 1],
+      ],
+      [
+        [0, 2],
+        [1, 2],
+      ],
+    ].map(toFulfillmentComponents);
+
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    await withBalanceChecks(
+      [orderOne, orderTwo],
+      0,
+      undefined,
+      async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableAdvancedOrders(
+            [orderOne, orderTwo],
+            [],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            ethers.constants.AddressZero,
+            100,
+            {
+              value: value.mul(2),
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: orderOne,
+              orderHash: orderHashOne,
+              fulfiller: buyer.address,
+            },
+            {
+              order: orderTwo,
+              orderHash: orderHashTwo,
+              fulfiller: buyer.address,
+            },
+          ],
+          [],
+          [],
+          false,
+          2
+        );
+        return receipt;
+      },
+      2
+    );
+  });
+  it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableAdvancedOrders", async () => {
+    // Seller mints nft
+    const { nftId, amount } = await mintAndApprove1155(
+      seller,
+      marketplaceContract.address,
+      1,
+      4,
+      10000
+    );
+
+    const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), approvedSigner.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      value,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      consideration[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    orderTwo.extraData = (
+      await signOrder(orderHashTwo, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+      ],
+    ];
+
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    await withBalanceChecks(
+      [orderOne],
+      0,
+      undefined,
+      async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillAvailableAdvancedOrders(
+            [orderOne, orderTwo],
+            [],
+            offerComponents,
+            considerationComponents,
+            toKey(0),
+            ethers.constants.AddressZero,
+            1,
+            {
+              value: value.mul(2),
+            }
+          );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: orderOne,
+              orderHash: orderHashOne,
+              fulfiller: buyer.address,
+            },
+          ],
+          [],
+          [],
+          false,
+          1
+        );
+
+        return receipt;
+      },
+      1
+    );
+  });
+  it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders with failing orders", async () => {
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    // Seller mints nft
+    const { nftId, amount } = await mintAndApprove1155(
+      seller,
+      marketplaceContract.address,
+      1,
+      6,
+      10000
+    );
+
+    const offer = [getTestItem1155(nftId, amount.div(2), amount.div(2))];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), approvedSigner.address),
+      getItemETH(parseEther("1"), parseEther("1"), owner.address),
+    ];
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      value,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      consideration[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // second order is expired
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2, // FULL_RESTRICTED
+      [],
+      "EXPIRED"
+    );
+
+    orderTwo.extraData = (
+      await signOrder(orderHashTwo, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // third order will be cancelled
+    const {
+      order: orderThree,
+      orderHash: orderHashThree,
+      orderComponents,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      2 // FULL_RESTRICTED
+    );
+
+    orderThree.extraData = (
+      await signOrder(orderHashThree, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // can cancel it
+    await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
+      .to.emit(marketplaceContract, "OrderCancelled")
+      .withArgs(orderHashThree, seller.address, signedZone.address);
+
+    // fourth order will be filled
+    const { order: orderFour, orderHash: orderHashFour } = await createOrder(
+      seller,
+      signedZone,
+      offer,
+      consideration,
+      0 // FULL_OPEN
+    );
+
+    // can fill it
+    await withBalanceChecks([orderFour], 0, undefined, async () => {
+      const tx = marketplaceContract
+        .connect(buyer)
+        .fulfillOrder(orderFour, toKey(0), {
+          value,
+        });
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(tx, receipt, [
+        {
+          order: orderFour,
+          orderHash: orderHashFour,
+          fulfiller: buyer.address,
+        },
+      ]);
+
+      return receipt;
+    });
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+        { orderIndex: 2, itemIndex: 1 },
+        { orderIndex: 3, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+        { orderIndex: 2, itemIndex: 2 },
+        { orderIndex: 3, itemIndex: 2 },
+      ],
+    ];
+
+    await withBalanceChecks([orderOne], 0, undefined, async () => {
+      const tx = marketplaceContract
+        .connect(buyer)
+        .fulfillAvailableAdvancedOrders(
+          [orderOne, orderTwo, orderThree, orderFour],
+          [],
+          offerComponents,
+          considerationComponents,
+          toKey(0),
+          ethers.constants.AddressZero,
+          100,
+          {
+            value: value.mul(4),
+          }
+        );
+      const receipt = await (await tx).wait();
+      await checkExpectedEvents(tx, receipt, [
+        {
+          order: orderOne,
+          orderHash: orderHashOne,
+          fulfiller: buyer.address,
+        },
+      ]);
+
+      return receipt;
+    });
+  });
+  it("Can fulfill multiple partially fulfilled orders with extraData via fulfillAvailableAdvancedOrders", async () => {
+    // ABC
+
+    // Seller mints erc20
+    await mintAndApproveERC20(
+      seller,
+      marketplaceContract.address,
+      parseEther("3")
+    );
+
+    // buyer mints 1155
+    const { nftId, amount } = await mintAndApprove1155(
+      buyer,
+      marketplaceContract.address,
+      10,
+      10,
+      10
+    );
+
+    // buyer approves ERC20
+    await testERC20
+      .connect(buyer)
+      .approve(marketplaceContract.address, parseEther("0.3"));
+
+    const offer = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const consideration = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      1 // PARTIAL_OPEN
+    );
+
+    orderOne.denominator = 10;
+
+    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      consideration[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+        { orderIndex: 2, itemIndex: 1 },
+        { orderIndex: 3, itemIndex: 1 },
+        { orderIndex: 4, itemIndex: 1 },
+        { orderIndex: 5, itemIndex: 1 },
+        { orderIndex: 6, itemIndex: 1 },
+        { orderIndex: 7, itemIndex: 1 },
+        { orderIndex: 8, itemIndex: 1 },
+        { orderIndex: 9, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+        { orderIndex: 2, itemIndex: 2 },
+        { orderIndex: 3, itemIndex: 2 },
+        { orderIndex: 4, itemIndex: 2 },
+        { orderIndex: 5, itemIndex: 2 },
+        { orderIndex: 6, itemIndex: 2 },
+        { orderIndex: 7, itemIndex: 2 },
+        { orderIndex: 8, itemIndex: 2 },
+        { orderIndex: 9, itemIndex: 2 },
+      ],
+    ];
+
+    const tx = marketplaceContract
+      .connect(buyer)
+      .fulfillAvailableAdvancedOrders(
+        [
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+        ],
+        [],
+        offerComponents,
+        considerationComponents,
+        toKey(0),
+        ethers.constants.AddressZero,
+        100
+      );
+
+    const receipt = await (await tx).wait();
+
+    expect(receipt.status).to.eq(1);
+
+    return receipt;
+  });
+  it("Can fulfill multiple partially fulfilled orders with extraData via fulfillAvailableAdvancedOrders via signedZone", async () => {
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    // Seller mints erc20
+    await mintAndApproveERC20(
+      seller,
+      marketplaceContract.address,
+      parseEther("3")
+    );
+
+    // buyer mints 1155
+    const { nftId, amount } = await mintAndApprove1155(
+      buyer,
+      marketplaceContract.address,
+      10,
+      10,
+      10
+    );
+
+    // buyer approves ERC20
+    await testERC20
+      .connect(buyer)
+      .approve(marketplaceContract.address, parseEther("0.3"));
+
+    const offer = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const consideration = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+      seller,
+      signedZone.address,
+      offer,
+      consideration,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderOne.denominator = 10;
+
+    const substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      consideration[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+        { orderIndex: 2, itemIndex: 1 },
+        { orderIndex: 3, itemIndex: 1 },
+        { orderIndex: 4, itemIndex: 1 },
+        { orderIndex: 5, itemIndex: 1 },
+        { orderIndex: 6, itemIndex: 1 },
+        { orderIndex: 7, itemIndex: 1 },
+        { orderIndex: 8, itemIndex: 1 },
+        { orderIndex: 9, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+        { orderIndex: 2, itemIndex: 2 },
+        { orderIndex: 3, itemIndex: 2 },
+        { orderIndex: 4, itemIndex: 2 },
+        { orderIndex: 5, itemIndex: 2 },
+        { orderIndex: 6, itemIndex: 2 },
+        { orderIndex: 7, itemIndex: 2 },
+        { orderIndex: 8, itemIndex: 2 },
+        { orderIndex: 9, itemIndex: 2 },
+      ],
+    ];
+
+    const tx = marketplaceContract
+      .connect(buyer)
+      .fulfillAvailableAdvancedOrders(
+        [
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+        ],
+        [],
+        offerComponents,
+        considerationComponents,
+        toKey(0),
+        ethers.constants.AddressZero,
+        100
+      );
+
+    const receipt = await (await tx).wait();
+
+    expect(receipt.status).to.eq(1);
+
+    return receipt;
+  });
+  it("FulfillAvailableAdvancedOrders with partial fulfillment/cancellation through zone", async () => {
+    // Approve signer
+    await signedZoneCaptain.updateZoneSigner(
+      signedZone.address,
+      approvedSigner.address,
+      true
+    );
+
+    // Seller mints erc20
+    await mintAndApproveERC20(
+      seller,
+      marketplaceContract.address,
+      parseEther("3")
+    );
+
+    // buyer mints 1155
+    const { nftId, amount } = await mintAndApprove1155(
+      buyer,
+      marketplaceContract.address,
+      10,
+      10,
+      10
+    );
+
+    // buyer approves ERC20
+    await testERC20
+      .connect(buyer)
+      .approve(marketplaceContract.address, parseEther("0.3"));
+
+    const offerOne = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationOne = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const {
+      order: orderOne,
+      orderHash: orderHashOne,
+      orderComponents,
+    } = await createOrder(
+      seller,
+      signedZone.address,
+      offerOne,
+      considerationOne,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderOne.denominator = 10;
+
+    let substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationOne[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderOne.extraData = (
+      await signOrder(orderHashOne, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // cancel order one
+    // can cancel it
+    await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
+      .to.emit(marketplaceContract, "OrderCancelled")
+      .withArgs(orderHashOne, seller.address, signedZone.address);
+
+    const orderStatusOne = await marketplaceContract.getOrderStatus(
+      orderHashOne
+    );
+
+    expect({ ...orderStatusOne }).to.deep.equal(
+      buildOrderStatus(false, true, 0, 0)
+    );
+
+    const offerTwo = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationTwo = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+      seller,
+      signedZone.address,
+      offerTwo,
+      considerationTwo,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderTwo.denominator = 10;
+
+    substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationTwo[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderTwo.extraData = (
+      await signOrder(orderHashTwo, substandard1Data, approvedSigner)
+    ).extraData;
+
+    // fill half of order two
+    orderTwo.denominator = 2;
+    const fulfillHalfTx = marketplaceContract
+      .connect(buyer)
+      .fulfillAdvancedOrder(
+        orderTwo,
+        [],
+        toKey(0),
+        ethers.constants.AddressZero
+      );
+    const fulfillHalfReceipt = await (await fulfillHalfTx).wait();
+
+    expect(fulfillHalfReceipt.status).to.eq(1);
+
+    const orderStatusTwo = await marketplaceContract.getOrderStatus(
+      orderHashTwo
+    );
+
+    expect({ ...orderStatusTwo }).to.deep.equal(
+      buildOrderStatus(true, false, 1, 2)
+    );
+
+    orderTwo.denominator = 10;
+
+    const offerThree = [getTestItem20(parseEther("1"), parseEther("1"))];
+
+    const considerationThree = [
+      getTestItem1155(nftId, amount, amount, undefined, seller.address),
+      getTestItem20(
+        parseEther(".025"),
+        parseEther(".025"),
+        approvedSigner.address
+      ),
+      getTestItem20(parseEther(".075"), parseEther(".075"), owner.address),
+    ];
+
+    const { order: orderThree, orderHash: orderHashThree } = await createOrder(
+      seller,
+      signedZone.address,
+      offerThree,
+      considerationThree,
+      3 // PARTIAL_RESTRICTED
+    );
+
+    orderThree.denominator = 10;
+
+    substandard1Data = `0x${sip6VersionByte}${toPaddedBytes(
+      considerationThree[0].identifierOrCriteria.toNumber()
+    ).toString()}`;
+
+    orderThree.extraData = (
+      await signOrder(orderHashThree, substandard1Data, approvedSigner)
+    ).extraData;
+
+    const offerComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+        { orderIndex: 10, itemIndex: 0 },
+        { orderIndex: 11, itemIndex: 0 },
+        { orderIndex: 12, itemIndex: 0 },
+        { orderIndex: 13, itemIndex: 0 },
+        { orderIndex: 14, itemIndex: 0 },
+        { orderIndex: 15, itemIndex: 0 },
+        { orderIndex: 16, itemIndex: 0 },
+        { orderIndex: 17, itemIndex: 0 },
+        { orderIndex: 18, itemIndex: 0 },
+        { orderIndex: 19, itemIndex: 0 },
+        { orderIndex: 20, itemIndex: 0 },
+        { orderIndex: 21, itemIndex: 0 },
+        { orderIndex: 22, itemIndex: 0 },
+        { orderIndex: 23, itemIndex: 0 },
+        { orderIndex: 24, itemIndex: 0 },
+      ],
+    ];
+    const considerationComponents = [
+      [
+        { orderIndex: 0, itemIndex: 0 },
+        { orderIndex: 1, itemIndex: 0 },
+        { orderIndex: 2, itemIndex: 0 },
+        { orderIndex: 3, itemIndex: 0 },
+        { orderIndex: 4, itemIndex: 0 },
+        { orderIndex: 5, itemIndex: 0 },
+        { orderIndex: 6, itemIndex: 0 },
+        { orderIndex: 7, itemIndex: 0 },
+        { orderIndex: 8, itemIndex: 0 },
+        { orderIndex: 9, itemIndex: 0 },
+        { orderIndex: 10, itemIndex: 0 },
+        { orderIndex: 11, itemIndex: 0 },
+        { orderIndex: 12, itemIndex: 0 },
+        { orderIndex: 13, itemIndex: 0 },
+        { orderIndex: 14, itemIndex: 0 },
+        { orderIndex: 15, itemIndex: 0 },
+        { orderIndex: 16, itemIndex: 0 },
+        { orderIndex: 17, itemIndex: 0 },
+        { orderIndex: 18, itemIndex: 0 },
+        { orderIndex: 19, itemIndex: 0 },
+        { orderIndex: 20, itemIndex: 0 },
+        { orderIndex: 21, itemIndex: 0 },
+        { orderIndex: 22, itemIndex: 0 },
+        { orderIndex: 23, itemIndex: 0 },
+        { orderIndex: 24, itemIndex: 0 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 1 },
+        { orderIndex: 1, itemIndex: 1 },
+        { orderIndex: 2, itemIndex: 1 },
+        { orderIndex: 3, itemIndex: 1 },
+        { orderIndex: 4, itemIndex: 1 },
+        { orderIndex: 5, itemIndex: 1 },
+        { orderIndex: 6, itemIndex: 1 },
+        { orderIndex: 7, itemIndex: 1 },
+        { orderIndex: 8, itemIndex: 1 },
+        { orderIndex: 9, itemIndex: 1 },
+        { orderIndex: 10, itemIndex: 1 },
+        { orderIndex: 11, itemIndex: 1 },
+        { orderIndex: 12, itemIndex: 1 },
+        { orderIndex: 13, itemIndex: 1 },
+        { orderIndex: 14, itemIndex: 1 },
+        { orderIndex: 15, itemIndex: 1 },
+        { orderIndex: 16, itemIndex: 1 },
+        { orderIndex: 17, itemIndex: 1 },
+        { orderIndex: 18, itemIndex: 1 },
+        { orderIndex: 19, itemIndex: 1 },
+        { orderIndex: 20, itemIndex: 1 },
+        { orderIndex: 21, itemIndex: 1 },
+        { orderIndex: 22, itemIndex: 1 },
+        { orderIndex: 23, itemIndex: 1 },
+        { orderIndex: 24, itemIndex: 1 },
+      ],
+      [
+        { orderIndex: 0, itemIndex: 2 },
+        { orderIndex: 1, itemIndex: 2 },
+        { orderIndex: 2, itemIndex: 2 },
+        { orderIndex: 3, itemIndex: 2 },
+        { orderIndex: 4, itemIndex: 2 },
+        { orderIndex: 5, itemIndex: 2 },
+        { orderIndex: 6, itemIndex: 2 },
+        { orderIndex: 7, itemIndex: 2 },
+        { orderIndex: 8, itemIndex: 2 },
+        { orderIndex: 9, itemIndex: 2 },
+        { orderIndex: 10, itemIndex: 2 },
+        { orderIndex: 11, itemIndex: 2 },
+        { orderIndex: 12, itemIndex: 2 },
+        { orderIndex: 13, itemIndex: 2 },
+        { orderIndex: 14, itemIndex: 2 },
+        { orderIndex: 15, itemIndex: 2 },
+        { orderIndex: 16, itemIndex: 2 },
+        { orderIndex: 17, itemIndex: 2 },
+        { orderIndex: 18, itemIndex: 2 },
+        { orderIndex: 19, itemIndex: 2 },
+        { orderIndex: 20, itemIndex: 2 },
+        { orderIndex: 21, itemIndex: 2 },
+        { orderIndex: 22, itemIndex: 2 },
+        { orderIndex: 23, itemIndex: 2 },
+        { orderIndex: 24, itemIndex: 2 },
+      ],
+    ];
+
+    const tx = marketplaceContract
+      .connect(buyer)
+      .fulfillAvailableAdvancedOrders(
+        [
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderOne,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderTwo,
+          orderThree,
+          orderThree,
+          orderThree,
+          orderThree,
+          orderThree,
+        ],
+        [],
+        offerComponents,
+        considerationComponents,
+        toKey(0),
+        ethers.constants.AddressZero,
+        10
+      );
+
+    const receipt = await (await tx).wait();
+
+    expect(receipt.status).to.eq(1);
+
+    return receipt;
   });
   it("Does not fulfill an expired signature order with a signed zone", async () => {
     // Create advanced order using signed zone
@@ -3131,12 +4469,12 @@ describe(`Zone - SignedZone separate deployments without create2 (Seaport v${VER
       owner
     );
 
-    const newSignedZoneCaptian = await SignedZoneCaptainFactory.connect(
+    const newSignedZoneCaptain = await SignedZoneCaptainFactory.connect(
       deployer
     ).deploy(signedZoneController.address, { gasLimit: 10000000 });
 
     await expect(
-      newSignedZoneCaptian
+      newSignedZoneCaptain
         .connect(deployer)
         .initialize(
           ethers.constants.AddressZero,
