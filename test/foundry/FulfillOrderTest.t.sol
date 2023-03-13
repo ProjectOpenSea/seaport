@@ -63,6 +63,9 @@ contract FulfillOrderTest is BaseOrderTest {
         }
     }
 
+    /**
+     * @dev Ensure that fuzzed paymentAmts are nonzero and their sum does not overflow uint128
+     */
     modifier validateInputs(FuzzInputsCommon memory args) {
         vm.assume(
             args.paymentAmts[0] > 0 &&
@@ -77,6 +80,9 @@ contract FulfillOrderTest is BaseOrderTest {
         _;
     }
 
+    /**
+     * @dev Ensure that fuzzed paymentAmts and tipAmt are nonzero and their sum does not overflow uint128
+     */
     modifier validateInputsWithTip(
         FuzzInputsCommon memory args,
         uint256 tipAmt
@@ -119,38 +125,73 @@ contract FulfillOrderTest is BaseOrderTest {
         _;
     }
 
+    /**
+     * @dev fulfillOrder should not allow native offer items in non-contract orders.
+     *
+     *      Arrange: Create a FULL_OPEN order with at least one native offer item.
+     *      Act:     Attempt to fill with fulfillOrder.
+     *      Assert:  Should revert with InvalidNativeOfferItem()
+     */
     function testNoNativeOffers(uint8[8] memory itemTypes) public {
+        // Add 8 fuzzed offer items to the order.
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
+            // Constrain the fuzzed value to one of ItemType 0-3.
+            // These represent ItemTypes without criteria, i.e.
+            // NATIVE, ERC20, ERC721, and ERC1155.
             ItemType itemType = ItemType(itemTypes[i] % 4);
+
+            // Add item to the offer based on fuzzed type.
             if (itemType == ItemType.NATIVE) {
-                addEthOfferItem(1);
+                addEthOfferItem({ paymentAmount: 1 });
             } else if (itemType == ItemType.ERC20) {
-                addErc20OfferItem(1);
+                addErc20OfferItem({ amount: 1 });
             } else if (itemType == ItemType.ERC1155) {
                 test1155_1.mint(alice, tokenId, 1);
-                addErc1155OfferItem(tokenId, 1);
+                addErc1155OfferItem({ tokenId: tokenId, amount: 1 });
             } else {
                 test721_1.mint(alice, tokenId);
-                addErc721OfferItem(tokenId);
+                addErc721OfferItem({ identifier: tokenId });
             }
             tokenId++;
         }
-        addEthOfferItem(1);
+        // Ensure there is at least one native offer item in the order.
+        addEthOfferItem({ paymentAmount: 1 });
 
-        addEthConsiderationItem(alice, 1);
+        // Consider native ETH to Alice
+        addEthConsiderationItem({ recipient: alice, paymentAmount: 1 });
 
-        test(this.noNativeOfferItems, Context(consideration, empty, 0, 0, 0));
         test(
             this.noNativeOfferItems,
-            Context(referenceConsideration, empty, 0, 0, 0)
+            Context({
+                consideration: consideration,
+                args: empty,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
+        );
+        test(
+            this.noNativeOfferItems,
+            Context({
+                consideration: referenceConsideration,
+                args: empty,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
     }
 
     function noNativeOfferItems(Context memory context) external stateless {
-        configureOrderParameters(alice);
+        // Set up an order with Alice as offerer and default parameters
+        configureOrderParameters({ offerer: alice });
+
+        // Set up Alice's counter
         uint256 counter = context.consideration.getCounter(alice);
-        configureOrderComponents(counter);
+        configureOrderComponents({ counter: counter });
+
+        // Hash and sign the order
         bytes32 orderHash = context.consideration.getOrderHash(
             baseOrderComponents
         );
@@ -160,120 +201,185 @@ contract FulfillOrderTest is BaseOrderTest {
             orderHash
         );
 
+        // Fulfilling this order should always revert with InvalidNativeOfferItem()
         vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
-
         context.consideration.fulfillOrder{ value: 1 ether }(
             Order(baseOrderParameters, signature),
             bytes32(0)
         );
     }
 
+    /**
+     * @dev fulfillOrder should not transfer offer items from the null address, even
+     *      if an order is "signed" with an invalid signature that recovers to address(0)
+     *
+     *      Arrange: Create a FULL_OPEN order with an offer item owned by the null address.
+     *      Act:     Attempt to fill with fulfillOrder.
+     *      Assert:  Should revert with InvalidSigner()
+     */
     function testNullAddressSpendReverts() public {
-        // mint token to null address
+        // Mint ERC721 token to null address
         preapproved721.mint(address(0), 1);
-        // mint erc token to test address
+
+        // Mint ERC20 token to test address
         token1.mint(address(this), 1);
-        // offer burnt erc721
-        addErc721OfferItem(address(preapproved721), 1);
-        // consider erc20 to null address
-        addErc20ConsiderationItem(payable(0), 1);
-        // configure baseOrderParameters with null address as offerer
-        configureOrderParameters(address(0));
+
+        // Offer burnt erc721 from null address
+        addErc721OfferItem({ token: address(preapproved721), identifier: 1 });
+
+        // Consider ERC20 to null address
+        addErc20ConsiderationItem({ receiver: payable(0), paymentAmount: 1 });
+
+        // Configure order params with null address as offerer
+        configureOrderParameters({ offerer: address(0) });
+
         test(
             this.nullAddressSpendReverts,
-            Context(referenceConsideration, empty, 0, 0, 0)
+            Context({
+                consideration: consideration,
+                args: empty,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
         test(
             this.nullAddressSpendReverts,
-            Context(consideration, empty, 0, 0, 0)
+            Context({
+                consideration: referenceConsideration,
+                args: empty,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
     }
 
     function nullAddressSpendReverts(
         Context memory context
     ) external stateless {
-        // create a bad signature
+        // Create a bad signature. This will ecrecover to address(0).
         bytes memory signature = abi.encodePacked(
             bytes32(0),
             bytes32(0),
             bytes1(uint8(27))
         );
-        // test that signature is recognized as invalid even though signer recovered is null address
-        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
 
+        // Test that signature is recognized as invalid even though signer recovered is null address
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         context.consideration.fulfillOrder(
             Order(baseOrderParameters, signature),
             bytes32(0)
         );
     }
 
+    /**
+     * @dev fulfillOrder should fill valid orders with ascending and descending offer item amounts
+     *
+     *      Arrange: Create a FULL_OPEN order with an ERC20 offer item and a fuzzed ascending/descending
+                     amount. Consider 1000 wei of native ETH.
+     *      Act:     Attempt to fill with fulfillOrder.
+     *      Assert:  Should succeed and emit a Transfer event.
+     */
     function testFulfillAscendingDescendingOffer(
         FuzzInputsCommon memory inputs
     ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        // Ensure fuzzed startAmount and endAmount are nonzero.
         vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
+        // Ensure fuzzed warpAmount is less than 1000
         inputs.warpAmount %= 1000;
+
         test(
             this.fulfillAscendingDescendingOffer,
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context({
+                consideration: consideration,
+                args: inputs,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
         test(
             this.fulfillAscendingDescendingOffer,
-            Context(consideration, inputs, 0, 0, 0)
+            Context({
+                consideration: referenceConsideration,
+                args: inputs,
+                erc1155Amt: 0,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
     }
 
     function fulfillAscendingDescendingOffer(
         Context memory context
     ) external stateless {
+        // Set a conduit key based on the fuzzed useConduit value
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
-        token1.mint(
-            alice,
-            (
-                context.args.endAmount > context.args.startAmount
-                    ? context.args.endAmount
-                    : context.args.startAmount
-            ).mul(1000)
-        );
-        addErc20OfferItem(
-            context.args.startAmount.mul(1000),
-            context.args.endAmount.mul(1000)
-        );
-        addEthConsiderationItem(alice, 1000);
-        OrderParameters memory orderParameters = OrderParameters(
-            alice,
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            bytes32(0),
-            context.args.salt,
-            conduitKey,
-            1
-        );
 
+        // Mint enough ERC20 tokens to Alice to cover the offer
+        uint256 amount = (
+            context.args.endAmount > context.args.startAmount
+                ? context.args.endAmount
+                : context.args.startAmount
+        ).mul(1000);
+        token1.mint(alice, amount);
+
+        // Offer an increasing or decreasing amount of ERC20
+        addErc20OfferItem({
+            startAmount: context.args.startAmount.mul(1000),
+            endAmount: context.args.endAmount.mul(1000)
+        });
+
+        // Consider 1000 wei of native ETH to Alice
+        addEthConsiderationItem({ recipient: alice, paymentAmount: 1000 });
+
+        // Set up Alice's order
+        uint256 startTime = block.timestamp;
+        uint256 endTime = startTime + 1000;
+        OrderParameters memory orderParameters = OrderParameters({
+            offerer: alice,
+            zone: context.args.zone,
+            offer: offerItems,
+            consideration: considerationItems,
+            orderType: OrderType.FULL_OPEN,
+            startTime: startTime,
+            endTime: endTime,
+            zoneHash: bytes32(0),
+            salt: context.args.salt,
+            conduitKey: conduitKey,
+            totalOriginalConsiderationItems: 1
+        });
+
+        // Add Alice's current counter to the order
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
             context.consideration.getCounter(alice)
         );
+
+        // Sign the order
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
             context.consideration.getOrderHash(orderComponents)
         );
 
-        uint256 startTime = block.timestamp;
-        vm.warp(block.timestamp + context.args.warpAmount);
+        // Warp forward by fuzzed warpAmount
+        vm.warp(startTime + context.args.warpAmount);
+
+        // Calculate offer amount at this new point in time, since
+        // it's increasing or decreasing.
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
             startTime,
-            startTime + 1000,
+            endTime,
             false // don't round up offers
         );
+
+        // Expect a successful fill and transfer.
         vm.expectEmit(true, true, true, false, address(token1));
         emit Transfer(alice, address(this), expectedAmount);
         context.consideration.fulfillOrder{ value: 1000 }(
@@ -282,74 +388,119 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
+    /**
+     * @dev fulfillOrder should fill valid orders with ascending and descending consideration item amounts
+     *
+     *      Arrange: Create a FULL_OPEN order with an ERC1155 offer item. Consider a fuzzed
+                     ascending/descending amount of ERC20 token.
+     *      Act:     Attempt to fill with fulfillOrder.
+     *      Assert:  Should succeed and emit a Transfer event.
+     */
     function testFulfillAscendingDescendingConsideration(
         FuzzInputsCommon memory inputs,
         uint256 erc1155Amt
     ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        // Ensure fuzzed amounts are nonzero.
         vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
         vm.assume(erc1155Amt > 0);
+
         test(
             this.fulfillAscendingDescendingConsideration,
-            Context(referenceConsideration, inputs, erc1155Amt, 0, 0)
+            Context({
+                consideration: consideration,
+                args: inputs,
+                erc1155Amt: erc1155Amt,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
         test(
             this.fulfillAscendingDescendingConsideration,
-            Context(consideration, inputs, erc1155Amt, 0, 0)
+            Context({
+                consideration: referenceConsideration,
+                args: inputs,
+                erc1155Amt: erc1155Amt,
+                tipAmt: 0,
+                numTips: 0
+            })
         );
     }
 
     function fulfillAscendingDescendingConsideration(
         Context memory context
     ) external stateless {
+        // Ensure fuzzed warpAmount is less than 1000
         context.args.warpAmount %= 1000;
+
+        // Set a conduit key based on the fuzzed useConduit value
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
+        // Mint a fuzzed amount of ERC1155 tokens to Alice and add
+        // them as the offer.
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
-        addErc1155OfferItem(context.args.id, context.erc1155Amt);
+        addErc1155OfferItem({
+            tokenId: context.args.id,
+            amount: context.erc1155Amt
+        });
 
-        addErc20ConsiderationItem(
-            alice,
-            context.args.startAmount.mul(1000),
-            context.args.endAmount.mul(1000)
-        );
-        OrderParameters memory orderParameters = OrderParameters(
-            alice,
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            bytes32(0),
-            context.args.salt,
-            conduitKey,
-            1
-        );
+        // Consider an increasing/decreasing amount of ERC20 to Alice
+        addErc20ConsiderationItem({
+            receiver: alice,
+            startAmount: context.args.startAmount.mul(1000),
+            endAmount: context.args.endAmount.mul(1000)
+        });
+
+        // Set up Alice's order
+        uint256 startTime = block.timestamp;
+        uint256 endTime = startTime + 1000;
+        OrderParameters memory orderParameters = OrderParameters({
+            offerer: alice,
+            zone: context.args.zone,
+            offer: offerItems,
+            consideration: considerationItems,
+            orderType: OrderType.FULL_OPEN,
+            startTime: startTime,
+            endTime: endTime,
+            zoneHash: bytes32(0),
+            salt: context.args.salt,
+            conduitKey: conduitKey,
+            totalOriginalConsiderationItems: 1
+        });
         delete offerItems;
         delete considerationItems;
 
+        // Add Alice's current counter to the order
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
             context.consideration.getCounter(alice)
         );
+
+        // Sign the order
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
             context.consideration.getOrderHash(orderComponents)
         );
 
-        uint256 startTime = block.timestamp;
-        vm.warp(block.timestamp + context.args.warpAmount);
+        // Warp forward by fuzzed warpAmount
+        vm.warp(startTime + context.args.warpAmount);
+
+        // Calculate consideration amount at this new point in time, since
+        // it's increasing or decreasing.
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
             startTime,
-            startTime + 1000,
+            endTime,
             true // round up considerations
         );
+
+        // Mint ourselves enough ERC20 to fill the order.
         token1.mint(address(this), expectedAmount);
+
+        // Expect a successful fill and transfer.
         vm.expectEmit(true, true, true, false, address(token1));
         emit Transfer(address(this), address(alice), expectedAmount);
         context.consideration.fulfillOrder(
