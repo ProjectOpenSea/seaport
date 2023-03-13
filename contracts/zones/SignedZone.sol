@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
 
@@ -145,12 +145,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      * @return validOrderMagicValue A magic value indicating if the order is
      *                              currently valid.
      */
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        override
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view override returns (bytes4 validOrderMagicValue) {
         // Check Zone Parameters validity.
         _assertValidZoneParameters();
         // Put the extraData and orderHash on the stack for cheaper access.
@@ -419,11 +416,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      *
      * @param interfaceId The interface id to check against.
      */
-    function _supportsInterface(bytes4 interfaceId)
-        internal
-        pure
-        returns (bool supportsInterface)
-    {
+    function _supportsInterface(
+        bytes4 interfaceId
+    ) internal pure returns (bool supportsInterface) {
         // Determine if the interface is supported.
         supportsInterface =
             interfaceId == type(SIP5Interface).interfaceId || // SIP-5
@@ -504,11 +499,10 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      *
      * @return recoveredSigner The recovered signer.
      */
-    function _recoverSigner(bytes32 digest, bytes memory signature)
-        internal
-        view
-        returns (address recoveredSigner)
-    {
+    function _recoverSigner(
+        bytes32 digest,
+        bytes memory signature
+    ) internal view returns (address recoveredSigner) {
         // Utilize assembly to perform optimized signature verification check.
         assembly {
             // Ensure that first word of scratch space is empty.
@@ -776,11 +770,9 @@ contract SignedZone is SignedZoneEventsAndErrors, ZoneInterface, SIP5Interface {
      *
      * @return expectedFulfiller The expected fulfiller of the order.
      */
-    function _assertValidSubstandardAndGetExpectedFulfiller(bytes32 orderHash)
-        internal
-        pure
-        returns (address expectedFulfiller)
-    {
+    function _assertValidSubstandardAndGetExpectedFulfiller(
+        bytes32 orderHash
+    ) internal pure returns (address expectedFulfiller) {
         // Revert if the expected fulfiller is not the zero address and does
         // not match the actual fulfiller or if the expected received
         // identifier does not match the actual received identifier.

@@ -43,6 +43,11 @@ task("print-report", "Print the last gas report").setAction(
   }
 );
 
+// Use a default test pk if we do not have one in our .env - DO NOT USE THIS IN PRODUCTION
+const deployerPk =
+  process.env.DEPLOYER_PK ??
+  "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad";
+
 const optimizerSettingsNoSpecializer = {
   enabled: true,
   runs: 4_294_967_295,
@@ -87,6 +92,25 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      {
+        version: "0.8.19",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            ...(process.env.NO_SPECIALIZER
+              ? optimizerSettingsNoSpecializer
+              : { enabled: true, runs: 9999999 }),
+          },
+          metadata: {
+            bytecodeHash: "none",
+          },
+          outputSelection: {
+            "*": {
+              "*": ["evm.assembly", "irOptimized", "devdoc"],
+            },
+          },
+        },
+      },
     ],
     overrides: {
       "contracts/conduit/Conduit.sol": {
@@ -120,7 +144,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/zone/SignedZone.sol": {
-        version: "0.8.13",
+        version: "0.8.19",
         settings: {
           viaIR: true,
           optimizer: {
@@ -130,7 +154,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/zone/SignedZoneCaptain.sol": {
-        version: "0.8.13",
+        version: "0.8.19",
         settings: {
           viaIR: true,
           optimizer: {
@@ -140,7 +164,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/zone/OpenSeaSignedZoneCaptain.sol": {
-        version: "0.8.13",
+        version: "0.8.19",
         settings: {
           viaIR: true,
           optimizer: {
@@ -150,7 +174,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/zone/SignedZoneController.sol": {
-        version: "0.8.13",
+        version: "0.8.19",
         settings: {
           viaIR: true,
           optimizer: {
@@ -169,6 +193,14 @@ const config: HardhatUserConfig = {
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",
+    },
+    mainnet: {
+      url: process.env.ETHEREUM_RPC_URL,
+      accounts: [deployerPk],
+    },
+    goerli: {
+      url: process.env.GOERLI_RPC_URL,
+      accounts: [deployerPk],
     },
   },
   gasReporter: {
