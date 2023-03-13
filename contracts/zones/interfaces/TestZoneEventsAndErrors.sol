@@ -8,17 +8,6 @@ import { SpentItem, ReceivedItem } from "../../lib/ConsiderationStructs.sol";
  *         related to zone interaction.
  */
 interface TestZoneEventsAndErrors {
-    event TestEvent(
-        bytes32 orderHash,
-        address fulfiller,
-        bytes32[] orderHashes,
-        uint256 startTime,
-        uint256 endTime,
-        bytes32 zoneHash,
-        SpentItem[] spentItems,
-        ReceivedItem[] receivedItems
-    );
-
     /**
      * @dev Emit an event whenever a zone is successfully paused.
      */
