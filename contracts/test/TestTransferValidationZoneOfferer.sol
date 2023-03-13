@@ -146,6 +146,22 @@ contract TestTransferValidationZoneOfferer is
             zoneParameters.consideration.length
         );
         console.log(
+            "zoneParameters[i].consideration[0].itemType: ",
+            uint(zoneParameters.consideration[0].itemType)
+        );
+        console.log(
+            "zoneParameters[i].consideration[0].token: ",
+            zoneParameters.consideration[0].token
+        );
+        console.log(
+            "zoneParameters[i].consideration[0].amount: ",
+            zoneParameters.consideration[0].amount
+        );
+        console.log(
+            "zoneParameters[i].consideration[0].recipient: ",
+            zoneParameters.consideration[0].recipient
+        );
+        console.log(
             "validateOrder zoneParameters.extraData: ",
             string(zoneParameters.extraData)
         );

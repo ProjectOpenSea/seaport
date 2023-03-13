@@ -615,8 +615,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     ConsiderationItemLib
                         .fromDefault(THREE_ERC20)
                         .withToken(address(token1))
-                        .withStartAmount(strangerAddressUint)
-                        .withEndAmount(strangerAddressUint)
+                        .withStartAmount(10)
+                        .withEndAmount(10)
                         .withRecipient(payable(offerer1.addr))
                 );
 
@@ -734,6 +734,22 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 zoneParameters[i].consideration.length
             );
             console.log(
+                "zoneParameters[i].consideration[0].itemType: ",
+                uint(zoneParameters[i].consideration[0].itemType)
+            );
+            console.log(
+                "zoneParameters[i].consideration[0].token: ",
+                zoneParameters[i].consideration[0].token
+            );
+            console.log(
+                "zoneParameters[i].consideration[0].amount: ",
+                zoneParameters[i].consideration[0].amount
+            );
+            console.log(
+                "zoneParameters[i].consideration[0].recipient: ",
+                zoneParameters[i].consideration[0].recipient
+            );
+            console.log(
                 "zoneParameters[i].extraData: ",
                 string(zoneParameters[i].extraData)
             );
@@ -796,7 +812,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             considerationFulfillments: considerationFulfillments,
             fulfillerConduitKey: bytes32(conduitKeyOne),
             recipient: address(offerer1.addr),
-            maximumFulfilled: advancedOrders.length - 1
+            maximumFulfilled: advancedOrders.length
         });
 
         assertTrue(transferValidationZone.callCount() == 1);
