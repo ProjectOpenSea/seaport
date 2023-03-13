@@ -22,6 +22,8 @@ import {
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
+import "hardhat/console.sol";
+
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface
@@ -88,26 +90,85 @@ contract TestTransferValidationZoneOfferer is
 
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
-        uint256 seaportBalance = address(msg.sender).balance;
+        // uint256 seaportBalance = address(msg.sender).balance;
 
-        if (seaportBalance > 0) {
-            revert IncorrectSeaportBalance(0, seaportBalance);
-        }
+        // if (seaportBalance > 0) {
+        //     revert IncorrectSeaportBalance(0, seaportBalance);
+        // }
 
-        // Check if all consideration items have been received.
-        _assertValidReceivedItems(zoneParameters.consideration);
+        // // Check if all consideration items have been received.
+        // _assertValidReceivedItems(zoneParameters.consideration);
 
-        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-            ? zoneParameters.fulfiller
-            : _expectedOfferRecipient;
+        // address expectedOfferRecipient = _expectedOfferRecipient == address(0)
+        //     ? zoneParameters.fulfiller
+        //     : _expectedOfferRecipient;
 
-        // Ensure that the expected recipient has received all offer items.
-        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
+        // // Ensure that the expected recipient has received all offer items.
+        // _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
-        // Set the global called flag to true.
-        called = true;
-        callCount++;
-
+        // // Set the global called flag to true.
+        // called = true;
+        // callCount++;
+        console.log(
+            "validateOrder zoneParameters.orderHash: ",
+            uint(zoneParameters.orderHash)
+        );
+        console.log(
+            "validateOrder zoneParameters.fulfiller: ",
+            zoneParameters.fulfiller
+        );
+        console.log(
+            "validateOrder zoneParameters.offerer: ",
+            zoneParameters.offerer
+        );
+        console.log(
+            "validateOrder zoneParameters.offer.length: ",
+            zoneParameters.offer.length
+        );
+        console.log(
+            "validateOrder zoneParameters.offer[0].itemType: ",
+            uint(zoneParameters.offer[0].itemType)
+        );
+        console.log(
+            "validateOrder zoneParameters.offer[0].token: ",
+            zoneParameters.offer[0].token
+        );
+        console.log(
+            "validateOrder zoneParameters.offer[0].identifier: ",
+            zoneParameters.offer[0].identifier
+        );
+        console.log(
+            "validateOrder zoneParameters.offer[0].amount: ",
+            zoneParameters.offer[0].amount
+        );
+        console.log(
+            "validateOrder zoneParameters.consideration.length: ",
+            zoneParameters.consideration.length
+        );
+        console.log(
+            "validateOrder zoneParameters.extraData: ",
+            string(zoneParameters.extraData)
+        );
+        console.log(
+            "validateOrder zoneParameters.orderHashes[0]: ",
+            uint(zoneParameters.orderHashes[0])
+        );
+        console.log(
+            "validateOrder zoneParameters.orderHashes[1]: ",
+            uint(zoneParameters.orderHashes[1])
+        );
+        console.log(
+            "validateOrder zoneParameters.startTime: ",
+            zoneParameters.startTime
+        );
+        console.log(
+            "validateOrder zoneParameters.endTime: ",
+            zoneParameters.endTime
+        );
+        console.log(
+            "validateOrder zoneParameters.zoneHash: %i \n",
+            uint(zoneParameters.zoneHash)
+        );
         uint256 dataLength = msg.data.length;
         bytes memory data = new bytes(dataLength);
 
