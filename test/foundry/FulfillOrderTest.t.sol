@@ -277,7 +277,7 @@ contract FulfillOrderTest is BaseOrderTest {
      * @dev fulfillOrder should fill valid orders with ascending and descending offer item amounts
      *
      *      Arrange: Create a FULL_OPEN order with an ERC20 offer item and a fuzzed ascending/descending
-                     amount. Consider 1000 wei of native ETH.
+     *               amount. Consider 1000 wei of native ETH.
      *      Act:     Attempt to fill with fulfillOrder.
      *      Assert:  Should succeed and emit a Transfer event.
      */
@@ -391,8 +391,8 @@ contract FulfillOrderTest is BaseOrderTest {
     /**
      * @dev fulfillOrder should fill valid orders with ascending and descending consideration item amounts
      *
-     *      Arrange: Create a FULL_OPEN order with an ERC1155 offer item. Consider a fuzzed
-                     ascending/descending amount of ERC20 token.
+     *      Arrange: Create a FULL_OPEN order with an ERC1155 offer item. Consider a fuzzed ascending/descending
+     *               amount of ERC20 token.
      *      Act:     Attempt to fill with fulfillOrder.
      *      Assert:  Should succeed and emit a Transfer event.
      */
