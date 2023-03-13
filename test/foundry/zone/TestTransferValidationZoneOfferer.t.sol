@@ -36,6 +36,8 @@ import {
 
 import { FulfillmentHelper } from "seaport-sol/FulfillmentHelper.sol";
 
+import { MatchFulfillmentHelper } from "seaport-sol/MatchFulfillmentHelper.sol";
+
 import { TestZone } from "./impl/TestZone.sol";
 
 contract TestTransferValidationZoneOffererTest is BaseOrderTest {
@@ -1611,12 +1613,24 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         args.amount = uint128(bound(args.amount, 1, 0xffffffffffffffff));
         // Avoid trying to mint the same token.
         args.tokenId = bound(args.tokenId, 0xff, 0xffffffffffffffff);
-        args.considerationItemCount = bound(args.considerationItemCount, 1, 2);
+        // Use 1-3 (prime) consideration items per order.
+        args.considerationItemCount = bound(args.considerationItemCount, 1, 3);
+        // Make 1-8 order pairs per call.  Each order pair will have 1-2 offer
+        // items on the prime side (depending on whether useExcessOfferItems is
+        // true or false) and 1 consieration item on the mirror side.
         args.nonAggregatableOfferItemCount = bound(
             args.nonAggregatableOfferItemCount,
             1,
-            2 // More than this causes a revert.  Maybe gas related?
+            8
         );
+        // Only include an excess offer item if when NOT using the transfer
+        // validation zone, or the zone will revert.
+        args.useExcessOfferItems =
+            args.useExcessOfferItems &&
+            !(args.useTransferValidationZoneForPrime ||
+                args.useTransferValidationZoneForMirror);
+        // Include some excess native tokens to check that they're ending up
+        // with the caller afterward.
         args.excessNativeTokens = uint128(
             bound(args.excessNativeTokens, 0, 0xfffffffffffffffffffffffffffff)
         );
@@ -1625,12 +1639,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         args.offerRecipient = address(
             uint160(bound(uint160(args.offerRecipient), 1, type(uint160).max))
         );
-        // Only want this to be true if we're NOT using the transfer validation
-        // zone.
-        args.useExcessOfferItems =
-            args.useExcessOfferItems &&
-            !(args.useTransferValidationZoneForPrime ||
-                args.useTransferValidationZoneForMirror);
         // To put three items in the consideration, we need to have include
         // native tokens.
         args.includeNativeConsideration =
@@ -1656,8 +1664,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         uint256 callerBalanceAfter;
         uint256 primeOffererBalanceBefore;
         uint256 primeOffererBalanceAfter;
-        uint256 mirrorOffererBalanceBefore;
-        uint256 mirrorOffererBalanceAfter;
     }
 
     function execMatchAdvancedOrdersBasicFuzz(
@@ -1675,17 +1681,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             callerBalanceBefore: 0,
             callerBalanceAfter: 0,
             primeOffererBalanceBefore: 0,
-            primeOffererBalanceAfter: 0,
-            mirrorOffererBalanceBefore: 0,
-            mirrorOffererBalanceAfter: 0
+            primeOffererBalanceAfter: 0
         });
 
-        // The prime offerer is selling NFTs.
+        // The prime offerer is offering NFTs and considering ERC20/Native.
         fuzzPrimeOfferer = makeAndAllocateAccount(context.args.primeOfferer);
-        // The mirror offerer is buying NFTs.
+        // The mirror offerer is offering ERC20/Native and considering NFTs.
         fuzzMirrorOfferer = makeAndAllocateAccount(context.args.mirrorOfferer);
 
-        // Set fuzzMirrorOfferer as the expected offer recipient.
+        // Set fuzzMirrorOfferer as the zone's expected offer recipient.
         zone.setExpectedOfferRecipient(fuzzMirrorOfferer.addr);
 
         // Create the orders and fulfuillments.
@@ -1708,26 +1712,50 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
+        // Set up event expectations.
+        if (
+            // If the fuzzPrimeOfferer and fuzzMirrorOfferer are the same
+            // address, then the ERC20 transfers will be filtered.
+            fuzzPrimeOfferer.addr != fuzzMirrorOfferer.addr
+        ) {
+            if (
+                // When includeNativeConsideration is false, there will be
+                // exactly one token1 consideration item per
+                // nonAggregatableOfferItemCount. And they'll all get aggregated
+                // into a single transfer.
+                !context.args.includeNativeConsideration
+            ) {
+                // This checks that the ERC20 transfers were all aggregated into
+                // a single transfer.
+                vm.expectEmit(true, true, true, true, address(token1));
+                emit Transfer(
+                    address(fuzzMirrorOfferer.addr), // from
+                    address(fuzzPrimeOfferer.addr), // to
+                    context.args.amount *
+                        context.args.nonAggregatableOfferItemCount
+                );
+            }
+
+            if (
+                // When considerationItemCount is 3, there will be exactly one
+                // token2 consideration item per nonAggregatableOfferItemCount.
+                // And they'll all get aggregated into a single transfer.
+                context.args.considerationItemCount >= 3
+            ) {
+                vm.expectEmit(true, true, true, true, address(token2));
+                emit Transfer(
+                    address(fuzzMirrorOfferer.addr), // from
+                    address(fuzzPrimeOfferer.addr), // to
+                    context.args.amount *
+                        context.args.nonAggregatableOfferItemCount
+                );
+            }
+        }
+
+        // Note the native token balances before the call.
         infra.callerBalanceBefore = address(this).balance;
         infra.primeOffererBalanceBefore = address(fuzzPrimeOfferer.addr)
             .balance;
-        infra.mirrorOffererBalanceBefore = address(fuzzMirrorOfferer.addr)
-            .balance;
-
-        // // Turn this on once erc20 consideration is set up properly.
-        // if (!context.args.includeNativeConsideration) {
-        //     // This checks that the ERC20 transfers were not all aggregated
-        //     // into a single transfer.
-        //     vm.expectEmit(true, true, true, true, address(token1));
-        //     emit Transfer(
-        //         address(fuzzMirrorOfferer.addr), // from
-        //         address(fuzzPrimeOfferer.addr), // to
-        //         // The value should in the transfer event should either be
-        //         // the amount * the number of NFTs for sale (if aggregating) or
-        //         // the amount (if not aggregating).
-        //         context.args.amount * context.args.nonAggregatableOfferItemCount
-        //     );
-        // }
 
         // Make the call to Seaport.
         context.seaport.matchAdvancedOrders{
@@ -1745,10 +1773,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 : address(0)
         );
 
+        // Note the native token balances after the call for later checks.
         infra.callerBalanceAfter = address(this).balance;
         infra.primeOffererBalanceAfter = address(fuzzPrimeOfferer.addr).balance;
-        infra.mirrorOffererBalanceAfter = address(fuzzMirrorOfferer.addr)
-            .balance;
 
         // Expected call count is the number of prime orders using the transfer
         // validation zone, plus the number of mirror orders using the transfer
@@ -1793,6 +1820,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         if (context.args.includeNativeConsideration) {
             // Check that ETH is moving from the caller to the prime offerer.
+            // This also checks that excess native tokens are being swept back
+            // to the caller.
             assertEq(
                 infra.callerBalanceBefore -
                     context.args.amount *
@@ -2916,86 +2945,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
 
         // Build fulfillments.
-        infra.fulfillments = _buildFulfillments(infra.orders);
+        infra.fulfillments = MatchFulfillmentHelper.getMatchedFulfillments(
+            infra.orders
+        );
 
         return (infra.orders, infra.fulfillments);
-    }
-
-    // This is not remotely functional.  It's just here as a placeholder.
-    function _buildFulfillments(
-        Order[] memory orders
-    ) internal view returns (Fulfillment[] memory _fulfillments) {
-        Fulfillment memory fulfillment;
-        uint j;
-
-        // infra.orders.length should always be divisible by 2 because we create
-        // two orders for each sale.
-        for (uint256 i = 0; i < (orders.length / 2); i++) {
-            Fulfillment[] memory fulfillments = new Fulfillment[](
-                orders.length * 2
-            );
-
-            FulfillmentComponent[]
-                memory offerFulfillmentComponents = new FulfillmentComponent[](
-                    orders[i].parameters.offer.length
-                );
-            FulfillmentComponent[]
-                memory considerationFulfillmentComponents = new FulfillmentComponent[](
-                    orders[i].parameters.consideration.length
-                );
-
-            for (j = 0; j < orders[i].parameters.offer.length; j++) {
-                offerFulfillmentComponents[j] = FulfillmentComponentLib
-                    .empty()
-                    .withOrderIndex(i)
-                    .withItemIndex(j);
-            }
-
-            // Create the fulfillments for the "prime" order.
-            fulfillment = FulfillmentLib.empty().withOfferComponents(
-                offerFulfillmentComponents
-            );
-
-            for (j = 0; j < orders[i].parameters.consideration.length; j++) {
-                considerationFulfillmentComponents[j] = FulfillmentComponentLib
-                    .empty()
-                    .withOrderIndex(i)
-                    .withItemIndex(j);
-            }
-
-            fulfillment = fulfillment.copy().withConsiderationComponents(
-                considerationFulfillmentComponents
-            );
-
-            fulfillments[i] = fulfillment;
-
-            // Create the fulfillments for the "mirror" order.
-            for (j = 0; j < orders[i].parameters.consideration.length; j++) {
-                considerationFulfillmentComponents[j] = FulfillmentComponentLib
-                    .empty()
-                    .withOrderIndex(i + (orders.length / 2))
-                    .withItemIndex(j);
-            }
-
-            fulfillment = FulfillmentLib.empty().withOfferComponents(
-                considerationFulfillmentComponents
-            );
-
-            for (j = 0; j < orders[i].parameters.offer.length; j++) {
-                offerFulfillmentComponents[j] = FulfillmentComponentLib
-                    .empty()
-                    .withOrderIndex(i + (orders.length / 2))
-                    .withItemIndex(j);
-            }
-
-            fulfillment = fulfillment.copy().withConsiderationComponents(
-                offerFulfillmentComponents
-            );
-
-            fulfillments[i + (orders.length / 2)] = fulfillment;
-        }
-
-        return fulfillments;
     }
 
     function toOrder(
