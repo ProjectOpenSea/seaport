@@ -4,18 +4,40 @@ pragma solidity ^0.8.17;
 import "./SeaportSol.sol";
 
 library FulfillmentHelper {
-    bytes32 private constant fulfillmentOfferMapKey =
-        keccak256("FulfillmentHelper.fulfillmentOfferMap");
-    bytes32 private constant fulfillmentConsiderationMapKey =
-        keccak256("FulfillmentHelper.fulfillmentConsiderationMap");
-    bytes32 private constant fulfillmentOfferEnumerationKey =
-        keccak256("FulfillmentHelper.fulfillmentOfferEnumeration");
-    bytes32 private constant fulfillmentConsiderationEnumerationKey =
-        keccak256("FulfillmentHelper.fulfillmentconsiderationEnumeration");
-
     // used to effectively "wipe" the mappings and enumerations each time getAggregated is called
     bytes32 private constant fulfillmentCounterKey =
         keccak256("FulfillmentHelper.fulfillmentCounter");
+
+    bytes32 private constant fulfillmentHelperStorageBaseKey =
+        keccak256("FulfillmentHelper.storageBase");
+
+    struct FulfillmentHelperCounterLayout {
+        uint256 fulfillmentCounter;
+    }
+
+    // TODO: update for conduits
+    struct FulfillmentHelperStorageLayout {
+        mapping(
+            address /*offererOrRecipient*/
+                => mapping(
+                    address /*tokenContract*/
+                        => mapping(
+                            uint256 /*identifier*/ => FulfillmentComponent[] /*components*/
+                        )
+                )
+            ) offerMap;
+        mapping(
+            address /*offererOrRecipient*/
+                => mapping(
+                    address /*tokenContract*/
+                        => mapping(
+                            uint256 /*identifier*/ => FulfillmentComponent[] /*components*/
+                        )
+                )
+            ) considerationMap;
+        AggregatableToken[] offerEnumeration;
+        AggregatableToken[] considerationEnumeration;
+    }
 
     struct AggregatableToken {
         address offererOrRecipient;
@@ -171,6 +193,33 @@ library FulfillmentHelper {
         return getAggregatedFulfillmentComponents(orderParameters);
     }
 
+    function getStorageLayout()
+        internal
+        view
+        returns (FulfillmentHelperStorageLayout storage layout)
+    {
+        FulfillmentHelperCounterLayout storage counterLayout =
+            getCounterLayout();
+        uint256 counter = counterLayout.fulfillmentCounter;
+        bytes32 storageLayoutKey = fulfillmentHelperStorageBaseKey;
+        assembly {
+            mstore(0, counter)
+            mstore(0x20, storageLayoutKey)
+            layout.slot := keccak256(0, 0x40)
+        }
+    }
+
+    function getCounterLayout()
+        internal
+        view
+        returns (FulfillmentHelperCounterLayout storage layout)
+    {
+        bytes32 counterLayoutKey = fulfillmentCounterKey;
+        assembly {
+            layout.slot := counterLayoutKey
+        }
+    }
+
     /**
      * @notice Get aggregated fulfillment components for aggregatable types from the same offerer or to the same recipient
      * NOTE: this will break for multiple criteria items that resolve
@@ -188,31 +237,7 @@ library FulfillmentHelper {
     {
         // increment counter to get clean mappings and enumeration
         incrementFulfillmentCounter();
-
-        // get mappings and enumerations
-        mapping(
-            address /*offererOrRecipient*/
-                => mapping(
-                    address /*tokenContract*/
-                        => mapping(
-                            uint256 /*identifier*/ => FulfillmentComponent[] /*components*/
-                        )
-                )
-            ) storage offerMap = getMap(fulfillmentOfferMapKey);
-        mapping(
-            address /*offererOrRecipient*/
-                => mapping(
-                    address /*tokenContract*/
-                        => mapping(
-                            uint256 /*identifier*/ => FulfillmentComponent[] /*components*/
-                        )
-                )
-            ) storage considerationMap =
-                getMap(fulfillmentConsiderationMapKey);
-        AggregatableToken[] storage offerEnumeration =
-            getEnumeration(fulfillmentOfferEnumerationKey);
-        AggregatableToken[] storage considerationEnumeration =
-            getEnumeration(fulfillmentConsiderationEnumerationKey);
+        FulfillmentHelperStorageLayout storage layout = getStorageLayout();
 
         // iterate over each order
         for (uint256 i; i < orders.length; ++i) {
@@ -221,32 +246,32 @@ library FulfillmentHelper {
                 parameters.offer,
                 parameters.offerer,
                 i,
-                offerMap,
-                offerEnumeration
+                layout.offerMap,
+                layout.offerEnumeration
             );
             processConsideration(
                 parameters.consideration,
                 i,
-                considerationMap,
-                considerationEnumeration
+                layout.considerationMap,
+                layout.considerationEnumeration
             );
         }
 
         // allocate offer arrays
-        offer = new FulfillmentComponent[][](offerEnumeration.length);
+        offer = new FulfillmentComponent[][](layout.offerEnumeration.length);
         // iterate over enumerated groupings and add to array
-        for (uint256 i; i < offerEnumeration.length; ++i) {
-            AggregatableToken memory token = offerEnumeration[i];
-            offer[i] = offerMap[token.offererOrRecipient][token.contractAddress][token
-                .tokenId];
+        for (uint256 i; i < layout.offerEnumeration.length; ++i) {
+            AggregatableToken memory token = layout.offerEnumeration[i];
+            offer[i] = layout.offerMap[token.offererOrRecipient][token
+                .contractAddress][token.tokenId];
         }
         // do the same for considerations
         consideration = new FulfillmentComponent[][](
-            considerationEnumeration.length
+            layout.considerationEnumeration.length
         );
-        for (uint256 i; i < considerationEnumeration.length; ++i) {
-            AggregatableToken memory token = considerationEnumeration[i];
-            consideration[i] = considerationMap[token.offererOrRecipient][token
+        for (uint256 i; i < layout.considerationEnumeration.length; ++i) {
+            AggregatableToken memory token = layout.considerationEnumeration[i];
+            consideration[i] = layout.considerationMap[token.offererOrRecipient][token
                 .contractAddress][token.tokenId];
         }
         return (offer, consideration);
@@ -368,10 +393,9 @@ library FulfillmentHelper {
      * @notice increment the fulfillmentCounter to effectively clear the mappings and enumerations between calls
      */
     function incrementFulfillmentCounter() private {
-        bytes32 counterKey = fulfillmentCounterKey;
-        assembly {
-            sstore(counterKey, add(sload(counterKey), 1))
-        }
+        FulfillmentHelperCounterLayout storage counterLayout =
+            getCounterLayout();
+        counterLayout.fulfillmentCounter += 1;
     }
 
     /**

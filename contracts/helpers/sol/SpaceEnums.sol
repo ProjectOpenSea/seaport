@@ -30,9 +30,35 @@ enum OrderStatus {
     REVERT // fulfilling reverts
 }
 
+enum BroadOrderType {
+    FULL,
+    PARTIAL,
+    CONTRACT
+}
+
+// !BroadOrderType.CONTRACT <- Zone
+enum Zone {
+    NONE,
+    PASS,
+    FAIL
+}
+
+// !BroadOrderType.CONTRACT <- OrderAuth
+enum NumOrders {
+    ONE,
+    MULTIPLE
+}
+
+// NumOrders.MULTIPLE && any(OrderFulfillment.PARTIAL) <- OrderComposition
+enum OrdersComposition {
+    HOMOGENOUS,
+    HETEROGENOUS
+}
+
+// OrderStatus.REVERT && !Zone.FAIL && !Offerer.CONTRACT_OFFERER <- OrderStatusRevertReason
 enum OrderStatusRevertReason {
-    NATIVE,
-    ERC1155
+    NATIVE, // receive hook fails
+    ERC1155 // receive hook fails
 }
 
 // ItemType.ERC20/ERC1155/ERC721 <- TokenIndex
@@ -93,19 +119,6 @@ enum Offerer {
     BOB,
     EIP1271,
     CONTRACT_OFFERER
-}
-
-enum BroadOrderType {
-    FULL,
-    PARTIAL,
-    CONTRACT
-}
-
-// BroadOrderType.!CONTRACT <- Zone
-enum Zone {
-    NONE,
-    PASS,
-    FAIL
 }
 
 // debatable if needed but we do need to test zonehash permutations
@@ -175,7 +188,7 @@ enum Time
     FUTURE,
     EXPIRED
 }
-
+`
 // Method.MATCH* <- MatchValidation
 enum MatchValidation {
     SELF_AD_HOC,
