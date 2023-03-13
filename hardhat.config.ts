@@ -195,11 +195,11 @@ const config: HardhatUserConfig = {
       url: process.env.NETWORK_RPC ?? "",
     },
     mainnet: {
-      url: process.env.ETHEREUM_RPC_URL,
+      url: process.env.ETHEREUM_RPC_URL ?? "",
       accounts: [deployerPk],
     },
     goerli: {
-      url: process.env.GOERLI_RPC_URL,
+      url: process.env.GOERLI_RPC_URL ?? "",
       accounts: [deployerPk],
     },
   },
