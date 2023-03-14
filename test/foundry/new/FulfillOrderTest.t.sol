@@ -41,6 +41,49 @@ contract FulfillOrderTest is BaseOrderTest {
         }
     }
 
+    /**
+     * @dev fulfillOrder should fill valid orders with ascending and descending
+     *      offer item amounts
+     *
+     *      Setup:  Create a FULL_OPEN order with an ERC20 offer item and a
+     *              fuzzed ascending/descending amount. Consider 1000 wei of
+     *              native ETH.
+     *
+     *      Exec:   Warp forward a fuzzed warpAmount. Fill the order with
+     *              fulfillOrder.
+     *
+     *      Expect: Should succeed and emit a Transfer event with the expected
+     *              offer amount.
+     */
+    function testFulfillAscendingDescendingOffer(
+        FuzzParams memory fuzzParams
+    ) public {
+        fuzzParams.startAmount = uint120(
+            bound(fuzzParams.startAmount, 1, type(uint120).max)
+        );
+        fuzzParams.endAmount = uint120(
+            bound(fuzzParams.endAmount, 1, type(uint120).max)
+        );
+        fuzzParams.warpAmount = uint16(bound(fuzzParams.warpAmount, 0, 1000));
+
+        test(
+            this.execFulfillAscendingDescendingOffer,
+            ContextOverride({
+                seaport: seaport,
+                conduitKey: bytes32(0),
+                fuzzParams: fuzzParams
+            })
+        );
+        test(
+            this.execFulfillAscendingDescendingOffer,
+            ContextOverride({
+                seaport: referenceSeaport,
+                conduitKey: bytes32(0),
+                fuzzParams: fuzzParams
+            })
+        );
+    }
+
     function setUpFulfillAscendingDescendingOffer(
         ContextOverride memory context
     ) internal view returns (Order memory order) {
@@ -121,7 +164,20 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillAscendingDescendingOffer(
+    /**
+     * @dev fulfillOrder should fill valid orders with ascending and descending
+     *      consideration item amounts
+     *
+     *      Setup:  Create a FULL_OPEN order with an ERC1155 offer item.
+     *              Consider a fuzzed ascending/descending amount of ERC20.
+     *
+     *      Exec:   Warp forward a fuzzed warpAmount. Fill the order with
+     *              fulfillOrder.
+     *
+     *      Expect: Should succeed and emit a Transfer event with the expected
+     *              consideration amount.
+     */
+    function testFulfillAscendingDescendingConsideration(
         FuzzParams memory fuzzParams
     ) public {
         fuzzParams.startAmount = uint120(
@@ -131,9 +187,10 @@ contract FulfillOrderTest is BaseOrderTest {
             bound(fuzzParams.endAmount, 1, type(uint120).max)
         );
         fuzzParams.warpAmount = uint16(bound(fuzzParams.warpAmount, 0, 1000));
+        fuzzParams.amount = bound(fuzzParams.amount, 1, type(uint256).max);
 
         test(
-            this.execFulfillAscendingDescendingOffer,
+            this.execFulfillAscendingDescendingConsideration,
             ContextOverride({
                 seaport: seaport,
                 conduitKey: bytes32(0),
@@ -141,7 +198,7 @@ contract FulfillOrderTest is BaseOrderTest {
             })
         );
         test(
-            this.execFulfillAscendingDescendingOffer,
+            this.execFulfillAscendingDescendingConsideration,
             ContextOverride({
                 seaport: referenceSeaport,
                 conduitKey: bytes32(0),
@@ -230,36 +287,6 @@ contract FulfillOrderTest is BaseOrderTest {
         context.seaport.fulfillOrder(
             setUpFulfillAscendingDescendingConsideration(context),
             context.conduitKey
-        );
-    }
-
-    function testFulfillAscendingDescendingConsideration(
-        FuzzParams memory fuzzParams
-    ) public {
-        fuzzParams.startAmount = uint120(
-            bound(fuzzParams.startAmount, 1, type(uint120).max)
-        );
-        fuzzParams.endAmount = uint120(
-            bound(fuzzParams.endAmount, 1, type(uint120).max)
-        );
-        fuzzParams.warpAmount = uint16(bound(fuzzParams.warpAmount, 0, 1000));
-        fuzzParams.amount = bound(fuzzParams.amount, 1, type(uint256).max);
-
-        test(
-            this.execFulfillAscendingDescendingConsideration,
-            ContextOverride({
-                seaport: seaport,
-                conduitKey: bytes32(0),
-                fuzzParams: fuzzParams
-            })
-        );
-        test(
-            this.execFulfillAscendingDescendingConsideration,
-            ContextOverride({
-                seaport: referenceSeaport,
-                conduitKey: bytes32(0),
-                fuzzParams: fuzzParams
-            })
         );
     }
 }
