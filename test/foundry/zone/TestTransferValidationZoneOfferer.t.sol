@@ -75,6 +75,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
     event TestPayloadHash(bytes32 dataHash);
 
+    event DataHash(bytes32 dataHash);
+
     function setUp() public virtual override {
         super.setUp();
         zone = new TestTransferValidationZoneOfferer(address(0));
@@ -600,6 +602,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         OrderComponents memory orderComponentsOne;
         OrderComponents memory orderComponentsTwo;
         AdvancedOrder[] memory advancedOrders;
+        FulfillmentComponent[][] memory offerFulfillments;
+        FulfillmentComponent[][] memory considerationFulfillments;
 
         // Create a block to deal with stack depth issues.
         {
@@ -660,11 +664,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[0].toAdvancedOrder(1, 1, ""),
                 orders[1].toAdvancedOrder(1, 1, "")
             );
-        }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
+            // Create the fulfillments for the offers.
+            offerFulfillments = SeaportArrays.FulfillmentComponentArrays(
                 SeaportArrays.FulfillmentComponents(
                     FulfillmentComponentLib.fromDefault(FIRST_FIRST)
                 ),
@@ -673,9 +675,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 )
             );
 
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
+            // Create the fulfillments for the considerations.
+            considerationFulfillments = SeaportArrays
                 .FulfillmentComponentArrays(
                     FulfillmentComponentLib.fromDefaultMany(
                         FIRST_SECOND__FIRST
@@ -684,105 +685,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                         FIRST_SECOND__SECOND
                     )
                 );
+        }
 
         uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
 
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(address(this), offerer1Counter, context.seaport);
 
-        {
-            bytes32[] memory payloadHashes = new bytes32[](
-                zoneParameters.length
+        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+        for (uint256 i = 0; i < zoneParameters.length; i++) {
+            payloadHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
             );
-            for (uint256 i = 0; i < zoneParameters.length; i++) {
-                console.log(
-                    "ZoneParameters %i constructed by helper function: ",
-                    i
-                );
-                console.log(
-                    "zoneParameters[i].orderHash: ",
-                    uint(zoneParameters[i].orderHash)
-                );
-                console.log(
-                    "zoneParameters[i].fulfiller: ",
-                    zoneParameters[i].fulfiller
-                );
-                console.log(
-                    "zoneParameters[i].offerer: ",
-                    zoneParameters[i].offerer
-                );
-                console.log(
-                    "zoneParameters[i].offer.length: ",
-                    zoneParameters[i].offer.length
-                );
-                console.log(
-                    "zoneParameters[i].offer[0].itemType: ",
-                    uint(zoneParameters[i].offer[0].itemType)
-                );
-                console.log(
-                    "zoneParameters[i].offer[0].token: ",
-                    zoneParameters[i].offer[0].token
-                );
-                console.log(
-                    "zoneParameters[i].offer[0].identifier: ",
-                    zoneParameters[i].offer[0].identifier
-                );
-                console.log(
-                    "zoneParameters[i].offer[0].amount: ",
-                    zoneParameters[i].offer[0].amount
-                );
-                console.log(
-                    "zoneParameters[i].consideration.length: ",
-                    zoneParameters[i].consideration.length
-                );
-                console.log(
-                    "zoneParameters[i].consideration[0].itemType: ",
-                    uint(zoneParameters[i].consideration[0].itemType)
-                );
-                console.log(
-                    "zoneParameters[i].consideration[0].token: ",
-                    zoneParameters[i].consideration[0].token
-                );
-                console.log(
-                    "zoneParameters[i].consideration[0].amount: ",
-                    zoneParameters[i].consideration[0].amount
-                );
-                console.log(
-                    "zoneParameters[i].consideration[0].recipient: ",
-                    zoneParameters[i].consideration[0].recipient
-                );
-                console.log(
-                    "zoneParameters[i].extraData: ",
-                    string(zoneParameters[i].extraData)
-                );
-                console.log(
-                    "zoneParameters[i].orderHashes[0]: ",
-                    uint(zoneParameters[i].orderHashes[0])
-                );
-                console.log(
-                    "zoneParameters[i].orderHashes[1]: ",
-                    uint(zoneParameters[i].orderHashes[1])
-                );
-                console.log(
-                    "zoneParameters[i].startTime: ",
-                    zoneParameters[i].startTime
-                );
-                console.log(
-                    "zoneParameters[i].endTime: ",
-                    zoneParameters[i].endTime
-                );
-                console.log(
-                    "zoneParameters[i].zoneHash: %i \n",
-                    uint(zoneParameters[i].zoneHash)
-                );
-                payloadHashes[i] = keccak256(
-                    abi.encodeCall(
-                        ZoneInterface.validateOrder,
-                        (zoneParameters[i])
-                    )
-                );
-                emit TestPayloadHash(payloadHashes[i]);
-            }
+            emit TestPayloadHash(payloadHashes[i]);
+            vm.expectEmit(true, false, false, true);
+            emit DataHash(payloadHashes[i]);
         }
         // want helper that takes in array of advanced orders, fulfiller and gives expected zone parameters array
         // offer and consideration need to be converted to spent and received items
@@ -807,7 +724,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // ratifyOrder validates dataHash)
 
         // Make the call to Seaport.
-
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
             criteriaResolvers: new CriteriaResolver[](0),
