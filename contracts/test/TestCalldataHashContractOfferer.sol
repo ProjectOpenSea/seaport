@@ -118,23 +118,6 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         if (address(this) != requiredEthBalance) {
             revert InvalidEthBalance(requiredEthBalance, address(this).balance);
         }
-
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
-
-        // Create a variable to store msg.data in memory
-        bytes memory data;
-
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
-        }
-
-        // Store the hash of msg.data
-        _expectedDataHash = keccak256(data);
     }
 
     /**
@@ -166,12 +149,9 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             data := ptr
         }
 
-        bytes32 actualDataHash = keccak256(data);
+        // Store the hash of msg.data
+        _expectedDataHash = keccak256(data);
 
-        // Checks if actualDatHash matches _expectedDataHash set in activate
-        if (actualDataHash != _expectedDataHash) {
-            revert InvalidContractOrder(_expectedDataHash, actualDataHash);
-        }
         return previewOrder(address(this), address(this), a, b, c);
     }
 
