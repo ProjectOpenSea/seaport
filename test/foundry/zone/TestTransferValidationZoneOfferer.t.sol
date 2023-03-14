@@ -701,27 +701,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             vm.expectEmit(true, false, false, true);
             emit DataHash(payloadHashes[i]);
         }
-        // want helper that takes in array of advanced orders, fulfiller and gives expected zone parameters array
-        // offer and consideration need to be converted to spent and received items
-        // extradata - pass through
-        // zone parameters includes orderHashes array
-        // give helper list of orders as well as criteria resolvers
-        // helper needs to resolve criteria items, calculate amounts (based on block time)
-        // get order hash for particular order, then construct orderHashes array
-        // returns new array of zone paramters same length as orders array
-        // orderhashes array is same for each zone parameters
-
-        // need to find msg.data that seaport calls zone with
-        // integrate helper into james' library
-        // encodeWithSignature, validateOrder, zoneParameters
-
-        // transferValidationZone.registerExpectedDataHash(dataHash);
-
-        // very first contract order tests - actigvate
-        // something similar but pass in whole struct (spent, received, expected context, revert if data doesn't match, otherwise approve + send ether)
-        // activate - set approvals, send tokens, prob sufficient to have two dataHashes
-        // generateOrder
-        // ratifyOrder validates dataHash)
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
