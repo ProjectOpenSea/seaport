@@ -56,6 +56,10 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
+    error InvalidContractOrder(
+        bytes32 expectedDataHash,
+        bytes32 actualDataHash
+    );
     event DataHash(bytes32 dataHash);
 
     receive() external payable {}
@@ -63,6 +67,13 @@ contract TestTransferValidationZoneOfferer is
     address internal _expectedOfferRecipient;
 
     address private immutable _SEAPORT;
+
+    // SpentItem[] internal _available;
+    // SpentItem[] internal _required;
+
+    // bytes internal _context;
+
+    bytes32 internal _expectedDataHash;
 
     // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient, address seaport) {
@@ -143,14 +154,11 @@ contract TestTransferValidationZoneOfferer is
     }
 
     function activate(
-        address fulfiller,
+        address,
         SpentItem[] memory minimumReceived,
         SpentItem[] memory maximumSpent,
         bytes calldata context
-    )
-        external
-        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
-    {
+    ) public payable {
         uint256 minimumReceivedLength = minimumReceived.length;
 
         for (uint256 i = 0; i < minimumReceivedLength; i++) {
@@ -184,6 +192,23 @@ contract TestTransferValidationZoneOfferer is
                 item.amount = address(this).balance;
             }
         }
+
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        // Store the hash of msg.data
+        _expectedDataHash = keccak256(data);
     }
 
     /**
@@ -201,6 +226,25 @@ contract TestTransferValidationZoneOfferer is
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        bytes32 actualDataHash = keccak256(data);
+
+        if (actualDataHash != _expectedDataHash) {
+            revert InvalidContractOrder(_expectedDataHash, actualDataHash);
+        }
         return previewOrder(address(this), address(this), a, b, c);
     }
 
