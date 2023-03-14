@@ -62,9 +62,12 @@ contract TestTransferValidationZoneOfferer is
 
     address internal _expectedOfferRecipient;
 
+    address private immutable _SEAPORT;
+
     // Pass in the null address to expect the fulfiller.
-    constructor(address expectedOfferRecipient) {
+    constructor(address expectedOfferRecipient, address seaport) {
         _expectedOfferRecipient = expectedOfferRecipient;
+        _SEAPORT = seaport;
     }
 
     bool public called = false;
@@ -137,6 +140,50 @@ contract TestTransferValidationZoneOfferer is
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
+    }
+
+    function activate(
+        address fulfiller,
+        SpentItem[] memory minimumReceived,
+        SpentItem[] memory maximumSpent,
+        bytes calldata context
+    )
+        external
+        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
+    {
+        uint256 minimumReceivedLength = minimumReceived.length;
+
+        for (uint256 i = 0; i < minimumReceivedLength; i++) {
+            SpentItem memory item = minimumReceived[i];
+
+            if (item.itemType == ItemType.ERC721) {
+                ERC721Interface token = ERC721Interface(item.token);
+
+                token.transferFrom(msg.sender, address(this), item.identifier);
+
+                token.setApprovalForAll(_SEAPORT, true);
+            } else if (item.itemType == ItemType.ERC1155) {
+                ERC1155Interface token = ERC1155Interface(item.token);
+
+                token.safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    item.identifier,
+                    item.amount,
+                    ""
+                );
+
+                token.setApprovalForAll(_SEAPORT, true);
+            } else if (item.itemType == ItemType.ERC20) {
+                ERC20Interface token = ERC20Interface(item.token);
+
+                token.transferFrom(msg.sender, address(this), item.amount);
+
+                token.approve(_SEAPORT, item.amount);
+            } else if (item.itemType == ItemType.NATIVE) {
+                item.amount = address(this).balance;
+            }
+        }
     }
 
     /**
