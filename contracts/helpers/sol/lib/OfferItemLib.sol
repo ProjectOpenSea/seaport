@@ -308,4 +308,22 @@ library OfferItemLib {
                 amount: item.startAmount
             });
     }
+
+    /**
+     * @dev Converts an OfferItem[] to a SpentItem[].
+     *
+     * @param items the OfferItem[] to convert
+     *
+     * @custom:return spentItems the converted SpentItem[]
+     */
+    function toSpentItemArray(
+        OfferItem[] memory items
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = toSpentItem(items[i]);
+        }
+
+        return spentItems;
+    }
 }

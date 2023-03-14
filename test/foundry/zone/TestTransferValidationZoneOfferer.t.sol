@@ -40,6 +40,10 @@ import {
     TestTransferValidationZoneOfferer
 } from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
+import {
+    TestCalldataHashContractOfferer
+} from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
+
 import "hardhat/console.sol";
 
 contract TestTransferValidationZoneOffererTest is BaseOrderTest {
@@ -1515,11 +1519,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
     {
         // Create contract offerers
-        TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
-                address(0)
+        TestCalldataHashContractOfferer transferValidationOfferer1 = new TestCalldataHashContractOfferer(
+                address(context.seaport)
             );
-        TestTransferValidationZoneOfferer transferValidationOfferer2 = new TestTransferValidationZoneOfferer(
-                address(0)
+        TestCalldataHashContractOfferer transferValidationOfferer2 = new TestCalldataHashContractOfferer(
+                address(context.seaport)
             );
 
         transferValidationOfferer1.setExpectedOfferRecipient(
@@ -1632,11 +1636,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
     {
         // Create contract offerers
-        TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
-                address(0)
+        TestCalldataHashContractOfferer transferValidationOfferer1 = new TestCalldataHashContractOfferer(
+                address(context.seaport)
             );
-        TestTransferValidationZoneOfferer transferValidationOfferer2 = new TestTransferValidationZoneOfferer(
-                address(0)
+        TestCalldataHashContractOfferer transferValidationOfferer2 = new TestCalldataHashContractOfferer(
+                address(context.seaport)
             );
 
         transferValidationOfferer1.setExpectedOfferRecipient(
@@ -1738,6 +1742,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
                 )
         );
+
+        // Convert OfferItem[] and ConsiderationItem[] to SpentItem[] to call activate
+        SpentItem[] memory minimumReceived = offerArray.toSpentItemArray();
+        SpentItem[] memory maximumSpent = considerationArray.toSpentItemArray();
 
         return (orders, fulfillments, conduitKeyOne, 2);
     }
