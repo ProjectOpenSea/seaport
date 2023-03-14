@@ -211,7 +211,7 @@ library FulfillmentHelper {
 
     function getCounterLayout()
         internal
-        view
+        pure
         returns (FulfillmentHelperCounterLayout storage layout)
     {
         bytes32 counterLayoutKey = fulfillmentCounterKey;

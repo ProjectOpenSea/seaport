@@ -53,6 +53,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using OrderLib for Order[];
 
     TestTransferValidationZoneOfferer zone;
+    TestZone testZone;
 
     // constant strings for recalling struct lib defaults
     // ideally these live in a base test class
@@ -65,6 +66,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function setUp() public virtual override {
         super.setUp();
         zone = new TestTransferValidationZoneOfferer(address(0));
+        testZone = new TestZone();
 
         // create a default considerationItem for one ether;
         // note that it does not have recipient set
@@ -191,6 +193,55 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         bool shouldIncludeExcessOfferItems;
         bool shouldSpecifyUnspentOfferItemRecipient;
         bool shouldIncludeJunkDataInAdvancedOrder;
+    }
+
+    // Used for stack depth management.
+    struct MatchAdvancedOrdersInfra {
+        Order[] orders;
+        Fulfillment[] fulfillments;
+        AdvancedOrder[] advancedOrders;
+        CriteriaResolver[] criteriaResolvers;
+        uint256 callerBalanceBefore;
+        uint256 callerBalanceAfter;
+        uint256 primeOffererBalanceBefore;
+        uint256 primeOffererBalanceAfter;
+    }
+
+    // Used for stack depth management.
+    struct FulfillAvailableAdvancedOrdersInfra {
+        AdvancedOrder[] advancedOrders;
+        FulfillmentComponent[][] offerFulfillmentComponents;
+        FulfillmentComponent[][] considerationFulfillmentComponents;
+        CriteriaResolver[] criteriaResolvers;
+        uint256 callerBalanceBefore;
+        uint256 callerBalanceAfter;
+        uint256 considerationRecipientNativeBalanceBefore;
+        uint256 considerationRecipientToken1BalanceBefore;
+        uint256 considerationRecipientToken2BalanceBefore;
+        uint256 considerationRecipientNativeBalanceAfter;
+        uint256 considerationRecipientToken1BalanceAfter;
+        uint256 considerationRecipientToken2BalanceAfter;
+    }
+
+    // Used for stack depth management.
+    struct OrderAndFulfillmentInfra {
+        OfferItem[] offerItemArray;
+        ConsiderationItem[] considerationItemArray;
+        OrderComponents orderComponents;
+        Order[] orders;
+        Fulfillment fulfillment;
+        Fulfillment[] fulfillments;
+    }
+
+    // Used for stack depth management.
+    struct OrderComponentInfra {
+        OrderComponents orderComponents;
+        OrderComponents[] orderComponentsArray;
+        OfferItem[][] offerItemArray;
+        ConsiderationItem[][] considerationItemArray;
+        ConsiderationItem nativeConsiderationItem;
+        ConsiderationItem erc20ConsiderationItemOne;
+        ConsiderationItem erc20ConsiderationItemTwo;
     }
 
     FulfillFuzzInputs emptyFulfill;
@@ -1367,12 +1418,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
         // Don't set the offer recipient to the null address, because that's the
         // way to indicate that the caller should be the recipient.
-        matchArgs.unspentPrimeOfferItemRecipient = address(
-            uint160(
-                bound(
-                    uint160(matchArgs.unspentPrimeOfferItemRecipient),
-                    1,
-                    type(uint160).max
+        matchArgs.unspentPrimeOfferItemRecipient = _nudgeAddressIfProblematic(
+            address(
+                uint160(
+                    bound(
+                        uint160(matchArgs.unspentPrimeOfferItemRecipient),
+                        1,
+                        type(uint160).max
+                    )
                 )
             )
         );
@@ -1391,24 +1444,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
-    // Used for stack management.
-    struct MatchAdvancedOrderInfra {
-        Order[] orders;
-        Fulfillment[] fulfillments;
-        AdvancedOrder[] advancedOrders;
-        CriteriaResolver[] criteriaResolvers;
-        uint256 callerBalanceBefore;
-        uint256 callerBalanceAfter;
-        uint256 primeOffererBalanceBefore;
-        uint256 primeOffererBalanceAfter;
-    }
-
     function execMatchAdvancedOrdersFuzz(
         Context memory context
     ) external stateless {
         // Set up the infrastructure for this function in a struct to avoid
         // stack depth issues.
-        MatchAdvancedOrderInfra memory infra = MatchAdvancedOrderInfra({
+        MatchAdvancedOrdersInfra memory infra = MatchAdvancedOrdersInfra({
             orders: new Order[](context.matchArgs.orderPairCount),
             fulfillments: new Fulfillment[](context.matchArgs.orderPairCount),
             advancedOrders: new AdvancedOrder[](
@@ -1470,7 +1511,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ) {
                 // This checks that the ERC20 transfers were all aggregated into
                 // a single transfer.
-                vm.expectEmit(true, true, true, true, address(token1));
+                vm.expectEmit(true, true, false, true, address(token1));
                 emit Transfer(
                     address(fuzzMirrorOfferer.addr), // from
                     address(fuzzPrimeOfferer.addr), // to
@@ -1484,7 +1525,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 // And they'll all get aggregated into a single transfer.
                 context.matchArgs.considerationItemsPerPrimeOrderCount >= 3
             ) {
-                vm.expectEmit(true, true, true, true, address(token2));
+                vm.expectEmit(true, true, false, true, address(token2));
                 emit Transfer(
                     address(fuzzMirrorOfferer.addr), // from
                     address(fuzzPrimeOfferer.addr), // to
@@ -1616,19 +1657,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Don't set the offer recipient to the null address, because that's the
         // way to indicate that the caller should be the recipient and because
         // some tokens refuse to transfer to the null address.
-        fulfillArgs.offerRecipient = address(
-            uint160(
-                bound(uint160(fulfillArgs.offerRecipient), 1, type(uint160).max)
+        fulfillArgs.offerRecipient = _nudgeAddressIfProblematic(
+            address(
+                uint160(
+                    bound(
+                        uint160(fulfillArgs.offerRecipient),
+                        1,
+                        type(uint160).max
+                    )
+                )
             )
         );
         // Don't set the consideration recipient to the null address, because
         // some tokens refuse to transfer to the null address.
-        fulfillArgs.considerationRecipient = address(
-            uint160(
-                bound(
-                    uint160(fulfillArgs.considerationRecipient),
-                    1,
-                    type(uint160).max
+        fulfillArgs.considerationRecipient = _nudgeAddressIfProblematic(
+            address(
+                uint160(
+                    bound(
+                        uint160(fulfillArgs.considerationRecipient),
+                        1,
+                        type(uint160).max
+                    )
                 )
             )
         );
@@ -1648,6 +1697,43 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     ) external stateless {
         // TODO: (Someday) See if the stack can tolerate fuzzing criteria
         // resolvers.
+
+        // Set up the infrastructure.
+        FulfillAvailableAdvancedOrdersInfra
+            memory infra = FulfillAvailableAdvancedOrdersInfra({
+                advancedOrders: new AdvancedOrder[](
+                    context.fulfillArgs.orderCount
+                ),
+                offerFulfillmentComponents: new FulfillmentComponent[][](
+                    context.fulfillArgs.orderCount
+                ),
+                considerationFulfillmentComponents: new FulfillmentComponent[][](
+                    context.fulfillArgs.orderCount
+                ),
+                criteriaResolvers: new CriteriaResolver[](0),
+                callerBalanceBefore: address(this).balance,
+                callerBalanceAfter: address(this).balance,
+                considerationRecipientNativeBalanceBefore: context
+                    .fulfillArgs
+                    .considerationRecipient
+                    .balance,
+                considerationRecipientToken1BalanceBefore: token1.balanceOf(
+                    context.fulfillArgs.considerationRecipient
+                ),
+                considerationRecipientToken2BalanceBefore: token2.balanceOf(
+                    context.fulfillArgs.considerationRecipient
+                ),
+                considerationRecipientNativeBalanceAfter: context
+                    .fulfillArgs
+                    .considerationRecipient
+                    .balance,
+                considerationRecipientToken1BalanceAfter: token1.balanceOf(
+                    context.fulfillArgs.considerationRecipient
+                ),
+                considerationRecipientToken2BalanceAfter: token2.balanceOf(
+                    context.fulfillArgs.considerationRecipient
+                )
+            });
 
         // Use a conduit sometimes.
         bytes32 conduitKey = context.fulfillArgs.shouldUseConduit
@@ -1670,26 +1756,24 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
 
         // Create the orders.
-        AdvancedOrder[] memory advancedOrders = _buildOrdersFromFuzzArgs(
-            context,
-            offerer1.key
-        );
-
-        // Set up the fulfillment arrays.
-        FulfillmentComponent[][] memory offerFulfillments;
-        FulfillmentComponent[][] memory considerationFulfillments;
+        infra.advancedOrders = _buildOrdersFromFuzzArgs(context, offerer1.key);
 
         // Create the fulfillments.
         if (context.fulfillArgs.shouldAggregateFulfillmentComponents) {
-            (offerFulfillments, considerationFulfillments) = FulfillmentHelper
-                .getAggregatedFulfillmentComponents(advancedOrders);
+            (
+                infra.offerFulfillmentComponents,
+                infra.considerationFulfillmentComponents
+            ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+                infra.advancedOrders
+            );
         } else {
-            (offerFulfillments, considerationFulfillments) = FulfillmentHelper
-                .getNaiveFulfillmentComponents(advancedOrders);
+            (
+                infra.offerFulfillmentComponents,
+                infra.considerationFulfillmentComponents
+            ) = FulfillmentHelper.getNaiveFulfillmentComponents(
+                infra.advancedOrders
+            );
         }
-
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
 
         // If the fuzz args call for using the transfer validation zone, make
         // sure that it is actually enforcing the expected requirements.
@@ -1722,20 +1806,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                             : 0
                     )
             }({
-                advancedOrders: advancedOrders,
-                criteriaResolvers: criteriaResolvers,
-                offerFulfillments: offerFulfillments,
-                considerationFulfillments: considerationFulfillments,
+                advancedOrders: infra.advancedOrders,
+                criteriaResolvers: infra.criteriaResolvers,
+                offerFulfillments: infra.offerFulfillmentComponents,
+                considerationFulfillments: infra
+                    .considerationFulfillmentComponents,
                 fulfillerConduitKey: bytes32(conduitKey),
                 recipient: strangerAddress,
                 maximumFulfilled: context.fulfillArgs.maximumFulfilledCount
             });
         }
 
-        if (!context.fulfillArgs.shouldIncludeNativeConsideration) {
+        if (
+            !context.fulfillArgs.shouldIncludeNativeConsideration &&
+            // If the fuzz args pick this address as the consideration
+            // recipient, then the ERC20 transfers and the native token
+            // transfers will be filtered, so there will be no events.
+            address(context.fulfillArgs.considerationRecipient) != address(this)
+        ) {
             // This checks that the ERC20 transfers were not all aggregated
             // into a single transfer.
-            vm.expectEmit(true, true, true, true, address(token1));
+            vm.expectEmit(true, true, false, true, address(token1));
             emit Transfer(
                 address(this), // from
                 address(context.fulfillArgs.considerationRecipient), // to
@@ -1753,7 +1844,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             if (context.fulfillArgs.considerationItemsPerOrderCount >= 2) {
                 // This checks that the second consideration item is being
                 // properly handled.
-                vm.expectEmit(true, true, true, true, address(token2));
+                vm.expectEmit(true, true, false, true, address(token2));
                 emit Transfer(
                     address(this), // from
                     address(context.fulfillArgs.considerationRecipient), // to
@@ -1769,8 +1860,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             }
         }
 
-        // Store caller balance before the call for later comparison.
-        uint256 callerBalanceBefore = address(this).balance;
+        // Store balances before the call for later comparison.
+        infra.callerBalanceBefore = address(this).balance;
+        infra.considerationRecipientNativeBalanceBefore = address(
+            context.fulfillArgs.considerationRecipient
+        ).balance;
+        infra.considerationRecipientToken1BalanceBefore = token1.balanceOf(
+            context.fulfillArgs.considerationRecipient
+        );
+        infra.considerationRecipientToken2BalanceBefore = token2.balanceOf(
+            context.fulfillArgs.considerationRecipient
+        );
 
         // Make the call to Seaport. When the fuzz args call for using native
         // consideration, send enough native tokens to cover the amount per sale
@@ -1785,10 +1885,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                         : 0
                 )
         }({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
-            offerFulfillments: offerFulfillments,
-            considerationFulfillments: considerationFulfillments,
+            advancedOrders: infra.advancedOrders,
+            criteriaResolvers: infra.criteriaResolvers,
+            offerFulfillments: infra.offerFulfillmentComponents,
+            considerationFulfillments: infra.considerationFulfillmentComponents,
             fulfillerConduitKey: bytes32(conduitKey),
             // If the fuzz args call for specifying a recipient, pass in the
             // offer recipient.  Otherwise, pass in the null address, which
@@ -1799,8 +1899,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             maximumFulfilled: context.fulfillArgs.maximumFulfilledCount
         });
 
-        // Store caller balance after the call for later comparison.
-        uint256 callerBalanceAfter = address(this).balance;
+        // Store balances after the call for later comparison.
+        infra.callerBalanceAfter = address(this).balance;
+        infra.considerationRecipientNativeBalanceAfter = address(
+            context.fulfillArgs.considerationRecipient
+        ).balance;
+        infra.considerationRecipientToken1BalanceAfter = token1.balanceOf(
+            context.fulfillArgs.considerationRecipient
+        );
+        infra.considerationRecipientToken2BalanceAfter = token2.balanceOf(
+            context.fulfillArgs.considerationRecipient
+        );
 
         // Check that the zone was called the expected number of times.
         if (context.fulfillArgs.shouldUseTransferValidationZone) {
@@ -1823,42 +1932,78 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // TODO: REMOVE: Maybe just change these to balance checks to avoid the
-        // headache of setting up a list of addresses with dirty balances.
-
         // Check that the ERC20s or native tokens were transferred to the
         // expected recipient according to the fuzz args.
-        if (!context.fulfillArgs.shouldIncludeNativeConsideration) {
-            assertEq(
-                token1.balanceOf(context.fulfillArgs.considerationRecipient),
-                context.fulfillArgs.amount *
-                    context.fulfillArgs.maximumFulfilledCount
-            );
-
-            if (context.fulfillArgs.considerationItemsPerOrderCount >= 2) {
+        if (context.fulfillArgs.shouldIncludeNativeConsideration) {
+            if (
+                address(context.fulfillArgs.considerationRecipient) ==
+                address(this)
+            ) {
+                // Edge case: If the fuzz args pick this address for the
+                // consideration recipient, then the caller's balance should not
+                // change.
+                assertEq(infra.callerBalanceAfter, infra.callerBalanceBefore);
+            } else {
+                // Check that the consideration recipient's native balance was
+                // increased by the amount * the number of NFTs for sale.
                 assertEq(
-                    token2.balanceOf(
-                        context.fulfillArgs.considerationRecipient
-                    ),
-                    context.fulfillArgs.amount *
+                    infra.considerationRecipientNativeBalanceAfter,
+                    infra.considerationRecipientNativeBalanceBefore +
+                        context.fulfillArgs.amount *
                         context.fulfillArgs.maximumFulfilledCount
+                );
+                // The consideration (amount * maximumFulfilledCount) should be
+                // spent, and the excessNativeTokens should be returned.
+                assertEq(
+                    infra.callerBalanceAfter +
+                        context.fulfillArgs.amount *
+                        context.fulfillArgs.maximumFulfilledCount,
+                    infra.callerBalanceBefore
                 );
             }
         } else {
-            assertEq(
-                context.fulfillArgs.considerationRecipient.balance,
-                context.fulfillArgs.amount *
-                    context.fulfillArgs.maximumFulfilledCount
-            );
-            // Check that excess native tokens are being handled properly.  The
-            // consideration (amount * maximumFulfilledCount) should be spent,
-            // and the excessNativeTokens should be returned.
-            assertEq(
-                callerBalanceAfter +
-                    context.fulfillArgs.amount *
-                    context.fulfillArgs.maximumFulfilledCount,
-                callerBalanceBefore
-            );
+            // The `else` here is the case where no native consieration is used.
+            if (
+                address(context.fulfillArgs.considerationRecipient) ==
+                address(this)
+            ) {
+                // Edge case: If the fuzz args pick this address for the
+                // consideration recipient, then the caller's balance should not
+                // change.
+                assertEq(
+                    infra.considerationRecipientToken1BalanceAfter,
+                    infra.considerationRecipientToken1BalanceBefore
+                );
+            } else {
+                assertEq(
+                    infra.considerationRecipientToken1BalanceAfter,
+                    infra.considerationRecipientToken1BalanceBefore +
+                        context.fulfillArgs.amount *
+                        context.fulfillArgs.maximumFulfilledCount
+                );
+            }
+
+            if (context.fulfillArgs.considerationItemsPerOrderCount >= 2) {
+                if (
+                    address(context.fulfillArgs.considerationRecipient) ==
+                    address(this)
+                ) {
+                    // Edge case: If the fuzz args pick this address for the
+                    // consideration recipient, then the caller's balance should
+                    // not change.
+                    assertEq(
+                        infra.considerationRecipientToken2BalanceAfter,
+                        infra.considerationRecipientToken2BalanceBefore
+                    );
+                } else {
+                    assertEq(
+                        infra.considerationRecipientToken2BalanceAfter,
+                        infra.considerationRecipientToken2BalanceBefore +
+                            context.fulfillArgs.amount *
+                            context.fulfillArgs.maximumFulfilledCount
+                    );
+                }
+            }
         }
     }
 
@@ -1897,17 +2042,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
 
         return _advancedOrders;
-    }
-
-    // Used for stack management.
-    struct OrderComponentInfra {
-        OrderComponents orderComponents;
-        OrderComponents[] orderComponentsArray;
-        OfferItem[][] offerItemArray;
-        ConsiderationItem[][] considerationItemArray;
-        ConsiderationItem nativeConsiderationItem;
-        ConsiderationItem erc20ConsiderationItemOne;
-        ConsiderationItem erc20ConsiderationItemTwo;
     }
 
     function _buildOrderComponentsArrayFromFuzzArgs(
@@ -1997,7 +2131,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Use either the transfer validation zone or the test zone for all
         // orders.
         address fuzzyZone;
-        TestZone testZone;
 
         if (context.fulfillArgs.shouldUseTransferValidationZone) {
             zone = new TestTransferValidationZoneOfferer(
@@ -2007,7 +2140,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
             fuzzyZone = address(zone);
         } else {
-            testZone = new TestZone();
             fuzzyZone = address(testZone);
         }
 
@@ -2833,16 +2965,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         return orderComponents;
     }
 
-    // Used for stack depth management.
-    struct OrderAndFulfillmentInfra {
-        OfferItem[] offerItemArray;
-        ConsiderationItem[] considerationItemArray;
-        OrderComponents orderComponents;
-        Order[] orders;
-        Fulfillment fulfillment;
-        Fulfillment[] fulfillments;
-    }
-
     function _buildOrdersAndFulfillmentsMirrorOrdersFromFuzzArgs(
         Context memory context
     ) internal returns (Order[] memory, Fulfillment[] memory) {
@@ -2977,5 +3099,22 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 startAmount: item.startAmount,
                 endAmount: item.endAmount
             });
+    }
+
+    function _nudgeAddressIfProblematic(
+        address _address
+    ) internal returns (address) {
+        bool success;
+        assembly {
+            // Transfer the native token and store if it succeeded or not.
+            success := call(gas(), _address, 1, 0, 0, 0, 0)
+        }
+        vm.assume(success);
+
+        if (success) {
+            return _address;
+        } else {
+            return address(uint160(_address) + 1);
+        }
     }
 }

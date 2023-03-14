@@ -274,7 +274,7 @@ contract FulfillOrderTest is BaseOrderTest {
             startTime + 1000,
             false // don't round up offers
         );
-        vm.expectEmit(true, true, true, false, address(token1));
+        vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(alice, address(this), expectedAmount);
         context.consideration.fulfillOrder{ value: 1000 }(
             Order(orderParameters, signature),
@@ -350,7 +350,7 @@ contract FulfillOrderTest is BaseOrderTest {
             true // round up considerations
         );
         token1.mint(address(this), expectedAmount);
-        vm.expectEmit(true, true, true, false, address(token1));
+        vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(address(this), address(alice), expectedAmount);
         context.consideration.fulfillOrder(
             Order(orderParameters, signature),
