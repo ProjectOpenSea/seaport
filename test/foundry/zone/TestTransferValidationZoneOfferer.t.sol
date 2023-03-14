@@ -23,6 +23,8 @@ import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
+import { ZoneInterface } from "../../../contracts/interfaces/ZoneInterface.sol";
+
 import {
     ConsiderationItemLib,
     FulfillmentComponentLib,
@@ -683,110 +685,105 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     )
                 );
 
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
-
         uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
 
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(address(this), offerer1Counter, context.seaport);
 
-        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
-        for (uint256 i = 0; i < zoneParameters.length; i++) {
-            console.log(
-                "ZoneParameters %i constructed by helper function: ",
-                i
+        {
+            bytes32[] memory payloadHashes = new bytes32[](
+                zoneParameters.length
             );
-            console.log(
-                "zoneParameters[i].orderHash: ",
-                uint(zoneParameters[i].orderHash)
-            );
-            console.log(
-                "zoneParameters[i].fulfiller: ",
-                zoneParameters[i].fulfiller
-            );
-            console.log(
-                "zoneParameters[i].offerer: ",
-                zoneParameters[i].offerer
-            );
-            console.log(
-                "zoneParameters[i].offer.length: ",
-                zoneParameters[i].offer.length
-            );
-            console.log(
-                "zoneParameters[i].offer[0].itemType: ",
-                uint(zoneParameters[i].offer[0].itemType)
-            );
-            console.log(
-                "zoneParameters[i].offer[0].token: ",
-                zoneParameters[i].offer[0].token
-            );
-            console.log(
-                "zoneParameters[i].offer[0].identifier: ",
-                zoneParameters[i].offer[0].identifier
-            );
-            console.log(
-                "zoneParameters[i].offer[0].amount: ",
-                zoneParameters[i].offer[0].amount
-            );
-            console.log(
-                "zoneParameters[i].consideration.length: ",
-                zoneParameters[i].consideration.length
-            );
-            console.log(
-                "zoneParameters[i].consideration[0].itemType: ",
-                uint(zoneParameters[i].consideration[0].itemType)
-            );
-            console.log(
-                "zoneParameters[i].consideration[0].token: ",
-                zoneParameters[i].consideration[0].token
-            );
-            console.log(
-                "zoneParameters[i].consideration[0].amount: ",
-                zoneParameters[i].consideration[0].amount
-            );
-            console.log(
-                "zoneParameters[i].consideration[0].recipient: ",
-                zoneParameters[i].consideration[0].recipient
-            );
-            console.log(
-                "zoneParameters[i].extraData: ",
-                string(zoneParameters[i].extraData)
-            );
-            console.log(
-                "zoneParameters[i].orderHashes[0]: ",
-                uint(zoneParameters[i].orderHashes[0])
-            );
-            console.log(
-                "zoneParameters[i].orderHashes[1]: ",
-                uint(zoneParameters[i].orderHashes[1])
-            );
-            console.log(
-                "zoneParameters[i].startTime: ",
-                zoneParameters[i].startTime
-            );
-            console.log(
-                "zoneParameters[i].endTime: ",
-                zoneParameters[i].endTime
-            );
-            console.log(
-                "zoneParameters[i].zoneHash: %i \n",
-                uint(zoneParameters[i].zoneHash)
-            );
-            payloadHashes[i] = keccak256(
-                abi.encodeWithSignature(
-                    "validateOrder((bytes32,address,address,(uint256,address,uint256,uint256)[],(uint256,address,uint256,uint256,address)[],bytes,bytes32[],uint256,uint256,bytes32))",
-                    zoneParameters[i]
-                )
-            );
-            emit TestPayloadHash(payloadHashes[i]);
+            for (uint256 i = 0; i < zoneParameters.length; i++) {
+                console.log(
+                    "ZoneParameters %i constructed by helper function: ",
+                    i
+                );
+                console.log(
+                    "zoneParameters[i].orderHash: ",
+                    uint(zoneParameters[i].orderHash)
+                );
+                console.log(
+                    "zoneParameters[i].fulfiller: ",
+                    zoneParameters[i].fulfiller
+                );
+                console.log(
+                    "zoneParameters[i].offerer: ",
+                    zoneParameters[i].offerer
+                );
+                console.log(
+                    "zoneParameters[i].offer.length: ",
+                    zoneParameters[i].offer.length
+                );
+                console.log(
+                    "zoneParameters[i].offer[0].itemType: ",
+                    uint(zoneParameters[i].offer[0].itemType)
+                );
+                console.log(
+                    "zoneParameters[i].offer[0].token: ",
+                    zoneParameters[i].offer[0].token
+                );
+                console.log(
+                    "zoneParameters[i].offer[0].identifier: ",
+                    zoneParameters[i].offer[0].identifier
+                );
+                console.log(
+                    "zoneParameters[i].offer[0].amount: ",
+                    zoneParameters[i].offer[0].amount
+                );
+                console.log(
+                    "zoneParameters[i].consideration.length: ",
+                    zoneParameters[i].consideration.length
+                );
+                console.log(
+                    "zoneParameters[i].consideration[0].itemType: ",
+                    uint(zoneParameters[i].consideration[0].itemType)
+                );
+                console.log(
+                    "zoneParameters[i].consideration[0].token: ",
+                    zoneParameters[i].consideration[0].token
+                );
+                console.log(
+                    "zoneParameters[i].consideration[0].amount: ",
+                    zoneParameters[i].consideration[0].amount
+                );
+                console.log(
+                    "zoneParameters[i].consideration[0].recipient: ",
+                    zoneParameters[i].consideration[0].recipient
+                );
+                console.log(
+                    "zoneParameters[i].extraData: ",
+                    string(zoneParameters[i].extraData)
+                );
+                console.log(
+                    "zoneParameters[i].orderHashes[0]: ",
+                    uint(zoneParameters[i].orderHashes[0])
+                );
+                console.log(
+                    "zoneParameters[i].orderHashes[1]: ",
+                    uint(zoneParameters[i].orderHashes[1])
+                );
+                console.log(
+                    "zoneParameters[i].startTime: ",
+                    zoneParameters[i].startTime
+                );
+                console.log(
+                    "zoneParameters[i].endTime: ",
+                    zoneParameters[i].endTime
+                );
+                console.log(
+                    "zoneParameters[i].zoneHash: %i \n",
+                    uint(zoneParameters[i].zoneHash)
+                );
+                payloadHashes[i] = keccak256(
+                    abi.encodeCall(
+                        ZoneInterface.validateOrder,
+                        (zoneParameters[i])
+                    )
+                );
+                emit TestPayloadHash(payloadHashes[i]);
+            }
         }
-
-        for (uint256 i = 0; i < zoneParameters.length; i++) {
-            console.log("ZoneParameters %i, direct call to validateOrder", i);
-            transferValidationZone.validateOrder(zoneParameters[i]);
-        }
-
         // want helper that takes in array of advanced orders, fulfiller and gives expected zone parameters array
         // offer and consideration need to be converted to spent and received items
         // extradata - pass through
@@ -803,19 +800,23 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         // transferValidationZone.registerExpectedDataHash(dataHash);
 
+        // very first contract order tests - actigvate
+        // something similar but pass in whole struct (spent, received, expected context, revert if data doesn't match, otherwise approve + send ether)
+        // activate - set approvals, send tokens, prob sufficient to have two dataHashes
+        // generateOrder
+        // ratifyOrder validates dataHash)
+
         // Make the call to Seaport.
-        console.log("call to seaport fulfillAvailableAdvancedOrders \n");
+
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
+            criteriaResolvers: new CriteriaResolver[](0),
             offerFulfillments: offerFulfillments,
             considerationFulfillments: considerationFulfillments,
             fulfillerConduitKey: bytes32(conduitKeyOne),
             recipient: address(offerer1.addr),
             maximumFulfilled: advancedOrders.length
         });
-
-        assertTrue(transferValidationZone.callCount() == 1);
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()

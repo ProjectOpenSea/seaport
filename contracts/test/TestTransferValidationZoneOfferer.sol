@@ -69,7 +69,6 @@ contract TestTransferValidationZoneOfferer is
 
     bool public called = false;
     uint public callCount = 0;
-    bytes32 public expectedDataHash;
 
     /**
      * @dev Validates that the parties have received the correct items.
@@ -90,25 +89,32 @@ contract TestTransferValidationZoneOfferer is
 
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
-        // uint256 seaportBalance = address(msg.sender).balance;
+        uint256 seaportBalance = address(msg.sender).balance;
 
-        // if (seaportBalance > 0) {
-        //     revert IncorrectSeaportBalance(0, seaportBalance);
-        // }
+        if (seaportBalance > 0) {
+            revert IncorrectSeaportBalance(0, seaportBalance);
+        }
 
-        // // Check if all consideration items have been received.
-        // _assertValidReceivedItems(zoneParameters.consideration);
+        // Check if all consideration items have been received.
+        _assertValidReceivedItems(zoneParameters.consideration);
 
-        // address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-        //     ? zoneParameters.fulfiller
-        //     : _expectedOfferRecipient;
+        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
+            ? zoneParameters.fulfiller
+            : _expectedOfferRecipient;
 
-        // // Ensure that the expected recipient has received all offer items.
-        // _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
+        // Ensure that the expected recipient has received all offer items.
+        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
-        // // Set the global called flag to true.
-        // called = true;
-        // callCount++;
+        // Set the global called flag to true.
+        called = true;
+        callCount++;
+        // Ensure that the expected recipient has received all offer items.
+        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
+
+        // Set the global called flag to true.
+        called = true;
+        callCount++;
+
         console.log(
             "validateOrder zoneParameters.orderHash: ",
             uint(zoneParameters.orderHash)
@@ -186,10 +192,13 @@ contract TestTransferValidationZoneOfferer is
             uint(zoneParameters.zoneHash)
         );
         uint256 dataLength = msg.data.length;
-        bytes memory data = new bytes(dataLength);
+        bytes memory data;
 
         assembly {
-            calldatacopy(add(data, 0x20), 0, dataLength)
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
         }
 
         bytes32 actualDataHash = keccak256(data);
@@ -500,9 +509,5 @@ contract TestTransferValidationZoneOfferer is
 
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
         _expectedOfferRecipient = expectedOfferRecipient;
-    }
-
-    function registerExpectedDataHash(bytes32 _expectedDataHash) external {
-        expectedDataHash = _expectedDataHash;
     }
 }
