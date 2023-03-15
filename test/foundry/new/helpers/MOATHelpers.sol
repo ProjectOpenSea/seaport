@@ -4,6 +4,15 @@ pragma solidity ^0.8.17;
 import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
+struct MOATOrderContext {
+    uint256 nothingHereYet;
+}
+
+struct MOATOrder {
+    AdvancedOrder order;
+    MOATOrderContext context;
+}
+
 enum Structure {
     BASIC,
     STANDARD,
@@ -36,13 +45,13 @@ library MOATHelpers {
     using AdvancedOrderLib for AdvancedOrder;
 
     function getQuantity(
-        AdvancedOrder[] memory orders
+        MOATOrder[] memory orders
     ) internal pure returns (uint256) {
         return orders.length;
     }
 
     function getFamily(
-        AdvancedOrder[] memory orders
+        MOATOrder[] memory orders
     ) internal pure returns (Family) {
         uint256 quantity = getQuantity(orders);
         if (quantity > 1) {
@@ -52,12 +61,12 @@ library MOATHelpers {
     }
 
     function getState(
-        AdvancedOrder memory order,
+        MOATOrder memory order,
         SeaportInterface seaport
     ) internal view returns (State) {
-        uint256 counter = seaport.getCounter(order.parameters.offerer);
+        uint256 counter = seaport.getCounter(order.order.parameters.offerer);
         bytes32 orderHash = seaport.getOrderHash(
-            order.parameters.toOrderComponents(counter)
+            order.order.parameters.toOrderComponents(counter)
         );
         (
             bool isValidated,
@@ -68,15 +77,14 @@ library MOATHelpers {
 
         if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize)
             return State.FULLY_FILLED;
-        if (totalFilled != 0 && totalSize != 0)
-            return State.PARTIALLY_FILLED;
+        if (totalFilled != 0 && totalSize != 0) return State.PARTIALLY_FILLED;
         if (isCancelled) return State.CANCELLED;
         if (isValidated) return State.VALIDATED;
         return State.UNUSED;
     }
 
-    function getType(AdvancedOrder memory order) internal pure returns (Type) {
-        OrderType orderType = order.parameters.orderType;
+    function getType(MOATOrder memory order) internal pure returns (Type) {
+        OrderType orderType = order.order.parameters.orderType;
         if (
             orderType == OrderType.FULL_OPEN ||
             orderType == OrderType.PARTIAL_OPEN
@@ -95,18 +103,19 @@ library MOATHelpers {
     }
 
     function getStructure(
-        AdvancedOrder memory order
+        MOATOrder memory order
     ) internal pure returns (Structure) {
         // If the order has extraData, it's advanced
-        if (order.extraData.length > 0) return Structure.ADVANCED;
+        if (order.order.extraData.length > 0) return Structure.ADVANCED;
 
         // If the order has numerator or denominator, it's advanced
-        if (order.numerator != 0 || order.denominator != 0) {
+        if (order.order.numerator != 0 || order.order.denominator != 0) {
             return Structure.ADVANCED;
         }
 
         (bool hasCriteria, bool hasNonzeroCriteria) = _checkCriteria(order);
-        bool isContractOrder = order.parameters.orderType == OrderType.CONTRACT;
+        bool isContractOrder = order.order.parameters.orderType ==
+            OrderType.CONTRACT;
 
         // If any non-contract item has criteria, it's advanced,
         if (hasCriteria) {
@@ -125,10 +134,10 @@ library MOATHelpers {
     }
 
     function _checkCriteria(
-        AdvancedOrder memory order
+        MOATOrder memory order
     ) internal pure returns (bool hasCriteria, bool hasNonzeroCriteria) {
         // Check if any offer item has criteria
-        OfferItem[] memory offer = order.parameters.offer;
+        OfferItem[] memory offer = order.order.parameters.offer;
         for (uint256 i; i < offer.length; ++i) {
             OfferItem memory offerItem = offer[i];
             ItemType itemType = offerItem.itemType;
@@ -139,6 +148,7 @@ library MOATHelpers {
 
         // Check if any consideration item has criteria
         ConsiderationItem[] memory consideration = order
+            .order
             .parameters
             .consideration;
         for (uint256 i; i < consideration.length; ++i) {
@@ -149,5 +159,22 @@ library MOATHelpers {
             if (considerationItem.identifierOrCriteria != 0)
                 hasNonzeroCriteria = true;
         }
+    }
+
+    function toMOATOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (MOATOrder memory) {
+        return
+            MOATOrder({
+                order: order,
+                context: MOATOrderContext({ nothingHereYet: 0 })
+            });
+    }
+
+    function toMOATOrder(
+        AdvancedOrder memory order,
+        MOATOrderContext memory context
+    ) internal pure returns (MOATOrder memory) {
+        return MOATOrder({ order: order, context: context });
     }
 }

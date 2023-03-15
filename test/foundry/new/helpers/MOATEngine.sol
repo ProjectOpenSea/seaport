@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
+import { MOATOrder, MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
 
 import "forge-std/console.sol";
 
@@ -11,14 +11,14 @@ struct FuzzParams {
     uint256 seed;
 }
 struct TestContext {
-    AdvancedOrder[] orders;
+    MOATOrder[] orders;
     SeaportInterface seaport;
     FuzzParams fuzzParams;
 }
 
 library MOATEngine {
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
+    using MOATHelpers for MOATOrder;
+    using MOATHelpers for MOATOrder[];
 
     function action(TestContext memory context) internal pure returns (bytes4) {
         bytes4[] memory _actions = actions(context);
@@ -31,7 +31,7 @@ library MOATEngine {
         Family family = context.orders.getFamily();
 
         if (family == Family.SINGLE) {
-            AdvancedOrder memory order = context.orders[0];
+            MOATOrder memory order = context.orders[0];
             Structure structure = order.getStructure();
             if (structure == Structure.STANDARD) {
                 bytes4[] memory selectors = new bytes4[](2);
@@ -59,6 +59,6 @@ library MOATEngine {
             selectors[5] = context.seaport.validate.selector;
             return selectors;
         }
-        revert("MOATEngine: Action not found");
+        revert("MOATEngine: Actions not found");
     }
 }

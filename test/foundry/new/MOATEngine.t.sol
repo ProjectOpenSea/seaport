@@ -6,6 +6,7 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 import { TestContext, FuzzParams, MOATEngine } from "./helpers/MOATEngine.sol";
+import { MOATOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
 
 contract MOATHelpersTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
@@ -20,6 +21,7 @@ contract MOATHelpersTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
 
+    using MOATHelpers for AdvancedOrder;
     using MOATEngine for TestContext;
 
     function setUp() public virtual override {
@@ -34,12 +36,15 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Single_Standard_Actions() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder();
 
         bytes4[] memory expectedActions = new bytes4[](2);
         expectedActions[0] = seaport.fulfillOrder.selector;
@@ -54,12 +59,15 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Single_Standard_Action() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -77,12 +85,15 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Single_Advanced_Actions() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
 
         bytes4[] memory expectedActions = new bytes4[](1);
         expectedActions[0] = seaport.fulfillAdvancedOrder.selector;
@@ -96,12 +107,15 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Single_Advanced_Action() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -112,17 +126,23 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Combined_Actions() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
-        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](2);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
+        orders[1] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
 
         bytes4[] memory expectedActions = new bytes4[](6);
         expectedActions[0] = seaport.fulfillAvailableOrders.selector;
@@ -141,17 +161,23 @@ contract MOATHelpersTest is BaseOrderTest {
     }
 
     function test_Combined_Action() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
-        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("extra data")
-        });
+        MOATOrder[] memory orders = new MOATOrder[](2);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
+        orders[1] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,

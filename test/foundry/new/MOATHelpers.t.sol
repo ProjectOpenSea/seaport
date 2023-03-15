@@ -10,7 +10,9 @@ import {
     Structure,
     Type,
     Family,
-    State
+    State,
+    MOATOrder,
+    MOATOrderContext
 } from "./helpers/MOATHelpers.sol";
 
 contract MOATHelpersTest is BaseOrderTest {
@@ -27,7 +29,8 @@ contract MOATHelpersTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent[];
 
     using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
+    using MOATHelpers for MOATOrder;
+    using MOATHelpers for MOATOrder[];
 
     function setUp() public virtual override {
         super.setUp();
@@ -42,13 +45,14 @@ contract MOATHelpersTest is BaseOrderTest {
 
     /// @dev An order with no advanced order parameters is STANDARD
     function test_getStructure_Standard() public {
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.STANDARD);
     }
@@ -63,13 +67,14 @@ contract MOATHelpersTest is BaseOrderTest {
         vm.assume(denominator != 0);
         vm.assume(extraData.length != 0);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .toAdvancedOrder({
                 numerator: numerator,
                 denominator: denominator,
                 extraData: extraData
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -86,14 +91,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -110,14 +116,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -134,14 +141,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withConsideration(consideration);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -158,14 +166,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withConsideration(consideration);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -186,14 +195,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .withConsideration(consideration)
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.STANDARD);
     }
@@ -215,14 +225,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .withConsideration(consideration)
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -234,14 +245,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOrderType(OrderType.FULL_OPEN);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getType(), Type.OPEN);
     }
@@ -253,14 +265,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOrderType(OrderType.PARTIAL_OPEN);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getType(), Type.OPEN);
     }
@@ -272,14 +285,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOrderType(OrderType.FULL_RESTRICTED);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getType(), Type.RESTRICTED);
     }
@@ -291,14 +305,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOrderType(OrderType.PARTIAL_RESTRICTED);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getType(), Type.RESTRICTED);
     }
@@ -310,14 +325,15 @@ contract MOATHelpersTest is BaseOrderTest {
             .toOrderParameters()
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getType(), Type.CONTRACT);
     }
@@ -343,11 +359,13 @@ contract MOATHelpersTest is BaseOrderTest {
 
         assertEq(seaport.validate(orders), true);
 
-        AdvancedOrder memory order = orders[0].toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        MOATOrder memory order = orders[0]
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder();
 
         assertEq(order.getState(seaport), State.VALIDATED);
     }
@@ -379,38 +397,44 @@ contract MOATHelpersTest is BaseOrderTest {
         vm.prank(offerer1.addr);
         assertEq(seaport.cancel(orderComponents), true);
 
-        AdvancedOrder memory order = orders[0].toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        MOATOrder memory order = orders[0]
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder();
 
         assertEq(order.getState(seaport), State.CANCELLED);
     }
 
     /// @dev A new order is in state UNUSED
     function test_getState_NewOrder() public {
-        AdvancedOrder memory order = OrderLib
+        MOATOrder memory order = OrderLib
             .fromDefault(STANDARD)
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
-            });
+            })
+            .toMOATOrder();
 
         assertEq(order.getState(seaport), State.UNUSED);
     }
 
     /// @dev An order[] quantity is its length
     function test_getQuantity(uint8 n) public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
+        MOATOrder[] memory orders = new MOATOrder[](n);
 
         for (uint256 i; i < n; ++i) {
-            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+            orders[i] = OrderLib
+                .fromDefault(STANDARD)
+                .toAdvancedOrder({
+                    numerator: 0,
+                    denominator: 0,
+                    extraData: bytes("")
+                })
+                .toMOATOrder();
         }
 
         assertEq(orders.getQuantity(), n);
@@ -418,13 +442,16 @@ contract MOATHelpersTest is BaseOrderTest {
 
     /// @dev An order[] of quantity 1 uses a SINGLE family method
     function test_getFamily_Single() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        MOATOrder[] memory orders = new MOATOrder[](1);
 
-        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder();
 
         assertEq(orders.getFamily(), Family.SINGLE);
     }
@@ -432,14 +459,17 @@ contract MOATHelpersTest is BaseOrderTest {
     /// @dev An order[] of quantity > 1 uses a COMBINED family method
     function test_getFamily_Combined(uint8 n) public {
         vm.assume(n > 1);
-        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
+        MOATOrder[] memory orders = new MOATOrder[](n);
 
         for (uint256 i; i < n; ++i) {
-            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+            orders[i] = OrderLib
+                .fromDefault(STANDARD)
+                .toAdvancedOrder({
+                    numerator: 0,
+                    denominator: 0,
+                    extraData: bytes("")
+                })
+                .toMOATOrder();
         }
 
         assertEq(orders.getFamily(), Family.COMBINED);
