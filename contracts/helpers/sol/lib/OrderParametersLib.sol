@@ -34,6 +34,24 @@ library OrderParametersLib {
         keccak256("seaport.OrderParametersDefaults");
     bytes32 private constant ORDER_PARAMETERS_ARRAY_MAP_POSITION =
         keccak256("seaport.OrderParametersArrayDefaults");
+    bytes32 private constant EMPTY_ORDER_PARAMETERS =
+        keccak256(
+            abi.encode(
+                OrderParameters({
+                    offerer: address(0),
+                    zone: address(0),
+                    offer: new OfferItem[](0),
+                    consideration: new ConsiderationItem[](0),
+                    orderType: OrderType(0),
+                    startTime: 0,
+                    endTime: 0,
+                    zoneHash: bytes32(0),
+                    salt: 0,
+                    conduitKey: bytes32(0),
+                    totalOriginalConsiderationItems: 0
+                })
+            )
+        );
 
     /**
      * @dev Clears an OrderParameters from storage.
@@ -122,6 +140,10 @@ library OrderParametersLib {
         mapping(string => OrderParameters)
             storage orderParametersMap = _orderParametersMap();
         item = orderParametersMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_ORDER_PARAMETERS) {
+            revert("Empty OrderParameters selected.");
+        }
     }
 
     /**
@@ -137,6 +159,10 @@ library OrderParametersLib {
         mapping(string => OrderParameters[])
             storage orderParametersArrayMap = _orderParametersArrayMap();
         items = orderParametersArrayMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty OrderParameters array selected.");
+        }
     }
 
     /**

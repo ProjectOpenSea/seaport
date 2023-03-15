@@ -17,6 +17,17 @@ library SpentItemLib {
         keccak256("seaport.SpentItemDefaults");
     bytes32 private constant SPENT_ITEMS_MAP_POSITION =
         keccak256("seaport.SpentItemsDefaults");
+    bytes32 private constant EMPTY_SPENT_ITEM =
+        keccak256(
+            abi.encode(
+                SpentItem({
+                    itemType: ItemType(0),
+                    token: address(0),
+                    identifier: 0,
+                    amount: 0
+                })
+            )
+        );
 
     /**
      * @dev Creates an empty SpentItem.
@@ -86,6 +97,10 @@ library SpentItemLib {
     ) internal view returns (SpentItem memory item) {
         mapping(string => SpentItem) storage spentItemMap = _spentItemMap();
         item = spentItemMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_SPENT_ITEM) {
+            revert("Empty SpentItem selected.");
+        }
     }
 
     /**
@@ -100,6 +115,10 @@ library SpentItemLib {
     ) internal view returns (SpentItem[] memory items) {
         mapping(string => SpentItem[]) storage spentItemsMap = _spentItemsMap();
         items = spentItemsMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty SpentItem array selected.");
+        }
     }
 
     /**

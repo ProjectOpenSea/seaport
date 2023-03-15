@@ -3,8 +3,11 @@ pragma solidity ^0.8.17;
 
 import {
     AdvancedOrder,
+    ConsiderationItem,
+    OfferItem,
     Order,
-    OrderParameters
+    OrderParameters,
+    OrderType
 } from "../../../lib/ConsiderationStructs.sol";
 
 import { OrderParametersLib } from "./OrderParametersLib.sol";
@@ -23,6 +26,30 @@ library AdvancedOrderLib {
         keccak256("seaport.AdvancedOrderDefaults");
     bytes32 private constant ADVANCED_ORDERS_MAP_POSITION =
         keccak256("seaport.AdvancedOrdersDefaults");
+    bytes32 private constant EMPTY_ADVANCED_ORDER =
+        keccak256(
+            abi.encode(
+                AdvancedOrder({
+                    parameters: OrderParameters({
+                        offerer: address(0),
+                        zone: address(0),
+                        offer: new OfferItem[](0),
+                        consideration: new ConsiderationItem[](0),
+                        orderType: OrderType(0),
+                        startTime: 0,
+                        endTime: 0,
+                        zoneHash: bytes32(0),
+                        salt: 0,
+                        conduitKey: bytes32(0),
+                        totalOriginalConsiderationItems: 0
+                    }),
+                    numerator: 0,
+                    denominator: 0,
+                    signature: new bytes(0),
+                    extraData: new bytes(0)
+                })
+            )
+        );
 
     using OrderParametersLib for OrderParameters;
 
@@ -77,6 +104,10 @@ library AdvancedOrderLib {
         mapping(string => AdvancedOrder)
             storage advancedOrderMap = _advancedOrderMap();
         item = advancedOrderMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_ADVANCED_ORDER) {
+            revert("Empty AdvancedOrder selected.");
+        }
     }
 
     /**
@@ -92,6 +123,10 @@ library AdvancedOrderLib {
         mapping(string => AdvancedOrder[])
             storage advancedOrdersMap = _advancedOrdersMap();
         items = advancedOrdersMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty AdvancedOrder array selected.");
+        }
     }
 
     /**
