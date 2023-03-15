@@ -51,13 +51,10 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    error InvalidContractOrder(
-        bytes32 expectedDataHash,
-        bytes32 actualDataHash
-    );
+    error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
     error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
 
-    event DataHash(bytes32 dataHash);
+    event DataHashRegistered(bytes32 dataHash);
 
     address private immutable _SEAPORT;
     address internal _expectedOfferRecipient;
@@ -115,7 +112,7 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             }
         }
 
-        if (address(this) != requiredEthBalance) {
+        if (address(this).balance != requiredEthBalance) {
             revert InvalidEthBalance(requiredEthBalance, address(this).balance);
         }
     }
@@ -151,6 +148,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
 
         // Store the hash of msg.data
         _expectedDataHash = keccak256(data);
+
+        emit DataHashRegistered(_expectedDataHash);
 
         return previewOrder(address(this), address(this), a, b, c);
     }
@@ -203,6 +202,24 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         if (seaportBalance > 0) {
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
+
+        // // Get the length of msg.data
+        // uint256 dataLength = msg.data.length;
+
+        // // Create a variable to store msg.data in memory
+        // bytes memory data;
+
+        // // Copy msg.data to memory
+        // assembly {
+        //     let ptr := mload(0x40)
+        //     calldatacopy(add(ptr, 0x20), 0, dataLength)
+        //     mstore(ptr, dataLength)
+        //     data := ptr
+        // }
+
+        // if (keccak256(data) != _expectedDataHash) {
+        //     revert InvalidDataHash(_expectedDataHash, keccak256(data));
+        // }
 
         // Ensure that the offerer or recipient has received all consideration
         // items.
