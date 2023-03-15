@@ -39,17 +39,17 @@ struct MatchFulfillmentStorageLayout {
     mapping(
         address /*token*/
             => mapping(
-                uint256 /*tokenId*/ => OffererAndConduit[] /*offererEnumeration*/
+                uint256 /*tokenId*/ => AggregatableOfferer[] /*offererEnumeration*/
             )
         ) tokenToOffererEnumeration;
     // aggregatable consideration components can be enumerated normally
-    AggregatableToken[] considerationEnumeration;
+    AggregatableConsideration[] considerationEnumeration;
 }
 
 /**
  * @notice Offers can only be aggregated if they share an offerer *and* conduitKey
  */
-struct OffererAndConduit {
+struct AggregatableOfferer {
     address offerer;
     bytes32 conduitKey;
 }
@@ -58,7 +58,7 @@ struct OffererAndConduit {
  *
  * @notice Considerations can only be aggregated if they share a token address, id, and recipient (and itemType, but in the vast majority of cases, a token is only one type)
  */
-struct AggregatableToken {
+struct AggregatableConsideration {
     address offererOrRecipient;
     address contractAddress;
     uint256 tokenId;

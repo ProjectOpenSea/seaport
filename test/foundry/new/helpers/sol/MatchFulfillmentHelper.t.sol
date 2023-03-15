@@ -449,16 +449,15 @@ contract MatchFulfillmentHelperTest is Test {
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
                     ),
                 considerationComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
                     )
             }),
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
                     ),
                 considerationComponents: SeaportArrays.FulfillmentComponents(
                     FulfillmentComponent({ orderIndex: 0, itemIndex: 1 }),
@@ -467,10 +466,11 @@ contract MatchFulfillmentHelperTest is Test {
             }),
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
                     ),
                 considerationComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
                     )
             })
         );
@@ -480,9 +480,9 @@ contract MatchFulfillmentHelperTest is Test {
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
-        assertEq(fulfillments[0], expectedFulfillments[2], "fulfillments[0]");
+        assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
         assertEq(fulfillments[1], expectedFulfillments[1], "fulfillments[1]");
-        assertEq(fulfillments[2], expectedFulfillments[0], "fulfillments[2]");
+        assertEq(fulfillments[2], expectedFulfillments[2], "fulfillments[2]");
     }
 
     event LogFulfillmentComponent(FulfillmentComponent);

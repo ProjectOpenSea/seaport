@@ -1,57 +1,45 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AggregatableToken, ProcessComponentParams } from "../lib/Structs.sol";
+import {
+    AggregatableConsideration,
+    ProcessComponentParams,
+    MatchFulfillmentStorageLayout,
+    AggregatableOfferer
+} from "../lib/Structs.sol";
 import {
     MatchComponent,
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
 import { FulfillmentComponent, Fulfillment } from "../../SeaportSol.sol";
+// import { LibString } from "solady/src/utils/LibString.sol";
+// import { console } from "hardhat/console.sol";
 
 library MatchFulfillmentLib {
     /**
      * @notice Check if a token already exists in a mapping by checking the length of the array at that slot
      * @param token token to check
-     * @param map map to check
+     * @param layout storage layout
      */
-    function tokenConsiderationExists(
-        AggregatableToken memory token,
-        mapping(
-            address /*offererOrRecipient*/
-                => mapping(
-                    address /*tokenContract*/
-                        => mapping(
-                            uint256 /*identifier*/ => MatchComponent[] /*components*/
-                        )
-                )
-            ) storage map
+    function aggregatableConsiderationExists(
+        AggregatableConsideration memory token,
+        MatchFulfillmentStorageLayout storage layout
     ) internal view returns (bool) {
-        return map[token.offererOrRecipient][token.contractAddress][token
-            .tokenId].length > 0;
+        return layout.considerationMap[token.offererOrRecipient][token
+            .contractAddress][token.tokenId].length > 0;
     }
 
     /**
      * @notice Check if an entry into the offer component mapping already exists by checking its length
      */
-    function offererTokenComboExists(
+    function aggregatableOffererExists(
         address token,
         uint256 tokenId,
-        address offerer,
-        bytes32 conduitKey,
-        mapping(
-            address /*tokenContract*/
-                => mapping(
-                    uint256 /*identifier*/
-                        => mapping(
-                            address /*offerer*/
-                                => mapping(
-                                    bytes32 /*conduitKey*/ => MatchComponent[] /*components*/
-                                )
-                        )
-                )
-            ) storage offerMap
+        AggregatableOfferer memory offerer,
+        MatchFulfillmentStorageLayout storage layout
     ) internal view returns (bool) {
-        return offerMap[token][tokenId][offerer][conduitKey].length > 0;
+        return layout.offerMap[token][tokenId][offerer.offerer][offerer
+            .conduitKey].length > 0;
     }
 
     function processConsiderationComponent(
@@ -110,18 +98,17 @@ library MatchFulfillmentLib {
         return components;
     }
 
-    function added(
+    function previouslyAdded(
         FulfillmentComponent[] memory components,
-        MatchComponent component
+        FulfillmentComponent memory fulfillmentComponent
     ) internal pure returns (bool) {
         if (components.length == 0) {
             return false;
         }
-        FulfillmentComponent memory fulfillmentComponent =
-            component.toFulfillmentComponent();
+
         FulfillmentComponent memory lastComponent =
             components[components.length - 1];
-        return lastComponent.orderIndex != fulfillmentComponent.orderIndex
+        return lastComponent.orderIndex == fulfillmentComponent.orderIndex
             && lastComponent.itemIndex == fulfillmentComponent.itemIndex;
     }
 
@@ -134,21 +121,36 @@ library MatchFulfillmentLib {
         MatchComponent offerComponent = offerComponents[params.offerItemIndex];
         MatchComponent considerationComponent =
             considerationComponents[params.considerationItemIndex];
+
         if (offerComponent.getAmount() > considerationComponent.getAmount()) {
+            // emit log("used up consideration");
             // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
-            offerComponents[params.offerItemIndex] =
+            offerComponent =
                 offerComponent.subtractAmount(considerationComponent);
+            considerationComponent = considerationComponent.setAmount(0);
+            offerComponents[params.offerItemIndex] = offerComponent;
             considerationComponents[params.considerationItemIndex] =
-                considerationComponent.setAmount(0);
+                considerationComponent;
         } else {
+            // emit log("used up offer");
+            offerComponent = offerComponent.setAmount(0);
+            considerationComponent =
+                considerationComponent.subtractAmount(offerComponent);
+
             // otherwise deplete offer amount and credit consideration amount
             considerationComponents[params.considerationItemIndex] =
-                considerationComponent.subtractAmount(offerComponent);
-            offerComponents[params.offerItemIndex] = offerComponent.setAmount(0);
+                considerationComponent;
+
+            offerComponents[params.offerItemIndex] = offerComponent;
             ++params.offerItemIndex;
         }
         // an offer component may have already been added if it was not depleted by an earlier consideration item
-        if (!added(params.offerFulfillmentComponents, offerComponent)) {
+        if (
+            !previouslyAdded(
+                params.offerFulfillmentComponents,
+                offerComponent.toFulfillmentComponent()
+            )
+        ) {
             scuffExtend(
                 params.offerFulfillmentComponents,
                 offerComponent.toFulfillmentComponent()
@@ -223,22 +225,6 @@ library MatchFulfillmentLib {
             }
         }
     }
-
-    // /**
-    //  * @dev Swaps the element at the given index with the last element and pops
-    //  * @param components components
-    //  * @param index index to swap with last element and pop
-    //  */
-    // function popIndex(MatchComponent[] storage components, uint256 index)
-    //     internal
-    // {
-    //     uint256 length = components.length;
-    //     if (length == 0) {
-    //         return;
-    //     }
-    //     components[index] = components[length - 1];
-    //     components.pop();
-    // }
 
     /**
      * @dev Truncates an array to the given length by overwriting its length in memory

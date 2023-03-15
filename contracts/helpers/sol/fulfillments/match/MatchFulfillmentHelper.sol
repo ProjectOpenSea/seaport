@@ -2,9 +2,9 @@
 pragma solidity ^0.8.17;
 
 import {
-    AggregatableToken,
+    AggregatableConsideration,
     ProcessComponentParams,
-    OffererAndConduit,
+    AggregatableOfferer,
     MatchFulfillmentStorageLayout
 } from "../lib/Structs.sol";
 import {
@@ -83,8 +83,9 @@ library MatchFulfillmentHelper {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory parameters = orders[i];
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
-            // also update per-token+tokenId enumerations of OffererAndConduit
-            processOffer(
+            // also update per-token+tokenId enumerations of AggregatableOfferer
+
+            preProcessOfferItems(
                 parameters.offer,
                 parameters.offerer,
                 parameters.conduitKey,
@@ -92,21 +93,22 @@ library MatchFulfillmentHelper {
                 layout
             );
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, and recipient
-            // also update AggregatableToken enumeration
-            processConsideration(parameters.consideration, i, layout);
+            // also update AggregatableConsideration enumeration
+            preProcessConsiderationItems(parameters.consideration, i, layout);
         }
 
         // iterate over groups of consideration components and find matching offer components
         uint256 considerationLength = layout.considerationEnumeration.length;
         for (uint256 i; i < considerationLength; ++i) {
             // get the token information
-            AggregatableToken storage token = layout.considerationEnumeration[i];
+            AggregatableConsideration storage token =
+                layout.considerationEnumeration[i];
             // load the consideration components
             MatchComponent[] storage considerationComponents = layout
                 .considerationMap[token.offererOrRecipient][token.contractAddress][token
                 .tokenId];
             // load the enumeration of offerer+conduit keys for offer components that match this token
-            OffererAndConduit[] storage offererEnumeration = layout
+            AggregatableOfferer[] storage offererEnumeration = layout
                 .tokenToOffererEnumeration[token.contractAddress][token.tokenId];
             // iterate over each offerer+conduit with offer components that match this token and create matching fulfillments
             // this will update considerationComponents in-place in storage, which we check at the beginning of each loop
@@ -115,12 +117,12 @@ library MatchFulfillmentHelper {
                 if (considerationComponents.length == 0) {
                     break;
                 }
-                // load the OffererAndConduit
-                OffererAndConduit storage offererAndConduit =
+                // load the AggregatableOfferer
+                AggregatableOfferer storage aggregatableOfferer =
                     offererEnumeration[j];
                 // load the associated offer components for this offerer+conduit
                 MatchComponent[] storage offerComponents = layout.offerMap[token
-                    .contractAddress][token.tokenId][offererAndConduit.offerer][offererAndConduit
+                    .contractAddress][token.tokenId][aggregatableOfferer.offerer][aggregatableOfferer
                     .conduitKey];
 
                 // create a fulfillment matching the offer and consideration components until either or both are exhausted
@@ -141,7 +143,7 @@ library MatchFulfillmentHelper {
      * @param orderIndex order index of processed items
      * @param layout storage layout of helper
      */
-    function processOffer(
+    function preProcessOfferItems(
         OfferItem[] memory offer,
         address offerer,
         bytes32 conduitKey,
@@ -158,26 +160,23 @@ library MatchFulfillmentHelper {
                 orderIndex: uint8(orderIndex),
                 itemIndex: uint8(j)
             });
+            AggregatableOfferer memory aggregatableOfferer = AggregatableOfferer({
+                offerer: offerer,
+                conduitKey: conduitKey
+            });
 
             // if it does not exist in the map, add it to our per-token+id enumeration
             if (
-                !MatchFulfillmentLib.offererTokenComboExists(
+                !MatchFulfillmentLib.aggregatableOffererExists(
                     item.token,
                     item.identifierOrCriteria,
-                    offerer,
-                    conduitKey,
-                    layout.offerMap
+                    aggregatableOfferer,
+                    layout
                 )
             ) {
                 // add to enumeration for specific tokenhash (tokenAddress+tokenId)
-
                 layout.tokenToOffererEnumeration[item.token][item
-                    .identifierOrCriteria].push(
-                    OffererAndConduit({
-                        offerer: offerer,
-                        conduitKey: conduitKey
-                    })
-                );
+                    .identifierOrCriteria].push(aggregatableOfferer);
             }
             // update aggregatable mapping array with this component
             layout.offerMap[item.token][item.identifierOrCriteria][offerer][conduitKey]
@@ -191,7 +190,7 @@ library MatchFulfillmentHelper {
      * @param orderIndex order index of processed items
      * @param layout storage layout of helper
      */
-    function processConsideration(
+    function preProcessConsiderationItems(
         ConsiderationItem[] memory consideration,
         uint256 orderIndex,
         MatchFulfillmentStorageLayout storage layout
@@ -207,15 +206,15 @@ library MatchFulfillmentHelper {
                 itemIndex: uint8(j)
             });
             // create enumeration struct
-            AggregatableToken memory token = AggregatableToken({
+            AggregatableConsideration memory token = AggregatableConsideration({
                 offererOrRecipient: item.recipient,
                 contractAddress: item.token,
                 tokenId: item.identifierOrCriteria
             });
             // if it does not exist in the map, add it to our enumeration
             if (
-                !MatchFulfillmentLib.tokenConsiderationExists(
-                    token, layout.considerationMap
+                !MatchFulfillmentLib.aggregatableConsiderationExists(
+                    token, layout
                 )
             ) {
                 layout.considerationEnumeration.push(token);

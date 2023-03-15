@@ -8,7 +8,7 @@ import {
 import {
     MatchFulfillmentStorageLayout,
     MatchFulfillmentCounterLayout,
-    AggregatableToken
+    AggregatableConsideration
 } from "../lib/Structs.sol";
 import {
     MATCH_FULFILLMENT_COUNTER_KEY,
@@ -84,13 +84,13 @@ library MatchFulfillmentLayout {
     }
 
     /**
-     * @notice Get the enumeration of AggregatableTokens for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
+     * @notice Get the enumeration of AggregatableConsiderations for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
      * @param key Original key used to derive the slot of the enumeration
      */
     function getEnumeration(bytes32 key)
         internal
         view
-        returns (AggregatableToken[] storage tokens)
+        returns (AggregatableConsideration[] storage tokens)
     {
         bytes32 counterKey = MATCH_FULFILLMENT_COUNTER_KEY;
         assembly {
