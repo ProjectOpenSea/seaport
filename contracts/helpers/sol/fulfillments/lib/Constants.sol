@@ -7,3 +7,10 @@ bytes32 constant MATCH_FULFILLMENT_COUNTER_KEY =
 
 bytes32 constant MATCH_FULFILLMENT_STORAGE_BASE_KEY =
     keccak256("MatchFulfillmentHelper.storageBase");
+
+// used to effectively "wipe" the mappings and enumerations each time getAggregated is called
+bytes32 constant FULFILL_AVAILABLE_COUNTER_KEY =
+    keccak256("FulfillAvailableHelper.fulfillmentCounter");
+
+bytes32 constant FULFILL_AVAILABLE_STORAGE_BASE_KEY =
+    keccak256("FulfillAvailableHelper.storageBase");

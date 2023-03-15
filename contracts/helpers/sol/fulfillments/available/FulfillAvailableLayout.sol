@@ -6,28 +6,53 @@ import {
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
 import {
-    MatchFulfillmentStorageLayout,
+    FulfillAvailableHelperStorageLayout,
     FulfillmentHelperCounterLayout,
-    AggregatableConsideration
+    AggregatableConsideration,
+    AggregatableOffer
 } from "../lib/Structs.sol";
 import {
-    MATCH_FULFILLMENT_COUNTER_KEY,
-    MATCH_FULFILLMENT_STORAGE_BASE_KEY
+    FULFILL_AVAILABLE_COUNTER_KEY,
+    FULFILL_AVAILABLE_STORAGE_BASE_KEY
 } from "../lib/Constants.sol";
 
-library MatchFulfillmentLayout {
+library FulfillAvailableLayout {
+    /**
+     * @notice Check if a token already exists in a mapping by checking the length of the array at that slot
+     * @param token token to check
+     * @param layout storage layout
+     */
+    function aggregatableConsiderationExists(
+        AggregatableConsideration memory token,
+        FulfillAvailableHelperStorageLayout storage layout
+    ) internal view returns (bool) {
+        return layout.considerationMap[token.recipient][token.contractAddress][token
+            .tokenId].length > 0;
+    }
+
+    /**
+     * @notice Check if an entry into the offer component mapping already exists by checking its length
+     */
+    function aggregatableOfferExists(
+        AggregatableOffer memory offer,
+        FulfillAvailableHelperStorageLayout storage layout
+    ) internal view returns (bool) {
+        return layout.offerMap[offer.contractAddress][offer.tokenId][offer
+            .offerer][offer.conduitKey].length > 0;
+    }
+
     /**
      * @notice load storage layout for the current fulfillmentCounter
      */
     function getStorageLayout()
         internal
         view
-        returns (MatchFulfillmentStorageLayout storage layout)
+        returns (FulfillAvailableHelperStorageLayout storage layout)
     {
         FulfillmentHelperCounterLayout storage counterLayout =
             getCounterLayout();
         uint256 counter = counterLayout.fulfillmentCounter;
-        bytes32 storageLayoutKey = MATCH_FULFILLMENT_STORAGE_BASE_KEY;
+        bytes32 storageLayoutKey = FULFILL_AVAILABLE_STORAGE_BASE_KEY;
         assembly {
             mstore(0, counter)
             mstore(0x20, storageLayoutKey)
@@ -43,7 +68,7 @@ library MatchFulfillmentLayout {
         pure
         returns (FulfillmentHelperCounterLayout storage layout)
     {
-        bytes32 counterLayoutKey = MATCH_FULFILLMENT_COUNTER_KEY;
+        bytes32 counterLayoutKey = FULFILL_AVAILABLE_COUNTER_KEY;
         assembly {
             layout.slot := counterLayoutKey
         }
@@ -77,7 +102,7 @@ library MatchFulfillmentLayout {
                 ) storage map
         )
     {
-        bytes32 counterKey = MATCH_FULFILLMENT_COUNTER_KEY;
+        bytes32 counterKey = FULFILL_AVAILABLE_COUNTER_KEY;
         assembly {
             mstore(0, key)
             mstore(0x20, sload(counterKey))
@@ -94,7 +119,7 @@ library MatchFulfillmentLayout {
         view
         returns (AggregatableConsideration[] storage tokens)
     {
-        bytes32 counterKey = MATCH_FULFILLMENT_COUNTER_KEY;
+        bytes32 counterKey = FULFILL_AVAILABLE_COUNTER_KEY;
         assembly {
             mstore(0, key)
             mstore(0x20, sload(counterKey))

@@ -150,7 +150,7 @@ contract MatchFulfillmentLibTest is Test {
         assertEq(
             consideration[0].getAmount(),
             0,
-            "processOfferComponent consideration[0].getAmount()"
+            "processOfferComponent consideration[0].getAmount() 1"
         );
         assertEq(
             params.offerFulfillmentComponents.length,
@@ -179,7 +179,7 @@ contract MatchFulfillmentLibTest is Test {
         assertEq(
             consideration[0].getAmount(),
             1,
-            "processOfferComponent consideration[0].getAmount()"
+            "processOfferComponent consideration[0].getAmount() 2"
         );
         assertEq(
             params.offerFulfillmentComponents.length,
@@ -213,7 +213,7 @@ contract MatchFulfillmentLibTest is Test {
         assertEq(
             consideration[0].getAmount(),
             0,
-            "processOfferComponent consideration[0].getAmount()"
+            "processOfferComponent consideration[0].getAmount() 3"
         );
         assertEq(params.offerFulfillmentComponents.length, 1);
 
@@ -229,7 +229,7 @@ contract MatchFulfillmentLibTest is Test {
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
-            consideration[0].getAmount(), 0, "consideration[0].getAmount()"
+            consideration[0].getAmount(), 0, "consideration[0].getAmount() 4"
         );
         assertEq(offer[0].getAmount(), 0, "offer[0].getAmount()");
         assertEq(

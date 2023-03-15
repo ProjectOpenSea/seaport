@@ -25,8 +25,8 @@ library MatchFulfillmentLib {
         AggregatableConsideration memory token,
         MatchFulfillmentStorageLayout storage layout
     ) internal view returns (bool) {
-        return layout.considerationMap[token.offererOrRecipient][token
-            .contractAddress][token.tokenId].length > 0;
+        return layout.considerationMap[token.recipient][token.contractAddress][token
+            .tokenId].length > 0;
     }
 
     /**
@@ -133,9 +133,9 @@ library MatchFulfillmentLib {
                 considerationComponent;
         } else {
             // emit log("used up offer");
-            offerComponent = offerComponent.setAmount(0);
             considerationComponent =
                 considerationComponent.subtractAmount(offerComponent);
+            offerComponent = offerComponent.setAmount(0);
 
             // otherwise deplete offer amount and credit consideration amount
             considerationComponents[params.considerationItemIndex] =

@@ -105,7 +105,7 @@ library MatchFulfillmentHelper {
                 layout.considerationEnumeration[i];
             // load the consideration components
             MatchComponent[] storage considerationComponents = layout
-                .considerationMap[token.offererOrRecipient][token.contractAddress][token
+                .considerationMap[token.recipient][token.contractAddress][token
                 .tokenId];
             // load the enumeration of offerer+conduit keys for offer components that match this token
             AggregatableOfferer[] storage offererEnumeration = layout
@@ -207,7 +207,7 @@ library MatchFulfillmentHelper {
             });
             // create enumeration struct
             AggregatableConsideration memory token = AggregatableConsideration({
-                offererOrRecipient: item.recipient,
+                recipient: item.recipient,
                 contractAddress: item.token,
                 tokenId: item.identifierOrCriteria
             });
@@ -220,8 +220,8 @@ library MatchFulfillmentHelper {
                 layout.considerationEnumeration.push(token);
             }
             // update mapping with this component
-            layout.considerationMap[token.offererOrRecipient][token
-                .contractAddress][token.tokenId].push(component);
+            layout.considerationMap[token.recipient][token.contractAddress][token
+                .tokenId].push(component);
         }
     }
 }
