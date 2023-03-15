@@ -5,15 +5,9 @@ import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
-import {
-    MOATEngine,
-    Structure,
-    Type,
-    Family,
-    State
-} from "./helpers/MOATEngine.sol";
+import { TestContext, FuzzParams, MOATEngine } from "./helpers/MOATEngine.sol";
 
-contract MOATEngineTest is BaseOrderTest {
+contract MOATHelpersTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -26,8 +20,7 @@ contract MOATEngineTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
 
-    using MOATEngine for AdvancedOrder;
-    using MOATEngine for AdvancedOrder[];
+    using MOATEngine for TestContext;
 
     function setUp() public virtual override {
         super.setUp();
@@ -40,388 +33,176 @@ contract MOATEngineTest is BaseOrderTest {
         );
     }
 
-    /// @dev An order with no advanced order parameters is STANDARD
-    function test_getStructure_Standard() public {
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.STANDARD);
-    }
-
-    /// @dev An order with numerator, denominator, or extraData is ADVANCED
-    function test_getStructure_Advanced(
-        uint120 numerator,
-        uint120 denominator,
-        bytes memory extraData
-    ) public {
-        vm.assume(numerator != 0);
-        vm.assume(denominator != 0);
-        vm.assume(extraData.length != 0);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: numerator,
-                denominator: denominator,
-                extraData: extraData
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev A non-contract order with offer item criteria is ADVANCED
-    function test_getStructure_Advanced_OfferERC721Criteria() public {
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOffer(offer);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev A non-contract order with offer item criteria is ADVANCED
-    function test_getStructure_Advanced_OfferERC1155Criteria() public {
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib.empty().withItemType(
-            ItemType.ERC1155_WITH_CRITERIA
-        );
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOffer(offer);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev A non-contract order with consideration item criteria is ADVANCED
-    function test_getStructure_Advanced_ConsiderationERC721Criteria() public {
-        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withConsideration(consideration);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev A non-contract order with consideration item criteria is ADVANCED
-    function test_getStructure_Advanced_ConsiderationERC1155Criteria() public {
-        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC1155_WITH_CRITERIA
-        );
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withConsideration(consideration);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev A contract order with consideration item criteria is STANDARD if
-    ///      identifierOrCriteria == 0 for all items
-    function test_getStructure_Standard_ConsiderationCriteria_ContractOrder()
-        public
-    {
-        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withConsideration(consideration)
-            .withOrderType(OrderType.CONTRACT);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.STANDARD);
-    }
-
-    /// @dev A contract order with consideration item criteria is ADVANCED if
-    ///      identifierOrCriteria != 0 for any item
-    function test_getStructure_Advanced_ConsiderationCriteria_ContractOrder()
-        public
-    {
-        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib
-            .empty()
-            .withItemType(ItemType.ERC721_WITH_CRITERIA)
-            .withIdentifierOrCriteria(1);
-
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withConsideration(consideration)
-            .withOrderType(OrderType.CONTRACT);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getStructure(), Structure.ADVANCED);
-    }
-
-    /// @dev An order with type FULL_OPEN is OPEN
-    function test_getType_FullOpen() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOrderType(OrderType.FULL_OPEN);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getType(), Type.OPEN);
-    }
-
-    /// @dev An order with type PARTIAL_OPEN is OPEN
-    function test_getType_PartialOpen() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOrderType(OrderType.PARTIAL_OPEN);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getType(), Type.OPEN);
-    }
-
-    /// @dev An order with type FULL_RESTRICTED is RESTRICTED
-    function test_getType_FullRestricted() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOrderType(OrderType.FULL_RESTRICTED);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getType(), Type.RESTRICTED);
-    }
-
-    /// @dev An order with type PARTIAL_RESTRICTED is RESTRICTED
-    function test_getType_PartialRestricted() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOrderType(OrderType.PARTIAL_RESTRICTED);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getType(), Type.RESTRICTED);
-    }
-
-    /// @dev An order with type CONTRACT is CONTRACT
-    function test_getType_Contract() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOrderType(OrderType.CONTRACT);
-
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getType(), Type.CONTRACT);
-    }
-
-    /// @dev A validated order is in state VALIDATED
-    function test_getState_ValidatedOrder() public {
-        uint256 counter = seaport.getCounter(offerer1.addr);
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .withOfferer(offerer1.addr)
-            .withCounter(counter)
-            .withOrderType(OrderType.FULL_OPEN)
-            .toOrderParameters();
-        bytes32 orderHash = seaport.getOrderHash(
-            orderParameters.toOrderComponents(counter)
-        );
-
-        Order[] memory orders = new Order[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderParameters)
-            .withSignature(signOrder(seaport, offerer1.key, orderHash));
-
-        assertEq(seaport.validate(orders), true);
-
-        AdvancedOrder memory order = orders[0].toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
-
-        assertEq(order.getState(seaport), State.VALIDATED);
-    }
-
-    /// @dev A new order is in state UNUSED
-    function test_getState_NewOrder() public {
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-
-        assertEq(order.getState(seaport), State.UNUSED);
-    }
-
-    /// @dev An order[] quantity is its length
-    function test_getQuantity(uint8 n) public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
-
-        for (uint256 i; i < n; ++i) {
-            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
-        }
-
-        assertEq(orders.getQuantity(), n);
-    }
-
-    /// @dev An order[] of quantity 1 uses a SINGLE family method
-    function test_getFamily_Single() public {
+    function test_Single_Standard_Actions() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
             denominator: 0,
             extraData: bytes("")
         });
 
-        assertEq(orders.getFamily(), Family.SINGLE);
+        bytes4[] memory expectedActions = new bytes4[](2);
+        expectedActions[0] = seaport.fulfillOrder.selector;
+        expectedActions[1] = seaport.fulfillAdvancedOrder.selector;
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.actions(), expectedActions);
     }
 
-    /// @dev An order[] of quantity > 1 uses a COMBINED family method
-    function test_getFamily_Combined(uint8 n) public {
-        vm.assume(n > 1);
-        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
+    function test_Single_Standard_Action() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
-        for (uint256 i; i < n; ++i) {
-            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.action(), seaport.fulfillOrder.selector);
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 1 })
+        });
+        assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
+    }
+
+    function test_Single_Advanced_Actions() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+
+        bytes4[] memory expectedActions = new bytes4[](1);
+        expectedActions[0] = seaport.fulfillAdvancedOrder.selector;
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.actions(), expectedActions);
+    }
+
+    function test_Single_Advanced_Action() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
+    }
+
+    function test_Combined_Actions() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+
+        bytes4[] memory expectedActions = new bytes4[](6);
+        expectedActions[0] = seaport.fulfillAvailableOrders.selector;
+        expectedActions[1] = seaport.fulfillAvailableAdvancedOrders.selector;
+        expectedActions[2] = seaport.matchOrders.selector;
+        expectedActions[3] = seaport.matchAdvancedOrders.selector;
+        expectedActions[4] = seaport.cancel.selector;
+        expectedActions[5] = seaport.validate.selector;
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.actions(), expectedActions);
+    }
+
+    function test_Combined_Action() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.action(), seaport.fulfillAvailableOrders.selector);
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 1 })
+        });
+        assertEq(
+            context.action(),
+            seaport.fulfillAvailableAdvancedOrders.selector
+        );
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 2 })
+        });
+        assertEq(context.action(), seaport.matchOrders.selector);
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 3 })
+        });
+        assertEq(context.action(), seaport.matchAdvancedOrders.selector);
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 4 })
+        });
+        assertEq(context.action(), seaport.cancel.selector);
+
+        context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 5 })
+        });
+        assertEq(context.action(), seaport.validate.selector);
+    }
+
+    function assertEq(bytes4[] memory a, bytes4[] memory b) internal {
+        if (a.length != b.length) revert("Array length mismatch");
+        for (uint256 i; i < a.length; ++i) {
+            assertEq(a[i], b[i]);
         }
-
-        assertEq(orders.getFamily(), Family.COMBINED);
-    }
-
-    function assertEq(State a, State b) internal {
-        assertEq(uint8(a), uint8(b));
-    }
-
-    function assertEq(Family a, Family b) internal {
-        assertEq(uint8(a), uint8(b));
-    }
-
-    function assertEq(Structure a, Structure b) internal {
-        assertEq(uint8(a), uint8(b));
-    }
-
-    function assertEq(Type a, Type b) internal {
-        assertEq(uint8(a), uint8(b));
     }
 }
