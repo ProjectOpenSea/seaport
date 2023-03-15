@@ -108,7 +108,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withStartAmount(3 ether)
             .withEndAmount(3 ether)
             .withIdentifierOrCriteria(0)
-            .saveDefault(THREE_ERC20); // not strictly necessary
+            .saveDefault(THREE_ERC20);
 
         // create a default offerItem for a single 721;
         // note that it does not have token or identifier set

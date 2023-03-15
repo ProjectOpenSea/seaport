@@ -2,15 +2,17 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
-import "seaport-sol/SeaportSol.sol";
+
 import { FulfillmentHelper } from "seaport-sol/FulfillmentHelper.sol";
+
+import "seaport-sol/SeaportSol.sol";
 
 contract FulfillmentHelperTest is Test {
     using OrderParametersLib for OrderParameters;
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
 
-    function testNaive() public {
+    function testGetNaiveFulfillmentComponents() public {
         OrderParameters memory orderParameters = OrderParametersLib.empty()
             .withOffer(
             SeaportArrays.OfferItems(
@@ -57,7 +59,7 @@ contract FulfillmentHelperTest is Test {
         assertEq(consideration[2][0].orderIndex, 0);
         assertEq(consideration[2][0].itemIndex, 2);
 
-        OrderParameters memory parameters2 = OrderParametersLib.empty()
+        OrderParameters memory orderParamtersTwo = OrderParametersLib.empty()
             .withOffer(
             SeaportArrays.OfferItems(
                 OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
@@ -80,7 +82,7 @@ contract FulfillmentHelperTest is Test {
         );
 
         (offer, consideration) = FulfillmentHelper.getNaiveFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(orderParameters, parameters2)
+            SeaportArrays.OrderParametersArray(orderParameters, orderParamtersTwo)
         );
         assertEq(offer.length, 5);
         assertEq(offer[0].length, 1);
@@ -116,7 +118,7 @@ contract FulfillmentHelperTest is Test {
         assertEq(consideration[4][0].itemIndex, 1);
     }
 
-    function testAggregated_single() public {
+    function testGetAggregatedFulfillmentComponents_single() public {
         OrderParameters memory parameters = OrderParametersLib.empty().withOffer(
             SeaportArrays.OfferItems(
                 OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
@@ -219,7 +221,7 @@ contract FulfillmentHelperTest is Test {
         );
     }
 
-    function testAggregated_multi() public {
+    function testGetAggregatedFulfillmentComponents_multi() public {
         OrderParameters memory parameters = OrderParametersLib.empty().withOffer(
             SeaportArrays.OfferItems(
                 OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
@@ -242,7 +244,7 @@ contract FulfillmentHelperTest is Test {
                     .withToken(address(5678))
             )
         );
-        OrderParameters memory parameters2 = OrderParametersLib.empty()
+        OrderParameters memory orderParamtersTwo = OrderParametersLib.empty()
             .withOffer(
             SeaportArrays.OfferItems(
                 OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
@@ -265,7 +267,7 @@ contract FulfillmentHelperTest is Test {
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(parameters, parameters2)
+            SeaportArrays.OrderParametersArray(parameters, orderParamtersTwo)
         );
 
         assertEq(offer.length, 3, "offer length incorrect");

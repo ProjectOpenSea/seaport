@@ -9,11 +9,13 @@ import {
 import { LibSort } from "solady/src/utils/LibSort.sol";
 
 // used to effectively "wipe" the mappings and enumerations each time getAggregated is called
-bytes32 constant fulfillmentCounterKey =
-    keccak256("MatchFulfillmentHelper.fulfillmentCounter");
+bytes32 constant fulfillmentCounterKey = keccak256(
+    "MatchFulfillmentHelper.fulfillmentCounter"
+);
 
-bytes32 constant fulfillmentHelperStorageBaseKey =
-    keccak256("MatchFulfillmentHelper.storageBase");
+bytes32 constant fulfillmentHelperStorageBaseKey = keccak256(
+    "MatchFulfillmentHelper.storageBase"
+);
 
 struct FulfillmentHelperCounterLayout {
     uint256 fulfillmentCounter;
@@ -90,8 +92,9 @@ library MatchFulfillmentPriv {
                 )
             ) storage map
     ) internal view returns (bool) {
-        return map[token.offererOrRecipient][token.contractAddress][token
-            .tokenId].length > 0;
+        return
+            map[token.offererOrRecipient][token.contractAddress][token.tokenId]
+                .length > 0;
     }
 
     /**
@@ -118,6 +121,24 @@ library MatchFulfillmentPriv {
         return offerMap[token][tokenId][offerer][conduitKey].length > 0;
     }
 
+    // TODO: Smarter or at least smaller-footprint stack depth management.
+    struct CreateFulfillmentInfra {
+        uint256 offerLength;
+        uint256 considerationLength;
+        uint256 offerFulfillmentIndex;
+        uint256 considerationFulfillmentIndex;
+        FulfillmentComponent[] offerFulfillmentComponents;
+        FulfillmentComponent[] considerationFulfillmentComponents;
+        uint256 offerIndex;
+        uint256 considerationIndex;
+        bool credited;
+        bool midCredit;
+        MatchComponent offerComponent;
+        MatchComponent considerationComponent;
+        uint256 offerAmount;
+        uint256 considerationAmount;
+    }
+
     /**
      * Credit offer components to consideration components until either or both are exhausted
      * Updates arrays in storage to remove 0-item components after credits
@@ -128,105 +149,131 @@ library MatchFulfillmentPriv {
         MatchComponent[] storage offerComponents,
         MatchComponent[] storage considerationComponents
     ) internal returns (Fulfillment memory) {
-        uint256 offerLength = offerComponents.length;
-        uint256 considerationLength = considerationComponents.length;
+        CreateFulfillmentInfra memory infra;
+
+        infra.offerLength = offerComponents.length;
+        infra.considerationLength = considerationComponents.length;
         // track indexes of fulfillments since not all may be used up
-        uint256 offerFulfillmentIndex;
-        uint256 considerationFulfillmentIndex;
+        infra.offerFulfillmentIndex;
+        infra.considerationFulfillmentIndex;
         // optimistically allocate array of offer fulfillment components
-        FulfillmentComponent[] memory offerFulfillmentComponents =
-            new FulfillmentComponent[](offerLength);
-        FulfillmentComponent[] memory considerationFulfillmentComponents =
-            new FulfillmentComponent[](considerationLength);
+        infra.offerFulfillmentComponents = new FulfillmentComponent[](
+            infra.offerLength
+        );
+        infra.considerationFulfillmentComponents = new FulfillmentComponent[](
+            infra.considerationLength
+        );
         // iterate over consideration components
-        uint256 offerIndex;
+        infra.offerIndex;
         for (
-            uint256 considerationIndex;
-            considerationIndex < considerationLength;
-            ++considerationIndex
+            infra.considerationIndex;
+            infra.considerationIndex < infra.considerationLength;
+            ++infra.considerationIndex
         ) {
             // only include this considerationItem in the fulfillment if there is an offerItem that has credited to it
-            bool credited;
+            infra.credited;
             // it's possible that not all of an offer component will be used up; this helps to track that
-            bool midCredit;
-            // iterate over offer components
-            while (offerIndex < offerLength) {
-                // re-load components each iteration as they may have been modified
-                MatchComponent offerComponent = offerComponents[offerIndex];
-                MatchComponent considerationComponent =
-                    considerationComponents[considerationIndex];
-                // cache amounts
-                uint256 offerAmount = offerComponent.getAmount();
-                uint256 considerationAmount = considerationComponent.getAmount();
-                // if consideration has been completely credited, break to next consideration component
-                if (considerationAmount == 0) {
-                    break;
-                }
-                // note that this consideration component has been credited
-                credited = true;
-                if (offerAmount > considerationAmount) {
-                    // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
-                    offerComponents[offerIndex] =
-                        offerComponent.subtractAmount(considerationComponent);
-                    considerationComponents[considerationIndex] =
-                        considerationComponent.setAmount(0);
-                    // don't add duplicates of this fulfillment if it is credited towards multiple consideration items; note that it is mid-credit and add after the loop if it was not added in another iteration
-                    midCredit = true;
-                } else {
-                    // if we were midCredit, we are no longer, so set to false, since it will be added as part of this branch
-                    midCredit = false;
-                    // otherwise deplete offer amount and credit consideration amount
-                    considerationComponents[considerationIndex] =
-                        considerationComponent.subtractAmount(offerComponent);
-                    offerComponents[offerIndex] = offerComponent.setAmount(0);
-                    ++offerIndex;
-                    // add offer component to fulfillment components and increment index
-                    offerFulfillmentComponents[offerFulfillmentIndex] =
-                        offerComponent.toFulfillmentComponent();
-                    offerFulfillmentIndex++;
-                }
-            }
-            // if we were midCredit, add to fulfillment components
-            if (midCredit) {
-                // add offer component to fulfillment components and increment index
-                offerFulfillmentComponents[offerFulfillmentIndex] =
-                    offerComponents[offerIndex].toFulfillmentComponent();
-                offerFulfillmentIndex++;
-            }
+            infra.midCredit;
 
-            // check that an offer item was actually credited to this consideration item
-            // if we ran out of offer items,
-            if (credited) {
-                // add consideration component to fulfillment components and increment index
-                considerationFulfillmentComponents[considerationFulfillmentIndex]
-                = considerationComponents[considerationIndex]
-                    .toFulfillmentComponent();
-                considerationFulfillmentIndex++;
+            {
+                // iterate over offer components
+                while (infra.offerIndex < infra.offerLength) {
+                    // re-load components each iteration as they may have been modified
+                    infra.offerComponent = offerComponents[infra.offerIndex];
+                    infra.considerationComponent = considerationComponents[
+                        infra.considerationIndex
+                    ];
+                    // cache amounts
+                    infra.offerAmount = infra.offerComponent.getAmount();
+                    infra.considerationAmount = infra
+                        .considerationComponent
+                        .getAmount();
+                    // if consideration has been completely credited, break to next consideration component
+                    if (infra.considerationAmount == 0) {
+                        break;
+                    }
+                    // note that this consideration component has been credited
+                    infra.credited = true;
+                    if (infra.offerAmount > infra.considerationAmount) {
+                        // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
+                        offerComponents[infra.offerIndex] = infra
+                            .offerComponent
+                            .subtractAmount(infra.considerationComponent);
+                        considerationComponents[
+                            infra.considerationIndex
+                        ] = infra.considerationComponent.setAmount(0);
+                        // don't add duplicates of this fulfillment if it is credited towards multiple consideration items; note that it is mid-credit and add after the loop if it was not added in another iteration
+                        infra.midCredit = true;
+                    } else {
+                        // if we were midCredit, we are no longer, so set to false, since it will be added as part of this branch
+                        infra.midCredit = false;
+                        // otherwise deplete offer amount and credit consideration amount
+                        considerationComponents[
+                            infra.considerationIndex
+                        ] = infra.considerationComponent.subtractAmount(
+                            infra.offerComponent
+                        );
+                        offerComponents[infra.offerIndex] = infra
+                            .offerComponent
+                            .setAmount(0);
+                        ++infra.offerIndex;
+                        // add offer component to fulfillment components and increment index
+                        infra.offerFulfillmentComponents[
+                            infra.offerFulfillmentIndex
+                        ] = infra.offerComponent.toFulfillmentComponent();
+                        infra.offerFulfillmentIndex++;
+                    }
+                }
+                // if we were midCredit, add to fulfillment components
+                if (infra.midCredit) {
+                    // add offer component to fulfillment components and increment index
+                    infra.offerFulfillmentComponents[
+                        infra.offerFulfillmentIndex
+                    ] = offerComponents[infra.offerIndex]
+                        .toFulfillmentComponent();
+                    infra.offerFulfillmentIndex++;
+                }
+
+                // check that an offer item was actually credited to this consideration item
+                // if we ran out of offer items,
+                if (infra.credited) {
+                    // add consideration component to fulfillment components and increment index
+                    infra.considerationFulfillmentComponents[
+                        infra.considerationFulfillmentIndex
+                    ] = considerationComponents[infra.considerationIndex]
+                        .toFulfillmentComponent();
+                    infra.considerationFulfillmentIndex++;
+                }
             }
         }
         // remove any zero-amount components so they are skipped in future fulfillments
         cleanUpZeroedComponents(offerComponents);
         cleanUpZeroedComponents(considerationComponents);
         // truncate arrays to remove unused elements and set correct length
-        offerFulfillmentComponents =
-            truncateArray(offerFulfillmentComponents, offerFulfillmentIndex);
-        considerationFulfillmentComponents = truncateArray(
-            considerationFulfillmentComponents, considerationFulfillmentIndex
+        infra.offerFulfillmentComponents = truncateArray(
+            infra.offerFulfillmentComponents,
+            infra.offerFulfillmentIndex
+        );
+        infra.considerationFulfillmentComponents = truncateArray(
+            infra.considerationFulfillmentComponents,
+            infra.considerationFulfillmentIndex
         );
         // return a discrete fulfillment since either or both of the sets of components have been exhausted
         // if offer or consideration items remain, they will be revisited in subsequent calls
-        return Fulfillment({
-            offerComponents: offerFulfillmentComponents,
-            considerationComponents: considerationFulfillmentComponents
-        });
+        return
+            Fulfillment({
+                offerComponents: infra.offerFulfillmentComponents,
+                considerationComponents: infra
+                    .considerationFulfillmentComponents
+            });
     }
 
     /**
      * @dev Removes any zero-amount components from the start of the array
      */
-    function cleanUpZeroedComponents(MatchComponent[] storage components)
-        internal
-    {
+    function cleanUpZeroedComponents(
+        MatchComponent[] storage components
+    ) internal {
         uint256 length = components.length;
         uint256 lastAmount = components[length - 1].getAmount();
         // if last amount is zero, then all amounts were fully credited. pop everything.
@@ -251,9 +298,10 @@ library MatchFulfillmentPriv {
      * @param components components
      * @param index index to swap with last element and pop
      */
-    function popIndex(MatchComponent[] storage components, uint256 index)
-        internal
-    {
+    function popIndex(
+        MatchComponent[] storage components,
+        uint256 index
+    ) internal {
         uint256 length = components.length;
         if (length == 0) {
             return;
@@ -265,11 +313,10 @@ library MatchFulfillmentPriv {
     /**
      * @dev return keccak256(abi.encode(contractAddress, tokenId))
      */
-    function getTokenHash(address contractAddress, uint256 tokenId)
-        internal
-        pure
-        returns (bytes32 tokenHash)
-    {
+    function getTokenHash(
+        address contractAddress,
+        uint256 tokenId
+    ) internal pure returns (bytes32 tokenHash) {
         assembly {
             mstore(0, contractAddress)
             mstore(0x20, tokenId)
@@ -280,11 +327,10 @@ library MatchFulfillmentPriv {
     /**
      * @dev Truncates an array to the given length by overwriting memory
      */
-    function truncateArray(FulfillmentComponent[] memory array, uint256 length)
-        internal
-        pure
-        returns (FulfillmentComponent[] memory truncatedArray)
-    {
+    function truncateArray(
+        FulfillmentComponent[] memory array,
+        uint256 length
+    ) internal pure returns (FulfillmentComponent[] memory truncatedArray) {
         assembly {
             mstore(array, length)
             truncatedArray := array
@@ -313,8 +359,8 @@ library MatchFulfillmentPriv {
         view
         returns (FulfillmentHelperStorageLayout storage layout)
     {
-        FulfillmentHelperCounterLayout storage counterLayout =
-            getCounterLayout();
+        FulfillmentHelperCounterLayout
+            storage counterLayout = getCounterLayout();
         uint256 counter = counterLayout.fulfillmentCounter;
         bytes32 storageLayoutKey = fulfillmentHelperStorageBaseKey;
         assembly {
@@ -342,8 +388,8 @@ library MatchFulfillmentPriv {
      * @notice increment the fulfillmentCounter to effectively clear the mappings and enumerations between calls
      */
     function incrementFulfillmentCounter() internal {
-        FulfillmentHelperCounterLayout storage counterLayout =
-            getCounterLayout();
+        FulfillmentHelperCounterLayout
+            storage counterLayout = getCounterLayout();
         counterLayout.fulfillmentCounter += 1;
     }
 
@@ -351,7 +397,9 @@ library MatchFulfillmentPriv {
      * @notice Get the mapping of tokens for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
      * @param key Original key used to derive the slot of the enumeration
      */
-    function getMap(bytes32 key)
+    function getMap(
+        bytes32 key
+    )
         internal
         view
         returns (
@@ -378,11 +426,9 @@ library MatchFulfillmentPriv {
      * @notice Get the enumeration of AggregatableTokens for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
      * @param key Original key used to derive the slot of the enumeration
      */
-    function getEnumeration(bytes32 key)
-        internal
-        view
-        returns (AggregatableToken[] storage tokens)
-    {
+    function getEnumeration(
+        bytes32 key
+    ) internal view returns (AggregatableToken[] storage tokens) {
         bytes32 counterKey = fulfillmentCounterKey;
         assembly {
             mstore(0, key)
@@ -400,12 +446,12 @@ library MatchFulfillmentHelper {
      * @param orders orders
      * @return fulfillments
      */
-    function getMatchedFulfillments(Order[] memory orders)
-        internal
-        returns (Fulfillment[] memory fulfillments)
-    {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+    function getMatchedFulfillments(
+        Order[] memory orders
+    ) internal returns (Fulfillment[] memory fulfillments) {
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -419,12 +465,12 @@ library MatchFulfillmentHelper {
      * @param orders orders
      * @return fulfillments
      */
-    function getMatchedFulfillments(AdvancedOrder[] memory orders)
-        internal
-        returns (Fulfillment[] memory fulfillments)
-    {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+    function getMatchedFulfillments(
+        AdvancedOrder[] memory orders
+    ) internal returns (Fulfillment[] memory fulfillments) {
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -438,21 +484,22 @@ library MatchFulfillmentHelper {
      * @param orders orders
      * @return fulfillments
      */
-    function getMatchedFulfillments(OrderParameters[] memory orders)
-        internal
-        returns (Fulfillment[] memory fulfillments)
-    {
+    function getMatchedFulfillments(
+        OrderParameters[] memory orders
+    ) internal returns (Fulfillment[] memory fulfillments) {
         // increment counter to get clean mappings and enumeration
         MatchFulfillmentPriv.incrementFulfillmentCounter();
         // load the storage layout
-        FulfillmentHelperStorageLayout storage layout =
-            MatchFulfillmentPriv.getStorageLayout();
+        FulfillmentHelperStorageLayout storage layout = MatchFulfillmentPriv
+            .getStorageLayout();
 
-        // iterate over each order and process the offer and consideration components
+        // iterate over each order and process the offer and consideration
+        // components
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory parameters = orders[i];
-            // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
-            // also update per-token+tokenId enumerations of OffererAndConduit
+            // insert MatchComponents into the offer mapping, grouped by token,
+            // tokenId, offerer, and conduitKey also update per-token+tokenId
+            // enumerations of OffererAndConduit
             processOffer(
                 parameters.offer,
                 parameters.offerer,
@@ -461,8 +508,8 @@ library MatchFulfillmentHelper {
                 layout.offerMap,
                 layout.tokenToOffererEnumeration
             );
-            // insert MatchComponents into the offer mapping, grouped by token, tokenId, and recipient
-            // also update AggregatableToken enumeration
+            // insert MatchComponents into the offer mapping, grouped by token,
+            // tokenId, and recipient also update AggregatableToken enumeration
             processConsideration(
                 parameters.consideration,
                 i,
@@ -471,39 +518,61 @@ library MatchFulfillmentHelper {
             );
         }
 
-        // iterate over groups of consideration components and find matching offer components
+        // iterate over groups of consideration components and find matching
+        // offer components
         uint256 considerationLength = layout.considerationEnumeration.length;
         for (uint256 i; i < considerationLength; ++i) {
             // get the token information
-            AggregatableToken storage token = layout.considerationEnumeration[i];
+            AggregatableToken storage token = layout.considerationEnumeration[
+                i
+            ];
             // load the consideration components
             MatchComponent[] storage considerationComponents = layout
-                .considerationMap[token.offererOrRecipient][token.contractAddress][token
-                .tokenId];
-            // load the enumeration of offerer+conduit keys for offer components that match this token
+                .considerationMap[token.offererOrRecipient][
+                    token.contractAddress
+                ][token.tokenId];
+            // load the enumeration of offerer+conduit keys for offer components
+            // that match this token
             OffererAndConduit[] storage offererEnumeration = layout
-                .tokenToOffererEnumeration[token.contractAddress][token.tokenId];
-            // iterate over each offerer+conduit with offer components that match this token and create matching fulfillments
-            // this will update considerationComponents in-place in storage, which we check at the beginning of each loop
+                .tokenToOffererEnumeration[token.contractAddress][
+                    token.tokenId
+                ];
+
+            // iterate over each offerer+conduit with offer components that
+            // match this token and create matching fulfillments this will
+            // update considerationComponents in-place in storage, which we
+            // check at the beginning of each loop
             for (uint256 j; j < offererEnumeration.length; ++j) {
                 // if all consideration components have been fulfilled, break
                 if (considerationComponents.length == 0) {
                     break;
                 }
                 // load the OffererAndConduit
-                OffererAndConduit storage offererAndConduit =
-                    offererEnumeration[j];
+                OffererAndConduit
+                    storage offererAndConduit = offererEnumeration[j];
                 // load the associated offer components for this offerer+conduit
-                MatchComponent[] storage offerComponents = layout.offerMap[token
-                    .contractAddress][token.tokenId][offererAndConduit.offerer][offererAndConduit
-                    .conduitKey];
+                MatchComponent[] storage offerComponents = layout.offerMap[
+                    token.contractAddress
+                ][token.tokenId][offererAndConduit.offerer][
+                        offererAndConduit.conduitKey
+                    ];
 
-                // create a fulfillment matching the offer and consideration components until either or both are exhausted
+                // create a fulfillment matching the offer and consideration
+                // components until either or both are exhausted
                 Fulfillment memory fulfillment = MatchFulfillmentPriv
-                    .createFulfillment(offerComponents, considerationComponents);
+                    .createFulfillment(
+                        offerComponents,
+                        considerationComponents
+                    );
+
                 // append the fulfillment to the array of fulfillments
-                MatchFulfillmentPriv.extend(fulfillments, fulfillment);
-                // loop back around in case not all considerationComponents have been completely fulfilled
+                fulfillments = MatchFulfillmentPriv.extend(
+                    fulfillments,
+                    fulfillment
+                );
+
+                // loop back around in case not all considerationComponents have
+                // been completely fulfilled
             }
         }
     }
@@ -614,14 +683,16 @@ library MatchFulfillmentHelper {
             // if it does not exist in the map, add it to our enumeration
             if (
                 !MatchFulfillmentPriv.tokenConsiderationExists(
-                    token, considerationMap
+                    token,
+                    considerationMap
                 )
             ) {
                 considerationEnumeration.push(token);
             }
             // update mapping with this component
-            considerationMap[token.offererOrRecipient][token.contractAddress][token
-                .tokenId].push(component);
+            considerationMap[token.offererOrRecipient][token.contractAddress][
+                token.tokenId
+            ].push(component);
         }
     }
 }
