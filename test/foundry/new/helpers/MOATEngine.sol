@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
 enum Structure {
     BASIC,
@@ -20,18 +21,58 @@ enum Family {
     COMBINED
 }
 
-library MOATEngine {
+enum State {
+    UNUSED,
+    VALIDATED,
+    CANCELLED,
+    PARTIALLY_FILLED,
+    FULLY_FILLED
+}
 
-    function getQuantity(AdvancedOrder[] memory orders) internal pure returns (uint256) {
+library MOATEngine {
+    using OrderLib for Order;
+    using OrderComponentsLib for OrderComponents;
+    using OrderParametersLib for OrderParameters;
+    using AdvancedOrderLib for AdvancedOrder;
+
+    function getQuantity(
+        AdvancedOrder[] memory orders
+    ) internal pure returns (uint256) {
         return orders.length;
     }
 
-    function getFamily(AdvancedOrder[] memory orders) internal pure returns (Family) {
+    function getFamily(
+        AdvancedOrder[] memory orders
+    ) internal pure returns (Family) {
         uint256 quantity = getQuantity(orders);
         if (quantity > 1) {
             return Family.COMBINED;
         }
         return Family.SINGLE;
+    }
+
+    function getState(
+        AdvancedOrder memory order,
+        SeaportInterface seaport
+    ) internal view returns (State) {
+        uint256 counter = seaport.getCounter(order.parameters.offerer);
+        bytes32 orderHash = seaport.getOrderHash(
+            order.parameters.toOrderComponents(counter)
+        );
+        (
+            bool isValidated,
+            bool isCancelled,
+            uint256 totalFilled,
+            uint256 totalSize
+        ) = seaport.getOrderStatus(orderHash);
+
+        if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize)
+            return State.FULLY_FILLED;
+        if (totalFilled != 0 && totalSize != 0 && totalFilled > 0)
+            return State.PARTIALLY_FILLED;
+        if (isCancelled) return State.CANCELLED;
+        if (isValidated) return State.VALIDATED;
+        return State.UNUSED;
     }
 
     function getType(AdvancedOrder memory order) internal pure returns (Type) {

@@ -3,8 +3,15 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
-import { MOATEngine, Structure, Type, Family } from "./helpers/MOATEngine.sol";
+import {
+    MOATEngine,
+    Structure,
+    Type,
+    Family,
+    State
+} from "./helpers/MOATEngine.sol";
 
 contract MOATEngineTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
@@ -315,6 +322,49 @@ contract MOATEngineTest is BaseOrderTest {
         assertEq(order.getType(), Type.CONTRACT);
     }
 
+    /// @dev A validated order is in state VALIDATED
+    function test_getState_ValidatedOrder() public {
+        uint256 counter = seaport.getCounter(offerer1.addr);
+        OrderParameters memory orderParameters = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withCounter(counter)
+            .withOrderType(OrderType.FULL_OPEN)
+            .toOrderParameters();
+        bytes32 orderHash = seaport.getOrderHash(
+            orderParameters.toOrderComponents(counter)
+        );
+
+        Order[] memory orders = new Order[](1);
+        orders[0] = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderParameters)
+            .withSignature(signOrder(seaport, offerer1.key, orderHash));
+
+        assertEq(seaport.validate(orders), true);
+
+        AdvancedOrder memory order = orders[0].toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        assertEq(order.getState(seaport), State.VALIDATED);
+    }
+
+    /// @dev A new order is in state UNUSED
+    function test_getState_NewOrder() public {
+        AdvancedOrder memory order = OrderLib
+            .fromDefault(STANDARD)
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+
+        assertEq(order.getState(seaport), State.UNUSED);
+    }
+
     /// @dev An order[] quantity is its length
     function test_getQuantity(uint8 n) public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](n);
@@ -343,7 +393,6 @@ contract MOATEngineTest is BaseOrderTest {
         assertEq(orders.getFamily(), Family.SINGLE);
     }
 
-
     /// @dev An order[] of quantity > 1 uses a COMBINED family method
     function test_getFamily_Combined(uint8 n) public {
         vm.assume(n > 1);
@@ -358,6 +407,10 @@ contract MOATEngineTest is BaseOrderTest {
         }
 
         assertEq(orders.getFamily(), Family.COMBINED);
+    }
+
+    function assertEq(State a, State b) internal {
+        assertEq(uint8(a), uint8(b));
     }
 
     function assertEq(Family a, Family b) internal {
