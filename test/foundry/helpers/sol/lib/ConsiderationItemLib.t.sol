@@ -36,6 +36,14 @@ contract ConsiderationItemLibTest is BaseTest {
         assertEq(considerationItem, defaultConsiderationItem);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty ConsiderationItem selected.");
+        ConsiderationItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty ConsiderationItem array selected.");
+        ConsiderationItemLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint8 itemType,
         address token,
