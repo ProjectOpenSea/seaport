@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
 
-import {MOATEngine, Structure, Type} from "./helpers/MOATEngine.sol";
+import { MOATEngine, Structure, Type, Family } from "./helpers/MOATEngine.sol";
 
 contract MOATEngineTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
@@ -20,7 +20,7 @@ contract MOATEngineTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent[];
 
     using MOATEngine for AdvancedOrder;
-
+    using MOATEngine for AdvancedOrder[];
 
     function setUp() public virtual override {
         super.setUp();
@@ -183,15 +183,12 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
-        assertEq(
-            order.getStructure(),
-            Structure.STANDARD
-        );
+        assertEq(order.getStructure(), Structure.STANDARD);
     }
 
     /// @dev A contract order with consideration item criteria is ADVANCED if
@@ -215,10 +212,10 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
         assertEq(order.getStructure(), Structure.ADVANCED);
     }
@@ -234,10 +231,10 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
         assertEq(order.getType(), Type.OPEN);
     }
@@ -253,10 +250,10 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
         assertEq(order.getType(), Type.OPEN);
     }
@@ -272,10 +269,10 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
         assertEq(order.getType(), Type.RESTRICTED);
     }
@@ -291,10 +288,10 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
         assertEq(order.getType(), Type.RESTRICTED);
     }
@@ -310,12 +307,61 @@ contract MOATEngineTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+
+        assertEq(order.getType(), Type.CONTRACT);
+    }
+
+    /// @dev An order[] quantity is its length
+    function test_getQuantity(uint8 n) public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
+
+        for (uint256 i; i < n; ++i) {
+            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+        }
+
+        assertEq(orders.getQuantity(), n);
+    }
+
+    /// @dev An order[] of quantity 1 uses a SINGLE family method
+    function test_getFamily_Single() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
             denominator: 0,
             extraData: bytes("")
         });
 
-        assertEq(order.getType(), Type.CONTRACT);
+        assertEq(orders.getFamily(), Family.SINGLE);
+    }
+
+
+    /// @dev An order[] of quantity > 1 uses a COMBINED family method
+    function test_getFamily_Combined(uint8 n) public {
+        vm.assume(n > 1);
+        AdvancedOrder[] memory orders = new AdvancedOrder[](n);
+
+        for (uint256 i; i < n; ++i) {
+            orders[i] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+        }
+
+        assertEq(orders.getFamily(), Family.COMBINED);
+    }
+
+    function assertEq(Family a, Family b) internal {
+        assertEq(uint8(a), uint8(b));
     }
 
     function assertEq(Structure a, Structure b) internal {

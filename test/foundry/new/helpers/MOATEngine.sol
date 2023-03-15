@@ -15,7 +15,25 @@ enum Type {
     CONTRACT
 }
 
+enum Family {
+    SINGLE,
+    COMBINED
+}
+
 library MOATEngine {
+
+    function getQuantity(AdvancedOrder[] memory orders) internal pure returns (uint256) {
+        return orders.length;
+    }
+
+    function getFamily(AdvancedOrder[] memory orders) internal pure returns (Family) {
+        uint256 quantity = getQuantity(orders);
+        if (quantity > 1) {
+            return Family.COMBINED;
+        }
+        return Family.SINGLE;
+    }
+
     function getType(AdvancedOrder memory order) internal pure returns (Type) {
         OrderType orderType = order.parameters.orderType;
         if (
