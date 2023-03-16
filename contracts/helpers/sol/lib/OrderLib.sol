@@ -3,8 +3,11 @@ pragma solidity ^0.8.17;
 
 import {
     AdvancedOrder,
+    ConsiderationItem,
+    OfferItem,
     Order,
-    OrderParameters
+    OrderParameters,
+    OrderType
 } from "../../../lib/ConsiderationStructs.sol";
 
 import { OrderParametersLib } from "./OrderParametersLib.sol";
@@ -23,6 +26,27 @@ library OrderLib {
         keccak256("seaport.OrderDefaults");
     bytes32 private constant ORDERS_MAP_POSITION =
         keccak256("seaport.OrdersDefaults");
+    bytes32 private constant EMPTY_ORDER =
+        keccak256(
+            abi.encode(
+                Order({
+                    parameters: OrderParameters({
+                        offerer: address(0),
+                        zone: address(0),
+                        offer: new OfferItem[](0),
+                        consideration: new ConsiderationItem[](0),
+                        orderType: OrderType(0),
+                        startTime: 0,
+                        endTime: 0,
+                        zoneHash: bytes32(0),
+                        salt: 0,
+                        conduitKey: bytes32(0),
+                        totalOriginalConsiderationItems: 0
+                    }),
+                    signature: ""
+                })
+            )
+        );
 
     using OrderParametersLib for OrderParameters;
 
@@ -72,6 +96,10 @@ library OrderLib {
     ) internal view returns (Order memory item) {
         mapping(string => Order) storage orderMap = _orderMap();
         item = orderMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_ORDER) {
+            revert("Empty Order selected.");
+        }
     }
 
     /**
@@ -86,6 +114,11 @@ library OrderLib {
     ) internal view returns (Order[] memory) {
         mapping(string => Order[]) storage ordersMap = _ordersMap();
         Order[] memory items = ordersMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty Order array selected.");
+        }
+
         return items;
     }
 

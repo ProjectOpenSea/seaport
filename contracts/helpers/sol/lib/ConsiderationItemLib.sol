@@ -22,6 +22,19 @@ library ConsiderationItemLib {
         keccak256("seaport.ConsiderationItemDefaults");
     bytes32 private constant CONSIDERATION_ITEMS_MAP_POSITION =
         keccak256("seaport.ConsiderationItemsDefaults");
+    bytes32 private constant EMPTY_CONSIDERATION_ITEM =
+        keccak256(
+            abi.encode(
+                ConsiderationItem({
+                    itemType: ItemType(0),
+                    token: address(0),
+                    identifierOrCriteria: 0,
+                    startAmount: 0,
+                    endAmount: 0,
+                    recipient: payable(address(0))
+                })
+            )
+        );
 
     /**
      * @dev Clears a ConsiderationItem from storage.
@@ -78,6 +91,10 @@ library ConsiderationItemLib {
         mapping(string => ConsiderationItem)
             storage considerationItemMap = _considerationItemMap();
         item = considerationItemMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_CONSIDERATION_ITEM) {
+            revert("Empty ConsiderationItem selected.");
+        }
     }
 
     /**
@@ -93,6 +110,10 @@ library ConsiderationItemLib {
         mapping(string => ConsiderationItem[])
             storage considerationItemsMap = _considerationItemsMap();
         items = considerationItemsMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty ConsiderationItem array selected.");
+        }
     }
 
     /**

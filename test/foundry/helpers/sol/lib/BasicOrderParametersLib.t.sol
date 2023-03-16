@@ -106,6 +106,14 @@ contract BasicOrderParametersLibTest is BaseTest {
         assertEq(basicOrderParameters, defaultBasicOrderParameters);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty BasicOrderParameters selected.");
+        BasicOrderParametersLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty BasicOrderParameters array selected.");
+        BasicOrderParametersLib.fromDefaultMany("nonexistent");
+    }
+
     function testCopy() public {
         AdditionalRecipient[] memory additionalRecipients = SeaportArrays
             .AdditionalRecipients(

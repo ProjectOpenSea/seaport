@@ -22,6 +22,18 @@ library ReceivedItemLib {
         keccak256("seaport.ReceivedItemDefaults");
     bytes32 private constant RECEIVED_ITEMS_MAP_POSITION =
         keccak256("seaport.ReceivedItemsDefaults");
+    bytes32 private constant EMPTY_RECEIVED_ITEM =
+        keccak256(
+            abi.encode(
+                ReceivedItem({
+                    itemType: ItemType(0),
+                    token: address(0),
+                    identifier: 0,
+                    amount: 0,
+                    recipient: payable(address(0))
+                })
+            )
+        );
 
     /**
      * @dev Clears a default ReceivedItem from storage.
@@ -102,6 +114,10 @@ library ReceivedItemLib {
         mapping(string => ReceivedItem)
             storage receivedItemMap = _receivedItemMap();
         item = receivedItemMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_RECEIVED_ITEM) {
+            revert("Empty ReceivedItem selected.");
+        }
     }
 
     /**
@@ -117,6 +133,10 @@ library ReceivedItemLib {
         mapping(string => ReceivedItem[])
             storage receivedItemsMap = _receivedItemsMap();
         items = receivedItemsMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty ReceivedItem array selected.");
+        }
     }
 
     /**

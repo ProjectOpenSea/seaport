@@ -47,6 +47,14 @@ contract ExecutionLibTest is BaseTest {
         assertEq(execution, defaultExecution);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty Execution selected.");
+        ExecutionLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty Execution array selected.");
+        ExecutionLib.fromDefaultMany("nonexistent");
+    }
+
     function _fromBlob(
         ReceivedItemBlob memory blob
     ) internal view returns (ReceivedItem memory) {
