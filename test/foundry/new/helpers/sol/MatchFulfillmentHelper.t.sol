@@ -17,6 +17,8 @@ contract MatchFulfillmentHelperTest is Test {
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
 
+    MatchFulfillmentHelper test;
+
     address A;
     address B;
     address C;
@@ -26,6 +28,7 @@ contract MatchFulfillmentHelperTest is Test {
     address G;
 
     function setUp() public virtual {
+        test = new MatchFulfillmentHelper();
         A = makeAddr("A");
         B = makeAddr("B");
         C = makeAddr("C");
@@ -60,8 +63,8 @@ contract MatchFulfillmentHelperTest is Test {
                 )
         });
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(order));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(order));
 
         assertEq(fulfillments.length, 1);
         assertEq(fulfillments[0], expectedFulfillment, "fulfillments[0]");
@@ -117,12 +120,194 @@ contract MatchFulfillmentHelperTest is Test {
             })
         );
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
         assertEq(fulfillments[1], expectedFulfillments[0], "fulfillments[1]");
+    }
+
+    function testGetMatchedFulfillments_1to1_ascending() public {
+        Order memory order = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(A)).withStartAmount(1)
+                        .withEndAmount(100)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(B))
+                            .withStartAmount(1).withEndAmount(100)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Order memory otherOrder = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(B)).withStartAmount(1)
+                        .withEndAmount(100)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(A))
+                            .withStartAmount(1).withEndAmount(100)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    )
+            }),
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    )
+            })
+        );
+
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+
+        assertEq(fulfillments.length, 2, "fulfillments.length");
+        assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
+        assertEq(fulfillments[1], expectedFulfillments[0], "fulfillments[1]");
+    }
+
+    function testGetMatchedFulfillments_1to1_descending() public {
+        Order memory order = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(A)).withStartAmount(100)
+                        .withEndAmount(1)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(B))
+                            .withStartAmount(100).withEndAmount(1)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Order memory otherOrder = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(B)).withStartAmount(100)
+                        .withEndAmount(1)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(A))
+                            .withStartAmount(100).withEndAmount(1)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    )
+            }),
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    )
+            })
+        );
+
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+
+        assertEq(fulfillments.length, 2, "fulfillments.length");
+        assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
+        assertEq(fulfillments[1], expectedFulfillments[0], "fulfillments[1]");
+    }
+
+    function testGetMatchedFulfillments_1to1_descending_leftover() public {
+        Order memory order = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(A)).withStartAmount(100)
+                        .withEndAmount(1)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(B))
+                            .withStartAmount(1).withEndAmount(100)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Order memory otherOrder = Order({
+            parameters: OrderParametersLib.empty().withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withToken(address(B)).withStartAmount(1)
+                        .withEndAmount(100)
+                )
+                ).withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib.empty().withToken(address(A))
+                            .withStartAmount(1).withEndAmount(100)
+                    )
+                ).withStartTime(1).withEndTime(100),
+            signature: ""
+        });
+
+        Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    )
+            }),
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    )
+            })
+        );
+
+        (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory leftoverOffer,
+            MatchComponent[] memory leftoverConsideration
+        ) = test.getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+
+        assertEq(fulfillments.length, 2, "fulfillments.length");
+        assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
+        assertEq(fulfillments[1], expectedFulfillments[0], "fulfillments[1]");
+        assertEq(leftoverOffer.length, 1, "leftoverOffer.length");
+        assertEq(leftoverOffer[0].getAmount(), 99, "leftoverOffer[0].amount()");
+        assertEq(
+            leftoverConsideration.length, 0, "leftoverConsideration.length"
+        );
     }
 
     function testGetMatchedFulfillments_1to1ExcessOffer() public {
@@ -175,8 +360,8 @@ contract MatchFulfillmentHelperTest is Test {
             })
         );
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -248,8 +433,8 @@ contract MatchFulfillmentHelperTest is Test {
             })
         );
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -323,8 +508,8 @@ contract MatchFulfillmentHelperTest is Test {
             })
         );
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -401,8 +586,8 @@ contract MatchFulfillmentHelperTest is Test {
             })
         );
 
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -478,9 +663,8 @@ contract MatchFulfillmentHelperTest is Test {
                     )
             })
         );
-        address(0x1234).call("");
-        (Fulfillment[] memory fulfillments,,) = MatchFulfillmentHelper
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+        (Fulfillment[] memory fulfillments,,) =
+            test.getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -515,9 +699,7 @@ contract MatchFulfillmentHelperTest is Test {
             ,
             MatchComponent[] memory remainingOffer,
             MatchComponent[] memory remainingConsideration
-        ) = MatchFulfillmentHelper.getMatchedFulfillments(
-            SeaportArrays.Orders(order1)
-        );
+        ) = test.getMatchedFulfillments(SeaportArrays.Orders(order1));
 
         assertEq(remainingOffer.length, 2, "remainingOffer.length");
         assertEq(
@@ -570,17 +752,11 @@ contract MatchFulfillmentHelperTest is Test {
         );
     }
 
-    event LogFulfillmentComponent(FulfillmentComponent);
-    event LogFulfillment(Fulfillment);
-
     function assertEq(
         Fulfillment memory left,
         Fulfillment memory right,
         string memory message
     ) internal {
-        emit LogFulfillment(left);
-        emit LogFulfillment(right);
-        emit Spacer();
         assertEq(
             left.offerComponents,
             right.offerComponents,
@@ -609,16 +785,11 @@ contract MatchFulfillmentHelperTest is Test {
         }
     }
 
-    event Spacer();
-
     function assertEq(
         FulfillmentComponent memory left,
         FulfillmentComponent memory right,
         string memory message
     ) internal {
-        emit LogFulfillmentComponent(left);
-        emit LogFulfillmentComponent(right);
-        emit Spacer();
         assertEq(
             left.orderIndex,
             right.orderIndex,
