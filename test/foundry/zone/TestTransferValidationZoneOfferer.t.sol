@@ -34,9 +34,13 @@ import {
     TestTransferValidationZoneOfferer
 } from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
-import { FulfillmentHelper } from "seaport-sol/FulfillmentHelper.sol";
+import {
+    FulfillAvailableHelper
+} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
-import { MatchFulfillmentHelper } from "seaport-sol/MatchFulfillmentHelper.sol";
+import {
+    MatchFulfillmentHelper
+} from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
 
 import { TestZone } from "./impl/TestZone.sol";
 
@@ -371,7 +375,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 advancedOrders
             );
 
@@ -547,7 +551,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 advancedOrders
             );
 
@@ -687,7 +691,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 advancedOrders
             );
 
@@ -873,7 +877,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 advancedOrders
             );
 
@@ -1005,7 +1009,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 advancedOrders
             );
 
@@ -1763,14 +1767,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = FulfillmentHelper.getAggregatedFulfillmentComponents(
+            ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
                 infra.advancedOrders
             );
         } else {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = FulfillmentHelper.getNaiveFulfillmentComponents(
+            ) = FulfillAvailableHelper.getNaiveFulfillmentComponents(
                 infra.advancedOrders
             );
         }
@@ -2256,7 +2260,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillmentHelper.getAggregatedFulfillmentComponents(orders);
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(orders);
 
         return (
             orders,
