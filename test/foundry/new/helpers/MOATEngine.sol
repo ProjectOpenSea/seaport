@@ -23,6 +23,7 @@ struct TestContext {
     SeaportInterface seaport;
     address caller;
     FuzzParams fuzzParams;
+    bytes4[] checks;
 }
 
 library MOATEngineLib {
@@ -137,5 +138,24 @@ contract MOATEngine is BaseOrderTest {
             revert("MOATEngine: Action not implemented");
         }
         vm.stopPrank();
+    }
+
+    function check(TestContext memory context, bytes4 selector) internal {
+        (bool success, bytes memory result) = address(this).delegatecall(
+            abi.encodeWithSelector(selector, context)
+        );
+        if (!success) {
+            if (result.length == 0) revert();
+            assembly {
+                revert(add(0x20, result), mload(result))
+            }
+        }
+    }
+
+    function checkAll(TestContext memory context) internal {
+        for (uint256 i; i < context.checks.length; ++i) {
+            bytes4 selector = context.checks[i];
+            check(context, selector);
+        }
     }
 }

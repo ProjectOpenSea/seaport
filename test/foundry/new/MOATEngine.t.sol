@@ -33,6 +33,8 @@ contract MOATEngineTest is MOATEngine {
     using MOATHelpers for AdvancedOrder;
     using MOATEngineLib for TestContext;
 
+    error ExampleErrorWithContextData(bytes signature);
+
     function setUp() public virtual override {
         super.setUp();
 
@@ -63,7 +65,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -83,7 +86,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.fulfillOrder.selector);
 
@@ -91,7 +95,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 1 })
+            fuzzParams: FuzzParams({ seed: 1 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -114,7 +119,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -134,7 +140,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -170,7 +177,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -198,7 +206,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.fulfillAvailableOrders.selector);
 
@@ -206,7 +215,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 1 })
+            fuzzParams: FuzzParams({ seed: 1 }),
+            checks: new bytes4[](0)
         });
         assertEq(
             context.action(),
@@ -217,7 +227,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 2 })
+            fuzzParams: FuzzParams({ seed: 2 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.matchOrders.selector);
 
@@ -225,7 +236,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 3 })
+            fuzzParams: FuzzParams({ seed: 3 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.matchAdvancedOrders.selector);
 
@@ -233,7 +245,8 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 4 })
+            fuzzParams: FuzzParams({ seed: 4 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.cancel.selector);
 
@@ -241,12 +254,13 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 })
+            fuzzParams: FuzzParams({ seed: 5 }),
+            checks: new bytes4[](0)
         });
         assertEq(context.action(), seaport.validate.selector);
     }
 
-    function test_execute_StandardOrder() public {
+    function test_exec_StandardOrder() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -284,17 +298,14 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
 
-        // Perform any registered setup actions
-        //context.setUp()
-
-        // Get an action
         exec(context);
     }
 
-    function test_execute_AdvancedOrder() public {
+    function test_exec_AdvancedOrder() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -331,17 +342,14 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: new bytes4[](0)
         });
 
-        // Perform any registered setup actions
-        //context.setUp()
-
-        // Get an action
         exec(context);
     }
 
-    function test_execute_Combined_Validate() public {
+    function test_exec_Combined_Validate() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -386,17 +394,14 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 })
+            fuzzParams: FuzzParams({ seed: 5 }),
+            checks: new bytes4[](0)
         });
 
-        // Perform any registered setup actions
-        //context.setUp()
-
-        // Get an action
         exec(context);
     }
 
-    function test_execute_Combined_Cancel() public {
+    function test_exec_Combined_Cancel() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -441,14 +446,126 @@ contract MOATEngineTest is MOATEngine {
             orders: orders,
             seaport: seaport,
             caller: offerer1.addr,
-            fuzzParams: FuzzParams({ seed: 4 })
+            fuzzParams: FuzzParams({ seed: 4 }),
+            checks: new bytes4[](0)
         });
 
-        // Perform any registered setup actions
-        //context.setUp()
-
-        // Get an action
         exec(context);
+    }
+
+    function test_check_StandardOrder_SimpleCheck() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: criteriaResolvers,
+            recipient: address(0)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_alwaysRevert.selector;
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: checks
+        });
+
+        exec(context);
+
+        vm.expectRevert("this check always reverts");
+        checkAll(context);
+    }
+
+    function test_check_StandardOrder_checkWithContext() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: criteriaResolvers,
+            recipient: address(0)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_revertWithContextData.selector;
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 0 }),
+            checks: checks
+        });
+
+        exec(context);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExampleErrorWithContextData.selector,
+                context.orders[0].order.signature
+            )
+        );
+        checkAll(context);
+    }
+
+    function check_alwaysRevert() public {
+        revert("this check always reverts");
+    }
+
+    function check_revertWithContextData(TestContext memory context) public {
+        revert ExampleErrorWithContextData(context.orders[0].order.signature);
     }
 
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {
