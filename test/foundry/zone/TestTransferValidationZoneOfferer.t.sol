@@ -34,6 +34,16 @@ import {
     TestTransferValidationZoneOfferer
 } from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
+import {
+    FulfillAvailableHelper
+} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
+
+import {
+    MatchFulfillmentHelper
+} from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
+
+import { TestZone } from "./impl/TestZone.sol";
+
 contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
@@ -46,27 +56,23 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using OrderLib for Order;
     using OrderLib for Order[];
 
+    MatchFulfillmentHelper matchFulfillmentHelper;
     TestTransferValidationZoneOfferer zone;
+    TestZone testZone;
 
-    // constant strings for recalling struct lib "defaults"
+    // constant strings for recalling struct lib defaults
     // ideally these live in a base test class
     string constant ONE_ETH = "one eth";
     string constant THREE_ERC20 = "three erc20";
     string constant SINGLE_721 = "single 721";
     string constant VALIDATION_ZONE = "validation zone";
-    string constant FIRST_FIRST = "first first";
-    string constant SECOND_FIRST = "second first";
-    string constant THIRD_FIRST = "third second";
-    string constant FIRST_SECOND = "first second";
-    string constant SECOND_SECOND = "second second";
-    string constant FIRST_SECOND__FIRST = "first&second first";
-    string constant FIRST_SECOND__SECOND = "first&second second";
-    string constant FIRST_SECOND_THIRD__FIRST = "first&second&third first";
     string constant CONTRACT_ORDER = "contract order";
 
     function setUp() public virtual override {
         super.setUp();
+        matchFulfillmentHelper = new MatchFulfillmentHelper();
         zone = new TestTransferValidationZoneOfferer(address(0));
+        testZone = new TestZone();
 
         // create a default considerationItem for one ether;
         // note that it does not have recipient set
@@ -131,7 +137,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         .withZoneHash(bytes32(0)) // not strictly necessary
             .withSalt(0)
             .withConduitKey(conduitKeyOne)
-            .saveDefault(VALIDATION_ZONE); // not strictly necessary
+            .saveDefault(VALIDATION_ZONE);
         // fill in counter later
 
         // create a default orderComponents for a contract order
@@ -144,67 +150,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withSalt(0)
             .withConduitKey(conduitKeyOne)
             .saveDefault(CONTRACT_ORDER);
-
-        // create a default fulfillmentComponent for first_first
-        // corresponds to first offer or consideration item in the first order
-        FulfillmentComponent memory firstFirst = FulfillmentComponentLib
-            .empty()
-            .withOrderIndex(0)
-            .withItemIndex(0)
-            .saveDefault(FIRST_FIRST);
-        // create a default fulfillmentComponent for second_first
-        // corresponds to first offer or consideration item in the second order
-        FulfillmentComponent memory secondFirst = FulfillmentComponentLib
-            .empty()
-            .withOrderIndex(1)
-            .withItemIndex(0)
-            .saveDefault(SECOND_FIRST);
-        // create a default fulfillmentComponent for third_first
-        // corresponds to first offer or consideration item in the third order
-        FulfillmentComponent memory thirdFirst = FulfillmentComponentLib
-            .empty()
-            .withOrderIndex(2)
-            .withItemIndex(0)
-            .saveDefault(THIRD_FIRST);
-        // create a default fulfillmentComponent for first_second
-        // corresponds to second offer or consideration item in the first order
-        FulfillmentComponent memory firstSecond = FulfillmentComponentLib
-            .empty()
-            .withOrderIndex(0)
-            .withItemIndex(1)
-            .saveDefault(FIRST_SECOND);
-        // create a default fulfillmentComponent for second_second
-        // corresponds to second offer or consideration item in the second order
-        FulfillmentComponent memory secondSecond = FulfillmentComponentLib
-            .empty()
-            .withOrderIndex(1)
-            .withItemIndex(1)
-            .saveDefault(SECOND_SECOND);
-
-        // create a one-element array containing first_first
-        SeaportArrays.FulfillmentComponents(firstFirst).saveDefaultMany(
-            FIRST_FIRST
-        );
-        // create a one-element array containing second_first
-        SeaportArrays.FulfillmentComponents(secondFirst).saveDefaultMany(
-            SECOND_FIRST
-        );
-
-        // create a two-element array containing first_first and second_first
-        SeaportArrays
-            .FulfillmentComponents(firstFirst, secondFirst)
-            .saveDefaultMany(FIRST_SECOND__FIRST);
-
-        // create a two-element array containing first_second and second_second
-        SeaportArrays
-            .FulfillmentComponents(firstSecond, secondSecond)
-            .saveDefaultMany(FIRST_SECOND__SECOND);
-
-        // create a three-element array containing first_first, second_first,
-        // and third_first
-        SeaportArrays
-            .FulfillmentComponents(firstFirst, secondFirst, thirdFirst)
-            .saveDefaultMany(FIRST_SECOND_THIRD__FIRST);
     }
 
     struct Context {
@@ -321,23 +266,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                advancedOrders
             );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
-                );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -378,9 +312,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         assertTrue(transferValidationZone.callCount() == 2);
     }
 
-    // NOTE: This demonstrates undocumented behavior. If the maxFulfilled is
-    //  less than the number of orders, we fire off an ill-formed
-    // `validateOrder` call.
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipLast()
         public
     {
@@ -503,28 +434,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                advancedOrders
             );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -580,7 +495,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // This instance of the zone expects offerer1 to be the recipient of all
         // spent items (the ERC721s). This permits bypassing the ERC721 transfer
         // checks, which would otherwise block the consideration transfer
-        // checks, which we want to tinker with.
+        // checks, which is the target to tinker with.
         TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
                 address(offerer1.addr)
             );
@@ -651,28 +566,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                advancedOrders
             );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -736,7 +635,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // This instance of the zone expects offerer1 to be the recipient of all
         // spent items (the ERC721s). This permits bypassing the ERC721 transfer
         // checks, which would otherwise block the consideration transfer
-        // checks, which we want to tinker with.
+        // checks, which the the target to tinker with.
         TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
                 address(offerer1.addr)
             );
@@ -845,28 +744,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(THIRD_FIRST)
-                )
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                advancedOrders
             );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND_THIRD__FIRST
-                    )
-                );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -985,28 +868,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
-        // Create the fulfillments for the offers.
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-                ),
-                SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-                )
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                advancedOrders
             );
-
-        // Create the fulfillments for the considerations.
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__FIRST
-                    ),
-                    FulfillmentComponentLib.fromDefaultMany(
-                        FIRST_SECOND__SECOND
-                    )
-                );
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -1315,8 +1182,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         Order[] memory orders = new Order[](orderComponents.length);
         for (uint256 i = 0; i < orderComponents.length; i++) {
             if (orderComponents[i].orderType == OrderType.CONTRACT)
-                orders[i] = toUnsignedOrder(orderComponents[i]);
-            else orders[i] = toOrder(context.seaport, orderComponents[i], key);
+                orders[i] = _toUnsignedOrder(orderComponents[i]);
+            else orders[i] = _toOrder(context.seaport, orderComponents[i], key);
         }
         return orders;
     }
@@ -1325,7 +1192,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         Context memory context
     )
         internal
-        view
         returns (
             Order[] memory,
             FulfillmentComponent[][] memory,
@@ -1360,7 +1226,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .withToken(address(test721_2))
                 .withIdentifierOrCriteria(1)
         );
-        // technically we do not need to copy() since first order components is
+        // technically there's no need to copy() since first order components is
         // not used again, but to encourage good practices, make a copy and
         // edit that
         OrderComponents memory orderComponents2 = orderComponents
@@ -1376,27 +1242,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        // create fulfillments
-        // offer fulfillments cannot be aggregated (cannot batch transfer 721s)
-        // so there will be one array per order
-        FulfillmentComponent[][] memory offerFulfillments = SeaportArrays
-            .FulfillmentComponentArrays(
-                // first FulfillmentComponents[] is single FulfillmentComponent
-                // for test721_1 id 1
-                FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST),
-                // second FulfillmentComponents[] is single FulfillmentComponent
-                // for test721_2 id 1
-                FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-            );
-        // consideration fulfillments can be aggregated (can batch transfer eth)
-        // so there will be one array for both orders
-        FulfillmentComponent[][]
-            memory considerationFulfillments = SeaportArrays
-                .FulfillmentComponentArrays(
-                    // two-element fulfillmentcomponents array, one for each
-                    // order
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_SECOND__FIRST)
-                );
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(orders);
 
         return (
             orders,
@@ -1484,7 +1333,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .withIdentifierOrCriteria(1)
                 .withRecipient(address(transferValidationOfferer2))
         );
-        // technically we do not need to copy() since first order components is
+        // technically there's no need to copy() since first order components is
         // not used again, but to encourage good practices, make a copy and
         // edit that
         OrderComponents memory orderComponents2 = orderComponents
@@ -1505,24 +1354,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                ),
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-        );
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
     }
@@ -1622,24 +1455,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                ),
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-        );
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
     }
@@ -1725,24 +1542,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                ),
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-        );
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
     }
@@ -1802,27 +1603,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         Order[] memory orders = new Order[](2);
 
-        orders[0] = toOrder(context.seaport, orderComponents, offerer1.key);
-        orders[1] = toOrder(context.seaport, orderComponents2, offerer2.key);
+        orders[0] = _toOrder(context.seaport, orderComponents, offerer1.key);
+        orders[1] = _toOrder(context.seaport, orderComponents2, offerer2.key);
 
-        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                ),
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-        );
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, bytes32(0), 2);
     }
@@ -1880,32 +1665,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         Order[] memory orders = new Order[](2);
 
-        orders[0] = toOrder(context.seaport, orderComponents, offerer1.key);
-        orders[1] = toOrder(context.seaport, orderComponents2, offerer2.key);
+        orders[0] = _toOrder(context.seaport, orderComponents, offerer1.key);
+        orders[1] = _toOrder(context.seaport, orderComponents2, offerer2.key);
 
-        Fulfillment[] memory fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                ),
-            FulfillmentLib
-                .empty()
-                .withOfferComponents(
-                    FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-                )
-                .withConsiderationComponents(
-                    FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-                )
-        );
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, bytes32(0), 2);
     }
 
-    function toOrder(
+    function _toOrder(
         ConsiderationInterface seaport,
         OrderComponents memory orderComponents,
         uint256 pkey
@@ -1918,7 +1687,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .withSignature(signature);
     }
 
-    function toUnsignedOrder(
+    function _toUnsignedOrder(
         OrderComponents memory orderComponents
     ) internal pure returns (Order memory order) {
         order = OrderLib.empty().withParameters(
