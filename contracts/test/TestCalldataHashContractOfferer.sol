@@ -55,11 +55,13 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
     error NativeTokenTransferFailed();
 
-    event DataHashRegistered(bytes32 dataHash);
+    event GenerateOrderDataHash(bytes32 dataHash);
+    event RatifyOrderDataHash(bytes32 dataHash);
 
     address private immutable _SEAPORT;
     address internal _expectedOfferRecipient;
-    bytes32 internal _expectedDataHash;
+    bytes32 public _dataHashFromLatestGenerateOrderCall;
+    bytes32 public _dataHashFromLatestRatifyOrderCall;
 
     receive() external payable {}
 
@@ -156,9 +158,9 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         }
 
         // Store the hash of msg.data
-        _expectedDataHash = keccak256(data);
+        _dataHashFromLatestGenerateOrderCall = keccak256(data);
 
-        emit DataHashRegistered(_expectedDataHash);
+        emit GenerateOrderDataHash(_dataHashFromLatestGenerateOrderCall);
 
         return previewOrder(address(this), address(this), a, b, c);
     }
@@ -212,23 +214,23 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
-        // // Get the length of msg.data
-        // uint256 dataLength = msg.data.length;
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
 
-        // // Create a variable to store msg.data in memory
-        // bytes memory data;
+        // Create a variable to store msg.data in memory
+        bytes memory data;
 
-        // // Copy msg.data to memory
-        // assembly {
-        //     let ptr := mload(0x40)
-        //     calldatacopy(add(ptr, 0x20), 0, dataLength)
-        //     mstore(ptr, dataLength)
-        //     data := ptr
-        // }
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
 
-        // if (keccak256(data) != _expectedDataHash) {
-        //     revert InvalidDataHash(_expectedDataHash, keccak256(data));
-        // }
+        _dataHashFromLatestRatifyOrderCall = keccak256(data);
+
+        emit RatifyOrderDataHash(_dataHashFromLatestRatifyOrderCall);
 
         // Ensure that the offerer or recipient has received all consideration
         // items.
