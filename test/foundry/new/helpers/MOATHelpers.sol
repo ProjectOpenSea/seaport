@@ -6,6 +6,7 @@ import "forge-std/console.sol";
 
 struct MOATOrderContext {
     bytes signature;
+    uint256 counter;
     bytes32 fulfillerConduitKey;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
@@ -172,6 +173,7 @@ library MOATHelpers {
                 order: order,
                 context: MOATOrderContext({
                     signature: bytes(""),
+                    counter: 0,
                     fulfillerConduitKey: bytes32(0),
                     criteriaResolvers: new CriteriaResolver[](0),
                     recipient: address(0)

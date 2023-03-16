@@ -10,6 +10,7 @@ import {
     Structure,
     Family
 } from "./MOATHelpers.sol";
+import { BaseOrderTest } from "../BaseOrderTest.sol";
 
 import "forge-std/console.sol";
 
@@ -20,10 +21,13 @@ struct FuzzParams {
 struct TestContext {
     MOATOrder[] orders;
     SeaportInterface seaport;
+    address caller;
     FuzzParams fuzzParams;
 }
 
-library MOATEngine {
+library MOATEngineLib {
+    using OrderComponentsLib for OrderComponents;
+    using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
     using MOATHelpers for MOATOrder;
@@ -70,10 +74,21 @@ library MOATEngine {
         }
         revert("MOATEngine: Actions not found");
     }
+}
+
+contract MOATEngine is BaseOrderTest {
+    using OrderComponentsLib for OrderComponents;
+    using OrderParametersLib for OrderParameters;
+    using OrderLib for Order;
+    using AdvancedOrderLib for AdvancedOrder;
+    using MOATHelpers for MOATOrder;
+    using MOATHelpers for MOATOrder[];
+    using MOATEngineLib for TestContext;
 
     function exec(TestContext memory context) internal {
-        bytes4 action = action(context);
-        if (action == context.seaport.fulfillOrder.selector) {
+        vm.startPrank(context.caller);
+        bytes4 _action = context.action();
+        if (_action == context.seaport.fulfillOrder.selector) {
             MOATOrder memory moatOrder = context.orders[0];
             AdvancedOrder memory order = moatOrder.order;
             MOATOrderContext memory orderContext = moatOrder.context;
@@ -82,7 +97,7 @@ library MOATEngine {
                 order.toOrder().withSignature(orderContext.signature),
                 orderContext.fulfillerConduitKey
             );
-        } else if (action == context.seaport.fulfillAdvancedOrder.selector) {
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             MOATOrder memory moatOrder = context.orders[0];
             AdvancedOrder memory order = moatOrder.order;
             MOATOrderContext memory orderContext = moatOrder.context;
@@ -93,11 +108,27 @@ library MOATEngine {
                 orderContext.fulfillerConduitKey,
                 orderContext.recipient
             );
-        } else if (action == context.seaport.validate.selector) {
+        } else if (_action == context.seaport.cancel.selector) {
             MOATOrder[] memory moatOrders = context.orders;
-            Order[] memory orders = new Order[](context.orders.length);
+            OrderComponents[] memory orderComponents = new OrderComponents[](
+                moatOrders.length
+            );
 
-            for (uint256 i; i < context.orders.length; ++i) {
+            for (uint256 i; i < moatOrders.length; ++i) {
+                MOATOrder memory moatOrder = context.orders[i];
+                orderComponents[i] = moatOrder
+                    .order
+                    .toOrder()
+                    .parameters
+                    .toOrderComponents(moatOrder.context.counter);
+            }
+
+            context.seaport.cancel(orderComponents);
+        } else if (_action == context.seaport.validate.selector) {
+            MOATOrder[] memory moatOrders = context.orders;
+            Order[] memory orders = new Order[](moatOrders.length);
+
+            for (uint256 i; i < moatOrders.length; ++i) {
                 orders[i] = context.orders[i].order.toOrder();
             }
 
@@ -105,5 +136,6 @@ library MOATEngine {
         } else {
             revert("MOATEngine: Action not implemented");
         }
+        vm.stopPrank();
     }
 }

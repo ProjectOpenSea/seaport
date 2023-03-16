@@ -5,14 +5,19 @@ import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
-import { TestContext, FuzzParams, MOATEngine } from "./helpers/MOATEngine.sol";
+import {
+    TestContext,
+    FuzzParams,
+    MOATEngine,
+    MOATEngineLib
+} from "./helpers/MOATEngine.sol";
 import {
     MOATOrder,
     MOATHelpers,
     MOATOrderContext
 } from "./helpers/MOATHelpers.sol";
 
-contract MOATHelpersTest is BaseOrderTest {
+contract MOATEngineTest is MOATEngine {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -26,7 +31,7 @@ contract MOATHelpersTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent[];
 
     using MOATHelpers for AdvancedOrder;
-    using MOATEngine for TestContext;
+    using MOATEngineLib for TestContext;
 
     function setUp() public virtual override {
         super.setUp();
@@ -57,6 +62,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
@@ -76,6 +82,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillOrder.selector);
@@ -83,6 +90,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 1 })
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
@@ -105,6 +113,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
@@ -124,6 +133,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
@@ -159,6 +169,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
@@ -186,6 +197,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillAvailableOrders.selector);
@@ -193,6 +205,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 1 })
         });
         assertEq(
@@ -203,6 +216,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 2 })
         });
         assertEq(context.action(), seaport.matchOrders.selector);
@@ -210,6 +224,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 3 })
         });
         assertEq(context.action(), seaport.matchAdvancedOrders.selector);
@@ -217,6 +232,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 4 })
         });
         assertEq(context.action(), seaport.cancel.selector);
@@ -224,6 +240,7 @@ contract MOATHelpersTest is BaseOrderTest {
         context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 })
         });
         assertEq(context.action(), seaport.validate.selector);
@@ -248,6 +265,7 @@ contract MOATHelpersTest is BaseOrderTest {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
             signature: signature,
+            counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
             recipient: address(0)
@@ -265,6 +283,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
 
@@ -272,7 +291,7 @@ contract MOATHelpersTest is BaseOrderTest {
         //context.setUp()
 
         // Get an action
-        context.exec();
+        exec(context);
     }
 
     function test_execute_AdvancedOrder() public {
@@ -293,6 +312,7 @@ contract MOATHelpersTest is BaseOrderTest {
 
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
             signature: signature,
+            counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: new CriteriaResolver[](0),
             recipient: address(0xbeef)
@@ -310,6 +330,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 })
         });
 
@@ -317,7 +338,7 @@ contract MOATHelpersTest is BaseOrderTest {
         //context.setUp()
 
         // Get an action
-        context.exec();
+        exec(context);
     }
 
     function test_execute_Combined_Validate() public {
@@ -339,6 +360,7 @@ contract MOATHelpersTest is BaseOrderTest {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
             signature: signature,
+            counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
             recipient: address(0)
@@ -363,6 +385,7 @@ contract MOATHelpersTest is BaseOrderTest {
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
+            caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 })
         });
 
@@ -370,7 +393,62 @@ contract MOATHelpersTest is BaseOrderTest {
         //context.setUp()
 
         // Get an action
-        context.exec();
+        exec(context);
+    }
+
+    function test_execute_Combined_Cancel() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: criteriaResolvers,
+            recipient: address(0)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](2);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+        orders[1] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            caller: offerer1.addr,
+            fuzzParams: FuzzParams({ seed: 4 })
+        });
+
+        // Perform any registered setup actions
+        //context.setUp()
+
+        // Get an action
+        exec(context);
     }
 
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {
