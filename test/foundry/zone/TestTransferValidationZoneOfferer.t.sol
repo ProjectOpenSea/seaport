@@ -2369,7 +2369,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = MatchFulfillmentHelper
+        (Fulfillment[] memory fulfillments, , ) = MatchFulfillmentHelper
             .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
@@ -2470,7 +2470,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = MatchFulfillmentHelper
+        (Fulfillment[] memory fulfillments, , ) = MatchFulfillmentHelper
             .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
@@ -2557,7 +2557,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             offerer1.key
         );
 
-        Fulfillment[] memory fulfillments = MatchFulfillmentHelper
+        (Fulfillment[] memory fulfillments, , ) = MatchFulfillmentHelper
             .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, conduitKeyOne, 2);
@@ -2621,7 +2621,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         orders[0] = _toOrder(context.seaport, orderComponents, offerer1.key);
         orders[1] = _toOrder(context.seaport, orderComponents2, offerer2.key);
 
-        Fulfillment[] memory fulfillments = MatchFulfillmentHelper
+        (Fulfillment[] memory fulfillments, , ) = MatchFulfillmentHelper
             .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, bytes32(0), 2);
@@ -2683,7 +2683,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         orders[0] = _toOrder(context.seaport, orderComponents, offerer1.key);
         orders[1] = _toOrder(context.seaport, orderComponents2, offerer2.key);
 
-        Fulfillment[] memory fulfillments = MatchFulfillmentHelper
+        (Fulfillment[] memory fulfillments, , ) = MatchFulfillmentHelper
             .getMatchedFulfillments(orders);
 
         return (orders, fulfillments, bytes32(0), 2);
@@ -3049,9 +3049,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
 
         // Build fulfillments.
-        infra.fulfillments = MatchFulfillmentHelper.getMatchedFulfillments(
-            infra.orders
-        );
+        (infra.fulfillments, , ) = MatchFulfillmentHelper
+            .getMatchedFulfillments(infra.orders);
 
         return (infra.orders, infra.fulfillments);
     }
