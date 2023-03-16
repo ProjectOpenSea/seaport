@@ -320,6 +320,59 @@ contract MOATHelpersTest is BaseOrderTest {
         context.exec();
     }
 
+    function test_execute_Combined_Validate() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: criteriaResolvers,
+            recipient: address(0)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](2);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+        orders[1] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 5 })
+        });
+
+        // Perform any registered setup actions
+        //context.setUp()
+
+        // Get an action
+        context.exec();
+    }
+
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {
         if (a.length != b.length) revert("Array length mismatch");
         for (uint256 i; i < a.length; ++i) {

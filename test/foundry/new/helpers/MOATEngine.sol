@@ -93,6 +93,15 @@ library MOATEngine {
                 orderContext.fulfillerConduitKey,
                 orderContext.recipient
             );
+        } else if (action == context.seaport.validate.selector) {
+            MOATOrder[] memory moatOrders = context.orders;
+            Order[] memory orders = new Order[](context.orders.length);
+
+            for (uint256 i; i < context.orders.length; ++i) {
+                orders[i] = context.orders[i].order.toOrder();
+            }
+
+            context.seaport.validate(orders);
         } else {
             revert("MOATEngine: Action not implemented");
         }
