@@ -4,6 +4,13 @@ pragma solidity ^0.8.17;
 import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
+/**
+ * @dev Additional data we might need to fulfill an order. This is basically the
+ *      superset of all the non-order args to SeaportInterface functions, like
+ *      conduit key, criteria resolvers, and fulfillments. For most orders, only
+ *      a subset of these fields should be present. I'm not a huge fan of this
+ *      but don't have a better idea right now.
+ */
 struct MOATOrderContext {
     bytes signature;
     uint256 counter;
@@ -12,28 +19,64 @@ struct MOATOrderContext {
     address recipient;
 }
 
+/**
+ * @dev A wrapper struct around AdvancedOrder that includes an additional
+ *      context struct. This extra context includes any additional args we might
+ *      need to provide with the order, like signature, counter, and criteria
+ *      resolvers.
+ */
 struct MOATOrder {
     AdvancedOrder order;
     MOATOrderContext context;
 }
 
+/**
+ * @dev The "structure" of the order.
+ *      - BASIC: adheres to basic construction rules.
+ *      - STANDARD: does not adhere to basic construction rules.
+ *      - ADVANCED: requires criteria resolution, partial fulfillment, and/or
+ *        extraData.
+ */
 enum Structure {
     BASIC,
     STANDARD,
     ADVANCED
 }
 
+/**
+ * @dev The "type" of the order.
+ *      - OPEN: FULL_OPEN or PARTIAL_OPEN orders.
+ *      - RESTRICTED: FULL_RESTRICTED or PARTIAL_RESTRICTED orders.
+ *      - CONTRACT: CONTRACT orders
+ */
 enum Type {
     OPEN,
     RESTRICTED,
     CONTRACT
 }
 
+/**
+ * @dev The "family" of method that can fulfill the order.
+ *      - SINGLE: methods that accept a single order.
+ *        (fulfillOrder, fulfillAdvancedOrder, fulfillBasicOrder,
+ *        fulfillBasicOrder_efficient_6GL6yc)
+ *      - COMBINED: methods that accept multiple orders.
+ *        (fulfillAvailableOrders, fulfillAvailableAdvancedOrders, matchOrders,
+ *        matchAdvancedOrders, cancel, validate)
+ */
 enum Family {
     SINGLE,
     COMBINED
 }
 
+/**
+ * @dev The "state" of the order.
+ *      - UNUSED: New, not validated, cancelled, or partially/fully filled.
+ *      - VALIDATED: Order has been validated, but not cancelled or filled.
+ *      - CANCELLED: Order has been cancelled.
+ *      - PARTIALLY_FILLED: Order is partially filled.
+ *      - FULLY_FILLED: Order is fully filled.
+ */
 enum State {
     UNUSED,
     VALIDATED,
@@ -42,18 +85,30 @@ enum State {
     FULLY_FILLED
 }
 
+/**
+ * @notice Stateless helpers for MOAT tests.
+ */
 library MOATHelpers {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using AdvancedOrderLib for AdvancedOrder;
 
+    /**
+     * @dev Get the "quantity" of orders to process, equal to the number of
+     *      orders in the provided array.
+     * @param orders array of MOATOrders.
+     */
     function getQuantity(
         MOATOrder[] memory orders
     ) internal pure returns (uint256) {
         return orders.length;
     }
 
+    /**
+     * @dev Get the "family" of method that can fulfill these orders.
+     * @param orders array of MOATOrders.
+     */
     function getFamily(
         MOATOrder[] memory orders
     ) internal pure returns (Family) {
@@ -64,6 +119,11 @@ library MOATHelpers {
         return Family.SINGLE;
     }
 
+    /**
+     * @dev Get the "state" of the given order.
+     * @param order a MOATOrder.
+     * @param seaport a SeaportInterface, either reference or optimized.
+     */
     function getState(
         MOATOrder memory order,
         SeaportInterface seaport
@@ -87,6 +147,10 @@ library MOATHelpers {
         return State.UNUSED;
     }
 
+    /**
+     * @dev Get the "type" of the given order.
+     * @param order a MOATOrder.
+     */
     function getType(MOATOrder memory order) internal pure returns (Type) {
         OrderType orderType = order.order.parameters.orderType;
         if (
@@ -106,6 +170,14 @@ library MOATHelpers {
         }
     }
 
+    /**
+     * @dev Get the "structure" of the given order.
+     *
+     *      Note: Basic orders are not yet implemented here and are detected
+     *      as standard orders for now.
+     *
+     * @param order a MOATOrder.
+     */
     function getStructure(
         MOATOrder memory order
     ) internal pure returns (Structure) {
@@ -137,6 +209,9 @@ library MOATHelpers {
         return Structure.STANDARD;
     }
 
+    /**
+     * @dev Check all offer and consideration items for criteria.
+     */
     function _checkCriteria(
         MOATOrder memory order
     ) internal pure returns (bool hasCriteria, bool hasNonzeroCriteria) {
@@ -165,6 +240,11 @@ library MOATHelpers {
         }
     }
 
+    /**
+     * @dev Convert an AdvancedOrder to a MOATOrder, filling in the context
+     *      with empty defaults.
+     * @param order an AdvancedOrder struct.
+     */
     function toMOATOrder(
         AdvancedOrder memory order
     ) internal pure returns (MOATOrder memory) {
@@ -181,6 +261,12 @@ library MOATHelpers {
             });
     }
 
+    /**
+     * @dev Convert an AdvancedOrder to a MOATOrder, providing the associated
+     *      context as an arg.
+     * @param order an AdvancedOrder struct.
+     * @param context the MOATOrderContext struct to set on the MOATOrder.
+     */
     function toMOATOrder(
         AdvancedOrder memory order,
         MOATOrderContext memory context

@@ -46,6 +46,7 @@ contract MOATEngineTest is MOATEngine {
         );
     }
 
+    /// @dev Get all actions for a single, standard order.
     function test_Single_Standard_Actions() public {
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = OrderLib
@@ -71,6 +72,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.actions(), expectedActions);
     }
 
+    /// @dev Get one action for a single, standard order.
     function test_Single_Standard_Action() public {
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = OrderLib
@@ -101,6 +103,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
 
+    /// @dev Get all actions for a single, advanced order.
     function test_Single_Advanced_Actions() public {
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = OrderLib
@@ -125,6 +128,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.actions(), expectedActions);
     }
 
+    /// @dev Get one action for a single, advanced order.
     function test_Single_Advanced_Action() public {
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = OrderLib
@@ -146,6 +150,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
 
+    /// @dev Get all actions for a combined order.
     function test_Combined_Actions() public {
         MOATOrder[] memory orders = new MOATOrder[](2);
         orders[0] = OrderLib
@@ -183,6 +188,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.actions(), expectedActions);
     }
 
+    /// @dev Get a single action for a combined order.
     function test_Combined_Action() public {
         MOATOrder[] memory orders = new MOATOrder[](2);
         orders[0] = OrderLib
@@ -260,6 +266,7 @@ contract MOATEngineTest is MOATEngine {
         assertEq(context.action(), seaport.validate.selector);
     }
 
+    /// @dev Call exec for a single standard order.
     function test_exec_StandardOrder() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -305,6 +312,7 @@ contract MOATEngineTest is MOATEngine {
         exec(context);
     }
 
+    /// @dev Call exec for a single advanced order.
     function test_exec_AdvancedOrder() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -349,6 +357,8 @@ contract MOATEngineTest is MOATEngine {
         exec(context);
     }
 
+    /// @dev Call exec for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.validate.
     function test_exec_Combined_Validate() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -401,6 +411,8 @@ contract MOATEngineTest is MOATEngine {
         exec(context);
     }
 
+    /// @dev Call exec for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.cancel.
     function test_exec_Combined_Cancel() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -453,6 +465,7 @@ contract MOATEngineTest is MOATEngine {
         exec(context);
     }
 
+    /// @dev Call checkAll to run a simple check that always reverts.
     function test_check_StandardOrder_SimpleCheck() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -504,6 +517,7 @@ contract MOATEngineTest is MOATEngine {
         checkAll(context);
     }
 
+    /// @dev Call checkAll to run a check that uses the TestContext.
     function test_check_StandardOrder_checkWithContext() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
@@ -560,10 +574,12 @@ contract MOATEngineTest is MOATEngine {
         checkAll(context);
     }
 
+    /// @dev Example of a simple "check" function. This one takes no args.
     function check_alwaysRevert() public {
         revert("this check always reverts");
     }
 
+    /// @dev Example of a check" function that uses the test context.
     function check_revertWithContextData(TestContext memory context) public {
         revert ExampleErrorWithContextData(context.orders[0].order.signature);
     }
