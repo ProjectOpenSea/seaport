@@ -16,6 +16,7 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType,
+    ReceivedItem,
     ZoneParameters
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
@@ -1172,19 +1173,22 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
-        emit GenerateOrderDataHash(firstOrderDataHash);
-
-        vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
-        emit GenerateOrderDataHash(secondOrderDataHash);
-
-        bytes32[][] memory orderHashes = _generateContractOrderDataHashes(
+        bytes32[2][] memory orderHashes = _generateContractOrderDataHashes(
             context,
             orders
         );
 
-        // vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
-        // emit RatifyOrderDataHash();
+        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
+        emit GenerateOrderDataHash(orderHashes[0][0]);
+
+        vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
+        emit GenerateOrderDataHash(orderHashes[1][0]);
+
+        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
+        emit RatifyOrderDataHash(orderHashes[0][1]);
+
+        vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
+        emit RatifyOrderDataHash(orderHashes[1][1]);
 
         context.seaport.matchAdvancedOrders(
             advancedOrders,
@@ -1862,20 +1866,30 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function _generateContractOrderDataHashes(
         Context memory context,
         Order[] memory orders
-    ) internal returns (bytes32[][] memory) {
+    ) internal returns (bytes32[2][] memory) {
         uint256 orderCount = orders.length;
         bytes32[] memory orderHashes = new bytes32[](orderCount);
 
-        bytes32[][] memory orderDataHashes = new bytes32[][](orderCount);
+        bytes32[2][] memory orderDataHashes = new bytes32[2][](orderCount);
 
         // Iterate over orders to generate orderHashes
         for (uint256 i = 0; i < orderCount; i++) {
             Order memory order = orders[i];
 
-            orderHashes[i] = context.seaport.getOrderHash(
-                toOrderComponents(order.parameters),
-                context.seaport.getCounter(order.parameters.offerer)
+            uint256 contractNonce = context.seaport.getContractOffererNonce(
+                order.parameters.offerer
             );
+
+            orderHashes[i] =
+                bytes32(
+                    abi.encodePacked(
+                        (uint160(order.parameters.offerer) +
+                            uint96(contractNonce))
+                    )
+                ) >>
+                0;
+
+            emit log_bytes32(orderHashes[i]);
         }
 
         // Iterate over orders to generate dataHashes
@@ -1887,7 +1901,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .parameters
                 .offer
                 .toSpentItemArray();
-            ReceivedItem[] memory maximumSpent = order
+            SpentItem[] memory maximumSpent = order
                 .parameters
                 .consideration
                 .toSpentItemArray();
@@ -1896,9 +1910,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             orderDataHashes[i][0] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.generateOrder,
-                    (address(this), maximumSpent, minimumReceived, "")
+                    (address(this), minimumReceived, maximumSpent, "")
                 )
             );
+
+            ReceivedItem[] memory receivedItems = order
+                .parameters
+                .consideration
+                .toReceivedItemArray();
 
             // hash of ratifyOrder calldata
             orderDataHashes[i][1] = keccak256(
@@ -1906,13 +1925,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     ContractOffererInterface.ratifyOrder,
                     (
                         minimumReceived,
-                        maximumSpent,
+                        receivedItems,
                         "",
                         orderHashes,
                         context.seaport.getCounter(order.parameters.offerer)
                     )
                 )
             );
+
+            // ContractOffererInterface(order.parameters.offerer).ratifyOrder(
+            //     minimumReceived,
+            //     receivedItems,
+            //     "",
+            //     orderHashes,
+            //     0
+            // );
         }
 
         return orderDataHashes;
