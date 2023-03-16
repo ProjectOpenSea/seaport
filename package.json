@@ -14,7 +14,8 @@
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.12.1-ir.0",
-    "merkletreejs": "^0.3.9"
+    "merkletreejs": "^0.3.9",
+    "solady": "^0.0.84"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
