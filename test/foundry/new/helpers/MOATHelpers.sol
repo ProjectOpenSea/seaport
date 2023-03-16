@@ -5,7 +5,10 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 struct MOATOrderContext {
-    uint256 nothingHereYet;
+    bytes signature;
+    bytes32 fulfillerConduitKey;
+    CriteriaResolver[] criteriaResolvers;
+    address recipient;
 }
 
 struct MOATOrder {
@@ -167,7 +170,12 @@ library MOATHelpers {
         return
             MOATOrder({
                 order: order,
-                context: MOATOrderContext({ nothingHereYet: 0 })
+                context: MOATOrderContext({
+                    signature: bytes(""),
+                    fulfillerConduitKey: bytes32(0),
+                    criteriaResolvers: new CriteriaResolver[](0),
+                    recipient: address(0)
+                })
             });
     }
 

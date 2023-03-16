@@ -6,7 +6,11 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 import { TestContext, FuzzParams, MOATEngine } from "./helpers/MOATEngine.sol";
-import { MOATOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
+import {
+    MOATOrder,
+    MOATHelpers,
+    MOATOrderContext
+} from "./helpers/MOATHelpers.sol";
 
 contract MOATHelpersTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
@@ -223,6 +227,97 @@ contract MOATHelpersTest is BaseOrderTest {
             fuzzParams: FuzzParams({ seed: 5 })
         });
         assertEq(context.action(), seaport.validate.selector);
+    }
+
+    function test_execute_StandardOrder() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: criteriaResolvers,
+            recipient: address(0)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+
+        // Perform any registered setup actions
+        //context.setUp()
+
+        // Get an action
+        context.exec();
+    }
+
+    function test_execute_AdvancedOrder() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        MOATOrderContext memory moatOrderContext = MOATOrderContext({
+            signature: signature,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0xbeef)
+        });
+
+        MOATOrder[] memory orders = new MOATOrder[](1);
+        orders[0] = order
+            .toAdvancedOrder({
+                numerator: 1,
+                denominator: 1,
+                extraData: bytes("extra data")
+            })
+            .toMOATOrder(moatOrderContext);
+
+        TestContext memory context = TestContext({
+            orders: orders,
+            seaport: seaport,
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+
+        // Perform any registered setup actions
+        //context.setUp()
+
+        // Get an action
+        context.exec();
     }
 
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {

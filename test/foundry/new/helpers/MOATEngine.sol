@@ -3,13 +3,20 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { MOATOrder, MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
+import {
+    MOATOrder,
+    MOATOrderContext,
+    MOATHelpers,
+    Structure,
+    Family
+} from "./MOATHelpers.sol";
 
 import "forge-std/console.sol";
 
 struct FuzzParams {
     uint256 seed;
 }
+
 struct TestContext {
     MOATOrder[] orders;
     SeaportInterface seaport;
@@ -17,6 +24,8 @@ struct TestContext {
 }
 
 library MOATEngine {
+    using OrderLib for Order;
+    using AdvancedOrderLib for AdvancedOrder;
     using MOATHelpers for MOATOrder;
     using MOATHelpers for MOATOrder[];
 
@@ -60,5 +69,32 @@ library MOATEngine {
             return selectors;
         }
         revert("MOATEngine: Actions not found");
+    }
+
+    function exec(TestContext memory context) internal {
+        bytes4 action = action(context);
+        if (action == context.seaport.fulfillOrder.selector) {
+            MOATOrder memory moatOrder = context.orders[0];
+            AdvancedOrder memory order = moatOrder.order;
+            MOATOrderContext memory orderContext = moatOrder.context;
+
+            context.seaport.fulfillOrder(
+                order.toOrder().withSignature(orderContext.signature),
+                orderContext.fulfillerConduitKey
+            );
+        } else if (action == context.seaport.fulfillAdvancedOrder.selector) {
+            MOATOrder memory moatOrder = context.orders[0];
+            AdvancedOrder memory order = moatOrder.order;
+            MOATOrderContext memory orderContext = moatOrder.context;
+
+            context.seaport.fulfillAdvancedOrder(
+                order.withSignature(orderContext.signature),
+                orderContext.criteriaResolvers,
+                orderContext.fulfillerConduitKey,
+                orderContext.recipient
+            );
+        } else {
+            revert("MOATEngine: Action not implemented");
+        }
     }
 }
