@@ -13,6 +13,7 @@ remappings = [
     'seaport-sol/=contracts/helpers/sol/',
     'seaport-core/=contracts/',
     'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [
