@@ -12,10 +12,12 @@ import {
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
 import { FulfillmentComponent, Fulfillment } from "../../SeaportSol.sol";
-// import { LibString } from "solady/src/utils/LibString.sol";
+import { LibSort } from "solady/src/utils/LibSort.sol";
 // import { console } from "hardhat/console.sol";
 
 library MatchFulfillmentLib {
+    using MatchComponentType for MatchComponent[];
+
     /**
      * @notice Check if a token already exists in a mapping by checking the length of the array at that slot
      * @param token token to check
@@ -241,6 +243,20 @@ library MatchFulfillmentLib {
     }
 
     /**
+     * @dev Truncates an array to the given length by overwriting its length in memory
+     */
+    function truncateArray(MatchComponent[] memory array, uint256 length)
+        internal
+        pure
+        returns (MatchComponent[] memory truncatedArray)
+    {
+        assembly {
+            mstore(array, length)
+            truncatedArray := array
+        }
+    }
+
+    /**
      * @notice Extend fulfillments array with new fulfillment
      */
     function extend(
@@ -252,5 +268,49 @@ library MatchFulfillmentLib {
             newFulfillments[i] = fulfillments[i];
         }
         newFulfillments[fulfillments.length] = newFulfillment;
+    }
+
+    function extend(
+        MatchComponent[] memory components,
+        MatchComponent[] memory extra
+    ) internal pure returns (MatchComponent[] memory newComponents) {
+        newComponents = new MatchComponent[](components.length + extra.length);
+        for (uint256 i = 0; i < components.length; i++) {
+            newComponents[i] = components[i];
+        }
+        for (uint256 i = 0; i < extra.length; i++) {
+            newComponents[components.length + i] = extra[i];
+        }
+        return newComponents;
+    }
+
+    function dedupe(MatchComponent[] memory components)
+        internal
+        pure
+        returns (MatchComponent[] memory dedupedComponents)
+    {
+        if (components.length == 0 || components.length == 1) {
+            return components;
+        }
+        // sort components
+        uint256[] memory cast = components.toUints();
+        LibSort.sort(cast);
+        components = MatchComponentType.fromUints(cast);
+        // create a new array of same size; it will be truncated if necessary
+        dedupedComponents = new MatchComponent[](components.length);
+        dedupedComponents[0] = components[0];
+        uint256 dedupedIndex = 1;
+        for (uint256 i = 1; i < components.length; i++) {
+            // compare current component to last deduped component
+            if (
+                MatchComponent.unwrap(components[i])
+                    != MatchComponent.unwrap(dedupedComponents[dedupedIndex - 1])
+            ) {
+                // if it is different, add it to the deduped array and increment the index
+                dedupedComponents[dedupedIndex] = components[i];
+                ++dedupedIndex;
+            }
+        }
+        return truncateArray(dedupedComponents, dedupedIndex);
     }
 }

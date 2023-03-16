@@ -33,7 +33,11 @@ library MatchFulfillmentHelper {
      */
     function getMatchedFulfillments(Order[] memory orders)
         internal
-        returns (Fulfillment[] memory fulfillments)
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        )
     {
         OrderParameters[] memory orderParameters =
             new OrderParameters[](orders.length);
@@ -52,7 +56,11 @@ library MatchFulfillmentHelper {
      */
     function getMatchedFulfillments(AdvancedOrder[] memory orders)
         internal
-        returns (Fulfillment[] memory fulfillments)
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        )
     {
         OrderParameters[] memory orderParameters =
             new OrderParameters[](orders.length);
@@ -71,7 +79,11 @@ library MatchFulfillmentHelper {
      */
     function getMatchedFulfillments(OrderParameters[] memory orders)
         internal
-        returns (Fulfillment[] memory fulfillments)
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        )
     {
         // increment counter to get clean mappings and enumeration
         MatchFulfillmentLayout.incrementFulfillmentCounter();
@@ -134,6 +146,31 @@ library MatchFulfillmentHelper {
                 // loop back around in case not all considerationComponents have been completely fulfilled
             }
         }
+
+        // get any remaining offer components
+        for (uint256 i; i < orders.length; ++i) {
+            OrderParameters memory parameters = orders[i];
+            // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
+            // also update per-token+tokenId enumerations of AggregatableOfferer
+            remainingOfferComponents = MatchFulfillmentLib.extend(
+                remainingOfferComponents,
+                postProcessOfferItems(
+                    parameters.offer,
+                    parameters.offerer,
+                    parameters.conduitKey,
+                    layout
+                )
+            );
+
+            remainingConsiderationComponents = MatchFulfillmentLib.extend(
+                remainingConsiderationComponents,
+                postProcessConsiderationItems(parameters.consideration, layout)
+            );
+        }
+        remainingOfferComponents =
+            MatchFulfillmentLib.dedupe(remainingOfferComponents);
+        remainingConsiderationComponents =
+            MatchFulfillmentLib.dedupe(remainingConsiderationComponents);
     }
 
     /**
@@ -184,6 +221,26 @@ library MatchFulfillmentHelper {
         }
     }
 
+    function postProcessOfferItems(
+        OfferItem[] memory offer,
+        address offerer,
+        bytes32 conduitKey,
+        MatchFulfillmentStorageLayout storage layout
+    ) private view returns (MatchComponent[] memory remainingOfferComponents) {
+        // iterate over each offer item
+        for (uint256 j; j < offer.length; ++j) {
+            // grab offer item
+            // TODO: spentItems?
+            OfferItem memory item = offer[j];
+
+            // update aggregatable mapping array with this component
+            remainingOfferComponents = MatchFulfillmentLib.extend(
+                remainingOfferComponents,
+                layout.offerMap[item.token][item.identifierOrCriteria][offerer][conduitKey]
+            );
+        }
+    }
+
     /**
      * @notice Process consideration items and insert them into enumeration and map
      * @param consideration consideration items
@@ -222,6 +279,27 @@ library MatchFulfillmentHelper {
             // update mapping with this component
             layout.considerationMap[token.recipient][token.contractAddress][token
                 .tokenId].push(component);
+        }
+    }
+
+    function postProcessConsiderationItems(
+        ConsiderationItem[] memory consideration,
+        MatchFulfillmentStorageLayout storage layout
+    )
+        private
+        view
+        returns (MatchComponent[] memory remainingConsiderationComponents)
+    {
+        // iterate over each consideration item
+        for (uint256 j; j < consideration.length; ++j) {
+            // grab consideration item
+            ConsiderationItem memory item = consideration[j];
+
+            remainingConsiderationComponents = MatchFulfillmentLib.extend(
+                remainingConsiderationComponents,
+                layout.considerationMap[item.recipient][item.token][item
+                    .identifierOrCriteria]
+            );
         }
     }
 }
