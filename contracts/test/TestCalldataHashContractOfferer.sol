@@ -53,6 +53,7 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     );
     error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
     error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
+    error NativeTokenTransferFailed();
 
     event DataHashRegistered(bytes32 dataHash);
 
@@ -112,8 +113,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             }
         }
 
-        if (address(this).balance != requiredEthBalance) {
-            revert InvalidEthBalance(requiredEthBalance, address(this).balance);
+        if (msg.value != requiredEthBalance) {
+            revert InvalidEthBalance(requiredEthBalance, msg.value);
         }
     }
 
@@ -132,6 +133,14 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
+        (bool success, bytes memory returnData) = payable(_SEAPORT).call{
+            value: address(this).balance
+        }("");
+
+        if (!success) {
+            revert NativeTokenTransferFailed();
+        }
+
         // Get the length of msg.data
         uint256 dataLength = msg.data.length;
 

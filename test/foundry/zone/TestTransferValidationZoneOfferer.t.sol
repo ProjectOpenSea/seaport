@@ -1316,7 +1316,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
         emit DataHashRegistered(secondOrderDataHash);
 
-        context.seaport.matchAdvancedOrders{ value: 1 ether }(
+        context.seaport.matchAdvancedOrders(
             advancedOrders,
             criteriaResolvers,
             fulfillments,
@@ -1665,19 +1665,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         vm.label(address(transferValidationOfferer1), "contractOfferer1");
         vm.label(address(transferValidationOfferer2), "contractOfferer2");
 
-        // Mint 721 to contract offerer 1
-        test721_1.mint(address(transferValidationOfferer1), 1);
-
         _setApprovals(address(transferValidationOfferer1));
         _setApprovals(address(transferValidationOfferer2));
 
-        // Create one eth consideration for contract order 1
-        ConsiderationItem[] memory considerationArray = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
-                    address(transferValidationOfferer1)
-                )
-            );
+        // Mint 721 to offerer1
+        test721_1.mint(offerer1.addr, 1);
+
+        // offerer1 approves transferValidationOfferer1
+        vm.prank(offerer1.addr);
+        test721_1.setApprovalForAll(address(transferValidationOfferer1), true);
+
         // Create single 721 offer for contract order 1
         OfferItem[] memory offerArray = SeaportArrays.OfferItems(
             OfferItemLib
@@ -1685,6 +1682,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .withToken(address(test721_1))
                 .withIdentifierOrCriteria(1)
         );
+        // Create one eth consideration for contract order 1
+        ConsiderationItem[] memory considerationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib.fromDefault(ONE_ETH).withRecipient(
+                    address(transferValidationOfferer1)
+                )
+            );
+
         // Build first order components
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(CONTRACT_ORDER)
@@ -1750,20 +1755,24 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
 
         // Convert OfferItem[] and ConsiderationItem[] to SpentItem[] to call activate
+        // 1 eth
         SpentItem[] memory minimumReceived = offerArray.toSpentItemArray();
+        // single 721
         SpentItem[] memory maximumSpent = considerationArray.toSpentItemArray();
 
-        vm.deal(address(transferValidationOfferer2), 1 ether);
+        vm.deal(offerer2.addr, 1 ether);
 
         // Activate the orders
-        vm.prank(address(transferValidationOfferer1));
+        // offerer1 receives 1 eth in exchange for 721
+        vm.prank(offerer1.addr);
         transferValidationOfferer1.activate(
             address(this),
             maximumSpent,
             minimumReceived,
             ""
         );
-        vm.prank(address(transferValidationOfferer2));
+        vm.prank(offerer2.addr);
+        // offerer2 receives 721 in exchange for 1 eth
         transferValidationOfferer2.activate{ value: 1 ether }(
             address(this),
             minimumReceived,
