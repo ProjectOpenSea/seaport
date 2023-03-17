@@ -1,6 +1,9 @@
 name: MOAT
 
 on:
+  pull_request:
+    # Temporary to see it run in CI on the PR
+    types: [opened, reopened, synchronize]
   workflow_dispatch:
     inputs:
       commit_sha:
