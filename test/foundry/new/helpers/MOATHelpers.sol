@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
-import "forge-std/console.sol";
 
 /**
  * @dev The "structure" of the order.
