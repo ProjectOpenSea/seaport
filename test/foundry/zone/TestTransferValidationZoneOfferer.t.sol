@@ -52,7 +52,8 @@ import {
     TestCalldataHashContractOfferer
 } from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
 
-import { FulfillAvailableHelper
+import {
+    FulfillAvailableHelper
 } from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
 import {
@@ -592,41 +593,51 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, "")
             );
 
-                (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
+            (
+                FulfillmentComponent[][] memory offerFulfillments,
+                FulfillmentComponent[][] memory considerationFulfillments
+            ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+                    advancedOrders
+                );
+
+            uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+
+            ZoneParameters[] memory zoneParameters = advancedOrders
+                .getZoneParameters(
+                    address(this),
+                    offerer1Counter,
+                    context.seaport
+                );
+
+            bytes32[] memory payloadHashes = new bytes32[](
+                zoneParameters.length
             );
+            for (uint256 i = 0; i < zoneParameters.length; i++) {
+                payloadHashes[i] = keccak256(
+                    abi.encodeCall(
+                        ZoneInterface.validateOrder,
+                        (zoneParameters[i])
+                    )
+                );
+                emit TestPayloadHash(payloadHashes[i]);
+                vm.expectEmit(true, false, false, true);
+                emit DataHash(payloadHashes[i]);
+            }
 
-        uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+            // Create the empty criteria resolvers.
+            CriteriaResolver[] memory criteriaResolvers;
 
-        ZoneParameters[] memory zoneParameters = advancedOrders
-            .getZoneParameters(address(this), offerer1Counter, context.seaport);
-
-        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
-        for (uint256 i = 0; i < zoneParameters.length; i++) {
-            payloadHashes[i] = keccak256(
-                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
-            );
-            emit TestPayloadHash(payloadHashes[i]);
-            vm.expectEmit(true, false, false, true);
-            emit DataHash(payloadHashes[i]);
+            // Make the call to Seaport.
+            context.seaport.fulfillAvailableAdvancedOrders({
+                advancedOrders: advancedOrders,
+                criteriaResolvers: new CriteriaResolver[](0),
+                offerFulfillments: offerFulfillments,
+                considerationFulfillments: considerationFulfillments,
+                fulfillerConduitKey: bytes32(conduitKeyOne),
+                recipient: address(offerer1.addr),
+                maximumFulfilled: advancedOrders.length
+            });
         }
-
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
-
-        // Make the call to Seaport.
-        context.seaport.fulfillAvailableAdvancedOrders({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            offerFulfillments: offerFulfillments,
-            considerationFulfillments: considerationFulfillments,
-            fulfillerConduitKey: bytes32(conduitKeyOne),
-            recipient: address(offerer1.addr),
-            maximumFulfilled: advancedOrders.length
-        });
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
