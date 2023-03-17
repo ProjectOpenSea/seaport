@@ -11,11 +11,7 @@ import {
     MOATEngine,
     MOATEngineLib
 } from "./helpers/MOATEngine.sol";
-import {
-    MOATOrder,
-    MOATHelpers,
-    MOATOrderContext
-} from "./helpers/MOATHelpers.sol";
+import { MOATOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
 
 contract MOATEngineTest is MOATEngine {
     using OfferItemLib for OfferItem;
@@ -67,7 +63,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -89,7 +89,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.fulfillOrder.selector);
 
@@ -98,7 +102,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 1 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -123,7 +131,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -145,7 +157,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -183,7 +199,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -213,7 +233,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.fulfillAvailableOrders.selector);
 
@@ -222,7 +246,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 1 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(
             context.action(),
@@ -234,7 +262,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 2 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.matchOrders.selector);
 
@@ -243,7 +275,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 3 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.matchAdvancedOrders.selector);
 
@@ -252,7 +288,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 4 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.cancel.selector);
 
@@ -261,7 +301,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
         assertEq(context.action(), seaport.validate.selector);
     }
@@ -283,14 +327,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: criteriaResolvers,
-            recipient: address(0)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = order
             .toAdvancedOrder({
@@ -298,14 +334,18 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
 
         exec(context);
@@ -328,13 +368,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0xbeef)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = order
             .toAdvancedOrder({
@@ -342,14 +375,18 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 1,
                 extraData: bytes("extra data")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0xbeef)
         });
 
         exec(context);
@@ -373,14 +410,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: criteriaResolvers,
-            recipient: address(0)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](2);
         orders[0] = order
             .toAdvancedOrder({
@@ -388,21 +417,25 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
         orders[1] = order
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
 
         exec(context);
@@ -426,14 +459,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: criteriaResolvers,
-            recipient: address(0)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](2);
         orders[0] = order
             .toAdvancedOrder({
@@ -441,21 +466,25 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
         orders[1] = order
             .toAdvancedOrder({
                 numerator: 0,
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         TestContext memory context = TestContext({
             orders: orders,
             seaport: seaport,
             caller: offerer1.addr,
             fuzzParams: FuzzParams({ seed: 4 }),
-            checks: new bytes4[](0)
+            checks: new bytes4[](0),
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
 
         exec(context);
@@ -478,14 +507,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: criteriaResolvers,
-            recipient: address(0)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = order
             .toAdvancedOrder({
@@ -493,7 +514,7 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_alwaysRevert.selector;
@@ -503,7 +524,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: checks
+            checks: checks,
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
 
         exec(context);
@@ -529,14 +554,6 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: criteriaResolvers,
-            recipient: address(0)
-        });
-
         MOATOrder[] memory orders = new MOATOrder[](1);
         orders[0] = order
             .toAdvancedOrder({
@@ -544,7 +561,7 @@ contract MOATEngineTest is MOATEngine {
                 denominator: 0,
                 extraData: bytes("")
             })
-            .toMOATOrder(moatOrderContext);
+            .toMOATOrder();
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_revertWithContextData.selector;
@@ -554,7 +571,11 @@ contract MOATEngineTest is MOATEngine {
             seaport: seaport,
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 0 }),
-            checks: checks
+            checks: checks,
+            counter: 0,
+            fulfillerConduitKey: bytes32(0),
+            criteriaResolvers: new CriteriaResolver[](0),
+            recipient: address(0)
         });
 
         exec(context);

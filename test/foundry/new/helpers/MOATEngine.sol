@@ -3,13 +3,7 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import {
-    MOATOrder,
-    MOATOrderContext,
-    MOATHelpers,
-    Structure,
-    Family
-} from "./MOATHelpers.sol";
+import { MOATOrder, MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
 struct FuzzParams {
@@ -45,6 +39,15 @@ struct TestContext {
      *      the resulting test state.
      */
     bytes4[] checks;
+    /**
+     * @dev Additional data we might need to fulfill an order. This is basically the
+     *      superset of all the non-order args to SeaportInterface functions, like
+     *      conduit key, criteria resolvers, and fulfillments.
+     */
+    uint256 counter;
+    bytes32 fulfillerConduitKey;
+    CriteriaResolver[] criteriaResolvers;
+    address recipient;
 }
 
 /**
@@ -154,22 +157,20 @@ contract MOATEngine is BaseOrderTest {
         if (_action == context.seaport.fulfillOrder.selector) {
             MOATOrder memory moatOrder = context.orders[0];
             AdvancedOrder memory order = moatOrder.order;
-            MOATOrderContext memory orderContext = moatOrder.context;
 
             context.seaport.fulfillOrder(
                 order.toOrder(),
-                orderContext.fulfillerConduitKey
+                context.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             MOATOrder memory moatOrder = context.orders[0];
             AdvancedOrder memory order = moatOrder.order;
-            MOATOrderContext memory orderContext = moatOrder.context;
 
             context.seaport.fulfillAdvancedOrder(
                 order,
-                orderContext.criteriaResolvers,
-                orderContext.fulfillerConduitKey,
-                orderContext.recipient
+                context.criteriaResolvers,
+                context.fulfillerConduitKey,
+                context.recipient
             );
         } else if (_action == context.seaport.cancel.selector) {
             MOATOrder[] memory moatOrders = context.orders;
@@ -183,7 +184,7 @@ contract MOATEngine is BaseOrderTest {
                     .order
                     .toOrder()
                     .parameters
-                    .toOrderComponents(moatOrder.context.counter);
+                    .toOrderComponents(context.counter);
             }
 
             context.seaport.cancel(orderComponents);

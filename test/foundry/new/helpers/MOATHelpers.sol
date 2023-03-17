@@ -5,27 +5,12 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 /**
- * @dev Additional data we might need to fulfill an order. This is basically the
- *      superset of all the non-order args to SeaportInterface functions, like
- *      conduit key, criteria resolvers, and fulfillments. For most orders, only
- *      a subset of these fields should be present. I'm not a huge fan of this
- *      but don't have a better idea right now.
- */
-struct MOATOrderContext {
-    uint256 counter;
-    bytes32 fulfillerConduitKey;
-    CriteriaResolver[] criteriaResolvers;
-    address recipient;
-}
-
-/**
  * @dev A wrapper struct around AdvancedOrder that includes an additional
  *      context struct. This extra context includes any additional args we might
  *      need to provide with the order.
  */
 struct MOATOrder {
     AdvancedOrder order;
-    MOATOrderContext context;
 }
 
 /**
@@ -251,28 +236,6 @@ library MOATHelpers {
     function toMOATOrder(
         AdvancedOrder memory order
     ) internal pure returns (MOATOrder memory) {
-        return
-            MOATOrder({
-                order: order,
-                context: MOATOrderContext({
-                    counter: 0,
-                    fulfillerConduitKey: bytes32(0),
-                    criteriaResolvers: new CriteriaResolver[](0),
-                    recipient: address(0)
-                })
-            });
-    }
-
-    /**
-     * @dev Convert an AdvancedOrder to a MOATOrder, providing the associated
-     *      context as an arg.
-     * @param order an AdvancedOrder struct.
-     * @param context the MOATOrderContext struct to set on the MOATOrder.
-     */
-    function toMOATOrder(
-        AdvancedOrder memory order,
-        MOATOrderContext memory context
-    ) internal pure returns (MOATOrder memory) {
-        return MOATOrder({ order: order, context: context });
+        return MOATOrder({ order: order });
     }
 }

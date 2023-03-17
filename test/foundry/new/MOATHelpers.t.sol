@@ -11,8 +11,7 @@ import {
     Type,
     Family,
     State,
-    MOATOrder,
-    MOATOrderContext
+    MOATOrder
 } from "./helpers/MOATHelpers.sol";
 
 contract MOATHelpersTest is BaseOrderTest {
