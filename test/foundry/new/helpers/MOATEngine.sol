@@ -21,7 +21,7 @@ struct TestContext {
      * @dev An array of MOATOrders. MOAT orders are a wrapper struct around
      *      AdvancedOrder that includes an additional MOATOrderContext. This
      *      extra context includes any additional args we might need to provide
-     *      with the order, like signature, counter, and criteria resolvers.
+     *      with the order.
      */
     MOATOrder[] orders;
     /**
@@ -157,7 +157,7 @@ contract MOATEngine is BaseOrderTest {
             MOATOrderContext memory orderContext = moatOrder.context;
 
             context.seaport.fulfillOrder(
-                order.toOrder().withSignature(orderContext.signature),
+                order.toOrder(),
                 orderContext.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
@@ -166,7 +166,7 @@ contract MOATEngine is BaseOrderTest {
             MOATOrderContext memory orderContext = moatOrder.context;
 
             context.seaport.fulfillAdvancedOrder(
-                order.withSignature(orderContext.signature),
+                order,
                 orderContext.criteriaResolvers,
                 orderContext.fulfillerConduitKey,
                 orderContext.recipient

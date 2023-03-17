@@ -285,7 +285,6 @@ contract MOATEngineTest is MOATEngine {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
@@ -330,7 +329,6 @@ contract MOATEngineTest is MOATEngine {
             .withSignature(signature);
 
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: new CriteriaResolver[](0),
@@ -377,7 +375,6 @@ contract MOATEngineTest is MOATEngine {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
@@ -431,7 +428,6 @@ contract MOATEngineTest is MOATEngine {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
@@ -484,7 +480,6 @@ contract MOATEngineTest is MOATEngine {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,
@@ -536,7 +531,6 @@ contract MOATEngineTest is MOATEngine {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         MOATOrderContext memory moatOrderContext = MOATOrderContext({
-            signature: signature,
             counter: 0,
             fulfillerConduitKey: bytes32(0),
             criteriaResolvers: criteriaResolvers,

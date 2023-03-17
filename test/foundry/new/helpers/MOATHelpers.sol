@@ -12,7 +12,6 @@ import "forge-std/console.sol";
  *      but don't have a better idea right now.
  */
 struct MOATOrderContext {
-    bytes signature;
     uint256 counter;
     bytes32 fulfillerConduitKey;
     CriteriaResolver[] criteriaResolvers;
@@ -22,8 +21,7 @@ struct MOATOrderContext {
 /**
  * @dev A wrapper struct around AdvancedOrder that includes an additional
  *      context struct. This extra context includes any additional args we might
- *      need to provide with the order, like signature, counter, and criteria
- *      resolvers.
+ *      need to provide with the order.
  */
 struct MOATOrder {
     AdvancedOrder order;
@@ -257,7 +255,6 @@ library MOATHelpers {
             MOATOrder({
                 order: order,
                 context: MOATOrderContext({
-                    signature: bytes(""),
                     counter: 0,
                     fulfillerConduitKey: bytes32(0),
                     criteriaResolvers: new CriteriaResolver[](0),
