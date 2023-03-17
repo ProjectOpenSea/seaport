@@ -1696,11 +1696,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     }
 
     /// @dev Generates calldata hashes for calls to generateOrder and
-    ///      ratifyOrder from mirror contract offerers. Assumes the following:
+    ///      ratifyOrder from mirror orders. Assumes the following:
     ///         1. Context is empty for all orders.
     ///         2. All passed in orders can be matched with each other.
     ///              a. All orderHashes will be passed into call to ratifyOrder
-    ///         3. All passed in orders are contract orders.
     function _generateContractOrderDataHashes(
         Context memory context,
         Order[] memory orders
