@@ -589,10 +589,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, "")
             );
 
-            (
-                FulfillmentComponent[][] memory offerFulfillments,
-                FulfillmentComponent[][] memory considerationFulfillments
-            ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
+            (offerFulfillments, considerationFulfillments) = fulfill
+                .getAggregatedFulfillmentComponents(advancedOrders);
         }
 
         uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
