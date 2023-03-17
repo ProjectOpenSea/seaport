@@ -20,8 +20,6 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
-import "hardhat/console.sol";
-
 contract TestCalldataHashContractOfferer is ContractOffererInterface {
     error InvalidNativeTokenBalance(
         uint256 expectedBalance,

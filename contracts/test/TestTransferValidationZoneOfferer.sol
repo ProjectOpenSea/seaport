@@ -22,8 +22,6 @@ import {
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import "hardhat/console.sol";
-
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface
