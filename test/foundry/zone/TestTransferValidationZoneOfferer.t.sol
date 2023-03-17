@@ -1025,8 +1025,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 firstOrderDataHash,
-            bytes32 secondOrderDataHash
+            ,
+
         ) = _buildFulfillmentDataMirrorContractOrders(context);
 
         AdvancedOrder[] memory advancedOrders;
@@ -1084,6 +1084,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ,
 
         ) = _buildFulfillmentDataOpenOrderAndMirrorContractOrder(context);
+
+        bytes32[2][] memory orderHashes = _generateContractOrderDataHashes(
+            context,
+            orders
+        );
+
+        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
+        emit GenerateOrderDataHash(orderHashes[0][0]);
+
+        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
+        emit RatifyOrderDataHash(orderHashes[0][1]);
 
         context.seaport.matchOrders{ value: 1 ether }({
             orders: orders,
@@ -1703,18 +1714,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         for (uint256 i = 0; i < orderCount; i++) {
             Order memory order = orders[i];
 
-            uint256 contractNonce = context.seaport.getContractOffererNonce(
-                order.parameters.offerer
-            );
+            if (order.parameters.orderType == OrderType.CONTRACT) {
+                uint256 contractNonce = context.seaport.getContractOffererNonce(
+                    order.parameters.offerer
+                );
 
-            orderHashes[i] =
-                bytes32(
-                    abi.encodePacked(
-                        (uint160(order.parameters.offerer) +
-                            uint96(contractNonce))
+                orderHashes[i] =
+                    bytes32(
+                        abi.encodePacked(
+                            (uint160(order.parameters.offerer) +
+                                uint96(contractNonce))
+                        )
+                    ) >>
+                    0;
+            } else {
+                orderHashes[i] = context.seaport.getOrderHash(
+                    toOrderComponents(
+                        order.parameters,
+                        context.seaport.getCounter(order.parameters.offerer)
                     )
-                ) >>
-                0;
+                );
+            }
 
             emit log_bytes32(orderHashes[i]);
         }
@@ -1722,6 +1742,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Iterate over orders to generate dataHashes
         for (uint256 i = 0; i < orderCount; i++) {
             Order memory order = orders[i];
+
+            if (order.parameters.orderType != OrderType.CONTRACT) {
+                continue;
+            }
 
             // Convert OfferItem[] and ConsiderationItem[] to SpentItem[]
             SpentItem[] memory minimumReceived = order
@@ -1759,14 +1783,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     )
                 )
             );
-
-            // ContractOffererInterface(order.parameters.offerer).ratifyOrder(
-            //     minimumReceived,
-            //     receivedItems,
-            //     "",
-            //     orderHashes,
-            //     0
-            // );
         }
 
         return orderDataHashes;
@@ -1779,23 +1795,28 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         returns (Order[] memory, Fulfillment[] memory, bytes32, uint256)
     {
         // Create contract offerer
-        TestTransferValidationZoneOfferer transferValidationOfferer1 = new TestTransferValidationZoneOfferer(
+        TestCalldataHashContractOfferer transferValidationOfferer1 = new TestCalldataHashContractOfferer(
                 offerer1.addr
             );
 
         vm.label(address(transferValidationOfferer1), "contractOfferer");
 
+        transferValidationOfferer1.setExpectedOfferRecipient(
+            address(offerer2.addr)
+        );
+
         TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
                 address(transferValidationOfferer1)
             );
 
-        // Mint 721 to contract offerer 1
-        test721_1.mint(address(transferValidationOfferer1), 1);
+        _setApprovals(address(transferValidationOfferer1));
 
-        allocateTokensAndApprovals(
-            address(transferValidationOfferer1),
-            uint128(MAX_INT)
-        );
+        // Mint 721 to offerer 1
+        test721_1.mint(offerer1.addr, 1);
+
+        // offerer1 approves transferValidationOfferer1
+        vm.prank(offerer1.addr);
+        test721_1.setApprovalForAll(address(transferValidationOfferer1), true);
 
         // Create single 721 offer for contract order 1
         OfferItem[] memory offerArray = SeaportArrays.OfferItems(
@@ -1834,15 +1855,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .fromDefault(SINGLE_721)
                 .withToken(address(test721_1))
                 .withIdentifierOrCriteria(1)
-                .withRecipient(offerer1.addr)
+                .withRecipient(offerer2.addr)
         );
 
         OrderComponents memory orderComponents2 = OrderComponentsLib
             .fromDefault(VALIDATION_ZONE)
+            .withOfferer(offerer2.addr)
             .withOffer(offerArray)
             .withConsideration(considerationArray)
             .withZone(address(transferValidationZone))
-            .withCounter(context.seaport.getCounter(offerer1.addr));
+            .withCounter(context.seaport.getCounter(offerer2.addr));
 
         Order[] memory orders = _buildOrders(
             context,
@@ -1850,11 +1872,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orderComponents,
                 orderComponents2
             ),
-            offerer1.key
+            offerer2.key
         );
 
         (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
             .getMatchedFulfillments(orders);
+
+        // Convert OfferItem[] and ConsiderationItem[] to SpentItem[] to call activate
+        // 1 eth
+        SpentItem[] memory minimumReceived = offerArray.toSpentItemArray();
+        // single 721
+        SpentItem[] memory maximumSpent = considerationArray.toSpentItemArray();
+
+        // Activate the orders
+        // offerer1 receives 1 eth in exchange for 721
+        vm.prank(offerer1.addr);
+        transferValidationOfferer1.activate(
+            address(this),
+            maximumSpent,
+            minimumReceived,
+            ""
+        );
 
         return (orders, fulfillments, conduitKeyOne, 2);
     }
