@@ -54,17 +54,10 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    error InvalidContractOrder(
-        bytes32 expectedDataHash,
-        bytes32 actualDataHash
-    );
-    event DataHash(bytes32 dataHash);
 
     receive() external payable {}
 
     address internal _expectedOfferRecipient;
-
-    bytes32 internal _expectedDataHash;
 
     // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient) {
