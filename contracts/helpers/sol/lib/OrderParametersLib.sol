@@ -336,7 +336,8 @@ library OrderParametersLib {
     }
 
     /**
-     * @dev Sets the consideration field of a OrderParameters struct in-place.
+     * @dev Sets the consideration field of a OrderParameters struct in-place
+     *      and updates the totalOriginalConsiderationItems field accordingly.
      *
      * @param parameters    the OrderParameters struct to modify
      * @param consideration the new value for the consideration field
