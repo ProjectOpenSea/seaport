@@ -8,13 +8,13 @@ import "forge-std/console.sol";
 import {
     TestContext,
     FuzzParams,
-    MOATEngine,
-    MOATEngineLib,
+    FuzzEngine,
+    FuzzEngineLib,
     TestContextLib
-} from "./helpers/MOATEngine.sol";
-import { AdvancedOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
+} from "./helpers/FuzzEngine.sol";
+import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
-contract MOATEngineTest is MOATEngine {
+contract FuzzEngineTest is FuzzEngine {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -27,8 +27,8 @@ contract MOATEngineTest is MOATEngine {
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
 
-    using MOATHelpers for AdvancedOrder;
-    using MOATEngineLib for TestContext;
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzEngineLib for TestContext;
     using TestContextLib for TestContext;
 
     error ExampleErrorWithContextData(bytes signature);

@@ -17,7 +17,7 @@ struct TestContext {
      */
     SeaportInterface seaport;
     /**
-     * @dev A caller address. If this is nonzero, the MOATEngine will prank this
+     * @dev A caller address. If this is nonzero, the FuzzEngine will prank this
      *      address before calling exec.
      */
     address caller;
@@ -28,7 +28,7 @@ struct TestContext {
      */
     FuzzParams fuzzParams;
     /**
-     * @dev An array of function selectors for "checks". The MOATEngine will
+     * @dev An array of function selectors for "checks". The FuzzEngine will
      *      call these functions after calling exec to make assertions about
      *      the resulting test state.
      */

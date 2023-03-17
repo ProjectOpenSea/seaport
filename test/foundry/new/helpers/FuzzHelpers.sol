@@ -59,9 +59,9 @@ enum State {
 }
 
 /**
- * @notice Stateless helpers for MOAT tests.
+ * @notice Stateless helpers for Fuzz tests.
  */
-library MOATHelpers {
+library FuzzHelpers {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
@@ -139,7 +139,7 @@ library MOATHelpers {
         } else if (orderType == OrderType.CONTRACT) {
             return Type.CONTRACT;
         } else {
-            revert("MOATEngine: Type not found");
+            revert("FuzzEngine: Type not found");
         }
     }
 

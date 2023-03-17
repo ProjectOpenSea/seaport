@@ -3,19 +3,19 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
+import { FuzzHelpers, Structure, Family } from "./FuzzHelpers.sol";
 import { TestContext, TestContextLib } from "./TestContextLib.sol";
 
 /**
- * @notice Stateless helpers for MOATEngine.
+ * @notice Stateless helpers for FuzzEngine.
  */
-library MOATEngineLib {
+library FuzzEngineLib {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -23,7 +23,7 @@ library MOATEngineLib {
      *      using the context's fuzzParams.seed when multiple actions are
      *      available for the given order config.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
     function action(TestContext memory context) internal pure returns (bytes4) {
@@ -35,7 +35,7 @@ library MOATEngineLib {
      * @dev Get an array of all possible "actions," i.e. "which Seaport
      *      functions can we call," based on the orders in a given TestContext.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      * @return bytes4[] of SeaportInterface function selectors.
      */
     function actions(
@@ -72,6 +72,6 @@ library MOATEngineLib {
             selectors[5] = context.seaport.validate.selector;
             return selectors;
         }
-        revert("MOATEngine: Actions not found");
+        revert("FuzzEngine: Actions not found");
     }
 }

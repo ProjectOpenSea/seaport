@@ -6,15 +6,15 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 import {
-    MOATHelpers,
+    FuzzHelpers,
     Structure,
     Type,
     Family,
     State,
     AdvancedOrder
-} from "./helpers/MOATHelpers.sol";
+} from "./helpers/FuzzHelpers.sol";
 
-contract MOATHelpersTest is BaseOrderTest {
+contract FuzzHelpersTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -27,9 +27,9 @@ contract MOATHelpersTest is BaseOrderTest {
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
 
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
 
     function setUp() public virtual override {
         super.setUp();

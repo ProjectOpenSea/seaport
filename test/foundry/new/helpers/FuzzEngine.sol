@@ -5,23 +5,23 @@ import "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
-    MOATHelpers,
+    FuzzHelpers,
     Structure,
     Family
-} from "./MOATHelpers.sol";
+} from "./FuzzHelpers.sol";
 import { TestContext, FuzzParams, TestContextLib } from "./TestContextLib.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
 /**
- * @notice Stateless helpers for MOATEngine.
+ * @notice Stateless helpers for FuzzEngine.
  */
-library MOATEngineLib {
+library FuzzEngineLib {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -29,7 +29,7 @@ library MOATEngineLib {
      *      using the context's fuzzParams.seed when multiple actions are
      *      available for the given order config.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
     function action(TestContext memory context) internal pure returns (bytes4) {
@@ -41,7 +41,7 @@ library MOATEngineLib {
      * @dev Get an array of all possible "actions," i.e. "which Seaport
      *      functions can we call," based on the orders in a given TestContext.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      * @return bytes4[] of SeaportInterface function selectors.
      */
     function actions(
@@ -78,12 +78,12 @@ library MOATEngineLib {
             selectors[5] = context.seaport.validate.selector;
             return selectors;
         }
-        revert("MOATEngine: Actions not found");
+        revert("FuzzEngine: Actions not found");
     }
 }
 
 /**
- * @notice Base test contract for MOATEngine. MOAT tests should inherit this.
+ * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
  *
  *         Engine lifecycle:
@@ -91,18 +91,18 @@ library MOATEngineLib {
  *           - exec(context)
  *           - checkAll(context)
  */
-contract MOATEngine is BaseOrderTest {
+contract FuzzEngine is BaseOrderTest {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder;
-    using MOATHelpers for AdvancedOrder[];
-    using MOATEngineLib for TestContext;
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
+    using FuzzEngineLib for TestContext;
 
     /**
      * @dev Call an available Seaport function based on the orders in the given
-     *      TestContext. MOATEngine will deduce which actions are available
+     *      TestContext. FuzzEngine will deduce which actions are available
      *      for the given orders and call a Seaport function at random using the
      *      context's fuzzParams.seed.
      *
@@ -111,7 +111,7 @@ contract MOATEngine is BaseOrderTest {
      *
      *      Note: not all Seaport actions are implemented here yet.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      */
     function exec(TestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
@@ -157,7 +157,7 @@ contract MOATEngine is BaseOrderTest {
 
             context.seaport.validate(orders);
         } else {
-            revert("MOATEngine: Action not implemented");
+            revert("FuzzEngine: Action not implemented");
         }
         if (context.caller != address(0)) vm.stopPrank();
     }
@@ -173,9 +173,9 @@ contract MOATEngine is BaseOrderTest {
      *      naming convention, although it doesn't actually matter.
      *
      *      The idea here is that we can add checks for different scenarios to
-     *      the MOATEngine by adding them via abstract contracts.
+     *      the FuzzEngine by adding them via abstract contracts.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      * @param selector bytes4 selector of the check function to call.
      */
     function check(TestContext memory context, bytes4 selector) internal {
@@ -200,7 +200,7 @@ contract MOATEngine is BaseOrderTest {
      *      at order generation time, based on the characteristics of the orders
      *      we generate.
      *
-     * @param context A MOAT test context.
+     * @param context A Fuzz test context.
      */
     function checkAll(TestContext memory context) internal {
         for (uint256 i; i < context.checks.length; ++i) {
