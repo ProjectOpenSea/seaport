@@ -607,16 +607,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
+            ) = fulfill.getAggregatedFulfillmentComponents(
                 infra.advancedOrders
             );
         } else {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = FulfillAvailableHelper.getNaiveFulfillmentComponents(
-                infra.advancedOrders
-            );
+            ) = fulfill.getNaiveFulfillmentComponents(infra.advancedOrders);
         }
 
         // If the fuzz args call for using the transfer validation zone, make

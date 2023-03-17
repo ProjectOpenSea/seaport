@@ -10,9 +10,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
-[submodule "lib/solarray"]
-	path = lib/solarray
-	url = https://github.com/evmcheb/solarray
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
@@ -21,3 +18,6 @@
 	path = lib/solady
 	url = https://github.com/vectorized/solady
 	branch = v0.0.84
+[submodule "lib/solarray"]
+	path = lib/solarray
+	url = https://github.com/emo-eth/solarray

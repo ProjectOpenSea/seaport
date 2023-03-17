@@ -11,8 +11,9 @@ import {
     MatchComponent,
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
-import { FulfillmentComponent, Fulfillment } from "../../SeaportSol.sol";
+import { FulfillmentComponent, Fulfillment } from "../../SeaportStructs.sol";
 import { LibSort } from "solady/src/utils/LibSort.sol";
+
 // import { console } from "hardhat/console.sol";
 
 library MatchFulfillmentLib {
@@ -27,8 +28,11 @@ library MatchFulfillmentLib {
         AggregatableConsideration memory token,
         MatchFulfillmentStorageLayout storage layout
     ) internal view returns (bool) {
-        return layout.considerationMap[token.recipient][token.contractAddress][token
-            .tokenId].length > 0;
+        return
+            layout
+            .considerationMap[token.recipient][token.contractAddress][
+                token.tokenId
+            ].length > 0;
     }
 
     /**
@@ -40,8 +44,10 @@ library MatchFulfillmentLib {
         AggregatableOfferer memory offerer,
         MatchFulfillmentStorageLayout storage layout
     ) internal view returns (bool) {
-        return layout.offerMap[token][tokenId][offerer.offerer][offerer
-            .conduitKey].length > 0;
+        return
+            layout
+            .offerMap[token][tokenId][offerer.offerer][offerer.conduitKey]
+                .length > 0;
     }
 
     function processConsiderationComponent(
@@ -51,8 +57,9 @@ library MatchFulfillmentLib {
     ) internal {
         // iterate over offer components
         while (params.offerItemIndex < offerComponents.length) {
-            MatchComponent considerationComponent =
-                considerationComponents[params.considerationItemIndex];
+            MatchComponent considerationComponent = considerationComponents[
+                params.considerationItemIndex
+            ];
 
             // if consideration has been completely credited, break to next consideration component
             if (considerationComponent.getAmount() == 0) {
@@ -90,11 +97,9 @@ library MatchFulfillmentLib {
         components[index] = newComponent;
     }
 
-    function allocateAndShrink(uint256 maxLength)
-        internal
-        pure
-        returns (FulfillmentComponent[] memory components)
-    {
+    function allocateAndShrink(
+        uint256 maxLength
+    ) internal pure returns (FulfillmentComponent[] memory components) {
         components = new FulfillmentComponent[](maxLength);
         scuffLength(components, 0);
         return components;
@@ -108,10 +113,12 @@ library MatchFulfillmentLib {
             return false;
         }
 
-        FulfillmentComponent memory lastComponent =
-            components[components.length - 1];
-        return lastComponent.orderIndex == fulfillmentComponent.orderIndex
-            && lastComponent.itemIndex == fulfillmentComponent.itemIndex;
+        FulfillmentComponent memory lastComponent = components[
+            components.length - 1
+        ];
+        return
+            lastComponent.orderIndex == fulfillmentComponent.orderIndex &&
+            lastComponent.itemIndex == fulfillmentComponent.itemIndex;
     }
 
     function processOfferComponent(
@@ -121,27 +128,32 @@ library MatchFulfillmentLib {
     ) internal {
         // re-load components each iteration as they may have been modified
         MatchComponent offerComponent = offerComponents[params.offerItemIndex];
-        MatchComponent considerationComponent =
-            considerationComponents[params.considerationItemIndex];
+        MatchComponent considerationComponent = considerationComponents[
+            params.considerationItemIndex
+        ];
 
         if (offerComponent.getAmount() > considerationComponent.getAmount()) {
             // emit log("used up consideration");
             // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
-            offerComponent =
-                offerComponent.subtractAmount(considerationComponent);
+            offerComponent = offerComponent.subtractAmount(
+                considerationComponent
+            );
             considerationComponent = considerationComponent.setAmount(0);
             offerComponents[params.offerItemIndex] = offerComponent;
-            considerationComponents[params.considerationItemIndex] =
-                considerationComponent;
+            considerationComponents[
+                params.considerationItemIndex
+            ] = considerationComponent;
         } else {
             // emit log("used up offer");
-            considerationComponent =
-                considerationComponent.subtractAmount(offerComponent);
+            considerationComponent = considerationComponent.subtractAmount(
+                offerComponent
+            );
             offerComponent = offerComponent.setAmount(0);
 
             // otherwise deplete offer amount and credit consideration amount
-            considerationComponents[params.considerationItemIndex] =
-                considerationComponent;
+            considerationComponents[
+                params.considerationItemIndex
+            ] = considerationComponent;
 
             offerComponents[params.offerItemIndex] = offerComponent;
             ++params.offerItemIndex;
@@ -171,10 +183,14 @@ library MatchFulfillmentLib {
         MatchComponent[] storage considerationComponents
     ) internal returns (Fulfillment memory) {
         // optimistically allocate arrays of fulfillment components
-        FulfillmentComponent[] memory offerFulfillmentComponents =
-            allocateAndShrink(offerComponents.length);
-        FulfillmentComponent[] memory considerationFulfillmentComponents =
-            allocateAndShrink(considerationComponents.length);
+        FulfillmentComponent[]
+            memory offerFulfillmentComponents = allocateAndShrink(
+                offerComponents.length
+            );
+        FulfillmentComponent[]
+            memory considerationFulfillmentComponents = allocateAndShrink(
+                considerationComponents.length
+            );
         // iterate over consideration components
         ProcessComponentParams memory params = ProcessComponentParams({
             offerFulfillmentComponents: offerFulfillmentComponents,
@@ -202,18 +218,19 @@ library MatchFulfillmentLib {
 
         // return a discrete fulfillment since either or both of the sets of components have been exhausted
         // if offer or consideration items remain, they will be revisited in subsequent calls
-        return Fulfillment({
-            offerComponents: offerFulfillmentComponents,
-            considerationComponents: considerationFulfillmentComponents
-        });
+        return
+            Fulfillment({
+                offerComponents: offerFulfillmentComponents,
+                considerationComponents: considerationFulfillmentComponents
+            });
     }
 
     /**
      * @dev Removes any zero-amount components from the start of the array
      */
-    function cleanUpZeroedComponents(MatchComponent[] storage components)
-        internal
-    {
+    function cleanUpZeroedComponents(
+        MatchComponent[] storage components
+    ) internal {
         // cache components in memory
         MatchComponent[] memory cachedComponents = components;
         // clear storage array
@@ -231,11 +248,10 @@ library MatchFulfillmentLib {
     /**
      * @dev Truncates an array to the given length by overwriting its length in memory
      */
-    function truncateArray(FulfillmentComponent[] memory array, uint256 length)
-        internal
-        pure
-        returns (FulfillmentComponent[] memory truncatedArray)
-    {
+    function truncateArray(
+        FulfillmentComponent[] memory array,
+        uint256 length
+    ) internal pure returns (FulfillmentComponent[] memory truncatedArray) {
         assembly {
             mstore(array, length)
             truncatedArray := array
@@ -245,11 +261,10 @@ library MatchFulfillmentLib {
     /**
      * @dev Truncates an array to the given length by overwriting its length in memory
      */
-    function truncateArray(MatchComponent[] memory array, uint256 length)
-        internal
-        pure
-        returns (MatchComponent[] memory truncatedArray)
-    {
+    function truncateArray(
+        MatchComponent[] memory array,
+        uint256 length
+    ) internal pure returns (MatchComponent[] memory truncatedArray) {
         assembly {
             mstore(array, length)
             truncatedArray := array
@@ -284,11 +299,9 @@ library MatchFulfillmentLib {
         return newComponents;
     }
 
-    function dedupe(MatchComponent[] memory components)
-        internal
-        pure
-        returns (MatchComponent[] memory dedupedComponents)
-    {
+    function dedupe(
+        MatchComponent[] memory components
+    ) internal pure returns (MatchComponent[] memory dedupedComponents) {
         if (components.length == 0 || components.length == 1) {
             return components;
         }
@@ -303,8 +316,8 @@ library MatchFulfillmentLib {
         for (uint256 i = 1; i < components.length; i++) {
             // compare current component to last deduped component
             if (
-                MatchComponent.unwrap(components[i])
-                    != MatchComponent.unwrap(dedupedComponents[dedupedIndex - 1])
+                MatchComponent.unwrap(components[i]) !=
+                MatchComponent.unwrap(dedupedComponents[dedupedIndex - 1])
             ) {
                 // if it is different, add it to the deduped array and increment the index
                 dedupedComponents[dedupedIndex] = components[i];
