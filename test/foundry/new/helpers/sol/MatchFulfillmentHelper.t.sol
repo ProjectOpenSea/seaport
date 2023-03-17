@@ -20,6 +20,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
     using Strings for uint256;
     using ConsiderationItemLib for ConsiderationItem;
     using FulfillmentComponentLib for FulfillmentComponent;
+    using OfferItemLib for OfferItem;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
