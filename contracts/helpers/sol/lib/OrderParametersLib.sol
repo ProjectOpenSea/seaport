@@ -332,6 +332,7 @@ library OrderParametersLib {
         ConsiderationItem[] memory consideration
     ) internal pure returns (OrderParameters memory) {
         parameters.consideration = consideration;
+        parameters.totalOriginalConsiderationItems = consideration.length;
         return parameters;
     }
 
