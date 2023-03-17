@@ -3,11 +3,7 @@ import { expect } from "chai";
 import { keccak256, recoverAddress, toUtf8Bytes } from "ethers/lib/utils";
 import hre, { ethers, network } from "hardhat";
 
-import {
-  SIP5Interface__factory,
-  ZoneInterface__factory,
-} from "../../typechain-types";
-import { merkleTree } from "../utils/criteria";
+import { merkleTree } from "../../test/utils/criteria";
 import {
   buildOrderStatus,
   buildResolver,
@@ -18,16 +14,21 @@ import {
   toBN,
   toFulfillmentComponents,
   toKey,
-} from "../utils/encoding";
-import { faucet } from "../utils/faucet";
-import { seaportFixture } from "../utils/fixtures";
+} from "../../test/utils/encoding";
+import { faucet } from "../../test/utils/faucet";
+import { seaportFixture } from "../../test/utils/fixtures";
 import {
   VERSION,
   changeChainId,
   getCustomRevertSelector,
   minRandom,
-} from "../utils/helpers";
+} from "../../test/utils/helpers";
+import {
+  SIP5Interface__factory,
+  ZoneInterface__factory,
+} from "../../typechain-types";
 
+import type { SeaportFixtures } from "../../test/utils/fixtures";
 import type {
   ConsiderationInterface,
   ImmutableCreate2FactoryInterface,
@@ -37,12 +38,12 @@ import type {
   TestERC20,
   TestSignedZoneCaptain,
 } from "../../typechain-types";
-import type { SeaportFixtures } from "../utils/fixtures";
 import type { JsonRpcSigner } from "@ethersproject/providers";
 import type { Contract, Wallet } from "ethers";
 
 const { signedOrderType } = require("../../eip-712-types/signedOrder");
-const testSignedZoneDeployConstants = require("../constants/testSignedZoneConstants");
+
+const testSignedZoneDeployConstants = require("./constants/testSignedZoneConstants");
 
 const { parseEther } = ethers.utils;
 

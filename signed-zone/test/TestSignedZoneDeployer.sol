@@ -1,13 +1,15 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { SignedZoneCaptain } from "../zones/SignedZoneCaptain.sol";
+import { SignedZoneCaptain } from "../SignedZoneCaptain.sol";
 
-import { SignedZoneController } from "../zones/SignedZoneController.sol";
+import {
+    SignedZoneController
+} from "../../signed-zone/SignedZoneController.sol";
 
 import {
     ImmutableCreate2FactoryInterface
-} from "../interfaces/ImmutableCreate2FactoryInterface.sol";
+} from "../../contracts/interfaces/ImmutableCreate2FactoryInterface.sol";
 
 import "./lib/TestSignedZoneDeployerConstants.sol";
 

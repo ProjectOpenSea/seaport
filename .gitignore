@@ -8,8 +8,10 @@ yarn-error.log
 #Hardhat files
 artifacts/
 artifacts-ref/
+artifacts-signed-zone/
 hh-cache/
 hh-cache-ref/
+hh-cache-signed-zone/
 
 
 #foundry test compilation files
@@ -19,6 +21,7 @@ reference-out
 optimized-out
 reference-working
 offerers-out
+signed-zone-out
 
 
 .DS_Store

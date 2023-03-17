@@ -90,6 +90,26 @@ jobs:
       - run: yarn build:ref
       - run: yarn test:ref
 
+  signed-zone-test:
+    name: Run Signed Zone Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.15.1]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "yarn"
+      - run: yarn install
+      - run: yarn build
+      - run: yarn build:signed-zone
+      - run: yarn test:signed-zone
+
   forge-lite:
     name: Run "Lite" Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
@@ -229,3 +249,27 @@ jobs:
         with:
           files: ./coverage/lcov.info
           flags: reference
+
+  signed-zone-coverage:
+    name: Run Signed Zone Coverage Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.15.1]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "yarn"
+      - run: yarn install
+      - run: yarn build
+      - run: yarn build:signed-zone
+      - run: yarn coverage:signed-zone
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: signed-zone

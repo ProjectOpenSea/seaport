@@ -17,6 +17,7 @@ fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
 ]
+bytecode_hash = "none"
 
 [fuzz]
 runs = 1_000
@@ -59,5 +60,14 @@ script = 'offerers'
 line_length = 80
 tab_width = 4
 bracket_spacing = true
+
+[profile.signed-zone]
+via_ir = true
+solc = '0.8.19'
+src = 'signed-zone'
+no_match_path = 'signed-zone'
+out = 'signed-zone-out'
+script = 'signed-zone'
+test ='signed-zone-tests'
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

@@ -1,7 +1,7 @@
 //SPDX-License Identifier:MIT
 pragma solidity ^0.8.13;
 
-import { SignedZoneCaptain } from "../zones/SignedZoneCaptain.sol";
+import { SignedZoneCaptain } from "../SignedZoneCaptain.sol";
 
 /**
  * @title  TestSignedZoneCaptain
@@ -16,9 +16,9 @@ import { SignedZoneCaptain } from "../zones/SignedZoneCaptain.sol";
  *         deployer is the address is valid.
  */
 contract TestSignedZoneCaptain is SignedZoneCaptain {
-    constructor(address signedZoneController)
-        SignedZoneCaptain(signedZoneController)
-    {}
+    constructor(
+        address signedZoneController
+    ) SignedZoneCaptain(signedZoneController) {}
 
     /**
      * @notice Internal function to assert that the caller is a valid deployer.

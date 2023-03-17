@@ -51,7 +51,6 @@ module.exports = {
     "zones/interfaces/PausableZoneControllerInterface.sol",
     "zones/interfaces/PausableZoneEventsAndErrors.sol",
     "zones/interfaces/PausableZoneInterface.sol",
-    "zones/examples/ExampleSignedZoneCaptain.sol",
   ],
   configureYulOptimizer: true,
   solcOptimizerDetails: {

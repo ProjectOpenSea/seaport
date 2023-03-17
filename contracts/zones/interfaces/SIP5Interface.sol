@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { Schema } from "../../lib/ConsiderationStructs.sol";
+import { Schema } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /**
  * @dev SIP-5: Contract Metadata Interface for Seaport Contracts

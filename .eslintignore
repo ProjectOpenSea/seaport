@@ -1,6 +1,7 @@
 node_modules
 .eslintrc*
 artifacts
+artifacts-signed-zone
 cache
 constants
 coverage

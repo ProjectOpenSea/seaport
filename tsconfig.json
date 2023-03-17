@@ -8,6 +8,18 @@
     "declaration": true,
     "resolveJsonModule": true
   },
-  "include": ["./scripts", "./test", "./typechain-types", "./eip-712-types", "./*.config.ts", "./docs/prepare-docs.js"],
-  "files": ["./hardhat.config.ts"]
+  "include": [
+    "./scripts",
+    "./test",
+    "./typechain-types",
+    "./eip-712-types",
+    "./*.config.ts",
+    "./docs/prepare-docs.js",
+    "signed-zone/test/signedZone",
+    "signed-zone/test/SignedZone.spec.ts",
+    "signed-zone/test/constants"
+  ],
+  "files": [
+    "./hardhat.config.ts"
+  ]
 }

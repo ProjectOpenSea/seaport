@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
+import {
+    ZoneParameters,
+    Schema
+} from "../contracts/lib/ConsiderationStructs.sol";
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../contracts/interfaces/ZoneInterface.sol";
 
 import {
     SignedZoneEventsAndErrors
 } from "./interfaces/SignedZoneEventsAndErrors.sol";
 
-import { SIP5Interface } from "./interfaces/SIP5Interface.sol";
+import { SIP5Interface } from "../contracts/zones/interfaces/SIP5Interface.sol";
 
 import {
     SignedZoneControllerInterface

@@ -13,7 +13,7 @@ import {
     SignedZoneCaptainEventsAndErrors
 } from "./interfaces/SignedZoneCaptainEventsAndErrors.sol";
 
-import { TwoStepOwnable } from "../ownable/TwoStepOwnable.sol";
+import { TwoStepOwnable } from "../contracts/ownable/TwoStepOwnable.sol";
 
 /**
  * @title SignedZoneCaptain
@@ -153,10 +153,10 @@ abstract contract SignedZoneCaptain is
      * @param zone           The signed zone to update the API endpoint for.
      * @param newApiEndpoint The new API endpoint.
      */
-    function updateZoneAPIEndpoint(address zone, string calldata newApiEndpoint)
-        external
-        override
-    {
+    function updateZoneAPIEndpoint(
+        address zone,
+        string calldata newApiEndpoint
+    ) external override {
         // Ensure caller is the owner.
         _assertCallerIsOwner();
 
@@ -240,10 +240,10 @@ abstract contract SignedZoneCaptain is
      *                          transfer.
      * @param newPotentialOwner The new potential owner to set.
      */
-    function transferZoneOwnership(address zone, address newPotentialOwner)
-        external
-        override
-    {
+    function transferZoneOwnership(
+        address zone,
+        address newPotentialOwner
+    ) external override {
         // Ensure caller is the owner.
         _assertCallerIsOwner();
 
