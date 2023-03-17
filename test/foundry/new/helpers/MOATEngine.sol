@@ -3,7 +3,12 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { MOATOrder, MOATHelpers, Structure, Family } from "./MOATHelpers.sol";
+import {
+    AdvancedOrder,
+    MOATHelpers,
+    Structure,
+    Family
+} from "./MOATHelpers.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
 struct FuzzParams {
@@ -12,12 +17,9 @@ struct FuzzParams {
 
 struct TestContext {
     /**
-     * @dev An array of MOATOrders. MOAT orders are a wrapper struct around
-     *      AdvancedOrder that includes an additional MOATOrderContext. This
-     *      extra context includes any additional args we might need to provide
-     *      with the order.
+     * @dev An array of AdvancedOrders
      */
-    MOATOrder[] orders;
+    AdvancedOrder[] orders;
     /**
      * @dev A Seaport interface, either the reference or optimized version.
      */
@@ -51,6 +53,50 @@ struct TestContext {
 }
 
 /**
+ * @notice Builder library for TestContext.
+ */
+library TestContextLib {
+    using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
+
+    /**
+     * @dev Create an empty TestContext.
+     *
+     * @custom:return emptyContext the empty TestContext
+     */
+    function empty() internal pure returns (TestContext memory) {
+        return
+            TestContext({
+                orders: new AdvancedOrder[](0),
+                seaport: SeaportInterface(address(0)),
+                caller: address(0),
+                fuzzParams: FuzzParams({ seed: 0 }),
+                checks: new bytes4[](0),
+                counter: 0,
+                fulfillerConduitKey: bytes32(0),
+                criteriaResolvers: new CriteriaResolver[](0),
+                recipient: address(0)
+            });
+    }
+
+    /**
+     * @dev Sets the orders on a TestContext
+     *
+     * @param context the TestContext to set the orders of
+     * @param orders the AdvancedOrder[] to set
+     *
+     * @return _context the TestContext with the orders set
+     */
+    function withOrders(
+        TestContext memory context,
+        AdvancedOrder[] memory orders
+    ) internal pure returns (TestContext memory) {
+        context.orders = orders.copy();
+        return context;
+    }
+}
+
+/**
  * @notice Stateless helpers for MOATEngine.
  */
 library MOATEngineLib {
@@ -58,8 +104,8 @@ library MOATEngineLib {
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-    using MOATHelpers for MOATOrder;
-    using MOATHelpers for MOATOrder[];
+    using MOATHelpers for AdvancedOrder;
+    using MOATHelpers for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -88,7 +134,7 @@ library MOATEngineLib {
         Family family = context.orders.getFamily();
 
         if (family == Family.SINGLE) {
-            MOATOrder memory order = context.orders[0];
+            AdvancedOrder memory order = context.orders[0];
             Structure structure = order.getStructure();
             if (structure == Structure.STANDARD) {
                 bytes4[] memory selectors = new bytes4[](2);
@@ -134,8 +180,8 @@ contract MOATEngine is BaseOrderTest {
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-    using MOATHelpers for MOATOrder;
-    using MOATHelpers for MOATOrder[];
+    using MOATHelpers for AdvancedOrder;
+    using MOATHelpers for AdvancedOrder[];
     using MOATEngineLib for TestContext;
 
     /**
@@ -155,16 +201,14 @@ contract MOATEngine is BaseOrderTest {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
         if (_action == context.seaport.fulfillOrder.selector) {
-            MOATOrder memory moatOrder = context.orders[0];
-            AdvancedOrder memory order = moatOrder.order;
+            AdvancedOrder memory order = context.orders[0];
 
             context.seaport.fulfillOrder(
                 order.toOrder(),
                 context.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
-            MOATOrder memory moatOrder = context.orders[0];
-            AdvancedOrder memory order = moatOrder.order;
+            AdvancedOrder memory order = context.orders[0];
 
             context.seaport.fulfillAdvancedOrder(
                 order,
@@ -173,15 +217,14 @@ contract MOATEngine is BaseOrderTest {
                 context.recipient
             );
         } else if (_action == context.seaport.cancel.selector) {
-            MOATOrder[] memory moatOrders = context.orders;
+            AdvancedOrder[] memory orders = context.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](
-                moatOrders.length
+                orders.length
             );
 
-            for (uint256 i; i < moatOrders.length; ++i) {
-                MOATOrder memory moatOrder = context.orders[i];
-                orderComponents[i] = moatOrder
-                    .order
+            for (uint256 i; i < orders.length; ++i) {
+                AdvancedOrder memory order = orders[i];
+                orderComponents[i] = order
                     .toOrder()
                     .parameters
                     .toOrderComponents(context.counter);
@@ -189,11 +232,11 @@ contract MOATEngine is BaseOrderTest {
 
             context.seaport.cancel(orderComponents);
         } else if (_action == context.seaport.validate.selector) {
-            MOATOrder[] memory moatOrders = context.orders;
-            Order[] memory orders = new Order[](moatOrders.length);
+            AdvancedOrder[] memory advancedOrders = context.orders;
+            Order[] memory orders = new Order[](advancedOrders.length);
 
-            for (uint256 i; i < moatOrders.length; ++i) {
-                orders[i] = context.orders[i].order.toOrder();
+            for (uint256 i; i < advancedOrders.length; ++i) {
+                orders[i] = advancedOrders[i].toOrder();
             }
 
             context.seaport.validate(orders);

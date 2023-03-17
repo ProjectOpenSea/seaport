@@ -11,7 +11,7 @@ import {
     MOATEngine,
     MOATEngineLib
 } from "./helpers/MOATEngine.sol";
-import { MOATOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
+import { AdvancedOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
 
 contract MOATEngineTest is MOATEngine {
     using OfferItemLib for OfferItem;
@@ -44,15 +44,12 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get all actions for a single, standard order.
     function test_Single_Standard_Actions() public {
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         bytes4[] memory expectedActions = new bytes4[](2);
         expectedActions[0] = seaport.fulfillOrder.selector;
@@ -74,15 +71,12 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get one action for a single, standard order.
     function test_Single_Standard_Action() public {
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -113,15 +107,12 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get all actions for a single, advanced order.
     function test_Single_Advanced_Actions() public {
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
 
         bytes4[] memory expectedActions = new bytes4[](1);
         expectedActions[0] = seaport.fulfillAdvancedOrder.selector;
@@ -142,15 +133,12 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get one action for a single, advanced order.
     function test_Single_Advanced_Action() public {
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -168,23 +156,17 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get all actions for a combined order.
     function test_Combined_Actions() public {
-        MOATOrder[] memory orders = new MOATOrder[](2);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
-        orders[1] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
 
         bytes4[] memory expectedActions = new bytes4[](6);
         expectedActions[0] = seaport.fulfillAvailableOrders.selector;
@@ -210,23 +192,17 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Get a single action for a combined order.
     function test_Combined_Action() public {
-        MOATOrder[] memory orders = new MOATOrder[](2);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
-        orders[1] = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
+        orders[1] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("extra data")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -327,14 +303,12 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -368,14 +342,12 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 1,
-                denominator: 1,
-                extraData: bytes("extra data")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 1,
+            denominator: 1,
+            extraData: bytes("extra data")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -410,21 +382,17 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](2);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
-        orders[1] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        orders[1] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -459,21 +427,17 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](2);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
-        orders[1] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        orders[1] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         TestContext memory context = TestContext({
             orders: orders,
@@ -507,14 +471,12 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_alwaysRevert.selector;
@@ -554,14 +516,12 @@ contract MOATEngineTest is MOATEngine {
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
 
-        MOATOrder[] memory orders = new MOATOrder[](1);
-        orders[0] = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            })
-            .toMOATOrder();
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_revertWithContextData.selector;
@@ -583,7 +543,7 @@ contract MOATEngineTest is MOATEngine {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ExampleErrorWithContextData.selector,
-                context.orders[0].order.signature
+                context.orders[0].signature
             )
         );
         checkAll(context);
@@ -596,7 +556,7 @@ contract MOATEngineTest is MOATEngine {
 
     /// @dev Example of a check" function that uses the test context.
     function check_revertWithContextData(TestContext memory context) public {
-        revert ExampleErrorWithContextData(context.orders[0].order.signature);
+        revert ExampleErrorWithContextData(context.orders[0].signature);
     }
 
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {

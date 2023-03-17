@@ -5,15 +5,6 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 /**
- * @dev A wrapper struct around AdvancedOrder that includes an additional
- *      context struct. This extra context includes any additional args we might
- *      need to provide with the order.
- */
-struct MOATOrder {
-    AdvancedOrder order;
-}
-
-/**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
  *      - STANDARD: does not adhere to basic construction rules.
@@ -80,20 +71,20 @@ library MOATHelpers {
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
      *      orders in the provided array.
-     * @param orders array of MOATOrders.
+     * @param orders array of AdvancedOrders.
      */
     function getQuantity(
-        MOATOrder[] memory orders
+        AdvancedOrder[] memory orders
     ) internal pure returns (uint256) {
         return orders.length;
     }
 
     /**
      * @dev Get the "family" of method that can fulfill these orders.
-     * @param orders array of MOATOrders.
+     * @param orders array of AdvancedOrders.
      */
     function getFamily(
-        MOATOrder[] memory orders
+        AdvancedOrder[] memory orders
     ) internal pure returns (Family) {
         uint256 quantity = getQuantity(orders);
         if (quantity > 1) {
@@ -104,16 +95,16 @@ library MOATHelpers {
 
     /**
      * @dev Get the "state" of the given order.
-     * @param order a MOATOrder.
+     * @param order an AdvancedOrder.
      * @param seaport a SeaportInterface, either reference or optimized.
      */
     function getState(
-        MOATOrder memory order,
+        AdvancedOrder memory order,
         SeaportInterface seaport
     ) internal view returns (State) {
-        uint256 counter = seaport.getCounter(order.order.parameters.offerer);
+        uint256 counter = seaport.getCounter(order.parameters.offerer);
         bytes32 orderHash = seaport.getOrderHash(
-            order.order.parameters.toOrderComponents(counter)
+            order.parameters.toOrderComponents(counter)
         );
         (
             bool isValidated,
@@ -132,10 +123,10 @@ library MOATHelpers {
 
     /**
      * @dev Get the "type" of the given order.
-     * @param order a MOATOrder.
+     * @param order an AdvancedOrder.
      */
-    function getType(MOATOrder memory order) internal pure returns (Type) {
-        OrderType orderType = order.order.parameters.orderType;
+    function getType(AdvancedOrder memory order) internal pure returns (Type) {
+        OrderType orderType = order.parameters.orderType;
         if (
             orderType == OrderType.FULL_OPEN ||
             orderType == OrderType.PARTIAL_OPEN
@@ -159,22 +150,21 @@ library MOATHelpers {
      *      Note: Basic orders are not yet implemented here and are detected
      *      as standard orders for now.
      *
-     * @param order a MOATOrder.
+     * @param order an AdvancedOrder.
      */
     function getStructure(
-        MOATOrder memory order
+        AdvancedOrder memory order
     ) internal pure returns (Structure) {
         // If the order has extraData, it's advanced
-        if (order.order.extraData.length > 0) return Structure.ADVANCED;
+        if (order.extraData.length > 0) return Structure.ADVANCED;
 
         // If the order has numerator or denominator, it's advanced
-        if (order.order.numerator != 0 || order.order.denominator != 0) {
+        if (order.numerator != 0 || order.denominator != 0) {
             return Structure.ADVANCED;
         }
 
         (bool hasCriteria, bool hasNonzeroCriteria) = _checkCriteria(order);
-        bool isContractOrder = order.order.parameters.orderType ==
-            OrderType.CONTRACT;
+        bool isContractOrder = order.parameters.orderType == OrderType.CONTRACT;
 
         // If any non-contract item has criteria, it's advanced,
         if (hasCriteria) {
@@ -196,10 +186,10 @@ library MOATHelpers {
      * @dev Check all offer and consideration items for criteria.
      */
     function _checkCriteria(
-        MOATOrder memory order
+        AdvancedOrder memory order
     ) internal pure returns (bool hasCriteria, bool hasNonzeroCriteria) {
         // Check if any offer item has criteria
-        OfferItem[] memory offer = order.order.parameters.offer;
+        OfferItem[] memory offer = order.parameters.offer;
         for (uint256 i; i < offer.length; ++i) {
             OfferItem memory offerItem = offer[i];
             ItemType itemType = offerItem.itemType;
@@ -213,7 +203,6 @@ library MOATHelpers {
 
         // Check if any consideration item has criteria
         ConsiderationItem[] memory consideration = order
-            .order
             .parameters
             .consideration;
         for (uint256 i; i < consideration.length; ++i) {
@@ -226,16 +215,5 @@ library MOATHelpers {
                 return (hasCriteria, hasNonzeroCriteria);
             }
         }
-    }
-
-    /**
-     * @dev Convert an AdvancedOrder to a MOATOrder, filling in the context
-     *      with empty defaults.
-     * @param order an AdvancedOrder struct.
-     */
-    function toMOATOrder(
-        AdvancedOrder memory order
-    ) internal pure returns (MOATOrder memory) {
-        return MOATOrder({ order: order });
     }
 }
