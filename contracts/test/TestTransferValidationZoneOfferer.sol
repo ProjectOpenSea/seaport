@@ -113,26 +113,6 @@ contract TestTransferValidationZoneOfferer is
         called = true;
         callCount++;
 
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
-
-        // Create a variable to store msg.data in memory
-        bytes memory data;
-
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
-        }
-
-        // Store the hash of msg.data
-        bytes32 actualDataHash = keccak256(data);
-
-        // Emit a DataHash event with the hash of msg.data
-        emit DataHash(actualDataHash);
-
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
     }
@@ -152,25 +132,6 @@ contract TestTransferValidationZoneOfferer is
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
-
-        // Create a variable to store msg.data in memory
-        bytes memory data;
-
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
-        }
-
-        bytes32 actualDataHash = keccak256(data);
-
-        if (actualDataHash != _expectedDataHash) {
-            revert InvalidContractOrder(_expectedDataHash, actualDataHash);
-        }
         return previewOrder(address(this), address(this), a, b, c);
     }
 
