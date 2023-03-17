@@ -1332,11 +1332,22 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
+        bytes32[2][] memory orderHashes = _generateContractOrderDataHashes(
+            context,
+            orders
+        );
+
         vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
-        emit GenerateOrderDataHash(firstOrderDataHash);
+        emit GenerateOrderDataHash(orderHashes[0][0]);
 
         vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
-        emit GenerateOrderDataHash(secondOrderDataHash);
+        emit GenerateOrderDataHash(orderHashes[1][0]);
+
+        vm.expectEmit(false, false, false, true, orders[0].parameters.offerer);
+        emit RatifyOrderDataHash(orderHashes[0][1]);
+
+        vm.expectEmit(false, false, false, true, orders[1].parameters.offerer);
+        emit RatifyOrderDataHash(orderHashes[1][1]);
 
         context.seaport.matchAdvancedOrders(
             advancedOrders,
