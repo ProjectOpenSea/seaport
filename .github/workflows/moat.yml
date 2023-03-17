@@ -1,0 +1,38 @@
+name: MOAT
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Release Commit SHA"
+        required: true
+  workflow_call:
+    inputs:
+      commit_sha:
+        type: string
+        required: true
+
+jobs:
+  fuzz:
+    name: Run "Lite" Forge Tests (TODO select fuzz tests)
+    runs-on: large-runner
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.commit_sha }}
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Precompile reference using 0.8.13 and via-ir=false
+        run: FOUNDRY_PROFILE=reference forge build
+
+      # TODO: select fuzz tests, shard across function name pattern?
+      - name: Run tests
+        run: FOUNDRY_PROFILE=lite forge test -vvv
