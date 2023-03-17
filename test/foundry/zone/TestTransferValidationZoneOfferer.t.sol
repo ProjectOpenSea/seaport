@@ -589,12 +589,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, "")
             );
 
-        uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+            (
+                FulfillmentComponent[][] memory offerFulfillments,
+                FulfillmentComponent[][] memory considerationFulfillments
+            ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
+        }
 
-        (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
+        uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
 
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(address(this), offerer1Counter, context.seaport);
@@ -905,29 +906,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
-        // bytes memory data = abi.encodeWithSignature(
-        //     "fulfillAvailableAdvancedOrders(((address,address,(uint256,address,uint256,uint256,uint256)[],(uint256,address,uint256,uint256,uint256,address)[],uint256,uint256,bytes32,uint256,bytes32,uint256),uint120,uint120,bytes,bytes)[],(uint256,uint256,uint256,uint256,bytes32[])[],(uint256,uint256)[][],(uint256,uint256)[][],bytes32,address,uint256)",
-        //     advancedOrders,
-        //     criteriaResolvers,
-        //     offerFulfillments,
-        //     considerationFulfillments,
-        //     bytes32(conduitKeyOne),
-        //     address(0),
-        //     2
-        // );
-
-        // bytes32 dataHash = keccak256(data);
-
-        // transferValidationZone.registerExpectedDataHash(dataHash);
-
-        // vm.expectEmit(
-        //     false,
-        //     false,
-        //     false,
-        //     true,
-        //     address(transferValidationZone)
-        // );
-        // emit DataHash(dataHash);
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
             advancedOrders: advancedOrders,
