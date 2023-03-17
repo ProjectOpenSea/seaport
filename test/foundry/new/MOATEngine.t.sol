@@ -9,7 +9,8 @@ import {
     TestContext,
     FuzzParams,
     MOATEngine,
-    MOATEngineLib
+    MOATEngineLib,
+    TestContextLib
 } from "./helpers/MOATEngine.sol";
 import { AdvancedOrder, MOATHelpers } from "./helpers/MOATHelpers.sol";
 
@@ -28,6 +29,7 @@ contract MOATEngineTest is MOATEngine {
 
     using MOATHelpers for AdvancedOrder;
     using MOATEngineLib for TestContext;
+    using TestContextLib for TestContext;
 
     error ExampleErrorWithContextData(bytes signature);
 
@@ -55,16 +57,11 @@ contract MOATEngineTest is MOATEngine {
         expectedActions[0] = seaport.fulfillOrder.selector;
         expectedActions[1] = seaport.fulfillAdvancedOrder.selector;
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -78,29 +75,19 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillOrder.selector);
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 1 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 1 })
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -117,16 +104,11 @@ contract MOATEngineTest is MOATEngine {
         bytes4[] memory expectedActions = new bytes4[](1);
         expectedActions[0] = seaport.fulfillAdvancedOrder.selector;
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -140,16 +122,11 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("extra data")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
@@ -176,16 +153,11 @@ contract MOATEngineTest is MOATEngine {
         expectedActions[4] = seaport.cancel.selector;
         expectedActions[5] = seaport.validate.selector;
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.actions(), expectedActions);
     }
@@ -204,84 +176,54 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("extra data")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
         assertEq(context.action(), seaport.fulfillAvailableOrders.selector);
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 1 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 1 })
         });
         assertEq(
             context.action(),
             seaport.fulfillAvailableAdvancedOrders.selector
         );
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 2 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 2 })
         });
         assertEq(context.action(), seaport.matchOrders.selector);
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 3 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 3 })
         });
         assertEq(context.action(), seaport.matchAdvancedOrders.selector);
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 4 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 4 })
         });
         assertEq(context.action(), seaport.cancel.selector);
 
-        context = TestContext({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 5 })
         });
         assertEq(context.action(), seaport.validate.selector);
     }
@@ -310,16 +252,11 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 0 })
         });
 
         exec(context);
@@ -349,17 +286,14 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("extra data")
         });
 
-        TestContext memory context = TestContext({
-            orders: orders,
-            seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0xbeef)
-        });
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 0 })
+            })
+            .withRecipient(address(0xbeef));
 
         exec(context);
     }
@@ -394,16 +328,11 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 5 })
         });
 
         exec(context);
@@ -439,16 +368,11 @@ contract MOATEngineTest is MOATEngine {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContext({
+        TestContext memory context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: offerer1.addr,
-            fuzzParams: FuzzParams({ seed: 4 }),
-            checks: new bytes4[](0),
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
+            fuzzParams: FuzzParams({ seed: 4 })
         });
 
         exec(context);
@@ -481,17 +405,14 @@ contract MOATEngineTest is MOATEngine {
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_alwaysRevert.selector;
 
-        TestContext memory context = TestContext({
-            orders: orders,
-            seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: checks,
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
-        });
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 0 })
+            })
+            .withChecks(checks);
 
         exec(context);
 
@@ -526,17 +447,14 @@ contract MOATEngineTest is MOATEngine {
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_revertWithContextData.selector;
 
-        TestContext memory context = TestContext({
-            orders: orders,
-            seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 }),
-            checks: checks,
-            counter: 0,
-            fulfillerConduitKey: bytes32(0),
-            criteriaResolvers: new CriteriaResolver[](0),
-            recipient: address(0)
-        });
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 0 })
+            })
+            .withChecks(checks);
 
         exec(context);
 
