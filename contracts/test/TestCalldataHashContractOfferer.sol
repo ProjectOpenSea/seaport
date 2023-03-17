@@ -20,12 +20,7 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-
-contract TestTransferValidationZoneOfferer is
-    ContractOffererInterface,
-    ZoneInterface
-{
+contract TestCalldataHashContractOfferer is ContractOffererInterface {
     error InvalidNativeTokenBalance(
         uint256 expectedBalance,
         uint256 actualBalance,
@@ -54,58 +49,97 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    event DataHash(bytes32 dataHash);
+    error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
+    error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
+    error NativeTokenTransferFailed();
+
+    event GenerateOrderDataHash(bytes32 dataHash);
+    event RatifyOrderDataHash(bytes32 dataHash);
+
+    address private immutable _SEAPORT;
+    address internal _expectedOfferRecipient;
+    bytes32 public _dataHashFromLatestGenerateOrderCall;
+    bytes32 public _dataHashFromLatestRatifyOrderCall;
 
     receive() external payable {}
 
-    address internal _expectedOfferRecipient;
-
-    // Pass in the null address to expect the fulfiller.
-    constructor(address expectedOfferRecipient) {
-        _expectedOfferRecipient = expectedOfferRecipient;
+    constructor(address seaport) {
+        _SEAPORT = seaport;
     }
 
-    bool public called = false;
-    uint public callCount = 0;
-
     /**
-     * @dev Validates that the parties have received the correct items.
-     *
-     * @param zoneParameters The zone parameters, including the SpentItem and
-     *                       ReceivedItem arrays.
-     *
-     * @return validOrderMagicValue The magic value to indicate things are OK.
+     * @dev Sets approvals and transfers minimumReceived tokens to contract.
+     *      Also stores the expected hash of msg.data to be sent in subsequent
+     *      call to generateOrder.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external override returns (bytes4 validOrderMagicValue) {
-        // Validate the order.
+    function activate(
+        address,
+        SpentItem[] memory minimumReceived,
+        SpentItem[] memory maximumSpent,
+        bytes calldata context
+    ) public payable {
+        uint256 requiredEthBalance;
+        uint256 minimumReceivedLength = minimumReceived.length;
 
-        // Currently assumes that the balances of all tokens of addresses are
-        // zero at the start of the transaction.  Accordingly, take care to
-        // use an address in tests that is not pre-populated with tokens.
+        for (uint256 i = 0; i < minimumReceivedLength; i++) {
+            SpentItem memory item = minimumReceived[i];
 
-        // Check if Seaport is empty. This makes sure that we've transferred
-        // all native token balance out of Seaport before we do the validation.
-        uint256 seaportBalance = address(msg.sender).balance;
+            if (item.itemType == ItemType.ERC721) {
+                ERC721Interface token = ERC721Interface(item.token);
 
-        if (seaportBalance > 0) {
-            revert IncorrectSeaportBalance(0, seaportBalance);
+                token.transferFrom(msg.sender, address(this), item.identifier);
+
+                token.setApprovalForAll(_SEAPORT, true);
+            } else if (item.itemType == ItemType.ERC1155) {
+                ERC1155Interface token = ERC1155Interface(item.token);
+
+                token.safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    item.identifier,
+                    item.amount,
+                    ""
+                );
+
+                token.setApprovalForAll(_SEAPORT, true);
+            } else if (item.itemType == ItemType.ERC20) {
+                ERC20Interface token = ERC20Interface(item.token);
+
+                token.transferFrom(msg.sender, address(this), item.amount);
+
+                token.approve(_SEAPORT, item.amount);
+            } else if (item.itemType == ItemType.NATIVE) {
+                requiredEthBalance += item.amount;
+            }
         }
 
-        // Check if all consideration items have been received.
-        _assertValidReceivedItems(zoneParameters.consideration);
+        if (msg.value != requiredEthBalance) {
+            revert InvalidEthBalance(requiredEthBalance, msg.value);
+        }
+    }
 
-        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-            ? zoneParameters.fulfiller
-            : _expectedOfferRecipient;
+    /**
+     * @dev Generates an order with the specified minimum and maximum spent
+     *      items. Validates data hash set in activate.
+     */
+    function generateOrder(
+        address,
+        SpentItem[] calldata a,
+        SpentItem[] calldata b,
+        bytes calldata c
+    )
+        external
+        virtual
+        override
+        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
+    {
+        (bool success, bytes memory returnData) = payable(_SEAPORT).call{
+            value: address(this).balance
+        }("");
 
-        // Ensure that the expected recipient has received all offer items.
-        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
-
-        // Set the global called flag to true.
-        called = true;
-        callCount++;
+        if (!success) {
+            revert NativeTokenTransferFailed();
+        }
 
         // Get the length of msg.data
         uint256 dataLength = msg.data.length;
@@ -122,30 +156,10 @@ contract TestTransferValidationZoneOfferer is
         }
 
         // Store the hash of msg.data
-        bytes32 actualDataHash = keccak256(data);
+        _dataHashFromLatestGenerateOrderCall = keccak256(data);
 
-        // Emit a DataHash event with the hash of msg.data
-        emit DataHash(actualDataHash);
+        emit GenerateOrderDataHash(_dataHashFromLatestGenerateOrderCall);
 
-        // Return the selector of validateOrder as the magic value.
-        validOrderMagicValue = this.validateOrder.selector;
-    }
-
-    /**
-     * @dev Generates an order with the specified minimum and maximum spent
-     *      items.
-     */
-    function generateOrder(
-        address,
-        SpentItem[] calldata a,
-        SpentItem[] calldata b,
-        bytes calldata c
-    )
-        external
-        virtual
-        override
-        returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
-    {
         return previewOrder(address(this), address(this), a, b, c);
     }
 
@@ -198,6 +212,24 @@ contract TestTransferValidationZoneOfferer is
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        _dataHashFromLatestRatifyOrderCall = keccak256(data);
+
+        emit RatifyOrderDataHash(_dataHashFromLatestRatifyOrderCall);
+
         // Ensure that the offerer or recipient has received all consideration
         // items.
         _assertValidReceivedItems(maximumSpent);
@@ -213,21 +245,17 @@ contract TestTransferValidationZoneOfferer is
         // Ensure that the expected recipient has received all offer items.
         _assertValidSpentItems(expectedOfferRecipient, minimumReceived);
 
-        // Set the global called flag to true.
-        called = true;
-        callCount++;
-
         return this.ratifyOrder.selector;
     }
 
     function getSeaportMetadata()
         external
         pure
-        override(ContractOffererInterface, ZoneInterface)
+        override(ContractOffererInterface)
         returns (string memory name, Schema[] memory schemas)
     {
         // Return the metadata.
-        name = "TestTransferValidationZoneOfferer";
+        name = "TestCalldataHashContractOfferer";
         schemas = new Schema[](1);
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);

@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {
     ConsiderationItem,
+    SpentItem,
     ReceivedItem
 } from "../../../lib/ConsiderationStructs.sol";
 
@@ -376,5 +377,37 @@ library ConsiderationItemLib {
                 amount: item.startAmount,
                 recipient: item.recipient
             });
+    }
+
+    function toReceivedItemArray(
+        ConsiderationItem[] memory items
+    ) internal pure returns (ReceivedItem[] memory) {
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            receivedItems[i] = toReceivedItem(items[i]);
+        }
+        return receivedItems;
+    }
+
+    function toSpentItem(
+        ConsiderationItem memory item
+    ) internal pure returns (SpentItem memory) {
+        return
+            SpentItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                amount: item.startAmount
+            });
+    }
+
+    function toSpentItemArray(
+        ConsiderationItem[] memory items
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = toSpentItem(items[i]);
+        }
+        return spentItems;
     }
 }
