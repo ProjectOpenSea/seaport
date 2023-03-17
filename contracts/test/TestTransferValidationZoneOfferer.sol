@@ -64,11 +64,6 @@ contract TestTransferValidationZoneOfferer is
 
     address internal _expectedOfferRecipient;
 
-    // SpentItem[] internal _available;
-    // SpentItem[] internal _required;
-
-    // bytes internal _context;
-
     bytes32 internal _expectedDataHash;
 
     // Pass in the null address to expect the fulfiller.
@@ -111,12 +106,6 @@ contract TestTransferValidationZoneOfferer is
             ? zoneParameters.fulfiller
             : _expectedOfferRecipient;
 
-        // Ensure that the expected recipient has received all offer items.
-        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
-
-        // Set the global called flag to true.
-        called = true;
-        callCount++;
         // Ensure that the expected recipient has received all offer items.
         _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
