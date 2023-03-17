@@ -347,7 +347,7 @@ library ConsiderationItemLib {
      * @dev Sets the startAmount and endAmount of an ConsiderationItem.
      *
      * @param item the ConsiderationItem to modify
-     * @param amount the end amount to set
+     * @param amount the amount to set for the start and end amounts
      *
      * @custom:return item the modified ConsiderationItem
      */

@@ -314,7 +314,7 @@ library OfferItemLib {
      * @dev Sets the startAmount and endAmount of an OfferItem.
      *
      * @param item the OfferItem to modify
-     * @param amount the end amount to set
+     * @param amount the amount to set for the start and end amounts
      *
      * @custom:return _offerItem the modified OfferItem
      */
