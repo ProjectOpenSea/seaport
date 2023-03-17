@@ -53,6 +53,14 @@ contract OrderComponentsLibTest is BaseTest {
         assertEq(orderComponents, defaultOrderComponents);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty OrderComponents selected.");
+        OrderComponentsLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty OrderComponents array selected.");
+        OrderComponentsLib.fromDefaultMany("nonexistent");
+    }
+
     function testCopy() public {
         OrderComponents memory orderComponents = OrderComponentsLib.empty();
         orderComponents = orderComponents.withOfferer(address(1));

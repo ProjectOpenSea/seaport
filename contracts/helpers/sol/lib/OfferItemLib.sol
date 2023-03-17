@@ -18,6 +18,18 @@ library OfferItemLib {
         keccak256("seaport.OfferItemDefaults");
     bytes32 private constant OFFER_ITEMS_MAP_POSITION =
         keccak256("seaport.OfferItemsDefaults");
+    bytes32 private constant EMPTY_OFFER_ITEM =
+        keccak256(
+            abi.encode(
+                OfferItem({
+                    itemType: ItemType(0),
+                    token: address(0),
+                    identifierOrCriteria: 0,
+                    startAmount: 0,
+                    endAmount: 0
+                })
+            )
+        );
 
     /**
      * @dev Clears an OfferItem from storage.
@@ -70,6 +82,10 @@ library OfferItemLib {
     ) internal view returns (OfferItem memory item) {
         mapping(string => OfferItem) storage offerItemMap = _offerItemMap();
         item = offerItemMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_OFFER_ITEM) {
+            revert("Empty OfferItem selected.");
+        }
     }
 
     /**
@@ -84,6 +100,10 @@ library OfferItemLib {
     ) internal view returns (OfferItem[] memory items) {
         mapping(string => OfferItem[]) storage offerItemsMap = _offerItemsMap();
         items = offerItemsMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty OfferItem array selected.");
+        }
     }
 
     /**

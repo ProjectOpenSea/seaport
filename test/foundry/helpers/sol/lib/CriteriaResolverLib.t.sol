@@ -33,6 +33,14 @@ contract CriteriaResolverLibTest is BaseTest {
         assertEq(criteriaResolver, defaultCriteriaResolver);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty CriteriaResolver selected.");
+        CriteriaResolverLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty CriteriaResolver array selected.");
+        CriteriaResolverLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint256 orderIndex,
         bool side,

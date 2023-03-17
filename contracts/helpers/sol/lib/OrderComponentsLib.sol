@@ -36,6 +36,24 @@ library OrderComponentsLib {
         keccak256("seaport.OrderComponentsDefaults");
     bytes32 private constant ORDER_COMPONENTS_ARRAY_MAP_POSITION =
         keccak256("seaport.OrderComponentsArrayDefaults");
+    bytes32 private constant EMPTY_ORDER_COMPONENTS =
+        keccak256(
+            abi.encode(
+                OrderComponents({
+                    offerer: address(0),
+                    zone: address(0),
+                    offer: new OfferItem[](0),
+                    consideration: new ConsiderationItem[](0),
+                    orderType: OrderType(0),
+                    startTime: 0,
+                    endTime: 0,
+                    zoneHash: bytes32(0),
+                    salt: 0,
+                    conduitKey: bytes32(0),
+                    counter: 0
+                })
+            )
+        );
 
     /**
      * @dev Clears anOrderComponents from storage.
@@ -124,6 +142,10 @@ library OrderComponentsLib {
         mapping(string => OrderComponents)
             storage orderComponentsMap = _orderComponentsMap();
         item = orderComponentsMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_ORDER_COMPONENTS) {
+            revert("Empty OrderComponents selected.");
+        }
     }
 
     /**
@@ -139,6 +161,10 @@ library OrderComponentsLib {
         mapping(string => OrderComponents[])
             storage orderComponentsArrayMap = _orderComponentsArrayMap();
         items = orderComponentsArrayMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty OrderComponents array selected.");
+        }
     }
 
     /**

@@ -28,6 +28,14 @@ contract AdditionalRecipientLibTest is BaseTest {
         assertEq(additionalRecipient, defaultAdditionalRecipient);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty AdditionalRecipient selected.");
+        AdditionalRecipientLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty AdditionalRecipient array selected.");
+        AdditionalRecipientLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint256 amount,
         address payable recipient

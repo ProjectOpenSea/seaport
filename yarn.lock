@@ -5468,6 +5468,11 @@ slice-ansi@^5.0.0:
     ansi-styles "^6.0.0"
     is-fullwidth-code-point "^4.0.0"
 
+solady@^0.0.84:
+  version "0.0.84"
+  resolved "https://registry.yarnpkg.com/solady/-/solady-0.0.84.tgz#95476df1936ef349003e88d8a4853185eb0b7267"
+  integrity sha512-1ccuZWcMR+g8Ont5LUTqMSFqrmEC+rYAbo6DjZFzdL7AJAtLiaOzO25BKZR10h6YBZNaqO5zUOFy09R6/AzAKQ==
+
 solc@0.7.3:
   version "0.7.3"
   resolved "https://registry.yarnpkg.com/solc/-/solc-0.7.3.tgz#04646961bd867a744f63d2b4e3c0701ffdc7d78a"
