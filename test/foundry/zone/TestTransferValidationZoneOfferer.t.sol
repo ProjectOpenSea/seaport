@@ -295,9 +295,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
+        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -463,9 +461,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
+        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -593,14 +589,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, "")
             );
 
-            (
-                offerFulfillments,
-                considerationFulfillments
-            ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
-        }
         uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(address(this), offerer1Counter, context.seaport);
@@ -784,9 +778,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
+        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -908,9 +900,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(
-                advancedOrders
-            );
+        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
@@ -1402,7 +1392,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments
-        ) = FulfillAvailableHelper.getAggregatedFulfillmentComponents(orders);
+        ) = fulfill.getAggregatedFulfillmentComponents(orders);
 
         return (
             orders,

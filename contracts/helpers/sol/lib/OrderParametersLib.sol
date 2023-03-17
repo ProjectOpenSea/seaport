@@ -336,6 +336,24 @@ library OrderParametersLib {
     }
 
     /**
+     * @dev Sets the consideration field of a OrderParameters struct in-place
+     *      and updates the totalOriginalConsiderationItems field accordingly.
+     *
+     * @param parameters    the OrderParameters struct to modify
+     * @param consideration the new value for the consideration field
+     *
+     * @custom:return _parameters the modified OrderParameters struct
+     */
+    function withTotalConsideration(
+        OrderParameters memory parameters,
+        ConsiderationItem[] memory consideration
+    ) internal pure returns (OrderParameters memory) {
+        parameters.consideration = consideration;
+        parameters.totalOriginalConsiderationItems = consideration.length;
+        return parameters;
+    }
+
+    /**
      * @dev Sets the orderType field of a OrderParameters struct in-place.
      *
      * @param parameters the OrderParameters struct to modify
