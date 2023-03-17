@@ -45,7 +45,7 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["test/**/*.spec.ts"],
+      files: ["test/**/*.spec.ts", "signed-zone/test/**/*.spec.ts"],
       rules: {
         "no-unused-expressions": "off",
       },
