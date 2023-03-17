@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../../SeaportSol.sol";
+import "../../SeaportStructs.sol";
+import "../../lib/SeaportArrays.sol";
 import {
     FulfillAvailableHelperStorageLayout,
     FulfillmentHelperCounterLayout,
@@ -14,7 +15,7 @@ import {
     FULFILL_AVAILABLE_STORAGE_BASE_KEY
 } from "../lib/Constants.sol";
 
-library FulfillAvailableHelper {
+contract FulfillAvailableHelper {
     /**
      * @notice get naive 2d fulfillment component arrays for
      * fulfillAvailableOrders, one 1d array for each offer and consideration
@@ -23,16 +24,19 @@ library FulfillAvailableHelper {
      * @return offer
      * @return consideration
      */
-    function getNaiveFulfillmentComponents(Order[] memory orders)
-        internal
+    function getNaiveFulfillmentComponents(
+        Order[] memory orders
+    )
+        public
         pure
         returns (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         )
     {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -47,16 +51,19 @@ library FulfillAvailableHelper {
      * @return offer
      * @return consideration
      */
-    function getNaiveFulfillmentComponents(AdvancedOrder[] memory orders)
-        internal
+    function getNaiveFulfillmentComponents(
+        AdvancedOrder[] memory orders
+    )
+        public
         pure
         returns (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         )
     {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -74,7 +81,7 @@ library FulfillAvailableHelper {
     function getNaiveFulfillmentComponents(
         OrderParameters[] memory orderParameters
     )
-        internal
+        public
         pure
         returns (
             FulfillmentComponent[][] memory offer,
@@ -109,8 +116,8 @@ library FulfillAvailableHelper {
             for (uint256 j; j < parameters.consideration.length; j++) {
                 consideration[considerationIndex] = SeaportArrays
                     .FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: i, itemIndex: j })
-                );
+                        FulfillmentComponent({ orderIndex: i, itemIndex: j })
+                    );
                 ++considerationIndex;
             }
         }
@@ -125,15 +132,18 @@ library FulfillAvailableHelper {
      * @return offer
      * @return consideration
      */
-    function getAggregatedFulfillmentComponents(Order[] memory orders)
-        internal
+    function getAggregatedFulfillmentComponents(
+        Order[] memory orders
+    )
+        public
         returns (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         )
     {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -148,15 +158,18 @@ library FulfillAvailableHelper {
      * @return offer
      * @return consideration
      */
-    function getAggregatedFulfillmentComponents(AdvancedOrder[] memory orders)
-        internal
+    function getAggregatedFulfillmentComponents(
+        AdvancedOrder[] memory orders
+    )
+        public
         returns (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         )
     {
-        OrderParameters[] memory orderParameters =
-            new OrderParameters[](orders.length);
+        OrderParameters[] memory orderParameters = new OrderParameters[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             orderParameters[i] = orders[i].parameters;
         }
@@ -171,8 +184,10 @@ library FulfillAvailableHelper {
      * @return offer
      * @return consideration
      */
-    function getAggregatedFulfillmentComponents(OrderParameters[] memory orders)
-        internal
+    function getAggregatedFulfillmentComponents(
+        OrderParameters[] memory orders
+    )
+        public
         returns (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
@@ -180,8 +195,8 @@ library FulfillAvailableHelper {
     {
         // increment counter to get clean mappings and enumeration
         FulfillAvailableLayout.incrementFulfillmentCounter();
-        FulfillAvailableHelperStorageLayout storage layout =
-            FulfillAvailableLayout.getStorageLayout();
+        FulfillAvailableHelperStorageLayout
+            storage layout = FulfillAvailableLayout.getStorageLayout();
 
         // iterate over each order
         for (uint256 i; i < orders.length; ++i) {
@@ -197,24 +212,25 @@ library FulfillAvailableHelper {
         }
 
         // allocate offer arrays
-        offer = new FulfillmentComponent[][](
-            layout.offerEnumeration.length);
+        offer = new FulfillmentComponent[][](layout.offerEnumeration.length);
         // iterate over enumerated groupings and add to array
         for (uint256 i; i < layout.offerEnumeration.length; ++i) {
             AggregatableOffer memory token = layout.offerEnumeration[i];
 
-            offer[i] = layout.offerMap[token.contractAddress][token.tokenId][token
-                .offerer][token.conduitKey];
+            offer[i] = layout.offerMap[token.contractAddress][token.tokenId][
+                token.offerer
+            ][token.conduitKey];
         }
         // do the same for considerations
         consideration = new FulfillmentComponent[][](
             layout.considerationEnumeration.length
         );
         for (uint256 i; i < layout.considerationEnumeration.length; ++i) {
-            AggregatableConsideration memory token =
-                layout.considerationEnumeration[i];
-            consideration[i] = layout.considerationMap[token.recipient][token
-                .contractAddress][token.tokenId];
+            AggregatableConsideration memory token = layout
+                .considerationEnumeration[i];
+            consideration[i] = layout.considerationMap[token.recipient][
+                token.contractAddress
+            ][token.tokenId];
         }
         return (offer, consideration);
     }
@@ -247,8 +263,10 @@ library FulfillAvailableHelper {
         // iterate over each offer item
         for (uint256 j; j < offer.length; ++j) {
             // create the fulfillment component for this offer item
-            FulfillmentComponent memory component =
-                FulfillmentComponent({ orderIndex: orderIndex, itemIndex: j });
+            FulfillmentComponent memory component = FulfillmentComponent({
+                orderIndex: orderIndex,
+                itemIndex: j
+            });
             // grab order parameters to get offerer
             // grab offer item
             OfferItem memory item = offer[j];
@@ -262,15 +280,19 @@ library FulfillAvailableHelper {
             // if it does not exist in the map, add it to our enumeration
             if (
                 !FulfillAvailableLayout.aggregatableOfferExists(
-                    aggregatableOffer, layout
+                    aggregatableOffer,
+                    layout
                 )
             ) {
                 layout.offerEnumeration.push(aggregatableOffer);
             }
             // update mapping with this component
-            layout.offerMap[aggregatableOffer.contractAddress][aggregatableOffer
-                .tokenId][aggregatableOffer.offerer][aggregatableOffer.conduitKey]
-                .push(component);
+            layout
+            .offerMap[aggregatableOffer.contractAddress][
+                aggregatableOffer.tokenId
+            ][aggregatableOffer.offerer][aggregatableOffer.conduitKey].push(
+                    component
+                );
         }
     }
 
@@ -288,8 +310,10 @@ library FulfillAvailableHelper {
         // iterate over each offer item
         for (uint256 j; j < consideration.length; ++j) {
             // create the fulfillment component for this offer item
-            FulfillmentComponent memory component =
-                FulfillmentComponent({ orderIndex: orderIndex, itemIndex: j });
+            FulfillmentComponent memory component = FulfillmentComponent({
+                orderIndex: orderIndex,
+                itemIndex: j
+            });
             // grab consideration item
             ConsiderationItem memory item = consideration[j];
             // create enumeration struct
@@ -301,14 +325,17 @@ library FulfillAvailableHelper {
             // if it does not exist in the map, add it to our enumeration
             if (
                 !FulfillAvailableLayout.aggregatableConsiderationExists(
-                    token, layout
+                    token,
+                    layout
                 )
             ) {
                 layout.considerationEnumeration.push(token);
             }
             // update mapping with this component
-            layout.considerationMap[token.recipient][token.contractAddress][token
-                .tokenId].push(component);
+            layout
+            .considerationMap[token.recipient][token.contractAddress][
+                token.tokenId
+            ].push(component);
         }
     }
 }
