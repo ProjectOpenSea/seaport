@@ -260,6 +260,7 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         exec(context);
+        assertEq(context.returnValues.fulfilled, true);
     }
 
     /// @dev Call exec for a single advanced order.
@@ -296,6 +297,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withRecipient(address(0xbeef));
 
         exec(context);
+        assertEq(context.returnValues.fulfilled, true);
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
@@ -336,6 +338,7 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         exec(context);
+        assertEq(context.returnValues.validated, true);
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
@@ -376,6 +379,7 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         exec(context);
+        assertEq(context.returnValues.cancelled, true);
     }
 
     /// @dev Call checkAll to run a simple check that always reverts.
@@ -468,12 +472,14 @@ contract FuzzEngineTest is FuzzEngine {
     }
 
     /// @dev Example of a simple "check" function. This one takes no args.
-    function check_alwaysRevert() public {
+    function check_alwaysRevert() public pure {
         revert("this check always reverts");
     }
 
-    /// @dev Example of a check" function that uses the test context.
-    function check_revertWithContextData(TestContext memory context) public {
+    /// @dev Example of a "check" function that uses the test context.
+    function check_revertWithContextData(
+        TestContext memory context
+    ) public pure {
         revert ExampleErrorWithContextData(context.orders[0].signature);
     }
 

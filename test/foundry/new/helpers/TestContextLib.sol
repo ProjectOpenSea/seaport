@@ -7,6 +7,14 @@ struct FuzzParams {
     uint256 seed;
 }
 
+struct ReturnValues {
+    bool fulfilled;
+    bool cancelled;
+    bool validated;
+    bool[] availableOrders;
+    Execution[] executions;
+}
+
 struct TestContext {
     /**
      * @dev An array of AdvancedOrders
@@ -34,14 +42,28 @@ struct TestContext {
      */
     bytes4[] checks;
     /**
-     * @dev Additional data we might need to fulfill an order. This is basically the
-     *      superset of all the non-order args to SeaportInterface functions, like
-     *      conduit key, criteria resolvers, and fulfillments.
+     * @dev Additional data we might need to fulfill an order. This is basically
+     *      the superset of all the non-order args to SeaportInterface
+     *      functions, like conduit key, criteria resolvers, and fulfillments.
+     *      if you don't want to set these parameters every time, use
+     *      TestContextLib.from() to create a TestContext with these fields
+     *      pre-populated with empty defaults.
      */
     uint256 counter;
     bytes32 fulfillerConduitKey;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
+    /**
+     * @dev A copy of the original orders array. Use this to make assertions
+     *      about the final state of the orders after calling exec. This is
+     *      automatically copied if you use the TestContextLib.from() function.
+     */
+    AdvancedOrder[] initialState;
+    /**
+     * @dev Return values from the last call to exec. Superset of return values
+     *      from all Seaport functions.
+     */
+    ReturnValues returnValues;
 }
 
 /**
@@ -67,7 +89,15 @@ library TestContextLib {
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
-                recipient: address(0)
+                recipient: address(0),
+                initialState: new AdvancedOrder[](0),
+                returnValues: ReturnValues({
+                    fulfilled: false,
+                    cancelled: false,
+                    validated: false,
+                    availableOrders: new bool[](0),
+                    executions: new Execution[](0)
+                })
             });
     }
 
@@ -96,7 +126,15 @@ library TestContextLib {
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
-                recipient: address(0)
+                recipient: address(0),
+                initialState: orders.copy(),
+                returnValues: ReturnValues({
+                    fulfilled: false,
+                    cancelled: false,
+                    validated: false,
+                    availableOrders: new bool[](0),
+                    executions: new Execution[](0)
+                })
             });
     }
 

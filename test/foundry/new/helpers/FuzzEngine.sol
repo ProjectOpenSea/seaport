@@ -119,19 +119,21 @@ contract FuzzEngine is BaseOrderTest {
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
-            context.seaport.fulfillOrder(
+            context.returnValues.fulfilled = context.seaport.fulfillOrder(
                 order.toOrder(),
                 context.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
-            context.seaport.fulfillAdvancedOrder(
-                order,
-                context.criteriaResolvers,
-                context.fulfillerConduitKey,
-                context.recipient
-            );
+            context.returnValues.fulfilled = context
+                .seaport
+                .fulfillAdvancedOrder(
+                    order,
+                    context.criteriaResolvers,
+                    context.fulfillerConduitKey,
+                    context.recipient
+                );
         } else if (_action == context.seaport.cancel.selector) {
             AdvancedOrder[] memory orders = context.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](
@@ -146,7 +148,9 @@ contract FuzzEngine is BaseOrderTest {
                     .toOrderComponents(context.counter);
             }
 
-            context.seaport.cancel(orderComponents);
+            context.returnValues.cancelled = context.seaport.cancel(
+                orderComponents
+            );
         } else if (_action == context.seaport.validate.selector) {
             AdvancedOrder[] memory advancedOrders = context.orders;
             Order[] memory orders = new Order[](advancedOrders.length);
@@ -155,7 +159,7 @@ contract FuzzEngine is BaseOrderTest {
                 orders[i] = advancedOrders[i].toOrder();
             }
 
-            context.seaport.validate(orders);
+            context.returnValues.validated = context.seaport.validate(orders);
         } else {
             revert("FuzzEngine: Action not implemented");
         }
