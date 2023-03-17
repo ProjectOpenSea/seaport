@@ -311,6 +311,23 @@ library OfferItemLib {
     }
 
     /**
+     * @dev Sets the startAmount and endAmount of an OfferItem.
+     *
+     * @param item the OfferItem to modify
+     * @param amount the end amount to set
+     *
+     * @custom:return _offerItem the modified OfferItem
+     */
+    function withAmount(
+        OfferItem memory item,
+        uint256 amount
+    ) internal pure returns (OfferItem memory) {
+        item.startAmount = amount;
+        item.endAmount = amount;
+        return item;
+    }
+
+    /**
      * @dev Converts an OfferItem to a SpentItem.
      *
      * @param item the OfferItem to convert
