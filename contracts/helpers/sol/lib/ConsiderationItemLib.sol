@@ -343,6 +343,23 @@ library ConsiderationItemLib {
     }
 
     /**
+     * @dev Sets the start and end amounts.
+     *
+     * @param item the ConsiderationItem to modify
+     * @param fixedAmount the fixed amount to set
+     *
+     * @custom:return item the modified ConsiderationItem
+     */
+    function withFixedAmount(
+        ConsiderationItem memory item,
+        uint256 fixedAmount
+    ) internal pure returns (ConsiderationItem memory) {
+        item.startAmount = fixedAmount;
+        item.endAmount = fixedAmount;
+        return item;
+    }
+
+    /**
      * @dev Sets the recipient.
      *
      * @param item the ConsiderationItem to modify

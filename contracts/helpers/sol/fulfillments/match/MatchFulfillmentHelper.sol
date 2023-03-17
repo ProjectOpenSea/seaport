@@ -26,6 +26,8 @@ import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
 import { AmountDeriverHelper } from
     "../../lib/fulfillment/AmountDeriverHelper.sol";
 
+    import {console } from "../../../../../lib/forge-std/src/console.sol";
+
 contract MatchFulfillmentHelper is AmountDeriverHelper {
     /**
      * @notice Generate matched fulfillments for a list of orders
@@ -112,6 +114,9 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
 
         // iterate over groups of consideration components and find matching offer components
         uint256 considerationLength = layout.considerationEnumeration.length;
+
+        console.log('considerationLength', considerationLength);
+
         for (uint256 i; i < considerationLength; ++i) {
             // get the token information
             AggregatableConsideration storage token =
@@ -125,11 +130,16 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
                 .tokenToOffererEnumeration[token.contractAddress][token.tokenId];
             // iterate over each offerer+conduit with offer components that match this token and create matching fulfillments
             // this will update considerationComponents in-place in storage, which we check at the beginning of each loop
+            
+            console.log('offererEnumeration.length', offererEnumeration.length);
+
             for (uint256 j; j < offererEnumeration.length; ++j) {
+                console.log('here');
                 // if all consideration components have been fulfilled, break
                 if (considerationComponents.length == 0) {
                     break;
                 }
+                console.log('here2');
                 // load the AggregatableOfferer
                 AggregatableOfferer storage aggregatableOfferer =
                     offererEnumeration[j];
@@ -187,6 +197,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
         uint256 orderIndex,
         MatchFulfillmentStorageLayout storage layout
     ) private {
+        console.log('offer.length', offer.length);
         // iterate over each offer item
         for (uint256 j; j < offer.length; ++j) {
             // grab offer item
@@ -202,12 +213,23 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
                 conduitKey: conduitKey
             });
 
+            uint256 componentValue;
+
+            assembly {
+                componentValue := component
+            }
+
+            console.log('component', componentValue);
+            console.log('offerer', offerer);
+            console.logBytes32(conduitKey);
+
             // if it does not exist in the map, add it to our per-token+id enumeration
             if (
                 !MatchFulfillmentLib.aggregatableOffererExists(
                     item.token, item.identifier, aggregatableOfferer, layout
                 )
             ) {
+                console.log('NOVEL');
                 // add to enumeration for specific tokenhash (tokenAddress+tokenId)
                 layout.tokenToOffererEnumeration[item.token][item.identifier]
                     .push(aggregatableOfferer);

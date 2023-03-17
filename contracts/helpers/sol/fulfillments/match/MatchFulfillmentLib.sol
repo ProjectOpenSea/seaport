@@ -13,7 +13,6 @@ import {
 } from "../../lib/types/MatchComponentType.sol";
 import { FulfillmentComponent, Fulfillment } from "../../SeaportSol.sol";
 import { LibSort } from "solady/src/utils/LibSort.sol";
-// import { console } from "hardhat/console.sol";
 
 library MatchFulfillmentLib {
     using MatchComponentType for MatchComponent[];
