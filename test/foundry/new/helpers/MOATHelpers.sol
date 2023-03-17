@@ -222,7 +222,10 @@ library MOATHelpers {
             ItemType itemType = offerItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (offerItem.identifierOrCriteria != 0) hasNonzeroCriteria = true;
+            if (offerItem.identifierOrCriteria != 0) {
+                hasNonzeroCriteria = true;
+                return (hasCriteria, hasNonzeroCriteria);
+            }
         }
 
         // Check if any consideration item has criteria
@@ -235,8 +238,10 @@ library MOATHelpers {
             ItemType itemType = considerationItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (considerationItem.identifierOrCriteria != 0)
+            if (considerationItem.identifierOrCriteria != 0) {
                 hasNonzeroCriteria = true;
+                return (hasCriteria, hasNonzeroCriteria);
+            }
         }
     }
 
