@@ -87,27 +87,9 @@ contract MatchFulfillmentLibTest is Test {
 
     MatchComponent[] _components;
 
-    // function testPopIndex(MatchComponent[10] memory components, uint256 index)
-    //     public
-    // {
-    //     index = bound(index, 0, 9);
-    //     for (uint256 i = 0; i < 10; i++) {
-    //         _components.push(components[i]);
-    //     }
-    //     MatchFulfillmentLib.popIndex(_components, index);
-    //     assertEq(_components.length, 9, "popIndex length");
-    //     for (uint256 i = 0; i < 9; i++) {
-    //         if (i == index) {
-    //             assertEq(_components[i], components[9]);
-    //         } else {
-    //             assertEq(_components[i], components[i]);
-    //         }
-    //     }
-    // }
-
     using MatchComponentType for MatchComponent[];
 
-    function testCleanUpZeroedComponents(uint240[10] memory amounts) public {
+    function testConsolidateComponents(uint240[10] memory amounts) public {
         // copy to dynamic array
         MatchComponent[] memory toBeSorted = new MatchComponent[](10);
         for (uint256 i = 0; i < 10; i++) {
@@ -125,9 +107,13 @@ contract MatchFulfillmentLibTest is Test {
             _components.push(toBeSorted[i]);
         }
         // call function
-        MatchFulfillmentLib.cleanUpZeroedComponents(_components);
+        MatchFulfillmentLib.consolidateComponents(
+            _components,
+            _components.length
+        );
+        assertLt(_components.length, 2, "consolidateComponents length");
         for (uint256 i; i < _components.length; ++i) {
-            assertGt(_components[i].getAmount(), 0, "cleanUpZeroedComponents");
+            assertGt(_components[i].getAmount(), 0, "consolidateComponents");
         }
     }
 
@@ -145,7 +131,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -176,7 +163,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -207,7 +195,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -240,7 +229,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -270,7 +260,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -300,7 +291,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -330,7 +322,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -360,7 +353,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         // offerFulfillmentIndex: 1,
         // considerationFulfillmentIndex: 0

@@ -14,8 +14,6 @@ import {
 import { FulfillmentComponent, Fulfillment } from "../../SeaportStructs.sol";
 import { LibSort } from "solady/src/utils/LibSort.sol";
 
-// import { console } from "hardhat/console.sol";
-
 library MatchFulfillmentLib {
     using MatchComponentType for MatchComponent[];
 
@@ -55,7 +53,6 @@ library MatchFulfillmentLib {
         MatchComponent[] storage considerationComponents,
         ProcessComponentParams memory params
     ) internal {
-        // iterate over offer components
         while (params.offerItemIndex < offerComponents.length) {
             MatchComponent considerationComponent = considerationComponents[
                 params.considerationItemIndex
@@ -77,6 +74,60 @@ library MatchFulfillmentLib {
             considerationComponents[params.considerationItemIndex]
                 .toFulfillmentComponent()
         );
+    }
+
+    function processOfferComponent(
+        MatchComponent[] storage offerComponents,
+        MatchComponent[] storage considerationComponents,
+        ProcessComponentParams memory params
+    ) internal {
+        // re-load components each iteration as they may have been modified
+        MatchComponent offerComponent = offerComponents[params.offerItemIndex];
+        MatchComponent considerationComponent = considerationComponents[
+            params.considerationItemIndex
+        ];
+
+        if (offerComponent.getAmount() > considerationComponent.getAmount()) {
+            // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
+            offerComponent = offerComponent.subtractAmount(
+                considerationComponent
+            );
+            considerationComponent = considerationComponent.setAmount(0);
+            offerComponents[params.offerItemIndex] = offerComponent;
+            considerationComponents[
+                params.considerationItemIndex
+            ] = considerationComponent;
+            // note that this offerItemIndex should be included when consolidating
+            params.midCredit = true;
+        } else {
+            // otherwise deplete offer amount and credit consideration amount
+
+            considerationComponent = considerationComponent.subtractAmount(
+                offerComponent
+            );
+            offerComponent = offerComponent.setAmount(0);
+
+            considerationComponents[
+                params.considerationItemIndex
+            ] = considerationComponent;
+
+            offerComponents[params.offerItemIndex] = offerComponent;
+            ++params.offerItemIndex;
+            // note that this offerItemIndex should not be included when consolidating
+            params.midCredit = false;
+        }
+        // an offer component may have already been added if it was not depleted by an earlier consideration item
+        if (
+            !previouslyAdded(
+                params.offerFulfillmentComponents,
+                offerComponent.toFulfillmentComponent()
+            )
+        ) {
+            scuffExtend(
+                params.offerFulfillmentComponents,
+                offerComponent.toFulfillmentComponent()
+            );
+        }
     }
 
     function scuffLength(
@@ -121,57 +172,6 @@ library MatchFulfillmentLib {
             lastComponent.itemIndex == fulfillmentComponent.itemIndex;
     }
 
-    function processOfferComponent(
-        MatchComponent[] storage offerComponents,
-        MatchComponent[] storage considerationComponents,
-        ProcessComponentParams memory params
-    ) internal {
-        // re-load components each iteration as they may have been modified
-        MatchComponent offerComponent = offerComponents[params.offerItemIndex];
-        MatchComponent considerationComponent = considerationComponents[
-            params.considerationItemIndex
-        ];
-
-        if (offerComponent.getAmount() > considerationComponent.getAmount()) {
-            // emit log("used up consideration");
-            // if offer amount is greater than consideration amount, set consideration to zero and credit from offer amount
-            offerComponent = offerComponent.subtractAmount(
-                considerationComponent
-            );
-            considerationComponent = considerationComponent.setAmount(0);
-            offerComponents[params.offerItemIndex] = offerComponent;
-            considerationComponents[
-                params.considerationItemIndex
-            ] = considerationComponent;
-        } else {
-            // emit log("used up offer");
-            considerationComponent = considerationComponent.subtractAmount(
-                offerComponent
-            );
-            offerComponent = offerComponent.setAmount(0);
-
-            // otherwise deplete offer amount and credit consideration amount
-            considerationComponents[
-                params.considerationItemIndex
-            ] = considerationComponent;
-
-            offerComponents[params.offerItemIndex] = offerComponent;
-            ++params.offerItemIndex;
-        }
-        // an offer component may have already been added if it was not depleted by an earlier consideration item
-        if (
-            !previouslyAdded(
-                params.offerFulfillmentComponents,
-                offerComponent.toFulfillmentComponent()
-            )
-        ) {
-            scuffExtend(
-                params.offerFulfillmentComponents,
-                offerComponent.toFulfillmentComponent()
-            );
-        }
-    }
-
     /**
      * Credit offer components to consideration components until either or both are exhausted
      * Updates arrays in storage to remove 0-item components after credits
@@ -196,14 +196,21 @@ library MatchFulfillmentLib {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
+
+        // iterate over all consideration components eligible to be fulfilled
+        // in a single transfer; this means that any uncredited amounts will be
+        // consolidated into the first component for later fulfillments
+        // TODO: this may not be optimal in some cases with partial
+        // fulfillments
         for (
             uint256 considerationItemIndex;
             considerationItemIndex < considerationComponents.length;
             ++considerationItemIndex
         ) {
-            // params will be updated directly by called functions ecxept for considerationItemIndex
+            // params will be updated directly by called functions except for considerationItemIndex
             params.considerationItemIndex = considerationItemIndex;
             processConsiderationComponent({
                 offerComponents: offerComponents,
@@ -213,8 +220,18 @@ library MatchFulfillmentLib {
         }
 
         // remove any zero-amount components so they are skipped in future fulfillments
-        cleanUpZeroedComponents(offerComponents);
-        cleanUpZeroedComponents(considerationComponents);
+        consolidateComponents(
+            offerComponents,
+            // if mid-credit, offerItemIndex should be included in consolidation
+            (params.midCredit)
+                ? params.offerItemIndex + 1
+                : params.offerItemIndex
+        );
+        // all eligible consideration components will be processed whether or not there are enough offer items to credit each
+        consolidateComponents(
+            considerationComponents,
+            considerationComponents.length
+        );
 
         // return a discrete fulfillment since either or both of the sets of components have been exhausted
         // if offer or consideration items remain, they will be revisited in subsequent calls
@@ -226,27 +243,59 @@ library MatchFulfillmentLib {
     }
 
     /**
-     * @dev Removes any zero-amount components from the start of the array
+     * @dev Consolidate any remaining amounts
+     * @param components Components to consolidate
+     * @param excludeIndex First index to exclude from consolidation. For
+     *        offerComponents this is the index after the last credited item,
+     *        for considerationComponents, this is the length of the array
      */
-    function cleanUpZeroedComponents(
-        MatchComponent[] storage components
+    function consolidateComponents(
+        MatchComponent[] storage components,
+        uint256 excludeIndex
     ) internal {
         // cache components in memory
         MatchComponent[] memory cachedComponents = components;
-        // clear storage array
+        // check if there is only one component
+        if (cachedComponents.length == 1) {
+            // if it is zero, remove it
+            if (cachedComponents[0].getAmount() == 0) {
+                components.pop();
+            }
+            // otherwise do nothing
+            return;
+        }
+        // otherwise clear the storage array
         while (components.length > 0) {
             components.pop();
         }
-        // re-add non-zero components
-        for (uint256 i = 0; i < cachedComponents.length; ++i) {
-            if (cachedComponents[i].getAmount() > 0) {
-                components.push(cachedComponents[i]);
+
+        // consolidate the amounts of credited non-zero components into the
+        // first component this is what Seaport does internally after the first
+        // fulfillment is credited
+        MatchComponent first = cachedComponents[0];
+
+        // consolidate all non-zero components used in this fulfillment into the
+        // first component
+        for (uint256 i = 1; i < excludeIndex; ++i) {
+            first = first.addAmount(cachedComponents[i]);
+        }
+
+        // push the first component back into storage if it is non-zero
+        if (first.getAmount() > 0) {
+            components.push(first);
+        }
+        // push any remaining non-zero components back into storage
+        for (uint256 i = excludeIndex; i < cachedComponents.length; ++i) {
+            MatchComponent component = cachedComponents[i];
+            if (component.getAmount() > 0) {
+                components.push(component);
             }
         }
     }
 
     /**
-     * @dev Truncates an array to the given length by overwriting its length in memory
+     * @dev Truncates an array to the given length by overwriting its length in
+     *      memory
      */
     function truncateArray(
         FulfillmentComponent[] memory array,
@@ -259,7 +308,8 @@ library MatchFulfillmentLib {
     }
 
     /**
-     * @dev Truncates an array to the given length by overwriting its length in memory
+     * @dev Truncates an array to the given length by overwriting its length in
+     *      memory
      */
     function truncateArray(
         MatchComponent[] memory array,
