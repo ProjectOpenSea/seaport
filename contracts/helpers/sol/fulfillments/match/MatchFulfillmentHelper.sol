@@ -26,6 +26,7 @@ import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
 import {
     AmountDeriverHelper
 } from "../../lib/fulfillment/AmountDeriverHelper.sol";
+import { MatchArrays } from "../lib/MatchArrays.sol";
 
 contract MatchFulfillmentHelper is AmountDeriverHelper {
     /**
@@ -165,10 +166,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
                         considerationComponents
                     );
                 // append the fulfillment to the array of fulfillments
-                fulfillments = MatchFulfillmentLib.extend(
-                    fulfillments,
-                    fulfillment
-                );
+                fulfillments = MatchArrays.append(fulfillments, fulfillment);
                 // loop back around in case not all considerationComponents have been completely fulfilled
             }
         }
@@ -182,7 +180,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             ) = getSpentAndReceivedItems(parameters);
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
             // also update per-token+tokenId enumerations of AggregatableOfferer
-            remainingOfferComponents = MatchFulfillmentLib.extend(
+            remainingOfferComponents = MatchArrays.extend(
                 remainingOfferComponents,
                 postProcessSpentItems(
                     offer,
@@ -192,7 +190,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
                 )
             );
 
-            remainingConsiderationComponents = MatchFulfillmentLib.extend(
+            remainingConsiderationComponents = MatchArrays.extend(
                 remainingConsiderationComponents,
                 postProcessReceivedItems(consideration, layout)
             );
@@ -271,7 +269,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             SpentItem memory item = offer[j];
 
             // update aggregatable mapping array with this component
-            remainingOfferComponents = MatchFulfillmentLib.extend(
+            remainingOfferComponents = MatchArrays.extend(
                 remainingOfferComponents,
                 layout.offerMap[item.token][item.identifier][offerer][
                     conduitKey
@@ -337,7 +335,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             // grab consideration item
             ReceivedItem memory item = consideration[j];
 
-            remainingConsiderationComponents = MatchFulfillmentLib.extend(
+            remainingConsiderationComponents = MatchArrays.extend(
                 remainingConsiderationComponents,
                 layout.considerationMap[item.recipient][item.token][
                     item.identifier

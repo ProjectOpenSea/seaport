@@ -13,6 +13,7 @@ import {
 } from "../../lib/types/MatchComponentType.sol";
 import { FulfillmentComponent, Fulfillment } from "../../SeaportStructs.sol";
 import { LibSort } from "solady/src/utils/LibSort.sol";
+import { MatchArrays } from "../lib/MatchArrays.sol";
 
 library MatchFulfillmentLib {
     using MatchComponentType for MatchComponent[];
@@ -69,7 +70,7 @@ library MatchFulfillmentLib {
             });
         }
 
-        scuffExtend(
+        MatchArrays.appendUnsafe(
             params.considerationFulfillmentComponents,
             considerationComponents[params.considerationItemIndex]
                 .toFulfillmentComponent()
@@ -123,7 +124,7 @@ library MatchFulfillmentLib {
                 offerComponent.toFulfillmentComponent()
             )
         ) {
-            scuffExtend(
+            MatchArrays.appendUnsafe(
                 params.offerFulfillmentComponents,
                 offerComponent.toFulfillmentComponent()
             );
@@ -137,23 +138,6 @@ library MatchFulfillmentLib {
         assembly {
             mstore(components, newLength)
         }
-    }
-
-    function scuffExtend(
-        FulfillmentComponent[] memory components,
-        FulfillmentComponent memory newComponent
-    ) internal pure {
-        uint256 index = components.length;
-        scuffLength(components, index + 1);
-        components[index] = newComponent;
-    }
-
-    function allocateAndShrink(
-        uint256 maxLength
-    ) internal pure returns (FulfillmentComponent[] memory components) {
-        components = new FulfillmentComponent[](maxLength);
-        scuffLength(components, 0);
-        return components;
     }
 
     function previouslyAdded(
@@ -183,14 +167,11 @@ library MatchFulfillmentLib {
         MatchComponent[] storage considerationComponents
     ) internal returns (Fulfillment memory) {
         // optimistically allocate arrays of fulfillment components
+        FulfillmentComponent[] memory offerFulfillmentComponents = MatchArrays
+            .allocateFulfillmentComponents(offerComponents.length);
         FulfillmentComponent[]
-            memory offerFulfillmentComponents = allocateAndShrink(
-                offerComponents.length
-            );
-        FulfillmentComponent[]
-            memory considerationFulfillmentComponents = allocateAndShrink(
-                considerationComponents.length
-            );
+            memory considerationFulfillmentComponents = MatchArrays
+                .allocateFulfillmentComponents(considerationComponents.length);
         // iterate over consideration components
         ProcessComponentParams memory params = ProcessComponentParams({
             offerFulfillmentComponents: offerFulfillmentComponents,
@@ -299,62 +280,6 @@ library MatchFulfillmentLib {
         }
     }
 
-    /**
-     * @dev Truncates an array to the given length by overwriting its length in
-     *      memory
-     */
-    function truncateArray(
-        FulfillmentComponent[] memory array,
-        uint256 length
-    ) internal pure returns (FulfillmentComponent[] memory truncatedArray) {
-        assembly {
-            mstore(array, length)
-            truncatedArray := array
-        }
-    }
-
-    /**
-     * @dev Truncates an array to the given length by overwriting its length in
-     *      memory
-     */
-    function truncateArray(
-        MatchComponent[] memory array,
-        uint256 length
-    ) internal pure returns (MatchComponent[] memory truncatedArray) {
-        assembly {
-            mstore(array, length)
-            truncatedArray := array
-        }
-    }
-
-    /**
-     * @notice Extend fulfillments array with new fulfillment
-     */
-    function extend(
-        Fulfillment[] memory fulfillments,
-        Fulfillment memory newFulfillment
-    ) internal pure returns (Fulfillment[] memory newFulfillments) {
-        newFulfillments = new Fulfillment[](fulfillments.length + 1);
-        for (uint256 i = 0; i < fulfillments.length; i++) {
-            newFulfillments[i] = fulfillments[i];
-        }
-        newFulfillments[fulfillments.length] = newFulfillment;
-    }
-
-    function extend(
-        MatchComponent[] memory components,
-        MatchComponent[] memory extra
-    ) internal pure returns (MatchComponent[] memory newComponents) {
-        newComponents = new MatchComponent[](components.length + extra.length);
-        for (uint256 i = 0; i < components.length; i++) {
-            newComponents[i] = components[i];
-        }
-        for (uint256 i = 0; i < extra.length; i++) {
-            newComponents[components.length + i] = extra[i];
-        }
-        return newComponents;
-    }
-
     function dedupe(
         MatchComponent[] memory components
     ) internal pure returns (MatchComponent[] memory dedupedComponents) {
@@ -380,6 +305,6 @@ library MatchFulfillmentLib {
                 ++dedupedIndex;
             }
         }
-        return truncateArray(dedupedComponents, dedupedIndex);
+        return MatchArrays.truncate(dedupedComponents, dedupedIndex);
     }
 }
