@@ -104,4 +104,5 @@ struct ProcessComponentParams {
     FulfillmentComponent[] considerationFulfillmentComponents;
     uint256 offerItemIndex;
     uint256 considerationItemIndex;
+    bool midCredit;
 }
