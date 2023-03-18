@@ -219,7 +219,9 @@ library MatchFulfillmentLib {
             });
         }
 
-        // remove any zero-amount components so they are skipped in future fulfillments
+        // remove any zero-amount components so they are skipped in future
+        // fulfillments, and consolidate any remaining offer amounts used
+        // in this fulfillment into the first component.
         consolidateComponents(
             offerComponents,
             // if mid-credit, offerItemIndex should be included in consolidation
@@ -227,7 +229,11 @@ library MatchFulfillmentLib {
                 ? params.offerItemIndex + 1
                 : params.offerItemIndex
         );
-        // all eligible consideration components will be processed whether or not there are enough offer items to credit each
+        // all eligible consideration components will be processed when matched
+        // with the first eligible offer components, whether or not there are
+        // enough offer items to credit each consideration item. This means
+        // that all remaining amounts will be consolidated into the first
+        // consideration component for later fulfillments.
         consolidateComponents(
             considerationComponents,
             considerationComponents.length
@@ -270,8 +276,8 @@ library MatchFulfillmentLib {
         }
 
         // consolidate the amounts of credited non-zero components into the
-        // first component this is what Seaport does internally after the first
-        // fulfillment is credited
+        // first component. This is what Seaport does internally when a
+        // fulfillment is credited.
         MatchComponent first = cachedComponents[0];
 
         // consolidate all non-zero components used in this fulfillment into the
