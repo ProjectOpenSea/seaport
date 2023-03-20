@@ -87,11 +87,6 @@ library FuzzEngineLib {
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
- *
- *         Engine lifecycle:
- *           - generate a TestContext. This struct includes:
- *           - exec(context)
- *           - checkAll(context)
  */
 contract FuzzEngine is FuzzChecks, BaseOrderTest {
     using OrderComponentsLib for OrderComponents;
