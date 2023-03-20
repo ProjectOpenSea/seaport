@@ -45,7 +45,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get all actions for a single, standard order.
-    function test_Single_Standard_Actions() public {
+    function test_actions_Single_Standard() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -67,7 +67,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get one action for a single, standard order.
-    function test_Single_Standard_Action() public {
+    function test_action_Single_Standard() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -93,7 +93,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get all actions for a single, advanced order.
-    function test_Single_Advanced_Actions() public {
+    function test_actions_Single_Advanced() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -114,7 +114,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get one action for a single, advanced order.
-    function test_Single_Advanced_Action() public {
+    function test_action_Single_Advanced() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -132,7 +132,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get all actions for a combined order.
-    function test_Combined_Actions() public {
+    function test_actions_Combined() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -163,7 +163,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Get a single action for a combined order.
-    function test_Combined_Action() public {
+    function test_action_Combined() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
             numerator: 0,
@@ -674,6 +674,51 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             )
         );
         checkAll(context);
+    }
+
+    /// @dev Call run for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.cancel.
+    function test_run_Combined_Cancel() public {
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .withSignature(signature);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        orders[1] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_orderCancelled.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: offerer1.addr,
+                fuzzParams: FuzzParams({ seed: 4 })
+            })
+            .withChecks(checks);
+
+        run(context);
     }
 
     /// @dev Example of a simple "check" function. This one takes no args.

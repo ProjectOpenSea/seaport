@@ -104,6 +104,20 @@ contract FuzzEngine is FuzzChecks, BaseOrderTest {
     using FuzzEngineLib for TestContext;
 
     /**
+     * @dev Run a `FuzzEngine` test with the given TestContext. Calls the
+     *      following test lifecycle functions in order:
+     *
+     *      1. exec: Select and call a Seaport function.
+     *      2. checkAll: Call all registered checks.
+     *
+     * @param context A Fuzz test context.
+     */
+    function run(TestContext memory context) internal {
+        exec(context);
+        checkAll(context);
+    }
+
+    /**
      * @dev Call an available Seaport function based on the orders in the given
      *      TestContext. FuzzEngine will deduce which actions are available
      *      for the given orders and call a Seaport function at random using the
