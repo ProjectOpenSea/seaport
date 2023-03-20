@@ -159,15 +159,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
         assertEq(fulfillments[1], expectedFulfillments[0], "fulfillments[1]");
 
-        fulfillments = new Fulfillment[](3);
-        fulfillments[0] = expectedFulfillments[0];
-        fulfillments[1] = expectedFulfillments[1];
-        fulfillments[2] = expectedFulfillments[0];
-
-        // consideration.matchOrders({
-        //     orders: SeaportArrays.Orders(otherOrder, order),
-        //     fulfillments: fulfillments
-        // });
+        consideration.matchOrders({
+            orders: SeaportArrays.Orders(otherOrder, order),
+            fulfillments: fulfillments
+        });
     }
 
     function testGetMatchedFulfillments_1to1_ascending() public {
