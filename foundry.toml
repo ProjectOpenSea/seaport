@@ -58,6 +58,12 @@ test='offerers'
 out = 'offerers-out'
 script = 'offerers'
 
+[profile.moat]
+src = 'test/foundry'
+
+[profile.moat.fuzz]
+runs = 100_000
+
 [fmt]
 line_length = 80
 tab_width = 4

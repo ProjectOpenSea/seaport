@@ -17,7 +17,7 @@ on:
 
 jobs:
   fuzz:
-    name: Run "Lite" Forge Tests (TODO select fuzz tests)
+    name: Run Forge Tests (via_ir = true; fuzz_runs = 100_000)
     runs-on: large-runner
     steps:
       - uses: actions/checkout@v3
@@ -36,6 +36,9 @@ jobs:
       - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
+      - name: Precompile optimized using 0.8.17 and via-ir=true
+        run: FOUNDRY_PROFILE=optimized forge build
+
       # TODO: select fuzz tests, shard across function name pattern?
       - name: Run tests
-        run: FOUNDRY_PROFILE=lite forge test -vvv
+        run: FOUNDRY_PROFILE=moat forge test -vvv
