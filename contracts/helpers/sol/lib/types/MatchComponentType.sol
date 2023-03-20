@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { FulfillmentComponent } from "../../SeaportSol.sol";
+import { FulfillmentComponent } from "../../SeaportStructs.sol";
 /**
  * @notice a MatchComponent is a packed uint256 that contains the equivalent struct:
  *
@@ -38,80 +38,73 @@ library MatchComponentType {
         uint8 itemIndex
     ) internal pure returns (MatchComponent component) {
         assembly {
-            component :=
-                or(
-                    shl(AMOUNT_SHL_OFFSET, amount),
-                    or(shl(ORDER_INDEX_SHL_OFFSET, orderIndex), itemIndex)
-                )
+            component := or(
+                shl(AMOUNT_SHL_OFFSET, amount),
+                or(shl(ORDER_INDEX_SHL_OFFSET, orderIndex), itemIndex)
+            )
         }
     }
 
-    function getAmount(MatchComponent component)
-        internal
-        pure
-        returns (uint256 amount)
-    {
+    function getAmount(
+        MatchComponent component
+    ) internal pure returns (uint256 amount) {
         assembly {
             amount := shr(AMOUNT_SHL_OFFSET, component)
         }
     }
 
-    function setAmount(MatchComponent component, uint240 amount)
-        internal
-        pure
-        returns (MatchComponent newComponent)
-    {
+    function setAmount(
+        MatchComponent component,
+        uint240 amount
+    ) internal pure returns (MatchComponent newComponent) {
         assembly {
-            newComponent :=
-                or(and(component, NOT_AMOUNT_MASK), shl(AMOUNT_SHL_OFFSET, amount))
+            newComponent := or(
+                and(component, NOT_AMOUNT_MASK),
+                shl(AMOUNT_SHL_OFFSET, amount)
+            )
         }
     }
 
-    function getOrderIndex(MatchComponent component)
-        internal
-        pure
-        returns (uint8 orderIndex)
-    {
+    function getOrderIndex(
+        MatchComponent component
+    ) internal pure returns (uint8 orderIndex) {
         assembly {
             orderIndex := and(BYTE_MASK, shr(ORDER_INDEX_SHL_OFFSET, component))
         }
     }
 
-    function setOrderIndex(MatchComponent component, uint8 orderIndex)
-        internal
-        pure
-        returns (MatchComponent newComponent)
-    {
+    function setOrderIndex(
+        MatchComponent component,
+        uint8 orderIndex
+    ) internal pure returns (MatchComponent newComponent) {
         assembly {
-            newComponent :=
-                or(
-                    and(component, NOT_ORDER_INDEX_MASK),
-                    shl(ORDER_INDEX_SHL_OFFSET, orderIndex)
-                )
+            newComponent := or(
+                and(component, NOT_ORDER_INDEX_MASK),
+                shl(ORDER_INDEX_SHL_OFFSET, orderIndex)
+            )
         }
     }
 
-    function getItemIndex(MatchComponent component)
-        internal
-        pure
-        returns (uint8 itemIndex)
-    {
+    function getItemIndex(
+        MatchComponent component
+    ) internal pure returns (uint8 itemIndex) {
         assembly {
             itemIndex := and(BYTE_MASK, component)
         }
     }
 
-    function setItemIndex(MatchComponent component, uint8 itemIndex)
-        internal
-        pure
-        returns (MatchComponent newComponent)
-    {
+    function setItemIndex(
+        MatchComponent component,
+        uint8 itemIndex
+    ) internal pure returns (MatchComponent newComponent) {
         assembly {
             newComponent := or(and(component, NOT_ITEM_INDEX_MASK), itemIndex)
         }
     }
 
-    function unpack(MatchComponent component)
+    function unpack(
+        MatchComponent component
+    )
         internal
         pure
         returns (uint240 amount, uint8 orderIndex, uint8 itemIndex)
@@ -123,68 +116,61 @@ library MatchComponentType {
         }
     }
 
-    function subtractAmount(MatchComponent minuend, MatchComponent subtrahend)
-        internal
-        pure
-        returns (MatchComponent newComponent)
-    {
+    function subtractAmount(
+        MatchComponent minuend,
+        MatchComponent subtrahend
+    ) internal pure returns (MatchComponent newComponent) {
         uint256 minuendAmount = minuend.getAmount();
         uint256 subtrahendAmount = subtrahend.getAmount();
         uint240 newAmount = uint240(minuendAmount - subtrahendAmount);
         return minuend.setAmount(newAmount);
     }
 
-    function addAmount(MatchComponent target, MatchComponent ref)
-        internal
-        pure
-        returns (MatchComponent)
-    {
+    function addAmount(
+        MatchComponent target,
+        MatchComponent ref
+    ) internal pure returns (MatchComponent) {
         uint256 targetAmount = target.getAmount();
         uint256 refAmount = ref.getAmount();
         uint240 newAmount = uint240(targetAmount + refAmount);
         return target.setAmount(newAmount);
     }
 
-    function toFulfillmentComponent(MatchComponent component)
-        internal
-        pure
-        returns (FulfillmentComponent memory)
-    {
+    function toFulfillmentComponent(
+        MatchComponent component
+    ) internal pure returns (FulfillmentComponent memory) {
         (, uint8 orderIndex, uint8 itemIndex) = component.unpack();
-        return FulfillmentComponent({
-            orderIndex: orderIndex,
-            itemIndex: itemIndex
-        });
+        return
+            FulfillmentComponent({
+                orderIndex: orderIndex,
+                itemIndex: itemIndex
+            });
     }
 
-    function toFulfillmentComponents(MatchComponent[] memory components)
-        internal
-        pure
-        returns (FulfillmentComponent[] memory)
-    {
-        FulfillmentComponent[] memory fulfillmentComponents =
-            new FulfillmentComponent[](components.length);
+    function toFulfillmentComponents(
+        MatchComponent[] memory components
+    ) internal pure returns (FulfillmentComponent[] memory) {
+        FulfillmentComponent[]
+            memory fulfillmentComponents = new FulfillmentComponent[](
+                components.length
+            );
         for (uint256 i = 0; i < components.length; i++) {
             fulfillmentComponents[i] = components[i].toFulfillmentComponent();
         }
         return fulfillmentComponents;
     }
 
-    function toUints(MatchComponent[] memory components)
-        internal
-        pure
-        returns (uint256[] memory uints)
-    {
+    function toUints(
+        MatchComponent[] memory components
+    ) internal pure returns (uint256[] memory uints) {
         assembly {
             uints := components
         }
     }
 
-    function fromUints(uint256[] memory uints)
-        internal
-        pure
-        returns (MatchComponent[] memory components)
-    {
+    function fromUints(
+        uint256[] memory uints
+    ) internal pure returns (MatchComponent[] memory components) {
         assembly {
             components := uints
         }

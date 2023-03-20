@@ -114,6 +114,9 @@ contract BaseOrderTest is
         _;
     }
 
+    FulfillAvailableHelper fulfill;
+    MatchFulfillmentHelper matcher;
+
     Account offerer1;
     Account offerer2;
 
@@ -135,6 +138,30 @@ contract BaseOrderTest is
     string constant SECOND_SECOND = "second second";
     string constant FF_SF = "ff to sf";
     string constant SF_FF = "sf to ff";
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        preapprovals = [
+            address(seaport),
+            address(referenceSeaport),
+            address(conduit),
+            address(referenceConduit)
+        ];
+
+        _deployTestTokenContracts();
+
+        offerer1 = makeAndAllocateAccount("alice");
+        offerer2 = makeAndAllocateAccount("bob");
+
+        // allocate funds and tokens to test addresses
+        allocateTokensAndApprovals(address(this), type(uint128).max);
+
+        _configureStructDefaults();
+
+        fulfill = new FulfillAvailableHelper();
+        matcher = new MatchFulfillmentHelper();
+    }
 
     function _configureStructDefaults() internal {
         OfferItemLib
@@ -228,27 +255,6 @@ contract BaseOrderTest is
                 FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
             )
             .saveDefault(FF_SF);
-    }
-
-    function setUp() public virtual override {
-        super.setUp();
-
-        preapprovals = [
-            address(seaport),
-            address(referenceSeaport),
-            address(conduit),
-            address(referenceConduit)
-        ];
-
-        _deployTestTokenContracts();
-
-        offerer1 = makeAndAllocateAccount("alice");
-        offerer2 = makeAndAllocateAccount("bob");
-
-        // allocate funds and tokens to test addresses
-        allocateTokensAndApprovals(address(this), type(uint128).max);
-
-        _configureStructDefaults();
     }
 
     function test(

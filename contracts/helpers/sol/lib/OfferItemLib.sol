@@ -311,6 +311,23 @@ library OfferItemLib {
     }
 
     /**
+     * @dev Sets the startAmount and endAmount of an OfferItem.
+     *
+     * @param item the OfferItem to modify
+     * @param amount the amount to set for the start and end amounts
+     *
+     * @custom:return _offerItem the modified OfferItem
+     */
+    function withAmount(
+        OfferItem memory item,
+        uint256 amount
+    ) internal pure returns (OfferItem memory) {
+        item.startAmount = amount;
+        item.endAmount = amount;
+        return item;
+    }
+
+    /**
      * @dev Converts an OfferItem to a SpentItem.
      *
      * @param item the OfferItem to convert
@@ -327,5 +344,23 @@ library OfferItemLib {
                 identifier: item.identifierOrCriteria,
                 amount: item.startAmount
             });
+    }
+
+    /**
+     * @dev Converts an OfferItem[] to a SpentItem[].
+     *
+     * @param items the OfferItem[] to convert
+     *
+     * @custom:return spentItems the converted SpentItem[]
+     */
+    function toSpentItemArray(
+        OfferItem[] memory items
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = toSpentItem(items[i]);
+        }
+
+        return spentItems;
     }
 }

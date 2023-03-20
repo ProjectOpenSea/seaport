@@ -18,6 +18,7 @@ import {
 } from "seaport-sol/lib/types/MatchComponentType.sol";
 
 import { LibSort } from "solady/src/utils/LibSort.sol";
+import { MatchArrays } from "seaport-sol/fulfillments/lib/MatchArrays.sol";
 
 contract MatchFulfillmentLibTest is Test {
     using Strings for uint256;
@@ -43,71 +44,11 @@ contract MatchFulfillmentLibTest is Test {
         G = makeAddr("G");
     }
 
-    function testExtend() public {
-        Fulfillment[] memory fulfillments = new Fulfillment[](0);
-        Fulfillment memory fulfillment = Fulfillment({
-            offerComponents: new FulfillmentComponent[](0),
-            considerationComponents: new FulfillmentComponent[](0)
-        });
-        fulfillments = MatchFulfillmentLib.extend(fulfillments, fulfillment);
-        assertEq(fulfillments.length, 1, "extend length");
-        assertEq(fulfillments[0], fulfillment, "extend fulfillment");
-
-        fulfillment = Fulfillment({
-            offerComponents: SeaportArrays.FulfillmentComponents(
-                FulfillmentComponent({ orderIndex: 1, itemIndex: 1 })
-            ),
-            considerationComponents: SeaportArrays.FulfillmentComponents(
-                FulfillmentComponent({ orderIndex: 1, itemIndex: 1 })
-            )
-        });
-        fulfillments = MatchFulfillmentLib.extend(fulfillments, fulfillment);
-        assertEq(fulfillments.length, 2, "extend length");
-        assertEq(fulfillments[1], fulfillment, "extend fulfillment");
-    }
-
-    function testTruncateArray(
-        FulfillmentComponent[10] memory components,
-        uint8 endLength
-    ) public {
-        endLength = uint8(bound(endLength, 0, 10));
-        FulfillmentComponent[] memory copied = new FulfillmentComponent[](
-            endLength
-        );
-        for (uint256 i = 0; i < endLength; i++) {
-            copied[i] = components[i];
-        }
-        FulfillmentComponent[] memory truncated = MatchFulfillmentLib
-            .truncateArray(copied, endLength);
-        assertEq(truncated.length, endLength, "truncateArray length");
-        for (uint256 i = 0; i < endLength; i++) {
-            assertEq(truncated[i], components[i], "truncateArray component");
-        }
-    }
-
     MatchComponent[] _components;
-
-    // function testPopIndex(MatchComponent[10] memory components, uint256 index)
-    //     public
-    // {
-    //     index = bound(index, 0, 9);
-    //     for (uint256 i = 0; i < 10; i++) {
-    //         _components.push(components[i]);
-    //     }
-    //     MatchFulfillmentLib.popIndex(_components, index);
-    //     assertEq(_components.length, 9, "popIndex length");
-    //     for (uint256 i = 0; i < 9; i++) {
-    //         if (i == index) {
-    //             assertEq(_components[i], components[9]);
-    //         } else {
-    //             assertEq(_components[i], components[i]);
-    //         }
-    //     }
-    // }
 
     using MatchComponentType for MatchComponent[];
 
-    function testCleanUpZeroedComponents(uint240[10] memory amounts) public {
+    function testConsolidateComponents(uint240[10] memory amounts) public {
         // copy to dynamic array
         MatchComponent[] memory toBeSorted = new MatchComponent[](10);
         for (uint256 i = 0; i < 10; i++) {
@@ -125,9 +66,13 @@ contract MatchFulfillmentLibTest is Test {
             _components.push(toBeSorted[i]);
         }
         // call function
-        MatchFulfillmentLib.cleanUpZeroedComponents(_components);
+        MatchFulfillmentLib.consolidateComponents(
+            _components,
+            _components.length
+        );
+        assertLt(_components.length, 2, "consolidateComponents length");
         for (uint256 i; i < _components.length; ++i) {
-            assertGt(_components[i].getAmount(), 0, "cleanUpZeroedComponents");
+            assertGt(_components[i].getAmount(), 0, "consolidateComponents");
         }
     }
 
@@ -135,9 +80,8 @@ contract MatchFulfillmentLibTest is Test {
     MatchComponent[] consideration;
 
     function testProcessOfferComponent() public {
-        FulfillmentComponent[]
-            memory offerFulfillmentComponents = MatchFulfillmentLib
-                .allocateAndShrink(2);
+        FulfillmentComponent[] memory offerFulfillmentComponents = MatchArrays
+            .allocateFulfillmentComponents(2);
 
         offer.push(MatchComponentType.createMatchComponent(1, 0, 0));
         consideration.push(MatchComponentType.createMatchComponent(1, 0, 0));
@@ -145,7 +89,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -169,14 +114,17 @@ contract MatchFulfillmentLibTest is Test {
             "offerFulfillmentComponents length"
         );
 
-        offerFulfillmentComponents = MatchFulfillmentLib.allocateAndShrink(2);
+        offerFulfillmentComponents = MatchArrays.allocateFulfillmentComponents(
+            2
+        );
         consideration[0] = MatchComponentType.createMatchComponent(2, 0, 0);
         offer[0] = MatchComponentType.createMatchComponent(1, 0, 0);
         params = ProcessComponentParams({
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -200,14 +148,17 @@ contract MatchFulfillmentLibTest is Test {
             "offerFulfillmentComponents length"
         );
 
-        offerFulfillmentComponents = MatchFulfillmentLib.allocateAndShrink(2);
+        offerFulfillmentComponents = MatchArrays.allocateFulfillmentComponents(
+            2
+        );
         consideration[0] = MatchComponentType.createMatchComponent(1, 0, 0);
         offer[0] = MatchComponentType.createMatchComponent(2, 0, 0);
         params = ProcessComponentParams({
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -232,7 +183,9 @@ contract MatchFulfillmentLibTest is Test {
         );
         assertEq(params.offerFulfillmentComponents.length, 1);
 
-        offerFulfillmentComponents = MatchFulfillmentLib.allocateAndShrink(2);
+        offerFulfillmentComponents = MatchArrays.allocateFulfillmentComponents(
+            2
+        );
 
         consideration[0] = MatchComponentType.createMatchComponent(1, 0, 0);
         offer[0] = MatchComponentType.createMatchComponent(1, 0, 0);
@@ -240,7 +193,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: new FulfillmentComponent[](0),
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processOfferComponent(offer, consideration, params);
         assertEq(
@@ -258,19 +212,19 @@ contract MatchFulfillmentLibTest is Test {
     }
 
     function testProcessConsiderationComponents() public {
+        FulfillmentComponent[] memory offerFulfillmentComponents = MatchArrays
+            .allocateFulfillmentComponents(2);
         FulfillmentComponent[]
-            memory offerFulfillmentComponents = MatchFulfillmentLib
-                .allocateAndShrink(2);
-        FulfillmentComponent[]
-            memory considerationFulfillmentComponents = MatchFulfillmentLib
-                .allocateAndShrink(2);
+            memory considerationFulfillmentComponents = MatchArrays
+                .allocateFulfillmentComponents(2);
         offer.push(MatchComponentType.createMatchComponent(1, 0, 0));
         consideration.push(MatchComponentType.createMatchComponent(1, 0, 0));
         ProcessComponentParams memory params = ProcessComponentParams({
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -300,7 +254,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -330,7 +285,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         MatchFulfillmentLib.processConsiderationComponent(
             offer,
@@ -360,7 +316,8 @@ contract MatchFulfillmentLibTest is Test {
             offerFulfillmentComponents: offerFulfillmentComponents,
             considerationFulfillmentComponents: considerationFulfillmentComponents,
             offerItemIndex: 0,
-            considerationItemIndex: 0
+            considerationItemIndex: 0,
+            midCredit: false
         });
         // offerFulfillmentIndex: 1,
         // considerationFulfillmentIndex: 0
