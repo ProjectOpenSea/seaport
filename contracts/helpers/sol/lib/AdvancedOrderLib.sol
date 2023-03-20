@@ -347,4 +347,22 @@ library AdvancedOrderLib {
         order.parameters = advancedOrder.parameters.copy();
         order.signature = advancedOrder.signature;
     }
+
+    /**
+     * @dev Converts an AdvancedOrder[] to an Order[].
+     *
+     * @param advancedOrders the AdvancedOrder[] to convert
+     *
+     * @return the converted Order[]
+     */
+    function toOrders(
+        AdvancedOrder[] memory advancedOrders
+    ) internal pure returns (Order[] memory) {
+        Order[] memory orders = new Order[](advancedOrders.length);
+
+        for (uint256 i; i < advancedOrders.length; ++i) {
+            orders[i] = toOrder(advancedOrders[i]);
+        }
+        return orders;
+    }
 }
