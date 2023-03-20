@@ -52,3 +52,7 @@ struct OrderComponentsSpace {
 
     // TODO: zone may have to be per-test depending on the zone
 }
+
+struct AdvancedOrdersSpace {
+    OrderComponentsSpace[] orders;
+}
