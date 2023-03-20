@@ -1486,12 +1486,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         }
 
         OrderParameters memory parameters = order
-            .parameters
-            .copy()
-            .withOfferer(offerer.addr)
-            .withStartTime(block.timestamp)
-            // Bump the end time by 1 so that the test doesn't try to match the
-            // same order twice.
+        .parameters
+        .copy()
+        .withOfferer(offerer.addr)
+        .withStartTime(block.timestamp)
+        // Bump the end time by 1 so that the test doesn't try to match the
+        // same order twice.
             .withEndTime(block.timestamp + (useDifferentConduits ? 2 : 1))
             .withTotalOriginalConsiderationItems(
                 order.parameters.consideration.length
