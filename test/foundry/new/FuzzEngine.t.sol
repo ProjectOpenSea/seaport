@@ -525,15 +525,20 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
-            orders: orders,
-            seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 })
-        });
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_orderValidated.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 5 })
+            })
+            .withChecks(checks);
 
         exec(context);
-        assertEq(context.returnValues.validated, true);
+        checkAll(context);
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
@@ -566,15 +571,20 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
-            orders: orders,
-            seaport: seaport,
-            caller: offerer1.addr,
-            fuzzParams: FuzzParams({ seed: 4 })
-        });
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_orderCancelled.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: offerer1.addr,
+                fuzzParams: FuzzParams({ seed: 4 })
+            })
+            .withChecks(checks);
 
         exec(context);
-        assertEq(context.returnValues.cancelled, true);
+        checkAll(context);
     }
 
     /// @dev Call checkAll to run a simple check that always reverts.

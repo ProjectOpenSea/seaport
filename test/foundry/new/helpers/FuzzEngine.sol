@@ -11,6 +11,7 @@ import {
 } from "./FuzzHelpers.sol";
 import { TestContext, FuzzParams, TestContextLib } from "./TestContextLib.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
+import { FuzzChecks } from "./FuzzChecks.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine.
@@ -92,7 +93,7 @@ library FuzzEngineLib {
  *           - exec(context)
  *           - checkAll(context)
  */
-contract FuzzEngine is BaseOrderTest {
+contract FuzzEngine is FuzzChecks, BaseOrderTest {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
