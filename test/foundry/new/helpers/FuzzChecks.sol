@@ -13,4 +13,14 @@ abstract contract FuzzChecks is Test {
     function check_orderCancelled(TestContext memory context) public {
         assertEq(context.returnValues.cancelled, true);
     }
+
+    function check_allOrdersFilled(TestContext memory context) public {
+        assertEq(
+            context.returnValues.availableOrders.length,
+            context.initialOrders.length
+        );
+        for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
+            assertTrue(context.returnValues.availableOrders[i]);
+        }
+    }
 }

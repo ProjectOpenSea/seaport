@@ -61,7 +61,7 @@ struct TestContext {
      *      about the final state of the orders after calling exec. This is
      *      automatically copied if you use the TestContextLib.from() function.
      */
-    AdvancedOrder[] initialState;
+    AdvancedOrder[] initialOrders;
     /**
      * @dev Return values from the last call to exec. Superset of return values
      *      from all Seaport functions.
@@ -96,7 +96,7 @@ library TestContextLib {
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
-                initialState: new AdvancedOrder[](0),
+                initialOrders: new AdvancedOrder[](0),
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
@@ -136,7 +136,7 @@ library TestContextLib {
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
-                initialState: orders.copy(),
+                initialOrders: orders.copy(),
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,

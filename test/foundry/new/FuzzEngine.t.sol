@@ -496,6 +496,116 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.fulfillAvailableAdvancedOrders.
+    function test_exec_Combined_FulfillAvailableAdvanced() public {
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        ConsiderationItem[]
+            memory considerationItems1 = new ConsiderationItem[](1);
+        ConsiderationItem[]
+            memory considerationItems2 = new ConsiderationItem[](1);
+        {
+            // Offer ERC20
+            OfferItem memory offerItem = OfferItemLib
+                .empty()
+                .withItemType(ItemType.ERC20)
+                .withToken(address(erc20s[0]))
+                .withStartAmount(1)
+                .withEndAmount(1);
+            offerItems[0] = offerItem;
+
+            // Consider single ERC721 to offerer1
+            erc721s[0].mint(address(this), 1);
+            ConsiderationItem memory considerationItem = ConsiderationItemLib
+                .empty()
+                .withRecipient(offerer1.addr)
+                .withItemType(ItemType.ERC721)
+                .withToken(address(erc721s[0]))
+                .withIdentifierOrCriteria(1)
+                .withAmount(1);
+            considerationItems1[0] = considerationItem;
+
+            // Consider single ERC721 to offerer1
+            erc721s[0].mint(address(this), 2);
+            considerationItem = ConsiderationItemLib
+                .empty()
+                .withRecipient(offerer1.addr)
+                .withItemType(ItemType.ERC721)
+                .withToken(address(erc721s[0]))
+                .withIdentifierOrCriteria(2)
+                .withAmount(1);
+            considerationItems2[0] = considerationItem;
+        }
+
+        OrderComponents memory orderComponents1 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems1);
+
+        OrderComponents memory orderComponents2 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems2);
+
+        Order memory order1 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents1.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer1.key,
+                    seaport.getOrderHash(orderComponents1)
+                )
+            );
+
+        Order memory order2 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents2.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer1.key,
+                    seaport.getOrderHash(orderComponents2)
+                )
+            );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = order1.toAdvancedOrder({
+            numerator: 1,
+            denominator: 1,
+            extraData: bytes("")
+        });
+        advancedOrders[1] = order2.toAdvancedOrder({
+            numerator: 1,
+            denominator: 1,
+            extraData: bytes("")
+        });
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(advancedOrders);
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_allOrdersFilled.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: advancedOrders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 1 })
+            })
+            .withChecks(checks)
+            .withOfferFulfillments(offerComponents)
+            .withConsiderationFulfillments(considerationComponents)
+            .withMaximumFulfilled(2);
+
+        run(context);
+    }
+
+    /// @dev Call exec for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.validate.
     function test_exec_Combined_Validate() public {
         OrderComponents memory orderComponents = OrderComponentsLib
