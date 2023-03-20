@@ -88,9 +88,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant VALIDATION_ZONE = "validation zone";
     string constant CONTRACT_ORDER = "contract order";
 
-    event TestPayloadHash(bytes32 dataHash);
-
-    event DataHash(bytes32 dataHash);
+    event ValidateOrderDataHash(bytes32 dataHash);
     event GenerateOrderDataHash(bytes32 dataHash);
     event RatifyOrderDataHash(bytes32 dataHash);
 
@@ -598,15 +596,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(address(this), offerer1Counter, context.seaport);
 
-        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
-        for (uint256 i = 0; i < zoneParameters.length; i++) {
-            payloadHashes[i] = keccak256(
-                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
-            );
-            emit TestPayloadHash(payloadHashes[i]);
-            vm.expectEmit(true, false, false, true);
-            emit DataHash(payloadHashes[i]);
-        }
+        bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
+            zoneParameters
+        );
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
@@ -620,6 +612,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         });
     }
 
+    function _generateZoneValidateOrderDataHashes(
+        ZoneParameters[] memory zoneParameters
+    ) internal returns (bytes32[] memory) {
+        // Create bytes32[] to hold the hashes.
+        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+
+        // Iterate over each ZoneParameters to generate the hash.
+        for (uint256 i = 0; i < zoneParameters.length; i++) {
+            // Generate the hash.
+            payloadHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+
+            // Expect the hash to be emitted in the call to Seaport
+            vm.expectEmit(true, false, false, true);
+
+            // Emit the expected event with the expected hash.
+            emit ValidateOrderDataHash(payloadHashes[i]);
+        }
+    }
+
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
         public
     {
@@ -629,11 +642,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
             Context({ seaport: consideration })
         );
-        // test(
-        //     this
-        //         .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
-        //     Context({ seaport: referenceConsideration })
-        // );
+        test(
+            this
+                .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()

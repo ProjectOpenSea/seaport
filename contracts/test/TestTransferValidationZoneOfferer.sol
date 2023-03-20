@@ -54,7 +54,7 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    event DataHash(bytes32 dataHash);
+    event ValidateOrderDataHash(bytes32 dataHash);
 
     receive() external payable {}
 
@@ -125,7 +125,7 @@ contract TestTransferValidationZoneOfferer is
         bytes32 actualDataHash = keccak256(data);
 
         // Emit a DataHash event with the hash of msg.data
-        emit DataHash(actualDataHash);
+        emit ValidateOrderDataHash(actualDataHash);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
