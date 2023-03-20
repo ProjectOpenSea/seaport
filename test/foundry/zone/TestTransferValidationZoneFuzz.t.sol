@@ -57,6 +57,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using OrderLib for Order[];
 
     MatchFulfillmentHelper matchFulfillmentHelper;
+    FulfillAvailableHelper fulfillAvailableFulfillmentHelper;
     TestTransferValidationZoneOfferer zone;
     TestZone testZone;
 
@@ -68,6 +69,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function setUp() public virtual override {
         super.setUp();
         matchFulfillmentHelper = new MatchFulfillmentHelper();
+        fulfillAvailableFulfillmentHelper = new FulfillAvailableHelper();
         zone = new TestTransferValidationZoneOfferer(address(0));
         testZone = new TestZone();
 
@@ -607,14 +609,14 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = fulfill.getAggregatedFulfillmentComponents(
-                infra.advancedOrders
-            );
+            ) = fulfillAvailableFulfillmentHelper
+                .getAggregatedFulfillmentComponents(infra.advancedOrders);
         } else {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = fulfill.getNaiveFulfillmentComponents(infra.advancedOrders);
+            ) = fulfillAvailableFulfillmentHelper
+                .getNaiveFulfillmentComponents(infra.advancedOrders);
         }
 
         // If the fuzz args call for using the transfer validation zone, make
