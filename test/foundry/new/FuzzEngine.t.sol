@@ -14,7 +14,7 @@ import {
 } from "./helpers/FuzzEngine.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
-contract FuzzEngineTest is FuzzEngine {
+contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -301,6 +301,201 @@ contract FuzzEngineTest is FuzzEngine {
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.fulfillAvailableOrders.
+    function test_exec_Combined_FulfillAvailable() public {
+        // Offer ERC20
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withStartAmount(1)
+            .withEndAmount(1);
+        offerItems[0] = offerItem;
+
+        // Consider single ERC721 to offerer1
+        erc721s[0].mint(address(this), 1);
+        ConsiderationItem[]
+            memory considerationItems1 = new ConsiderationItem[](1);
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withRecipient(offerer1.addr)
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+        considerationItems1[0] = considerationItem;
+
+        // Consider single ERC721 to offerer1
+        erc721s[0].mint(address(this), 2);
+        ConsiderationItem[]
+            memory considerationItems2 = new ConsiderationItem[](1);
+        considerationItem = ConsiderationItemLib
+            .empty()
+            .withRecipient(offerer1.addr)
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(2)
+            .withAmount(1);
+        considerationItems2[0] = considerationItem;
+
+        OrderComponents memory orderComponents1 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems1);
+
+        OrderComponents memory orderComponents2 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems2);
+
+        bytes memory signature1 = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents1)
+        );
+
+        Order memory order1 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents1.toOrderParameters())
+            .withSignature(signature1);
+
+        bytes memory signature2 = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents2)
+        );
+
+        Order memory order2 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents2.toOrderParameters())
+            .withSignature(signature2);
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = order1;
+        orders[1] = order2;
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = order1.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        advancedOrders[1] = order2.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(orders);
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: advancedOrders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 0 })
+            })
+            .withOfferFulfillments(offerComponents)
+            .withConsiderationFulfillments(considerationComponents)
+            .withMaximumFulfilled(2);
+
+        exec(context);
+
+        assertEq(context.returnValues.availableOrders.length, 2);
+        assertEq(context.returnValues.availableOrders[0], true);
+        assertEq(context.returnValues.availableOrders[1], true);
+
+        assertEq(context.returnValues.executions.length, 4);
+        assertEq(
+            context.returnValues.executions[0].item.itemType,
+            ItemType.ERC20
+        );
+        assertEq(
+            context.returnValues.executions[0].item.token,
+            address(erc20s[0])
+        );
+        assertEq(context.returnValues.executions[0].item.identifier, 0);
+        assertEq(context.returnValues.executions[0].item.amount, 1);
+        assertEq(
+            context.returnValues.executions[0].item.recipient,
+            address(this)
+        );
+
+        assertEq(
+            context.returnValues.executions[1].item.itemType,
+            ItemType.ERC20
+        );
+        assertEq(
+            context.returnValues.executions[1].item.token,
+            address(erc20s[0])
+        );
+        assertEq(context.returnValues.executions[1].item.identifier, 0);
+        assertEq(context.returnValues.executions[1].item.amount, 1);
+        assertEq(
+            context.returnValues.executions[1].item.recipient,
+            address(this)
+        );
+
+        assertEq(
+            context.returnValues.executions[2].item.itemType,
+            ItemType.ERC721
+        );
+        assertEq(
+            context.returnValues.executions[2].item.token,
+            address(erc721s[0])
+        );
+        assertEq(context.returnValues.executions[2].item.identifier, 1);
+        assertEq(context.returnValues.executions[2].item.amount, 1);
+        assertEq(
+            context.returnValues.executions[2].item.recipient,
+            offerer1.addr
+        );
+
+        assertEq(
+            context.returnValues.executions[3].item.itemType,
+            ItemType.ERC721
+        );
+        assertEq(
+            context.returnValues.executions[3].item.token,
+            address(erc721s[0])
+        );
+        assertEq(context.returnValues.executions[3].item.identifier, 2);
+        assertEq(context.returnValues.executions[3].item.amount, 1);
+        assertEq(
+            context.returnValues.executions[3].item.recipient,
+            offerer1.addr
+        );
+
+        assertEq(context.returnValues.executions[0].offerer, offerer1.addr);
+        assertEq(context.returnValues.executions[1].offerer, offerer1.addr);
+        assertEq(context.returnValues.executions[2].offerer, address(this));
+        assertEq(context.returnValues.executions[3].offerer, address(this));
+
+        assertEq(
+            context.returnValues.executions[0].conduitKey,
+            context.fulfillerConduitKey
+        );
+        assertEq(
+            context.returnValues.executions[1].conduitKey,
+            context.fulfillerConduitKey
+        );
+        assertEq(
+            context.returnValues.executions[2].conduitKey,
+            context.fulfillerConduitKey
+        );
+        assertEq(
+            context.returnValues.executions[3].conduitKey,
+            context.fulfillerConduitKey
+        );
+    }
+
+    /// @dev Call exec for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.validate.
     function test_exec_Combined_Validate() public {
         OrderComponents memory orderComponents = OrderComponentsLib
@@ -488,5 +683,9 @@ contract FuzzEngineTest is FuzzEngine {
         for (uint256 i; i < a.length; ++i) {
             assertEq(a[i], b[i]);
         }
+    }
+
+    function assertEq(ItemType a, ItemType b) internal {
+        assertEq(uint8(a), uint8(b));
     }
 }

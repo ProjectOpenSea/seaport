@@ -53,6 +53,9 @@ struct TestContext {
     bytes32 fulfillerConduitKey;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
+    FulfillmentComponent[][] offerFulfillments;
+    FulfillmentComponent[][] considerationFulfillments;
+    uint256 maximumFulfilled;
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
@@ -90,6 +93,9 @@ library TestContextLib {
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                offerFulfillments: new FulfillmentComponent[][](0),
+                considerationFulfillments: new FulfillmentComponent[][](0),
+                maximumFulfilled: 0,
                 initialState: new AdvancedOrder[](0),
                 returnValues: ReturnValues({
                     fulfilled: false,
@@ -127,6 +133,9 @@ library TestContextLib {
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                offerFulfillments: new FulfillmentComponent[][](0),
+                considerationFulfillments: new FulfillmentComponent[][](0),
+                maximumFulfilled: 0,
                 initialState: orders.copy(),
                 returnValues: ReturnValues({
                     fulfilled: false,
@@ -282,6 +291,58 @@ library TestContextLib {
         return context;
     }
 
+    /**
+     * @dev Sets the offerFulfillments on a TestContext
+     *
+     * @param context the TestContext to set the offerFulfillments of
+     * @param offerFulfillments the offerFulfillments value to set
+     *
+     * @return _context the TestContext with the offerFulfillments set
+     */
+    function withOfferFulfillments(
+        TestContext memory context,
+        FulfillmentComponent[][] memory offerFulfillments
+    ) internal pure returns (TestContext memory) {
+        context.offerFulfillments = _copyFulfillmentComponents(
+            offerFulfillments
+        );
+        return context;
+    }
+
+    /**
+     * @dev Sets the considerationFulfillments on a TestContext
+     *
+     * @param context the TestContext to set the considerationFulfillments of
+     * @param considerationFulfillments the considerationFulfillments value to set
+     *
+     * @return _context the TestContext with the considerationFulfillments set
+     */
+    function withConsiderationFulfillments(
+        TestContext memory context,
+        FulfillmentComponent[][] memory considerationFulfillments
+    ) internal pure returns (TestContext memory) {
+        context.considerationFulfillments = _copyFulfillmentComponents(
+            considerationFulfillments
+        );
+        return context;
+    }
+
+    /**
+     * @dev Sets the maximumFulfilled on a TestContext
+     *
+     * @param context the TestContext to set the maximumFulfilled of
+     * @param maximumFulfilled the maximumFulfilled value to set
+     *
+     * @return _context the TestContext with maximumFulfilled set
+     */
+    function withMaximumFulfilled(
+        TestContext memory context,
+        uint256 maximumFulfilled
+    ) internal pure returns (TestContext memory) {
+        context.maximumFulfilled = maximumFulfilled;
+        return context;
+    }
+
     function _copyBytes4(
         bytes4[] memory selectors
     ) private pure returns (bytes4[] memory) {
@@ -290,6 +351,26 @@ library TestContextLib {
             copy[i] = selectors[i];
         }
         return copy;
+    }
+
+    function _copyFulfillmentComponents(
+        FulfillmentComponent[][] memory fulfillmentComponents
+    ) private pure returns (FulfillmentComponent[][] memory) {
+        FulfillmentComponent[][]
+            memory outerCopy = new FulfillmentComponent[][](
+                fulfillmentComponents.length
+            );
+        for (uint256 i = 0; i < fulfillmentComponents.length; i++) {
+            FulfillmentComponent[]
+                memory innerCopy = new FulfillmentComponent[](
+                    fulfillmentComponents[i].length
+                );
+            for (uint256 j = 0; j < fulfillmentComponents[i].length; j++) {
+                innerCopy[j] = fulfillmentComponents[i][j];
+            }
+            outerCopy[i] = innerCopy;
+        }
+        return outerCopy;
     }
 
     function _copyCriteriaResolvers(

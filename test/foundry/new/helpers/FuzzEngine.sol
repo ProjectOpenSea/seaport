@@ -20,6 +20,7 @@ library FuzzEngineLib {
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -96,6 +97,7 @@ contract FuzzEngine is BaseOrderTest {
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzEngineLib for TestContext;
@@ -134,6 +136,19 @@ contract FuzzEngine is BaseOrderTest {
                     context.fulfillerConduitKey,
                     context.recipient
                 );
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            (
+                bool[] memory availableOrders,
+                Execution[] memory executions
+            ) = context.seaport.fulfillAvailableOrders(
+                    context.orders.toOrders(),
+                    context.offerFulfillments,
+                    context.considerationFulfillments,
+                    context.fulfillerConduitKey,
+                    context.maximumFulfilled
+                );
+            context.returnValues.availableOrders = availableOrders;
+            context.returnValues.executions = executions;
         } else if (_action == context.seaport.cancel.selector) {
             AdvancedOrder[] memory orders = context.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](
@@ -152,14 +167,9 @@ contract FuzzEngine is BaseOrderTest {
                 orderComponents
             );
         } else if (_action == context.seaport.validate.selector) {
-            AdvancedOrder[] memory advancedOrders = context.orders;
-            Order[] memory orders = new Order[](advancedOrders.length);
-
-            for (uint256 i; i < advancedOrders.length; ++i) {
-                orders[i] = advancedOrders[i].toOrder();
-            }
-
-            context.returnValues.validated = context.seaport.validate(orders);
+            context.returnValues.validated = context.seaport.validate(
+                context.orders.toOrders()
+            );
         } else {
             revert("FuzzEngine: Action not implemented");
         }
