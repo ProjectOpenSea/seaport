@@ -59,6 +59,20 @@ enum State {
 }
 
 /**
+ * @dev The "result" of execution.
+ *      - FULFILLMENT: Order should be fulfilled.
+ *      - UNAVAILABLE: Order should be skipped.
+ *      - VALIDATE: Order should be validated.
+ *      - CANCEL: Order should be cancelled.
+ */
+enum Result {
+    FULFILLMENT,
+    UNAVAILABLE,
+    VALIDATE,
+    CANCEL
+}
+
+/**
  * @notice Stateless helpers for Fuzz tests.
  */
 library FuzzHelpers {

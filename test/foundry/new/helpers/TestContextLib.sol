@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Result } from "./FuzzHelpers.sol";
 import "seaport-sol/SeaportSol.sol";
 
 struct FuzzParams {
@@ -63,6 +64,11 @@ struct TestContext {
      */
     AdvancedOrder[] initialOrders;
     /**
+     * @dev Expected Result state for each order. Indexes correspond to the
+     *      indexes of the orders in the orders array.
+     */
+    Result[] expectedResults;
+    /**
      * @dev Return values from the last call to exec. Superset of return values
      *      from all Seaport functions.
      */
@@ -97,6 +103,7 @@ library TestContextLib {
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
                 initialOrders: new AdvancedOrder[](0),
+                expectedResults: new Result[](0),
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
@@ -137,6 +144,7 @@ library TestContextLib {
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
                 initialOrders: orders.copy(),
+                expectedResults: new Result[](0),
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
