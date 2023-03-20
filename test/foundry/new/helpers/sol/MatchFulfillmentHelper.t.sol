@@ -278,32 +278,29 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         order = _toMatchableOrder(order, offerer1);
 
-        Order memory otherOrder = _toMatchableOrder(
-            Order({
-                parameters: OrderParametersLib
-                    .empty()
-                    .withOffer(
-                        SeaportArrays.OfferItems(
-                            OfferItemLib
-                                .empty()
-                                .withToken(address(token2))
-                                .withStartAmount(100)
-                                .withEndAmount(1)
-                        )
+        Order memory otherOrder = Order({
+            parameters: OrderParametersLib
+                .empty()
+                .withOffer(
+                    SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(token2))
+                            .withStartAmount(100)
+                            .withEndAmount(1)
                     )
-                    .withTotalConsideration(
-                        SeaportArrays.ConsiderationItems(
-                            ConsiderationItemLib
-                                .empty()
-                                .withToken(address(token1))
-                                .withStartAmount(100)
-                                .withEndAmount(1)
-                        )
-                    ),
-                signature: ""
-            }),
-            offerer2
-        );
+                )
+                .withTotalConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(100)
+                            .withEndAmount(1)
+                    )
+                ),
+            signature: ""
+        });
 
         otherOrder = _toMatchableOrder(otherOrder, offerer2);
 
