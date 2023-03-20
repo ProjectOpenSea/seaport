@@ -62,6 +62,8 @@ import {
 
 import { TestZone } from "./impl/TestZone.sol";
 
+import "hardhat/console.sol";
+
 contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
@@ -298,6 +300,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
+        // ZoneParameters[] memory
+
         // Expect this to revert because the zone is set up to expect bob to be
         // the recipient of all spent items.
         vm.expectRevert(
@@ -464,6 +468,26 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
+        {
+            uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+
+            AdvancedOrder[] memory singleAdvancedOrder = new AdvancedOrder[](1);
+
+            singleAdvancedOrder[0] = advancedOrders[0];
+
+            // Get the zone parameters.
+            ZoneParameters[] memory zoneParameters = singleAdvancedOrder
+                .getZoneParameters(
+                    address(this),
+                    offerer1Counter,
+                    context.seaport
+                );
+
+            bytes32[]
+                memory payloadHashes = _generateZoneValidateOrderDataHashes(
+                    zoneParameters
+                );
+        }
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
@@ -610,27 +634,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             recipient: address(offerer1.addr),
             maximumFulfilled: advancedOrders.length
         });
-    }
-
-    function _generateZoneValidateOrderDataHashes(
-        ZoneParameters[] memory zoneParameters
-    ) internal returns (bytes32[] memory) {
-        // Create bytes32[] to hold the hashes.
-        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
-
-        // Iterate over each ZoneParameters to generate the hash.
-        for (uint256 i = 0; i < zoneParameters.length; i++) {
-            // Generate the hash.
-            payloadHashes[i] = keccak256(
-                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
-            );
-
-            // Expect the hash to be emitted in the call to Seaport
-            vm.expectEmit(true, false, false, true);
-
-            // Emit the expected event with the expected hash.
-            emit ValidateOrderDataHash(payloadHashes[i]);
-        }
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
@@ -1764,6 +1767,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
 
         return orderDataHashes;
+    }
+
+    function _generateZoneValidateOrderDataHashes(
+        ZoneParameters[] memory zoneParameters
+    ) internal returns (bytes32[] memory) {
+        // Create bytes32[] to hold the hashes.
+        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+
+        // Iterate over each ZoneParameters to generate the hash.
+        for (uint256 i = 0; i < zoneParameters.length; i++) {
+            // Generate the hash.
+            payloadHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+
+            // Expect the hash to be emitted in the call to Seaport
+            vm.expectEmit(true, false, false, true);
+
+            // Emit the expected event with the expected hash.
+            emit ValidateOrderDataHash(payloadHashes[i]);
+        }
     }
 
     function _buildFulfillmentDataOpenOrderAndMirrorContractOrder(
