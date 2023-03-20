@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {
     ConsiderationItem,
+    SpentItem,
     ReceivedItem
 } from "../../../lib/ConsiderationStructs.sol";
 
@@ -343,19 +344,19 @@ library ConsiderationItemLib {
     }
 
     /**
-     * @dev Sets the start and end amounts.
+     * @dev Sets the startAmount and endAmount of an ConsiderationItem.
      *
      * @param item the ConsiderationItem to modify
-     * @param fixedAmount the fixed amount to set
+     * @param amount the amount to set for the start and end amounts
      *
      * @custom:return item the modified ConsiderationItem
      */
-    function withFixedAmount(
+    function withAmount(
         ConsiderationItem memory item,
-        uint256 fixedAmount
+        uint256 amount
     ) internal pure returns (ConsiderationItem memory) {
-        item.startAmount = fixedAmount;
-        item.endAmount = fixedAmount;
+        item.startAmount = amount;
+        item.endAmount = amount;
         return item;
     }
 
@@ -393,5 +394,37 @@ library ConsiderationItemLib {
                 amount: item.startAmount,
                 recipient: item.recipient
             });
+    }
+
+    function toReceivedItemArray(
+        ConsiderationItem[] memory items
+    ) internal pure returns (ReceivedItem[] memory) {
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            receivedItems[i] = toReceivedItem(items[i]);
+        }
+        return receivedItems;
+    }
+
+    function toSpentItem(
+        ConsiderationItem memory item
+    ) internal pure returns (SpentItem memory) {
+        return
+            SpentItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                amount: item.startAmount
+            });
+    }
+
+    function toSpentItemArray(
+        ConsiderationItem[] memory items
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = toSpentItem(items[i]);
+        }
+        return spentItems;
     }
 }

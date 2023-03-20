@@ -841,10 +841,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
                 ),
                 considerationComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
                 )
             }),
             Fulfillment({
@@ -859,10 +859,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             }),
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
                 ),
                 considerationComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
                 )
             })
         );
@@ -874,21 +874,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
         // Note: the expected fulfillments will need to change in this case.
-        assertEq(fulfillments[0], expectedFulfillments[2], "fulfillments[0]");
+        assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
         assertEq(fulfillments[1], expectedFulfillments[1], "fulfillments[1]");
-        assertEq(fulfillments[2], expectedFulfillments[0], "fulfillments[2]");
-
-        // TEMP: reorder these to get this passing.  Remove when the fulfillment
-        // helper starts preferring the first available item (which gets the
-        // credit for leftovers).
-        Fulfillment[] memory reorderedFulfillments = new Fulfillment[](3);
-        reorderedFulfillments[0] = fulfillments[2];
-        reorderedFulfillments[1] = fulfillments[1];
-        reorderedFulfillments[2] = fulfillments[0];
+        assertEq(fulfillments[2], expectedFulfillments[2], "fulfillments[2]");
 
         consideration.matchOrders({
             orders: SeaportArrays.Orders(order, otherOrder),
-            fulfillments: expectedFulfillments
+            fulfillments: fulfillments
         });
     }
 
@@ -1005,6 +997,110 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             orders: SeaportArrays.Orders(order, otherOrder),
             fulfillments: fulfillments
         });
+    }
+
+    function testGetMatchedFulfillments_consolidatedConsideration() public {
+        Order memory order = Order({
+            parameters: OrderParametersLib
+                .empty()
+                .withOffer(
+                    SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(90)
+                            .withEndAmount(90),
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(token2))
+                            .withStartAmount(10)
+                            .withEndAmount(10)
+                    )
+                )
+                .withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(10)
+                            .withEndAmount(10),
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(90)
+                            .withEndAmount(90),
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(10)
+                            .withEndAmount(10)
+                    )
+                )
+                .withOfferer(makeAddr("offerer1")),
+            signature: ""
+        });
+
+        Order memory order2 = Order({
+            parameters: OrderParametersLib
+                .empty()
+                .withOffer(
+                    SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(token1))
+                            .withStartAmount(30)
+                            .withEndAmount(30)
+                    )
+                )
+                .withConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(token2))
+                            .withStartAmount(10)
+                            .withEndAmount(10)
+                    )
+                )
+                .withOfferer(makeAddr("offerer2")),
+            signature: ""
+        });
+
+        Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 }),
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 2 })
+                )
+            }),
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                )
+            }),
+            Fulfillment({
+                offerComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
+                ),
+                considerationComponents: SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                )
+            })
+        );
+        (Fulfillment[] memory fulfillments, , ) = test.getMatchedFulfillments(
+            SeaportArrays.Orders(order, order2)
+        );
+        assertEq(fulfillments.length, 3, "fulfillments.length");
+
+        assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
+        assertEq(fulfillments[1], expectedFulfillments[1], "fulfillments[1]");
+        assertEq(fulfillments[2], expectedFulfillments[2], "fulfillments[2]");
     }
 
     function testRemainingItems() public {
