@@ -18,6 +18,7 @@ import {
 
 contract MatchFulfillmentHelperTest is BaseOrderTest {
     using Strings for uint256;
+
     using ConsiderationItemLib for ConsiderationItem;
     using FulfillmentComponentLib for FulfillmentComponent;
     using OfferItemLib for OfferItem;
@@ -43,8 +44,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .empty()
                             .withToken(address(token1))
                             .withItemType(ItemType.ERC20)
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
@@ -53,8 +53,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .empty()
                             .withToken(address(token1))
                             .withItemType(ItemType.ERC20)
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 ),
             signature: ""
@@ -93,8 +92,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
@@ -102,8 +100,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 ),
             signature: ""
@@ -119,8 +116,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
@@ -128,8 +124,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 ),
             signature: ""
@@ -196,9 +191,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .withStartAmount(1)
                             .withEndAmount(100)
                     )
-                )
-                .withStartTime(1)
-                .withEndTime(100),
+                ),
             signature: ""
         });
 
@@ -224,9 +217,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .withStartAmount(1)
                             .withEndAmount(100)
                     )
-                )
-                .withStartTime(1)
-                .withEndTime(100),
+                ),
             signature: ""
         });
 
@@ -286,9 +277,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .withStartAmount(100)
                             .withEndAmount(1)
                     )
-                )
-                .withStartTime(1)
-                .withEndTime(100),
+                ),
             signature: ""
         });
 
@@ -315,9 +304,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                                 .withStartAmount(100)
                                 .withEndAmount(1)
                         )
-                    )
-                    .withStartTime(1)
-                    .withEndTime(100),
+                    ),
                 signature: ""
             }),
             offerer2
@@ -379,9 +366,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .withStartAmount(1)
                             .withEndAmount(100)
                     )
-                )
-                .withStartTime(1)
-                .withEndTime(100),
+                ),
             signature: ""
         });
 
@@ -407,9 +392,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                             .withStartAmount(1)
                             .withEndAmount(100)
                     )
-                )
-                .withStartTime(1)
-                .withEndTime(100),
+                ),
             signature: ""
         });
 
@@ -468,8 +451,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
@@ -477,8 +459,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withOfferer(offerer1.addr),
@@ -495,8 +476,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(200)
-                            .withEndAmount(200)
+                            .withAmount(200)
                     )
                 )
                 .withTotalConsideration(
@@ -504,8 +484,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withOfferer(offerer2.addr),
@@ -556,8 +535,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(100)
-                            .withEndAmount(100)
+                            .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
@@ -565,18 +543,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1),
+                            .withAmount(1),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(offerer1.addr),
@@ -593,8 +568,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1)
+                            .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
@@ -602,8 +576,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(80)
-                            .withEndAmount(80)
+                            .withAmount(80)
                             .withRecipient(offerer2.addr)
                     )
                 )
@@ -666,8 +639,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(110)
-                            .withEndAmount(110)
+                            .withAmount(110)
                     )
                 )
                 .withTotalConsideration(
@@ -675,18 +647,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1),
+                            .withAmount(1),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(offerer1.addr),
@@ -703,8 +672,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1)
+                            .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
@@ -712,8 +680,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(80)
-                            .withEndAmount(80)
+                            .withAmount(80)
                             .withRecipient(offerer2.addr)
                     )
                 )
@@ -776,13 +743,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(90)
-                            .withEndAmount(90)
+                            .withAmount(90)
                     )
                 )
                 .withTotalConsideration(
@@ -790,18 +755,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1),
+                            .withAmount(1),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(offerer1.addr),
@@ -818,8 +780,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1)
+                            .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
@@ -827,8 +788,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(80)
-                            .withEndAmount(80)
+                            .withAmount(80)
                             .withRecipient(offerer2.addr)
                     )
                 )
@@ -893,13 +853,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(90)
-                            .withEndAmount(90),
+                            .withAmount(90),
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withTotalConsideration(
@@ -907,18 +865,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1),
+                            .withAmount(1),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(offerer1.addr),
@@ -935,8 +890,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1)
+                            .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
@@ -944,8 +898,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(80)
-                            .withEndAmount(80)
+                            .withAmount(80)
                             .withRecipient(offerer2.addr)
                     )
                 )
@@ -1008,13 +961,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(90)
-                            .withEndAmount(90),
+                            .withAmount(90),
                         OfferItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withConsideration(
@@ -1022,18 +973,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(90)
-                            .withEndAmount(90),
+                            .withAmount(90),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(makeAddr("offerer1")),
@@ -1048,8 +996,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(30)
-                            .withEndAmount(30)
+                            .withAmount(30)
                     )
                 )
                 .withConsideration(
@@ -1057,8 +1004,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(10)
-                            .withEndAmount(10)
+                            .withAmount(10)
                     )
                 )
                 .withOfferer(makeAddr("offerer2")),
@@ -1112,13 +1058,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(10)
-                            .withEndAmount(10),
+                            .withAmount(10),
                         OfferItemLib
                             .empty()
                             .withToken(address(token1))
-                            .withStartAmount(11)
-                            .withEndAmount(11)
+                            .withAmount(11)
                     )
                 )
                 .withTotalConsideration(
@@ -1126,13 +1070,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(1)
-                            .withEndAmount(1),
+                            .withAmount(1),
                         ConsiderationItemLib
                             .empty()
                             .withToken(address(token2))
-                            .withStartAmount(2)
-                            .withEndAmount(2)
+                            .withAmount(2)
                     )
                 )
                 .withOfferer(offerer1.addr),
