@@ -54,6 +54,7 @@ struct TestContext {
     bytes32 fulfillerConduitKey;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
+    Fulfillment[] fulfillments;
     FulfillmentComponent[][] offerFulfillments;
     FulfillmentComponent[][] considerationFulfillments;
     uint256 maximumFulfilled;
@@ -99,6 +100,7 @@ library TestContextLib {
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                fulfillments: new Fulfillment[](0),
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
@@ -140,6 +142,7 @@ library TestContextLib {
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                fulfillments: new Fulfillment[](0),
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
@@ -296,6 +299,22 @@ library TestContextLib {
         address recipient
     ) internal pure returns (TestContext memory) {
         context.recipient = recipient;
+        return context;
+    }
+
+        /**
+     * @dev Sets the fulfillments on a TestContext
+     *
+     * @param context the TestContext to set the fulfillments of
+     * @param fulfillments the offerFulfillments value to set
+     *
+     * @return _context the TestContext with the fulfillments set
+     */
+    function withFulfillments(
+        TestContext memory context,
+        Fulfillment[] memory fulfillments
+    ) internal pure returns (TestContext memory) {
+        context.fulfillments = fulfillments;
         return context;
     }
 

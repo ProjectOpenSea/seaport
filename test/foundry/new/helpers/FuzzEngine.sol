@@ -176,6 +176,14 @@ contract FuzzEngine is FuzzChecks, BaseOrderTest {
                 );
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            Execution[] memory executions = context.seaport.matchAdvancedOrders(
+                context.orders,
+                context.criteriaResolvers,
+                context.fulfillments,
+                context.recipient
+            );
+            context.returnValues.executions = executions;
         } else if (_action == context.seaport.cancel.selector) {
             AdvancedOrder[] memory orders = context.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](

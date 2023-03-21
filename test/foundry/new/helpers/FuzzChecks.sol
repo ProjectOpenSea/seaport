@@ -23,4 +23,8 @@ abstract contract FuzzChecks is Test {
             assertTrue(context.returnValues.availableOrders[i]);
         }
     }
+
+    function check_executionsPresent(TestContext memory context) public {
+        assertTrue(context.returnValues.executions.length > 0);
+    }
 }
