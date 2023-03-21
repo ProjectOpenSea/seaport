@@ -13,9 +13,7 @@ import {
     ZoneParameters
 } from "../../../lib/ConsiderationStructs.sol";
 
-import {
-    ConsiderationInterface
-} from "../../../interfaces/ConsiderationInterface.sol";
+import { SeaportInterface } from "../../../interfaces/SeaportInterface.sol";
 
 import { GettersAndDerivers } from "../../../lib/GettersAndDerivers.sol";
 
@@ -39,10 +37,78 @@ library ZoneParametersLib {
     using ConsiderationItemLib for ConsiderationItem[];
 
     function getZoneParameters(
+        AdvancedOrder memory advancedOrder,
+        address fulfiller,
+        uint256 counter,
+        SeaportInterface seaport
+    ) internal view returns (ZoneParameters memory zoneParameters) {
+        // Get orderParameters from advancedOrder
+        OrderParameters memory orderParameters = advancedOrder.parameters;
+
+        // Get orderComponents from orderParameters
+        OrderComponents memory orderComponents = OrderComponents({
+            offerer: orderParameters.offerer,
+            zone: orderParameters.zone,
+            offer: orderParameters.offer,
+            consideration: orderParameters.consideration,
+            orderType: orderParameters.orderType,
+            startTime: orderParameters.startTime,
+            endTime: orderParameters.endTime,
+            zoneHash: orderParameters.zoneHash,
+            salt: orderParameters.salt,
+            conduitKey: orderParameters.conduitKey,
+            counter: counter
+        });
+
+        // Get orderHash from orderComponents
+        bytes32 orderHash = seaport.getOrderHash(orderComponents);
+
+        // Create spentItems array
+        SpentItem[] memory spentItems = new SpentItem[](
+            orderParameters.offer.length
+        );
+
+        // Convert offer to spentItems and add to spentItems array
+        for (uint256 j = 0; j < orderParameters.offer.length; j++) {
+            spentItems[j] = orderParameters.offer[j].toSpentItem();
+        }
+
+        // Create receivedItems array
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            orderParameters.consideration.length
+        );
+
+        // Convert consideration to receivedItems and add to receivedItems array
+        for (uint256 k = 0; k < orderParameters.consideration.length; k++) {
+            receivedItems[k] = orderParameters
+                .consideration[k]
+                .toReceivedItem();
+        }
+
+        // Store orderHash in orderHashes array to pass into zoneParameters
+        bytes32[] memory orderHashes = new bytes32[](1);
+        orderHashes[0] = orderHash;
+
+        // Create ZoneParameters and add to zoneParameters array
+        zoneParameters = ZoneParameters({
+            orderHash: orderHash,
+            fulfiller: fulfiller,
+            offerer: orderParameters.offerer,
+            offer: spentItems,
+            consideration: receivedItems,
+            extraData: advancedOrder.extraData,
+            orderHashes: orderHashes,
+            startTime: orderParameters.startTime,
+            endTime: orderParameters.endTime,
+            zoneHash: orderParameters.zoneHash
+        });
+    }
+
+    function getZoneParameters(
         AdvancedOrder[] memory advancedOrders,
         address fulfiller,
         uint256 counter,
-        ConsiderationInterface seaport
+        SeaportInterface seaport
     ) internal view returns (ZoneParameters[] memory zoneParameters) {
         bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
 
