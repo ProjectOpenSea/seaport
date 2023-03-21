@@ -46,4 +46,12 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
 
         ok = true;
     }
+
+    function increaseAllowance(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
+        approve(spender, allowance[msg.sender][spender] + amount);
+        return true;
+    }
 }
