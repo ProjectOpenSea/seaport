@@ -41,4 +41,4 @@ jobs:
 
       # TODO: select fuzz tests, shard across function name pattern?
       - name: Run tests
-        run: FOUNDRY_PROFILE=moat forge test -vvv
+        run: FOUNDRY_PROFILE=moat forge test
