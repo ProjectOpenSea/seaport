@@ -18,7 +18,8 @@ import {
     Offerer,
     Time,
     Zone,
-    ZoneHash
+    ZoneHash,
+    SignatureMethod
 } from "seaport-sol/SpaceEnums.sol";
 import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
@@ -27,6 +28,8 @@ import "seaport-sol/SeaportSol.sol";
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
+
+import { Vm } from "forge-std/Vm.sol";
 
 import "forge-std/console.sol";
 
@@ -66,8 +69,10 @@ function bound(
 }
 
 struct GeneratorContext {
+    Vm vm;
     LibPRNG.PRNG prng;
     uint256 timestamp;
+    SeaportInterface seaport;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
@@ -79,9 +84,16 @@ struct GeneratorContext {
     address dillon;
     address eve;
     address frank;
+    uint256 offererPk;
+    uint256 alicePk;
+    uint256 bobPk;
+    uint256 dillonPk;
+    uint256 frankPk;
+    uint256 evePk;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
+    bytes32[] orderHashes;
 }
 
 library TestStateGenerator {
@@ -98,7 +110,9 @@ library TestStateGenerator {
         );
         for (uint256 i; i < totalOrders; ++i) {
             components[i] = OrderComponentsSpace({
-                offerer: Offerer(context.randEnum(1, 1)),
+                // TODO: Restricted range to 1 and 2 to avoid test contract.
+                //       Range should be 0-2.
+                offerer: Offerer(context.randEnum(1, 2)),
                 zone: Zone(context.randEnum(0, 2)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
@@ -106,8 +120,12 @@ library TestStateGenerator {
                     context
                 ),
                 orderType: BroadOrderType(context.randEnum(0, 2)),
-                time: Time(context.randEnum(0, 4)),
-                zoneHash: ZoneHash(context.randEnum(0, 2))
+                // TODO: Restricted range to 1 and 2 to avoid unavailable.
+                //       Range should be 0-4.
+                time: Time(context.randEnum(1, 2)),
+                zoneHash: ZoneHash(context.randEnum(0, 2)),
+                // TODO: Add more signature methods (restricted to EOA for now)
+                signatureMethod: SignatureMethod(0)
             });
         }
         return AdvancedOrdersSpace({ orders: components });
@@ -121,7 +139,8 @@ library TestStateGenerator {
         OfferItemSpace[] memory offer = new OfferItemSpace[](len);
         for (uint256 i; i < len; ++i) {
             offer[i] = OfferItemSpace({
-                itemType: ItemType(context.randEnum(0, 5)),
+                // TODO: Native items + criteria - should be 0-5
+                itemType: ItemType(context.randEnum(1, 3)),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(context.randEnum(0, 2)),
                 amount: Amount(context.randEnum(0, 2))
@@ -134,12 +153,14 @@ library TestStateGenerator {
         uint256 maxConsiderationItemsPerOrder,
         GeneratorContext memory context
     ) internal pure returns (ConsiderationItemSpace[] memory) {
-        uint256 len = context.randRange(0, maxConsiderationItemsPerOrder);
+        // TODO: Can we handle zero?
+        uint256 len = context.randRange(1, maxConsiderationItemsPerOrder);
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](len);
         for (uint256 i; i < len; ++i) {
             consideration[i] = ConsiderationItemSpace({
-                itemType: ItemType(context.randEnum(0, 5)),
+                // TODO: Native items + criteria - should be 0-5
+                itemType: ItemType(context.randEnum(1, 3)),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(context.randEnum(0, 2)),
                 amount: Amount(context.randEnum(0, 2)),
@@ -152,6 +173,8 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
+    using SignatureGenerator for Order;
+    using OrderParametersLib for OrderParameters;
     using AdvancedOrderLib for AdvancedOrder;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
@@ -159,14 +182,37 @@ library AdvancedOrdersSpaceGenerator {
     function generate(
         AdvancedOrdersSpace memory space,
         GeneratorContext memory context
-    ) internal pure returns (AdvancedOrder[] memory) {
+    ) internal view returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
+        context.orderHashes = new bytes32[](len);
 
         for (uint256 i; i < len; ++i) {
-            orders[i] = OrderLib
-                .empty()
-                .withParameters(space.orders[i].generate(context))
+            OrderParameters memory orderParameters = space.orders[i].generate(
+                context
+            );
+            Order memory order = OrderLib.empty().withParameters(
+                orderParameters
+            );
+            bytes32 orderHash;
+            {
+                uint256 counter = context.seaport.getCounter(
+                    order.parameters.offerer
+                );
+                orderHash = context.seaport.getOrderHash(
+                    orderParameters.toOrderComponents(counter)
+                );
+
+                context.orderHashes[i] = orderHash;
+            }
+
+            orders[i] = order
+                .withGeneratedSignature(
+                    space.orders[i].signatureMethod,
+                    space.orders[i].offerer,
+                    orderHash,
+                    context
+                )
                 .toAdvancedOrder({
                     numerator: 0,
                     denominator: 0,
@@ -179,6 +225,7 @@ library AdvancedOrdersSpaceGenerator {
 
 library OrderComponentsSpaceGenerator {
     using OrderParametersLib for OrderParameters;
+    using TimeGenerator for OrderParameters;
     using OffererGenerator for Offerer;
 
     using OfferItemSpaceGenerator for OfferItemSpace[];
@@ -193,7 +240,9 @@ library OrderComponentsSpaceGenerator {
                 .empty()
                 .withOfferer(space.offerer.generate(context))
                 .withOffer(space.offer.generate(context))
-                .withConsideration(space.consideration.generate(context));
+                .withConsideration(space.consideration.generate(context))
+                .withGeneratedTime(space.time, context);
+        // TODO: Zone generator
     }
 }
 
@@ -279,6 +328,32 @@ library ConsiderationItemSpaceGenerator {
     }
 }
 
+library SignatureGenerator {
+    using OffererGenerator for Offerer;
+    using OrderLib for Order;
+
+    function withGeneratedSignature(
+        Order memory order,
+        SignatureMethod method,
+        Offerer offerer,
+        bytes32 orderHash,
+        GeneratorContext memory context
+    ) internal view returns (Order memory) {
+        if (method == SignatureMethod.EOA) {
+            (, bytes32 domainSeparator, ) = context.seaport.information();
+            (uint8 v, bytes32 r, bytes32 s) = context.vm.sign(
+                offerer.getKey(context),
+                keccak256(
+                    abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash)
+                )
+            );
+            bytes memory signature = abi.encodePacked(r, s, v);
+            return order.withSignature(signature);
+        }
+        revert("SignatureGenerator: Invalid signature method");
+    }
+}
+
 library TokenIndexGenerator {
     function generate(
         TokenIndex tokenIndex,
@@ -287,6 +362,7 @@ library TokenIndexGenerator {
     ) internal pure returns (address) {
         uint256 i = uint8(tokenIndex);
 
+        // TODO: missing native tokens
         if (itemType == ItemType.ERC20) {
             return address(context.erc20s[i]);
         } else if (itemType == ItemType.ERC721) {
@@ -294,7 +370,7 @@ library TokenIndexGenerator {
         } else if (itemType == ItemType.ERC1155) {
             return address(context.erc1155s[i]);
         } else {
-            revert("Invalid itemType");
+            revert("TokenIndexGenerator: Invalid itemType");
         }
     }
 }
@@ -495,6 +571,21 @@ library OffererGenerator {
             return context.alice;
         } else if (offerer == Offerer.BOB) {
             return context.bob;
+        } else {
+            revert("Invalid offerer");
+        }
+    }
+
+    function getKey(
+        Offerer offerer,
+        GeneratorContext memory context
+    ) internal pure returns (uint256) {
+        if (offerer == Offerer.TEST_CONTRACT) {
+            return 0;
+        } else if (offerer == Offerer.ALICE) {
+            return context.alicePk;
+        } else if (offerer == Offerer.BOB) {
+            return context.bobPk;
         } else {
             revert("Invalid offerer");
         }

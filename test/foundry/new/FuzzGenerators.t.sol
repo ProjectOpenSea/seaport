@@ -20,7 +20,8 @@ import {
     TokenIndex,
     Criteria,
     Amount,
-    Recipient
+    Recipient,
+    SignatureMethod
 } from "seaport-sol/SpaceEnums.sol";
 
 import {
@@ -47,8 +48,10 @@ contract FuzzGeneratorsTest is BaseOrderTest {
 
         return
             GeneratorContext({
+                vm: vm,
                 prng: prng,
                 timestamp: block.timestamp,
+                seaport: seaport,
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,
@@ -60,9 +63,16 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 dillon: dillon.addr,
                 eve: eve.addr,
                 frank: frank.addr,
+                offererPk: offerer1.key,
+                alicePk: offerer1.key,
+                bobPk: offerer2.key,
+                dillonPk: dillon.key,
+                frankPk: frank.key,
+                evePk: eve.key,
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
-                potential1155TokenIds: potential1155TokenIds
+                potential1155TokenIds: potential1155TokenIds,
+                orderHashes: new bytes32[](0)
             });
     }
 
@@ -91,7 +101,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             consideration: consideration,
             orderType: BroadOrderType.FULL,
             time: Time.ONGOING,
-            zoneHash: ZoneHash.NONE
+            zoneHash: ZoneHash.NONE,
+            signatureMethod: SignatureMethod.EOA
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -130,7 +141,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             consideration: consideration,
             orderType: BroadOrderType.FULL,
             time: Time.ONGOING,
-            zoneHash: ZoneHash.NONE
+            zoneHash: ZoneHash.NONE,
+            signatureMethod: SignatureMethod.EOA
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -180,7 +192,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             consideration: consideration,
             orderType: BroadOrderType.FULL,
             time: Time.ONGOING,
-            zoneHash: ZoneHash.NONE
+            zoneHash: ZoneHash.NONE,
+            signatureMethod: SignatureMethod.EOA
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
