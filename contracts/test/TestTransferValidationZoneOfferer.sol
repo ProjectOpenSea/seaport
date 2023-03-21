@@ -60,6 +60,8 @@ contract TestTransferValidationZoneOfferer is
 
     address internal _expectedOfferRecipient;
 
+    mapping(bytes32 => bytes32) public orderHashToValidateOrderDataHash;
+
     // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient) {
         _expectedOfferRecipient = expectedOfferRecipient;
@@ -85,6 +87,32 @@ contract TestTransferValidationZoneOfferer is
         // zero at the start of the transaction.  Accordingly, take care to
         // use an address in tests that is not pre-populated with tokens.
 
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        // Get the hash of msg.data
+        bytes32 calldataHash = keccak256(data);
+
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        // Store callDataHash in orderHashToValidateOrderDataHash
+        orderHashToValidateOrderDataHash[orderHash] = calldataHash;
+
+        // Emit a DataHash event with the hash of msg.data
+        emit DataHash(calldataHash);
+
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
         uint256 seaportBalance = address(msg.sender).balance;
@@ -106,26 +134,6 @@ contract TestTransferValidationZoneOfferer is
         // Set the global called flag to true.
         called = true;
         callCount++;
-
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
-
-        // Create a variable to store msg.data in memory
-        bytes memory data;
-
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
-        }
-
-        // Store the hash of msg.data
-        bytes32 actualDataHash = keccak256(data);
-
-        // Emit a DataHash event with the hash of msg.data
-        emit DataHash(actualDataHash);
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
