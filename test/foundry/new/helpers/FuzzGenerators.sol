@@ -448,11 +448,13 @@ library CriteriaGenerator {
             ++context.starting721offerIndex;
             return item;
         } else if (itemType == ItemType.ERC1155) {
-            return item.withIdentifierOrCriteria(
-                context.potential1155TokenIds[
-                    context.prng.next() % context.potential1155TokenIds.length
-                ]
-            );
+            return
+                item.withIdentifierOrCriteria(
+                    context.potential1155TokenIds[
+                        context.prng.next() %
+                            context.potential1155TokenIds.length
+                    ]
+                );
         }
         revert("CriteriaGenerator: invalid ItemType");
     }
@@ -470,9 +472,13 @@ library CriteriaGenerator {
             ++context.starting721offerIndex;
             return item;
         } else if (itemType == ItemType.ERC1155) {
-            return item.withIdentifierOrCriteria(context.potential1155TokenIds[
-                context.prng.next() % context.potential1155TokenIds.length
-            ])
+            return
+                item.withIdentifierOrCriteria(
+                    context.potential1155TokenIds[
+                        context.prng.next() %
+                            context.potential1155TokenIds.length
+                    ]
+                );
         }
         revert("CriteriaGenerator: invalid ItemType");
     }
