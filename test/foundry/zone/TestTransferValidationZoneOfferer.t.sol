@@ -486,74 +486,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 );
         }
 
-        // getOrderHash(
-        //     (
-        //         0xf7c0B359350f54D2c5E3a89e70276fBd1A4D06B2,
-        //         0x89CA9F4f77B267778EB2eA0Ba1bEAdEe8523af36,
-        //         [(2, 0xDB25A7b768311dE128BBDa7B8426c3f9C74f3240, 42, 1, 1)],
-        //         [
-        //             (
-        //                 1,
-        //                 0xD16d567549A2a2a2005aEACf7fB193851603dd70,
-        //                 0,
-        //                 3000000000000000000,
-        //                 3000000000000000000,
-        //                 0x2Bfcd78c3B703E174Dc0D73197B7253F0a8Aa442
-        //             ),
-        //             (
-        //                 1,
-        //                 0xD16d567549A2a2a2005aEACf7fB193851603dd70,
-        //                 0,
-        //                 5000000000000000000,
-        //                 5000000000000000000,
-        //                 0x2Bfcd78c3B703E174Dc0D73197B7253F0a8Aa442
-        //             )
-        //         ],
-        //         2,
-        //         1,
-        //         2,
-        //         0x0000000000000000000000000000000000000000000000000000000000000000,
-        //         0,
-        //         0x7fa9385be102ac3eac297483dd6233d62b3e1496000000000000000000000000,
-        //         0
-        //     )
-        // );
-
-        // 0x0ac0cf5a9185351d7f36a42f389ce052befbe8b84cf20e6083e58d897590b1dd
-
-        // validateOrder(
-        //     (
-        //         0x0ac0cf5a9185351d7f36a42f389ce052befbe8b84cf20e6083e58d897590b1dd,
-        //         0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496,
-        //         0xf7c0B359350f54D2c5E3a89e70276fBd1A4D06B2,
-        //         [(2, 0xDB25A7b768311dE128BBDa7B8426c3f9C74f3240, 42, 1)],
-        //         [
-        //             (
-        //                 1,
-        //                 0xD16d567549A2a2a2005aEACf7fB193851603dd70,
-        //                 0,
-        //                 3000000000000000000,
-        //                 0x2Bfcd78c3B703E174Dc0D73197B7253F0a8Aa442
-        //             ),
-        //             (
-        //                 1,
-        //                 0xD16d567549A2a2a2005aEACf7fB193851603dd70,
-        //                 0,
-        //                 5000000000000000000,
-        //                 0x2Bfcd78c3B703E174Dc0D73197B7253F0a8Aa442
-        //             )
-        //         ],
-        //         "0x",
-        //         [
-        //             0x0ac0cf5a9185351d7f36a42f389ce052befbe8b84cf20e6083e58d897590b1dd,
-        //             0x0000000000000000000000000000000000000000000000000000000000000000
-        //         ],
-        //         1,
-        //         2,
-        //         0x0000000000000000000000000000000000000000000000000000000000000000
-        //     )
-        // );
-
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
@@ -866,13 +798,26 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             FulfillmentComponent[][] memory considerationFulfillments
         ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
 
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
+        {
+            // Get the zone parameters.
+            ZoneParameters[] memory zoneParameters = advancedOrders
+                .getZoneParameters(
+                    address(this),
+                    0,
+                    advancedOrders.length - 2,
+                    context.seaport
+                );
+
+            bytes32[]
+                memory payloadHashes = _generateZoneValidateOrderDataHashes(
+                    zoneParameters
+                );
+        }
 
         // Should not revert.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
+            criteriaResolvers: new CriteriaResolver[](0),
             offerFulfillments: offerFulfillments,
             considerationFulfillments: considerationFulfillments,
             fulfillerConduitKey: bytes32(conduitKeyOne),
