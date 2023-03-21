@@ -61,6 +61,7 @@ script = 'offerers'
 [profile.moat]
 src = 'test/foundry'
 cache = false
+no_storage_caching = true
 
 [profile.moat.fuzz]
 runs = 100_000
