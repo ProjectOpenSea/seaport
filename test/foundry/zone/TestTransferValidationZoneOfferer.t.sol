@@ -298,8 +298,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
-        // ZoneParameters[] memory
-
         // Expect this to revert because the zone is set up to expect bob to be
         // the recipient of all spent items.
         vm.expectRevert(
