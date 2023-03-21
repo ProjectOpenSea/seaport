@@ -62,8 +62,6 @@ import {
 
 import { TestZone } from "./impl/TestZone.sol";
 
-import "hardhat/console.sol";
-
 contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
