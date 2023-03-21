@@ -341,13 +341,24 @@ library SignatureGenerator {
     ) internal view returns (Order memory) {
         if (method == SignatureMethod.EOA) {
             (, bytes32 domainSeparator, ) = context.seaport.information();
+            bytes memory message = abi.encodePacked(
+                bytes2(0x1901),
+                domainSeparator,
+                orderHash
+            );
+            bytes32 digest = keccak256(message);
             (uint8 v, bytes32 r, bytes32 s) = context.vm.sign(
                 offerer.getKey(context),
-                keccak256(
-                    abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash)
-                )
+                digest
             );
             bytes memory signature = abi.encodePacked(r, s, v);
+            address recovered = ecrecover(digest, v, r, s);
+            if (
+                recovered != offerer.generate(context) ||
+                recovered == address(0)
+            ) {
+                revert("SignatureGenerator: Invalid signature");
+            }
             return order.withSignature(signature);
         }
         revert("SignatureGenerator: Invalid signature method");
