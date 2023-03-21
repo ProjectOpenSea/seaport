@@ -58,8 +58,9 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
 
     address private immutable _SEAPORT;
     address internal _expectedOfferRecipient;
-    bytes32 public _dataHashFromLatestGenerateOrderCall;
-    bytes32 public _dataHashFromLatestRatifyOrderCall;
+
+    mapping(bytes32 => bytes32) public orderHashToGenerateOrderDataHash;
+    mapping(bytes32 => bytes32) public orderHashToRatifyOrderDataHash;
 
     receive() external payable {}
 
@@ -155,10 +156,22 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             data := ptr
         }
 
-        // Store the hash of msg.data
-        _dataHashFromLatestGenerateOrderCall = keccak256(data);
+        bytes32 calldataHash = keccak256(data);
 
-        emit GenerateOrderDataHash(_dataHashFromLatestGenerateOrderCall);
+        uint256 contractOffererNonce = _SEAPORT.getContractOffererNonce(
+            address(this)
+        );
+
+        bytes32 orderHash = bytes32(
+            abi.encodePacked(
+                (uint160(address(this)) + uint96(contractOffererNonce))
+            )
+        ) >> 0;
+
+        // Store the hash of msg.data
+        orderHashToGenerateOrderDataHash[orderHash] = calldataHash;
+
+        emit GenerateOrderDataHash(calldataHash);
 
         return previewOrder(address(this), address(this), a, b, c);
     }
@@ -204,13 +217,6 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         // Ratify the order.
-        // Check if Seaport is empty. This makes sure that we've transferred
-        // all native token balance out of Seaport before we do the validation.
-        uint256 seaportBalance = address(msg.sender).balance;
-
-        if (seaportBalance > 0) {
-            revert IncorrectSeaportBalance(0, seaportBalance);
-        }
 
         // Get the length of msg.data
         uint256 dataLength = msg.data.length;
@@ -226,9 +232,30 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             data := ptr
         }
 
-        _dataHashFromLatestRatifyOrderCall = keccak256(data);
+        bytes32 calldataHash = keccak256(data);
 
-        emit RatifyOrderDataHash(_dataHashFromLatestRatifyOrderCall);
+        uint256 contractOffererNonce = _SEAPORT.getContractOffererNonce(
+            address(this)
+        );
+
+        bytes32 orderHash = bytes32(
+            abi.encodePacked(
+                (uint160(address(this)) + uint96(contractOffererNonce))
+            )
+        ) >> 0;
+
+        // Store the hash of msg.data
+        orderHashToRatifyOrderDataHash[orderHash] = calldataHash;
+
+        emit RatifyOrderDataHash(calldataHash);
+
+        // Check if Seaport is empty. This makes sure that we've transferred
+        // all native token balance out of Seaport before we do the validation.
+        uint256 seaportBalance = address(msg.sender).balance;
+
+        if (seaportBalance > 0) {
+            revert IncorrectSeaportBalance(0, seaportBalance);
+        }
 
         // Ensure that the offerer or recipient has received all consideration
         // items.
