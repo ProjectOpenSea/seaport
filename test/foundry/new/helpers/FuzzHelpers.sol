@@ -80,6 +80,8 @@ library FuzzHelpers {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using AdvancedOrderLib for AdvancedOrder;
+    using ZoneParametersLib for AdvancedOrder;
+    using ZoneParametersLib for AdvancedOrder[];
 
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
@@ -193,6 +195,44 @@ library FuzzHelpers {
         }
 
         return Structure.STANDARD;
+    }
+
+    /**
+     * @dev Derive ZoneParameters from a given restricted order and return
+     *      the expected calldata hash for the call to validateOrder.
+     */
+    function getExpectedZoneCalldataHash(
+        AdvancedOrder[] memory orders,
+        address seaport,
+        address fulfiller
+    ) internal view returns (bytes32[] memory calldataHashes) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        calldataHashes = new bytes32[](orders.length);
+
+        ZoneParameters[] memory zoneParameters = new ZoneParameters[](
+            orders.length
+        );
+        for (uint256 i; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            // Get counter
+            uint256 counter = seaportInterface.getCounter(
+                order.parameters.offerer
+            );
+
+            // Derive the ZoneParameters from the AdvancedOrder
+            zoneParameters[i] = orders.getZoneParameters(
+                fulfiller,
+                counter,
+                orders.length,
+                seaport
+            )[i];
+
+            // Derive the expected calldata hash for the call to validateOrder
+            calldataHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+        }
     }
 
     /**

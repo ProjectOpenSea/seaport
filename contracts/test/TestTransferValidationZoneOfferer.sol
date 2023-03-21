@@ -60,6 +60,8 @@ contract TestTransferValidationZoneOfferer is
 
     address internal _expectedOfferRecipient;
 
+    mapping(bytes32 => bytes32) public orderHashToValidateOrderDataHash;
+
     // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient) {
         _expectedOfferRecipient = expectedOfferRecipient;
@@ -99,11 +101,17 @@ contract TestTransferValidationZoneOfferer is
             data := ptr
         }
 
-        // Store the hash of msg.data
-        bytes32 actualDataHash = keccak256(data);
+        // Get the hash of msg.data
+        bytes32 calldataHash = keccak256(data);
+
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        // Store callDataHash in orderHashToValidateOrderDataHash
+        orderHashToValidateOrderDataHash[orderHash] = calldataHash;
 
         // Emit a DataHash event with the hash of msg.data
-        emit ValidateOrderDataHash(actualDataHash);
+        emit ValidateOrderDataHash(calldataHash);
 
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
