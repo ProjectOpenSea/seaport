@@ -10,19 +10,25 @@ import {
     ConsiderationItemSpace
 } from "seaport-sol/StructSpace.sol";
 import {
+    BroadOrderType,
     TokenIndex,
     Amount,
     Recipient,
     Criteria,
     Offerer,
-    Time
+    Time,
+    Zone,
+    ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
+
+import "forge-std/console.sol";
 
 uint256 constant UINT256_MAX = type(uint256).max;
 
@@ -76,6 +82,72 @@ struct GeneratorContext {
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
+}
+
+library TestStateGenerator {
+    using PRNGHelpers for GeneratorContext;
+
+    function generate(
+        uint256 totalOrders,
+        uint256 maxOfferItemsPerOrder,
+        uint256 maxConsiderationItemsPerOrder,
+        GeneratorContext memory context
+    ) internal pure returns (AdvancedOrdersSpace memory) {
+        OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
+            totalOrders
+        );
+        for (uint256 i; i < totalOrders; ++i) {
+            components[i] = OrderComponentsSpace({
+                offerer: Offerer(context.randEnum(1, 1)),
+                zone: Zone(context.randEnum(0, 2)),
+                offer: generateOffer(maxOfferItemsPerOrder, context),
+                consideration: generateConsideration(
+                    maxConsiderationItemsPerOrder,
+                    context
+                ),
+                orderType: BroadOrderType(context.randEnum(0, 2)),
+                time: Time(context.randEnum(0, 4)),
+                zoneHash: ZoneHash(context.randEnum(0, 2))
+            });
+        }
+        return AdvancedOrdersSpace({ orders: components });
+    }
+
+    function generateOffer(
+        uint256 maxOfferItemsPerOrder,
+        GeneratorContext memory context
+    ) internal pure returns (OfferItemSpace[] memory) {
+        uint256 len = context.randRange(0, maxOfferItemsPerOrder);
+        OfferItemSpace[] memory offer = new OfferItemSpace[](len);
+        for (uint256 i; i < len; ++i) {
+            offer[i] = OfferItemSpace({
+                itemType: ItemType(context.randEnum(0, 5)),
+                tokenIndex: TokenIndex(context.randEnum(0, 2)),
+                criteria: Criteria(context.randEnum(0, 2)),
+                amount: Amount(context.randEnum(0, 2))
+            });
+        }
+        return offer;
+    }
+
+    function generateConsideration(
+        uint256 maxConsiderationItemsPerOrder,
+        GeneratorContext memory context
+    ) internal pure returns (ConsiderationItemSpace[] memory) {
+        uint256 len = context.randRange(0, maxConsiderationItemsPerOrder);
+        ConsiderationItemSpace[]
+            memory consideration = new ConsiderationItemSpace[](len);
+        for (uint256 i; i < len; ++i) {
+            consideration[i] = ConsiderationItemSpace({
+                itemType: ItemType(context.randEnum(0, 5)),
+                tokenIndex: TokenIndex(context.randEnum(0, 2)),
+                criteria: Criteria(context.randEnum(0, 2)),
+                amount: Amount(context.randEnum(0, 2)),
+                recipient: Recipient(context.randEnum(0, 4))
+            });
+        }
+        return consideration;
+    }
 }
 
 library AdvancedOrdersSpaceGenerator {
@@ -372,14 +444,15 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item.identifierOrCriteria = context.starting721offerIndex;
+            item = item.withIdentifierOrCriteria(context.starting721offerIndex);
             ++context.starting721offerIndex;
             return item;
         } else if (itemType == ItemType.ERC1155) {
-            item.identifierOrCriteria = context.potential1155TokenIds[
-                context.prng.next() % context.potential1155TokenIds.length
-            ];
-            return item;
+            return item.withIdentifierOrCriteria(
+                context.potential1155TokenIds[
+                    context.prng.next() % context.potential1155TokenIds.length
+                ]
+            );
         }
         revert("CriteriaGenerator: invalid ItemType");
     }
@@ -393,14 +466,13 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item.identifierOrCriteria = context.starting721offerIndex;
+            item = item.withIdentifierOrCriteria(context.starting721offerIndex);
             ++context.starting721offerIndex;
             return item;
         } else if (itemType == ItemType.ERC1155) {
-            item.identifierOrCriteria = context.potential1155TokenIds[
+            return item.withIdentifierOrCriteria(context.potential1155TokenIds[
                 context.prng.next() % context.potential1155TokenIds.length
-            ];
-            return item;
+            ])
         }
         revert("CriteriaGenerator: invalid ItemType");
     }
@@ -420,5 +492,25 @@ library OffererGenerator {
         } else {
             revert("Invalid offerer");
         }
+    }
+}
+
+library PRNGHelpers {
+    using LibPRNG for LibPRNG.PRNG;
+
+    function randEnum(
+        GeneratorContext memory context,
+        uint8 min,
+        uint8 max
+    ) internal pure returns (uint8) {
+        return uint8(bound(context.prng.next(), min, max));
+    }
+
+    function randRange(
+        GeneratorContext memory context,
+        uint256 min,
+        uint256 max
+    ) internal pure returns (uint256) {
+        return bound(context.prng.next(), min, max);
     }
 }

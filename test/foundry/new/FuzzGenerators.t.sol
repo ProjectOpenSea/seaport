@@ -24,18 +24,20 @@ import {
 } from "seaport-sol/SpaceEnums.sol";
 
 import {
+    TestStateGenerator,
     AdvancedOrdersSpaceGenerator,
-    GeneratorContext
+    GeneratorContext,
+    PRNGHelpers
 } from "./helpers/FuzzGenerators.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
+    using PRNGHelpers for GeneratorContext;
 
-    GeneratorContext context;
-
-    function setUp() public virtual override {
-        super.setUp();
-
+    /// @dev Note: the GeneratorContext must be a struct in *memory* in order
+    ///      for the PRNG to work properly, so we can't declare it as a storage
+    ///      variable in setUp. Instead, use this function to create a context.
+    function createContext() internal view returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -43,27 +45,29 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         potential1155TokenIds[1] = 2;
         potential1155TokenIds[2] = 3;
 
-        context = GeneratorContext({
-            prng: prng,
-            timestamp: block.timestamp,
-            erc20s: erc20s,
-            erc721s: erc721s,
-            erc1155s: erc1155s,
-            self: address(this),
-            offerer: offerer1.addr,
-            recipient: address(0), // TODO: read recipient from TestContext
-            alice: offerer1.addr,
-            bob: offerer2.addr,
-            dillon: dillon.addr,
-            eve: eve.addr,
-            frank: frank.addr,
-            starting721offerIndex: 0,
-            starting721considerationIndex: 0,
-            potential1155TokenIds: potential1155TokenIds
-        });
+        return
+            GeneratorContext({
+                prng: prng,
+                timestamp: block.timestamp,
+                erc20s: erc20s,
+                erc721s: erc721s,
+                erc1155s: erc1155s,
+                self: address(this),
+                offerer: offerer1.addr,
+                recipient: address(0), // TODO: read recipient from TestContext
+                alice: offerer1.addr,
+                bob: offerer2.addr,
+                dillon: dillon.addr,
+                eve: eve.addr,
+                frank: frank.addr,
+                starting721offerIndex: 0,
+                starting721considerationIndex: 0,
+                potential1155TokenIds: potential1155TokenIds
+            });
     }
 
     function test_emptySpace() public {
+        GeneratorContext memory context = createContext();
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: new OrderComponentsSpace[](0)
         });
@@ -75,6 +79,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_emptyOfferConsideration() public {
+        GeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](0);
@@ -107,6 +112,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_singleOffer_emptyConsideration() public {
+        GeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](1);
         offer[0] = OfferItemSpace({
             itemType: ItemType.ERC20,
@@ -155,6 +161,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_emptyOffer_singleConsideration() public {
+        GeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](1);
@@ -208,7 +215,118 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         );
     }
 
+    function test_stateGenerator() public {
+        GeneratorContext memory context = createContext();
+        AdvancedOrdersSpace memory space = TestStateGenerator.generate(
+            3, // total orders
+            10, // max offer items/order
+            5, // max consideration items/order
+            context
+        );
+
+        // Note: the following values are all based on PRNG seed uint256(0)
+        assertEq(space.orders.length, 3);
+
+        assertEq(space.orders[0].offerer, 1);
+        assertEq(space.orders[0].zone, 1);
+
+        assertEq(space.orders[0].offer.length, 8);
+        assertEq(space.orders[0].offer[0].itemType, 1);
+        assertEq(space.orders[0].offer[0].tokenIndex, 2);
+        assertEq(space.orders[0].offer[0].criteria, 1);
+        assertEq(space.orders[0].offer[0].amount, 2);
+
+        assertEq(space.orders[0].offer[1].itemType, 2);
+        assertEq(space.orders[0].offer[1].tokenIndex, 1);
+        assertEq(space.orders[0].offer[1].criteria, 1);
+        assertEq(space.orders[0].offer[1].amount, 2);
+
+        assertEq(space.orders[0].offer[2].itemType, 3);
+        assertEq(space.orders[0].offer[2].tokenIndex, 0);
+        assertEq(space.orders[0].offer[2].criteria, 1);
+        assertEq(space.orders[0].offer[2].amount, 2);
+
+        assertEq(space.orders[0].consideration.length, 3);
+        assertEq(space.orders[0].consideration[0].itemType, 2);
+        assertEq(space.orders[0].consideration[0].tokenIndex, 0);
+        assertEq(space.orders[0].consideration[0].criteria, 2);
+        assertEq(space.orders[0].consideration[0].amount, 2);
+        assertEq(space.orders[0].consideration[0].recipient, 4);
+
+        assertEq(space.orders[0].consideration[1].itemType, 3);
+        assertEq(space.orders[0].consideration[1].tokenIndex, 2);
+        assertEq(space.orders[0].consideration[1].criteria, 2);
+        assertEq(space.orders[0].consideration[1].amount, 2);
+        assertEq(space.orders[0].consideration[1].recipient, 0);
+
+        assertEq(space.orders[0].consideration[2].itemType, 4);
+        assertEq(space.orders[0].consideration[2].tokenIndex, 2);
+        assertEq(space.orders[0].consideration[2].criteria, 1);
+        assertEq(space.orders[0].consideration[2].amount, 0);
+        assertEq(space.orders[0].consideration[2].recipient, 2);
+
+        assertEq(space.orders[0].orderType, 1);
+        assertEq(space.orders[0].time, 0);
+        assertEq(space.orders[0].zoneHash, 2);
+
+        assertEq(space.orders[1].offerer, 1);
+        assertEq(space.orders[1].zone, 0);
+        assertEq(space.orders[1].offer.length, 1);
+        assertEq(space.orders[1].consideration.length, 1);
+        assertEq(space.orders[1].orderType, 0);
+        assertEq(space.orders[1].time, 2);
+        assertEq(space.orders[1].zoneHash, 2);
+
+        assertEq(space.orders[2].offerer, 1);
+        assertEq(space.orders[2].zone, 1);
+        assertEq(space.orders[2].offer.length, 0);
+        assertEq(space.orders[2].consideration.length, 1);
+        assertEq(space.orders[2].orderType, 0);
+        assertEq(space.orders[2].time, 3);
+        assertEq(space.orders[2].zoneHash, 2);
+    }
+
     function assertEq(ItemType a, ItemType b) internal {
         assertEq(uint8(a), uint8(b));
+    }
+
+    function assertEq(ItemType a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Offerer a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Zone a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(BroadOrderType a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Time a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(ZoneHash a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(TokenIndex a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Criteria a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Amount a, uint8 b) internal {
+        assertEq(uint8(a), b);
+    }
+
+    function assertEq(Recipient a, uint8 b) internal {
+        assertEq(uint8(a), b);
     }
 }
