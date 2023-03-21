@@ -55,9 +55,14 @@ library FuzzEngineLib {
             AdvancedOrder memory order = context.orders[0];
             Structure structure = order.getStructure();
             if (structure == Structure.STANDARD) {
-                bytes4[] memory selectors = new bytes4[](2);
+                bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
+                selectors[2] = context.seaport.fulfillBasicOrder.selector;
+                selectors[3] = context
+                    .seaport
+                    .fulfillBasicOrder_efficient_6GL6yc
+                    .selector;
                 return selectors;
             }
             if (structure == Structure.ADVANCED) {
@@ -146,6 +151,19 @@ contract FuzzEngine is FuzzChecks, BaseOrderTest {
                     context.fulfillerConduitKey,
                     context.recipient
                 );
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
+                context.basicOrderParameters
+            );
+        } else if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            context.returnValues.fulfilled = context
+                .seaport
+                .fulfillBasicOrder_efficient_6GL6yc(
+                    context.basicOrderParameters
+                );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             (
                 bool[] memory availableOrders,
@@ -175,6 +193,12 @@ contract FuzzEngine is FuzzChecks, BaseOrderTest {
                     context.maximumFulfilled
                 );
             context.returnValues.availableOrders = availableOrders;
+            context.returnValues.executions = executions;
+        } else if (_action == context.seaport.matchOrders.selector) {
+            Execution[] memory executions = context.seaport.matchOrders(
+                context.orders.toOrders(),
+                context.fulfillments
+            );
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
