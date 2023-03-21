@@ -668,18 +668,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     ) external stateless {
         // The idea here is to fulfill one, skinny through a second using the
         // collision trick, and then see what happens on the third.
-
-        string memory stranger = "stranger";
-        address strangerAddress = makeAddr(stranger);
         uint256 strangerAddressUint = uint256(
-            uint160(address(strangerAddress))
+            uint160(address(makeAddr("stranger")))
         );
 
         // Make sure the fulfiller has enough to cover the consideration.
         token1.mint(address(this), strangerAddressUint * 3);
 
         // Make the stranger rich enough that the balance check passes.
-        token1.mint(strangerAddress, strangerAddressUint);
+        token1.mint(address(makeAddr("stranger")), strangerAddressUint);
 
         // This instance of the zone expects offerer1 to be the recipient of all
         // spent items (the ERC721s). This permits bypassing the ERC721 transfer
@@ -696,6 +693,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         AdvancedOrder[] memory advancedOrders;
         OfferItem[] memory offerItems;
         ConsiderationItem[] memory considerationItems;
+        FulfillmentComponent[][] memory offerFulfillments;
+        FulfillmentComponent[][] memory considerationFulfillments;
 
         // Create a block to deal with stack depth issues.
         {
@@ -791,22 +790,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, ""),
                 orders[2].toAdvancedOrder(1, 1, "")
             );
-        }
 
-        (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
+            (offerFulfillments, considerationFulfillments) = fulfill
+                .getAggregatedFulfillmentComponents(advancedOrders);
+        }
 
         {
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
-                .getZoneParameters(
-                    address(this),
-                    0,
-                    advancedOrders.length - 2,
-                    context.seaport
-                );
+                .getZoneParameters(address(this), 0, 1, context.seaport);
 
             bytes32[]
                 memory payloadHashes = _generateZoneValidateOrderDataHashes(
@@ -835,10 +827,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
             Context({ seaport: consideration })
         );
-        // test(
-        //     this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
-        //     Context({ seaport: referenceConsideration })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
