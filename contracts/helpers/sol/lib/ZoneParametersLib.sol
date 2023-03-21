@@ -40,8 +40,9 @@ library ZoneParametersLib {
         AdvancedOrder memory advancedOrder,
         address fulfiller,
         uint256 counter,
-        SeaportInterface seaport
+        address seaport
     ) internal view returns (ZoneParameters memory zoneParameters) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
         // Get orderParameters from advancedOrder
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
@@ -61,7 +62,7 @@ library ZoneParametersLib {
         });
 
         // Get orderHash from orderComponents
-        bytes32 orderHash = seaport.getOrderHash(orderComponents);
+        bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
 
         // Create spentItems array
         SpentItem[] memory spentItems = new SpentItem[](
@@ -108,8 +109,10 @@ library ZoneParametersLib {
         AdvancedOrder[] memory advancedOrders,
         address fulfiller,
         uint256 counter,
-        SeaportInterface seaport
+        address seaport
     ) internal view returns (ZoneParameters[] memory zoneParameters) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
         bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
 
         // Iterate over advanced orders to calculate orderHashes
@@ -134,7 +137,7 @@ library ZoneParametersLib {
             });
 
             // Get orderHash from orderComponents
-            bytes32 orderHash = seaport.getOrderHash(orderComponents);
+            bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
 
             // Add orderHash to orderHashes
             orderHashes[i] = orderHash;

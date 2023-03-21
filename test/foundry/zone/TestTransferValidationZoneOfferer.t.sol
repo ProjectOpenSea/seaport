@@ -596,7 +596,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
 
         ZoneParameters[] memory zoneParameters = advancedOrders
-            .getZoneParameters(address(this), offerer1Counter, context.seaport);
+            .getZoneParameters(
+                address(this),
+                offerer1Counter,
+                address(context.seaport)
+            );
 
         bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
         for (uint256 i = 0; i < zoneParameters.length; i++) {

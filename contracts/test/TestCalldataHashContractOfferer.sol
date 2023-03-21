@@ -138,43 +138,45 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        (bool success, bytes memory returnData) = payable(_SEAPORT).call{
-            value: address(this).balance
-        }("");
+        {
+            (bool success, bytes memory returnData) = payable(_SEAPORT).call{
+                value: address(this).balance
+            }("");
 
-        if (!success) {
-            revert NativeTokenTransferFailed();
+            if (!success) {
+                revert NativeTokenTransferFailed();
+            }
+
+            // Get the length of msg.data
+            uint256 dataLength = msg.data.length;
+
+            // Create a variable to store msg.data in memory
+            bytes memory data;
+
+            // Copy msg.data to memory
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(add(ptr, 0x20), 0, dataLength)
+                mstore(ptr, dataLength)
+                data := ptr
+            }
+
+            bytes32 calldataHash = keccak256(data);
+
+            uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+                .getContractOffererNonce(address(this));
+
+            bytes32 orderHash = bytes32(
+                abi.encodePacked(
+                    (uint160(address(this)) + uint96(contractOffererNonce))
+                )
+            ) >> 0;
+
+            // Store the hash of msg.data
+            orderHashToGenerateOrderDataHash[orderHash] = calldataHash;
+
+            emit GenerateOrderDataHash(calldataHash);
         }
-
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
-
-        // Create a variable to store msg.data in memory
-        bytes memory data;
-
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
-        }
-
-        bytes32 calldataHash = keccak256(data);
-
-        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
-            .getContractOffererNonce(address(this));
-
-        bytes32 orderHash = bytes32(
-            abi.encodePacked(
-                (uint160(address(this)) + uint96(contractOffererNonce))
-            )
-        ) >> 0;
-
-        // Store the hash of msg.data
-        orderHashToGenerateOrderDataHash[orderHash] = calldataHash;
-
-        emit GenerateOrderDataHash(calldataHash);
 
         return previewOrder(address(this), address(this), a, b, c);
     }
@@ -220,48 +222,47 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
         // Ratify the order.
+        {
+            // Get the length of msg.data
+            uint256 dataLength = msg.data.length;
 
-        // Get the length of msg.data
-        uint256 dataLength = msg.data.length;
+            // Create a variable to store msg.data in memory
+            bytes memory data;
 
-        // Create a variable to store msg.data in memory
-        bytes memory data;
+            // Copy msg.data to memory
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(add(ptr, 0x20), 0, dataLength)
+                mstore(ptr, dataLength)
+                data := ptr
+            }
 
-        // Copy msg.data to memory
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(add(ptr, 0x20), 0, dataLength)
-            mstore(ptr, dataLength)
-            data := ptr
+            bytes32 calldataHash = keccak256(data);
+
+            uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+                .getContractOffererNonce(address(this));
+
+            bytes32 orderHash = bytes32(
+                abi.encodePacked(
+                    (uint160(address(this)) + uint96(contractOffererNonce))
+                )
+            ) >> 0;
+
+            // Store the hash of msg.data
+            orderHashToRatifyOrderDataHash[orderHash] = calldataHash;
+
+            emit RatifyOrderDataHash(calldataHash);
+            // Check if Seaport is empty. This makes sure that we've transferred
+            // all native token balance out of Seaport before we do the validation.
+            uint256 seaportBalance = address(msg.sender).balance;
+
+            if (seaportBalance > 0) {
+                revert IncorrectSeaportBalance(0, seaportBalance);
+            }
+            // Ensure that the offerer or recipient has received all consideration
+            // items.
+            _assertValidReceivedItems(maximumSpent);
         }
-
-        bytes32 calldataHash = keccak256(data);
-
-        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
-            .getContractOffererNonce(address(this));
-
-        bytes32 orderHash = bytes32(
-            abi.encodePacked(
-                (uint160(address(this)) + uint96(contractOffererNonce))
-            )
-        ) >> 0;
-
-        // Store the hash of msg.data
-        orderHashToRatifyOrderDataHash[orderHash] = calldataHash;
-
-        emit RatifyOrderDataHash(calldataHash);
-
-        // Check if Seaport is empty. This makes sure that we've transferred
-        // all native token balance out of Seaport before we do the validation.
-        uint256 seaportBalance = address(msg.sender).balance;
-
-        if (seaportBalance > 0) {
-            revert IncorrectSeaportBalance(0, seaportBalance);
-        }
-
-        // Ensure that the offerer or recipient has received all consideration
-        // items.
-        _assertValidReceivedItems(maximumSpent);
 
         // It's necessary to pass in either an expected offerer or an address
         // in the context.  If neither is provided, this ternary will revert
