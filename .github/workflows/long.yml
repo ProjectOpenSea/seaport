@@ -1,0 +1,19 @@
+name: Long test
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  fuzz:
+    name: Run Forge Tests (via_ir = true; fuzz_runs = 100_000)
+    runs-on: large-runner
+    timeout-minutes: 420
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      # Sleep for 8hr, expect it to get cut off at hr 7
+      - name: Run tests
+        run: sleep 28800
