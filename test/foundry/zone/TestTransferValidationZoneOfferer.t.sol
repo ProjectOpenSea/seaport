@@ -624,18 +624,18 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             payloadHashes[i] = keccak256(
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
             );
-
-            // Make the call to Seaport.
-            context.seaport.fulfillAvailableAdvancedOrders({
-                advancedOrders: advancedOrders,
-                criteriaResolvers: new CriteriaResolver[](0),
-                offerFulfillments: offerFulfillments,
-                considerationFulfillments: considerationFulfillments,
-                fulfillerConduitKey: bytes32(conduitKeyOne),
-                recipient: address(offerer1.addr),
-                maximumFulfilled: advancedOrders.length
-            });
         }
+
+        // Make the call to Seaport.
+        context.seaport.fulfillAvailableAdvancedOrders({
+            advancedOrders: advancedOrders,
+            criteriaResolvers: new CriteriaResolver[](0),
+            offerFulfillments: offerFulfillments,
+            considerationFulfillments: considerationFulfillments,
+            fulfillerConduitKey: bytes32(conduitKeyOne),
+            recipient: address(offerer1.addr),
+            maximumFulfilled: advancedOrders.length
+        });
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
@@ -1823,7 +1823,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     {
         // Create contract offerer
         TestCalldataHashContractOfferer transferValidationOfferer1 = new TestCalldataHashContractOfferer(
-                offerer1.addr
+                address(context.seaport)
             );
 
         vm.label(address(transferValidationOfferer1), "contractOfferer");
