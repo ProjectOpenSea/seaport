@@ -6,6 +6,10 @@ import { TestContext } from "./TestContextLib.sol";
 import { Test } from "forge-std/Test.sol";
 
 abstract contract FuzzChecks is Test {
+    function check_orderFulfilled(TestContext memory context) public {
+        assertEq(context.returnValues.fulfilled, true);
+    }
+
     function check_orderValidated(TestContext memory context) public {
         assertEq(context.returnValues.validated, true);
     }
