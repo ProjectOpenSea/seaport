@@ -587,8 +587,9 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             FulfillmentComponent[][] memory considerationComponents
         ) = getNaiveFulfillmentComponents(advancedOrders);
 
-        bytes4[] memory checks = new bytes4[](1);
+        bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_allOrdersFilled.selector;
+        checks[1] = this.check_executionsPresent.selector;
 
         TestContext memory context = TestContextLib
             .from({
@@ -601,6 +602,108 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .withOfferFulfillments(offerComponents)
             .withConsiderationFulfillments(considerationComponents)
             .withMaximumFulfilled(2);
+
+        run(context);
+    }
+
+    /// @dev Call run for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.matchAdvancedOrders.
+    function test_exec_Combined_matchAdvancedOrders() public {
+        OfferItem[] memory offerItemsPrime = new OfferItem[](1);
+        OfferItem[] memory offerItemsMirror = new OfferItem[](1);
+        ConsiderationItem[]
+            memory considerationItemsPrime = new ConsiderationItem[](1);
+        ConsiderationItem[]
+            memory considerationItemsMirror = new ConsiderationItem[](1);
+        {
+            // Offer ERC20
+            OfferItem memory offerItemPrime = OfferItemLib
+                .empty()
+                .withItemType(ItemType.ERC20)
+                .withToken(address(erc20s[0]))
+                .withStartAmount(1)
+                .withEndAmount(1);
+            offerItemsPrime[0] = offerItemPrime;
+
+            // Consider single ERC721 to offerer1
+            erc721s[0].mint(offerer2.addr, 1);
+            ConsiderationItem
+                memory considerationItemPrime = ConsiderationItemLib
+                    .empty()
+                    .withRecipient(offerer1.addr)
+                    .withItemType(ItemType.ERC721)
+                    .withToken(address(erc721s[0]))
+                    .withIdentifierOrCriteria(1)
+                    .withAmount(1);
+            considerationItemsPrime[0] = considerationItemPrime;
+
+            offerItemsMirror[0] = considerationItemsPrime[0].toOfferItem();
+
+            considerationItemsMirror[0] = offerItemsPrime[0]
+                .toConsiderationItem(offerer2.addr);
+        }
+
+        OrderComponents memory orderComponentsPrime = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItemsPrime)
+            .withConsideration(considerationItemsPrime);
+
+        OrderComponents memory orderComponentsMirror = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer2.addr)
+            .withOffer(offerItemsMirror)
+            .withConsideration(considerationItemsMirror);
+
+        Order memory orderPrime = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponentsPrime.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer1.key,
+                    seaport.getOrderHash(orderComponentsPrime)
+                )
+            );
+
+        Order memory orderMirror = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponentsMirror.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer2.key,
+                    seaport.getOrderHash(orderComponentsMirror)
+                )
+            );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = orderPrime.toAdvancedOrder({
+            numerator: 1,
+            denominator: 1,
+            extraData: bytes("")
+        });
+        advancedOrders[1] = orderMirror.toAdvancedOrder({
+            numerator: 1,
+            denominator: 1,
+            extraData: bytes("")
+        });
+
+        (Fulfillment[] memory fulfillments, , ) = matcher
+            .getMatchedFulfillments(advancedOrders);
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_executionsPresent.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: advancedOrders,
+                seaport: seaport,
+                caller: offerer1.addr,
+                fuzzParams: FuzzParams({ seed: 3 })
+            })
+            .withChecks(checks)
+            .withFulfillments(fulfillments);
 
         run(context);
     }

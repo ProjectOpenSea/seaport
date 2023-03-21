@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { OfferItem, SpentItem } from "../../../lib/ConsiderationStructs.sol";
+import {
+    ConsiderationItem,
+    OfferItem,
+    SpentItem
+} from "../../../lib/ConsiderationStructs.sol";
 
 import { ItemType } from "../../../lib/ConsiderationEnums.sol";
 
@@ -362,5 +366,27 @@ library OfferItemLib {
         }
 
         return spentItems;
+    }
+
+    /**
+     * @dev Converts an OfferItem to a ConsiderationItem.
+     *
+     * @param item the OfferItem to convert
+     *
+     * @custom:return considerationItem the converted ConsiderationItem
+     */
+    function toConsiderationItem(
+        OfferItem memory item,
+        address recipient
+    ) internal pure returns (ConsiderationItem memory) {
+        return
+            ConsiderationItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifierOrCriteria: item.identifierOrCriteria,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                recipient: payable(recipient)
+            });
     }
 }
