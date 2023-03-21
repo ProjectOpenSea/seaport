@@ -297,14 +297,17 @@ library OrderLib {
      * @param denominator the denominator to set for all
      * @param extraData the extra data to set for all
      *
-     * @return advancedOrders the AdvancedOrders
+     * @return _advancedOrders the AdvancedOrders
      */
     function toAdvancedOrders(
         Order[] memory orders,
         uint120 numerator,
         uint120 denominator,
         bytes memory extraData
-    ) internal pure returns (AdvancedOrder[] memory advancedOrders) {
+    ) internal pure returns (AdvancedOrder[] memory _advancedOrders) {
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
+            orders.length
+        );
         for (uint256 i = 0; i < orders.length; i++) {
             advancedOrders[i] = toAdvancedOrder(
                 orders[i],
@@ -313,32 +316,6 @@ library OrderLib {
                 extraData
             );
         }
-    }
-
-    /**
-     * @dev Converts an Order to an AdvancedOrders array.
-     *
-     * @param order the Order to convert
-     * @param numerator the numerator to set for all
-     * @param denominator the denominator to set for all
-     * @param extraData the extra data to set for all
-     *
-     * @return advancedOrders the AdvancedOrders
-     */
-    function toAdvancedOrders(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator,
-        bytes memory extraData
-    ) internal pure returns (AdvancedOrder[] memory) {
-        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
-        advancedOrders[0] = toAdvancedOrder(
-            order,
-            numerator,
-            denominator,
-            extraData
-        );
-
         return advancedOrders;
     }
 
@@ -373,10 +350,7 @@ library OrderLib {
             .parameters
             .offer[0]
             .identifierOrCriteria;
-        basicOrderParameters.offerAmount = order
-            .parameters
-            .offer[0]
-            .endAmount;
+        basicOrderParameters.offerAmount = order.parameters.offer[0].endAmount;
         basicOrderParameters.basicOrderType = basicOrderType;
         basicOrderParameters.startTime = order.parameters.startTime;
         basicOrderParameters.endTime = order.parameters.endTime;
