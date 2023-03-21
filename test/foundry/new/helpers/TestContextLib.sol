@@ -55,9 +55,11 @@ struct TestContext {
     bytes32[] expectedZoneCalldataHash;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
+    Fulfillment[] fulfillments;
     FulfillmentComponent[][] offerFulfillments;
     FulfillmentComponent[][] considerationFulfillments;
     uint256 maximumFulfilled;
+    BasicOrderParameters basicOrderParameters;
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
@@ -82,6 +84,7 @@ struct TestContext {
 library TestContextLib {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using BasicOrderParametersLib for BasicOrderParameters;
 
     /**
      * @dev Create an empty TestContext.
@@ -101,9 +104,11 @@ library TestContextLib {
                 expectedZoneCalldataHash: new bytes32[](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                fulfillments: new Fulfillment[](0),
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
+                basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: new AdvancedOrder[](0),
                 expectedResults: new Result[](0),
                 returnValues: ReturnValues({
@@ -143,9 +148,11 @@ library TestContextLib {
                 expectedZoneCalldataHash: new bytes32[](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
+                fulfillments: new Fulfillment[](0),
                 offerFulfillments: new FulfillmentComponent[][](0),
                 considerationFulfillments: new FulfillmentComponent[][](0),
                 maximumFulfilled: 0,
+                basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: orders.copy(),
                 expectedResults: new Result[](0),
                 returnValues: ReturnValues({
@@ -303,6 +310,22 @@ library TestContextLib {
     }
 
     /**
+     * @dev Sets the fulfillments on a TestContext
+     *
+     * @param context the TestContext to set the fulfillments of
+     * @param fulfillments the offerFulfillments value to set
+     *
+     * @return _context the TestContext with the fulfillments set
+     */
+    function withFulfillments(
+        TestContext memory context,
+        Fulfillment[] memory fulfillments
+    ) internal pure returns (TestContext memory) {
+        context.fulfillments = fulfillments;
+        return context;
+    }
+
+    /**
      * @dev Sets the offerFulfillments on a TestContext
      *
      * @param context the TestContext to set the offerFulfillments of
@@ -351,6 +374,22 @@ library TestContextLib {
         uint256 maximumFulfilled
     ) internal pure returns (TestContext memory) {
         context.maximumFulfilled = maximumFulfilled;
+        return context;
+    }
+
+    /**
+     * @dev Sets the basicOrderParameters on a TestContext
+     *
+     * @param context the TestContext to set the fulfillments of
+     * @param basicOrderParameters the offerFulfillments value to set
+     *
+     * @return _context the TestContext with the fulfillments set
+     */
+    function withBasicOrderParameters(
+        TestContext memory context,
+        BasicOrderParameters memory basicOrderParameters
+    ) internal pure returns (TestContext memory) {
+        context.basicOrderParameters = basicOrderParameters;
         return context;
     }
 

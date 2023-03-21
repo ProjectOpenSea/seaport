@@ -3,8 +3,9 @@ pragma solidity ^0.8.17;
 
 import {
     ConsiderationItem,
-    SpentItem,
-    ReceivedItem
+    OfferItem,
+    ReceivedItem,
+    SpentItem
 } from "../../../lib/ConsiderationStructs.sol";
 
 import { ItemType } from "../../../lib/ConsiderationEnums.sol";
@@ -426,5 +427,18 @@ library ConsiderationItemLib {
             spentItems[i] = toSpentItem(items[i]);
         }
         return spentItems;
+    }
+
+    function toOfferItem(
+        ConsiderationItem memory item
+    ) internal pure returns (OfferItem memory) {
+        return
+            OfferItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifierOrCriteria: item.identifierOrCriteria,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount
+            });
     }
 }

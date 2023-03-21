@@ -2,13 +2,17 @@
 pragma solidity ^0.8.17;
 
 import {
+    AdditionalRecipient,
     AdvancedOrder,
+    BasicOrderParameters,
     ConsiderationItem,
     OfferItem,
     Order,
     OrderParameters,
     OrderType
 } from "../../../lib/ConsiderationStructs.sol";
+
+import { BasicOrderType } from "../../../lib/ConsiderationEnums.sol";
 
 import { OrderParametersLib } from "./OrderParametersLib.sol";
 
@@ -364,5 +368,81 @@ library AdvancedOrderLib {
             orders[i] = toOrder(advancedOrders[i]);
         }
         return orders;
+    }
+
+    /**
+     * @dev Converts an AdvancedOrder to a BasicOrderParameters.
+     *
+     * @param advancedOrder  the AdvancedOrder to convert
+     * @param basicOrderType the BasicOrderType to convert to
+     *
+     * @return basicOrderParameters the BasicOrderParameters
+     */
+    function toBasicOrderParameters(
+        AdvancedOrder memory advancedOrder,
+        BasicOrderType basicOrderType
+    ) internal pure returns (BasicOrderParameters memory basicOrderParameters) {
+        basicOrderParameters.considerationToken = advancedOrder
+            .parameters
+            .consideration[0]
+            .token;
+        basicOrderParameters.considerationIdentifier = advancedOrder
+            .parameters
+            .consideration[0]
+            .identifierOrCriteria;
+        basicOrderParameters.considerationAmount = advancedOrder
+            .parameters
+            .consideration[0]
+            .endAmount;
+        basicOrderParameters.offerer = payable(
+            advancedOrder.parameters.offerer
+        );
+        basicOrderParameters.zone = advancedOrder.parameters.zone;
+        basicOrderParameters.offerToken = advancedOrder
+            .parameters
+            .offer[0]
+            .token;
+        basicOrderParameters.offerIdentifier = advancedOrder
+            .parameters
+            .offer[0]
+            .identifierOrCriteria;
+        basicOrderParameters.offerAmount = advancedOrder
+            .parameters
+            .offer[0]
+            .endAmount;
+        basicOrderParameters.basicOrderType = basicOrderType;
+        basicOrderParameters.startTime = advancedOrder.parameters.startTime;
+        basicOrderParameters.endTime = advancedOrder.parameters.endTime;
+        basicOrderParameters.zoneHash = advancedOrder.parameters.zoneHash;
+        basicOrderParameters.salt = advancedOrder.parameters.salt;
+        basicOrderParameters.offererConduitKey = advancedOrder
+            .parameters
+            .conduitKey;
+        basicOrderParameters.fulfillerConduitKey = advancedOrder
+            .parameters
+            .conduitKey;
+        basicOrderParameters.totalOriginalAdditionalRecipients =
+            advancedOrder.parameters.totalOriginalConsiderationItems -
+            1;
+
+        AdditionalRecipient[]
+            memory additionalRecipients = new AdditionalRecipient[](
+                advancedOrder.parameters.consideration.length - 1
+            );
+        for (
+            uint256 i = 1;
+            i < advancedOrder.parameters.consideration.length;
+            i++
+        ) {
+            additionalRecipients[i - 1] = AdditionalRecipient({
+                recipient: advancedOrder.parameters.consideration[i].recipient,
+                amount: advancedOrder.parameters.consideration[i].startAmount
+            });
+        }
+
+        basicOrderParameters.additionalRecipients = additionalRecipients;
+        basicOrderParameters.signature = advancedOrder.signature;
+
+        return basicOrderParameters;
     }
 }

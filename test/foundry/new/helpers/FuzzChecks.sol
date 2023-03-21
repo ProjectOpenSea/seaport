@@ -16,6 +16,10 @@ abstract contract FuzzChecks is Test {
 
     address payable testZone;
 
+    function check_orderFulfilled(TestContext memory context) public {
+        assertEq(context.returnValues.fulfilled, true);
+    }
+
     function check_orderValidated(TestContext memory context) public {
         assertEq(context.returnValues.validated, true);
     }
@@ -66,6 +70,10 @@ abstract contract FuzzChecks is Test {
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
         }
+    }
+
+    function check_executionsPresent(TestContext memory context) public {
+        assertTrue(context.returnValues.executions.length > 0);
     }
 }
 

@@ -88,9 +88,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     string constant VALIDATION_ZONE = "validation zone";
     string constant CONTRACT_ORDER = "contract order";
 
-    event TestPayloadHash(bytes32 dataHash);
-
-    event DataHash(bytes32 dataHash);
+    event ValidateOrderDataHash(bytes32 dataHash);
     event GenerateOrderDataHash(bytes32 dataHash);
     event RatifyOrderDataHash(bytes32 dataHash);
 
@@ -466,6 +464,24 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
+        {
+            uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
+
+            // Get the zone parameters.
+            ZoneParameters[] memory zoneParameters = advancedOrders
+                .getZoneParameters(
+                    address(this),
+                    offerer1Counter,
+                    advancedOrders.length - 1,
+                    context.seaport
+                );
+
+            bytes32[]
+                memory payloadHashes = _generateZoneValidateOrderDataHashes(
+                    zoneParameters
+                );
+        }
+
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
@@ -607,21 +623,18 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             payloadHashes[i] = keccak256(
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
             );
-            emit TestPayloadHash(payloadHashes[i]);
-            vm.expectEmit(true, false, false, true);
-            emit DataHash(payloadHashes[i]);
-        }
 
-        // Make the call to Seaport.
-        context.seaport.fulfillAvailableAdvancedOrders({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            offerFulfillments: offerFulfillments,
-            considerationFulfillments: considerationFulfillments,
-            fulfillerConduitKey: bytes32(conduitKeyOne),
-            recipient: address(offerer1.addr),
-            maximumFulfilled: advancedOrders.length
-        });
+            // Make the call to Seaport.
+            context.seaport.fulfillAvailableAdvancedOrders({
+                advancedOrders: advancedOrders,
+                criteriaResolvers: new CriteriaResolver[](0),
+                offerFulfillments: offerFulfillments,
+                considerationFulfillments: considerationFulfillments,
+                fulfillerConduitKey: bytes32(conduitKeyOne),
+                recipient: address(offerer1.addr),
+                maximumFulfilled: advancedOrders.length
+            });
+        }
     }
 
     function testExecFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
@@ -633,11 +646,11 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
             Context({ seaport: consideration })
         );
-        // test(
-        //     this
-        //         .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
-        //     Context({ seaport: referenceConsideration })
-        // );
+        test(
+            this
+                .execFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitAndERC20SkipMultiple()
@@ -653,18 +666,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     ) external stateless {
         // The idea here is to fulfill one, skinny through a second using the
         // collision trick, and then see what happens on the third.
-
-        string memory stranger = "stranger";
-        address strangerAddress = makeAddr(stranger);
         uint256 strangerAddressUint = uint256(
-            uint160(address(strangerAddress))
+            uint160(address(makeAddr("stranger")))
         );
 
         // Make sure the fulfiller has enough to cover the consideration.
         token1.mint(address(this), strangerAddressUint * 3);
 
         // Make the stranger rich enough that the balance check passes.
-        token1.mint(strangerAddress, strangerAddressUint);
+        token1.mint(address(makeAddr("stranger")), strangerAddressUint);
 
         // This instance of the zone expects offerer1 to be the recipient of all
         // spent items (the ERC721s). This permits bypassing the ERC721 transfer
@@ -681,6 +691,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         AdvancedOrder[] memory advancedOrders;
         OfferItem[] memory offerItems;
         ConsiderationItem[] memory considerationItems;
+        FulfillmentComponent[][] memory offerFulfillments;
+        FulfillmentComponent[][] memory considerationFulfillments;
 
         // Create a block to deal with stack depth issues.
         {
@@ -776,20 +788,26 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[1].toAdvancedOrder(1, 1, ""),
                 orders[2].toAdvancedOrder(1, 1, "")
             );
+
+            (offerFulfillments, considerationFulfillments) = fulfill
+                .getAggregatedFulfillmentComponents(advancedOrders);
         }
 
-        (
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
-        ) = fulfill.getAggregatedFulfillmentComponents(advancedOrders);
+        {
+            // Get the zone parameters.
+            ZoneParameters[] memory zoneParameters = advancedOrders
+                .getZoneParameters(address(this), 0, 1, context.seaport);
 
-        // Create the empty criteria resolvers.
-        CriteriaResolver[] memory criteriaResolvers;
+            bytes32[]
+                memory payloadHashes = _generateZoneValidateOrderDataHashes(
+                    zoneParameters
+                );
+        }
 
         // Should not revert.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
+            criteriaResolvers: new CriteriaResolver[](0),
             offerFulfillments: offerFulfillments,
             considerationFulfillments: considerationFulfillments,
             fulfillerConduitKey: bytes32(conduitKeyOne),
@@ -807,10 +825,10 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
             Context({ seaport: consideration })
         );
-        // test(
-        //     this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
-        //     Context({ seaport: referenceConsideration })
-        // );
+        test(
+            this.execFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20,
+            Context({ seaport: referenceConsideration })
+        );
     }
 
     function prepareFulfillAvailableAdvancedOrdersWithConduitNativeAndERC20()
@@ -907,6 +925,19 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
 
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
+
+        // Get the zone parameters.
+        ZoneParameters[] memory zoneParameters = advancedOrders
+            .getZoneParameters(
+                address(this),
+                0,
+                advancedOrders.length,
+                context.seaport
+            );
+
+        bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
+            zoneParameters
+        );
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
@@ -1755,6 +1786,27 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
 
         return orderDataHashes;
+    }
+
+    function _generateZoneValidateOrderDataHashes(
+        ZoneParameters[] memory zoneParameters
+    ) internal returns (bytes32[] memory) {
+        // Create bytes32[] to hold the hashes.
+        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+
+        // Iterate over each ZoneParameters to generate the hash.
+        for (uint256 i = 0; i < zoneParameters.length; i++) {
+            // Generate the hash.
+            payloadHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+
+            // Expect the hash to be emitted in the call to Seaport
+            vm.expectEmit(true, false, false, true);
+
+            // Emit the expected event with the expected hash.
+            emit ValidateOrderDataHash(payloadHashes[i]);
+        }
     }
 
     function _buildFulfillmentDataOpenOrderAndMirrorContractOrder(

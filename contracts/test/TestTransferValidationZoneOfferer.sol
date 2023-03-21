@@ -54,7 +54,7 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
-    event DataHash(bytes32 dataHash);
+    event ValidateOrderDataHash(bytes32 dataHash);
 
     receive() external payable {}
 
@@ -111,7 +111,7 @@ contract TestTransferValidationZoneOfferer is
         orderHashToValidateOrderDataHash[orderHash] = calldataHash;
 
         // Emit a DataHash event with the hash of msg.data
-        emit DataHash(calldataHash);
+        emit ValidateOrderDataHash(calldataHash);
 
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.

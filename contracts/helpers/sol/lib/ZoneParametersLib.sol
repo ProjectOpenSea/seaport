@@ -109,6 +109,7 @@ library ZoneParametersLib {
         AdvancedOrder[] memory advancedOrders,
         address fulfiller,
         uint256 counter,
+        uint256 maximumFulfilled,
         address seaport
     ) internal view returns (ZoneParameters[] memory zoneParameters) {
         SeaportInterface seaportInterface = SeaportInterface(seaport);
@@ -136,17 +137,27 @@ library ZoneParametersLib {
                 counter: counter
             });
 
-            // Get orderHash from orderComponents
-            bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
+            if (i >= maximumFulfilled) {
+                // Set orderHash to 0 if order index exceeds maximumFulfilled
+                orderHashes[i] = bytes32(0);
+            } else {
+                // Get orderHash from orderComponents
+                bytes32 orderHash = seaportInterface.getOrderHash(
+                    orderComponents
+                );
 
-            // Add orderHash to orderHashes
-            orderHashes[i] = orderHash;
+                // Add orderHash to orderHashes
+                orderHashes[i] = orderHash;
+            }
         }
 
-        zoneParameters = new ZoneParameters[](advancedOrders.length);
+        zoneParameters = new ZoneParameters[](maximumFulfilled);
 
         // Iterate through advanced orders to create zoneParameters
         for (uint i = 0; i < advancedOrders.length; i++) {
+            if (i >= maximumFulfilled) {
+                continue;
+            }
             // Get orderParameters from advancedOrder
             OrderParameters memory orderParameters = advancedOrders[i]
                 .parameters;
