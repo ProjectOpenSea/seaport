@@ -928,6 +928,19 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
+        // Get the zone parameters.
+        ZoneParameters[] memory zoneParameters = advancedOrders
+            .getZoneParameters(
+                address(this),
+                0,
+                advancedOrders.length,
+                context.seaport
+            );
+
+        bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
+            zoneParameters
+        );
+
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
             advancedOrders: advancedOrders,
