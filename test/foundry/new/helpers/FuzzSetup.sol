@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
 import "seaport-sol/SeaportSol.sol";
+import { TestContext } from "./TestContextLib.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -27,78 +28,128 @@ interface TestERC1155 {
 }
 
 abstract contract FuzzSetup is Test {
-    function setUpOfferItems(
-        address offerer,
-        OfferItem[] memory items,
-        address approveTo
-    ) public {
-        for (uint256 i = 0; i < items.length; i++) {
-            OfferItem memory item = items[i];
+    function setUpOfferItems(TestContext memory context) public {
+        for (uint256 i; i < context.orders.length; ++i) {
+            OrderParameters memory orderParams = context.orders[i].parameters;
+            OfferItem[] memory items = orderParams.offer;
+            address offerer = orderParams.offerer;
+            address approveTo = _getApproveTo(context, orderParams);
+            for (uint256 j = 0; j < items.length; j++) {
+                OfferItem memory item = items[j];
 
-            if (item.itemType == ItemType.ERC20) {
-                TestERC20(item.token).mint(offerer, item.startAmount);
-                vm.prank(offerer);
-                TestERC20(item.token).increaseAllowance(
-                    approveTo,
-                    item.startAmount
-                );
-            }
+                if (item.itemType == ItemType.ERC20) {
+                    TestERC20(item.token).mint(offerer, item.startAmount);
+                    vm.prank(offerer);
+                    TestERC20(item.token).increaseAllowance(
+                        approveTo,
+                        item.startAmount
+                    );
+                }
 
-            if (item.itemType == ItemType.ERC721) {
-                TestERC721(item.token).mint(offerer, item.identifierOrCriteria);
-                vm.prank(offerer);
-                TestERC721(item.token).approve(
-                    approveTo,
-                    item.identifierOrCriteria
-                );
-            }
+                if (item.itemType == ItemType.ERC721) {
+                    TestERC721(item.token).mint(
+                        offerer,
+                        item.identifierOrCriteria
+                    );
+                    vm.prank(offerer);
+                    TestERC721(item.token).approve(
+                        approveTo,
+                        item.identifierOrCriteria
+                    );
+                }
 
-            if (item.itemType == ItemType.ERC1155) {
-                TestERC1155(item.token).mint(
-                    offerer,
-                    item.identifierOrCriteria,
-                    item.startAmount
-                );
-                vm.prank(offerer);
-                TestERC1155(item.token).setApprovalForAll(approveTo, true);
+                if (item.itemType == ItemType.ERC1155) {
+                    TestERC1155(item.token).mint(
+                        offerer,
+                        item.identifierOrCriteria,
+                        item.startAmount
+                    );
+                    vm.prank(offerer);
+                    TestERC1155(item.token).setApprovalForAll(approveTo, true);
+                }
             }
         }
     }
 
-    function setUpConsiderationItems(
-        address owner,
-        ConsiderationItem[] memory items,
-        address approveTo
-    ) public {
-        for (uint256 i = 0; i < items.length; i++) {
-            ConsiderationItem memory item = items[i];
+    function setUpConsiderationItems(TestContext memory context) public {
+        // Naive implementation for now
+        // TODO: - If recipient is not caller, we need to mint everything
+        //       - For matchOrders, we don't need to do any setup
+        for (uint256 i; i < context.orders.length; ++i) {
+            OrderParameters memory orderParams = context.orders[i].parameters;
+            ConsiderationItem[] memory items = orderParams.consideration;
 
-            if (item.itemType == ItemType.ERC20) {
-                TestERC20(item.token).mint(owner, item.startAmount);
-                vm.prank(owner);
-                TestERC20(item.token).increaseAllowance(
-                    approveTo,
-                    item.startAmount
-                );
+            address owner = context.caller;
+            address approveTo = _getApproveTo(context);
+
+            for (uint256 j = 0; j < items.length; j++) {
+                ConsiderationItem memory item = items[j];
+
+                if (item.itemType == ItemType.ERC20) {
+                    TestERC20(item.token).mint(owner, item.startAmount);
+                    vm.prank(owner);
+                    TestERC20(item.token).increaseAllowance(
+                        approveTo,
+                        item.startAmount
+                    );
+                }
+
+                if (item.itemType == ItemType.ERC721) {
+                    TestERC721(item.token).mint(
+                        owner,
+                        item.identifierOrCriteria
+                    );
+                    vm.prank(owner);
+                    TestERC721(item.token).approve(
+                        approveTo,
+                        item.identifierOrCriteria
+                    );
+                }
+
+                if (item.itemType == ItemType.ERC1155) {
+                    TestERC1155(item.token).mint(
+                        owner,
+                        item.identifierOrCriteria,
+                        item.startAmount
+                    );
+                    vm.prank(owner);
+                    TestERC1155(item.token).setApprovalForAll(approveTo, true);
+                }
             }
+        }
+    }
 
-            if (item.itemType == ItemType.ERC721) {
-                TestERC721(item.token).mint(owner, item.identifierOrCriteria);
-                vm.prank(owner);
-                TestERC721(item.token).approve(
-                    approveTo,
-                    item.identifierOrCriteria
-                );
+    function _getApproveTo(
+        TestContext memory context
+    ) internal view returns (address) {
+        if (context.fulfillerConduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(context.fulfillerConduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("FuzzSetup: Conduit not found");
             }
+        }
+    }
 
-            if (item.itemType == ItemType.ERC1155) {
-                TestERC1155(item.token).mint(
-                    owner,
-                    item.identifierOrCriteria,
-                    item.startAmount
-                );
-                vm.prank(owner);
-                TestERC1155(item.token).setApprovalForAll(approveTo, true);
+    function _getApproveTo(
+        TestContext memory context,
+        OrderParameters memory orderParams
+    ) internal view returns (address) {
+        if (orderParams.conduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderParams.conduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("FuzzSetup: Conduit not found");
             }
         }
     }
