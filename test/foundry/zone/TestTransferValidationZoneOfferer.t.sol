@@ -473,7 +473,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     address(this),
                     offerer1Counter,
                     advancedOrders.length - 1,
-                    context.seaport
+                    address(context.seaport)
                 );
 
             bytes32[]
@@ -615,6 +615,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .getZoneParameters(
                 address(this),
                 offerer1Counter,
+                advancedOrders.length,
                 address(context.seaport)
             );
 
@@ -796,7 +797,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         {
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
-                .getZoneParameters(address(this), 0, 1, context.seaport);
+                .getZoneParameters(
+                    address(this),
+                    0,
+                    1,
+                    address(context.seaport)
+                );
 
             bytes32[]
                 memory payloadHashes = _generateZoneValidateOrderDataHashes(
@@ -932,7 +938,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 address(this),
                 0,
                 advancedOrders.length,
-                context.seaport
+                address(context.seaport)
             );
 
         bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(

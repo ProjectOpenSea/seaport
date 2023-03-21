@@ -224,6 +224,7 @@ library FuzzHelpers {
             zoneParameters[i] = orders.getZoneParameters(
                 fulfiller,
                 counter,
+                orders.length,
                 seaport
             )[i];
 
