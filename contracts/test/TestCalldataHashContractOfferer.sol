@@ -17,6 +17,10 @@ import {
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
+    ConsiderationInterface
+} from "../interfaces/ConsiderationInterface.sol";
+
+import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
@@ -158,9 +162,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
 
         bytes32 calldataHash = keccak256(data);
 
-        uint256 contractOffererNonce = _SEAPORT.getContractOffererNonce(
-            address(this)
-        );
+        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+            .getContractOffererNonce(address(this));
 
         bytes32 orderHash = bytes32(
             abi.encodePacked(
@@ -234,9 +237,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
 
         bytes32 calldataHash = keccak256(data);
 
-        uint256 contractOffererNonce = _SEAPORT.getContractOffererNonce(
-            address(this)
-        );
+        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+            .getContractOffererNonce(address(this));
 
         bytes32 orderHash = bytes32(
             abi.encodePacked(
