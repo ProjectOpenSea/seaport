@@ -73,7 +73,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 200);
     }
 
-    function xtest_setUpOfferItems_erc20_ascending() public {
+    function test_setUpOfferItems_erc20_ascending() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
         assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
 
@@ -82,13 +82,15 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             .empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
-            .withStartAmount(100)
-            .withEndAmount(200);
+            .withStartAmount(500)
+            .withEndAmount(1000);
 
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withOffer(offerItems);
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1000);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -105,11 +107,52 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             fuzzParams: FuzzParams({ seed: 0 })
         });
 
-        vm.warp(block.timestamp);
+        vm.warp(block.timestamp + 500);
         setUpOfferItems(context);
 
-        assertEq(erc20s[0].balanceOf(charlie.addr), 200);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 200);
+        assertEq(erc20s[0].balanceOf(charlie.addr), 750);
+        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 750);
+    }
+
+    function test_setUpOfferItems_erc20_descending() public {
+        assertEq(erc20s[0].balanceOf(charlie.addr), 0);
+        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
+
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        offerItems[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withStartAmount(1000)
+            .withEndAmount(500);
+
+        OrderParameters memory orderParams = OrderParametersLib
+            .empty()
+            .withOfferer(charlie.addr)
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1000);
+        Order memory order = OrderLib.empty().withParameters(orderParams);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+
+        vm.warp(block.timestamp + 500);
+        setUpOfferItems(context);
+
+        assertEq(erc20s[0].balanceOf(charlie.addr), 750);
+        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 750);
     }
 
     function test_setUpOfferItems_erc721() public {
@@ -203,6 +246,52 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         setUpOfferItems(context);
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 200);
+        assertTrue(
+            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+        );
+    }
+
+    function test_setUpOfferItems_erc1155_ascending() public {
+        assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 0);
+        assertFalse(
+            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+        );
+
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        offerItems[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC1155)
+            .withToken(address(erc1155s[0]))
+            .withIdentifierOrCriteria(1)
+            .withStartAmount(500)
+            .withStartAmount(1000);
+
+        OrderParameters memory orderParams = OrderParametersLib
+            .empty()
+            .withOfferer(charlie.addr)
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1000);
+        Order memory order = OrderLib.empty().withParameters(orderParams);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+
+        vm.warp(block.timestamp + 500);
+        setUpOfferItems(context);
+
+        assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 500);
         assertTrue(
             erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
         );

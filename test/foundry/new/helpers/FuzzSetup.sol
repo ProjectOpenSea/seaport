@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
 import "seaport-sol/SeaportSol.sol";
+
+import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { TestContext } from "./TestContextLib.sol";
 
 interface TestERC20 {
@@ -27,7 +29,7 @@ interface TestERC1155 {
     function setApprovalForAll(address operator, bool approved) external;
 }
 
-abstract contract FuzzSetup is Test {
+abstract contract FuzzSetup is Test, AmountDeriver {
     function setUpOfferItems(TestContext memory context) public {
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
@@ -38,12 +40,16 @@ abstract contract FuzzSetup is Test {
                 OfferItem memory item = items[j];
 
                 if (item.itemType == ItemType.ERC20) {
-                    TestERC20(item.token).mint(offerer, item.startAmount);
-                    vm.prank(offerer);
-                    TestERC20(item.token).increaseAllowance(
-                        approveTo,
-                        item.startAmount
+                    uint256 amount = _locateCurrentAmount(
+                        item.startAmount,
+                        item.endAmount,
+                        orderParams.startTime,
+                        orderParams.endTime,
+                        false
                     );
+                    TestERC20(item.token).mint(offerer, amount);
+                    vm.prank(offerer);
+                    TestERC20(item.token).increaseAllowance(approveTo, amount);
                 }
 
                 if (item.itemType == ItemType.ERC721) {
@@ -59,10 +65,17 @@ abstract contract FuzzSetup is Test {
                 }
 
                 if (item.itemType == ItemType.ERC1155) {
+                    uint256 amount = _locateCurrentAmount(
+                        item.startAmount,
+                        item.endAmount,
+                        orderParams.startTime,
+                        orderParams.endTime,
+                        false
+                    );
                     TestERC1155(item.token).mint(
                         offerer,
                         item.identifierOrCriteria,
-                        item.startAmount
+                        amount
                     );
                     vm.prank(offerer);
                     TestERC1155(item.token).setApprovalForAll(approveTo, true);
