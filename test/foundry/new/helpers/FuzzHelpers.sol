@@ -196,6 +196,11 @@ library FuzzHelpers {
         return Structure.STANDARD;
     }
 
+    /**
+     * @dev Derive ZoneParameters from a given AdvancedOrder and, if the order
+     *      is restricted, return the expected calldata hash for the call to
+     *      validateOrder.
+     */
     function getExpectedZoneCalldataHash(
         AdvancedOrder memory order,
         SeaportInterface seaport,
