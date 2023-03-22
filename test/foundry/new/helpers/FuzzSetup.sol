@@ -4,6 +4,9 @@ pragma solidity ^0.8.17;
 import "forge-std/Test.sol";
 import "seaport-sol/SeaportSol.sol";
 
+import "forge-std/console.sol";
+
+import { FuzzEngineLib } from "./FuzzEngine.sol";
 import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { TestContext } from "./TestContextLib.sol";
 
@@ -30,6 +33,8 @@ interface TestERC1155 {
 }
 
 abstract contract FuzzSetup is Test, AmountDeriver {
+    using FuzzEngineLib for TestContext;
+
     function setUpOfferItems(TestContext memory context) public {
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
@@ -85,6 +90,12 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     }
 
     function setUpConsiderationItems(TestContext memory context) public {
+        // Skip creating consideration items if we're calling a match function
+        if (
+            context.action() == context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector
+        ) return;
+
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup
@@ -108,15 +119,38 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 }
 
                 if (item.itemType == ItemType.ERC721) {
-                    TestERC721(item.token).mint(
-                        owner,
-                        item.identifierOrCriteria
-                    );
+                    bool shouldMint = true;
+                    if (
+                        context.caller == context.recipient ||
+                        context.recipient == address(0)
+                    ) {
+                        for (uint256 k; k < context.orders.length; ++k) {
+                            OfferItem[] memory offerItems = context
+                                .orders[k]
+                                .parameters
+                                .offer;
+                            for (uint256 l; l < offerItems.length; ++l) {
+                                if (
+                                    offerItems[l].itemType == ItemType.ERC721 &&
+                                    offerItems[l].token == item.token &&
+                                    offerItems[l].identifierOrCriteria ==
+                                    item.identifierOrCriteria
+                                ) {
+                                    shouldMint = false;
+                                    break;
+                                }
+                            }
+                            if (!shouldMint) break;
+                        }
+                    }
+                    if (shouldMint) {
+                        TestERC721(item.token).mint(
+                            owner,
+                            item.identifierOrCriteria
+                        );
+                    }
                     vm.prank(owner);
-                    TestERC721(item.token).approve(
-                        approveTo,
-                        item.identifierOrCriteria
-                    );
+                    TestERC721(item.token).setApprovalForAll(approveTo, true);
                 }
 
                 if (item.itemType == ItemType.ERC1155) {

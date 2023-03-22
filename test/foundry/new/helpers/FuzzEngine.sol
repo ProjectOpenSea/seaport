@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
 import {
     AdvancedOrder,
@@ -13,10 +14,6 @@ import { TestContext, FuzzParams, TestContextLib } from "./TestContextLib.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
 import { FuzzSetup } from "./FuzzSetup.sol";
-
-import {
-    FulfillAvailableHelper
-} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine.
@@ -39,7 +36,7 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(TestContext memory context) internal view returns (bytes4) {
+    function action(TestContext memory context) internal returns (bytes4) {
         bytes4[] memory _actions = actions(context);
         return _actions[context.fuzzParams.seed % _actions.length];
     }
@@ -53,7 +50,7 @@ library FuzzEngineLib {
      */
     function actions(
         TestContext memory context
-    ) internal view returns (bytes4[] memory) {
+    ) internal returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
         if (family == Family.SINGLE) {
@@ -87,17 +84,33 @@ library FuzzEngineLib {
         }
 
         if (family == Family.COMBINED) {
-            bytes4[] memory selectors = new bytes4[](2);
-            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-            selectors[1] = context
-                .seaport
-                .fulfillAvailableAdvancedOrders
-                .selector;
-            //selectors[2] = context.seaport.matchOrders.selector;
-            //selectors[3] = context.seaport.matchAdvancedOrders.selector;
-            //selectors[2] = context.seaport.cancel.selector;
-            //selectors[3] = context.seaport.validate.selector;
-            return selectors;
+            (, , MatchComponent[] memory remainders) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+
+            if (remainders.length != 0) {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                //selectors[2] = context.seaport.cancel.selector;
+                //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](4);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                selectors[2] = context.seaport.matchOrders.selector;
+                selectors[3] = context.seaport.matchAdvancedOrders.selector;
+                //selectors[2] = context.seaport.cancel.selector;
+                //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            }
         }
         revert("FuzzEngine: Actions not found");
     }
@@ -108,10 +121,11 @@ library FuzzEngineLib {
  *         Includes the setup and helper functions from BaseOrderTest.
  */
 contract FuzzEngine is
+    BaseOrderTest,
     FuzzSetup,
     FuzzChecks,
     FulfillAvailableHelper,
-    BaseOrderTest
+    MatchFulfillmentHelper
 {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
@@ -121,6 +135,9 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzEngineLib for TestContext;
+
+    // action selector => call count
+    mapping(bytes4 => uint256) calls;
 
     /**
      * @dev Run a `FuzzEngine` test with the given TestContext. Calls the
@@ -163,6 +180,7 @@ contract FuzzEngine is
     function exec(TestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
+        calls[_action]++;
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
@@ -244,12 +262,22 @@ contract FuzzEngine is
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
+            (Fulfillment[] memory fulfillments, , ) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+            context.fulfillments = fulfillments;
+
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
             );
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            (Fulfillment[] memory fulfillments, , ) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+            context.fulfillments = fulfillments;
+
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,
@@ -329,5 +357,44 @@ contract FuzzEngine is
             bytes4 selector = context.checks[i];
             check(context, selector);
         }
+    }
+
+    function summary(TestContext memory context) internal view {
+        console.log("Call summary:");
+        console.log("----------------------------------------");
+        console.log(
+            "fulfillOrder: ",
+            calls[context.seaport.fulfillOrder.selector]
+        );
+        console.log(
+            "fulfillAdvancedOrder: ",
+            calls[context.seaport.fulfillAdvancedOrder.selector]
+        );
+        console.log(
+            "fulfillBasicOrder: ",
+            calls[context.seaport.fulfillBasicOrder.selector]
+        );
+        console.log(
+            "fulfillBasicOrder_efficient: ",
+            calls[context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector]
+        );
+        console.log(
+            "fulfillAvailableOrders: ",
+            calls[context.seaport.fulfillAvailableOrders.selector]
+        );
+        console.log(
+            "fulfillAvailableAdvancedOrders: ",
+            calls[context.seaport.fulfillAvailableAdvancedOrders.selector]
+        );
+        console.log(
+            "matchOrders: ",
+            calls[context.seaport.matchOrders.selector]
+        );
+        console.log(
+            "matchAdvancedOrders: ",
+            calls[context.seaport.matchAdvancedOrders.selector]
+        );
+        console.log("cancel: ", calls[context.seaport.cancel.selector]);
+        console.log("validate: ", calls[context.seaport.validate.selector]);
     }
 }

@@ -196,13 +196,13 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("extra data")
         });
 
-        bytes4[] memory expectedActions = new bytes4[](2);
+        bytes4[] memory expectedActions = new bytes4[](4);
         expectedActions[0] = seaport.fulfillAvailableOrders.selector;
         expectedActions[1] = seaport.fulfillAvailableAdvancedOrders.selector;
-        // TODO: undo pended actions (match, cancel, validate)
-        /** expectedActions[2] = seaport.matchOrders.selector;
+        expectedActions[2] = seaport.matchOrders.selector;
         expectedActions[3] = seaport.matchAdvancedOrders.selector;
-        expectedActions[4] = seaport.cancel.selector;
+        // TODO: undo pended actions (cancel, validate)
+        /** expectedActions[4] = seaport.cancel.selector;
         expectedActions[5] = seaport.validate.selector; */
 
         TestContext memory context = TestContextLib.from({
@@ -247,8 +247,7 @@ contract FuzzEngineTest is FuzzEngine {
             seaport.fulfillAvailableAdvancedOrders.selector
         );
 
-        // TODO: undo pended actions (match, cancel, validate)
-        /** context = TestContextLib.from({
+        context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
@@ -264,7 +263,8 @@ contract FuzzEngineTest is FuzzEngine {
         });
         assertEq(context.action(), seaport.matchAdvancedOrders.selector);
 
-        context = TestContextLib.from({
+        // TODO: undo pended actions (match, cancel, validate)
+        /** context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),

@@ -25,6 +25,7 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
+import { TestLike } from "./TestContextLib.sol";
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
@@ -70,6 +71,7 @@ function bound(
 
 struct GeneratorContext {
     Vm vm;
+    TestLike testHelpers;
     LibPRNG.PRNG prng;
     uint256 timestamp;
     SeaportInterface seaport;
@@ -185,11 +187,12 @@ library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
+    using PRNGHelpers for GeneratorContext;
 
     function generate(
         AdvancedOrdersSpace memory space,
         GeneratorContext memory context
-    ) internal view returns (AdvancedOrder[] memory) {
+    ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
         context.orderHashes = new bytes32[](len);
@@ -210,6 +213,73 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         // Handle matches
+        if (space.isMatchable) {
+            (, , MatchComponent[] memory remainders) = context
+                .testHelpers
+                .getMatchedFulfillments(orders);
+
+            for (uint256 i = 0; i < remainders.length; ++i) {
+                (
+                    uint240 amount,
+                    uint8 orderIndex,
+                    uint8 itemIndex
+                ) = remainders[i].unpack();
+
+                ConsiderationItem memory item = orders[orderIndex]
+                    .parameters
+                    .consideration[itemIndex];
+
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
+
+                OfferItem[] memory newOffer = new OfferItem[](
+                    orders[orderInsertionIndex].parameters.offer.length + 1
+                );
+
+                if (orders[orderInsertionIndex].parameters.offer.length == 0) {
+                    newOffer[0] = OfferItem({
+                        itemType: item.itemType,
+                        token: item.token,
+                        identifierOrCriteria: item.identifierOrCriteria,
+                        startAmount: uint256(amount),
+                        endAmount: uint256(amount)
+                    });
+                } else {
+                    uint256 itemInsertionIndex = context.randRange(
+                        0,
+                        orders[orderInsertionIndex].parameters.offer.length - 1
+                    );
+
+                    for (uint256 j = 0; j < itemInsertionIndex; ++j) {
+                        newOffer[j] = orders[orderInsertionIndex]
+                            .parameters
+                            .offer[j];
+                    }
+
+                    newOffer[itemInsertionIndex] = OfferItem({
+                        itemType: item.itemType,
+                        token: item.token,
+                        identifierOrCriteria: item.identifierOrCriteria,
+                        startAmount: uint256(amount),
+                        endAmount: uint256(amount)
+                    });
+
+                    for (
+                        uint256 j = itemInsertionIndex + 1;
+                        j < newOffer.length;
+                        ++j
+                    ) {
+                        newOffer[j] = orders[orderInsertionIndex]
+                            .parameters
+                            .offer[j - 1];
+                    }
+                }
+
+                orders[orderInsertionIndex].parameters.offer = newOffer;
+            }
+        }
 
         // Sign phase
         for (uint256 i = 0; i < len; ++i) {

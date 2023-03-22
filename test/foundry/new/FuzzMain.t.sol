@@ -9,7 +9,8 @@ import {
     TestStateGenerator,
     GeneratorContext,
     AdvancedOrdersSpace,
-    AdvancedOrdersSpaceGenerator
+    AdvancedOrdersSpaceGenerator,
+    TestLike
 } from "./helpers/FuzzGenerators.sol";
 import {
     TestContextLib,
@@ -37,6 +38,7 @@ contract FuzzMainTest is FuzzEngine {
         return
             GeneratorContext({
                 vm: vm,
+                testHelpers: TestLike(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
@@ -62,6 +64,41 @@ contract FuzzMainTest is FuzzEngine {
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0)
             });
+    }
+
+    function xtest_success_concrete() public {
+        uint256 seed = 0;
+        uint256 totalOrders = 0;
+        uint256 maxOfferItems = 0;
+        uint256 maxConsiderationItems = 0;
+
+        totalOrders = bound(totalOrders, 1, 10);
+        maxOfferItems = bound(maxOfferItems, 1, 10);
+        maxConsiderationItems = bound(maxConsiderationItems, 1, 10);
+
+        vm.warp(1679435965);
+        GeneratorContext memory generatorContext = createContext();
+        generatorContext.timestamp = block.timestamp;
+
+        AdvancedOrdersSpace memory space = TestStateGenerator.generate(
+            totalOrders,
+            maxOfferItems,
+            maxConsiderationItems,
+            generatorContext
+        );
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            generatorContext
+        );
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: seed })
+        });
+
+        run(context);
     }
 
     function test_success(
@@ -95,7 +132,9 @@ contract FuzzMainTest is FuzzEngine {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: seed })
         });
+        context.testHelpers = TestLike(address(this));
 
         run(context);
+        summary(context);
     }
 }
