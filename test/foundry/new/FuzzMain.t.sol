@@ -19,6 +19,9 @@ import {
 } from "./helpers/TestContextLib.sol";
 import { FuzzEngine } from "./helpers/FuzzEngine.sol";
 import { FuzzHelpers, Family } from "./helpers/FuzzHelpers.sol";
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 contract FuzzMainTest is FuzzEngine {
     using FuzzHelpers for AdvancedOrder;
@@ -27,7 +30,7 @@ contract FuzzMainTest is FuzzEngine {
     Account bob2 = makeAccount("bob2");
     Account alice2 = makeAccount("alice2");
 
-    function createContext() internal view returns (GeneratorContext memory) {
+    function createContext() internal returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -42,6 +45,9 @@ contract FuzzMainTest is FuzzEngine {
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
+                validatorZone: new TestTransferValidationZoneOfferer(
+                    address(0)
+                ),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,
@@ -108,8 +114,8 @@ contract FuzzMainTest is FuzzEngine {
         uint256 maxConsiderationItems
     ) public {
         totalOrders = bound(totalOrders, 1, 10);
-        maxOfferItems = bound(maxOfferItems, 1, 10);
-        maxConsiderationItems = bound(maxConsiderationItems, 1, 10);
+        maxOfferItems = bound(maxOfferItems, 1, 25);
+        maxConsiderationItems = bound(maxConsiderationItems, 1, 25);
 
         vm.warp(1679435965);
         GeneratorContext memory generatorContext = createContext();
@@ -135,6 +141,5 @@ contract FuzzMainTest is FuzzEngine {
         context.testHelpers = TestLike(address(this));
 
         run(context);
-        summary(context);
     }
 }
