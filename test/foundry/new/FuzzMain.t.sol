@@ -23,10 +23,7 @@ contract FuzzMainTest is FuzzEngine {
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
-    Account bob2 = makeAccount("bob2");
-    Account alice2 = makeAccount("alice2");
-
-    function createContext() internal view returns (GeneratorContext memory) {
+    function createContext() internal returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -44,19 +41,14 @@ contract FuzzMainTest is FuzzEngine {
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                offerer: alice2.addr,
                 caller: address(this), // TODO: read recipient from TestContext
-                alice: alice2.addr,
-                bob: bob2.addr,
-                dillon: dillon.addr,
-                eve: eve.addr,
-                frank: frank.addr,
-                offererPk: alice2.key,
-                alicePk: alice2.key,
-                bobPk: bob2.key,
-                dillonPk: dillon.key,
-                evePk: eve.key,
-                frankPk: frank.key,
+                offerer: makeAccount("offerer"),
+                alice: makeAccount("alice"),
+                bob: makeAccount("bob"),
+                carol: makeAccount("carol"),
+                dillon: makeAccount("dillon"),
+                eve: makeAccount("eve"),
+                frank: makeAccount("frank"),
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
@@ -75,6 +67,7 @@ contract FuzzMainTest is FuzzEngine {
         maxConsiderationItems = bound(maxConsiderationItems, 1, 10);
 
         vm.warp(1679435965);
+
         GeneratorContext memory generatorContext = createContext();
         generatorContext.timestamp = block.timestamp;
 
