@@ -53,6 +53,7 @@ struct TestContext {
     uint256 counter;
     bytes32 fulfillerConduitKey;
     bytes32[] expectedZoneCalldataHash;
+    bytes32[2][] expectedContractOrderCalldataHashes;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
     Fulfillment[] fulfillments;
@@ -102,6 +103,7 @@ library TestContextLib {
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
                 expectedZoneCalldataHash: new bytes32[](0),
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
                 fulfillments: new Fulfillment[](0),
@@ -146,6 +148,7 @@ library TestContextLib {
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
                 expectedZoneCalldataHash: new bytes32[](0),
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
                 fulfillments: new Fulfillment[](0),

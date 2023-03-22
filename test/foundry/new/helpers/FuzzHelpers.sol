@@ -238,18 +238,15 @@ library FuzzHelpers {
     }
 
     /**
-     * @dev Get the orderHashes of an array of AdvancedOrders and return
-     *      the expected calldata hashes for calls to validateOrder.
+     * @dev Get the orderHashes of an array of orders.
      */
-    function getExpectedContractOffererCalldataHash(
+    function getOrderHashes(
         AdvancedOrder[] memory orders,
-        address seaport,
-        address fulfiller
-    ) internal view returns (bytes32[2][] memory) {
+        address seaport
+    ) internal view returns (bytes32[] memory) {
         SeaportInterface seaportInterface = SeaportInterface(seaport);
 
         bytes32[] memory orderHashes = new bytes32[](orders.length);
-        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
 
         // Iterate over all orders to derive orderHashes
         for (uint256 i; i < orders.length; ++i) {
@@ -282,10 +279,28 @@ library FuzzHelpers {
             }
         }
 
+        return orderHashes;
+    }
+
+    /**
+     * @dev Get the orderHashes of an array of AdvancedOrders and return
+     *      the expected calldata hashes for calls to validateOrder.
+     */
+    function getExpectedContractOffererCalldataHash(
+        AdvancedOrder[] memory orders,
+        address seaport,
+        address fulfiller
+    ) internal view returns (bytes32[2][] memory) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        bytes32[] memory orderHashes = getOrderHashes(orders, seaport);
+        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
+
         // Iterate over contract orders to derive calldataHashes
         for (uint256 i; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
 
+            // calldataHashes for non-contract orders should be null
             if (getType(order) != Type.CONTRACT) {
                 continue;
             }
