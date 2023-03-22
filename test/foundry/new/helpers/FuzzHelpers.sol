@@ -162,14 +162,12 @@ library FuzzHelpers {
     /**
      * @dev Get the "structure" of the given order.
      *
-     *      Note: Basic orders are not yet implemented here and are detected
-     *      as standard orders for now.
-     *
      * @param order an AdvancedOrder.
      */
     function getStructure(
-        AdvancedOrder memory order
-    ) internal pure returns (Structure) {
+        AdvancedOrder memory order,
+        address seaport
+    ) internal view returns (Structure) {
         // If the order has extraData, it's advanced
         if (order.extraData.length > 0) return Structure.ADVANCED;
 
@@ -194,122 +192,162 @@ library FuzzHelpers {
             }
         }
 
+        if (getBasicOrderTypeEligibility(order, seaport)) {
+            return Structure.BASIC;
+        }
+
         return Structure.STANDARD;
     }
 
     /**
-     * @dev The idea here is to be able to feed in an AdvancedOrder and get back
-     *      a descriptive revert reason.  This is just to get me up to speed. I
-     *      understand we'll need something different for prod MOAT work.  I'll
-     *      modify or delete this function.
+     * @dev Inspect an AdvancedOrder and check that it is eligible for the
+     *      fulfillBasic functions.
      */
-    function getBasicOrderTypeIneligibilityReason(
-        AdvancedOrder memory order
-    ) internal pure {
+    function getBasicOrderTypeEligibility(
+        AdvancedOrder memory order,
+        address seaport
+    ) internal view returns (bool) {
         uint256 i;
-        OrderParameters memory parameters = order.parameters;
-
-        // TODO: Think about concatenating these into a string or something.
-
-        // Order cannot contain any ADVANCED information (no criteria-based
-        // items, no extraData, cannot specify a partial fraction to fill
-        // (though it can fully fill an order that supports partial fills and
-        // has not yet been partially fulfilled).
-        if (order.extraData.length != 0) {
-            revert("Basic orders cannot have extraData");
-        }
+        ConsiderationItem[] memory consideration = order
+            .parameters
+            .consideration;
+        OfferItem[] memory offer = order.parameters.offer;
 
         // Order must contain exactly one offer item and one or more
         // consideration items.
-        if (parameters.offer.length != 1) {
-            revert("Basic orders must have exactly one offer item");
+        if (offer.length != 1) {
+            return false;
         }
-        if (parameters.consideration.length == 0) {
-            revert("Basic orders must have at least one consideration item");
+        if (consideration.length == 0) {
+            return false;
+        }
+
+        // The order cannot have a contract order type.
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return false;
+
+            // Note: the order type is combined with the “route” into a single
+            // BasicOrderType with a value between 0 and 23; there are 4
+            // supported order types (full open, partial open, full restricted,
+            // partial restricted) and 6 routes (ETH ⇒ ERC721, ETH ⇒ ERC1155,
+            // ERC20 ⇒ ERC721, ERC20 ⇒ ERC1155, ERC721 ⇒ ERC20, ERC1155 ⇒ ERC20)
+        }
+
+        // Order cannot specify a partial fraction to fill.
+        if (order.denominator > 1 && (order.numerator < order.denominator)) {
+            return false;
+        }
+
+        // Order cannot be partially filled.
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+        uint256 counter = seaportInterface.getCounter(order.parameters.offerer);
+        OrderComponents memory orderComponents = order
+            .parameters
+            .toOrderComponents(counter);
+        bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
+        (, , uint256 totalFilled, uint256 totalSize) = seaportInterface
+            .getOrderStatus(orderHash);
+
+        if (totalFilled != totalSize) {
+            return false;
+        }
+
+        // Order cannot contain any criteria-based items.
+        for (i = 0; i < consideration.length; ++i) {
+            if (
+                consideration[i].itemType == ItemType.ERC721_WITH_CRITERIA ||
+                consideration[i].itemType == ItemType.ERC1155_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+
+        if (
+            offer[0].itemType == ItemType.ERC721_WITH_CRITERIA ||
+            offer[0].itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
+            return false;
+        }
+
+        // Order cannot contain any extraData.
+        if (order.extraData.length != 0) {
+            return false;
         }
 
         // Order must contain exactly one NFT item.
         uint256 totalNFTs;
         if (
-            parameters.offer[0].itemType == ItemType.ERC721 ||
-            parameters.offer[0].itemType == ItemType.ERC1155
+            offer[0].itemType == ItemType.ERC721 ||
+            offer[0].itemType == ItemType.ERC1155
         ) {
             totalNFTs += 1;
         }
-        for (i = 0; i < parameters.consideration.length; ++i) {
+        for (i = 0; i < consideration.length; ++i) {
             if (
-                parameters.consideration[i].itemType == ItemType.ERC721 ||
-                parameters.consideration[i].itemType == ItemType.ERC1155
+                consideration[i].itemType == ItemType.ERC721 ||
+                consideration[i].itemType == ItemType.ERC1155
             ) {
                 totalNFTs += 1;
             }
         }
 
         if (totalNFTs != 1) {
-            revert("There must be exactly one NFT in the order");
+            return false;
         }
 
         // The one NFT must appear either as the offer item or as the first
         // consideration item.
         if (
-            parameters.offer[0].itemType != ItemType.ERC721 &&
-            parameters.offer[0].itemType != ItemType.ERC1155 &&
-            parameters.consideration[0].itemType != ItemType.ERC721 &&
-            parameters.consideration[0].itemType != ItemType.ERC1155
+            offer[0].itemType != ItemType.ERC721 &&
+            offer[0].itemType != ItemType.ERC1155 &&
+            consideration[0].itemType != ItemType.ERC721 &&
+            consideration[0].itemType != ItemType.ERC1155
         ) {
-            revert(
-                "The NFT must be offer item or the first consideration item"
-            );
+            return false;
         }
 
         // All items that are not the NFT must share the same item type and
         // token (and the identifier must be zero).
         if (
-            parameters.offer[0].itemType == ItemType.ERC721 ||
-            parameters.offer[0].itemType == ItemType.ERC1155
+            offer[0].itemType == ItemType.ERC721 ||
+            offer[0].itemType == ItemType.ERC1155
         ) {
-            ItemType expectedItemType = parameters.consideration[0].itemType;
-            address expectedToken = parameters.consideration[0].token;
+            ItemType expectedItemType = consideration[0].itemType;
+            address expectedToken = consideration[0].token;
 
-            for (i = 0; i < parameters.consideration.length; ++i) {
-                if (parameters.consideration[i].itemType != expectedItemType) {
-                    revert("All non-NFT items must have the same item type");
+            for (i = 0; i < consideration.length; ++i) {
+                if (consideration[i].itemType != expectedItemType) {
+                    return false;
                 }
 
-                if (parameters.consideration[i].token != expectedToken) {
-                    revert("All non-NFT items must have the same token");
+                if (consideration[i].token != expectedToken) {
+                    return false;
                 }
 
-                if (parameters.consideration[i].identifierOrCriteria != 0) {
-                    revert("The identifier of non-NFT items must be zero");
+                if (consideration[i].identifierOrCriteria != 0) {
+                    return false;
                 }
             }
         }
 
         if (
-            parameters.consideration[0].itemType == ItemType.ERC721 ||
-            parameters.consideration[0].itemType == ItemType.ERC1155
+            consideration[0].itemType == ItemType.ERC721 ||
+            consideration[0].itemType == ItemType.ERC1155
         ) {
-            if (parameters.consideration.length >= 2) {
-                ItemType expectedItemType = parameters
-                    .consideration[1]
-                    .itemType;
-                address expectedToken = parameters.consideration[1].token;
-                for (i = 2; i < parameters.consideration.length; ++i) {
-                    if (
-                        parameters.consideration[i].itemType != expectedItemType
-                    ) {
-                        revert(
-                            "All non-NFT items must have the same item type"
-                        );
+            if (consideration.length >= 2) {
+                ItemType expectedItemType = consideration[1].itemType;
+                address expectedToken = consideration[1].token;
+                for (i = 2; i < consideration.length; ++i) {
+                    if (consideration[i].itemType != expectedItemType) {
+                        return false;
                     }
 
-                    if (parameters.consideration[i].token != expectedToken) {
-                        revert("All non-NFT items must have the same token");
+                    if (consideration[i].token != expectedToken) {
+                        return false;
                     }
 
-                    if (parameters.consideration[i].identifierOrCriteria != 0) {
-                        revert("The identifier of non-NFT items must be zero");
+                    if (consideration[i].identifierOrCriteria != 0) {
+                        return false;
                     }
                 }
             }
@@ -319,18 +357,16 @@ library FuzzHelpers {
         // all the other consideration items cannot exceed the amount of the
         // offer item.
         if (
-            parameters.consideration[0].itemType == ItemType.ERC721 ||
-            parameters.consideration[0].itemType == ItemType.ERC1155
+            consideration[0].itemType == ItemType.ERC721 ||
+            consideration[0].itemType == ItemType.ERC1155
         ) {
             uint256 totalConsiderationAmount;
-            for (i = 1; i < parameters.consideration.length; ++i) {
-                totalConsiderationAmount += parameters
-                    .consideration[i]
-                    .startAmount;
+            for (i = 1; i < consideration.length; ++i) {
+                totalConsiderationAmount += consideration[i].startAmount;
             }
 
-            if (totalConsiderationAmount > parameters.offer[0].startAmount) {
-                revert("Sum of other consideration items amount too high.");
+            if (totalConsiderationAmount > offer[0].startAmount) {
+                return false;
             }
 
             // Note: these cases represent a “bid” for an NFT, and the non-NFT
@@ -340,33 +376,22 @@ library FuzzHelpers {
             // payment tokens.
         }
 
-        if (parameters.orderType == OrderType.CONTRACT) {
-            revert("Basic orders cannot be contract orders");
-
-            // Note: the order type is combined with the “route” into a single
-            // BasicOrderType with a value between 0 and 23; there are 4
-            // supported order types (full open, partial open, full restricted,
-            // partial restricted) and 6 routes (ETH ⇒ ERC721, ETH ⇒ ERC1155,
-            // ERC20 ⇒ ERC721, ERC20 ⇒ ERC1155, ERC721 ⇒ ERC20, ERC1155 ⇒ ERC20)
-        }
-
         // All items must have startAmount == endAmount
-        if (parameters.offer[0].startAmount != parameters.offer[0].endAmount) {
-            revert("Basic orders must have fixed prices");
+        if (offer[0].startAmount != offer[0].endAmount) {
+            return false;
         }
-        for (i = 0; i < parameters.consideration.length; ++i) {
-            if (
-                parameters.consideration[i].startAmount !=
-                parameters.consideration[i].endAmount
-            ) {
-                revert("Basic orders must have fixed prices");
+        for (i = 0; i < consideration.length; ++i) {
+            if (consideration[i].startAmount != consideration[i].endAmount) {
+                return false;
             }
         }
 
         // The offer item cannot have a native token type.
-        if (parameters.offer[0].itemType == ItemType.NATIVE) {
-            revert("The offer item cannot have a native token type");
+        if (offer[0].itemType == ItemType.NATIVE) {
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -375,8 +400,6 @@ library FuzzHelpers {
     function getBasicOrderType(
         AdvancedOrder memory order
     ) internal pure returns (BasicOrderType basicOrderType) {
-        getBasicOrderTypeIneligibilityReason(order);
-
         // Get the route (ETH ⇒ ERC721, etc.) for the order.
         BasicOrderRouteType route;
         ItemType providingItemType = order.parameters.consideration[0].itemType;

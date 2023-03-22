@@ -59,13 +59,9 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             extraData: bytes("")
         });
 
-        bytes4[] memory expectedActions = new bytes4[](4);
+        bytes4[] memory expectedActions = new bytes4[](2);
         expectedActions[0] = seaport.fulfillOrder.selector;
         expectedActions[1] = seaport.fulfillAdvancedOrder.selector;
-        expectedActions[2] = seaport.fulfillBasicOrder.selector;
-        expectedActions[3] = seaport
-            .fulfillBasicOrder_efficient_6GL6yc
-            .selector;
 
         TestContext memory context = TestContextLib.from({
             orders: orders,
@@ -381,9 +377,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
                 fuzzParams: FuzzParams({ seed: 2 })
             })
             .withBasicOrderParameters(
-                orders[0].toBasicOrderParameters(
-                    BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
-                )
+                orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
 
         exec(context);
@@ -405,9 +399,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
                 fuzzParams: FuzzParams({ seed: 3 })
             })
             .withBasicOrderParameters(
-                orders[0].toBasicOrderParameters(
-                    BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
-                )
+                orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
 
         exec(context);
