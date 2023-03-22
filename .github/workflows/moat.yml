@@ -1,0 +1,47 @@
+name: MOAT
+
+# HACK: just open a PR and push to the branch to get it to run
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+# Common config applies to all shards
+env:
+  FOUNDRY_MATCH_PATH: test/foundry/new/FuzzMain.t.sol
+  FOUNDRY_MATCH_TEST: test_success
+  FOUNDRY_FUZZ_RUNS: 5000
+
+# Individual shards run the same test except for their seed
+jobs:
+  shard0:
+    runs-on: large-runner
+    name: "0xdeadbeef"
+    env:
+      FOUNDRY_FUZZ_SEED: "0xdeadbeef"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/moat-runner
+
+  shard1:
+    runs-on: large-runner
+    name: "0xdadb0d"
+    env:
+      FOUNDRY_FUZZ_SEED: "0xdadb0d"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/moat-runner
+    
+  shard2:
+    runs-on: large-runner
+    name: "0x8badf00d"
+    env:
+      FOUNDRY_FUZZ_SEED: "0x8badf00d"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/moat-runner

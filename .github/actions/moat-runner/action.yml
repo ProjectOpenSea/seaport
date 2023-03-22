@@ -1,0 +1,29 @@
+# A simple helper to eliminate boilerplate in the moat.yml workflow file.
+# Github somehow doesn't support yaml anchors 🤷‍♀️
+
+name: 'Run MOAT'
+description: 'Setup the Mother of All Tests and run it.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+
+    - name: Install forge dependencies
+      shell: bash
+      run: forge install
+
+    - name: Precompile reference using 0.8.13 and via-ir=false
+      shell: bash
+      run: FOUNDRY_PROFILE=reference forge build
+
+    - name: Precompile optimized using 0.8.17 and via-ir=true
+      shell: bash
+      run: FOUNDRY_PROFILE=optimized forge build
+
+    - name: Run tests
+      shell: bash
+      run: FOUNDRY_PROFILE=test forge test
