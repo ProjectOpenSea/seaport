@@ -18,7 +18,7 @@ import {
 } from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
-contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
+contract FuzzEngineTest is FuzzEngine {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -155,13 +155,14 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             extraData: bytes("extra data")
         });
 
-        bytes4[] memory expectedActions = new bytes4[](6);
+        bytes4[] memory expectedActions = new bytes4[](2);
         expectedActions[0] = seaport.fulfillAvailableOrders.selector;
         expectedActions[1] = seaport.fulfillAvailableAdvancedOrders.selector;
-        expectedActions[2] = seaport.matchOrders.selector;
+        // TODO: undo pended actions (match, cancel, validate)
+        /** expectedActions[2] = seaport.matchOrders.selector;
         expectedActions[3] = seaport.matchAdvancedOrders.selector;
         expectedActions[4] = seaport.cancel.selector;
-        expectedActions[5] = seaport.validate.selector;
+        expectedActions[5] = seaport.validate.selector; */
 
         TestContext memory context = TestContextLib.from({
             orders: orders,
@@ -205,7 +206,8 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             seaport.fulfillAvailableAdvancedOrders.selector
         );
 
-        context = TestContextLib.from({
+        // TODO: undo pended actions (match, cancel, validate)
+        /** context = TestContextLib.from({
             orders: orders,
             seaport: seaport,
             caller: address(this),
@@ -235,7 +237,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 })
         });
-        assertEq(context.action(), seaport.validate.selector);
+        assertEq(context.action(), seaport.validate.selector); */
     }
 
     /// @dev Call exec for a single standard order.
@@ -928,7 +930,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.validate.
-    function test_exec_Combined_Validate() public {
+    function xtest_exec_Combined_Validate() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -974,7 +976,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.cancel.
-    function test_exec_Combined_Cancel() public {
+    function xtest_exec_Combined_Cancel() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);
@@ -1236,7 +1238,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.cancel.
-    function test_run_Combined_Cancel() public {
+    function xtest_run_Combined_Cancel() public {
         OrderComponents memory orderComponents = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr);

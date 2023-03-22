@@ -56,4 +56,5 @@ struct OrderComponentsSpace {
 
 struct AdvancedOrdersSpace {
     OrderComponentsSpace[] orders;
+    bool isMatchable;
 }

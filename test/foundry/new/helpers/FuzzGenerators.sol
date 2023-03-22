@@ -78,7 +78,7 @@ struct GeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address offerer;
-    address recipient;
+    address caller;
     address alice;
     address bob;
     address dillon;
@@ -105,6 +105,7 @@ library TestStateGenerator {
         uint256 maxConsiderationItemsPerOrder,
         GeneratorContext memory context
     ) internal pure returns (AdvancedOrdersSpace memory) {
+        bool isMatchable = context.randRange(0, 1) == 1 ? true : false;
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
             totalOrders
         );
@@ -128,7 +129,11 @@ library TestStateGenerator {
                 signatureMethod: SignatureMethod(0)
             });
         }
-        return AdvancedOrdersSpace({ orders: components });
+        return
+            AdvancedOrdersSpace({
+                orders: components,
+                isMatchable: isMatchable
+            });
     }
 
     function generateOffer(
@@ -175,7 +180,7 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
-    using SignatureGenerator for Order;
+    using SignatureGenerator for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using AdvancedOrderLib for AdvancedOrder;
 
@@ -189,13 +194,26 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
         context.orderHashes = new bytes32[](len);
 
+        // Build orders
         for (uint256 i; i < len; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context
             );
-            Order memory order = OrderLib.empty().withParameters(
-                orderParameters
-            );
+            orders[i] = OrderLib
+                .empty()
+                .withParameters(orderParameters)
+                .toAdvancedOrder({
+                    numerator: 1,
+                    denominator: 1,
+                    extraData: bytes("")
+                });
+        }
+
+        // Handle matches
+
+        // Sign phase
+        for (uint256 i = 0; i < len; ++i) {
+            AdvancedOrder memory order = orders[i];
 
             // TODO: choose an arbitrary number of tips
             order.parameters.totalOriginalConsiderationItems = (
@@ -208,24 +226,18 @@ library AdvancedOrdersSpaceGenerator {
                     order.parameters.offerer
                 );
                 orderHash = context.seaport.getOrderHash(
-                    orderParameters.toOrderComponents(counter)
+                    order.parameters.toOrderComponents(counter)
                 );
 
                 context.orderHashes[i] = orderHash;
             }
 
-            orders[i] = order
-                .withGeneratedSignature(
-                    space.orders[i].signatureMethod,
-                    space.orders[i].offerer,
-                    orderHash,
-                    context
-                )
-                .toAdvancedOrder({
-                    numerator: 1,
-                    denominator: 1,
-                    extraData: bytes("")
-                });
+            orders[i] = order.withGeneratedSignature(
+                space.orders[i].signatureMethod,
+                space.orders[i].offerer,
+                orderHash,
+                context
+            );
         }
         return orders;
     }
@@ -338,15 +350,15 @@ library ConsiderationItemSpaceGenerator {
 
 library SignatureGenerator {
     using OffererGenerator for Offerer;
-    using OrderLib for Order;
+    using AdvancedOrderLib for AdvancedOrder;
 
     function withGeneratedSignature(
-        Order memory order,
+        AdvancedOrder memory order,
         SignatureMethod method,
         Offerer offerer,
         bytes32 orderHash,
         GeneratorContext memory context
-    ) internal view returns (Order memory) {
+    ) internal view returns (AdvancedOrder memory) {
         if (method == SignatureMethod.EOA) {
             (, bytes32 domainSeparator, ) = context.seaport.information();
             bytes memory message = abi.encodePacked(
@@ -522,7 +534,7 @@ library RecipientGenerator {
         if (recipient == Recipient.OFFERER) {
             return context.offerer;
         } else if (recipient == Recipient.RECIPIENT) {
-            return context.recipient;
+            return context.caller;
         } else if (recipient == Recipient.DILLON) {
             return context.dillon;
         } else if (recipient == Recipient.EVE) {

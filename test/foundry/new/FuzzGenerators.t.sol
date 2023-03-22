@@ -57,7 +57,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc1155s: erc1155s,
                 self: address(this),
                 offerer: offerer1.addr,
-                recipient: address(0), // TODO: read recipient from TestContext
+                caller: address(this), // TODO: read recipient from TestContext
                 alice: offerer1.addr,
                 bob: offerer2.addr,
                 dillon: dillon.addr,
@@ -79,7 +79,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     function test_emptySpace() public {
         GeneratorContext memory context = createContext();
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-            orders: new OrderComponentsSpace[](0)
+            orders: new OrderComponentsSpace[](0),
+            isMatchable: false
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -111,7 +112,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         components[0] = component;
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-            orders: components
+            orders: components,
+            isMatchable: false
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -151,7 +153,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         components[0] = component;
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-            orders: components
+            orders: components,
+            isMatchable: false
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -202,7 +205,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         components[0] = component;
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-            orders: components
+            orders: components,
+            isMatchable: false
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

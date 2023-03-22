@@ -60,16 +60,16 @@ library FuzzEngineLib {
         }
 
         if (family == Family.COMBINED) {
-            bytes4[] memory selectors = new bytes4[](6);
+            bytes4[] memory selectors = new bytes4[](4);
             selectors[0] = context.seaport.fulfillAvailableOrders.selector;
             selectors[1] = context
                 .seaport
                 .fulfillAvailableAdvancedOrders
                 .selector;
-            selectors[2] = context.seaport.matchOrders.selector;
-            selectors[3] = context.seaport.matchAdvancedOrders.selector;
-            selectors[4] = context.seaport.cancel.selector;
-            selectors[5] = context.seaport.validate.selector;
+            //selectors[2] = context.seaport.matchOrders.selector;
+            //selectors[3] = context.seaport.matchAdvancedOrders.selector;
+            selectors[2] = context.seaport.cancel.selector;
+            selectors[3] = context.seaport.validate.selector;
             return selectors;
         }
         revert("FuzzEngine: Actions not found");
