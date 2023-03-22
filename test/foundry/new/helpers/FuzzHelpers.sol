@@ -79,6 +79,8 @@ library FuzzHelpers {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
+    using OfferItemLib for OfferItem[];
+    using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder[];
@@ -231,6 +233,55 @@ library FuzzHelpers {
             // Derive the expected calldata hash for the call to validateOrder
             calldataHashes[i] = keccak256(
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+        }
+    }
+
+    function getExpectedContractOffererCalldataHash(
+        AdvancedOrder[] memory orders,
+        address seaport,
+        address fulfiller
+    ) internal view returns (bytes32[][2] memory) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
+
+        for (uint256 i; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+
+            if (getType(order) != Type.CONTRACT) {
+                continue;
+            }
+
+            SpentItem[] memory minimumReceived = order
+                .parameters
+                .offer
+                .toSpentItemArray();
+
+            SpentItem[] memory maximumSpent = order
+                .parameters
+                .consideration
+                .toSpentItemArray();
+
+            ReceivedItem[] memory receivedItems = order
+                .parameters
+                .consideration
+                .toReceivedItemArray();
+
+            // Derive the expected calldata hash for the call to generateOrder
+            calldataHashes[i][0] = keccak256(
+                abi.encodeCall(
+                    ContractOffererInterface.generateOrder,
+                    (fulfiller, maximumSpent, minimumReceived, "")
+                )
+            );
+
+            // Derive the expected calldata hash for the call to ratifyOrder
+            calldataHashes[i][1] = keccak256(
+                abi.encodeCall(
+                    ContractOffererInterface.ratifyOrder,
+                    (minimumReceived, receivedItems, "", )
+                )
             );
         }
     }
