@@ -286,7 +286,7 @@ library FuzzHelpers {
      * @dev Get the orderHashes of an array of AdvancedOrders and return
      *      the expected calldata hashes for calls to validateOrder.
      */
-    function getExpectedContractOffererCalldataHash(
+    function getExpectedContractOffererCalldataHashes(
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller

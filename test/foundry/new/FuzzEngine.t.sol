@@ -1244,6 +1244,14 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
                 address(seaport)
             );
 
+        // Mint the erc20 to the test contract to be transferred to the contract offerers
+        // in the call to activate
+        erc20s[0].mint(address(this), 2);
+
+        // Approve the contract offerers to transfer tokens from the test contract
+        erc20s[0].approve(address(contractOfferer1), 1);
+        erc20s[0].approve(address(contractOfferer2), 1);
+
         // Offer ERC20
         OfferItem[] memory offerItems = new OfferItem[](1);
         OfferItem memory offerItem = OfferItemLib
@@ -1260,7 +1268,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             memory considerationItems1 = new ConsiderationItem[](1);
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
-            .withRecipient(offerer1.addr)
+            .withRecipient(address(contractOfferer1))
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(1)
@@ -1273,7 +1281,7 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             memory considerationItems2 = new ConsiderationItem[](1);
         considerationItem = ConsiderationItemLib
             .empty()
-            .withRecipient(offerer1.addr)
+            .withRecipient(address(contractOfferer2))
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(2)
@@ -1284,54 +1292,57 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .fromDefault(STANDARD)
             .withOfferer(address(contractOfferer1))
             .withOffer(offerItems)
-            .withZone(address(zone))
-            .withOrderType(OrderType.FULL_RESTRICTED)
+            .withOrderType(OrderType.CONTRACT)
             .withConsideration(considerationItems1);
 
         OrderComponents memory orderComponents2 = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(address(contractOfferer2))
             .withOffer(offerItems)
-            .withZone(address(zone))
-            .withOrderType(OrderType.FULL_RESTRICTED)
+            .withOrderType(OrderType.CONTRACT)
             .withConsideration(considerationItems2);
 
-        Order memory order1 = OrderLib.fromDefault(STANDARD).withParameters(
-            orderComponents1.toOrderParameters()
-        );
-
-        Order memory order2 = OrderLib.fromDefault(STANDARD).withParameters(
-            orderComponents2.toOrderParameters()
-        );
-
         Order[] memory orders = new Order[](2);
-        orders[0] = order1;
-        orders[1] = order2;
-
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
-        advancedOrders[0] = order1.toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
-        advancedOrders[1] = order2.toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
+        {
+            orders[0] = OrderLib.fromDefault(STANDARD).withParameters(
+                orderComponents1.toOrderParameters()
+            );
 
-        (
-            FulfillmentComponent[][] memory offerComponents,
-            FulfillmentComponent[][] memory considerationComponents
-        ) = getNaiveFulfillmentComponents(orders);
+            orders[1] = OrderLib.fromDefault(STANDARD).withParameters(
+                orderComponents2.toOrderParameters()
+            );
 
-        bytes32[] memory expectedZoneCalldataHashes = new bytes32[](2);
+            advancedOrders[0] = orders[0].toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+            advancedOrders[1] = orders[1].toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
 
-        for (uint256 i; i < advancedOrders.length; i++) {
-            expectedZoneCalldataHashes[i] = advancedOrders
-                .getExpectedZoneCalldataHash(address(seaport), address(this))[
-                    i
-                ];
+            SpentItem[] memory minimumReceived = offerItems.toSpentItemArray();
+
+            // can pass in same maximumSpent array to both orders since it goes unused
+            SpentItem[] memory maximumSpent = considerationItems1
+                .toSpentItemArray();
+
+            // Activate the contract orders
+            contractOfferer1.activate(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
+            contractOfferer2.activate(
+                address(this),
+                minimumReceived,
+                maximumSpent,
+                ""
+            );
         }
 
         bytes32[2][] memory expectedContractOrderCalldataHashes = advancedOrders
@@ -1340,9 +1351,13 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
                 address(this)
             );
 
-        bytes4[] memory checks = new bytes4[](2);
-        checks[0] = this.check_validateOrderExpectedDataHash.selector;
-        checks[1] = this.check_contractOrderExpectedDataHashes.selector;
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_contractOrderExpectedDataHashes.selector;
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(orders);
 
         TestContext memory context = TestContextLib
             .from({
@@ -1356,7 +1371,8 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .withChecks(checks)
             .withMaximumFulfilled(2);
 
-        context.expectedZoneCalldataHash = expectedCalldataHashes;
+        context
+            .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
 
         run(context);
     }
