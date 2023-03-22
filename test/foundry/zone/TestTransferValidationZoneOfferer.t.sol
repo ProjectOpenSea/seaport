@@ -473,7 +473,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     address(this),
                     offerer1Counter,
                     advancedOrders.length - 1,
-                    context.seaport
+                    address(context.seaport)
                 );
 
             bytes32[]
@@ -616,12 +616,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 address(this),
                 offerer1Counter,
                 advancedOrders.length,
-                context.seaport
+                address(context.seaport)
             );
 
-        bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
-            zoneParameters
-        );
+        bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+        for (uint256 i = 0; i < zoneParameters.length; i++) {
+            payloadHashes[i] = keccak256(
+                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
+            );
+        }
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
@@ -794,7 +797,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         {
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
-                .getZoneParameters(address(this), 0, 1, context.seaport);
+                .getZoneParameters(
+                    address(this),
+                    0,
+                    1,
+                    address(context.seaport)
+                );
 
             bytes32[]
                 memory payloadHashes = _generateZoneValidateOrderDataHashes(
@@ -930,7 +938,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 address(this),
                 0,
                 advancedOrders.length,
-                context.seaport
+                address(context.seaport)
             );
 
         bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
@@ -1815,7 +1823,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     {
         // Create contract offerer
         TestCalldataHashContractOfferer transferValidationOfferer1 = new TestCalldataHashContractOfferer(
-                offerer1.addr
+                address(context.seaport)
             );
 
         vm.label(address(transferValidationOfferer1), "contractOfferer");

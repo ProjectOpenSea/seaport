@@ -12,6 +12,10 @@ import {
     FuzzEngineLib,
     TestContextLib
 } from "./helpers/FuzzEngine.sol";
+
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
 contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
@@ -26,8 +30,10 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
+    using ZoneParametersLib for AdvancedOrder[];
 
     using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
     using FuzzEngineLib for TestContext;
     using TestContextLib for TestContext;
 
@@ -53,9 +59,13 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             extraData: bytes("")
         });
 
-        bytes4[] memory expectedActions = new bytes4[](2);
+        bytes4[] memory expectedActions = new bytes4[](4);
         expectedActions[0] = seaport.fulfillOrder.selector;
         expectedActions[1] = seaport.fulfillAdvancedOrder.selector;
+        expectedActions[2] = seaport.fulfillBasicOrder.selector;
+        expectedActions[3] = seaport
+            .fulfillBasicOrder_efficient_6GL6yc
+            .selector;
 
         TestContext memory context = TestContextLib.from({
             orders: orders,
@@ -298,6 +308,109 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
 
         exec(context);
         assertEq(context.returnValues.fulfilled, true);
+    }
+
+    function _setUpBasicOrder() internal returns (AdvancedOrder[] memory) {
+        erc721s[0].mint(offerer1.addr, 1);
+
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+
+        offerItems[0] = offerItem;
+
+        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+            1
+        );
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withAmount(1);
+
+        considerationItems[0] = considerationItem;
+
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems);
+
+        bytes memory signature = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents)
+        );
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(
+                orderComponents.toOrderParameters().withOrderType(
+                    OrderType.FULL_OPEN
+                )
+            )
+            .withSignature(signature);
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        return orders;
+    }
+
+    /// @dev Call exec for a single basic order. Stub the fuzz seed so that it
+    ///      always calls Seaport.fulfillBasicOrder.
+    function test_exec_FulfillBasicOrder() public {
+        AdvancedOrder[] memory orders = _setUpBasicOrder();
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_orderFulfilled.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(offerer1.addr),
+                fuzzParams: FuzzParams({ seed: 2 })
+            })
+            .withBasicOrderParameters(
+                orders[0].toBasicOrderParameters(
+                    BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+                )
+            );
+
+        exec(context);
+    }
+
+    /// @dev Call exec for a single basic order. Stub the fuzz seed so that it
+    ///      always calls Seaport.fulfillBasicOrder_efficient_6GL6yc.
+    function test_exec_FulfillBasicOrder_efficient_6GL6yc() public {
+        AdvancedOrder[] memory orders = _setUpBasicOrder();
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_orderFulfilled.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: address(offerer1.addr),
+                fuzzParams: FuzzParams({ seed: 3 })
+            })
+            .withBasicOrderParameters(
+                orders[0].toBasicOrderParameters(
+                    BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+                )
+            );
+
+        exec(context);
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
@@ -607,6 +720,108 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
     }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
+    ///      always calls Seaport.matchOrders.
+    function test_exec_Combined_matchOrders() public {
+        OfferItem[] memory offerItemsPrime = new OfferItem[](1);
+        OfferItem[] memory offerItemsMirror = new OfferItem[](1);
+        ConsiderationItem[]
+            memory considerationItemsPrime = new ConsiderationItem[](1);
+        ConsiderationItem[]
+            memory considerationItemsMirror = new ConsiderationItem[](1);
+        {
+            // Offer ERC20
+            OfferItem memory offerItemPrime = OfferItemLib
+                .empty()
+                .withItemType(ItemType.ERC20)
+                .withToken(address(erc20s[0]))
+                .withStartAmount(1)
+                .withEndAmount(1);
+            offerItemsPrime[0] = offerItemPrime;
+
+            // Consider single ERC721 to offerer1
+            erc721s[0].mint(offerer2.addr, 1);
+            ConsiderationItem
+                memory considerationItemPrime = ConsiderationItemLib
+                    .empty()
+                    .withRecipient(offerer1.addr)
+                    .withItemType(ItemType.ERC721)
+                    .withToken(address(erc721s[0]))
+                    .withIdentifierOrCriteria(1)
+                    .withAmount(1);
+            considerationItemsPrime[0] = considerationItemPrime;
+
+            offerItemsMirror[0] = considerationItemsPrime[0].toOfferItem();
+
+            considerationItemsMirror[0] = offerItemsPrime[0]
+                .toConsiderationItem(offerer2.addr);
+        }
+
+        OrderComponents memory orderComponentsPrime = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItemsPrime)
+            .withConsideration(considerationItemsPrime);
+
+        OrderComponents memory orderComponentsMirror = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer2.addr)
+            .withOffer(offerItemsMirror)
+            .withConsideration(considerationItemsMirror);
+
+        Order memory orderPrime = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponentsPrime.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer1.key,
+                    seaport.getOrderHash(orderComponentsPrime)
+                )
+            );
+
+        Order memory orderMirror = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponentsMirror.toOrderParameters())
+            .withSignature(
+                signOrder(
+                    seaport,
+                    offerer2.key,
+                    seaport.getOrderHash(orderComponentsMirror)
+                )
+            );
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = orderPrime.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        orders[1] = orderMirror.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        (Fulfillment[] memory fulfillments, , ) = matcher
+            .getMatchedFulfillments(orders);
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_executionsPresent.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: orders,
+                seaport: seaport,
+                caller: offerer1.addr,
+                fuzzParams: FuzzParams({ seed: 2 })
+            })
+            .withChecks(checks)
+            .withFulfillments(fulfillments);
+
+        run(context);
+    }
+
+    /// @dev Call run for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.matchAdvancedOrders.
     function test_exec_Combined_matchAdvancedOrders() public {
         OfferItem[] memory offerItemsPrime = new OfferItem[](1);
@@ -887,6 +1102,135 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             )
         );
         checkAll(context);
+    }
+
+    function test_check_validateOrderExpectedDataHash() public {
+        TestTransferValidationZoneOfferer zone = new TestTransferValidationZoneOfferer(
+                address(this)
+            );
+        // Offer ERC20
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withStartAmount(1)
+            .withEndAmount(1);
+        offerItems[0] = offerItem;
+
+        // Consider single ERC721 to offerer1
+        erc721s[0].mint(address(this), 1);
+        ConsiderationItem[]
+            memory considerationItems1 = new ConsiderationItem[](1);
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withRecipient(offerer1.addr)
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+        considerationItems1[0] = considerationItem;
+
+        // Consider single ERC721 to offerer1
+        erc721s[0].mint(address(this), 2);
+        ConsiderationItem[]
+            memory considerationItems2 = new ConsiderationItem[](1);
+        considerationItem = ConsiderationItemLib
+            .empty()
+            .withRecipient(offerer1.addr)
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(2)
+            .withAmount(1);
+        considerationItems2[0] = considerationItem;
+
+        OrderComponents memory orderComponents1 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withZone(address(zone))
+            .withOrderType(OrderType.FULL_RESTRICTED)
+            .withConsideration(considerationItems1);
+
+        OrderComponents memory orderComponents2 = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withZone(address(zone))
+            .withOrderType(OrderType.FULL_RESTRICTED)
+            .withConsideration(considerationItems2);
+
+        bytes memory signature1 = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents1)
+        );
+
+        Order memory order1 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents1.toOrderParameters())
+            .withSignature(signature1);
+
+        bytes memory signature2 = signOrder(
+            seaport,
+            offerer1.key,
+            seaport.getOrderHash(orderComponents2)
+        );
+
+        Order memory order2 = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents2.toOrderParameters())
+            .withSignature(signature2);
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = order1;
+        orders[1] = order2;
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = order1.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+        advancedOrders[1] = order2.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(orders);
+
+        bytes32[] memory expectedCalldataHashes = new bytes32[](2);
+
+        // update to context.caller
+        for (uint256 i; i < advancedOrders.length; i++) {
+            expectedCalldataHashes[i] = advancedOrders
+                .getExpectedZoneCalldataHash(address(seaport), address(this))[
+                    i
+                ];
+        }
+
+        bytes4[] memory checks = new bytes4[](1);
+        checks[0] = this.check_validateOrderExpectedDataHash.selector;
+
+        TestContext memory context = TestContextLib
+            .from({
+                orders: advancedOrders,
+                seaport: seaport,
+                caller: address(this),
+                fuzzParams: FuzzParams({ seed: 0 })
+            })
+            .withOfferFulfillments(offerComponents)
+            .withConsiderationFulfillments(considerationComponents)
+            .withChecks(checks)
+            .withMaximumFulfilled(2);
+
+        context.expectedZoneCalldataHash = expectedCalldataHashes;
+
+        run(context);
     }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
