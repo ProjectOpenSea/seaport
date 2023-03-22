@@ -12,7 +12,8 @@ import {
     Time,
     Zone,
     BroadOrderType,
-    ZoneHash
+    ZoneHash,
+    SignatureMethod
 } from "./SpaceEnums.sol";
 
 struct OfferItemSpace {
@@ -49,6 +50,10 @@ struct OrderComponentsSpace {
     BroadOrderType orderType;
     Time time;
     ZoneHash zoneHash;
-
+    SignatureMethod signatureMethod;
     // TODO: zone may have to be per-test depending on the zone
+}
+
+struct AdvancedOrdersSpace {
+    OrderComponentsSpace[] orders;
 }

@@ -120,6 +120,10 @@ contract BaseOrderTest is
     Account offerer1;
     Account offerer2;
 
+    Account dillon;
+    Account eve;
+    Account frank;
+
     PreapprovedERC721 internal preapproved721;
 
     TestERC20[] erc20s;
@@ -153,6 +157,10 @@ contract BaseOrderTest is
 
         offerer1 = makeAndAllocateAccount("alice");
         offerer2 = makeAndAllocateAccount("bob");
+
+        dillon = makeAndAllocateAccount("dillon");
+        eve = makeAndAllocateAccount("eve");
+        frank = makeAndAllocateAccount("frank");
 
         // allocate funds and tokens to test addresses
         allocateTokensAndApprovals(address(this), type(uint128).max);
