@@ -88,9 +88,8 @@ enum Amount {
     DESCENDING
 }
 
-enum AmountDegree
-// ZERO, ?
-{
+enum AmountDegree {
+    // ZERO, ?
     SMALL,
     MEDIUM,
     LARGE,
@@ -98,13 +97,14 @@ enum AmountDegree
 }
 
 // ConsiderationItem.* / ReceivedItem.* / Method.*ADVANCED <- Recipient
-enum Recipient
-// ZERO,?
-{
+enum Recipient {
+    // ZERO,?
     OFFERER,
     RECIPIENT,
-    OTHER,
-    INVALID
+    DILLON,
+    EVE,
+    FRANK
+    // INVALID
 }
 
 enum RecipientDirty {
@@ -116,9 +116,9 @@ enum RecipientDirty {
 enum Offerer {
     TEST_CONTRACT,
     ALICE, // consider EOA space enum
-    BOB,
-    EIP1271,
-    CONTRACT_OFFERER
+    BOB
+    // EIP1271,
+    // CONTRACT_OFFERER
 }
 
 // debatable if needed but we do need to test zonehash permutations
@@ -179,13 +179,12 @@ enum ContractOffererFailMaxSpent {
     BOTH
 }
 
-enum Time
-// valid granularity important for ascending/descending
-{
-    START,
+enum Time {
+    // valid granularity important for ascending/descending
+    STARTS_IN_FUTURE,
+    EXACT_START, // order is live
     ONGOING,
-    END,
-    FUTURE,
+    EXACT_END, // order is expired
     EXPIRED
 }
 
@@ -193,6 +192,14 @@ enum Time
 enum MatchValidation {
     SELF_AD_HOC,
     SIGNATURE
+}
+
+enum SignatureMethod {
+    EOA
+    // VALIDATE
+    // EIP1271
+    // CONTRACT
+    // SELF_AD_HOC
 }
 
 // Offerer.EOA <- EOASignature

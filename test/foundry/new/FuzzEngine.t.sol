@@ -716,7 +716,8 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .withConsiderationFulfillments(considerationComponents)
             .withMaximumFulfilled(2);
 
-        run(context);
+        exec(context);
+        checkAll(context);
     }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
@@ -818,7 +819,8 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .withChecks(checks)
             .withFulfillments(fulfillments);
 
-        run(context);
+        exec(context);
+        checkAll(context);
     }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
@@ -920,7 +922,8 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
             .withChecks(checks)
             .withFulfillments(fulfillments);
 
-        run(context);
+        exec(context);
+        checkAll(context);
     }
 
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
@@ -1119,7 +1122,6 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
         offerItems[0] = offerItem;
 
         // Consider single ERC721 to offerer1
-        erc721s[0].mint(address(this), 1);
         ConsiderationItem[]
             memory considerationItems1 = new ConsiderationItem[](1);
         ConsiderationItem memory considerationItem = ConsiderationItemLib
@@ -1132,7 +1134,6 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
         considerationItems1[0] = considerationItem;
 
         // Consider single ERC721 to offerer1
-        erc721s[0].mint(address(this), 2);
         ConsiderationItem[]
             memory considerationItems2 = new ConsiderationItem[](1);
         considerationItem = ConsiderationItemLib

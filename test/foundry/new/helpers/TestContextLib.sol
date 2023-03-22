@@ -26,6 +26,10 @@ struct TestContext {
      */
     SeaportInterface seaport;
     /**
+     * @dev A ConduitController interface.
+     */
+    ConduitControllerInterface conduitController;
+    /**
      * @dev A caller address. If this is nonzero, the FuzzEngine will prank this
      *      address before calling exec.
      */
@@ -96,6 +100,7 @@ library TestContextLib {
             TestContext({
                 orders: new AdvancedOrder[](0),
                 seaport: SeaportInterface(address(0)),
+                conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
                 fuzzParams: FuzzParams({ seed: 0 }),
                 checks: new bytes4[](0),
@@ -140,6 +145,7 @@ library TestContextLib {
             TestContext({
                 orders: orders,
                 seaport: seaport,
+                conduitController: ConduitControllerInterface(address(0)),
                 caller: caller,
                 fuzzParams: fuzzParams,
                 checks: new bytes4[](0),
@@ -194,6 +200,22 @@ library TestContextLib {
         SeaportInterface seaport
     ) internal pure returns (TestContext memory) {
         context.seaport = seaport;
+        return context;
+    }
+
+    /**
+     * @dev Sets the ConduitControllerInterface on a TestContext
+     *
+     * @param context the TestContext to set the ConduitControllerInterface of
+     * @param conduitController the ConduitControllerInterface to set
+     *
+     * @return _context the TestContext with the ConduitControllerInterface set
+     */
+    function withConduitController(
+        TestContext memory context,
+        ConduitControllerInterface conduitController
+    ) internal pure returns (TestContext memory) {
+        context.conduitController = conduitController;
         return context;
     }
 
