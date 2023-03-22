@@ -194,6 +194,12 @@ library AdvancedOrdersSpaceGenerator {
             Order memory order = OrderLib.empty().withParameters(
                 orderParameters
             );
+
+            // TODO: choose an arbitrary number of tips
+            order.parameters.totalOriginalConsiderationItems = (
+                order.parameters.consideration.length
+            );
+
             bytes32 orderHash;
             {
                 uint256 counter = context.seaport.getCounter(
