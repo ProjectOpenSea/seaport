@@ -137,6 +137,51 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
         assertEq(context.action(), seaport.fulfillAdvancedOrder.selector);
     }
 
+    /// @dev Get one action for a single, basic order.
+    function test_action_Single_Basic() public {
+        AdvancedOrder[] memory orders = _setUpBasicOrder();
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 2 })
+        });
+        assertEq(context.action(), seaport.fulfillBasicOrder.selector);
+
+        context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 3 })
+        });
+        assertEq(
+            context.action(),
+            seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        );
+    }
+
+    /// @dev Get all actions for a single, basic order.
+    function test_actions_Single_Basic() public {
+        AdvancedOrder[] memory orders = _setUpBasicOrder();
+
+        bytes4[] memory expectedActions = new bytes4[](4);
+        expectedActions[0] = seaport.fulfillOrder.selector;
+        expectedActions[1] = seaport.fulfillAdvancedOrder.selector;
+        expectedActions[2] = seaport.fulfillBasicOrder.selector;
+        expectedActions[3] = seaport
+            .fulfillBasicOrder_efficient_6GL6yc
+            .selector;
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 0 })
+        });
+        assertEq(context.actions(), expectedActions);
+    }
+
     /// @dev Get all actions for a combined order.
     function test_actions_Combined() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
