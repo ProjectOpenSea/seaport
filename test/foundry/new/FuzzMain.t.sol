@@ -132,6 +132,7 @@ contract FuzzMainTest is FuzzEngine {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: seed })
         });
+        context.testHelpers = TestLike(address(this));
 
         run(context);
     }

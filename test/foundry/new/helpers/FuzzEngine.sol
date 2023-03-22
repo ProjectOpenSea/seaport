@@ -35,7 +35,7 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(TestContext memory context) internal pure returns (bytes4) {
+    function action(TestContext memory context) internal returns (bytes4) {
         bytes4[] memory _actions = actions(context);
         return _actions[context.fuzzParams.seed % _actions.length];
     }
@@ -49,7 +49,7 @@ library FuzzEngineLib {
      */
     function actions(
         TestContext memory context
-    ) internal pure returns (bytes4[] memory) {
+    ) internal returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
         if (family == Family.SINGLE) {
@@ -74,17 +74,33 @@ library FuzzEngineLib {
         }
 
         if (family == Family.COMBINED) {
-            bytes4[] memory selectors = new bytes4[](2);
-            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-            selectors[1] = context
-                .seaport
-                .fulfillAvailableAdvancedOrders
-                .selector;
-            //selectors[2] = context.seaport.matchOrders.selector;
-            //selectors[3] = context.seaport.matchAdvancedOrders.selector;
-            //selectors[2] = context.seaport.cancel.selector;
-            //selectors[3] = context.seaport.validate.selector;
-            return selectors;
+            (, , MatchComponent[] memory remainders) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+
+            if (remainders.length != 0) {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                //selectors[2] = context.seaport.cancel.selector;
+                //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](4);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                selectors[2] = context.seaport.matchOrders.selector;
+                selectors[3] = context.seaport.matchAdvancedOrders.selector;
+                //selectors[2] = context.seaport.cancel.selector;
+                //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            }
         }
         revert("FuzzEngine: Actions not found");
     }
@@ -232,12 +248,22 @@ contract FuzzEngine is
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
+            (Fulfillment[] memory fulfillments, , ) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+            context.fulfillments = fulfillments;
+
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
             );
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            (Fulfillment[] memory fulfillments, , ) = context
+                .testHelpers
+                .getMatchedFulfillments(context.orders);
+            context.fulfillments = fulfillments;
+
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,

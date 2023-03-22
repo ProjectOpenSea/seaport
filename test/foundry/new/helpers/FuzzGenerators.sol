@@ -25,6 +25,7 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
+import { TestLike } from "./TestContextLib.sol";
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
@@ -66,18 +67,6 @@ function bound(
         if (rem == 0) return min;
         result = max - rem + 1;
     }
-}
-
-interface TestLike {
-    function getMatchedFulfillments(
-        AdvancedOrder[] memory orders
-    )
-        external
-        returns (
-            Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents,
-            MatchComponent[] memory remainingConsiderationComponents
-        );
 }
 
 struct GeneratorContext {
@@ -240,9 +229,14 @@ library AdvancedOrdersSpaceGenerator {
                     .parameters
                     .consideration[itemIndex];
 
-                uint256 orderInsertionIndex = context.randRange(0, orders.length - 1);
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
 
-                OfferItem[] memory newOffer = new OfferItem[](orders[orderInsertionIndex].parameters.offer.length + 1);
+                OfferItem[] memory newOffer = new OfferItem[](
+                    orders[orderInsertionIndex].parameters.offer.length + 1
+                );
 
                 if (orders[orderInsertionIndex].parameters.offer.length == 0) {
                     newOffer[0] = OfferItem({
@@ -253,10 +247,15 @@ library AdvancedOrdersSpaceGenerator {
                         endAmount: uint256(amount)
                     });
                 } else {
-                    uint256 itemInsertionIndex = context.randRange(0, orders[orderInsertionIndex].parameters.offer.length - 1);
+                    uint256 itemInsertionIndex = context.randRange(
+                        0,
+                        orders[orderInsertionIndex].parameters.offer.length - 1
+                    );
 
                     for (uint256 j = 0; j < itemInsertionIndex; ++j) {
-                        newOffer[j] = orders[orderInsertionIndex].parameters.offer[j];
+                        newOffer[j] = orders[orderInsertionIndex]
+                            .parameters
+                            .offer[j];
                     }
 
                     newOffer[itemInsertionIndex] = OfferItem({
@@ -267,8 +266,14 @@ library AdvancedOrdersSpaceGenerator {
                         endAmount: uint256(amount)
                     });
 
-                    for (uint256 j = itemInsertionIndex + 1; j < newOffer.length; ++j) {
-                        newOffer[j] = orders[orderInsertionIndex].parameters.offer[j - 1];
+                    for (
+                        uint256 j = itemInsertionIndex + 1;
+                        j < newOffer.length;
+                        ++j
+                    ) {
+                        newOffer[j] = orders[orderInsertionIndex]
+                            .parameters
+                            .offer[j - 1];
                     }
                 }
 

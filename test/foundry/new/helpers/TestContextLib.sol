@@ -16,6 +16,18 @@ struct ReturnValues {
     Execution[] executions;
 }
 
+interface TestLike {
+    function getMatchedFulfillments(
+        AdvancedOrder[] memory orders
+    )
+        external
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        );
+}
+
 struct TestContext {
     /**
      * @dev An array of AdvancedOrders
@@ -80,6 +92,7 @@ struct TestContext {
      *      from all Seaport functions.
      */
     ReturnValues returnValues;
+    TestLike testHelpers;
 }
 
 /**
@@ -122,7 +135,8 @@ library TestContextLib {
                     validated: false,
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
-                })
+                }),
+                testHelpers: TestLike(address(0))
             });
     }
 
@@ -167,7 +181,8 @@ library TestContextLib {
                     validated: false,
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
-                })
+                }),
+                testHelpers: TestLike(address(0))
             });
     }
 
