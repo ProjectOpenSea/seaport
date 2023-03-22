@@ -26,7 +26,7 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(TestContext memory context) internal pure returns (bytes4) {
+    function action(TestContext memory context) internal view returns (bytes4) {
         bytes4[] memory _actions = actions(context);
         return _actions[context.fuzzParams.seed % _actions.length];
     }
@@ -40,12 +40,12 @@ library FuzzEngineLib {
      */
     function actions(
         TestContext memory context
-    ) internal pure returns (bytes4[] memory) {
+    ) internal view returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
         if (family == Family.SINGLE) {
             AdvancedOrder memory order = context.orders[0];
-            Structure structure = order.getStructure();
+            Structure structure = order.getStructure(address(context.seaport));
             if (structure == Structure.STANDARD) {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillOrder.selector;

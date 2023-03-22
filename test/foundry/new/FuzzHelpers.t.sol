@@ -52,7 +52,58 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.STANDARD);
+        assertEq(order.getStructure(address(seaport)), Structure.STANDARD);
+    }
+
+    /// @dev An order with no advanced order parameters that meets various
+    ///      criteria is BASIC.
+    function test_getStructure_Basic() public {
+        erc721s[0].mint(offerer1.addr, 1);
+
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+
+        offerItems[0] = offerItem;
+
+        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+            1
+        );
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withAmount(1);
+
+        considerationItems[0] = considerationItem;
+
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems);
+
+        Order memory order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(
+                orderComponents.toOrderParameters().withOrderType(
+                    OrderType.FULL_OPEN
+                )
+            )
+            .withSignature("");
+
+        AdvancedOrder memory advancedOrder = order
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+
+        assertEq(advancedOrder.getStructure(address(seaport)), Structure.BASIC);
     }
 
     /// @dev An order with numerator, denominator, or extraData is ADVANCED
@@ -73,7 +124,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: extraData
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with offer item criteria is ADVANCED
@@ -97,7 +148,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with offer item criteria is ADVANCED
@@ -121,7 +172,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with consideration item criteria is ADVANCED
@@ -145,7 +196,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with consideration item criteria is ADVANCED
@@ -169,7 +220,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev A contract order with consideration item criteria is STANDARD if
@@ -197,7 +248,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.STANDARD);
+        assertEq(order.getStructure(address(seaport)), Structure.STANDARD);
     }
 
     /// @dev A contract order with consideration item criteria is ADVANCED if
@@ -226,7 +277,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(), Structure.ADVANCED);
+        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
     }
 
     /// @dev An order with type FULL_OPEN is OPEN
@@ -447,6 +498,579 @@ contract FuzzHelpersTest is BaseOrderTest {
         assertEq(orders.getFamily(), Family.COMBINED);
     }
 
+    function _createOrder(
+        ItemType offerItemType,
+        ItemType considerationItemType,
+        OrderType orderType
+    ) internal view returns (AdvancedOrder memory order) {
+        bool nftOffered = offerItemType == ItemType.ERC721 ||
+            offerItemType == ItemType.ERC1155;
+
+        OfferItem[] memory offerItems = new OfferItem[](1);
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(offerItemType)
+            .withToken(nftOffered ? address(erc721s[0]) : address(0))
+            .withIdentifierOrCriteria(nftOffered ? 1 : 0)
+            .withAmount(1);
+
+        offerItems[0] = offerItem;
+
+        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+            1
+        );
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withItemType(considerationItemType)
+            .withIdentifierOrCriteria(nftOffered ? 0 : 1)
+            .withAmount(1);
+
+        considerationItems[0] = considerationItem;
+
+        OrderComponents memory orderComponents = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withOfferer(offerer1.addr)
+            .withOffer(offerItems)
+            .withConsideration(considerationItems)
+            .withOrderType(orderType);
+
+        order = OrderLib
+            .fromDefault(STANDARD)
+            .withParameters(orderComponents.toOrderParameters())
+            .toAdvancedOrder({
+                numerator: 0,
+                denominator: 0,
+                extraData: bytes("")
+            });
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC721
+     * item. no partial fills, anyone can execute. ETH_TO_ERC721_FULL_OPEN
+     */
+    function test_getBasicOrderType_ETH_TO_ERC721_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.NATIVE,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC721_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC721
+     * item. partial fills supported, anyone can execute.
+     * ETH_TO_ERC721_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.NATIVE,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC721
+     * item. no partial fills, only offerer or zone can execute.
+     * ETH_TO_ERC721_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ETH_TO_ERC721_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.NATIVE,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC721
+     * item. partial fills supported, only offerer or zone can execute.
+     * ETH_TO_ERC721_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.NATIVE,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC1155
+     * item. no partial fills, anyone can execute. ETH_TO_ERC1155_FULL_OPEN
+     */
+    function test_getBasicOrderType_ETH_TO_ERC1155_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.NATIVE,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC1155
+     * item.partial fills supported, anyone can execute.
+     * ETH_TO_ERC1155_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.NATIVE,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC1155
+     * item.no partial fills, only offerer or zone can execute.
+     * ETH_TO_ERC1155_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ETH_TO_ERC1155_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.NATIVE,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide Ether (or other native token) to receive offered ERC1155
+     * item.partial fills supported, only offerer or zone can execute.
+     * ETH_TO_ERC1155_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.NATIVE,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC721 item. no partial fills,
+     * anyone can execute. ERC20_TO_ERC721_FULL_OPEN
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC721_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.ERC20,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC721 item. partial fills
+     * supported, anyone can execute. ERC20_TO_ERC721_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC721_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.ERC20,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC721 item. no partial fills,
+     * only offerer or zone can execute. ERC20_TO_ERC721_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC721_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.ERC20,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC721 item. partial fills
+     * supported, only offerer or zone can execute.
+     * ERC20_TO_ERC721_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC721_PARTIAL_RESTRICTED()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC721,
+            ItemType.ERC20,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC1155 item. no partial
+     * fills, anyone can execute. ERC20_TO_ERC1155_FULL_OPEN
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.ERC20,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC1155 item. partial fills
+     * supported, anyone can execute. ERC20_TO_ERC1155_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC1155_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.ERC20,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC1155 item. no partial
+     * fills, only offerer or zone can execute. ERC20_TO_ERC1155_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.ERC20,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC20 item to receive offered ERC1155 item. partial fills
+     * supported, only offerer or zone can execute.
+     * ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC20_TO_ERC1155_PARTIAL_RESTRICTED()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC1155,
+            ItemType.ERC20,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC721 item to receive offered ERC20 item. no partial fills,
+     * anyone can execute. ERC721_TO_ERC20_FULL_OPEN
+     */
+    function test_getBasicOrderType_ERC721_TO_ERC20_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC721,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC721 item to receive offered ERC20 item. partial fills
+     * supported, anyone can execute. ERC721_TO_ERC20_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ERC721_TO_ERC20_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC721,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC721 item to receive offered ERC20 item. no partial fills,
+     * only offerer or zone can execute. ERC721_TO_ERC20_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC721_TO_ERC20_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC721,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC721 item to receive offered ERC20 item. partial fills
+     * supported, only offerer or zone can execute.
+     * ERC721_TO_ERC20_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC721_TO_ERC20_PARTIAL_RESTRICTED()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC721,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC1155 item to receive offered ERC20 item. no partial
+     * fills, anyone can execute. ERC1155_TO_ERC20_FULL_OPEN
+     */
+    function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.FULL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC1155 item to receive offered ERC20 item. partial fills
+     * supported, anyone can execute. ERC1155_TO_ERC20_PARTIAL_OPEN
+     */
+    function test_getBasicOrderType_ERC1155_TO_ERC20_PARTIAL_OPEN() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_OPEN
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
+        );
+    }
+
+    /**
+     * @dev provide ERC1155 item to receive offered ERC20 item. no partial
+     * fills, only offerer or zone can execute. ERC1155_TO_ERC20_FULL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_RESTRICTED() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.FULL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
+        );
+    }
+
+    /**
+     * @dev provide ERC1155 item to receive offered ERC20 item. partial fills
+     * supported, only offerer or zone can execute.
+     * ERC1155_TO_ERC20_PARTIAL_RESTRICTED
+     */
+    function test_getBasicOrderType_ERC1155_TO_ERC20_PARTIAL_RESTRICTED()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.getBasicOrderTypeEligibility(address(seaport));
+        assertEq(
+            order.getBasicOrderType(),
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_RESTRICTED
+        );
+    }
+
+    function test_getBasicOrderTypeEligibility_failure_criteria() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.parameters.consideration[0].itemType = ItemType
+            .ERC1155_WITH_CRITERIA;
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+    }
+
+    function test_getBasicOrderTypeEligibility_failure_extraData() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.extraData = bytes("extraData");
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+    }
+
+    function test_getBasicOrderTypeEligibility_failure_offerItemLength()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        OfferItem[] memory offer = new OfferItem[](2);
+
+        offer[0] = order.parameters.offer[0];
+        offer[1] = order.parameters.offer[0];
+
+        order.parameters.offer = offer;
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+
+        order.parameters.offer = new OfferItem[](0);
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+    }
+
+    function test_getBasicOrderTypeEligibility_failure_considerationItemLength()
+        public
+    {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        order.parameters.consideration = new ConsiderationItem[](0);
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+    }
+
+    function test_getBasicOrderTypeEligibility_failure_nftCount() public {
+        AdvancedOrder memory order = _createOrder(
+            ItemType.ERC20,
+            ItemType.ERC1155,
+            OrderType.PARTIAL_RESTRICTED
+        );
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0].itemType = ItemType.ERC721;
+
+        order.parameters.offer = offer;
+
+        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+    }
+
     function assertEq(State a, State b) internal {
         assertEq(uint8(a), uint8(b));
     }
@@ -460,6 +1084,10 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     function assertEq(Type a, Type b) internal {
+        assertEq(uint8(a), uint8(b));
+    }
+
+    function assertEq(BasicOrderType a, BasicOrderType b) internal {
         assertEq(uint8(a), uint8(b));
     }
 }
