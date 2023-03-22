@@ -158,6 +158,11 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
                 ][token.tokenId][aggregatableOfferer.offerer][
                         aggregatableOfferer.conduitKey
                     ];
+                // if there are no offer components left, continue
+                // TODO: remove from enumeration?
+                if (offerComponents.length == 0) {
+                    continue;
+                }
 
                 // create a fulfillment matching the offer and consideration components until either or both are exhausted
                 Fulfillment memory fulfillment = MatchFulfillmentLib
