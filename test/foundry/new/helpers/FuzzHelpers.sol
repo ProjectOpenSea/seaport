@@ -238,8 +238,8 @@ library FuzzHelpers {
         }
         for (i = 0; i < parameters.consideration.length; ++i) {
             if (
-                parameters.offer[i].itemType == ItemType.ERC721 ||
-                parameters.offer[i].itemType == ItemType.ERC1155
+                parameters.consideration[i].itemType == ItemType.ERC721 ||
+                parameters.consideration[i].itemType == ItemType.ERC1155
             ) {
                 totalNFTs += 1;
             }
@@ -290,20 +290,27 @@ library FuzzHelpers {
             parameters.consideration[0].itemType == ItemType.ERC721 ||
             parameters.consideration[0].itemType == ItemType.ERC1155
         ) {
-            ItemType expectedItemType = parameters.consideration[1].itemType;
-            address expectedToken = parameters.consideration[1].token;
+            if (parameters.consideration.length >= 2) {
+                ItemType expectedItemType = parameters
+                    .consideration[1]
+                    .itemType;
+                address expectedToken = parameters.consideration[1].token;
+                for (i = 2; i < parameters.consideration.length; ++i) {
+                    if (
+                        parameters.consideration[i].itemType != expectedItemType
+                    ) {
+                        revert(
+                            "All non-NFT items must have the same item type"
+                        );
+                    }
 
-            for (i = 2; i < parameters.consideration.length; ++i) {
-                if (parameters.consideration[i].itemType != expectedItemType) {
-                    revert("All non-NFT items must have the same item type");
-                }
+                    if (parameters.consideration[i].token != expectedToken) {
+                        revert("All non-NFT items must have the same token");
+                    }
 
-                if (parameters.consideration[i].token != expectedToken) {
-                    revert("All non-NFT items must have the same token");
-                }
-
-                if (parameters.consideration[i].identifierOrCriteria != 0) {
-                    revert("The identifier of non-NFT items must be zero");
+                    if (parameters.consideration[i].identifierOrCriteria != 0) {
+                        revert("The identifier of non-NFT items must be zero");
+                    }
                 }
             }
         }
@@ -363,11 +370,11 @@ library FuzzHelpers {
     }
 
     /**
-     * @dev Get the BasicORderType for a given advanced order.
+     * @dev Get the BasicOrderType for a given advanced order.
      */
     function getBasicOrderType(
         AdvancedOrder memory order
-    ) internal pure  returns (BasicOrderType basicOrderType) {
+    ) internal pure returns (BasicOrderType basicOrderType) {
         getBasicOrderTypeIneligibilityReason(order);
 
         // Get the route (ETH ⇒ ERC721, etc.) for the order.
