@@ -1244,6 +1244,9 @@ contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
                 address(seaport)
             );
 
+        contractOfferer1.setExpectedOfferRecipient(address(this));
+        contractOfferer2.setExpectedOfferRecipient(address(this));
+
         // Mint the erc20 to the test contract to be transferred to the contract offerers
         // in the call to activate
         erc20s[0].mint(address(this), 2);

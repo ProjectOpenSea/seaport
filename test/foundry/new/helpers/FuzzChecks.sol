@@ -105,9 +105,18 @@ abstract contract FuzzChecks is Test {
             if (order.parameters.orderType == OrderType.CONTRACT) {
                 contractOfferer = payable(order.parameters.offerer);
 
+                // Decrease contractOffererNonce in the orderHash by 1 since it
+                // has increased by 1 post-execution.
+                bytes32 generateOrderOrderHash;
+                bytes32 mask = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0;
+
+                assembly {
+                    generateOrderOrderHash := and(orderHash, mask)
+                }
+
                 actualGenerateOrderCalldataHash = TestCalldataHashContractOfferer(
                     contractOfferer
-                ).orderHashToGenerateOrderDataHash(orderHash);
+                ).orderHashToGenerateOrderDataHash(generateOrderOrderHash);
 
                 actualRatifyOrderCalldataHash = TestCalldataHashContractOfferer(
                     contractOfferer
@@ -118,12 +127,12 @@ abstract contract FuzzChecks is Test {
             }
 
             assertEq(
-                actualGenerateOrderCalldataHash,
-                expectedGenerateOrderCalldataHash
+                expectedGenerateOrderCalldataHash,
+                actualGenerateOrderCalldataHash
             );
             assertEq(
-                actualRatifyOrderCalldataHash,
-                expectedRatifyOrderCalldataHash
+                expectedRatifyOrderCalldataHash,
+                actualRatifyOrderCalldataHash
             );
         }
     }

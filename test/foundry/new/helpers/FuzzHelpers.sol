@@ -85,6 +85,8 @@ library FuzzHelpers {
     using ZoneParametersLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder[];
 
+    event ExpectedGenerateOrderDataHash(bytes32 dataHash);
+
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
      *      orders in the provided array.
@@ -258,14 +260,10 @@ library FuzzHelpers {
                     .getContractOffererNonce(order.parameters.offerer);
 
                 // Get the contract order's orderHash
-                orderHashes[i] =
-                    bytes32(
-                        abi.encodePacked(
-                            (uint160(order.parameters.offerer) +
-                                uint96(contractNonce))
-                        )
-                    ) >>
-                    0;
+                orderHashes[i] = bytes32(
+                    contractNonce ^
+                        (uint256(uint160(order.parameters.offerer)) << 96)
+                );
             } else {
                 // Get OrderComponents from OrderParameters
                 OrderComponents memory orderComponents = order
@@ -290,7 +288,7 @@ library FuzzHelpers {
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller
-    ) internal view returns (bytes32[2][] memory) {
+    ) internal returns (bytes32[2][] memory) {
         SeaportInterface seaportInterface = SeaportInterface(seaport);
 
         bytes32[] memory orderHashes = getOrderHashes(orders, seaport);
@@ -324,7 +322,7 @@ library FuzzHelpers {
             calldataHashes[i][0] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.generateOrder,
-                    (fulfiller, maximumSpent, minimumReceived, "")
+                    (fulfiller, minimumReceived, maximumSpent, "")
                 )
             );
 
