@@ -196,6 +196,216 @@ library FuzzHelpers {
     }
 
     /**
+     * @dev The idea here is to be able to feed in an AdvancedOrder and get back
+     *      a descriptive revert reason.  This is just to get me up to speed. I
+     *      understand we'll need something different for prod MOAT work.  I'll
+     *      modify or delete this function.
+     */
+    function getBasicOrderTypeIneligibilityReason(
+        AdvancedOrder memory order
+    ) internal pure {
+        uint256 i;
+        OrderParameters memory parameters = order.parameters;
+
+        // TODO: Think about concatenating these into a string or something.
+
+        // Order cannot contain any ADVANCED information (no criteria-based
+        // items, no extraData, cannot specify a partial fraction to fill
+        // (though it can fully fill an order that supports partial fills and
+        // has not yet been partially fulfilled).
+        if (order.extraData.length != 0) {
+            revert("Basic orders cannot have extraData");
+        }
+
+        // Order must contain exactly one offer item and one or more
+        // consideration items.
+        if (parameters.offer.length != 1) {
+            revert("Basic orders must have exactly one offer item");
+        }
+        if (parameters.consideration.length == 0) {
+            revert("Basic orders must have at least one consideration item");
+        }
+
+        // Order must contain exactly one NFT item.
+        uint256 totalNFTs;
+        if (
+            parameters.offer[0].itemType == ItemType.ERC721 ||
+            parameters.offer[0].itemType == ItemType.ERC1155
+        ) {
+            totalNFTs += 1;
+        }
+        for (i = 0; i < parameters.consideration.length; ++i) {
+            if (
+                parameters.offer[i].itemType == ItemType.ERC721 ||
+                parameters.offer[i].itemType == ItemType.ERC1155
+            ) {
+                totalNFTs += 1;
+            }
+        }
+
+        if (totalNFTs != 1) {
+            revert("There must be exactly one NFT in the order");
+        }
+
+        // The one NFT must appear either as the offer item or as the first
+        // consideration item.
+        if (
+            parameters.offer[0].itemType != ItemType.ERC721 &&
+            parameters.offer[0].itemType != ItemType.ERC1155 &&
+            parameters.consideration[0].itemType != ItemType.ERC721 &&
+            parameters.consideration[0].itemType != ItemType.ERC1155
+        ) {
+            revert(
+                "The NFT must be offer item or the first consideration item"
+            );
+        }
+
+        // All items that are not the NFT must share the same item type and
+        // token (and the identifier must be zero).
+        if (
+            parameters.offer[0].itemType == ItemType.ERC721 ||
+            parameters.offer[0].itemType == ItemType.ERC1155
+        ) {
+            ItemType expectedItemType = parameters.consideration[0].itemType;
+            address expectedToken = parameters.consideration[0].token;
+
+            for (i = 0; i < parameters.consideration.length; ++i) {
+                if (parameters.consideration[i].itemType != expectedItemType) {
+                    revert("All non-NFT items must have the same item type");
+                }
+
+                if (parameters.consideration[i].token != expectedToken) {
+                    revert("All non-NFT items must have the same token");
+                }
+
+                if (parameters.consideration[i].identifierOrCriteria != 0) {
+                    revert("The identifier of non-NFT items must be zero");
+                }
+            }
+        }
+
+        if (
+            parameters.consideration[0].itemType == ItemType.ERC721 ||
+            parameters.consideration[0].itemType == ItemType.ERC1155
+        ) {
+            ItemType expectedItemType = parameters.consideration[1].itemType;
+            address expectedToken = parameters.consideration[1].token;
+
+            for (i = 2; i < parameters.consideration.length; ++i) {
+                if (parameters.consideration[i].itemType != expectedItemType) {
+                    revert("All non-NFT items must have the same item type");
+                }
+
+                if (parameters.consideration[i].token != expectedToken) {
+                    revert("All non-NFT items must have the same token");
+                }
+
+                if (parameters.consideration[i].identifierOrCriteria != 0) {
+                    revert("The identifier of non-NFT items must be zero");
+                }
+            }
+        }
+
+        // If the NFT is the first consideration item, the sum of the amounts of
+        // all the other consideration items cannot exceed the amount of the
+        // offer item.
+        if (
+            parameters.consideration[0].itemType == ItemType.ERC721 ||
+            parameters.consideration[0].itemType == ItemType.ERC1155
+        ) {
+            uint256 totalConsiderationAmount;
+            for (i = 1; i < parameters.consideration.length; ++i) {
+                totalConsiderationAmount += parameters
+                    .consideration[i]
+                    .startAmount;
+            }
+
+            if (totalConsiderationAmount > parameters.offer[0].startAmount) {
+                revert("Sum of other consideration items amount too high.");
+            }
+
+            // Note: these cases represent a “bid” for an NFT, and the non-NFT
+            // consideration items (i.e. the “payment tokens”) are sent directly
+            // from the offerer to each recipient; this means that the fulfiller
+            // accepting the bid does not need to have approval set for the
+            // payment tokens.
+        }
+
+        if (parameters.orderType == OrderType.CONTRACT) {
+            revert("Basic orders cannot be contract orders");
+
+            // Note: the order type is combined with the “route” into a single
+            // BasicOrderType with a value between 0 and 23; there are 4
+            // supported order types (full open, partial open, full restricted,
+            // partial restricted) and 6 routes (ETH ⇒ ERC721, ETH ⇒ ERC1155,
+            // ERC20 ⇒ ERC721, ERC20 ⇒ ERC1155, ERC721 ⇒ ERC20, ERC1155 ⇒ ERC20)
+        }
+
+        // All items must have startAmount == endAmount
+        if (parameters.offer[0].startAmount != parameters.offer[0].endAmount) {
+            revert("Basic orders must have fixed prices");
+        }
+        for (i = 0; i < parameters.consideration.length; ++i) {
+            if (
+                parameters.consideration[i].startAmount !=
+                parameters.consideration[i].endAmount
+            ) {
+                revert("Basic orders must have fixed prices");
+            }
+        }
+
+        // The offer item cannot have a native token type.
+        if (parameters.offer[0].itemType == ItemType.NATIVE) {
+            revert("The offer item cannot have a native token type");
+        }
+    }
+
+    /**
+     * @dev Get the BasicORderType for a given advanced order.
+     */
+    function getBasicOrderType(
+        AdvancedOrder memory order
+    ) internal pure  returns (BasicOrderType basicOrderType) {
+        getBasicOrderTypeIneligibilityReason(order);
+
+        // Get the route (ETH ⇒ ERC721, etc.) for the order.
+        BasicOrderRouteType route;
+        ItemType providingItemType = order.parameters.consideration[0].itemType;
+        ItemType offeredItemType = order.parameters.offer[0].itemType;
+
+        if (providingItemType == ItemType.NATIVE) {
+            if (offeredItemType == ItemType.ERC721) {
+                route = BasicOrderRouteType.ETH_TO_ERC721;
+            } else if (offeredItemType == ItemType.ERC1155) {
+                route = BasicOrderRouteType.ETH_TO_ERC1155;
+            }
+        } else if (providingItemType == ItemType.ERC20) {
+            if (offeredItemType == ItemType.ERC721) {
+                route = BasicOrderRouteType.ERC20_TO_ERC721;
+            } else if (offeredItemType == ItemType.ERC1155) {
+                route = BasicOrderRouteType.ERC20_TO_ERC1155;
+            }
+        } else if (providingItemType == ItemType.ERC721) {
+            if (offeredItemType == ItemType.ERC20) {
+                route = BasicOrderRouteType.ERC721_TO_ERC20;
+            }
+        } else if (providingItemType == ItemType.ERC1155) {
+            if (offeredItemType == ItemType.ERC20) {
+                route = BasicOrderRouteType.ERC1155_TO_ERC20;
+            }
+        }
+
+        // Get the order type (restricted, etc.) for the order.
+        OrderType orderType = order.parameters.orderType;
+
+        // Multiply the route by 4 and add the order type to get the
+        // BasicOrderType.
+        assembly {
+            basicOrderType := add(orderType, mul(route, 4))
+        }
+    }
+
+    /**
      * @dev Check all offer and consideration items for criteria.
      */
     function _checkCriteria(
