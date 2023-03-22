@@ -14,10 +14,6 @@ import { BaseOrderTest } from "../BaseOrderTest.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
 import { FuzzSetup } from "./FuzzSetup.sol";
 
-import {
-    FulfillAvailableHelper
-} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
-
 /**
  * @notice Stateless helpers for FuzzEngine.
  */
@@ -102,6 +98,7 @@ contract FuzzEngine is
     FuzzSetup,
     FuzzChecks,
     FulfillAvailableHelper,
+    MatchFulfillmentHelper,
     BaseOrderTest
 {
     using OrderComponentsLib for OrderComponents;

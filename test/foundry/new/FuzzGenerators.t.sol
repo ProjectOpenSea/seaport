@@ -28,7 +28,8 @@ import {
     TestStateGenerator,
     AdvancedOrdersSpaceGenerator,
     GeneratorContext,
-    PRNGHelpers
+    PRNGHelpers,
+    TestLike
 } from "./helpers/FuzzGenerators.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
@@ -49,6 +50,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         return
             GeneratorContext({
                 vm: vm,
+                testHelpers: TestLike(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,

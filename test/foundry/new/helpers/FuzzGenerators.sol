@@ -68,8 +68,21 @@ function bound(
     }
 }
 
+interface TestLike {
+    function getMatchedFulfillments(
+        AdvancedOrder[] memory orders
+    )
+        external
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        );
+}
+
 struct GeneratorContext {
     Vm vm;
+    TestLike testHelpers;
     LibPRNG.PRNG prng;
     uint256 timestamp;
     SeaportInterface seaport;
@@ -185,11 +198,12 @@ library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
+    using PRNGHelpers for GeneratorContext;
 
     function generate(
         AdvancedOrdersSpace memory space,
         GeneratorContext memory context
-    ) internal view returns (AdvancedOrder[] memory) {
+    ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
         context.orderHashes = new bytes32[](len);
@@ -210,6 +224,43 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         // Handle matches
+        if (space.isMatchable) {
+            (, , MatchComponent[] memory remainders) = context
+                .testHelpers
+                .getMatchedFulfillments(orders);
+
+            for (uint256 i = 0; i < remainders.length; ++i) {
+                (
+                    uint240 amount,
+                    uint8 orderIndex,
+                    uint8 itemIndex
+                ) = remainders[i].unpack();
+                ConsiderationItem memory item = orders[orderIndex]
+                    .parameters
+                    .consideration[itemIndex];
+                OfferItem[] memory offer = orders[
+                    context.randRange(0, orders.length - 1)
+                ].parameters.offer;
+
+                uint256 insertionIndex = context.randRange(0, offer.length - 1);
+
+                OfferItem[] memory newOffer = new OfferItem[](offer.length + 1);
+                for (uint256 j = 0; j < insertionIndex; ++j) {
+                    newOffer[j] = offer[j];
+                }
+                newOffer[insertionIndex] = OfferItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifierOrCriteria: item.identifierOrCriteria,
+                    startAmount: uint256(amount),
+                    endAmount: uint256(amount)
+                });
+                for (uint256 j = insertionIndex; j < offer.length; ++j) {
+                    newOffer[j + 1] = offer[j];
+                }
+                orders[orderIndex].parameters.offer = newOffer;
+            }
+        }
 
         // Sign phase
         for (uint256 i = 0; i < len; ++i) {
