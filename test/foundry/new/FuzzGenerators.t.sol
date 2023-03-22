@@ -57,7 +57,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc1155s: erc1155s,
                 self: address(this),
                 offerer: offerer1.addr,
-                recipient: address(0), // TODO: read recipient from TestContext
+                caller: address(this), // TODO: read recipient from TestContext
                 alice: offerer1.addr,
                 bob: offerer2.addr,
                 dillon: dillon.addr,

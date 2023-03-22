@@ -18,7 +18,7 @@ import {
 } from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
-contract FuzzEngineTest is FuzzEngine, FulfillAvailableHelper {
+contract FuzzEngineTest is FuzzEngine {
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;

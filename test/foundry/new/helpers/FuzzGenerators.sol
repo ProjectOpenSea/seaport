@@ -78,7 +78,7 @@ struct GeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address offerer;
-    address recipient;
+    address caller;
     address alice;
     address bob;
     address dillon;
@@ -522,7 +522,7 @@ library RecipientGenerator {
         if (recipient == Recipient.OFFERER) {
             return context.offerer;
         } else if (recipient == Recipient.RECIPIENT) {
-            return context.recipient;
+            return context.caller;
         } else if (recipient == Recipient.DILLON) {
             return context.dillon;
         } else if (recipient == Recipient.EVE) {

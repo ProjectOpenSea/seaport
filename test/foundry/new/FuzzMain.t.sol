@@ -19,7 +19,7 @@ import {
 import { FuzzEngine } from "./helpers/FuzzEngine.sol";
 import { FuzzHelpers, Family } from "./helpers/FuzzHelpers.sol";
 
-contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
+contract FuzzMainTest is FuzzEngine {
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -45,7 +45,7 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
                 erc1155s: erc1155s,
                 self: address(this),
                 offerer: alice2.addr,
-                recipient: address(0), // TODO: read recipient from TestContext
+                caller: address(this), // TODO: read recipient from TestContext
                 alice: alice2.addr,
                 bob: bob2.addr,
                 dillon: dillon.addr,
@@ -64,15 +64,24 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
             });
     }
 
-    function test_success() public {
+    function test_success(
+        uint256 seed,
+        uint256 totalOrders,
+        uint256 maxOfferItems,
+        uint256 maxConsiderationItems
+    ) public {
+        totalOrders = bound(totalOrders, 1, 10);
+        maxOfferItems = bound(maxOfferItems, 1, 10);
+        maxConsiderationItems = bound(maxConsiderationItems, 1, 10);
+
         vm.warp(1679435965);
         GeneratorContext memory generatorContext = createContext();
         generatorContext.timestamp = block.timestamp;
 
         AdvancedOrdersSpace memory space = TestStateGenerator.generate(
-            1, // total orders
-            10, // max offer items/order
-            5, // max consideration items/order
+            totalOrders,
+            maxOfferItems,
+            maxConsiderationItems,
             generatorContext
         );
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
@@ -84,8 +93,7 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            // Fixed seed for now
-            fuzzParams: FuzzParams({ seed: 0 })
+            fuzzParams: FuzzParams({ seed: seed })
         });
 
         run(context);
