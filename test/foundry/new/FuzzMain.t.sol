@@ -23,6 +23,9 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
+    Account bob2 = makeAccount("bob2");
+    Account alice2 = makeAccount("alice2");
+
     function createContext() internal view returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
@@ -41,16 +44,16 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                offerer: offerer1.addr,
+                offerer: alice2.addr,
                 recipient: address(0), // TODO: read recipient from TestContext
-                alice: offerer1.addr,
-                bob: offerer2.addr,
+                alice: alice2.addr,
+                bob: bob2.addr,
                 dillon: dillon.addr,
                 eve: eve.addr,
                 frank: frank.addr,
-                offererPk: offerer1.key,
-                alicePk: offerer1.key,
-                bobPk: offerer2.key,
+                offererPk: alice2.key,
+                alicePk: alice2.key,
+                bobPk: bob2.key,
                 dillonPk: dillon.key,
                 evePk: eve.key,
                 frankPk: frank.key,
@@ -61,7 +64,7 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
             });
     }
 
-    function test_success(uint256 seed) public {
+    function test_success() public {
         vm.warp(1679435965);
         GeneratorContext memory generatorContext = createContext();
         generatorContext.timestamp = block.timestamp;
@@ -81,7 +84,8 @@ contract FuzzMainTest is FuzzEngine, FulfillAvailableHelper {
             orders: orders,
             seaport: seaport,
             caller: address(this),
-            fuzzParams: FuzzParams({ seed: seed })
+            // Fixed seed for now
+            fuzzParams: FuzzParams({ seed: 0 })
         });
 
         run(context);

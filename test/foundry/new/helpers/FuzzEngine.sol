@@ -12,6 +12,7 @@ import {
 import { TestContext, FuzzParams, TestContextLib } from "./TestContextLib.sol";
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
+import { FuzzSetup } from "./FuzzSetup.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine.
@@ -93,7 +94,7 @@ library FuzzEngineLib {
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
  */
-contract FuzzEngine is FuzzChecks, BaseOrderTest {
+contract FuzzEngine is FuzzSetup, FuzzChecks, BaseOrderTest {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
@@ -113,8 +114,19 @@ contract FuzzEngine is FuzzChecks, BaseOrderTest {
      * @param context A Fuzz test context.
      */
     function run(TestContext memory context) internal {
+        beforeEach(context);
         exec(context);
         checkAll(context);
+    }
+
+    /**
+     * @dev Perform any setup steps necessary before calling `exec`.
+     *
+     * @param context A Fuzz test context.
+     */
+    function beforeEach(TestContext memory context) internal {
+        setUpOfferItems(context);
+        setUpConsiderationItems(context);
     }
 
     /**

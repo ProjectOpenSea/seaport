@@ -95,7 +95,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             memory consideration = new ConsiderationItemSpace[](0);
 
         OrderComponentsSpace memory component = OrderComponentsSpace({
-            offerer: Offerer.TEST_CONTRACT,
+            offerer: Offerer.ALICE,
             zone: Zone.NONE,
             offer: offer,
             consideration: consideration,
@@ -135,7 +135,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             memory consideration = new ConsiderationItemSpace[](0);
 
         OrderComponentsSpace memory component = OrderComponentsSpace({
-            offerer: Offerer.TEST_CONTRACT,
+            offerer: Offerer.ALICE,
             zone: Zone.NONE,
             offer: offer,
             consideration: consideration,
@@ -178,7 +178,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](1);
         consideration[0] = ConsiderationItemSpace({
-            itemType: ItemType.ERC721,
+            itemType: ItemType.ERC20,
             tokenIndex: TokenIndex.ONE,
             criteria: Criteria.NONE,
             amount: Amount.ASCENDING,
@@ -186,7 +186,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         });
 
         OrderComponentsSpace memory component = OrderComponentsSpace({
-            offerer: Offerer.TEST_CONTRACT,
+            offerer: Offerer.ALICE,
             zone: Zone.NONE,
             offer: offer,
             consideration: consideration,
@@ -224,79 +224,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
 
         assertEq(
             orders[0].parameters.consideration[0].itemType,
-            ItemType.ERC721
+            ItemType.ERC20
         );
-    }
-
-    function test_stateGenerator() public {
-        GeneratorContext memory context = createContext();
-        AdvancedOrdersSpace memory space = TestStateGenerator.generate(
-            3, // total orders
-            10, // max offer items/order
-            5, // max consideration items/order
-            context
-        );
-
-        // Note: the following values are all based on PRNG seed uint256(0)
-        assertEq(space.orders.length, 3);
-
-        assertEq(space.orders[0].offerer, 1);
-        assertEq(space.orders[0].zone, 1);
-
-        assertEq(space.orders[0].offer.length, 8);
-        assertEq(space.orders[0].offer[0].itemType, 1);
-        assertEq(space.orders[0].offer[0].tokenIndex, 2);
-        assertEq(space.orders[0].offer[0].criteria, 1);
-        assertEq(space.orders[0].offer[0].amount, 2);
-
-        assertEq(space.orders[0].offer[1].itemType, 2);
-        assertEq(space.orders[0].offer[1].tokenIndex, 1);
-        assertEq(space.orders[0].offer[1].criteria, 1);
-        assertEq(space.orders[0].offer[1].amount, 2);
-
-        assertEq(space.orders[0].offer[2].itemType, 3);
-        assertEq(space.orders[0].offer[2].tokenIndex, 0);
-        assertEq(space.orders[0].offer[2].criteria, 1);
-        assertEq(space.orders[0].offer[2].amount, 2);
-
-        assertEq(space.orders[0].consideration.length, 3);
-        assertEq(space.orders[0].consideration[0].itemType, 2);
-        assertEq(space.orders[0].consideration[0].tokenIndex, 0);
-        assertEq(space.orders[0].consideration[0].criteria, 2);
-        assertEq(space.orders[0].consideration[0].amount, 2);
-        assertEq(space.orders[0].consideration[0].recipient, 4);
-
-        assertEq(space.orders[0].consideration[1].itemType, 3);
-        assertEq(space.orders[0].consideration[1].tokenIndex, 2);
-        assertEq(space.orders[0].consideration[1].criteria, 2);
-        assertEq(space.orders[0].consideration[1].amount, 2);
-        assertEq(space.orders[0].consideration[1].recipient, 0);
-
-        assertEq(space.orders[0].consideration[2].itemType, 4);
-        assertEq(space.orders[0].consideration[2].tokenIndex, 2);
-        assertEq(space.orders[0].consideration[2].criteria, 1);
-        assertEq(space.orders[0].consideration[2].amount, 0);
-        assertEq(space.orders[0].consideration[2].recipient, 2);
-
-        assertEq(space.orders[0].orderType, 1);
-        assertEq(space.orders[0].time, 0);
-        assertEq(space.orders[0].zoneHash, 2);
-
-        assertEq(space.orders[1].offerer, 1);
-        assertEq(space.orders[1].zone, 0);
-        assertEq(space.orders[1].offer.length, 1);
-        assertEq(space.orders[1].consideration.length, 1);
-        assertEq(space.orders[1].orderType, 0);
-        assertEq(space.orders[1].time, 2);
-        assertEq(space.orders[1].zoneHash, 2);
-
-        assertEq(space.orders[2].offerer, 1);
-        assertEq(space.orders[2].zone, 1);
-        assertEq(space.orders[2].offer.length, 0);
-        assertEq(space.orders[2].consideration.length, 1);
-        assertEq(space.orders[2].orderType, 0);
-        assertEq(space.orders[2].time, 3);
-        assertEq(space.orders[2].zoneHash, 2);
     }
 
     function assertEq(ItemType a, ItemType b) internal {

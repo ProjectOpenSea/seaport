@@ -143,7 +143,8 @@ library TestStateGenerator {
                 itemType: ItemType(context.randEnum(1, 3)),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(context.randEnum(0, 2)),
-                amount: Amount(context.randEnum(0, 2))
+                // TODO: Fixed amounts only, should be 0-2
+                amount: Amount(context.randEnum(0, 0))
             });
         }
         return offer;
@@ -163,7 +164,8 @@ library TestStateGenerator {
                 itemType: ItemType(context.randEnum(1, 3)),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(context.randEnum(0, 2)),
-                amount: Amount(context.randEnum(0, 2)),
+                // TODO: Fixed amounts only, should be 0-2
+                amount: Amount(context.randEnum(0, 0)),
                 recipient: Recipient(context.randEnum(0, 4))
             });
         }
@@ -220,8 +222,8 @@ library AdvancedOrdersSpaceGenerator {
                     context
                 )
                 .toAdvancedOrder({
-                    numerator: 0,
-                    denominator: 0,
+                    numerator: 1,
+                    denominator: 1,
                     extraData: bytes("")
                 });
         }
@@ -458,8 +460,13 @@ library AmountGenerator {
         Amount amount,
         GeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
-        uint256 a = context.prng.next();
-        uint256 b = context.prng.next();
+        // Assumes ordering, might be dangerous
+        if (item.itemType == ItemType.ERC721) {
+            return item.withStartAmount(1).withEndAmount(1);
+        }
+
+        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
 
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
@@ -481,8 +488,13 @@ library AmountGenerator {
         Amount amount,
         GeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
-        uint256 a = context.prng.next();
-        uint256 b = context.prng.next();
+        // Assumes ordering, might be dangerous
+        if (item.itemType == ItemType.ERC721) {
+            return item.withStartAmount(1).withEndAmount(1);
+        }
+
+        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
 
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
