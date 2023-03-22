@@ -235,30 +235,44 @@ library AdvancedOrdersSpaceGenerator {
                     uint8 orderIndex,
                     uint8 itemIndex
                 ) = remainders[i].unpack();
+
                 ConsiderationItem memory item = orders[orderIndex]
                     .parameters
                     .consideration[itemIndex];
-                OfferItem[] memory offer = orders[
-                    context.randRange(0, orders.length - 1)
-                ].parameters.offer;
 
-                uint256 insertionIndex = context.randRange(0, offer.length - 1);
+                uint256 orderInsertionIndex = context.randRange(0, orders.length - 1);
 
-                OfferItem[] memory newOffer = new OfferItem[](offer.length + 1);
-                for (uint256 j = 0; j < insertionIndex; ++j) {
-                    newOffer[j] = offer[j];
+                OfferItem[] memory newOffer = new OfferItem[](orders[orderInsertionIndex].parameters.offer.length + 1);
+
+                if (orders[orderInsertionIndex].parameters.offer.length == 0) {
+                    newOffer[0] = OfferItem({
+                        itemType: item.itemType,
+                        token: item.token,
+                        identifierOrCriteria: item.identifierOrCriteria,
+                        startAmount: uint256(amount),
+                        endAmount: uint256(amount)
+                    });
+                } else {
+                    uint256 itemInsertionIndex = context.randRange(0, orders[orderInsertionIndex].parameters.offer.length - 1);
+
+                    for (uint256 j = 0; j < itemInsertionIndex; ++j) {
+                        newOffer[j] = orders[orderInsertionIndex].parameters.offer[j];
+                    }
+
+                    newOffer[itemInsertionIndex] = OfferItem({
+                        itemType: item.itemType,
+                        token: item.token,
+                        identifierOrCriteria: item.identifierOrCriteria,
+                        startAmount: uint256(amount),
+                        endAmount: uint256(amount)
+                    });
+
+                    for (uint256 j = itemInsertionIndex + 1; j < newOffer.length; ++j) {
+                        newOffer[j] = orders[orderInsertionIndex].parameters.offer[j - 1];
+                    }
                 }
-                newOffer[insertionIndex] = OfferItem({
-                    itemType: item.itemType,
-                    token: item.token,
-                    identifierOrCriteria: item.identifierOrCriteria,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
-                for (uint256 j = insertionIndex; j < offer.length; ++j) {
-                    newOffer[j + 1] = offer[j];
-                }
-                orders[orderIndex].parameters.offer = newOffer;
+
+                orders[orderInsertionIndex].parameters.offer = newOffer;
             }
         }
 
