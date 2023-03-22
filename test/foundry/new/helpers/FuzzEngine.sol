@@ -54,8 +54,9 @@ library FuzzEngineLib {
 
         if (family == Family.SINGLE) {
             AdvancedOrder memory order = context.orders[0];
-            Structure structure = order.getStructure();
-            if (structure == Structure.STANDARD) {
+            Structure structure = order.getStructure(address(context.seaport));
+
+            if (structure == Structure.BASIC) {
                 bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
@@ -66,6 +67,14 @@ library FuzzEngineLib {
                     .selector;
                 return selectors;
             }
+
+            if (structure == Structure.STANDARD) {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.fulfillOrder.selector;
+                selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
+                return selectors;
+            }
+
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.fulfillAdvancedOrder.selector;
