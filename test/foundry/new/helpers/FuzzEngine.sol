@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
 import {
     AdvancedOrder,
@@ -135,6 +136,9 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder[];
     using FuzzEngineLib for TestContext;
 
+    // action selector => call count
+    mapping(bytes4 => uint256) calls;
+
     /**
      * @dev Run a `FuzzEngine` test with the given TestContext. Calls the
      *      following test lifecycle functions in order:
@@ -176,6 +180,7 @@ contract FuzzEngine is
     function exec(TestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
+        calls[_action]++;
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
@@ -352,5 +357,44 @@ contract FuzzEngine is
             bytes4 selector = context.checks[i];
             check(context, selector);
         }
+    }
+
+    function summary(TestContext memory context) internal view {
+        console.log("Call summary:");
+        console.log("----------------------------------------");
+        console.log(
+            "fulfillOrder: ",
+            calls[context.seaport.fulfillOrder.selector]
+        );
+        console.log(
+            "fulfillAdvancedOrder: ",
+            calls[context.seaport.fulfillAdvancedOrder.selector]
+        );
+        console.log(
+            "fulfillBasicOrder: ",
+            calls[context.seaport.fulfillBasicOrder.selector]
+        );
+        console.log(
+            "fulfillBasicOrder_efficient: ",
+            calls[context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector]
+        );
+        console.log(
+            "fulfillAvailableOrders: ",
+            calls[context.seaport.fulfillAvailableOrders.selector]
+        );
+        console.log(
+            "fulfillAvailableAdvancedOrders: ",
+            calls[context.seaport.fulfillAvailableAdvancedOrders.selector]
+        );
+        console.log(
+            "matchOrders: ",
+            calls[context.seaport.matchOrders.selector]
+        );
+        console.log(
+            "matchAdvancedOrders: ",
+            calls[context.seaport.matchAdvancedOrders.selector]
+        );
+        console.log("cancel: ", calls[context.seaport.cancel.selector]);
+        console.log("validate: ", calls[context.seaport.validate.selector]);
     }
 }

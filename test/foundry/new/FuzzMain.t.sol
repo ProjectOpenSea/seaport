@@ -135,5 +135,6 @@ contract FuzzMainTest is FuzzEngine {
         context.testHelpers = TestLike(address(this));
 
         run(context);
+        summary(context);
     }
 }
