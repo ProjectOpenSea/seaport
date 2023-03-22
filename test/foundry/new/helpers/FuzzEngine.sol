@@ -120,11 +120,11 @@ library FuzzEngineLib {
  *         Includes the setup and helper functions from BaseOrderTest.
  */
 contract FuzzEngine is
+    BaseOrderTest,
     FuzzSetup,
     FuzzChecks,
     FulfillAvailableHelper,
-    MatchFulfillmentHelper,
-    BaseOrderTest
+    MatchFulfillmentHelper
 {
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;

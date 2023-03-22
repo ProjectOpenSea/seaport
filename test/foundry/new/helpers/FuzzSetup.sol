@@ -36,7 +36,6 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     using FuzzEngineLib for TestContext;
 
     function setUpOfferItems(TestContext memory context) public {
-        console.log("setUpOfferItems()");
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             OfferItem[] memory items = orderParams.offer;
@@ -91,7 +90,6 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     }
 
     function setUpConsiderationItems(TestContext memory context) public {
-        console.log("setUpConsiderationItems()");
         // Skip creating consideration items if we're calling a match function
         if (
             context.action() == context.seaport.matchAdvancedOrders.selector ||

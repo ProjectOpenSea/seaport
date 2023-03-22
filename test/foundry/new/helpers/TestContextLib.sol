@@ -154,7 +154,7 @@ library TestContextLib {
         SeaportInterface seaport,
         address caller,
         FuzzParams memory fuzzParams
-    ) internal pure returns (TestContext memory) {
+    ) internal view returns (TestContext memory) {
         return
             TestContext({
                 orders: orders,
@@ -182,7 +182,7 @@ library TestContextLib {
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
                 }),
-                testHelpers: TestLike(address(0))
+                testHelpers: TestLike(address(this))
             });
     }
 
