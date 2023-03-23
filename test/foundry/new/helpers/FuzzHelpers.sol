@@ -90,7 +90,10 @@ library FuzzHelpers {
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
      *      orders in the provided array.
+     *
      * @param orders array of AdvancedOrders.
+     *
+     * @custom:return quantity of orders to process.
      */
     function getQuantity(
         AdvancedOrder[] memory orders
@@ -100,7 +103,10 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "family" of method that can fulfill these orders.
+     *
      * @param orders array of AdvancedOrders.
+     *
+     * @custom:return family of method that can fulfill these orders.
      */
     function getFamily(
         AdvancedOrder[] memory orders
@@ -114,8 +120,11 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "state" of the given order.
-     * @param order an AdvancedOrder.
+     *
+     * @param order   an AdvancedOrder.
      * @param seaport a SeaportInterface, either reference or optimized.
+     *
+     * @custom:return state of the given order.
      */
     function getState(
         AdvancedOrder memory order,
@@ -142,7 +151,11 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "type" of the given order.
+     *
      * @param order an AdvancedOrder.
+     *
+     * @custom:return type of the given order (in the sense of the enum defined
+     *                above in this file, not ConsiderationStructs' OrderType).
      */
     function getType(AdvancedOrder memory order) internal pure returns (Type) {
         OrderType orderType = order.parameters.orderType;
@@ -166,14 +179,15 @@ library FuzzHelpers {
     /**
      * @dev Get the "structure" of the given order.
      *
-     *      Note: Basic orders are not yet implemented here and are detected
-     *      as standard orders for now.
+     * @param order   an AdvancedOrder.
+     * @param seaport a SeaportInterface, either reference or optimized.
      *
-     * @param order an AdvancedOrder.
+     * @custom:return structure of the given order.
      */
     function getStructure(
-        AdvancedOrder memory order
-    ) internal pure returns (Structure) {
+        AdvancedOrder memory order,
+        address seaport
+    ) internal view returns (Structure) {
         // If the order has extraData, it's advanced
         if (order.extraData.length > 0) return Structure.ADVANCED;
 
@@ -198,12 +212,270 @@ library FuzzHelpers {
             }
         }
 
+        if (getBasicOrderTypeEligibility(order, seaport)) {
+            return Structure.BASIC;
+        }
+
         return Structure.STANDARD;
+    }
+
+    /**
+     * @dev Inspect an AdvancedOrder and check that it is eligible for the
+     *      fulfillBasic functions.
+     *
+     * @param order   an AdvancedOrder.
+     * @param seaport a SeaportInterface, either reference or optimized.
+     *
+     * @custom:return true if the order is eligible for the fulfillBasic
+     *                functions, false otherwise.
+     */
+    function getBasicOrderTypeEligibility(
+        AdvancedOrder memory order,
+        address seaport
+    ) internal view returns (bool) {
+        uint256 i;
+        ConsiderationItem[] memory consideration = order
+            .parameters
+            .consideration;
+        OfferItem[] memory offer = order.parameters.offer;
+
+        // Order must contain exactly one offer item and one or more
+        // consideration items.
+        if (offer.length != 1) {
+            return false;
+        }
+        if (consideration.length == 0) {
+            return false;
+        }
+
+        // The order cannot have a contract order type.
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return false;
+
+            // Note: the order type is combined with the “route” into a single
+            // BasicOrderType with a value between 0 and 23; there are 4
+            // supported order types (full open, partial open, full restricted,
+            // partial restricted) and 6 routes (ETH ⇒ ERC721, ETH ⇒ ERC1155,
+            // ERC20 ⇒ ERC721, ERC20 ⇒ ERC1155, ERC721 ⇒ ERC20, ERC1155 ⇒ ERC20)
+        }
+
+        // Order cannot specify a partial fraction to fill.
+        if (order.denominator > 1 && (order.numerator < order.denominator)) {
+            return false;
+        }
+
+        // Order cannot be partially filled.
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+        uint256 counter = seaportInterface.getCounter(order.parameters.offerer);
+        OrderComponents memory orderComponents = order
+            .parameters
+            .toOrderComponents(counter);
+        bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
+        (, , uint256 totalFilled, uint256 totalSize) = seaportInterface
+            .getOrderStatus(orderHash);
+
+        if (totalFilled != totalSize) {
+            return false;
+        }
+
+        // Order cannot contain any criteria-based items.
+        for (i = 0; i < consideration.length; ++i) {
+            if (
+                consideration[i].itemType == ItemType.ERC721_WITH_CRITERIA ||
+                consideration[i].itemType == ItemType.ERC1155_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+
+        if (
+            offer[0].itemType == ItemType.ERC721_WITH_CRITERIA ||
+            offer[0].itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
+            return false;
+        }
+
+        // Order cannot contain any extraData.
+        if (order.extraData.length != 0) {
+            return false;
+        }
+
+        // Order must contain exactly one NFT item.
+        uint256 totalNFTs;
+        if (
+            offer[0].itemType == ItemType.ERC721 ||
+            offer[0].itemType == ItemType.ERC1155
+        ) {
+            totalNFTs += 1;
+        }
+        for (i = 0; i < consideration.length; ++i) {
+            if (
+                consideration[i].itemType == ItemType.ERC721 ||
+                consideration[i].itemType == ItemType.ERC1155
+            ) {
+                totalNFTs += 1;
+            }
+        }
+
+        if (totalNFTs != 1) {
+            return false;
+        }
+
+        // The one NFT must appear either as the offer item or as the first
+        // consideration item.
+        if (
+            offer[0].itemType != ItemType.ERC721 &&
+            offer[0].itemType != ItemType.ERC1155 &&
+            consideration[0].itemType != ItemType.ERC721 &&
+            consideration[0].itemType != ItemType.ERC1155
+        ) {
+            return false;
+        }
+
+        // All items that are not the NFT must share the same item type and
+        // token (and the identifier must be zero).
+        if (
+            offer[0].itemType == ItemType.ERC721 ||
+            offer[0].itemType == ItemType.ERC1155
+        ) {
+            ItemType expectedItemType = consideration[0].itemType;
+            address expectedToken = consideration[0].token;
+
+            for (i = 0; i < consideration.length; ++i) {
+                if (consideration[i].itemType != expectedItemType) {
+                    return false;
+                }
+
+                if (consideration[i].token != expectedToken) {
+                    return false;
+                }
+
+                if (consideration[i].identifierOrCriteria != 0) {
+                    return false;
+                }
+            }
+        }
+
+        if (
+            consideration[0].itemType == ItemType.ERC721 ||
+            consideration[0].itemType == ItemType.ERC1155
+        ) {
+            if (consideration.length >= 2) {
+                ItemType expectedItemType = consideration[1].itemType;
+                address expectedToken = consideration[1].token;
+                for (i = 2; i < consideration.length; ++i) {
+                    if (consideration[i].itemType != expectedItemType) {
+                        return false;
+                    }
+
+                    if (consideration[i].token != expectedToken) {
+                        return false;
+                    }
+
+                    if (consideration[i].identifierOrCriteria != 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // If the NFT is the first consideration item, the sum of the amounts of
+        // all the other consideration items cannot exceed the amount of the
+        // offer item.
+        if (
+            consideration[0].itemType == ItemType.ERC721 ||
+            consideration[0].itemType == ItemType.ERC1155
+        ) {
+            uint256 totalConsiderationAmount;
+            for (i = 1; i < consideration.length; ++i) {
+                totalConsiderationAmount += consideration[i].startAmount;
+            }
+
+            if (totalConsiderationAmount > offer[0].startAmount) {
+                return false;
+            }
+
+            // Note: these cases represent a “bid” for an NFT, and the non-NFT
+            // consideration items (i.e. the “payment tokens”) are sent directly
+            // from the offerer to each recipient; this means that the fulfiller
+            // accepting the bid does not need to have approval set for the
+            // payment tokens.
+        }
+
+        // All items must have startAmount == endAmount
+        if (offer[0].startAmount != offer[0].endAmount) {
+            return false;
+        }
+        for (i = 0; i < consideration.length; ++i) {
+            if (consideration[i].startAmount != consideration[i].endAmount) {
+                return false;
+            }
+        }
+
+        // The offer item cannot have a native token type.
+        if (offer[0].itemType == ItemType.NATIVE) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Get the BasicOrderType for a given advanced order.
+     *
+     * @param order The advanced order.
+     *
+     * @return basicOrderType The BasicOrderType.
+     */
+    function getBasicOrderType(
+        AdvancedOrder memory order
+    ) internal pure returns (BasicOrderType basicOrderType) {
+        // Get the route (ETH ⇒ ERC721, etc.) for the order.
+        BasicOrderRouteType route;
+        ItemType providingItemType = order.parameters.consideration[0].itemType;
+        ItemType offeredItemType = order.parameters.offer[0].itemType;
+
+        if (providingItemType == ItemType.NATIVE) {
+            if (offeredItemType == ItemType.ERC721) {
+                route = BasicOrderRouteType.ETH_TO_ERC721;
+            } else if (offeredItemType == ItemType.ERC1155) {
+                route = BasicOrderRouteType.ETH_TO_ERC1155;
+            }
+        } else if (providingItemType == ItemType.ERC20) {
+            if (offeredItemType == ItemType.ERC721) {
+                route = BasicOrderRouteType.ERC20_TO_ERC721;
+            } else if (offeredItemType == ItemType.ERC1155) {
+                route = BasicOrderRouteType.ERC20_TO_ERC1155;
+            }
+        } else if (providingItemType == ItemType.ERC721) {
+            if (offeredItemType == ItemType.ERC20) {
+                route = BasicOrderRouteType.ERC721_TO_ERC20;
+            }
+        } else if (providingItemType == ItemType.ERC1155) {
+            if (offeredItemType == ItemType.ERC20) {
+                route = BasicOrderRouteType.ERC1155_TO_ERC20;
+            }
+        }
+
+        // Get the order type (restricted, etc.) for the order.
+        OrderType orderType = order.parameters.orderType;
+
+        // Multiply the route by 4 and add the order type to get the
+        // BasicOrderType.
+        assembly {
+            basicOrderType := add(orderType, mul(route, 4))
+        }
     }
 
     /**
      * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
+     *
+     * @param orders    The restricted orders.
+     * @param seaport   The Seaport address.
+     * @param fulfiller The fulfiller.
+     *
+     * @return calldataHashes The derived calldata hashes.
      */
     function getExpectedZoneCalldataHash(
         AdvancedOrder[] memory orders,
@@ -227,7 +499,6 @@ library FuzzHelpers {
             // Derive the ZoneParameters from the AdvancedOrder
             zoneParameters[i] = orders.getZoneParameters(
                 fulfiller,
-                counter,
                 orders.length,
                 seaport
             )[i];
@@ -345,6 +616,13 @@ library FuzzHelpers {
 
     /**
      * @dev Check all offer and consideration items for criteria.
+     *
+     * @param order The advanced order.
+     *
+     * @return hasCriteria        Whether any offer or consideration item has
+     *                            criteria.
+     * @return hasNonzeroCriteria Whether any offer or consideration item has
+     *                            nonzero criteria.
      */
     function _checkCriteria(
         AdvancedOrder memory order

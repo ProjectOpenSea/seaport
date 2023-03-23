@@ -108,7 +108,6 @@ library ZoneParametersLib {
     function getZoneParameters(
         AdvancedOrder[] memory advancedOrders,
         address fulfiller,
-        uint256 counter,
         uint256 maximumFulfilled,
         address seaport
     ) internal view returns (ZoneParameters[] memory zoneParameters) {
@@ -134,7 +133,7 @@ library ZoneParametersLib {
                 zoneHash: orderParameters.zoneHash,
                 salt: orderParameters.salt,
                 conduitKey: orderParameters.conduitKey,
-                counter: counter
+                counter: seaportInterface.getCounter(orderParameters.offerer)
             });
 
             if (i >= maximumFulfilled) {

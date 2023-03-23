@@ -2,15 +2,19 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
-import { TestContext } from "./TestContextLib.sol";
+
 import { Test } from "forge-std/Test.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 import {
     TestCalldataHashContractOfferer
 } from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
+
+import { TestContext } from "./TestContextLib.sol";
+
 import {
     TestTransferValidationZoneOfferer
 } from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+
 import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
@@ -22,18 +26,39 @@ abstract contract FuzzChecks is Test {
     address payable testZone;
     address payable contractOfferer;
 
+    /**
+     * @dev Check that the returned `fulfilled` values were `true`.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_orderFulfilled(TestContext memory context) public {
         assertEq(context.returnValues.fulfilled, true);
     }
 
+    /**
+     * @dev Check that the returned `validated` values were `true`.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_orderValidated(TestContext memory context) public {
         assertEq(context.returnValues.validated, true);
     }
 
+    /**
+     * @dev Check that the returned `cancelled` values were `true`.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_orderCancelled(TestContext memory context) public {
         assertEq(context.returnValues.cancelled, true);
     }
 
+    /**
+     * @dev Check that the returned `availableOrders` array length was the
+     *      expected length. and that all values were `true`.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_allOrdersFilled(TestContext memory context) public {
         assertEq(
             context.returnValues.availableOrders.length,
@@ -44,6 +69,11 @@ abstract contract FuzzChecks is Test {
         }
     }
 
+    /**
+     * @dev Check that the zone is getting the right calldata.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_validateOrderExpectedDataHash(
         TestContext memory context
     ) public {
@@ -137,6 +167,11 @@ abstract contract FuzzChecks is Test {
         }
     }
 
+    /**
+     * @dev Check that the returned `executions` array length is non-zero.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_executionsPresent(TestContext memory context) public {
         assertTrue(context.returnValues.executions.length > 0);
     }

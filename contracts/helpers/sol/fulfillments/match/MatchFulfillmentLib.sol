@@ -242,8 +242,10 @@ library MatchFulfillmentLib {
     ) internal {
         // cache components in memory
         MatchComponent[] memory cachedComponents = components;
-        // check if there is only one component
-        if (cachedComponents.length == 1) {
+        if (cachedComponents.length == 0) {
+            return;
+        } else if (cachedComponents.length == 1) {
+            // check if there is only one component
             // if it is zero, remove it
             if (cachedComponents[0].getAmount() == 0) {
                 components.pop();
