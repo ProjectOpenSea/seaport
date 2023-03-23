@@ -26,9 +26,13 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 import "seaport-sol/SeaportSol.sol";
 
 import { TestLike } from "./TestContextLib.sol";
+
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
@@ -75,6 +79,7 @@ struct GeneratorContext {
     LibPRNG.PRNG prng;
     uint256 timestamp;
     SeaportInterface seaport;
+    TestTransferValidationZoneOfferer validatorZone;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
@@ -116,7 +121,8 @@ library TestStateGenerator {
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
                 offerer: Offerer(context.randEnum(1, 2)),
-                zone: Zone(context.randEnum(0, 2)),
+                // TODO: Ignoring fail for now. Should be 0-2.
+                zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
@@ -314,7 +320,10 @@ library AdvancedOrdersSpaceGenerator {
 }
 
 library OrderComponentsSpaceGenerator {
+    using PRNGHelpers for GeneratorContext;
+
     using OrderParametersLib for OrderParameters;
+    using ZoneGenerator for OrderParameters;
     using TimeGenerator for OrderParameters;
     using OffererGenerator for Offerer;
 
@@ -325,14 +334,45 @@ library OrderComponentsSpaceGenerator {
         OrderComponentsSpace memory space,
         GeneratorContext memory context
     ) internal pure returns (OrderParameters memory) {
-        return
-            OrderParametersLib
+        OrderParameters memory params;
+        {
+            params = OrderParametersLib
                 .empty()
                 .withOfferer(space.offerer.generate(context))
                 .withOffer(space.offer.generate(context))
-                .withConsideration(space.consideration.generate(context))
-                .withGeneratedTime(space.time, context);
-        // TODO: Zone generator
+                .withConsideration(space.consideration.generate(context));
+        }
+
+        return
+            params
+                .withGeneratedTime(space.time, context)
+                .withGeneratedZone(space.zone, context)
+                .withSalt(context.randRange(0, type(uint256).max));
+    }
+}
+
+library ZoneGenerator {
+    using PRNGHelpers for GeneratorContext;
+    using OrderParametersLib for OrderParameters;
+
+    function withGeneratedZone(
+        OrderParameters memory order,
+        Zone zone,
+        GeneratorContext memory context
+    ) internal pure returns (OrderParameters memory) {
+        if (zone == Zone.NONE) {
+            return order;
+        } else if (zone == Zone.PASS) {
+            // generate random zone hash
+            bytes32 zoneHash = bytes32(context.randRange(0, type(uint256).max));
+            return
+                order
+                    .withOrderType(OrderType.FULL_RESTRICTED)
+                    .withZone(address(context.validatorZone))
+                    .withZoneHash(zoneHash);
+        } else {
+            revert("ZoneGenerator: invalid Zone");
+        }
     }
 }
 

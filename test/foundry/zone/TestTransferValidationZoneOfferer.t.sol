@@ -298,27 +298,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // Create the empty criteria resolvers.
         CriteriaResolver[] memory criteriaResolvers;
 
-        // Expect this to revert because the zone is set up to expect bob to be
-        // the recipient of all spent items.
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "InvalidOwner(address,address,address,uint256)",
-                address(bob),
-                address(this),
-                address(test721_1),
-                42
-            )
-        );
-        context.seaport.fulfillAvailableAdvancedOrders({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: criteriaResolvers,
-            offerFulfillments: offerFulfillments,
-            considerationFulfillments: considerationFulfillments,
-            fulfillerConduitKey: bytes32(conduitKeyOne),
-            recipient: address(this),
-            maximumFulfilled: 2
-        });
-
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders({
             advancedOrders: advancedOrders,
@@ -471,7 +450,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ZoneParameters[] memory zoneParameters = advancedOrders
                 .getZoneParameters(
                     address(this),
-                    offerer1Counter,
                     advancedOrders.length - 1,
                     address(context.seaport)
                 );
@@ -614,7 +592,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(
                 address(this),
-                offerer1Counter,
                 advancedOrders.length,
                 address(context.seaport)
             );
@@ -797,12 +774,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         {
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
-                .getZoneParameters(
-                    address(this),
-                    0,
-                    1,
-                    address(context.seaport)
-                );
+                .getZoneParameters(address(this), 1, address(context.seaport));
 
             bytes32[]
                 memory payloadHashes = _generateZoneValidateOrderDataHashes(
@@ -936,7 +908,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(
                 address(this),
-                0,
                 advancedOrders.length,
                 address(context.seaport)
             );

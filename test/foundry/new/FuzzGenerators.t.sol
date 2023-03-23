@@ -31,6 +31,9 @@ import {
     PRNGHelpers,
     TestLike
 } from "./helpers/FuzzGenerators.sol";
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
@@ -39,7 +42,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     /// @dev Note: the GeneratorContext must be a struct in *memory* in order
     ///      for the PRNG to work properly, so we can't declare it as a storage
     ///      variable in setUp. Instead, use this function to create a context.
-    function createContext() internal view returns (GeneratorContext memory) {
+    function createContext() internal returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -54,6 +57,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
+                validatorZone: new TestTransferValidationZoneOfferer(
+                    address(0)
+                ),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,

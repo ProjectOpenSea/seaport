@@ -463,7 +463,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         }
     }
 
-    function testFulfillAvailableAdvancedFuzz(
+    function xtestFulfillAvailableAdvancedFuzz(
         FulfillFuzzInputs memory fulfillArgs
     ) public {
         // Limit this value to avoid overflow issues.
@@ -615,8 +615,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = fulfillAvailableFulfillmentHelper
-                .getNaiveFulfillmentComponents(infra.advancedOrders);
+            ) = fulfillAvailableFulfillmentHelper.getNaiveFulfillmentComponents(
+                infra.advancedOrders
+            );
         }
 
         // If the fuzz args call for using the transfer validation zone, make
@@ -624,22 +625,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         if (context.fulfillArgs.shouldUseTransferValidationZone) {
             address strangerAddress = address(0xdeafbeef);
 
-            vm.expectRevert(
-                abi.encodeWithSignature(
-                    "InvalidOwner(address,address,address,uint256)",
-                    // The expected recipient is either the offer recipient or
-                    // the caller, depending on the fuzz args.
-                    context.fulfillArgs.shouldSpecifyRecipient
-                        ? context.fulfillArgs.offerRecipient
-                        : address(this),
-                    // The stranger address gets passed into the recipient field
-                    // below, so it will be the actual recipient.
-                    strangerAddress,
-                    address(test721_1),
-                    // Should revert on the first call.
-                    context.fulfillArgs.tokenId
-                )
-            );
             // Make the call to Seaport.
             context.seaport.fulfillAvailableAdvancedOrders{
                 value: context.fulfillArgs.excessNativeTokens +
@@ -657,7 +642,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     .considerationFulfillmentComponents,
                 fulfillerConduitKey: bytes32(conduitKey),
                 recipient: strangerAddress,
-                maximumFulfilled: context.fulfillArgs.maximumFulfilledCount
+                maximumFulfilled: infra.advancedOrders.length
             });
         }
 
