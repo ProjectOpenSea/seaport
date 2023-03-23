@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-
+import { Vm } from "forge-std/Vm.sol";
+import { Account } from "../BaseOrderTest.sol";
 import { Result } from "./FuzzHelpers.sol";
+import "seaport-sol/SeaportSol.sol";
 
 struct FuzzParams {
     uint256 seed;
+    uint256 totalOrders;
+    uint256 maxOfferItems;
+    uint256 maxConsiderationItems;
 }
 
 struct ReturnValues {
@@ -17,7 +21,11 @@ struct ReturnValues {
     Execution[] executions;
 }
 
-interface TestLike {
+interface TestHelpers {
+    function makeAccount(
+        string memory name
+    ) external view returns (Account memory);
+
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders
     )
@@ -29,7 +37,7 @@ interface TestLike {
         );
 }
 
-struct TestContext {
+struct FuzzTestContext {
     /**
      * @dev An array of AdvancedOrders
      */
@@ -64,12 +72,11 @@ struct TestContext {
      *      the superset of all the non-order args to SeaportInterface
      *      functions, like conduit key, criteria resolvers, and fulfillments.
      *      if you don't want to set these parameters every time, use
-     *      TestContextLib.from() to create a TestContext with these fields
+     *      FuzzTestContextLib.from() to create a FuzzTestContext with these fields
      *      pre-populated with empty defaults.
      */
     uint256 counter;
     bytes32 fulfillerConduitKey;
-    bytes32[] expectedZoneCalldataHash;
     CriteriaResolver[] criteriaResolvers;
     address recipient;
     Fulfillment[] fulfillments;
@@ -80,7 +87,7 @@ struct TestContext {
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
-     *      automatically copied if you use the TestContextLib.from() function.
+     *      automatically copied if you use the FuzzTestContextLib.from() function.
      */
     AdvancedOrder[] initialOrders;
     /**
@@ -93,30 +100,36 @@ struct TestContext {
      *      from all Seaport functions.
      */
     ReturnValues returnValues;
-    TestLike testHelpers;
+    bytes32[] expectedZoneCalldataHash;
+    TestHelpers testHelpers;
 }
 
 /**
- * @notice Builder library for TestContext.
+ * @notice Builder library for FuzzTestContext.
  */
-library TestContextLib {
+library FuzzTestContextLib {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using BasicOrderParametersLib for BasicOrderParameters;
 
     /**
-     * @dev Create an empty TestContext.
+     * @dev Create an empty FuzzTestContext.
      *
-     * @custom:return emptyContext the empty TestContext
+     * @custom:return emptyContext the empty FuzzTestContext
      */
-    function empty() internal pure returns (TestContext memory) {
+    function empty() internal view returns (FuzzTestContext memory) {
         return
-            TestContext({
+            FuzzTestContext({
                 orders: new AdvancedOrder[](0),
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
-                fuzzParams: FuzzParams({ seed: 0 }),
+                fuzzParams: FuzzParams({
+                    seed: 0,
+                    totalOrders: 0,
+                    maxOfferItems: 0,
+                    maxConsiderationItems: 0
+                }),
                 checks: new bytes4[](0),
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
@@ -137,33 +150,35 @@ library TestContextLib {
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
                 }),
-                testHelpers: TestLike(address(0))
+                testHelpers: TestHelpers(address(this))
             });
     }
 
     /**
-     * @dev Create a TestContext from the given partial arguments.
+     * @dev Create a FuzzTestContext from the given partial arguments.
      *
-     * @param orders     the AdvancedOrder[] to set
-     * @param seaport    the SeaportInterface to set
-     * @param caller     the caller address to set
-     * @param fuzzParams the fuzzParams struct to set
-     *
-     * @custom:return _context the TestContext
+     * @param orders the AdvancedOrder[] to set
+     * @param seaport the SeaportInterface to set
+     * @param caller the caller address to set
+     * @custom:return _context the FuzzTestContext
      */
     function from(
         AdvancedOrder[] memory orders,
         SeaportInterface seaport,
-        address caller,
-        FuzzParams memory fuzzParams
-    ) internal view returns (TestContext memory) {
+        address caller
+    ) internal view returns (FuzzTestContext memory) {
         return
-            TestContext({
+            FuzzTestContext({
                 orders: orders,
                 seaport: seaport,
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: caller,
-                fuzzParams: fuzzParams,
+                fuzzParams: FuzzParams({
+                    seed: 0,
+                    totalOrders: 0,
+                    maxOfferItems: 0,
+                    maxConsiderationItems: 0
+                }),
                 checks: new bytes4[](0),
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
@@ -184,198 +199,198 @@ library TestContextLib {
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
                 }),
-                testHelpers: TestLike(address(this))
+                testHelpers: TestHelpers(address(this))
             });
     }
 
     /**
-     * @dev Sets the orders on a TestContext
+     * @dev Sets the orders on a FuzzTestContext
      *
-     * @param context the TestContext to set the orders of
-     * @param orders  the AdvancedOrder[] to set
+     * @param context the FuzzTestContext to set the orders of
+     * @param orders the AdvancedOrder[] to set
      *
-     * @return _context the TestContext with the orders set
+     * @return _context the FuzzTestContext with the orders set
      */
     function withOrders(
-        TestContext memory context,
+        FuzzTestContext memory context,
         AdvancedOrder[] memory orders
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.orders = orders.copy();
         return context;
     }
 
     /**
-     * @dev Sets the SeaportInterface on a TestContext
+     * @dev Sets the SeaportInterface on a FuzzTestContext
      *
-     * @param context the TestContext to set the SeaportInterface of
+     * @param context the FuzzTestContext to set the SeaportInterface of
      * @param seaport the SeaportInterface to set
      *
-     * @return _context the TestContext with the SeaportInterface set
+     * @return _context the FuzzTestContext with the SeaportInterface set
      */
     function withSeaport(
-        TestContext memory context,
+        FuzzTestContext memory context,
         SeaportInterface seaport
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.seaport = seaport;
         return context;
     }
 
     /**
-     * @dev Sets the ConduitControllerInterface on a TestContext
+     * @dev Sets the ConduitControllerInterface on a FuzzTestContext
      *
-     * @param context           the TestContext to set the ConduitControllerInterface of
+     * @param context the FuzzTestContext to set the ConduitControllerInterface of
      * @param conduitController the ConduitControllerInterface to set
      *
-     * @return _context the TestContext with the ConduitControllerInterface set
+     * @return _context the FuzzTestContext with the ConduitControllerInterface set
      */
     function withConduitController(
-        TestContext memory context,
+        FuzzTestContext memory context,
         ConduitControllerInterface conduitController
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.conduitController = conduitController;
         return context;
     }
 
     /**
-     * @dev Sets the caller on a TestContext
+     * @dev Sets the caller on a FuzzTestContext
      *
-     * @param context the TestContext to set the caller of
-     * @param caller  the caller address to set
+     * @param context the FuzzTestContext to set the caller of
+     * @param caller the caller address to set
      *
-     * @return _context the TestContext with the caller set
+     * @return _context the FuzzTestContext with the caller set
      */
     function withCaller(
-        TestContext memory context,
+        FuzzTestContext memory context,
         address caller
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.caller = caller;
         return context;
     }
 
     /**
-     * @dev Sets the fuzzParams on a TestContext
+     * @dev Sets the fuzzParams on a FuzzTestContext
      *
-     * @param context    the TestContext to set the fuzzParams of
+     * @param context the FuzzTestContext to set the fuzzParams of
      * @param fuzzParams the fuzzParams struct to set
      *
-     * @return _context the TestContext with the fuzzParams set
+     * @return _context the FuzzTestContext with the fuzzParams set
      */
     function withFuzzParams(
-        TestContext memory context,
+        FuzzTestContext memory context,
         FuzzParams memory fuzzParams
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.fuzzParams = _copyFuzzParams(fuzzParams);
         return context;
     }
 
     /**
-     * @dev Sets the checks on a TestContext
+     * @dev Sets the checks on a FuzzTestContext
      *
-     * @param context the TestContext to set the checks of
-     * @param checks  the checks array to set
+     * @param context the FuzzTestContext to set the checks of
+     * @param checks the checks array to set
      *
-     * @return _context the TestContext with the checks set
+     * @return _context the FuzzTestContext with the checks set
      */
     function withChecks(
-        TestContext memory context,
+        FuzzTestContext memory context,
         bytes4[] memory checks
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.checks = _copyBytes4(checks);
         return context;
     }
 
     /**
-     * @dev Sets the counter on a TestContext
+     * @dev Sets the counter on a FuzzTestContext
      *
-     * @param context the TestContext to set the counter of
+     * @param context the FuzzTestContext to set the counter of
      * @param counter the counter value to set
      *
-     * @return _context the TestContext with the counter set
+     * @return _context the FuzzTestContext with the counter set
      */
     function withCounter(
-        TestContext memory context,
+        FuzzTestContext memory context,
         uint256 counter
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.counter = counter;
         return context;
     }
 
     /**
-     * @dev Sets the fulfillerConduitKey on a TestContext
+     * @dev Sets the fulfillerConduitKey on a FuzzTestContext
      *
-     * @param context             the TestContext to set the fulfillerConduitKey of
+     * @param context the FuzzTestContext to set the fulfillerConduitKey of
      * @param fulfillerConduitKey the fulfillerConduitKey value to set
      *
-     * @return _context the TestContext with the fulfillerConduitKey set
+     * @return _context the FuzzTestContext with the fulfillerConduitKey set
      */
     function withFulfillerConduitKey(
-        TestContext memory context,
+        FuzzTestContext memory context,
         bytes32 fulfillerConduitKey
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.fulfillerConduitKey = fulfillerConduitKey;
         return context;
     }
 
     /**
-     * @dev Sets the criteriaResolvers on a TestContext
+     * @dev Sets the criteriaResolvers on a FuzzTestContext
      *
-     * @param context           the TestContext to set the criteriaResolvers of
+     * @param context the FuzzTestContext to set the criteriaResolvers of
      * @param criteriaResolvers the criteriaResolvers array to set
      *
-     * @return _context the TestContext with the criteriaResolvers set
+     * @return _context the FuzzTestContext with the criteriaResolvers set
      */
     function withCriteriaResolvers(
-        TestContext memory context,
+        FuzzTestContext memory context,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.criteriaResolvers = _copyCriteriaResolvers(criteriaResolvers);
         return context;
     }
 
     /**
-     * @dev Sets the recipient on a TestContext
+     * @dev Sets the recipient on a FuzzTestContext
      *
-     * @param context   the TestContext to set the recipient of
+     * @param context the FuzzTestContext to set the recipient of
      * @param recipient the recipient value to set
      *
-     * @return _context the TestContext with the recipient set
+     * @return _context the FuzzTestContext with the recipient set
      */
     function withRecipient(
-        TestContext memory context,
+        FuzzTestContext memory context,
         address recipient
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.recipient = recipient;
         return context;
     }
 
     /**
-     * @dev Sets the fulfillments on a TestContext
+     * @dev Sets the fulfillments on a FuzzTestContext
      *
-     * @param context      the TestContext to set the fulfillments of
+     * @param context the FuzzTestContext to set the fulfillments of
      * @param fulfillments the offerFulfillments value to set
      *
-     * @return _context the TestContext with the fulfillments set
+     * @return _context the FuzzTestContext with the fulfillments set
      */
     function withFulfillments(
-        TestContext memory context,
+        FuzzTestContext memory context,
         Fulfillment[] memory fulfillments
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.fulfillments = fulfillments;
         return context;
     }
 
     /**
-     * @dev Sets the offerFulfillments on a TestContext
+     * @dev Sets the offerFulfillments on a FuzzTestContext
      *
-     * @param context           the TestContext to set the offerFulfillments of
+     * @param context the FuzzTestContext to set the offerFulfillments of
      * @param offerFulfillments the offerFulfillments value to set
      *
-     * @return _context the TestContext with the offerFulfillments set
+     * @return _context the FuzzTestContext with the offerFulfillments set
      */
     function withOfferFulfillments(
-        TestContext memory context,
+        FuzzTestContext memory context,
         FulfillmentComponent[][] memory offerFulfillments
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.offerFulfillments = _copyFulfillmentComponents(
             offerFulfillments
         );
@@ -383,19 +398,17 @@ library TestContextLib {
     }
 
     /**
-     * @dev Sets the considerationFulfillments on a TestContext
+     * @dev Sets the considerationFulfillments on a FuzzTestContext
      *
-     * @param context                   the TestContext to set the
-     *                                  considerationFulfillments of
-     * @param considerationFulfillments the considerationFulfillments value to
-     *                                  set
+     * @param context the FuzzTestContext to set the considerationFulfillments of
+     * @param considerationFulfillments the considerationFulfillments value to set
      *
-     * @return _context the TestContext with the considerationFulfillments set
+     * @return _context the FuzzTestContext with the considerationFulfillments set
      */
     function withConsiderationFulfillments(
-        TestContext memory context,
+        FuzzTestContext memory context,
         FulfillmentComponent[][] memory considerationFulfillments
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.considerationFulfillments = _copyFulfillmentComponents(
             considerationFulfillments
         );
@@ -403,33 +416,33 @@ library TestContextLib {
     }
 
     /**
-     * @dev Sets the maximumFulfilled on a TestContext
+     * @dev Sets the maximumFulfilled on a FuzzTestContext
      *
-     * @param context          the TestContext to set the maximumFulfilled of
+     * @param context the FuzzTestContext to set the maximumFulfilled of
      * @param maximumFulfilled the maximumFulfilled value to set
      *
-     * @return _context the TestContext with maximumFulfilled set
+     * @return _context the FuzzTestContext with maximumFulfilled set
      */
     function withMaximumFulfilled(
-        TestContext memory context,
+        FuzzTestContext memory context,
         uint256 maximumFulfilled
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.maximumFulfilled = maximumFulfilled;
         return context;
     }
 
     /**
-     * @dev Sets the basicOrderParameters on a TestContext
+     * @dev Sets the basicOrderParameters on a FuzzTestContext
      *
-     * @param context              the TestContext to set the fulfillments of
+     * @param context the FuzzTestContext to set the fulfillments of
      * @param basicOrderParameters the offerFulfillments value to set
      *
-     * @return _context the TestContext with the fulfillments set
+     * @return _context the FuzzTestContext with the fulfillments set
      */
     function withBasicOrderParameters(
-        TestContext memory context,
+        FuzzTestContext memory context,
         BasicOrderParameters memory basicOrderParameters
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         context.basicOrderParameters = basicOrderParameters;
         return context;
     }
@@ -479,6 +492,12 @@ library TestContextLib {
     function _copyFuzzParams(
         FuzzParams memory params
     ) private pure returns (FuzzParams memory) {
-        return FuzzParams({ seed: params.seed });
+        return
+            FuzzParams({
+                seed: params.seed,
+                totalOrders: params.totalOrders,
+                maxOfferItems: params.maxOfferItems,
+                maxConsiderationItems: params.maxConsiderationItems
+            });
     }
 }

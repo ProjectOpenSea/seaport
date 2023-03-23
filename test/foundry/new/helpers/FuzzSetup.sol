@@ -2,17 +2,14 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
-
 import "seaport-sol/SeaportSol.sol";
 
-import "forge-std/console.sol";
-
 import { FuzzChecks } from "./FuzzChecks.sol";
-import { FuzzEngineLib } from "./FuzzEngine.sol";
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
-import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import { TestContext } from "./TestContextLib.sol";
+import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -38,9 +35,9 @@ interface TestERC1155 {
 
 library CheckHelpers {
     function registerCheck(
-        TestContext memory context,
+        FuzzTestContext memory context,
         bytes4 check
-    ) internal pure returns (TestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         bytes4[] memory checks = context.checks;
         bytes4[] memory newChecks = new bytes4[](checks.length + 1);
         for (uint256 i; i < checks.length; ++i) {
@@ -53,13 +50,13 @@ library CheckHelpers {
 }
 
 abstract contract FuzzSetup is Test, AmountDeriver {
-    using FuzzEngineLib for TestContext;
-    using CheckHelpers for TestContext;
+    using FuzzEngineLib for FuzzTestContext;
+    using CheckHelpers for FuzzTestContext;
 
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
 
-    function setUpZoneParameters(TestContext memory context) public view {
+    function setUpZoneParameters(FuzzTestContext memory context) public view {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
         bytes32[] memory calldataHashes = context
             .orders
@@ -94,7 +91,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function setUpOfferItems(TestContext memory context) public {
+    function setUpOfferItems(FuzzTestContext memory context) public {
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             OfferItem[] memory items = orderParams.offer;
@@ -148,7 +145,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function setUpConsiderationItems(TestContext memory context) public {
+    function setUpConsiderationItems(FuzzTestContext memory context) public {
         // Skip creating consideration items if we're calling a match function
         if (
             context.action() == context.seaport.matchAdvancedOrders.selector ||
@@ -226,7 +223,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     }
 
     function _getApproveTo(
-        TestContext memory context
+        FuzzTestContext memory context
     ) internal view returns (address) {
         if (context.fulfillerConduitKey == bytes32(0)) {
             return address(context.seaport);
@@ -243,7 +240,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     }
 
     function _getApproveTo(
-        TestContext memory context,
+        FuzzTestContext memory context,
         OrderParameters memory orderParams
     ) internal view returns (address) {
         if (orderParams.conduitKey == bytes32(0)) {
