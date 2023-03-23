@@ -5,7 +5,7 @@ import "seaport-sol/SeaportSol.sol";
 
 import { Test } from "forge-std/Test.sol";
 
-import { TestContext } from "./TestContextLib.sol";
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import {
     HashValidationZoneOfferer
@@ -25,7 +25,7 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderFulfilled(TestContext memory context) public {
+    function check_orderFulfilled(FuzzTestContext memory context) public {
         assertEq(context.returnValues.fulfilled, true);
     }
 
@@ -34,7 +34,7 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderValidated(TestContext memory context) public {
+    function check_orderValidated(FuzzTestContext memory context) public {
         assertEq(context.returnValues.validated, true);
     }
 
@@ -43,7 +43,7 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderCancelled(TestContext memory context) public {
+    function check_orderCancelled(FuzzTestContext memory context) public {
         assertEq(context.returnValues.cancelled, true);
     }
 
@@ -53,7 +53,7 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_allOrdersFilled(TestContext memory context) public {
+    function check_allOrdersFilled(FuzzTestContext memory context) public {
         assertEq(
             context.returnValues.availableOrders.length,
             context.initialOrders.length
@@ -69,7 +69,7 @@ abstract contract FuzzChecks is Test {
      * @param context A Fuzz test context.
      */
     function check_validateOrderExpectedDataHash(
-        TestContext memory context
+        FuzzTestContext memory context
     ) public {
         for (uint256 i; i < context.orders.length; i++) {
             if (context.orders[i].parameters.zone != address(0)) {
@@ -107,9 +107,9 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_executionsPresent(TestContext memory context) public {
+    function check_executionsPresent(FuzzTestContext memory context) public {
         assertTrue(context.returnValues.executions.length > 0);
     }
 }
 
-// state variable accessible in test or pass into TestContext
+// state variable accessible in test or pass into FuzzTestContext
