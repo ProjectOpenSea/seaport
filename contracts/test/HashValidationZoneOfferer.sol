@@ -23,10 +23,11 @@ import {
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 /**
- * @dev This contract is used to validate transfer within the zone/offerer.  Use
- *      the HashValidationZoneOfferer to validate calldata via hashes.
+ * @dev This contract is used to validate hashes.  Use the 
+ *      TestTransferValidationZoneOfferer to validate transfers within the
+ *      zone/offerer.
  */
-contract TestTransferValidationZoneOfferer is
+contract HashValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface
 {
@@ -124,17 +125,6 @@ contract TestTransferValidationZoneOfferer is
         if (seaportBalance > 0) {
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
-
-        // Ensure that the offerer or recipient has received all consideration
-        // items.
-        _assertValidReceivedItems(zoneParameters.consideration);
-
-        address expectedOfferRecipient = _expectedOfferRecipient == address(0)
-            ? zoneParameters.fulfiller
-            : _expectedOfferRecipient;
-
-        // Ensure that the expected recipient has received all offer items.
-        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
         // Set the global called flag to true.
         called = true;

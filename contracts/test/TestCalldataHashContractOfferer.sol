@@ -80,8 +80,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     function activate(
         address,
         SpentItem[] memory minimumReceived,
-        SpentItem[] memory maximumSpent,
-        bytes calldata context
+        SpentItem[] memory /* maximumSpent */,
+        bytes calldata /* context */
     ) public payable {
         uint256 requiredEthBalance;
         uint256 minimumReceivedLength = minimumReceived.length;
@@ -139,7 +139,7 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         {
-            (bool success, bytes memory returnData) = payable(_SEAPORT).call{
+            (bool success, ) = payable(_SEAPORT).call{
                 value: address(this).balance
             }("");
 

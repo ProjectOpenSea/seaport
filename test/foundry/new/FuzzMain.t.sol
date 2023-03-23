@@ -25,8 +25,8 @@ import { FuzzEngine } from "./helpers/FuzzEngine.sol";
 import { FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
 import {
-    TestTransferValidationZoneOfferer
-} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+    HashValidationZoneOfferer
+} from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 contract FuzzMainTest is FuzzEngine {
     using FuzzHelpers for AdvancedOrder;
@@ -47,7 +47,7 @@ contract FuzzMainTest is FuzzEngine {
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
-                validatorZone: new TestTransferValidationZoneOfferer(
+                validatorZone: new HashValidationZoneOfferer(
                     address(0)
                 ),
                 erc20s: erc20s,

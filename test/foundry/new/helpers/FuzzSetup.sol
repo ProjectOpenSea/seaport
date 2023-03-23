@@ -40,7 +40,7 @@ library CheckHelpers {
     function registerCheck(
         TestContext memory context,
         bytes4 check
-    ) internal returns (TestContext memory) {
+    ) internal pure returns (TestContext memory) {
         bytes4[] memory checks = context.checks;
         bytes4[] memory newChecks = new bytes4[](checks.length + 1);
         for (uint256 i; i < checks.length; ++i) {
@@ -59,14 +59,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
 
-    function setUpZoneParameters(TestContext memory context) public {
-        ZoneParameters[] memory zoneParameters = context
-            .orders
-            .getZoneParameters(
-                context.caller,
-                context.maximumFulfilled,
-                address(context.seaport)
-            );
+    function setUpZoneParameters(TestContext memory context) public view {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
         bytes32[] memory calldataHashes = context
             .orders
@@ -74,10 +67,13 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 address(context.seaport),
                 context.caller
             );
+
         bytes32[] memory expectedZoneCalldataHash = new bytes32[](
             context.orders.length
         );
+
         bool registerChecks;
+
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             if (
@@ -88,7 +84,9 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 expectedZoneCalldataHash[i] = calldataHashes[i];
             }
         }
+
         context.expectedZoneCalldataHash = expectedZoneCalldataHash;
+
         if (registerChecks) {
             context.registerCheck(
                 FuzzChecks.check_validateOrderExpectedDataHash.selector

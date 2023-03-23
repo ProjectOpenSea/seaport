@@ -8,8 +8,8 @@ import { Test } from "forge-std/Test.sol";
 import { TestContext } from "./TestContextLib.sol";
 
 import {
-    TestTransferValidationZoneOfferer
-} from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import {
     OrderParametersLib
@@ -93,7 +93,7 @@ abstract contract FuzzChecks is Test {
                     orderComponents
                 );
 
-                bytes32 actualCalldataHash = TestTransferValidationZoneOfferer(
+                bytes32 actualCalldataHash = HashValidationZoneOfferer(
                     testZone
                 ).orderHashToValidateOrderDataHash(orderHash);
 

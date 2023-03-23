@@ -12,8 +12,8 @@ import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 import { FuzzParams, TestContext, TestContextLib } from "./helpers/TestContextLib.sol";
 
 import {
-    TestTransferValidationZoneOfferer
-} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+    HashValidationZoneOfferer
+} from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using AdvancedOrderLib for AdvancedOrder;
@@ -900,7 +900,7 @@ contract FuzzEngineTest is FuzzEngine {
     }
 
     function test_check_validateOrderExpectedDataHash() public {
-        TestTransferValidationZoneOfferer zone = new TestTransferValidationZoneOfferer(
+        HashValidationZoneOfferer zone = new HashValidationZoneOfferer(
                 address(this)
             );
 
