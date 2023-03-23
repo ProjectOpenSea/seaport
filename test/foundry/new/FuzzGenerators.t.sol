@@ -30,23 +30,23 @@ import {
 
 import {
     AdvancedOrdersSpaceGenerator,
-    GeneratorContext,
+    FuzzGeneratorContext,
     PRNGHelpers,
-    TestLike,
     TestConduit
 } from "./helpers/FuzzGenerators.sol";
+import { TestHelpers } from "./helpers/FuzzTestContextLib.sol";
 import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
-    using PRNGHelpers for GeneratorContext;
+    using PRNGHelpers for FuzzGeneratorContext;
 
-    /// @dev Note: the GeneratorContext must be a struct in *memory* in order
+    /// @dev Note: the FuzzGeneratorContext must be a struct in *memory* in order
     ///      for the PRNG to work properly, so we can't declare it as a storage
     ///      variable in setUp. Instead, use this function to create a context.
-    function createContext() internal returns (GeneratorContext memory) {
+    function createContext() internal returns (FuzzGeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -55,9 +55,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         potential1155TokenIds[2] = 3;
 
         return
-            GeneratorContext({
+            FuzzGeneratorContext({
                 vm: vm,
-                testHelpers: TestLike(address(this)),
+                testHelpers: TestHelpers(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
@@ -67,7 +67,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                caller: address(this), // TODO: read recipient from TestContext
+                caller: address(this), // TODO: read recipient from FuzzTestContext
                 offerer: makeAccount("offerer"),
                 alice: makeAccount("alice"),
                 bob: makeAccount("bob"),
@@ -84,7 +84,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_emptySpace() public {
-        GeneratorContext memory context = createContext();
+        FuzzGeneratorContext memory context = createContext();
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: new OrderComponentsSpace[](0),
             isMatchable: false
@@ -97,7 +97,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_emptyOfferConsideration() public {
-        GeneratorContext memory context = createContext();
+        FuzzGeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](0);
@@ -133,7 +133,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_singleOffer_emptyConsideration() public {
-        GeneratorContext memory context = createContext();
+        FuzzGeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](1);
         offer[0] = OfferItemSpace({
             itemType: ItemType.ERC20,
@@ -185,7 +185,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     function test_emptyOffer_singleConsideration() public {
-        GeneratorContext memory context = createContext();
+        FuzzGeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](1);
