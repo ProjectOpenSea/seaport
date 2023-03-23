@@ -1,25 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Vm } from "forge-std/Vm.sol";
-
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
-
 import "seaport-sol/SeaportSol.sol";
 
-import { TestLike } from "./TestContextLib.sol";
-
-import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
-
-import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
-
-import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
-
-import {
-    HashValidationZoneOfferer
-} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
-
-import { Account } from "../BaseOrderTest.sol";
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrdersSpace,
@@ -27,7 +12,6 @@ import {
     OfferItemSpace,
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
-
 import {
     Amount,
     BroadOrderType,
@@ -42,84 +26,19 @@ import {
     ConduitChoice
 } from "seaport-sol/SpaceEnums.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
-
-uint256 constant UINT256_MAX = type(uint256).max;
-
-// @dev Implementation cribbed from forge-std bound
-function bound(
-    uint256 x,
-    uint256 min,
-    uint256 max
-) pure returns (uint256 result) {
-    require(min <= max, "Max is less than min.");
-    // If x is between min and max, return x directly. This is to ensure that
-    // dictionary values do not get shifted if the min is nonzero.
-    if (x >= min && x <= max) return x;
-
-    uint256 size = max - min + 1;
-
-    // If the value is 0, 1, 2, 3, warp that to min, min+1, min+2, min+3.
-    // Similarly for the UINT256_MAX side. This helps ensure coverage of the
-    // min/max values.
-    if (x <= 3 && size > x) return min + x;
-    if (x >= UINT256_MAX - 3 && size > UINT256_MAX - x)
-        return max - (UINT256_MAX - x);
-
-    // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
-    if (x > max) {
-        uint256 diff = x - max;
-        uint256 rem = diff % size;
-        if (rem == 0) return max;
-        result = min + rem - 1;
-    } else if (x < min) {
-        uint256 diff = min - x;
-        uint256 rem = diff % size;
-        if (rem == 0) return min;
-        result = max - rem + 1;
-    }
-}
-
-struct TestConduit {
-    address addr;
-    bytes32 key;
-}
-
-struct GeneratorContext {
-    Vm vm;
-    TestLike testHelpers;
-    LibPRNG.PRNG prng;
-    uint256 timestamp;
-    SeaportInterface seaport;
-    ConduitControllerInterface conduitController;
-    HashValidationZoneOfferer validatorZone;
-    TestERC20[] erc20s;
-    TestERC721[] erc721s;
-    TestERC1155[] erc1155s;
-    address self;
-    address caller;
-    Account offerer;
-    Account alice;
-    Account bob;
-    Account carol;
-    Account dillon;
-    Account eve;
-    Account frank;
-    TestConduit[] conduits;
-    uint256 starting721offerIndex;
-    uint256 starting721considerationIndex;
-    uint256[] potential1155TokenIds;
-    bytes32[] orderHashes;
-}
+import {
+    FuzzGeneratorContext,
+    TestConduit
+} from "./FuzzGeneratorContextLib.sol";
 
 library TestStateGenerator {
-    using PRNGHelpers for GeneratorContext;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function generate(
         uint256 totalOrders,
         uint256 maxOfferItemsPerOrder,
         uint256 maxConsiderationItemsPerOrder,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (AdvancedOrdersSpace memory) {
         bool isMatchable = context.randRange(0, 1) == 1 ? true : false;
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -156,7 +75,7 @@ library TestStateGenerator {
 
     function generateOffer(
         uint256 maxOfferItemsPerOrder,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OfferItemSpace[] memory) {
         uint256 len = context.randRange(0, maxOfferItemsPerOrder);
         OfferItemSpace[] memory offer = new OfferItemSpace[](len);
@@ -175,7 +94,7 @@ library TestStateGenerator {
 
     function generateConsideration(
         uint256 maxConsiderationItemsPerOrder,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItemSpace[] memory) {
         // TODO: Can we handle zero?
         uint256 len = context.randRange(1, maxConsiderationItemsPerOrder);
@@ -202,12 +121,12 @@ library AdvancedOrdersSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
-    using PRNGHelpers for GeneratorContext;
+    using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
 
     function generate(
         AdvancedOrdersSpace memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
@@ -335,14 +254,14 @@ library OrderComponentsSpaceGenerator {
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace[];
     using OffererGenerator for Offerer;
     using OfferItemSpaceGenerator for OfferItemSpace[];
-    using PRNGHelpers for GeneratorContext;
+    using PRNGHelpers for FuzzGeneratorContext;
     using TimeGenerator for OrderParameters;
     using ZoneGenerator for OrderParameters;
     using ConduitGenerator for ConduitChoice;
 
     function generate(
         OrderComponentsSpace memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OrderParameters memory) {
         OrderParameters memory params;
         {
@@ -365,7 +284,7 @@ library OrderComponentsSpaceGenerator {
 library ConduitGenerator {
     function generate(
         ConduitChoice conduit,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (TestConduit memory) {
         if (conduit == ConduitChoice.NONE) {
             return
@@ -384,13 +303,13 @@ library ConduitGenerator {
 }
 
 library ZoneGenerator {
-    using PRNGHelpers for GeneratorContext;
+    using PRNGHelpers for FuzzGeneratorContext;
     using OrderParametersLib for OrderParameters;
 
     function withGeneratedZone(
         OrderParameters memory order,
         Zone zone,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OrderParameters memory) {
         if (zone == Zone.NONE) {
             return order;
@@ -417,7 +336,7 @@ library OfferItemSpaceGenerator {
 
     function generate(
         OfferItemSpace[] memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -431,7 +350,7 @@ library OfferItemSpaceGenerator {
 
     function generate(
         OfferItemSpace memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         return
             OfferItemLib
@@ -457,7 +376,7 @@ library ConsiderationItemSpaceGenerator {
 
     function generate(
         ConsiderationItemSpace[] memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -473,7 +392,7 @@ library ConsiderationItemSpaceGenerator {
 
     function generate(
         ConsiderationItemSpace memory space,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         return
             ConsiderationItemLib
@@ -500,7 +419,7 @@ library SignatureGenerator {
         SignatureMethod method,
         Offerer offerer,
         bytes32 orderHash,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal view returns (AdvancedOrder memory) {
         if (method == SignatureMethod.EOA) {
             (, bytes32 domainSeparator, ) = context.seaport.information();
@@ -532,7 +451,7 @@ library TokenIndexGenerator {
     function generate(
         TokenIndex tokenIndex,
         ItemType itemType,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         uint256 i = uint8(tokenIndex);
 
@@ -556,7 +475,7 @@ library TimeGenerator {
     function withGeneratedTime(
         OrderParameters memory order,
         Time time,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OrderParameters memory) {
         uint256 low;
         uint256 high;
@@ -614,7 +533,7 @@ library AmountGenerator {
     function withGeneratedAmount(
         OfferItem memory item,
         Amount amount,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         // Assumes ordering, might be dangerous
         if (item.itemType == ItemType.ERC721) {
@@ -642,7 +561,7 @@ library AmountGenerator {
     function withGeneratedAmount(
         ConsiderationItem memory item,
         Amount amount,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         // Assumes ordering, might be dangerous
         if (item.itemType == ItemType.ERC721) {
@@ -673,7 +592,7 @@ library RecipientGenerator {
 
     function generate(
         Recipient recipient,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         if (recipient == Recipient.OFFERER) {
             return context.offerer.addr;
@@ -701,7 +620,7 @@ library CriteriaGenerator {
         ConsiderationItem memory item,
         ItemType itemType,
         Criteria /** criteria */,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -725,7 +644,7 @@ library CriteriaGenerator {
         OfferItem memory item,
         ItemType itemType,
         Criteria /** criteria */,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -749,7 +668,7 @@ library CriteriaGenerator {
 library OffererGenerator {
     function generate(
         Offerer offerer,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         if (offerer == Offerer.TEST_CONTRACT) {
             return context.self;
@@ -764,7 +683,7 @@ library OffererGenerator {
 
     function getKey(
         Offerer offerer,
-        GeneratorContext memory context
+        FuzzGeneratorContext memory context
     ) internal pure returns (uint256) {
         if (offerer == Offerer.TEST_CONTRACT) {
             return 0;
@@ -782,7 +701,7 @@ library PRNGHelpers {
     using LibPRNG for LibPRNG.PRNG;
 
     function randEnum(
-        GeneratorContext memory context,
+        FuzzGeneratorContext memory context,
         uint8 min,
         uint8 max
     ) internal pure returns (uint8) {
@@ -790,10 +709,44 @@ library PRNGHelpers {
     }
 
     function randRange(
-        GeneratorContext memory context,
+        FuzzGeneratorContext memory context,
         uint256 min,
         uint256 max
     ) internal pure returns (uint256) {
         return bound(context.prng.next(), min, max);
+    }
+}
+
+// @dev Implementation cribbed from forge-std bound
+function bound(
+    uint256 x,
+    uint256 min,
+    uint256 max
+) pure returns (uint256 result) {
+    require(min <= max, "Max is less than min.");
+    // If x is between min and max, return x directly. This is to ensure that
+    // dictionary values do not get shifted if the min is nonzero.
+    if (x >= min && x <= max) return x;
+
+    uint256 size = max - min + 1;
+
+    // If the value is 0, 1, 2, 3, warp that to min, min+1, min+2, min+3.
+    // Similarly for the UINT256_MAX side. This helps ensure coverage of the
+    // min/max values.
+    if (x <= 3 && size > x) return min + x;
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+        return max - (type(uint256).max - x);
+
+    // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
+    if (x > max) {
+        uint256 diff = x - max;
+        uint256 rem = diff % size;
+        if (rem == 0) return max;
+        result = min + rem - 1;
+    } else if (x < min) {
+        uint256 diff = min - x;
+        uint256 rem = diff % size;
+        if (rem == 0) return min;
+        result = max - rem + 1;
     }
 }

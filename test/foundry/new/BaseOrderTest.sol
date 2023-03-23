@@ -279,7 +279,7 @@ contract BaseOrderTest is
     /**
      * @dev convenience wrapper for makeAddrAndKey
      */
-    function makeAccount(string memory name) internal returns (Account memory) {
+    function makeAccount(string memory name) public returns (Account memory) {
         (address addr, uint256 key) = makeAddrAndKey(name);
         return Account(addr, key);
     }

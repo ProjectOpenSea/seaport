@@ -7,9 +7,9 @@ import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
 
 import {
     FuzzParams,
-    TestContext,
-    TestContextLib
-} from "./helpers/TestContextLib.sol";
+    FuzzTestContext,
+    FuzzTestContextLib
+} from "./helpers/FuzzTestContextLib.sol";
 
 import { FuzzSetup } from "./helpers/FuzzSetup.sol";
 
@@ -26,7 +26,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using TestContextLib for TestContext;
+    using FuzzTestContextLib for FuzzTestContext;
 
     Account charlie = makeAccount("charlie");
 
@@ -60,11 +60,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         setUpOfferItems(context);
@@ -100,11 +99,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         vm.warp(block.timestamp + 500);
@@ -141,11 +139,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         vm.warp(block.timestamp + 500);
@@ -188,11 +185,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         setUpOfferItems(context);
@@ -236,11 +232,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         setUpOfferItems(context);
@@ -281,11 +276,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: address(this)
         });
 
         vm.warp(block.timestamp + 500);
@@ -329,11 +323,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: charlie.addr,
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: charlie.addr
         });
 
         setUpConsiderationItems(context);
@@ -379,11 +372,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: charlie.addr,
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: charlie.addr
         });
 
         setUpConsiderationItems(context);
@@ -431,11 +423,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        TestContext memory context = TestContextLib.from({
+        FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
             seaport: seaport,
-            caller: charlie.addr,
-            fuzzParams: FuzzParams({ seed: 0 })
+            caller: charlie.addr
         });
 
         setUpConsiderationItems(context);
