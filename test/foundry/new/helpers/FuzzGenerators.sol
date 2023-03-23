@@ -16,8 +16,8 @@ import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
 
 import {
-    TestTransferValidationZoneOfferer
-} from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { Account } from "../BaseOrderTest.sol";
 
@@ -85,7 +85,7 @@ struct GeneratorContext {
     LibPRNG.PRNG prng;
     uint256 timestamp;
     SeaportInterface seaport;
-    TestTransferValidationZoneOfferer validatorZone;
+    HashValidationZoneOfferer validatorZone;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;

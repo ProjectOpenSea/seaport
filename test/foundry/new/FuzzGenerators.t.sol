@@ -34,8 +34,8 @@ import {
     TestLike
 } from "./helpers/FuzzGenerators.sol";
 import {
-    TestTransferValidationZoneOfferer
-} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+    HashValidationZoneOfferer
+} from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
@@ -59,7 +59,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
-                validatorZone: new TestTransferValidationZoneOfferer(
+                validatorZone: new HashValidationZoneOfferer(
                     address(0)
                 ),
                 erc20s: erc20s,
