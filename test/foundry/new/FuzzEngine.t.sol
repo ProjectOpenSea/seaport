@@ -237,11 +237,16 @@ contract FuzzEngineTest is FuzzEngine {
         /** expectedActions[4] = seaport.cancel.selector;
         expectedActions[5] = seaport.validate.selector; */
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: seaport,
-            caller: address(this)
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({ orders: orders, seaport: seaport, caller: address(this) })
+            .withFuzzParams(
+                FuzzParams({
+                    seed: 0,
+                    totalOrders: 0,
+                    maxOfferItems: 0,
+                    maxConsiderationItems: 0
+                })
+            );
         assertEq(context.actions(), expectedActions);
     }
 
