@@ -38,7 +38,8 @@ import {
     Time,
     TokenIndex,
     Zone,
-    ZoneHash
+    ZoneHash,
+    ConduitChoice
 } from "seaport-sol/SpaceEnums.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
@@ -79,12 +80,18 @@ function bound(
     }
 }
 
+struct TestConduit {
+    address addr;
+    bytes32 key;
+}
+
 struct GeneratorContext {
     Vm vm;
     TestLike testHelpers;
     LibPRNG.PRNG prng;
     uint256 timestamp;
     SeaportInterface seaport;
+    ConduitControllerInterface conduitController;
     HashValidationZoneOfferer validatorZone;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
@@ -98,6 +105,7 @@ struct GeneratorContext {
     Account dillon;
     Account eve;
     Account frank;
+    TestConduit[] conduits;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
@@ -135,7 +143,8 @@ library TestStateGenerator {
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
-                signatureMethod: SignatureMethod(0)
+                signatureMethod: SignatureMethod(0),
+                conduit: ConduitChoice(context.randEnum(0, 2))
             });
         }
         return
@@ -329,6 +338,7 @@ library OrderComponentsSpaceGenerator {
     using PRNGHelpers for GeneratorContext;
     using TimeGenerator for OrderParameters;
     using ZoneGenerator for OrderParameters;
+    using ConduitGenerator for ConduitChoice;
 
     function generate(
         OrderComponentsSpace memory space,
@@ -340,7 +350,8 @@ library OrderComponentsSpaceGenerator {
                 .empty()
                 .withOfferer(space.offerer.generate(context))
                 .withOffer(space.offer.generate(context))
-                .withConsideration(space.consideration.generate(context));
+                .withConsideration(space.consideration.generate(context))
+                .withConduitKey(space.conduit.generate(context).key);
         }
 
         return
@@ -348,6 +359,27 @@ library OrderComponentsSpaceGenerator {
                 .withGeneratedTime(space.time, context)
                 .withGeneratedZone(space.zone, context)
                 .withSalt(context.randRange(0, type(uint256).max));
+    }
+}
+
+library ConduitGenerator {
+    function generate(
+        ConduitChoice conduit,
+        GeneratorContext memory context
+    ) internal pure returns (TestConduit memory) {
+        if (conduit == ConduitChoice.NONE) {
+            return
+                TestConduit({
+                    key: bytes32(0),
+                    addr: address(context.seaport)
+                });
+        } else if (conduit == ConduitChoice.ONE) {
+            return context.conduits[0];
+        } else if (conduit == ConduitChoice.TWO) {
+            return context.conduits[1];
+        } else {
+            revert("ConduitGenerator: invalid Conduit index");
+        }
     }
 }
 
