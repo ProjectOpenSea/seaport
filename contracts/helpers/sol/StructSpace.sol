@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType, OrderType } from "./SeaportEnums.sol";
+import { ItemType } from "./SeaportEnums.sol";
+
 import {
-    TokenIndex,
-    Criteria,
     Amount,
-    Recipient,
-    Offerer,
-    Zone,
-    Time,
-    Zone,
     BroadOrderType,
-    ZoneHash,
-    SignatureMethod
+    Criteria,
+    Offerer,
+    Recipient,
+    SignatureMethod,
+    Time,
+    TokenIndex,
+    Zone,
+    ZoneHash
 } from "./SpaceEnums.sol";
 
 struct OfferItemSpace {

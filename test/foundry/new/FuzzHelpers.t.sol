@@ -2,32 +2,31 @@
 pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+
 import "seaport-sol/SeaportSol.sol";
-import "forge-std/console.sol";
 
 import {
-    FuzzHelpers,
-    Structure,
-    Type,
+    AdvancedOrder,
     Family,
+    FuzzHelpers,
     State,
-    AdvancedOrder
+    Structure,
+    Type
 } from "./helpers/FuzzHelpers.sol";
 
 contract FuzzHelpersTest is BaseOrderTest {
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
-    using OrderLib for Order;
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using AdvancedOrderLib for AdvancedOrder;
-    using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
+    using FulfillmentLib for Fulfillment;
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
 
-    using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -37,6 +36,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         OrderParameters memory standardOrderParameters = OrderComponentsLib
             .fromDefault(STANDARD)
             .toOrderParameters();
+
         OrderLib.empty().withParameters(standardOrderParameters).saveDefault(
             STANDARD
         );
@@ -96,12 +96,11 @@ contract FuzzHelpersTest is BaseOrderTest {
             )
             .withSignature("");
 
-        AdvancedOrder memory advancedOrder = order
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+        AdvancedOrder memory advancedOrder = order.toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         assertEq(advancedOrder.getStructure(address(seaport)), Structure.BASIC);
     }
@@ -545,8 +544,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC721
-     * item. no partial fills, anyone can execute. ETH_TO_ERC721_FULL_OPEN
+     * @dev Provide Ether (or other native token) to receive offered ERC721
+     *      item. No partial fills, anyone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC721_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -563,9 +562,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC721
-     * item. partial fills supported, anyone can execute.
-     * ETH_TO_ERC721_PARTIAL_OPEN
+     * @dev Provide Ether (or other native token) to receive offered ERC721
+     *      item. Partial fills supported, anyone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -582,9 +580,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC721
-     * item. no partial fills, only offerer or zone can execute.
-     * ETH_TO_ERC721_FULL_RESTRICTED
+     * @dev Provide Ether (or other native token) to receive offered ERC721
+     *      item. No partial fills, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC721_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -601,9 +598,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC721
-     * item. partial fills supported, only offerer or zone can execute.
-     * ETH_TO_ERC721_PARTIAL_RESTRICTED
+     * @dev Provide Ether (or other native token) to receive offered ERC721
+     *      item. Partial fills supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -620,8 +616,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC1155
-     * item. no partial fills, anyone can execute. ETH_TO_ERC1155_FULL_OPEN
+     * @dev Provide Ether (or other native token) to receive offered ERC1155
+     *      item. No partial fills, anyone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -638,9 +634,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC1155
-     * item.partial fills supported, anyone can execute.
-     * ETH_TO_ERC1155_PARTIAL_OPEN
+     * @dev Provide Ether (or other native token) to receive offered ERC1155
+     *      item. Partial fills supported, anyone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -657,9 +652,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC1155
-     * item.no partial fills, only offerer or zone can execute.
-     * ETH_TO_ERC1155_FULL_RESTRICTED
+     * @dev Provide Ether (or other native token) to receive offered ERC1155
+     *      item. No partial fills, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -676,9 +670,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide Ether (or other native token) to receive offered ERC1155
-     * item.partial fills supported, only offerer or zone can execute.
-     * ETH_TO_ERC1155_PARTIAL_RESTRICTED
+     * @dev Provide Ether (or other native token) to receive offered ERC1155
+     *      item. Partial fills supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -695,8 +688,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC721 item. no partial fills,
-     * anyone can execute. ERC20_TO_ERC721_FULL_OPEN
+     * @dev Provide ERC20 item to receive offered ERC721 item. No partial fills,
+     *      anyone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -713,8 +706,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC721 item. partial fills
-     * supported, anyone can execute. ERC20_TO_ERC721_PARTIAL_OPEN
+     * @dev Provide ERC20 item to receive offered ERC721 item. Partial fills
+     *      supported, anyone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -731,8 +724,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC721 item. no partial fills,
-     * only offerer or zone can execute. ERC20_TO_ERC721_FULL_RESTRICTED
+     * @dev Provide ERC20 item to receive offered ERC721 item. No partial fills,
+     *      only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -749,9 +742,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC721 item. partial fills
-     * supported, only offerer or zone can execute.
-     * ERC20_TO_ERC721_PARTIAL_RESTRICTED
+     * @dev Provide ERC20 item to receive offered ERC721 item. Partial fills
+     *      supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_PARTIAL_RESTRICTED()
         public
@@ -770,8 +762,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC1155 item. no partial
-     * fills, anyone can execute. ERC20_TO_ERC1155_FULL_OPEN
+     * @dev Provide ERC20 item to receive offered ERC1155 item. no partial
+     *      fills, anyone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -788,8 +780,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC1155 item. partial fills
-     * supported, anyone can execute. ERC20_TO_ERC1155_PARTIAL_OPEN
+     * @dev Provide ERC20 item to receive offered ERC1155 item. Partial fills
+     *      supported, anyone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -806,8 +798,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC1155 item. no partial
-     * fills, only offerer or zone can execute. ERC20_TO_ERC1155_FULL_RESTRICTED
+     * @dev Provide ERC20 item to receive offered ERC1155 item. no partial
+     *      fills, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -824,9 +816,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC20 item to receive offered ERC1155 item. partial fills
-     * supported, only offerer or zone can execute.
-     * ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+     * @dev Provide ERC20 item to receive offered ERC1155 item. Partial fills
+     *      supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_PARTIAL_RESTRICTED()
         public
@@ -845,8 +836,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC721 item to receive offered ERC20 item. no partial fills,
-     * anyone can execute. ERC721_TO_ERC20_FULL_OPEN
+     * @dev Provide ERC721 item to receive offered ERC20 item. No partial fills,
+     *      anyone can execute.
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -863,8 +854,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC721 item to receive offered ERC20 item. partial fills
-     * supported, anyone can execute. ERC721_TO_ERC20_PARTIAL_OPEN
+     * @dev Provide ERC721 item to receive offered ERC20 item. Partial fills
+     *      supported, anyone can execute.
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -881,8 +872,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC721 item to receive offered ERC20 item. no partial fills,
-     * only offerer or zone can execute. ERC721_TO_ERC20_FULL_RESTRICTED
+     * @dev Provide ERC721 item to receive offered ERC20 item. No partial fills,
+     *      only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -899,9 +890,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC721 item to receive offered ERC20 item. partial fills
-     * supported, only offerer or zone can execute.
-     * ERC721_TO_ERC20_PARTIAL_RESTRICTED
+     * @dev Provide ERC721 item to receive offered ERC20 item. Partial fills
+     *      supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_PARTIAL_RESTRICTED()
         public
@@ -920,8 +910,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC1155 item to receive offered ERC20 item. no partial
-     * fills, anyone can execute. ERC1155_TO_ERC20_FULL_OPEN
+     * @dev Provide ERC1155 item to receive offered ERC20 item. no partial
+     *      fills, anyone can execute.
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -938,8 +928,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC1155 item to receive offered ERC20 item. partial fills
-     * supported, anyone can execute. ERC1155_TO_ERC20_PARTIAL_OPEN
+     * @dev Provide ERC1155 item to receive offered ERC20 item. Partial fills
+     *      supported, anyone can execute.
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
@@ -956,8 +946,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC1155 item to receive offered ERC20 item. no partial
-     * fills, only offerer or zone can execute. ERC1155_TO_ERC20_FULL_RESTRICTED
+     * @dev Provide ERC1155 item to receive offered ERC20 item. no partial
+     *      fills, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
@@ -974,9 +964,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     /**
-     * @dev provide ERC1155 item to receive offered ERC20 item. partial fills
-     * supported, only offerer or zone can execute.
-     * ERC1155_TO_ERC20_PARTIAL_RESTRICTED
+     * @dev Provide ERC1155 item to receive offered ERC20 item. Partial fills
+     *      supported, only offerer or zone can execute.
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_PARTIAL_RESTRICTED()
         public

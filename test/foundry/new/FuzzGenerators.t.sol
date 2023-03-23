@@ -3,29 +3,31 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
+
+import { BaseOrderTest } from "./BaseOrderTest.sol";
+
 import {
     AdvancedOrdersSpace,
-    OrderComponentsSpace,
+    ConsiderationItemSpace,
     OfferItemSpace,
-    ConsiderationItemSpace
+    OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
+
 import {
-    Offerer,
-    Zone,
-    BroadOrderType,
-    Time,
-    ZoneHash,
-    TokenIndex,
-    Criteria,
     Amount,
+    BroadOrderType,
+    Criteria,
+    Offerer,
     Recipient,
-    SignatureMethod
+    SignatureMethod,
+    Time,
+    TokenIndex,
+    Zone,
+    ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
 
 import {
-    TestStateGenerator,
     AdvancedOrdersSpaceGenerator,
     GeneratorContext,
     PRNGHelpers,

@@ -1,43 +1,47 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+import { Vm } from "forge-std/Vm.sol";
 
-import {
-    AdvancedOrdersSpace,
-    OrderComponentsSpace,
-    OfferItemSpace,
-    ConsiderationItemSpace
-} from "seaport-sol/StructSpace.sol";
-import {
-    BroadOrderType,
-    TokenIndex,
-    Amount,
-    Recipient,
-    Criteria,
-    Offerer,
-    Time,
-    Zone,
-    ZoneHash,
-    SignatureMethod
-} from "seaport-sol/SpaceEnums.sol";
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
 import { TestLike } from "./TestContextLib.sol";
 
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
+
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
+
 import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
+
 import {
     TestTransferValidationZoneOfferer
 } from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 import { Account } from "../BaseOrderTest.sol";
-import { Vm } from "forge-std/Vm.sol";
 
-import "forge-std/console.sol";
+import {
+    AdvancedOrdersSpace,
+    ConsiderationItemSpace,
+    OfferItemSpace,
+    OrderComponentsSpace
+} from "seaport-sol/StructSpace.sol";
+
+import {
+    Amount,
+    BroadOrderType,
+    Criteria,
+    Offerer,
+    Recipient,
+    SignatureMethod,
+    Time,
+    TokenIndex,
+    Zone,
+    ZoneHash
+} from "seaport-sol/SpaceEnums.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 uint256 constant UINT256_MAX = type(uint256).max;
 
@@ -48,14 +52,15 @@ function bound(
     uint256 max
 ) pure returns (uint256 result) {
     require(min <= max, "Max is less than min.");
-    // If x is between min and max, return x directly. This is to ensure that dictionary values
-    // do not get shifted if the min is nonzero.
+    // If x is between min and max, return x directly. This is to ensure that
+    // dictionary values do not get shifted if the min is nonzero.
     if (x >= min && x <= max) return x;
 
     uint256 size = max - min + 1;
 
-    // If the value is 0, 1, 2, 3, warp that to min, min+1, min+2, min+3. Similarly for the UINT256_MAX side.
-    // This helps ensure coverage of the min/max values.
+    // If the value is 0, 1, 2, 3, warp that to min, min+1, min+2, min+3.
+    // Similarly for the UINT256_MAX side. This helps ensure coverage of the
+    // min/max values.
     if (x <= 3 && size > x) return min + x;
     if (x >= UINT256_MAX - 3 && size > UINT256_MAX - x)
         return max - (UINT256_MAX - x);
@@ -183,13 +188,13 @@ library TestStateGenerator {
 }
 
 library AdvancedOrdersSpaceGenerator {
-    using OrderLib for Order;
-    using SignatureGenerator for AdvancedOrder;
-    using OrderParametersLib for OrderParameters;
     using AdvancedOrderLib for AdvancedOrder;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using PRNGHelpers for GeneratorContext;
+    using SignatureGenerator for AdvancedOrder;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -316,15 +321,14 @@ library AdvancedOrdersSpaceGenerator {
 }
 
 library OrderComponentsSpaceGenerator {
-    using PRNGHelpers for GeneratorContext;
-
     using OrderParametersLib for OrderParameters;
-    using ZoneGenerator for OrderParameters;
-    using TimeGenerator for OrderParameters;
-    using OffererGenerator for Offerer;
 
-    using OfferItemSpaceGenerator for OfferItemSpace[];
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace[];
+    using OffererGenerator for Offerer;
+    using OfferItemSpaceGenerator for OfferItemSpace[];
+    using PRNGHelpers for GeneratorContext;
+    using TimeGenerator for OrderParameters;
+    using ZoneGenerator for OrderParameters;
 
     function generate(
         OrderComponentsSpace memory space,
@@ -373,11 +377,11 @@ library ZoneGenerator {
 }
 
 library OfferItemSpaceGenerator {
-    using TokenIndexGenerator for TokenIndex;
+    using OfferItemLib for OfferItem;
+
     using AmountGenerator for OfferItem;
     using CriteriaGenerator for OfferItem;
-
-    using OfferItemLib for OfferItem;
+    using TokenIndexGenerator for TokenIndex;
 
     function generate(
         OfferItemSpace[] memory space,
@@ -412,12 +416,12 @@ library OfferItemSpaceGenerator {
 }
 
 library ConsiderationItemSpaceGenerator {
-    using TokenIndexGenerator for TokenIndex;
-    using RecipientGenerator for Recipient;
+    using ConsiderationItemLib for ConsiderationItem;
+
     using AmountGenerator for ConsiderationItem;
     using CriteriaGenerator for ConsiderationItem;
-
-    using ConsiderationItemLib for ConsiderationItem;
+    using RecipientGenerator for Recipient;
+    using TokenIndexGenerator for TokenIndex;
 
     function generate(
         ConsiderationItemSpace[] memory space,
@@ -455,8 +459,9 @@ library ConsiderationItemSpaceGenerator {
 }
 
 library SignatureGenerator {
-    using OffererGenerator for Offerer;
     using AdvancedOrderLib for AdvancedOrder;
+
+    using OffererGenerator for Offerer;
 
     function withGeneratedSignature(
         AdvancedOrder memory order,
@@ -569,9 +574,10 @@ library TimeGenerator {
 }
 
 library AmountGenerator {
-    using LibPRNG for LibPRNG.PRNG;
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
+
+    using LibPRNG for LibPRNG.PRNG;
 
     function withGeneratedAmount(
         OfferItem memory item,
@@ -654,9 +660,10 @@ library RecipientGenerator {
 }
 
 library CriteriaGenerator {
-    using LibPRNG for LibPRNG.PRNG;
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
+
+    using LibPRNG for LibPRNG.PRNG;
 
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
