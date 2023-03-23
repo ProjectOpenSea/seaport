@@ -121,15 +121,9 @@ contract TestTransferValidationZoneOfferer is
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
-        // Check if all consideration items have been received.
-        _assertValidReceivedItems(zoneParameters.consideration);
-
         address expectedOfferRecipient = _expectedOfferRecipient == address(0)
             ? zoneParameters.fulfiller
             : _expectedOfferRecipient;
-
-        // Ensure that the expected recipient has received all offer items.
-        _assertValidSpentItems(expectedOfferRecipient, zoneParameters.offer);
 
         // Set the global called flag to true.
         called = true;

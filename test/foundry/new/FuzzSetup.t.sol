@@ -344,8 +344,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
     function test_setUpConsiderationItems_erc721() public {
         assertEq(erc721s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc721s[0].getApproved(1), address(0));
-        assertEq(erc721s[0].getApproved(2), address(0));
+        assertEq(
+            erc721s[0].isApprovedForAll(charlie.addr, address(seaport)),
+            false
+        );
 
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
             2
@@ -387,8 +389,10 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         setUpConsiderationItems(context);
 
         assertEq(erc721s[0].balanceOf(charlie.addr), 2);
-        assertEq(erc721s[0].getApproved(1), address(seaport));
-        assertEq(erc721s[0].getApproved(2), address(seaport));
+        assertEq(
+            erc721s[0].isApprovedForAll(charlie.addr, address(seaport)),
+            true
+        );
     }
 
     function test_setUpConsiderationItems_erc1155() public {

@@ -28,8 +28,12 @@ import {
     TestStateGenerator,
     AdvancedOrdersSpaceGenerator,
     GeneratorContext,
-    PRNGHelpers
+    PRNGHelpers,
+    TestLike
 } from "./helpers/FuzzGenerators.sol";
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
@@ -49,9 +53,13 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         return
             GeneratorContext({
                 vm: vm,
+                testHelpers: TestLike(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
+                validatorZone: new TestTransferValidationZoneOfferer(
+                    address(0)
+                ),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,
