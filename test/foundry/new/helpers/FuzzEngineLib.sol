@@ -3,17 +3,19 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { FuzzHelpers, Structure, Family } from "./FuzzHelpers.sol";
-import { TestContext, TestContextLib } from "./TestContextLib.sol";
+import { Family, FuzzHelpers, Structure } from "./FuzzHelpers.sol";
+
+import { TestContext } from "./TestContextLib.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine.
  */
 library FuzzEngineLib {
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
+
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -24,6 +26,7 @@ library FuzzEngineLib {
      *      available for the given order config.
      *
      * @param context A Fuzz test context.
+     *
      * @return bytes4 selector of a SeaportInterface function.
      */
     function action(TestContext memory context) internal view returns (bytes4) {
@@ -36,6 +39,7 @@ library FuzzEngineLib {
      *      functions can we call," based on the orders in a given TestContext.
      *
      * @param context A Fuzz test context.
+     *
      * @return bytes4[] of SeaportInterface function selectors.
      */
     function actions(

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Result } from "./FuzzHelpers.sol";
 import "seaport-sol/SeaportSol.sol";
+
+import { Result } from "./FuzzHelpers.sol";
 
 struct FuzzParams {
     uint256 seed;
@@ -129,10 +130,11 @@ library TestContextLib {
     /**
      * @dev Create a TestContext from the given partial arguments.
      *
-     * @param orders the AdvancedOrder[] to set
-     * @param seaport the SeaportInterface to set
-     * @param caller the caller address to set
+     * @param orders     the AdvancedOrder[] to set
+     * @param seaport    the SeaportInterface to set
+     * @param caller     the caller address to set
      * @param fuzzParams the fuzzParams struct to set
+     *
      * @custom:return _context the TestContext
      */
     function from(
@@ -175,7 +177,7 @@ library TestContextLib {
      * @dev Sets the orders on a TestContext
      *
      * @param context the TestContext to set the orders of
-     * @param orders the AdvancedOrder[] to set
+     * @param orders  the AdvancedOrder[] to set
      *
      * @return _context the TestContext with the orders set
      */
@@ -206,7 +208,7 @@ library TestContextLib {
     /**
      * @dev Sets the ConduitControllerInterface on a TestContext
      *
-     * @param context the TestContext to set the ConduitControllerInterface of
+     * @param context           the TestContext to set the ConduitControllerInterface of
      * @param conduitController the ConduitControllerInterface to set
      *
      * @return _context the TestContext with the ConduitControllerInterface set
@@ -223,7 +225,7 @@ library TestContextLib {
      * @dev Sets the caller on a TestContext
      *
      * @param context the TestContext to set the caller of
-     * @param caller the caller address to set
+     * @param caller  the caller address to set
      *
      * @return _context the TestContext with the caller set
      */
@@ -238,7 +240,7 @@ library TestContextLib {
     /**
      * @dev Sets the fuzzParams on a TestContext
      *
-     * @param context the TestContext to set the fuzzParams of
+     * @param context    the TestContext to set the fuzzParams of
      * @param fuzzParams the fuzzParams struct to set
      *
      * @return _context the TestContext with the fuzzParams set
@@ -255,7 +257,7 @@ library TestContextLib {
      * @dev Sets the checks on a TestContext
      *
      * @param context the TestContext to set the checks of
-     * @param checks the checks array to set
+     * @param checks  the checks array to set
      *
      * @return _context the TestContext with the checks set
      */
@@ -286,7 +288,7 @@ library TestContextLib {
     /**
      * @dev Sets the fulfillerConduitKey on a TestContext
      *
-     * @param context the TestContext to set the fulfillerConduitKey of
+     * @param context             the TestContext to set the fulfillerConduitKey of
      * @param fulfillerConduitKey the fulfillerConduitKey value to set
      *
      * @return _context the TestContext with the fulfillerConduitKey set
@@ -302,7 +304,7 @@ library TestContextLib {
     /**
      * @dev Sets the criteriaResolvers on a TestContext
      *
-     * @param context the TestContext to set the criteriaResolvers of
+     * @param context           the TestContext to set the criteriaResolvers of
      * @param criteriaResolvers the criteriaResolvers array to set
      *
      * @return _context the TestContext with the criteriaResolvers set
@@ -318,7 +320,7 @@ library TestContextLib {
     /**
      * @dev Sets the recipient on a TestContext
      *
-     * @param context the TestContext to set the recipient of
+     * @param context   the TestContext to set the recipient of
      * @param recipient the recipient value to set
      *
      * @return _context the TestContext with the recipient set
@@ -334,7 +336,7 @@ library TestContextLib {
     /**
      * @dev Sets the fulfillments on a TestContext
      *
-     * @param context the TestContext to set the fulfillments of
+     * @param context      the TestContext to set the fulfillments of
      * @param fulfillments the offerFulfillments value to set
      *
      * @return _context the TestContext with the fulfillments set
@@ -350,7 +352,7 @@ library TestContextLib {
     /**
      * @dev Sets the offerFulfillments on a TestContext
      *
-     * @param context the TestContext to set the offerFulfillments of
+     * @param context           the TestContext to set the offerFulfillments of
      * @param offerFulfillments the offerFulfillments value to set
      *
      * @return _context the TestContext with the offerFulfillments set
@@ -368,8 +370,10 @@ library TestContextLib {
     /**
      * @dev Sets the considerationFulfillments on a TestContext
      *
-     * @param context the TestContext to set the considerationFulfillments of
-     * @param considerationFulfillments the considerationFulfillments value to set
+     * @param context                   the TestContext to set the
+     *                                  considerationFulfillments of
+     * @param considerationFulfillments the considerationFulfillments value to
+     *                                  set
      *
      * @return _context the TestContext with the considerationFulfillments set
      */
@@ -386,7 +390,7 @@ library TestContextLib {
     /**
      * @dev Sets the maximumFulfilled on a TestContext
      *
-     * @param context the TestContext to set the maximumFulfilled of
+     * @param context          the TestContext to set the maximumFulfilled of
      * @param maximumFulfilled the maximumFulfilled value to set
      *
      * @return _context the TestContext with maximumFulfilled set
@@ -402,7 +406,7 @@ library TestContextLib {
     /**
      * @dev Sets the basicOrderParameters on a TestContext
      *
-     * @param context the TestContext to set the fulfillments of
+     * @param context              the TestContext to set the fulfillments of
      * @param basicOrderParameters the offerFulfillments value to set
      *
      * @return _context the TestContext with the fulfillments set

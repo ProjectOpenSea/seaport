@@ -1,32 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
 
+import { BaseOrderTest } from "./BaseOrderTest.sol";
+
 import {
+    FuzzParams,
     TestContext,
-    TestContextLib,
-    FuzzParams
+    TestContextLib
 } from "./helpers/TestContextLib.sol";
+
 import { FuzzSetup } from "./helpers/FuzzSetup.sol";
 
 contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
-    using OrderLib for Order;
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using AdvancedOrderLib for AdvancedOrder;
-    using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
+    using FulfillmentLib for Fulfillment;
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
 
     using TestContextLib for TestContext;
-    using OfferItemLib for OfferItem;
-    using ConsiderationItemLib for ConsiderationItem;
 
     Account charlie = makeAccount("charlie");
 

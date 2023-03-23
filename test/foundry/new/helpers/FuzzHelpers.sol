@@ -86,7 +86,10 @@ library FuzzHelpers {
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
      *      orders in the provided array.
+     *
      * @param orders array of AdvancedOrders.
+     *
+     * @custom:return quantity of orders to process.
      */
     function getQuantity(
         AdvancedOrder[] memory orders
@@ -96,7 +99,10 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "family" of method that can fulfill these orders.
+     *
      * @param orders array of AdvancedOrders.
+     *
+     * @custom:return family of method that can fulfill these orders.
      */
     function getFamily(
         AdvancedOrder[] memory orders
@@ -110,8 +116,11 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "state" of the given order.
-     * @param order an AdvancedOrder.
+     *
+     * @param order   an AdvancedOrder.
      * @param seaport a SeaportInterface, either reference or optimized.
+     *
+     * @custom:return state of the given order.
      */
     function getState(
         AdvancedOrder memory order,
@@ -138,7 +147,11 @@ library FuzzHelpers {
 
     /**
      * @dev Get the "type" of the given order.
+     *
      * @param order an AdvancedOrder.
+     *
+     * @custom:return type of the given order (in the sense of the enum defined
+     *                above in this file, not ConsiderationStructs' OrderType).
      */
     function getType(AdvancedOrder memory order) internal pure returns (Type) {
         OrderType orderType = order.parameters.orderType;
@@ -162,7 +175,10 @@ library FuzzHelpers {
     /**
      * @dev Get the "structure" of the given order.
      *
-     * @param order an AdvancedOrder.
+     * @param order   an AdvancedOrder.
+     * @param seaport a SeaportInterface, either reference or optimized.
+     *
+     * @custom:return structure of the given order.
      */
     function getStructure(
         AdvancedOrder memory order,
@@ -202,6 +218,12 @@ library FuzzHelpers {
     /**
      * @dev Inspect an AdvancedOrder and check that it is eligible for the
      *      fulfillBasic functions.
+     *
+     * @param order   an AdvancedOrder.
+     * @param seaport a SeaportInterface, either reference or optimized.
+     *
+     * @custom:return true if the order is eligible for the fulfillBasic
+     *                functions, false otherwise.
      */
     function getBasicOrderTypeEligibility(
         AdvancedOrder memory order,
@@ -396,6 +418,10 @@ library FuzzHelpers {
 
     /**
      * @dev Get the BasicOrderType for a given advanced order.
+     *
+     * @param order The advanced order.
+     *
+     * @return basicOrderType The BasicOrderType.
      */
     function getBasicOrderType(
         AdvancedOrder memory order
@@ -440,6 +466,12 @@ library FuzzHelpers {
     /**
      * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
+     *
+     * @param orders    The restricted orders.
+     * @param seaport   The Seaport address.
+     * @param fulfiller The fulfiller.
+     *
+     * @return calldataHashes The derived calldata hashes.
      */
     function getExpectedZoneCalldataHash(
         AdvancedOrder[] memory orders,
@@ -477,6 +509,13 @@ library FuzzHelpers {
 
     /**
      * @dev Check all offer and consideration items for criteria.
+     *
+     * @param order The advanced order.
+     *
+     * @return hasCriteria        Whether any offer or consideration item has
+     *                            criteria.
+     * @return hasNonzeroCriteria Whether any offer or consideration item has
+     *                            nonzero criteria.
      */
     function _checkCriteria(
         AdvancedOrder memory order

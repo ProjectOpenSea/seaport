@@ -3,16 +3,20 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
+import { BaseOrderTest } from "../BaseOrderTest.sol";
+
 import {
     AdvancedOrder,
+    Family,
     FuzzHelpers,
-    Structure,
-    Family
+    Structure
 } from "./FuzzHelpers.sol";
-import { TestContext, FuzzParams, TestContextLib } from "./TestContextLib.sol";
-import { BaseOrderTest } from "../BaseOrderTest.sol";
+
 import { FuzzChecks } from "./FuzzChecks.sol";
+
 import { FuzzSetup } from "./FuzzSetup.sol";
+
+import { FuzzParams, TestContext, TestContextLib } from "./TestContextLib.sol";
 
 import {
     FulfillAvailableHelper
@@ -22,11 +26,12 @@ import {
  * @notice Stateless helpers for FuzzEngine.
  */
 library FuzzEngineLib {
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
+
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -93,12 +98,13 @@ library FuzzEngineLib {
                 .seaport
                 .fulfillAvailableAdvancedOrders
                 .selector;
-            //selectors[2] = context.seaport.matchOrders.selector;
-            //selectors[3] = context.seaport.matchAdvancedOrders.selector;
-            //selectors[2] = context.seaport.cancel.selector;
-            //selectors[3] = context.seaport.validate.selector;
+            // selectors[2] = context.seaport.matchOrders.selector;
+            // selectors[3] = context.seaport.matchAdvancedOrders.selector;
+            // selectors[4] = context.seaport.cancel.selector;
+            // selectors[5] = context.seaport.validate.selector;
             return selectors;
         }
+
         revert("FuzzEngine: Actions not found");
     }
 }
@@ -113,14 +119,15 @@ contract FuzzEngine is
     FulfillAvailableHelper,
     BaseOrderTest
 {
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
+
+    using FuzzEngineLib for TestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
-    using FuzzEngineLib for TestContext;
 
     /**
      * @dev Run a `FuzzEngine` test with the given TestContext. Calls the
@@ -163,6 +170,7 @@ contract FuzzEngine is
     function exec(TestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
+
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
@@ -241,6 +249,7 @@ contract FuzzEngine is
                     context.recipient,
                     context.maximumFulfilled
                 );
+
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
@@ -248,6 +257,7 @@ contract FuzzEngine is
                 context.orders.toOrders(),
                 context.fulfillments
             );
+
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
@@ -256,6 +266,7 @@ contract FuzzEngine is
                 context.fulfillments,
                 context.recipient
             );
+
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.cancel.selector) {
             AdvancedOrder[] memory orders = context.orders;
@@ -281,6 +292,7 @@ contract FuzzEngine is
         } else {
             revert("FuzzEngine: Action not implemented");
         }
+
         if (context.caller != address(0)) vm.stopPrank();
     }
 
@@ -304,6 +316,7 @@ contract FuzzEngine is
         (bool success, bytes memory result) = address(this).delegatecall(
             abi.encodeWithSelector(selector, context)
         );
+
         if (!success) {
             if (result.length == 0) revert();
             assembly {
