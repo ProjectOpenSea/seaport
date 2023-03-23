@@ -28,6 +28,14 @@ import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
 import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
 import "seaport-sol/SeaportSol.sol";
 
+/**
+ * @dev used to store address and key outputs from makeAddrAndKey(name)
+ */
+struct Account {
+    address addr;
+    uint256 key;
+}
+
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
     BaseSeaportTest,
@@ -63,14 +71,6 @@ contract BaseOrderTest is
 
     struct Context {
         SeaportInterface seaport;
-    }
-
-    /**
-     * @dev used to store address and key outputs from makeAddrAndKey(name)
-     */
-    struct Account {
-        address addr;
-        uint256 key;
     }
 
     modifier onlyPayable(address _addr) {

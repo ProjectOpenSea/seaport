@@ -30,8 +30,12 @@ import {
 import {
     AdvancedOrdersSpaceGenerator,
     GeneratorContext,
-    PRNGHelpers
+    PRNGHelpers,
+    TestLike
 } from "./helpers/FuzzGenerators.sol";
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
@@ -40,7 +44,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     /// @dev Note: the GeneratorContext must be a struct in *memory* in order
     ///      for the PRNG to work properly, so we can't declare it as a storage
     ///      variable in setUp. Instead, use this function to create a context.
-    function createContext() internal view returns (GeneratorContext memory) {
+    function createContext() internal returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -51,28 +55,27 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         return
             GeneratorContext({
                 vm: vm,
+                testHelpers: TestLike(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
+                validatorZone: new TestTransferValidationZoneOfferer(
+                    address(0)
+                ),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                offerer: offerer1.addr,
                 caller: address(this), // TODO: read recipient from TestContext
-                alice: offerer1.addr,
-                bob: offerer2.addr,
-                dillon: dillon.addr,
-                eve: eve.addr,
-                frank: frank.addr,
-                offererPk: offerer1.key,
-                alicePk: offerer1.key,
-                bobPk: offerer2.key,
-                dillonPk: dillon.key,
-                frankPk: frank.key,
-                evePk: eve.key,
-                starting721offerIndex: 0,
-                starting721considerationIndex: 0,
+                offerer: makeAccount("offerer"),
+                alice: makeAccount("alice"),
+                bob: makeAccount("bob"),
+                carol: makeAccount("carol"),
+                dillon: makeAccount("dillon"),
+                eve: makeAccount("eve"),
+                frank: makeAccount("frank"),
+                starting721offerIndex: 1,
+                starting721considerationIndex: 1,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0)
             });
@@ -225,7 +228,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         );
         assertEq(
             orders[0].parameters.consideration[0].recipient,
-            offerer1.addr
+            context.offerer.addr
         );
 
         assertEq(

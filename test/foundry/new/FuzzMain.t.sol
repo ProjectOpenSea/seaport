@@ -5,10 +5,12 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
+import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
+
 import {
-    AdvancedOrdersSpace,
     AdvancedOrdersSpaceGenerator,
     GeneratorContext,
+    TestLike,
     TestStateGenerator
 } from "./helpers/FuzzGenerators.sol";
 
@@ -22,14 +24,15 @@ import { FuzzEngine } from "./helpers/FuzzEngine.sol";
 
 import { FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
+import {
+    TestTransferValidationZoneOfferer
+} from "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
+
 contract FuzzMainTest is FuzzEngine {
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
-    Account bob2 = makeAccount("bob2");
-    Account alice2 = makeAccount("alice2");
-
-    function createContext() internal view returns (GeneratorContext memory) {
+    function createContext() internal returns (GeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
         uint256[] memory potential1155TokenIds = new uint256[](3);
@@ -40,26 +43,25 @@ contract FuzzMainTest is FuzzEngine {
         return
             GeneratorContext({
                 vm: vm,
+                testHelpers: TestLike(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
                 seaport: seaport,
+                validatorZone: new TestTransferValidationZoneOfferer(
+                    address(0)
+                ),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                offerer: alice2.addr,
                 caller: address(this), // TODO: read recipient from TestContext
-                alice: alice2.addr,
-                bob: bob2.addr,
-                dillon: dillon.addr,
-                eve: eve.addr,
-                frank: frank.addr,
-                offererPk: alice2.key,
-                alicePk: alice2.key,
-                bobPk: bob2.key,
-                dillonPk: dillon.key,
-                evePk: eve.key,
-                frankPk: frank.key,
+                offerer: makeAccount("offerer"),
+                alice: makeAccount("alice"),
+                bob: makeAccount("bob"),
+                carol: makeAccount("carol"),
+                dillon: makeAccount("dillon"),
+                eve: makeAccount("eve"),
+                frank: makeAccount("frank"),
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
@@ -67,12 +69,12 @@ contract FuzzMainTest is FuzzEngine {
             });
     }
 
-    function test_success(
-        uint256 seed,
-        uint256 totalOrders,
-        uint256 maxOfferItems,
-        uint256 maxConsiderationItems
-    ) public {
+    function xtest_success_concrete() public {
+        uint256 seed = 0;
+        uint256 totalOrders = 0;
+        uint256 maxOfferItems = 0;
+        uint256 maxConsiderationItems = 0;
+
         totalOrders = bound(totalOrders, 1, 10);
         maxOfferItems = bound(maxOfferItems, 1, 10);
         maxConsiderationItems = bound(maxConsiderationItems, 1, 10);
@@ -98,6 +100,43 @@ contract FuzzMainTest is FuzzEngine {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: seed })
         });
+
+        run(context);
+    }
+
+    function test_success(
+        uint256 seed,
+        uint256 totalOrders,
+        uint256 maxOfferItems,
+        uint256 maxConsiderationItems
+    ) public {
+        totalOrders = bound(totalOrders, 1, 10);
+        maxOfferItems = bound(maxOfferItems, 1, 25);
+        maxConsiderationItems = bound(maxConsiderationItems, 1, 25);
+
+        vm.warp(1679435965);
+
+        GeneratorContext memory generatorContext = createContext();
+        generatorContext.timestamp = block.timestamp;
+
+        AdvancedOrdersSpace memory space = TestStateGenerator.generate(
+            totalOrders,
+            maxOfferItems,
+            maxConsiderationItems,
+            generatorContext
+        );
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            generatorContext
+        );
+
+        TestContext memory context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: seed })
+        });
+        context.testHelpers = TestLike(address(this));
 
         run(context);
     }

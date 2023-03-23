@@ -495,7 +495,6 @@ library FuzzHelpers {
             // Derive the ZoneParameters from the AdvancedOrder
             zoneParameters[i] = orders.getZoneParameters(
                 fulfiller,
-                counter,
                 orders.length,
                 seaport
             )[i];

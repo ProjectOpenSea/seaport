@@ -3,17 +3,13 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { BaseOrderTest } from "./BaseOrderTest.sol";
+import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
 
-import {
-    FuzzEngine,
-    FuzzEngineLib,
-    FuzzParams,
-    TestContext,
-    TestContextLib
-} from "./helpers/FuzzEngine.sol";
+import { FuzzEngine, FuzzEngineLib } from "./helpers/FuzzEngine.sol";
 
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
+
+import { FuzzParams, TestContext, TestContextLib } from "./helpers/TestContextLib.sol";
 
 import {
     TestTransferValidationZoneOfferer
@@ -205,12 +201,12 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("extra data")
         });
 
-        bytes4[] memory expectedActions = new bytes4[](2);
+        bytes4[] memory expectedActions = new bytes4[](4);
         expectedActions[0] = seaport.fulfillAvailableOrders.selector;
         expectedActions[1] = seaport.fulfillAvailableAdvancedOrders.selector;
+        expectedActions[2] = seaport.matchOrders.selector;
+        expectedActions[3] = seaport.matchAdvancedOrders.selector;
         // TODO: undo pended actions (match, cancel, validate)
-        // expectedActions[2] = seaport.matchOrders.selector;
-        // expectedActions[3] = seaport.matchAdvancedOrders.selector;
         // expectedActions[4] = seaport.cancel.selector;
         // expectedActions[5] = seaport.validate.selector;
 
@@ -259,13 +255,13 @@ contract FuzzEngineTest is FuzzEngine {
             seaport.fulfillAvailableAdvancedOrders.selector
         );
 
-        // TODO: undo pended actions (match, cancel, validate)
-        // context = TestContextLib.from({
-        //     orders: orders,
-        //     seaport: seaport,
-        //     caller: address(this),
-        //     fuzzParams: FuzzParams({ seed: 2 })
-        // });
+        context = TestContextLib.from({
+            orders: orders,
+            seaport: seaport,
+            caller: address(this),
+            fuzzParams: FuzzParams({ seed: 2 })
+        });
+        assertEq(context.action(), seaport.matchOrders.selector);
 
         // assertEq(context.action(), seaport.matchOrders.selector);
 
