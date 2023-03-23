@@ -160,6 +160,17 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function beforeEach(TestContext memory context) internal {
+        // TODO: Scan all orders, look for unavailable orders
+        // 1. order has been cancelled
+        // 2. order has expired
+        // 3. order has not yet started
+        // 4. order is already filled
+        // 5. order is a contract order and the call to the offerer reverts
+        // 6. maximumFullfilled is less than total orders provided and
+        //    enough other orders are available
+
+        context.maximumFulfilled = context.orders.length;
+        setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
     }
@@ -220,7 +231,6 @@ contract FuzzEngine is
 
             context.offerFulfillments = offerFulfillments;
             context.considerationFulfillments = considerationFulfillments;
-            context.maximumFulfilled = context.orders.length;
 
             (
                 bool[] memory availableOrders,
@@ -245,7 +255,6 @@ contract FuzzEngine is
 
             context.offerFulfillments = offerFulfillments;
             context.considerationFulfillments = considerationFulfillments;
-            context.maximumFulfilled = context.orders.length;
 
             (
                 bool[] memory availableOrders,
