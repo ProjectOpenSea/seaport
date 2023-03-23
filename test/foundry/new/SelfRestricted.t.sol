@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseOrderTest } from "./BaseOrderTest.sol";
+import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
 import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
 import "seaport-sol/SeaportSol.sol";
 

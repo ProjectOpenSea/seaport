@@ -64,21 +64,16 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                offerer: offerer1.addr,
                 caller: address(this), // TODO: read recipient from TestContext
-                alice: offerer1.addr,
-                bob: offerer2.addr,
-                dillon: dillon.addr,
-                eve: eve.addr,
-                frank: frank.addr,
-                offererPk: offerer1.key,
-                alicePk: offerer1.key,
-                bobPk: offerer2.key,
-                dillonPk: dillon.key,
-                frankPk: frank.key,
-                evePk: eve.key,
-                starting721offerIndex: 0,
-                starting721considerationIndex: 0,
+                offerer: makeAccount("offerer"),
+                alice: makeAccount("alice"),
+                bob: makeAccount("bob"),
+                carol: makeAccount("carol"),
+                dillon: makeAccount("dillon"),
+                eve: makeAccount("eve"),
+                frank: makeAccount("frank"),
+                starting721offerIndex: 1,
+                starting721considerationIndex: 1,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0)
             });
@@ -231,7 +226,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         );
         assertEq(
             orders[0].parameters.consideration[0].recipient,
-            offerer1.addr
+            context.offerer.addr
         );
 
         assertEq(

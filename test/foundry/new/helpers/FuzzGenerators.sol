@@ -34,6 +34,7 @@ import {
     TestTransferValidationZoneOfferer
 } from "../../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
+import { Account } from "../BaseOrderTest.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import "forge-std/console.sol";
@@ -84,19 +85,14 @@ struct GeneratorContext {
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
     address self;
-    address offerer;
     address caller;
-    address alice;
-    address bob;
-    address dillon;
-    address eve;
-    address frank;
-    uint256 offererPk;
-    uint256 alicePk;
-    uint256 bobPk;
-    uint256 dillonPk;
-    uint256 frankPk;
-    uint256 evePk;
+    Account offerer;
+    Account alice;
+    Account bob;
+    Account carol;
+    Account dillon;
+    Account eve;
+    Account frank;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
@@ -642,15 +638,15 @@ library RecipientGenerator {
         GeneratorContext memory context
     ) internal pure returns (address) {
         if (recipient == Recipient.OFFERER) {
-            return context.offerer;
+            return context.offerer.addr;
         } else if (recipient == Recipient.RECIPIENT) {
             return context.caller;
         } else if (recipient == Recipient.DILLON) {
-            return context.dillon;
+            return context.dillon.addr;
         } else if (recipient == Recipient.EVE) {
-            return context.eve;
+            return context.eve.addr;
         } else if (recipient == Recipient.FRANK) {
-            return context.frank;
+            return context.frank.addr;
         } else {
             revert("Invalid recipient");
         }
@@ -719,9 +715,9 @@ library OffererGenerator {
         if (offerer == Offerer.TEST_CONTRACT) {
             return context.self;
         } else if (offerer == Offerer.ALICE) {
-            return context.alice;
+            return context.alice.addr;
         } else if (offerer == Offerer.BOB) {
-            return context.bob;
+            return context.bob.addr;
         } else {
             revert("Invalid offerer");
         }
@@ -734,9 +730,9 @@ library OffererGenerator {
         if (offerer == Offerer.TEST_CONTRACT) {
             return 0;
         } else if (offerer == Offerer.ALICE) {
-            return context.alicePk;
+            return context.alice.key;
         } else if (offerer == Offerer.BOB) {
-            return context.bobPk;
+            return context.bob.key;
         } else {
             revert("Invalid offerer");
         }
