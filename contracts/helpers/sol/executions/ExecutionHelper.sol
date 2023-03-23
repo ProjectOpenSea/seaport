@@ -15,6 +15,8 @@ import {
     Fulfillment,
     FulfillmentComponent,
     AdvancedOrder,
+    OfferItem,
+    ConsiderationItem,
     Order,
     OrderParameters,
     SpentItem,
@@ -22,10 +24,9 @@ import {
     CriteriaResolver
 } from "../../../lib/ConsiderationStructs.sol";
 
-library ExecutionHelper {
-    using AmountDeriverHelper for OrderParameters;
-    using AmountDeriverHelper for OrderParameters[];
+import { ItemType } from "../../../lib/ConsiderationEnums.sol";
 
+library ExecutionHelper {
     error InsufficientNativeTokensSupplied();
 
     struct OrderDetails {
@@ -57,12 +58,12 @@ library ExecutionHelper {
             implicitExecutions[executionIndex] = Execution({
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
-                receivedItem: ReceivedItem({
+                item: ReceivedItem({
                     itemType: orderDetails.spentItems[i].itemType,
                     token: orderDetails.spentItems[i].token,
                     identifier: orderDetails.spentItems[i].identifier,
                     amount: orderDetails.spentItems[i].amount,
-                    recipient: recipient
+                    recipient: payable(recipient)
                 })
             });
             executionIndex++;
@@ -72,7 +73,7 @@ library ExecutionHelper {
             implicitExecutions[executionIndex] = Execution({
                 offerer: fulfiller,
                 conduitKey: fulfillerConduitKey,
-                receivedItem: orderDetails.receivedItems[i]
+                item: orderDetails.receivedItems[i]
             });
             executionIndex++;
         }
@@ -81,12 +82,12 @@ library ExecutionHelper {
             implicitExecutions[executionIndex] = Execution({
                 offerer: fulfiller, // should be seaport
                 conduitKey: bytes32(0),
-                receivedItem: ReceivedItem({
-                    itemType: 0,
+                item: ReceivedItem({
+                    itemType: ItemType.NATIVE,
                     token: address(0),
                     identifier: 0,
                     amount: excessNativeTokens,
-                    recipient: fulfiller
+                    recipient: payable(fulfiller)
                 })
             });
         }
@@ -129,7 +130,7 @@ library ExecutionHelper {
             implicitExecutions[0] = Execution({
                 offerer: fulfiller,
                 conduitKey: fulfillerConduitKey,
-                receivedItem: orderDetails.receivedItems[0]
+                item: orderDetails.receivedItems[0]
             });
 
             uint256 additionalAmounts = 0;
@@ -138,20 +139,20 @@ library ExecutionHelper {
                 implicitExecutions[i] = Execution({
                     offerer: orderDetails.offerer,
                     conduitKey: orderDetails.conduitKey,
-                    receivedItem: orderDetails.receivedItems[i]
+                    item: orderDetails.receivedItems[i]
                 });
                 additionalAmounts += orderDetails.receivedItems[i].amount;
             }
             implicitExecutions[orderDetails.receivedItems.length] = Execution({
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
-                receivedItem: ReceivedItem({
+                item: ReceivedItem({
                     itemType: orderDetails.spentItems[0].itemType,
                     token: orderDetails.spentItems[0].token,
                     identifier: orderDetails.spentItems[0].identifier,
                     amount: orderDetails.spentItems[0].amount -
                         additionalAmounts,
-                    recipient: fulfiller
+                    recipient: payable(fulfiller)
                 })
             });
         } else {
@@ -237,8 +238,8 @@ library ExecutionHelper {
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure returns (OrderDetails memory orderDetails) {
         orderDetails = OrderDetails({
-            offerer: order.offerer,
-            conduitKey: order.conduitKey,
+            offerer: order.parameters.offerer,
+            conduitKey: order.parameters.conduitKey,
             spentItems: getSpentItems(
                 order.parameters.offer,
                 order.numerator,
@@ -375,4 +376,6 @@ library ExecutionHelper {
     // problem with match fulfillment helpers is that it takes orders and only generate specific fulfillment array
     // want to be able to mutate fulfillment array
     // helper for advanced orders <> specific fullfilments
+
+    // might generate fulfillments instead of passing them in
 }
