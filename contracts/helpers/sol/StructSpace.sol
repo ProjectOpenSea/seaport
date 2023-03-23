@@ -13,7 +13,8 @@ import {
     Time,
     TokenIndex,
     Zone,
-    ZoneHash
+    ZoneHash,
+    ConduitChoice
 } from "./SpaceEnums.sol";
 
 struct OfferItemSpace {
@@ -51,6 +52,7 @@ struct OrderComponentsSpace {
     Time time;
     ZoneHash zoneHash;
     SignatureMethod signatureMethod;
+    ConduitChoice conduit;
     // TODO: zone may have to be per-test depending on the zone
 }
 

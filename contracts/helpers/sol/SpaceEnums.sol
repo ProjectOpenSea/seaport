@@ -255,7 +255,7 @@ enum Salt {
     DUPLICATE // ?
 }
 
-enum Conduit {
+enum ConduitChoice {
     NONE,
     ONE,
     TWO
