@@ -50,40 +50,34 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     mapping(bytes4 => uint256) calls;
 
     /**
-     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run a
-     *      `FuzzEngine` test. Calls the following test lifecycle functions in
-     *      order:
-     *
-     *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
-     *      2. runDerivers: Run deriver functions for the test.
-     *      3. runSetup: Run setup functions for the test.
-     *      3. exec: Select and call a Seaport function.
-     *      4. checkAll: Call all registered checks.
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
+     *      a `FuzzEngine` test. Generate a new `FuzzTestContext` from fuzz
+     *      parameters and then call `run(FuzzTestContext)`.
      *
      * @param fuzzParams A FuzzParams struct containing fuzzed values.
      */
     function run(FuzzParams memory fuzzParams) internal {
         FuzzTestContext memory context = generate(fuzzParams);
-        runDerivers(context);
-        runSetup(context);
-        exec(context);
-        checkAll(context);
+        run(context);
     }
 
     /**
-     * @dev Run a `FuzzEngine` test with the provided FuzzTestContext. Calls the
-     *      following test lifecycle functions in order:
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
+     *      a `FuzzEngine` test. Calls the following test lifecycle functions in
+     *      order:
      *
      *      1. runDerivers: Run deriver functions for the test.
-     *      1. runSetup: Run setup functions for the test.
-     *      2. exec: Select and call a Seaport function.
-     *      3. checkAll: Call all registered checks.
+     *      2. runSetup: Run setup functions for the test.
+     *      3. runCheckRegistration: Register checks for the test.
+     *      4. exec: Select and call a Seaport function.
+     *      5. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
         runDerivers(context);
         runSetup(context);
+        runCheckRegistration(context);
         exec(context);
         checkAll(context);
     }
@@ -172,6 +166,38 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
+    }
+
+    function runCheckRegistration(FuzzTestContext memory context) internal {
+        bytes4 _action = context.action();
+        if (_action == context.seaport.fulfillOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (_action == context.seaport.matchOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.cancel.selector) {
+            context.registerCheck(FuzzChecks.check_orderCancelled.selector);
+        } else if (_action == context.seaport.validate.selector) {
+            context.registerCheck(FuzzChecks.check_orderValidated.selector);
+        } else {
+            revert("FuzzEngine: Action not implemented");
+        }
     }
 
     /**
