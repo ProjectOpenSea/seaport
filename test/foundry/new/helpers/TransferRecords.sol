@@ -33,15 +33,18 @@ contract TransferRecords {
     }
 
     function stop() external {
-        Vm.Log[] memory logs = vm.getRecordedLogs();
+        MemoryPointer logs = toMemoryPointer(vm.getRecordedLogs());
         uint256 logIndex;
-        bytes32[] memory expectedEvents = eventHashes;
-        uint256 lastLogIndex = toMemoryPointer(expectedEvents).reduce(
-            checkNextLog,
-            0,
-            toMemoryPointer(logs)
+        MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
+        // For each expected event, verify that it matches the next log
+        // in `logs` that has a topic0 matching a token transfer
+        uint256 lastLogIndex = expectedEvents.reduce(
+            checkNextLog, // function called for each item in expectedEvents
+            0, // initial value for the reduce call
+            logs // 3rd argument given to reduce
         );
-        int256 nextTransferIndex = toMemoryPointer(logs).findIndex(
+        // Verify that there are no other transfer events in the array
+        int256 nextTransferIndex = logs.findIndex(
             isTransferEvent,
             lastLogIndex
         );
@@ -56,20 +59,24 @@ contract TransferRecords {
         uint256 expectedEventHash,
         MemoryPointer logsArray
     ) internal returns (uint256 nextLogIndex) {
+        // Get the index of the next transfer event in the logs array
         int256 nextTransferIndex = logsArray.findIndex(
             isTransferEvent,
             lastLogIndex
         );
+        // Revert if there are no remaining transfer events
         require(
             nextTransferIndex != -1,
             "TransferRecords: transfer event not found"
         );
+        // Verify that the transfer event matches the expected event
         uint256 i = uint256(nextTransferIndex);
         MemoryPointer log = logsArray.next().pptr(i * 32);
         require(
             getEventHash(log) == bytes32(expectedEventHash),
             "TransferRecords: log hash does not match"
         );
+        // Increment the log index for the next iteration
         return i + 1;
     }
 
