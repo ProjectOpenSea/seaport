@@ -189,7 +189,9 @@ library FuzzHelpers {
 
         // If the order has numerator or denominator, it's advanced
         if (order.numerator != 0 || order.denominator != 0) {
-            return Structure.ADVANCED;
+            if (order.numerator < order.denominator) {
+                return Structure.ADVANCED;
+            }
         }
 
         (bool hasCriteria, bool hasNonzeroCriteria) = _checkCriteria(order);

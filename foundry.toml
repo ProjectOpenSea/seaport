@@ -19,6 +19,7 @@ optimizer_runs = 4_294_967_295
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
+    { access = "write", path = "./metrics.txt" }
 ]
 
 [fuzz]
