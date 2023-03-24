@@ -26,6 +26,8 @@ import {
 
 import { FuzzChecks } from "./FuzzChecks.sol";
 
+import { FuzzDerivers } from "./FuzzDerivers.sol";
+
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
@@ -36,13 +38,7 @@ import { FuzzSetup } from "./FuzzSetup.sol";
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
  */
-contract FuzzEngine is
-    BaseOrderTest,
-    FuzzSetup,
-    FuzzChecks,
-    FulfillAvailableHelper,
-    MatchFulfillmentHelper
-{
+contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using OrderComponentsLib for OrderComponents;
@@ -63,7 +59,8 @@ contract FuzzEngine is
      *      order:
      *
      *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
-     *      2. beforeEach: Run setup functions for the test.
+     *      2. runDerivers: Run deriver functions for the test.
+     *      3. runSetup: Run setup functions for the test.
      *      3. exec: Select and call a Seaport function.
      *      4. checkAll: Call all registered checks.
      *
@@ -71,7 +68,8 @@ contract FuzzEngine is
      */
     function run(FuzzParams memory fuzzParams) internal {
         FuzzTestContext memory context = generate(fuzzParams);
-        beforeEach(context);
+        runDerivers(context);
+        runSetup(context);
         exec(context);
         checkAll(context);
     }
@@ -80,14 +78,16 @@ contract FuzzEngine is
      * @dev Run a `FuzzEngine` test with the provided FuzzTestContext. Calls the
      *      following test lifecycle functions in order:
      *
-     *      1. beforeEach: Run setup functions for the test.
+     *      1. runDerivers: Run deriver functions for the test.
+     *      1. runSetup: Run setup functions for the test.
      *      2. exec: Select and call a Seaport function.
      *      3. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
-        beforeEach(context);
+        runDerivers(context);
+        runSetup(context);
         exec(context);
         checkAll(context);
     }
@@ -134,6 +134,26 @@ contract FuzzEngine is
     }
 
     /**
+     * @dev Perform any "deriver" steps necessary before calling `runSetup`.
+     *
+     *      1. deriveFulfillments: calculate fulfillments and add them to the
+     *         test context.
+     *      2. deriveMaximumFulfilled: calculate maximumFulfilled and add it to
+     *         the test context.
+     *      4. TODO: deriveUnavailable.
+     *      3. deriveExecutions: calculate expected implicit/explicit executions
+     *         and add them to the test context.
+     *
+     * @param context A Fuzz test context.
+     */
+    function runDerivers(FuzzTestContext memory context) internal {
+        deriveFulfillments(context);
+        deriveMaximumFulfilled(context);
+        // TODO: deriveUnavailable(context);
+        deriveExecutions(context);
+    }
+
+    /**
      * @dev Perform any setup steps necessary before calling `exec`.
      *
      *      1. setUpZoneParameters: calculate expected zone hashes and set up
@@ -144,7 +164,7 @@ contract FuzzEngine is
      *
      * @param context A Fuzz test context.
      */
-    function beforeEach(FuzzTestContext memory context) internal {
+    function runSetup(FuzzTestContext memory context) internal {
         // TODO: Scan all orders, look for unavailable orders
         // 1. order has been cancelled
         // 2. order has expired
@@ -153,8 +173,6 @@ contract FuzzEngine is
         // 5. order is a contract order and the call to the offerer reverts
         // 6. maximumFullfilled is less than total orders provided and
         //    enough other orders are available
-
-        context.maximumFulfilled = context.orders.length;
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
@@ -208,14 +226,6 @@ contract FuzzEngine is
                 );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             (
-                FulfillmentComponent[][] memory offerFulfillments,
-                FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(context.orders.toOrders());
-
-            context.offerFulfillments = offerFulfillments;
-            context.considerationFulfillments = considerationFulfillments;
-
-            (
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableOrders(
@@ -232,14 +242,6 @@ contract FuzzEngine is
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
             (
-                FulfillmentComponent[][] memory offerFulfillments,
-                FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(context.orders.toOrders());
-
-            context.offerFulfillments = offerFulfillments;
-            context.considerationFulfillments = considerationFulfillments;
-
-            (
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableAdvancedOrders(
@@ -255,11 +257,6 @@ contract FuzzEngine is
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
-            (Fulfillment[] memory fulfillments, , ) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
-            context.fulfillments = fulfillments;
-
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
@@ -267,11 +264,6 @@ contract FuzzEngine is
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
-            (Fulfillment[] memory fulfillments, , ) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
-            context.fulfillments = fulfillments;
-
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,
