@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
 import { Test } from "forge-std/Test.sol";
 
@@ -26,6 +27,7 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
  */
 abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
+    using FuzzEngineLib for FuzzTestContext;
 
     address payable testZone;
 
@@ -111,12 +113,30 @@ abstract contract FuzzChecks is Test {
     }
 
     /**
-     * @dev Check that the returned `executions` array length is non-zero.
+     * @dev Check that the returned `executions` and `expectedExecutions` match.
      *
      * @param context A Fuzz test context.
      */
-    function check_executionsPresent(FuzzTestContext memory context) public {
-        assertTrue(context.returnValues.executions.length > 0);
+    function check_executions(FuzzTestContext memory context) public {
+        // TODO: fulfillAvailable cases return an extra expected execution
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return;
+        }
+        assertEq(
+            context.returnValues.executions.length,
+            context.expectedExplicitExecutions.length,
+            "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
+        );
+        // TODO: hash and compare arrays. order seems not to be guaranteed
+        //assertEq(
+        //    keccak256(abi.encode(context.returnValues.executions)),
+        //    keccak256(abi.encode(context.expectedExplicitExecutions.length)),
+        //    "check_executions: expectedExplicitExecutions != returnValues.executions"
+        //);
     }
 }
 

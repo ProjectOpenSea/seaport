@@ -824,7 +824,7 @@ contract FuzzEngineTest is FuzzEngine {
 
         bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_allOrdersFilled.selector;
-        checks[1] = this.check_executionsPresent.selector;
+        checks[1] = this.check_executions.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -936,7 +936,7 @@ contract FuzzEngineTest is FuzzEngine {
             .getMatchedFulfillments(orders);
 
         bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_executionsPresent.selector;
+        checks[0] = this.check_executions.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
@@ -1042,7 +1042,7 @@ contract FuzzEngineTest is FuzzEngine {
             .getMatchedFulfillments(advancedOrders);
 
         bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_executionsPresent.selector;
+        checks[0] = this.check_executions.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
