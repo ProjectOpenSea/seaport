@@ -51,6 +51,11 @@ out = 'optimized-out'
 
 [profile.debug]
 src = 'contracts'
+optimizer = false
+
+[profile.moat_debug]
+optimizer = false
+test = 'test/foundry/new'
 
 [profile.offerers]
 src='offerers'
