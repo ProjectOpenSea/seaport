@@ -53,7 +53,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      *      order:
      *
      *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
-     *      2. beforeEach: Run setup functions for the test.
+     *      2. runDerivers: Run deriver functions for the test.
+     *      3. runSetup: Run setup functions for the test.
      *      3. exec: Select and call a Seaport function.
      *      4. checkAll: Call all registered checks.
      *
@@ -61,7 +62,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      */
     function run(FuzzParams memory fuzzParams) internal {
         FuzzTestContext memory context = generate(fuzzParams);
-        beforeEach(context);
+        runDerivers(context);
+        runSetup(context);
         exec(context);
         checkAll(context);
     }
@@ -70,14 +72,16 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @dev Run a `FuzzEngine` test with the provided FuzzTestContext. Calls the
      *      following test lifecycle functions in order:
      *
-     *      1. beforeEach: Run setup functions for the test.
+     *      1. runDerivers: Run deriver functions for the test.
+     *      1. runSetup: Run setup functions for the test.
      *      2. exec: Select and call a Seaport function.
      *      3. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
-        beforeEach(context);
+        runDerivers(context);
+        runSetup(context);
         exec(context);
         checkAll(context);
     }
@@ -124,6 +128,26 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     }
 
     /**
+     * @dev Perform any "deriver" steps necessary before calling `runSetup`.
+     *
+     *      1. deriveFulfillments: calculate fulfillments and add them to the
+     *         test context.
+     *      2. deriveMaximumFulfilled: calculate maximumFulfilled and add it to
+     *         the test context.
+     *      4. TODO: deriveUnavailable.
+     *      3. deriveExecutions: calculate expected implicit/explicit executions
+     *         and add them to the test context.
+     *
+     * @param context A Fuzz test context.
+     */
+    function runDerivers(FuzzTestContext memory context) internal {
+        deriveFulfillments(context);
+        deriveMaximumFulfilled(context);
+        // TODO: deriveUnavailable(context);
+        deriveExecutions(context);
+    }
+
+    /**
      * @dev Perform any setup steps necessary before calling `exec`.
      *
      *      1. setUpZoneParameters: calculate expected zone hashes and set up
@@ -134,7 +158,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      *
      * @param context A Fuzz test context.
      */
-    function beforeEach(FuzzTestContext memory context) internal {
+    function runSetup(FuzzTestContext memory context) internal {
         // TODO: Scan all orders, look for unavailable orders
         // 1. order has been cancelled
         // 2. order has expired
@@ -143,9 +167,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         // 5. order is a contract order and the call to the offerer reverts
         // 6. maximumFullfilled is less than total orders provided and
         //    enough other orders are available
-        deriveFulfillments(context);
-        deriveMaximumFulfilled(context);
-
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);

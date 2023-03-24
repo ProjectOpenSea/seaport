@@ -64,7 +64,7 @@ contract ExecutionHelper is AmountDeriverHelper {
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
                 item: ReceivedItem({
-                    itemType: orderDetails.consideration[i].itemType,
+                    itemType: orderDetails.offer[i].itemType,
                     token: orderDetails.offer[i].token,
                     identifier: orderDetails.offer[i].identifier,
                     amount: orderDetails.offer[i].amount,
@@ -347,11 +347,7 @@ contract ExecutionHelper is AmountDeriverHelper {
             );
         }
         // iterate over each array of fulfillment components
-        for (
-            uint256 i = offerComponents.length;
-            i < considerationComponents.length + offerComponents.length;
-            i++
-        ) {
+        for (uint256 i; i < considerationComponents.length; i++) {
             FulfillmentComponent[]
                 memory aggregatedComponents = considerationComponents[i];
             explicitExecutions[

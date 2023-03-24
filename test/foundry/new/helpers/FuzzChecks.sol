@@ -15,6 +15,15 @@ import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
 
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
+/**
+ * @dev Check functions are the post-execution assertions we want to validate.
+ *      Checks should be public functions that accept a FuzzTestContext as their
+ *      only argument. Checks have access to the post-execution FuzzTestContext
+ *      and can use it to make test assertions. The check phase happens last,
+ *      immediately after execution.
+ */
 abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
 
@@ -93,9 +102,8 @@ abstract contract FuzzChecks is Test {
                     orderComponents
                 );
 
-                bytes32 actualCalldataHash = HashValidationZoneOfferer(
-                    testZone
-                ).orderHashToValidateOrderDataHash(orderHash);
+                bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
+                    .orderHashToValidateOrderDataHash(orderHash);
 
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
