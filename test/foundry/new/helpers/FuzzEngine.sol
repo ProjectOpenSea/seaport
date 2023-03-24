@@ -24,6 +24,7 @@ import {
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+import { FuzzDerivers } from "./FuzzDerivers.sol";
 import { FuzzSetup } from "./FuzzSetup.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
 
@@ -31,13 +32,7 @@ import { FuzzChecks } from "./FuzzChecks.sol";
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
  */
-contract FuzzEngine is
-    BaseOrderTest,
-    FuzzSetup,
-    FuzzChecks,
-    FulfillAvailableHelper,
-    MatchFulfillmentHelper
-{
+contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using OrderComponentsLib for OrderComponents;
@@ -148,8 +143,9 @@ contract FuzzEngine is
         // 5. order is a contract order and the call to the offerer reverts
         // 6. maximumFullfilled is less than total orders provided and
         //    enough other orders are available
+        deriveFulfillments(context);
+        deriveMaximumFulfilled(context);
 
-        context.maximumFulfilled = context.orders.length;
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
@@ -203,14 +199,6 @@ contract FuzzEngine is
                 );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             (
-                FulfillmentComponent[][] memory offerFulfillments,
-                FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(context.orders.toOrders());
-
-            context.offerFulfillments = offerFulfillments;
-            context.considerationFulfillments = considerationFulfillments;
-
-            (
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableOrders(
@@ -227,14 +215,6 @@ contract FuzzEngine is
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
             (
-                FulfillmentComponent[][] memory offerFulfillments,
-                FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(context.orders.toOrders());
-
-            context.offerFulfillments = offerFulfillments;
-            context.considerationFulfillments = considerationFulfillments;
-
-            (
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableAdvancedOrders(
@@ -250,11 +230,6 @@ contract FuzzEngine is
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
-            (Fulfillment[] memory fulfillments, , ) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
-            context.fulfillments = fulfillments;
-
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
@@ -262,11 +237,6 @@ contract FuzzEngine is
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
-            (Fulfillment[] memory fulfillments, , ) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
-            context.fulfillments = fulfillments;
-
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,
