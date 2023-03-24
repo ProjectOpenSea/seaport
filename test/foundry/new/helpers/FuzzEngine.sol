@@ -193,7 +193,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             AdvancedOrder memory order = context.orders[0];
 
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
             context.returnValues.fulfilled = context.seaport.fulfillOrder(
                 order.toOrder(),
@@ -203,7 +202,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             AdvancedOrder memory order = context.orders[0];
 
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
             context.returnValues.fulfilled = context
                 .seaport
@@ -215,7 +213,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
                 context.basicOrderParameters
@@ -225,7 +222,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
             context.returnValues.fulfilled = context
                 .seaport
@@ -233,15 +229,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                     context.basicOrderParameters
                 );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
-            
-
-
             context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
-            context.registerCheck(FuzzChecks.check_executions.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
             (
-
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableOrders(
@@ -257,15 +247,10 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         } else if (
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
-            
-
-
             context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
-            context.registerCheck(FuzzChecks.check_executions.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
 
-            
-             (   bool[] memory availableOrders,
+            (
+                bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableAdvancedOrders(
                     context.orders,
@@ -280,10 +265,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
-
-            context.registerCheck(FuzzChecks.check_executions.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
-
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
@@ -291,11 +272,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
-
-
-            context.registerCheck(FuzzChecks.check_executions.selector);
-            context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
-
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,
