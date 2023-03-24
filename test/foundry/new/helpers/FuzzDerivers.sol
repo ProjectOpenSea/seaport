@@ -25,6 +25,7 @@ abstract contract FuzzDerivers is
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using MatchComponentType for MatchComponent;
 
     function deriveFulfillments(FuzzTestContext memory context) public {
         bytes4 action = context.action();
@@ -45,10 +46,14 @@ abstract contract FuzzDerivers is
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
         ) {
-            (Fulfillment[] memory fulfillments, , ) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
+            (
+                Fulfillment[] memory fulfillments,
+                MatchComponent[] memory remainingOfferComponents,
+
+            ) = context.testHelpers.getMatchedFulfillments(context.orders);
             context.fulfillments = fulfillments;
+            context.remainingOfferComponents = remainingOfferComponents
+                .toFulfillmentComponents();
         }
     }
 
@@ -88,31 +93,24 @@ abstract contract FuzzDerivers is
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
-            (explicitExecutions, implicitExecutions) = getAvailableExecutions(
-                context.orders.toOrders(),
+            (
+                explicitExecutions,
+                implicitExecutions
+            ) = getFulfillAvailableExecutions(
+                toFulfillmentDetails(context.orders, context.recipient),
                 context.offerFulfillments,
                 context.considerationFulfillments,
-                context.recipient,
                 0 // TODO: Native tokens?
             );
         } else if (
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
         ) {
-            OrderDetails[] memory orderItemsArray = new OrderDetails[](
-                context.orders.length
-            );
-            for (uint256 i; i < context.orders.length; ++i) {
-                orderItemsArray[i] = toOrderDetails(
-                    context.orders[i].parameters
-                );
-            }
+            FulfillmentComponent[] memory remainingOfferComponents;
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
-                orderItemsArray,
+                toFulfillmentDetails(context.orders, context.recipient),
                 context.fulfillments,
-                context.caller,
-                context.recipient,
-                0 // TODO: Native tokens?
+                remainingOfferComponents
             );
         }
         context.expectedImplicitExecutions = implicitExecutions;

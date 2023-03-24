@@ -80,6 +80,8 @@ struct FuzzTestContext {
     CriteriaResolver[] criteriaResolvers;
     address recipient;
     Fulfillment[] fulfillments;
+    /// @dev offer components not explicitly supplied in match fulfillments
+    FulfillmentComponent[] remainingOfferComponents;
     FulfillmentComponent[][] offerFulfillments;
     FulfillmentComponent[][] considerationFulfillments;
     uint256 maximumFulfilled;
@@ -113,6 +115,7 @@ library FuzzTestContextLib {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using BasicOrderParametersLib for BasicOrderParameters;
+    using FuzzTestContextLib for FuzzTestContext;
 
     /**
      * @dev Create an empty FuzzTestContext.
@@ -120,9 +123,20 @@ library FuzzTestContextLib {
      * @custom:return emptyContext the empty FuzzTestContext
      */
     function empty() internal view returns (FuzzTestContext memory) {
+        AdvancedOrder[] memory orders;
+        CriteriaResolver[] memory resolvers;
+        Fulfillment[] memory fulfillments;
+        FulfillmentComponent[] memory components;
+        FulfillmentComponent[][] memory componentsArray;
+        bytes4[] memory checks;
+        Result[] memory results;
+        bool[] memory available;
+        Execution[] memory executions;
+        bytes32[] memory hashes;
+
         return
             FuzzTestContext({
-                orders: new AdvancedOrder[](0),
+                orders: orders,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
@@ -132,28 +146,29 @@ library FuzzTestContextLib {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 }),
-                checks: new bytes4[](0),
+                checks: checks,
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
-                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaResolvers: resolvers,
                 recipient: address(0),
-                fulfillments: new Fulfillment[](0),
-                offerFulfillments: new FulfillmentComponent[][](0),
-                considerationFulfillments: new FulfillmentComponent[][](0),
+                fulfillments: fulfillments,
+                remainingOfferComponents: components,
+                offerFulfillments: componentsArray,
+                considerationFulfillments: componentsArray,
                 maximumFulfilled: 0,
                 basicOrderParameters: BasicOrderParametersLib.empty(),
-                initialOrders: new AdvancedOrder[](0),
-                expectedResults: new Result[](0),
+                initialOrders: orders,
+                expectedResults: results,
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
                     validated: false,
-                    availableOrders: new bool[](0),
-                    executions: new Execution[](0)
+                    availableOrders: available,
+                    executions: executions
                 }),
-                expectedZoneCalldataHash: new bytes32[](0),
-                expectedImplicitExecutions: new Execution[](0),
-                expectedExplicitExecutions: new Execution[](0),
+                expectedZoneCalldataHash: hashes,
+                expectedImplicitExecutions: executions,
+                expectedExplicitExecutions: executions,
                 testHelpers: TestHelpers(address(this))
             });
     }
@@ -172,41 +187,11 @@ library FuzzTestContextLib {
         address caller
     ) internal view returns (FuzzTestContext memory) {
         return
-            FuzzTestContext({
-                orders: orders,
-                seaport: seaport,
-                conduitController: ConduitControllerInterface(address(0)),
-                caller: caller,
-                fuzzParams: FuzzParams({
-                    seed: 0,
-                    totalOrders: 0,
-                    maxOfferItems: 0,
-                    maxConsiderationItems: 0
-                }),
-                checks: new bytes4[](0),
-                counter: 0,
-                fulfillerConduitKey: bytes32(0),
-                criteriaResolvers: new CriteriaResolver[](0),
-                recipient: address(0),
-                fulfillments: new Fulfillment[](0),
-                offerFulfillments: new FulfillmentComponent[][](0),
-                considerationFulfillments: new FulfillmentComponent[][](0),
-                maximumFulfilled: 0,
-                basicOrderParameters: BasicOrderParametersLib.empty(),
-                initialOrders: orders.copy(),
-                returnValues: ReturnValues({
-                    fulfilled: false,
-                    cancelled: false,
-                    validated: false,
-                    availableOrders: new bool[](0),
-                    executions: new Execution[](0)
-                }),
-                expectedResults: new Result[](0),
-                expectedZoneCalldataHash: new bytes32[](0),
-                expectedImplicitExecutions: new Execution[](0),
-                expectedExplicitExecutions: new Execution[](0),
-                testHelpers: TestHelpers(address(this))
-            });
+            empty()
+                .withOrders(orders)
+                .withSeaport(seaport)
+                .withCaller(caller)
+                .withInitialOrders(orders.copy());
     }
 
     /**
@@ -222,6 +207,14 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.orders = orders.copy();
+        return context;
+    }
+
+    function withInitialOrders(
+        FuzzTestContext memory context,
+        AdvancedOrder[] memory orders
+    ) internal pure returns (FuzzTestContext memory) {
+        context.initialOrders = orders.copy();
         return context;
     }
 
