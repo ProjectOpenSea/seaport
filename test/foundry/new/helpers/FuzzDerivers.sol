@@ -25,7 +25,7 @@ abstract contract FuzzDerivers is
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
-    using MatchComponentType for MatchComponent;
+    using MatchComponentType for MatchComponent[];
 
     function deriveFulfillments(FuzzTestContext memory context) public {
         bytes4 action = context.action();
