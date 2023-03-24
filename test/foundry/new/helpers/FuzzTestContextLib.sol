@@ -101,6 +101,8 @@ struct FuzzTestContext {
      */
     ReturnValues returnValues;
     bytes32[] expectedZoneCalldataHash;
+    Execution[] expectedImplicitExecutions;
+    Execution[] expectedExplicitExecutions;
     TestHelpers testHelpers;
 }
 
@@ -133,7 +135,6 @@ library FuzzTestContextLib {
                 checks: new bytes4[](0),
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
-                expectedZoneCalldataHash: new bytes32[](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
                 fulfillments: new Fulfillment[](0),
@@ -150,6 +151,9 @@ library FuzzTestContextLib {
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
                 }),
+                expectedZoneCalldataHash: new bytes32[](0),
+                expectedImplicitExecutions: new Execution[](0),
+                expectedExplicitExecutions: new Execution[](0),
                 testHelpers: TestHelpers(address(this))
             });
     }
@@ -182,7 +186,6 @@ library FuzzTestContextLib {
                 checks: new bytes4[](0),
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
-                expectedZoneCalldataHash: new bytes32[](0),
                 criteriaResolvers: new CriteriaResolver[](0),
                 recipient: address(0),
                 fulfillments: new Fulfillment[](0),
@@ -191,7 +194,6 @@ library FuzzTestContextLib {
                 maximumFulfilled: 0,
                 basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: orders.copy(),
-                expectedResults: new Result[](0),
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
@@ -199,6 +201,10 @@ library FuzzTestContextLib {
                     availableOrders: new bool[](0),
                     executions: new Execution[](0)
                 }),
+                expectedResults: new Result[](0),
+                expectedZoneCalldataHash: new bytes32[](0),
+                expectedImplicitExecutions: new Execution[](0),
+                expectedExplicitExecutions: new Execution[](0),
                 testHelpers: TestHelpers(address(this))
             });
     }
