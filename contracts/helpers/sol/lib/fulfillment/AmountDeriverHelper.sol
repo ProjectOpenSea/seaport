@@ -103,7 +103,7 @@ contract AmountDeriverHelper is AmountDeriver {
 
     function toOrderDetails(
         Order[] memory order
-    ) internal view returns (OrderDetails[] memory) {
+    ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](order.length);
         for (uint256 i = 0; i < order.length; i++) {
             orderDetails[i] = toOrderDetails(order[i].parameters);
@@ -112,9 +112,16 @@ contract AmountDeriverHelper is AmountDeriver {
     }
 
     function toOrderDetails(
+        AdvancedOrder[] memory orders
+    ) public view returns (OrderDetails[] memory) {
+        CriteriaResolver[] memory resolvers;
+        return toOrderDetails(orders, resolvers);
+    }
+
+    function toOrderDetails(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
-    ) internal view returns (OrderDetails[] memory) {
+    ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             orderDetails[i] = toOrderDetails(orders[i], i, resolvers);
