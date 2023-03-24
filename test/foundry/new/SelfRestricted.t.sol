@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
-import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
 import "seaport-sol/SeaportSol.sol";
 
+import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
+
+import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
+
 contract SelfRestrictedTest is BaseOrderTest {
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
-    using OrderLib for Order;
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using AdvancedOrderLib for AdvancedOrder;
-    using FulfillmentLib for Fulfillment;
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
+    using FulfillmentLib for Fulfillment;
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
 
     ValidationOffererZone zone;
 

@@ -17,6 +17,7 @@ import {
 import {
     Amount,
     BroadOrderType,
+    ConduitChoice,
     Criteria,
     Offerer,
     Recipient,
@@ -24,8 +25,7 @@ import {
     Time,
     TokenIndex,
     Zone,
-    ZoneHash,
-    ConduitChoice
+    ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
 
 import {
@@ -34,7 +34,9 @@ import {
     PRNGHelpers,
     TestConduit
 } from "./helpers/FuzzGenerators.sol";
+
 import { TestHelpers } from "./helpers/FuzzTestContextLib.sol";
+
 import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";

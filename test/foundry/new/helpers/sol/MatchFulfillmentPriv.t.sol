@@ -18,6 +18,7 @@ import {
 } from "seaport-sol/lib/types/MatchComponentType.sol";
 
 import { LibSort } from "solady/src/utils/LibSort.sol";
+
 import { MatchArrays } from "seaport-sol/fulfillments/lib/MatchArrays.sol";
 
 contract MatchFulfillmentLibTest is Test {

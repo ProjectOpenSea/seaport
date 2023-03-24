@@ -30,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "^5.9.1",
     "@typescript-eslint/parser": "^5.9.1",
     "chai": "^4.3.4",
+    "cli-barchart": "^0.2.3",
     "dotenv": "^16.0.0",
     "eslint": "^8.6.0",
     "eslint-config-prettier": "^8.3.0",
@@ -99,6 +100,7 @@
     "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
+    "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
     "prepare": "husky install"
   },
   "lint-staged": {
