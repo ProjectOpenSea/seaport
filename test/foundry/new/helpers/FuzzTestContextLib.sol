@@ -150,8 +150,6 @@ library FuzzTestContextLib {
                 checks: checks,
                 counter: 0,
                 fulfillerConduitKey: bytes32(0),
-                expectedZoneCalldataHash: new bytes32[](0),
-                expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 criteriaResolvers: resolvers,
                 recipient: address(0),
                 fulfillments: fulfillments,
@@ -170,6 +168,7 @@ library FuzzTestContextLib {
                     executions: executions
                 }),
                 expectedZoneCalldataHash: hashes,
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
                 testHelpers: TestHelpers(address(this))
