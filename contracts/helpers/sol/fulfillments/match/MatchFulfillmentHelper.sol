@@ -18,7 +18,8 @@ import {
     AdvancedOrder,
     OrderParameters,
     SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    CriteriaResolver
 } from "../../SeaportStructs.sol";
 import { MatchFulfillmentLib } from "./MatchFulfillmentLib.sol";
 import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
@@ -46,13 +47,9 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderParameters[] memory orderParameters = new OrderParameters[](
-            orders.length
-        );
-        for (uint256 i = 0; i < orders.length; i++) {
-            orderParameters[i] = orders[i].parameters;
-        }
-        return getMatchedFulfillments(orderParameters);
+        OrderDetails[] memory orderDetails = toOrderDetails(orders);
+
+        return getMatchedFulfillments(orderDetails);
     }
 
     /**
@@ -72,13 +69,9 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderParameters[] memory orderParameters = new OrderParameters[](
-            orders.length
-        );
-        for (uint256 i = 0; i < orders.length; i++) {
-            orderParameters[i] = orders[i].parameters;
-        }
-        return getMatchedFulfillments(orderParameters);
+        CriteriaResolver[] memory resolvers;
+        OrderDetails[] memory details = toOrderDetails(orders, resolvers);
+        return getMatchedFulfillments(details);
     }
 
     /**
@@ -89,7 +82,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
      * @return fulfillments
      */
     function getMatchedFulfillments(
-        OrderParameters[] memory orders
+        OrderDetails[] memory orders
     )
         public
         returns (
@@ -106,24 +99,21 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
 
         // iterate over each order and process the offer and consideration components
         for (uint256 i; i < orders.length; ++i) {
-            OrderParameters memory parameters = orders[i];
-            (
-                SpentItem[] memory offer,
-                ReceivedItem[] memory consideration
-            ) = getSpentAndReceivedItems(parameters);
+            OrderDetails memory details = orders[i];
+
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
             // also update per-token+tokenId enumerations of AggregatableOfferer
 
             preProcessSpentItems(
-                offer,
-                parameters.offerer,
-                parameters.conduitKey,
+                details.offer,
+                details.offerer,
+                details.conduitKey,
                 i,
                 layout
             );
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, and recipient
             // also update AggregatableConsideration enumeration
-            preProcessSpentItems(consideration, i, layout);
+            preProcessSpentItems(details.consideration, i, layout);
         }
 
         // iterate over groups of consideration components and find matching offer components
@@ -178,26 +168,23 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
 
         // get any remaining offer components
         for (uint256 i; i < orders.length; ++i) {
-            OrderParameters memory parameters = orders[i];
-            (
-                SpentItem[] memory offer,
-                ReceivedItem[] memory consideration
-            ) = getSpentAndReceivedItems(parameters);
+            OrderDetails memory details = orders[i];
+
             // insert MatchComponents into the offer mapping, grouped by token, tokenId, offerer, and conduitKey
             // also update per-token+tokenId enumerations of AggregatableOfferer
             remainingOfferComponents = MatchArrays.extend(
                 remainingOfferComponents,
                 postProcessSpentItems(
-                    offer,
-                    parameters.offerer,
-                    parameters.conduitKey,
+                    details.offer,
+                    details.offerer,
+                    details.conduitKey,
                     layout
                 )
             );
 
             remainingConsiderationComponents = MatchArrays.extend(
                 remainingConsiderationComponents,
-                postProcessReceivedItems(consideration, layout)
+                postProcessReceivedItems(details.consideration, layout)
             );
         }
         remainingOfferComponents = MatchFulfillmentLib.dedupe(

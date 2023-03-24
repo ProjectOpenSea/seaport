@@ -18,6 +18,12 @@ type MatchComponent is uint256;
 
 using MatchComponentType for MatchComponent global;
 
+struct MatchComponentStruct {
+    uint256 amount;
+    uint8 orderIndex;
+    uint8 itemIndex;
+}
+
 library MatchComponentType {
     uint256 private constant AMOUNT_SHL_OFFSET = 16;
     uint256 private constant ORDER_INDEX_SHL_OFFSET = 8;
@@ -173,6 +179,122 @@ library MatchComponentType {
     ) internal pure returns (MatchComponent[] memory components) {
         assembly {
             components := uints
+        }
+    }
+
+    function toStruct(
+        MatchComponent component
+    ) internal pure returns (MatchComponentStruct memory) {
+        (uint240 amount, uint8 orderIndex, uint8 itemIndex) = component
+            .unpack();
+        return
+            MatchComponentStruct({
+                amount: amount,
+                orderIndex: orderIndex,
+                itemIndex: itemIndex
+            });
+    }
+
+    function toStructs(
+        MatchComponent[] memory components
+    ) internal pure returns (MatchComponentStruct[] memory) {
+        MatchComponentStruct[] memory structs = new MatchComponentStruct[](
+            components.length
+        );
+        for (uint256 i = 0; i < components.length; i++) {
+            structs[i] = components[i].toStruct();
+        }
+        return structs;
+    }
+
+    function getPackedIndexes(
+        MatchComponentStruct memory component
+    ) internal pure returns (uint256) {
+        return (component.orderIndex << 8) | component.itemIndex;
+    }
+
+    function sort(MatchComponentStruct[] memory components) internal pure {
+        sort(components, getPackedIndexes);
+    }
+
+    // Sorts the array in-place with intro-quicksort.
+    function sort(
+        MatchComponentStruct[] memory a,
+        function(MatchComponentStruct memory)
+            internal
+            pure
+            returns (uint256) accessor
+    ) internal pure {
+        if (a.length < 2) {
+            return;
+        }
+
+        uint256[] memory stack = new uint256[](2 * a.length);
+        uint256 stackIndex = 0;
+
+        uint256 l = 0;
+        uint256 h = a.length - 1;
+
+        stack[stackIndex++] = l;
+        stack[stackIndex++] = h;
+
+        while (stackIndex > 0) {
+            h = stack[--stackIndex];
+            l = stack[--stackIndex];
+
+            if (h - l <= 12) {
+                // Insertion sort for small subarrays
+                for (uint256 i = l + 1; i <= h; i++) {
+                    MatchComponentStruct memory k = a[i];
+                    uint256 j = i;
+                    while (j > l && accessor(a[j - 1]) > accessor(k)) {
+                        a[j] = a[j - 1];
+                        j--;
+                    }
+                    a[j] = k;
+                }
+            } else {
+                // Intro-Quicksort
+                uint256 p = (l + h) / 2;
+
+                // Median of 3
+                if (accessor(a[l]) > accessor(a[p])) {
+                    (a[l], a[p]) = (a[p], a[l]);
+                }
+                if (accessor(a[l]) > accessor(a[h])) {
+                    (a[l], a[h]) = (a[h], a[l]);
+                }
+                if (accessor(a[p]) > accessor(a[h])) {
+                    (a[p], a[h]) = (a[h], a[p]);
+                }
+
+                uint256 pivot = accessor(a[p]);
+                uint256 i = l;
+                uint256 j = h;
+
+                while (i <= j) {
+                    while (accessor(a[i]) < pivot) {
+                        i++;
+                    }
+                    while (accessor(a[j]) > pivot) {
+                        j--;
+                    }
+                    if (i <= j) {
+                        (a[i], a[j]) = (a[j], a[i]);
+                        i++;
+                        j--;
+                    }
+                }
+
+                if (j > l) {
+                    stack[stackIndex++] = l;
+                    stack[stackIndex++] = j;
+                }
+                if (i < h) {
+                    stack[stackIndex++] = i;
+                    stack[stackIndex++] = h;
+                }
+            }
         }
     }
 }
