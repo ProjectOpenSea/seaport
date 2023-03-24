@@ -9,33 +9,77 @@ import {
     OrderParameters,
     AdvancedOrder,
     SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    CriteriaResolver
 } from "../../../../lib/ConsiderationStructs.sol";
+import { Side } from "../../../../lib/ConsiderationEnums.sol";
+import "../SeaportStructLib.sol";
 
 /**
  * @notice Note that this contract relies on current block.timestamp to determine amounts.
  */
 contract AmountDeriverHelper is AmountDeriver {
-    function getSpentAndReceivedItems(Order memory order)
-        internal
+    using OfferItemLib for OfferItem[];
+    using ConsiderationItemLib for ConsiderationItem[];
+
+    struct OrderDetails {
+        address offerer;
+        bytes32 conduitKey;
+        SpentItem[] offer;
+        ReceivedItem[] consideration;
+    }
+
+    function getSpentAndReceivedItems(
+        Order calldata order
+    )
+        external
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
         return getSpentAndReceivedItems(order.parameters);
     }
 
-    function getSpentAndReceivedItems(AdvancedOrder memory order)
-        internal
+    function getSpentAndReceivedItems(
+        AdvancedOrder calldata order
+    )
+        external
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        return getSpentAndReceivedItems(
-            order.parameters, order.numerator, order.denominator
-        );
+        CriteriaResolver[] memory resolvers;
+        return
+            getSpentAndReceivedItems(
+                order.parameters,
+                order.numerator,
+                order.denominator,
+                0,
+                resolvers
+            );
     }
 
-    function getSpentAndReceivedItems(OrderParameters memory parameters)
-        internal
+    function getSpentAndReceivedItems(
+        AdvancedOrder calldata order,
+        uint256 orderIndex,
+        CriteriaResolver[] calldata criteriaResolvers
+    )
+        external
+        view
+        returns (SpentItem[] memory spent, ReceivedItem[] memory received)
+    {
+        return
+            getSpentAndReceivedItems(
+                order.parameters,
+                order.numerator,
+                order.denominator,
+                orderIndex,
+                criteriaResolvers
+            );
+    }
+
+    function getSpentAndReceivedItems(
+        OrderParameters calldata parameters
+    )
+        public
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
@@ -43,48 +87,130 @@ contract AmountDeriverHelper is AmountDeriver {
         received = getReceivedItems(parameters);
     }
 
+    function toOrderDetails(
+        OrderParameters memory order
+    ) internal view returns (OrderDetails memory) {
+        (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
+            .getSpentAndReceivedItems(order);
+        return
+            OrderDetails({
+                offerer: order.offerer,
+                conduitKey: order.conduitKey,
+                offer: offer,
+                consideration: consideration
+            });
+    }
+
+    function toOrderDetails(
+        Order[] memory order
+    ) internal view returns (OrderDetails[] memory) {
+        OrderDetails[] memory orderDetails = new OrderDetails[](order.length);
+        for (uint256 i = 0; i < order.length; i++) {
+            orderDetails[i] = toOrderDetails(order[i].parameters);
+        }
+        return orderDetails;
+    }
+
+    function toOrderDetails(
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
+    ) internal view returns (OrderDetails[] memory) {
+        OrderDetails[] memory orderDetails = new OrderDetails[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            orderDetails[i] = toOrderDetails(orders[i], i, resolvers);
+        }
+        return orderDetails;
+    }
+
+    function toOrderDetails(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        CriteriaResolver[] memory resolvers
+    ) internal view returns (OrderDetails memory) {
+        (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
+            .getSpentAndReceivedItems(order, orderIndex, resolvers);
+        return
+            OrderDetails({
+                offerer: order.parameters.offerer,
+                conduitKey: order.parameters.conduitKey,
+                offer: offer,
+                consideration: consideration
+            });
+    }
+
     function getSpentAndReceivedItems(
         OrderParameters memory parameters,
         uint256 numerator,
-        uint256 denominator
+        uint256 denominator,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
     )
-        internal
+        private
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
+        parameters = applyCriteriaResolvers(
+            parameters,
+            orderIndex,
+            criteriaResolvers
+        );
         spent = getSpentItems(parameters, numerator, denominator);
         received = getReceivedItems(parameters, numerator, denominator);
+    }
+
+    function applyCriteriaResolvers(
+        OrderParameters memory parameters,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
+    ) private pure returns (OrderParameters memory) {
+        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
+            CriteriaResolver memory resolver = criteriaResolvers[i];
+            if (resolver.orderIndex != orderIndex) {
+                continue;
+            }
+            if (resolver.side == Side.OFFER) {
+                parameters.offer[resolver.index].identifierOrCriteria = resolver
+                    .identifier;
+            } else {
+                parameters
+                    .consideration[resolver.index]
+                    .identifierOrCriteria = resolver.identifier;
+            }
+        }
+        return parameters;
     }
 
     function getSpentItems(
         OrderParameters memory parameters,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (SpentItem[] memory) {
-        return getSpentItems(
-            parameters.offer,
-            parameters.startTime,
-            parameters.endTime,
-            numerator,
-            denominator
-        );
+    ) private view returns (SpentItem[] memory) {
+        return
+            getSpentItems(
+                parameters.offer,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
     }
 
-    function getSpentItems(OrderParameters memory parameters)
-        internal
-        view
-        returns (SpentItem[] memory)
-    {
-        return getSpentItems(
-            parameters.offer, parameters.startTime, parameters.endTime
-        );
+    function getSpentItems(
+        OrderParameters memory parameters
+    ) private view returns (SpentItem[] memory) {
+        return
+            getSpentItems(
+                parameters.offer,
+                parameters.startTime,
+                parameters.endTime
+            );
     }
 
     function getSpentItems(
         OfferItem[] memory offerItems,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (SpentItem[] memory) {
+    ) private view returns (SpentItem[] memory) {
         SpentItem[] memory spentItems = new SpentItem[](offerItems.length);
         for (uint256 i = 0; i < offerItems.length; i++) {
             spentItems[i] = getSpentItem(offerItems[i], startTime, endTime);
@@ -98,11 +224,15 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 endTime,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (SpentItem[] memory) {
+    ) private view returns (SpentItem[] memory) {
         SpentItem[] memory spentItems = new SpentItem[](items.length);
         for (uint256 i = 0; i < items.length; i++) {
             spentItems[i] = getSpentItem(
-                items[i], startTime, endTime, numerator, denominator
+                items[i],
+                startTime,
+                endTime,
+                numerator,
+                denominator
             );
         }
         return spentItems;
@@ -112,7 +242,7 @@ contract AmountDeriverHelper is AmountDeriver {
         OfferItem memory offerItem,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (SpentItem memory spent) {
+    ) private view returns (SpentItem memory spent) {
         spent = SpentItem({
             itemType: offerItem.itemType,
             token: offerItem.token,
@@ -131,7 +261,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 endTime,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (SpentItem memory spent) {
+    ) private view returns (SpentItem memory spent) {
         spent = SpentItem({
             itemType: item.itemType,
             token: item.token,
@@ -146,41 +276,46 @@ contract AmountDeriverHelper is AmountDeriver {
         });
     }
 
-    function getReceivedItems(OrderParameters memory parameters)
-        internal
-        view
-        returns (ReceivedItem[] memory)
-    {
-        return getReceivedItems(
-            parameters.consideration, parameters.startTime, parameters.endTime
-        );
+    function getReceivedItems(
+        OrderParameters memory parameters
+    ) private view returns (ReceivedItem[] memory) {
+        return
+            getReceivedItems(
+                parameters.consideration,
+                parameters.startTime,
+                parameters.endTime
+            );
     }
 
     function getReceivedItems(
         OrderParameters memory parameters,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (ReceivedItem[] memory) {
-        return getReceivedItems(
-            parameters.consideration,
-            parameters.startTime,
-            parameters.endTime,
-            numerator,
-            denominator
-        );
+    ) private view returns (ReceivedItem[] memory) {
+        return
+            getReceivedItems(
+                parameters.consideration,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
     }
 
     function getReceivedItems(
         ConsiderationItem[] memory considerationItems,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (ReceivedItem[] memory) {
+    ) private view returns (ReceivedItem[] memory) {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             considerationItems.length
         );
         for (uint256 i = 0; i < considerationItems.length; i++) {
-            receivedItems[i] =
-                getReceivedItem(considerationItems[i], startTime, endTime);
+            receivedItems[i] = getReceivedItem(
+                considerationItems[i],
+                startTime,
+                endTime
+            );
         }
         return receivedItems;
     }
@@ -191,7 +326,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 endTime,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (ReceivedItem[] memory) {
+    ) private view returns (ReceivedItem[] memory) {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             considerationItems.length
         );
@@ -211,7 +346,7 @@ contract AmountDeriverHelper is AmountDeriver {
         ConsiderationItem memory considerationItem,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (ReceivedItem memory received) {
+    ) private view returns (ReceivedItem memory received) {
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
@@ -231,7 +366,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 endTime,
         uint256 numerator,
         uint256 denominator
-    ) internal view returns (ReceivedItem memory received) {
+    ) private view returns (ReceivedItem memory received) {
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
@@ -251,28 +386,30 @@ contract AmountDeriverHelper is AmountDeriver {
         OfferItem memory item,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (uint256) {
-        return _locateCurrentAmount({
-            startAmount: item.startAmount,
-            endAmount: item.endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: false
-        });
+    ) private view returns (uint256) {
+        return
+            _locateCurrentAmount({
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: false
+            });
     }
 
     function _locateCurrentAmount(
         ConsiderationItem memory item,
         uint256 startTime,
         uint256 endTime
-    ) internal view returns (uint256) {
-        return _locateCurrentAmount({
-            startAmount: item.startAmount,
-            endAmount: item.endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: true
-        });
+    ) private view returns (uint256) {
+        return
+            _locateCurrentAmount({
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: true
+            });
     }
 
     function _applyFraction(
@@ -281,18 +418,19 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         OfferItem memory item
-    ) internal view returns (uint256) {
+    ) private view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
-        return _applyFraction({
-            numerator: numerator,
-            denominator: denominator,
-            startAmount: startAmount,
-            endAmount: endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: false // don't round up offers
-         });
+        return
+            _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: startAmount,
+                endAmount: endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: false // don't round up offers
+            });
     }
 
     function _applyFraction(
@@ -301,18 +439,19 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         ConsiderationItem memory item
-    ) internal view returns (uint256) {
+    ) private view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
 
-        return _applyFraction({
-            numerator: numerator,
-            denominator: denominator,
-            startAmount: startAmount,
-            endAmount: endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: true // round up considerations
-         });
+        return
+            _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: startAmount,
+                endAmount: endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: true // round up considerations
+            });
     }
 }
