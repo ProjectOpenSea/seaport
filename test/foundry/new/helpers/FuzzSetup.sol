@@ -98,6 +98,10 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    function setUpChecks(FuzzTestContext memory context) public view {
+        context.registerCheck(FuzzChecks.check_executions.selector);
+    }
+
     function setUpOfferItems(FuzzTestContext memory context) public {
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
