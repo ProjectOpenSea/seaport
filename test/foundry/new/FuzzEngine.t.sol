@@ -1414,10 +1414,6 @@ contract FuzzEngineTest is FuzzEngine {
         // Approve the contract offerers to transfer tokens from the test contract
         erc20s[0].approve(address(contractOfferer1), 1);
         erc20s[0].approve(address(contractOfferer2), 1);
-
-        // Mint the tokens to be transferred to the contract offerers in the call to activate
-        erc721s[0].mint(address(this), 1);
-        erc721s[0].mint(address(this), 2);
     }
 
     function _getAdvancedOrdersAndFulfillmentComponents(
