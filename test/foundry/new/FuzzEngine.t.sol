@@ -3,18 +3,6 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 import "seaport-sol/SeaportSol.sol";
-
-import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
-
-import { FuzzEngine, FuzzEngineLib } from "./helpers/FuzzEngine.sol";
-
-import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
-
-import {
-    FuzzParams,
-    TestContext,
-    TestContextLib
-} from "./helpers/FuzzTestContextLib.sol";
 import "forge-std/console.sol";
 
 import {
