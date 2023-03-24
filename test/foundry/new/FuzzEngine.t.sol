@@ -472,8 +472,9 @@ contract FuzzEngineTest is FuzzEngine {
     function test_exec_FulfillBasicOrder() public {
         AdvancedOrder[] memory orders = _setUpBasicOrder();
 
-        bytes4[] memory checks = new bytes4[](1);
+        bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_orderFulfilled.selector;
+        checks[1] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -501,8 +502,9 @@ contract FuzzEngineTest is FuzzEngine {
     function test_exec_FulfillBasicOrder_efficient_6GL6yc() public {
         AdvancedOrder[] memory orders = _setUpBasicOrder();
 
-        bytes4[] memory checks = new bytes4[](1);
+        bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_orderFulfilled.selector;
+        checks[1] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -819,9 +821,10 @@ contract FuzzEngineTest is FuzzEngine {
             FulfillmentComponent[][] memory considerationComponents
         ) = getNaiveFulfillmentComponents(advancedOrders);
 
-        bytes4[] memory checks = new bytes4[](2);
+        bytes4[] memory checks = new bytes4[](3);
         checks[0] = this.check_allOrdersFilled.selector;
         checks[1] = this.check_executionsPresent.selector;
+        checks[2] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -932,8 +935,9 @@ contract FuzzEngineTest is FuzzEngine {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(orders);
 
-        bytes4[] memory checks = new bytes4[](1);
+        bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_executionsPresent.selector;
+        checks[1] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
@@ -1038,8 +1042,9 @@ contract FuzzEngineTest is FuzzEngine {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(advancedOrders);
 
-        bytes4[] memory checks = new bytes4[](1);
+        bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_executionsPresent.selector;
+        checks[1] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({

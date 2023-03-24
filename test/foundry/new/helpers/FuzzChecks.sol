@@ -7,6 +7,8 @@ import { Test } from "forge-std/Test.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { State } from "./FuzzHelpers.sol";
+
 import {
     HashValidationZoneOfferer
 } from "../../../../contracts/test/HashValidationZoneOfferer.sol";
@@ -93,9 +95,8 @@ abstract contract FuzzChecks is Test {
                     orderComponents
                 );
 
-                bytes32 actualCalldataHash = HashValidationZoneOfferer(
-                    testZone
-                ).orderHashToValidateOrderDataHash(orderHash);
+                bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
+                    .orderHashToValidateOrderDataHash(orderHash);
 
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
@@ -109,6 +110,44 @@ abstract contract FuzzChecks is Test {
      */
     function check_executionsPresent(FuzzTestContext memory context) public {
         assertTrue(context.returnValues.executions.length > 0);
+    }
+
+    /**
+     * @dev Check that the order status is in expected state.
+     *
+     * @param context A Fuzz test context.
+     */
+    function check_orderStatusCorrect(
+        FuzzTestContext memory context
+        // ,
+        // State expectedState
+    ) public {
+        for (uint256 i; i < context.orders.length; i++) {
+            AdvancedOrder memory order = context.orders[i];
+            uint256 counter = context.seaport.getCounter(
+                order.parameters.offerer
+            );
+            OrderComponents memory orderComponents = order
+                .parameters
+                .toOrderComponents(counter);
+            bytes32 orderHash = context.seaport.getOrderHash(orderComponents);
+            (, , uint256 totalFilled, uint256 totalSize) = context
+                .seaport
+                .getOrderStatus(orderHash);
+
+            if (totalFilled != totalSize) {
+                emit log_named_uint("totalFilled", totalFilled);
+                emit log_named_uint("totalSize", totalSize);
+                revert('NOT EQUAL');
+            }
+
+            // TODO: Can we pass arguments into these?
+            //if (expectedState == State.FULLY_FILLED) {
+                assertEq(totalFilled, totalSize);
+            // } else if (expectedState == State.PARTIALLY_FILLED) {
+            //     assertTrue(totalFilled < totalSize);
+            // }
+        }
     }
 }
 

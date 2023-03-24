@@ -24,7 +24,7 @@ import {
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
-import { FuzzSetup } from "./FuzzSetup.sol";
+import { FuzzSetup, CheckHelpers } from "./FuzzSetup.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
 
 /**
@@ -44,10 +44,11 @@ contract FuzzEngine is
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FuzzTestContextLib for FuzzTestContext;
+    using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using FuzzTestContextLib for FuzzTestContext;
 
     // action selector => call count
     mapping(bytes4 => uint256) calls;
@@ -173,12 +174,18 @@ contract FuzzEngine is
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
 
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+
             context.returnValues.fulfilled = context.seaport.fulfillOrder(
                 order.toOrder(),
                 context.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             AdvancedOrder memory order = context.orders[0];
+
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
 
             context.returnValues.fulfilled = context
                 .seaport
@@ -189,6 +196,9 @@ contract FuzzEngine is
                     context.recipient
                 );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
                 context.basicOrderParameters
             );
@@ -196,6 +206,9 @@ contract FuzzEngine is
             _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillBasicOrder_efficient_6GL6yc(
@@ -209,6 +222,10 @@ contract FuzzEngine is
 
             context.offerFulfillments = offerFulfillments;
             context.considerationFulfillments = considerationFulfillments;
+
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+            context.registerCheck(FuzzChecks.check_executionsPresent.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
 
             (
                 bool[] memory availableOrders,
@@ -234,6 +251,10 @@ contract FuzzEngine is
             context.offerFulfillments = offerFulfillments;
             context.considerationFulfillments = considerationFulfillments;
 
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+            context.registerCheck(FuzzChecks.check_executionsPresent.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
@@ -255,6 +276,9 @@ contract FuzzEngine is
                 .getMatchedFulfillments(context.orders);
             context.fulfillments = fulfillments;
 
+            context.registerCheck(FuzzChecks.check_executionsPresent.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
@@ -266,6 +290,9 @@ contract FuzzEngine is
                 .testHelpers
                 .getMatchedFulfillments(context.orders);
             context.fulfillments = fulfillments;
+
+            context.registerCheck(FuzzChecks.check_executionsPresent.selector);
+            context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
 
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
