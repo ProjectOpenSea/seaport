@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
+
+import "seaport-sol/SeaportSol.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
@@ -10,6 +11,7 @@ import {
     FuzzGeneratorContext,
     FuzzGeneratorContextLib
 } from "./FuzzGeneratorContextLib.sol";
+
 import {
     FuzzTestContext,
     FuzzTestContextLib,
@@ -17,16 +19,20 @@ import {
 } from "./FuzzTestContextLib.sol";
 
 import {
-    TestStateGenerator,
     AdvancedOrdersSpace,
-    AdvancedOrdersSpaceGenerator
+    AdvancedOrdersSpaceGenerator,
+    TestStateGenerator
 } from "./FuzzGenerators.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
-import { FuzzEngineLib } from "./FuzzEngineLib.sol";
-import { FuzzDerivers } from "./FuzzDerivers.sol";
-import { FuzzSetup } from "./FuzzSetup.sol";
 import { FuzzChecks } from "./FuzzChecks.sol";
+
+import { FuzzDerivers } from "./FuzzDerivers.sol";
+
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { FuzzSetup } from "./FuzzSetup.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
