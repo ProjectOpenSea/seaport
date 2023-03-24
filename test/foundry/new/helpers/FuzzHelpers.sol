@@ -482,20 +482,12 @@ library FuzzHelpers {
         address seaport,
         address fulfiller
     ) internal view returns (bytes32[] memory calldataHashes) {
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
-
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = new ZoneParameters[](
             orders.length
         );
         for (uint256 i; i < orders.length; ++i) {
-            AdvancedOrder memory order = orders[i];
-            // Get counter
-            uint256 counter = seaportInterface.getCounter(
-                order.parameters.offerer
-            );
-
             // Derive the ZoneParameters from the AdvancedOrder
             zoneParameters[i] = orders.getZoneParameters(
                 fulfiller,

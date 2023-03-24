@@ -133,7 +133,7 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         returns (string memory name, Schema[] memory schemas)
     {
         // Return the metadata.
-        name = "TestTransferValidationZoneOfferer";
+        name = "HashValidationZoneOfferer";
         schemas = new Schema[](1);
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);

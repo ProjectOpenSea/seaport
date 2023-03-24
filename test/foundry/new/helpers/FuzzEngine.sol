@@ -6,121 +6,26 @@ import "forge-std/console.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
-import { TestContext } from "./TestContextLib.sol";
+import {
+    FuzzGeneratorContext,
+    FuzzGeneratorContextLib
+} from "./FuzzGeneratorContextLib.sol";
+import {
+    FuzzTestContext,
+    FuzzTestContextLib,
+    FuzzParams
+} from "./FuzzTestContextLib.sol";
 
 import {
-    AdvancedOrder,
-    Family,
-    FuzzHelpers,
-    Structure
-} from "./FuzzHelpers.sol";
+    TestStateGenerator,
+    AdvancedOrdersSpace,
+    AdvancedOrdersSpaceGenerator
+} from "./FuzzGenerators.sol";
 
-import { FuzzChecks } from "./FuzzChecks.sol";
-
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzSetup } from "./FuzzSetup.sol";
-
-/**
- * @notice Stateless helpers for FuzzEngine.
- */
-library FuzzEngineLib {
-    using AdvancedOrderLib for AdvancedOrder;
-    using AdvancedOrderLib for AdvancedOrder[];
-    using OrderComponentsLib for OrderComponents;
-    using OrderLib for Order;
-    using OrderParametersLib for OrderParameters;
-
-    using FuzzHelpers for AdvancedOrder;
-    using FuzzHelpers for AdvancedOrder[];
-
-    /**
-     * @dev Select an available "action," i.e. "which Seaport function to call,"
-     *      based on the orders in a given TestContext. Selects a random action
-     *      using the context's fuzzParams.seed when multiple actions are
-     *      available for the given order config.
-     *
-     * @param context A Fuzz test context.
-     * @return bytes4 selector of a SeaportInterface function.
-     */
-    function action(TestContext memory context) internal returns (bytes4) {
-        bytes4[] memory _actions = actions(context);
-        return _actions[context.fuzzParams.seed % _actions.length];
-    }
-
-    /**
-     * @dev Get an array of all possible "actions," i.e. "which Seaport
-     *      functions can we call," based on the orders in a given TestContext.
-     *
-     * @param context A Fuzz test context.
-     * @return bytes4[] of SeaportInterface function selectors.
-     */
-    function actions(
-        TestContext memory context
-    ) internal returns (bytes4[] memory) {
-        Family family = context.orders.getFamily();
-
-        if (family == Family.SINGLE) {
-            AdvancedOrder memory order = context.orders[0];
-            Structure structure = order.getStructure(address(context.seaport));
-
-            if (structure == Structure.BASIC) {
-                bytes4[] memory selectors = new bytes4[](4);
-                selectors[0] = context.seaport.fulfillOrder.selector;
-                selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
-                selectors[2] = context.seaport.fulfillBasicOrder.selector;
-                selectors[3] = context
-                    .seaport
-                    .fulfillBasicOrder_efficient_6GL6yc
-                    .selector;
-                return selectors;
-            }
-
-            if (structure == Structure.STANDARD) {
-                bytes4[] memory selectors = new bytes4[](2);
-                selectors[0] = context.seaport.fulfillOrder.selector;
-                selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
-                return selectors;
-            }
-
-            if (structure == Structure.ADVANCED) {
-                bytes4[] memory selectors = new bytes4[](1);
-                selectors[0] = context.seaport.fulfillAdvancedOrder.selector;
-                return selectors;
-            }
-        }
-
-        if (family == Family.COMBINED) {
-            (, , MatchComponent[] memory remainders) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
-
-            if (remainders.length != 0) {
-                bytes4[] memory selectors = new bytes4[](2);
-                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                //selectors[2] = context.seaport.cancel.selector;
-                //selectors[3] = context.seaport.validate.selector;
-                return selectors;
-            } else {
-                bytes4[] memory selectors = new bytes4[](4);
-                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                selectors[2] = context.seaport.matchOrders.selector;
-                selectors[3] = context.seaport.matchAdvancedOrders.selector;
-                //selectors[4] = context.seaport.cancel.selector;
-                //selectors[5] = context.seaport.validate.selector;
-                return selectors;
-            }
-        }
-
-        revert("FuzzEngine: Actions not found");
-    }
-}
+import { FuzzChecks } from "./FuzzChecks.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -139,7 +44,8 @@ contract FuzzEngine is
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FuzzEngineLib for TestContext;
+    using FuzzTestContextLib for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
@@ -147,26 +53,93 @@ contract FuzzEngine is
     mapping(bytes4 => uint256) calls;
 
     /**
-     * @dev Run a `FuzzEngine` test with the given TestContext. Calls the
-     *      following test lifecycle functions in order:
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run a
+     *      `FuzzEngine` test. Calls the following test lifecycle functions in
+     *      order:
      *
-     *      1. exec: Select and call a Seaport function.
-     *      2. checkAll: Call all registered checks.
+     *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
+     *      2. beforeEach: Run setup functions for the test.
+     *      3. exec: Select and call a Seaport function.
+     *      4. checkAll: Call all registered checks.
      *
-     * @param context A Fuzz test context.
+     * @param fuzzParams A FuzzParams struct containing fuzzed values.
      */
-    function run(TestContext memory context) internal {
+    function run(FuzzParams memory fuzzParams) internal {
+        FuzzTestContext memory context = generate(fuzzParams);
         beforeEach(context);
         exec(context);
         checkAll(context);
     }
 
     /**
-     * @dev Perform any setup steps necessary before calling `exec`.
+     * @dev Run a `FuzzEngine` test with the provided FuzzTestContext. Calls the
+     *      following test lifecycle functions in order:
+     *
+     *      1. beforeEach: Run setup functions for the test.
+     *      2. exec: Select and call a Seaport function.
+     *      3. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
-    function beforeEach(TestContext memory context) internal {
+    function run(FuzzTestContext memory context) internal {
+        beforeEach(context);
+        exec(context);
+        checkAll(context);
+    }
+
+    /**
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters.
+     *
+     * @param fuzzParams A FuzzParams struct containing fuzzed values.
+     */
+    function generate(
+        FuzzParams memory fuzzParams
+    ) internal returns (FuzzTestContext memory) {
+        FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
+            .from({
+                vm: vm,
+                seaport: seaport,
+                conduitController: conduitController,
+                erc20s: erc20s,
+                erc721s: erc721s,
+                erc1155s: erc1155s
+            });
+
+        AdvancedOrdersSpace memory space = TestStateGenerator.generate(
+            fuzzParams.totalOrders,
+            fuzzParams.maxOfferItems,
+            fuzzParams.maxConsiderationItems,
+            generatorContext
+        );
+
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            generatorContext
+        );
+
+        return
+            FuzzTestContextLib
+                .from({
+                    orders: orders,
+                    seaport: seaport,
+                    caller: address(this)
+                })
+                .withConduitController(conduitController)
+                .withFuzzParams(fuzzParams);
+    }
+
+    /**
+     * @dev Perform any setup steps necessary before calling `exec`.
+     *
+     *      1. setUpZoneParameters: calculate expected zone hashes and set up
+     *         zone related checks for restricted orders.
+     *      2. setUpOfferItems: Create and approve offer items for each order.
+     *      3. setUpConsiderationItems: Create and approve consideration items
+     *         for each order.
+     *
+     * @param context A Fuzz test context.
+     */
+    function beforeEach(FuzzTestContext memory context) internal {
         // TODO: Scan all orders, look for unavailable orders
         // 1. order has been cancelled
         // 2. order has expired
@@ -184,18 +157,16 @@ contract FuzzEngine is
 
     /**
      * @dev Call an available Seaport function based on the orders in the given
-     *      TestContext. FuzzEngine will deduce which actions are available
+     *      FuzzTestContext. FuzzEngine will deduce which actions are available
      *      for the given orders and call a Seaport function at random using the
      *      context's fuzzParams.seed.
      *
      *      If a caller address is provided in the context, exec will prank the
      *      address before executing the selected action.
      *
-     *      Note: not all Seaport actions are implemented here yet.
-     *
      * @param context A Fuzz test context.
      */
-    function exec(TestContext memory context) internal {
+    function exec(FuzzTestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
         calls[_action]++;
@@ -335,8 +306,8 @@ contract FuzzEngine is
     /**
      * @dev Perform a "check," i.e. a post-execution assertion we want to
      *      validate. Checks should be public functions that accept a
-     *      TestContext as their only argument. Checks have access to the
-     *      post-execution TestContext and can use it to make test assertions.
+     *      FuzzTestContext as their only argument. Checks have access to the
+     *      post-execution FuzzTestContext and can use it to make test assertions.
      *
      *      Since we delegatecall ourself, checks must be public functions on
      *      this contract. It's a good idea to prefix them with "check_" as a
@@ -348,7 +319,7 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      * @param selector bytes4 selector of the check function to call.
      */
-    function check(TestContext memory context, bytes4 selector) internal {
+    function check(FuzzTestContext memory context, bytes4 selector) internal {
         (bool success, bytes memory result) = address(this).delegatecall(
             abi.encodeWithSelector(selector, context)
         );
@@ -364,23 +335,19 @@ contract FuzzEngine is
     /**
      * @dev Perform all checks registered in the context.checks array.
      *
-     *      We can add checks to the TestContext at any point in the context
-     *      lifecycle, to be called after exec in the test lifecycle.
-     *
-     *      This is not set up yet, but the idea here is that we can add checks
-     *      at order generation time, based on the characteristics of the orders
-     *      we generate.
+     *      We can add checks to the FuzzTestContext at any point in the context
+     *      lifecycle, to be called after `exec` in the test lifecycle.
      *
      * @param context A Fuzz test context.
      */
-    function checkAll(TestContext memory context) internal {
+    function checkAll(FuzzTestContext memory context) internal {
         for (uint256 i; i < context.checks.length; ++i) {
             bytes4 selector = context.checks[i];
             check(context, selector);
         }
     }
 
-    function summary(TestContext memory context) internal view {
+    function summary(FuzzTestContext memory context) internal view {
         console.log("Call summary:");
         console.log("----------------------------------------");
         console.log(

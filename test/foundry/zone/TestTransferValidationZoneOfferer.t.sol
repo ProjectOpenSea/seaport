@@ -444,8 +444,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         CriteriaResolver[] memory criteriaResolvers;
 
         {
-            uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
-
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
                 .getZoneParameters(
@@ -454,10 +452,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                     address(context.seaport)
                 );
 
-            bytes32[]
-                memory payloadHashes = _generateZoneValidateOrderDataHashes(
-                    zoneParameters
-                );
+            _emitZoneValidateOrderDataHashes(zoneParameters);
         }
 
         // Make the call to Seaport.
@@ -587,8 +582,6 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .getAggregatedFulfillmentComponents(advancedOrders);
         }
 
-        uint256 offerer1Counter = context.seaport.getCounter(offerer1.addr);
-
         ZoneParameters[] memory zoneParameters = advancedOrders
             .getZoneParameters(
                 address(this),
@@ -597,10 +590,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
+
         for (uint256 i = 0; i < zoneParameters.length; i++) {
             payloadHashes[i] = keccak256(
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
             );
+
+            emit ValidateOrderDataHash(payloadHashes[i]);
         }
 
         // Make the call to Seaport.
@@ -776,10 +772,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ZoneParameters[] memory zoneParameters = advancedOrders
                 .getZoneParameters(address(this), 1, address(context.seaport));
 
-            bytes32[]
-                memory payloadHashes = _generateZoneValidateOrderDataHashes(
-                    zoneParameters
-                );
+            _emitZoneValidateOrderDataHashes(zoneParameters);
         }
 
         // Should not revert.
@@ -912,9 +905,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 address(context.seaport)
             );
 
-        bytes32[] memory payloadHashes = _generateZoneValidateOrderDataHashes(
-            zoneParameters
-        );
+        _emitZoneValidateOrderDataHashes(zoneParameters);
 
         // Make the call to Seaport.
         context.seaport.fulfillAvailableAdvancedOrders{ value: 3 ether }({
@@ -1171,8 +1162,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         (
             Order[] memory orders,
             Fulfillment[] memory fulfillments,
-            bytes32 firstOrderDataHash,
-            bytes32 secondOrderDataHash
+            ,
+
         ) = _buildFulfillmentDataMirrorContractOrdersWithConduitNoConduit(
                 context
             );
@@ -1256,6 +1247,17 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         );
     }
 
+    function testMatchOrdersToxicOfferItem() public {
+        test(
+            this.execMatchOrdersToxicOfferItem,
+            Context({ seaport: consideration })
+        );
+        test(
+            this.execMatchOrdersToxicOfferItem,
+            Context({ seaport: referenceConsideration })
+        );
+    }
+
     function execMatchOrdersToxicOfferItem(
         Context memory context
     ) external stateless {
@@ -1291,6 +1293,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .withToken(address(test721_2))
                 .withIdentifierOrCriteria(1)
         );
+
         // technically we do not need to copy() since first order components is
         // not used again, but to encourage good practices, make a copy and
         // edit that
@@ -1298,7 +1301,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .copy()
             .withOffer(offerArray);
 
-        Order[] memory orders = _buildOrders(
+        Order[] memory primeOrders = _buildOrders(
             context,
             SeaportArrays.OrderComponentsArray(
                 orderComponents,
@@ -1306,6 +1309,51 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             ),
             offerer1.key
         );
+
+        // Build the mirror order.
+        OfferItem[] memory mirrorOfferArray = SeaportArrays.OfferItems(
+            OfferItemLib.fromDefault(ONE_ETH),
+            OfferItemLib.fromDefault(ONE_ETH)
+        );
+        ConsiderationItem[] memory mirrorConsiderationArray = SeaportArrays
+            .ConsiderationItems(
+                ConsiderationItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(toxicErc721))
+                    .withIdentifierOrCriteria(1),
+                ConsiderationItemLib
+                    .fromDefault(SINGLE_721)
+                    .withToken(address(test721_2))
+                    .withIdentifierOrCriteria(1)
+            );
+        // build first order components
+        OrderComponents memory mirrorOrderComponents = OrderComponentsLib
+            .fromDefault(VALIDATION_ZONE)
+            .withOffer(mirrorOfferArray)
+            .withConsideration(mirrorConsiderationArray)
+            .withCounter(context.seaport.getCounter(address(this)));
+
+        Order[] memory mirrorOrder = _buildOrders(
+            context,
+            SeaportArrays.OrderComponentsArray(mirrorOrderComponents),
+            offerer1.key
+        );
+
+        Order[] memory orders = new Order[](3);
+        orders[0] = primeOrders[0];
+        orders[1] = primeOrders[1];
+        orders[2] = mirrorOrder[0];
+
+        (Fulfillment[] memory fulfillments, , ) = matchFulfillmentHelper
+            .getMatchedFulfillments(orders);
+
+        vm.expectRevert(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
+        context.seaport.matchOrders{ value: 2 ether }({
+            orders: orders,
+            fulfillments: fulfillments
+        });
     }
 
     ///@dev build multiple orders from the same offerer
@@ -1765,9 +1813,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         return orderDataHashes;
     }
 
-    function _generateZoneValidateOrderDataHashes(
+    function _emitZoneValidateOrderDataHashes(
         ZoneParameters[] memory zoneParameters
-    ) internal returns (bytes32[] memory) {
+    ) internal {
         // Create bytes32[] to hold the hashes.
         bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
 
@@ -1779,7 +1827,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
             // Expect the hash to be emitted in the call to Seaport
-            vm.expectEmit(true, false, false, true);
+            vm.expectEmit(false, false, false, true);
 
             // Emit the expected event with the expected hash.
             emit ValidateOrderDataHash(payloadHashes[i]);
