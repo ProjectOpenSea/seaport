@@ -17,6 +17,7 @@ import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
+import { CheckHelpers } from "./helpers/FuzzSetup.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using OfferItemLib for OfferItem;
@@ -32,9 +33,10 @@ contract FuzzEngineTest is FuzzEngine {
     using FulfillmentComponentLib for FulfillmentComponent[];
     using ZoneParametersLib for AdvancedOrder[];
 
+    using CheckHelpers for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
-    using FuzzEngineLib for FuzzTestContext;
     using FuzzTestContextLib for FuzzTestContext;
 
     error ExampleErrorWithContextData(bytes signature);
@@ -472,10 +474,6 @@ contract FuzzEngineTest is FuzzEngine {
     function test_exec_FulfillBasicOrder() public {
         AdvancedOrder[] memory orders = _setUpBasicOrder();
 
-        bytes4[] memory checks = new bytes4[](2);
-        checks[0] = this.check_orderFulfilled.selector;
-        checks[1] = this.check_orderStatusCorrect.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
                 orders: orders,
@@ -494,6 +492,9 @@ contract FuzzEngineTest is FuzzEngine {
                 orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
 
+        context.registerCheck(this.check_orderFulfilled.selector);
+        context.registerCheck(this.check_orderStatusCorrect.selector);
+
         exec(context);
     }
 
@@ -501,10 +502,6 @@ contract FuzzEngineTest is FuzzEngine {
     ///      always calls Seaport.fulfillBasicOrder_efficient_6GL6yc.
     function test_exec_FulfillBasicOrder_efficient_6GL6yc() public {
         AdvancedOrder[] memory orders = _setUpBasicOrder();
-
-        bytes4[] memory checks = new bytes4[](2);
-        checks[0] = this.check_orderFulfilled.selector;
-        checks[1] = this.check_orderStatusCorrect.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -523,6 +520,9 @@ contract FuzzEngineTest is FuzzEngine {
             .withBasicOrderParameters(
                 orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
+
+        context.registerCheck(this.check_orderFulfilled.selector);
+        context.registerCheck(this.check_orderStatusCorrect.selector);
 
         exec(context);
     }
@@ -821,11 +821,6 @@ contract FuzzEngineTest is FuzzEngine {
             FulfillmentComponent[][] memory considerationComponents
         ) = getNaiveFulfillmentComponents(advancedOrders);
 
-        bytes4[] memory checks = new bytes4[](3);
-        checks[0] = this.check_allOrdersFilled.selector;
-        checks[1] = this.check_executionsPresent.selector;
-        checks[2] = this.check_orderStatusCorrect.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
                 orders: advancedOrders,
@@ -840,10 +835,13 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
-            .withChecks(checks)
             .withOfferFulfillments(offerComponents)
             .withConsiderationFulfillments(considerationComponents)
             .withMaximumFulfilled(2);
+
+        context.registerCheck(this.check_allOrdersFilled.selector);
+        context.registerCheck(this.check_executions.selector);
+        context.registerCheck(this.check_orderStatusCorrect.selector);
 
         exec(context);
         checkAll(context);
@@ -935,10 +933,6 @@ contract FuzzEngineTest is FuzzEngine {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(orders);
 
-        bytes4[] memory checks = new bytes4[](2);
-        checks[0] = this.check_executionsPresent.selector;
-        checks[1] = this.check_orderStatusCorrect.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
             .withFuzzParams(
@@ -949,8 +943,10 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
-            .withChecks(checks)
             .withFulfillments(fulfillments);
+
+        context.registerCheck(this.check_executions.selector);
+        context.registerCheck(this.check_orderStatusCorrect.selector);
 
         exec(context);
         checkAll(context);
@@ -1042,10 +1038,6 @@ contract FuzzEngineTest is FuzzEngine {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(advancedOrders);
 
-        bytes4[] memory checks = new bytes4[](2);
-        checks[0] = this.check_executionsPresent.selector;
-        checks[1] = this.check_orderStatusCorrect.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
                 orders: advancedOrders,
@@ -1060,8 +1052,10 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
-            .withChecks(checks)
             .withFulfillments(fulfillments);
+
+        context.registerCheck(this.check_executions.selector);
+        context.registerCheck(this.check_orderStatusCorrect.selector);
 
         exec(context);
         checkAll(context);
@@ -1097,9 +1091,6 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("")
         });
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_orderValidated.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: address(this) })
             .withFuzzParams(
@@ -1109,8 +1100,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            )
-            .withChecks(checks);
+            );
+
+        context.registerCheck(this.check_orderValidated.selector);
 
         exec(context);
         checkAll(context);
@@ -1146,9 +1138,6 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("")
         });
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_orderCancelled.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
             .withFuzzParams(
@@ -1158,8 +1147,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            )
-            .withChecks(checks);
+            );
+
+        context.registerCheck(this.check_orderCancelled.selector);
 
         exec(context);
         checkAll(context);
@@ -1189,9 +1179,6 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("")
         });
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_alwaysRevert.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: address(this) })
             .withFuzzParams(
@@ -1201,8 +1188,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            )
-            .withChecks(checks);
+            );
+
+        context.registerCheck(this.check_alwaysRevert.selector);
 
         exec(context);
 
@@ -1234,9 +1222,6 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("")
         });
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_revertWithContextData.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: address(this) })
             .withFuzzParams(
@@ -1246,8 +1231,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            )
-            .withChecks(checks);
+            );
+
+        context.registerCheck(this.check_revertWithContextData.selector);
 
         exec(context);
 
@@ -1374,9 +1360,6 @@ contract FuzzEngineTest is FuzzEngine {
             }
         }
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_validateOrderExpectedDataHash.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
                 orders: advancedOrders,
@@ -1385,8 +1368,11 @@ contract FuzzEngineTest is FuzzEngine {
             })
             .withOfferFulfillments(offerComponents)
             .withConsiderationFulfillments(considerationComponents)
-            .withChecks(checks)
             .withMaximumFulfilled(2);
+
+        context.registerCheck(
+            this.check_validateOrderExpectedDataHash.selector
+        );
 
         context.expectedZoneCalldataHash = expectedCalldataHashes;
 
@@ -1423,9 +1409,6 @@ contract FuzzEngineTest is FuzzEngine {
             extraData: bytes("")
         });
 
-        bytes4[] memory checks = new bytes4[](1);
-        checks[0] = this.check_orderCancelled.selector;
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
             .withFuzzParams(
@@ -1435,8 +1418,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            )
-            .withChecks(checks);
+            );
+
+        context.registerCheck(this.check_orderCancelled.selector);
 
         run(context);
     }

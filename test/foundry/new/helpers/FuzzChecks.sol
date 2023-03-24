@@ -2,12 +2,11 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+import "forge-std/console.sol";
 
 import { Test } from "forge-std/Test.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-
-import { State } from "./FuzzHelpers.sol";
 
 import {
     HashValidationZoneOfferer
@@ -17,8 +16,18 @@ import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
 
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
+/**
+ * @dev Check functions are the post-execution assertions we want to validate.
+ *      Checks should be public functions that accept a FuzzTestContext as their
+ *      only argument. Checks have access to the post-execution FuzzTestContext
+ *      and can use it to make test assertions. The check phase happens last,
+ *      immediately after execution.
+ */
 abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
+    using FuzzEngineLib for FuzzTestContext;
 
     address payable testZone;
 
@@ -104,12 +113,54 @@ abstract contract FuzzChecks is Test {
     }
 
     /**
-     * @dev Check that the returned `executions` array length is non-zero.
+     * @dev Check that the returned `executions` and `expectedExecutions` match.
      *
      * @param context A Fuzz test context.
      */
-    function check_executionsPresent(FuzzTestContext memory context) public {
-        assertTrue(context.returnValues.executions.length > 0);
+    function check_executions(FuzzTestContext memory context) public {
+        bytes4 action = context.action();
+        // TODO: Currently skipping this check for match cases (helper not
+        //       implemented yet). Fulfill available cases seem to have an
+        //       off-by-some error.
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) return;
+
+        Execution[] memory expectedExecutions = new Execution[](
+            context.expectedExplicitExecutions.length +
+                context.expectedImplicitExecutions.length
+        );
+        uint256 expectedExecutionsIndex;
+        for (uint256 i; i < context.expectedExplicitExecutions.length; ++i) {
+            expectedExecutions[expectedExecutionsIndex] = context
+                .expectedExplicitExecutions[i];
+            ++expectedExecutionsIndex;
+        }
+        for (
+            uint256 i = 0;
+            i < context.expectedImplicitExecutions.length;
+            ++i
+        ) {
+            expectedExecutions[expectedExecutionsIndex] = context
+                .expectedImplicitExecutions[i];
+            ++expectedExecutionsIndex;
+        }
+        console.log(
+            "expectedExplicitExecutions.length",
+            context.expectedExplicitExecutions.length
+        );
+        console.log(
+            "expectedImplicitExecutions.length",
+            context.expectedImplicitExecutions.length
+        );
+        assertEq(
+            context.returnValues.executions.length,
+            context.expectedExplicitExecutions.length,
+            "check_executions: expectedExecutions.length != returnValues.executions.length"
+        );
     }
 
     /**

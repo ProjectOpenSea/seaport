@@ -49,6 +49,13 @@ library CheckHelpers {
     }
 }
 
+/**
+ *  @dev Setup functions perform the stateful setup steps necessary to run a
+ *       FuzzEngine test, like minting test tokens and setting approvals.
+ *       Currently, we also register checks in the setup step, but we might
+ *       want to move this to a separate step. Setup happens after derivation,
+ *       but before execution.
+ */
 abstract contract FuzzSetup is Test, AmountDeriver {
     using FuzzEngineLib for FuzzTestContext;
     using CheckHelpers for FuzzTestContext;
@@ -89,6 +96,11 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 FuzzChecks.check_validateOrderExpectedDataHash.selector
             );
         }
+    }
+
+    function setUpChecks(FuzzTestContext memory context) public pure {
+        context.registerCheck(FuzzChecks.check_executions.selector);
+        context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
     }
 
     function setUpOfferItems(FuzzTestContext memory context) public {

@@ -31,6 +31,17 @@ import {
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
+/**
+ *  @dev Generators are responsible for creating guided, random order data for
+ *       FuzzEngine tests. Generation happens in two phases: first, we create an
+ *       AdvancedOrdersSpace, a nested struct of state enums that represent the
+ *       test state itself. Then we walk this generated state struct and build
+ *       up an actual array of AdvancedOrders that we can give to Seaport. Each
+ *       state enum has its own "generator" library, responsible either for
+ *       returning a value or modifying an order according to the selected
+ *       state. Generators have access to a PRNG in their context, which they
+ *       can use to generate random values.
+ */
 library TestStateGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
 
