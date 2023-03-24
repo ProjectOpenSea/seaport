@@ -6,6 +6,7 @@ import "seaport-sol/SeaportSol.sol";
 import "forge-std/console.sol";
 
 import {
+    CheckHelpers,
     FuzzTestContext,
     FuzzParams,
     FuzzEngine,
@@ -17,7 +18,6 @@ import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
-import { CheckHelpers } from "./helpers/FuzzSetup.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using OfferItemLib for OfferItem;

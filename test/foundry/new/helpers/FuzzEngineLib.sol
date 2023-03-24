@@ -4,7 +4,10 @@ pragma solidity ^0.8.17;
 import "seaport-sol/SeaportSol.sol";
 
 import { Family, FuzzHelpers, Structure } from "./FuzzHelpers.sol";
+
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
+import { CheckHelpers } from "./FuzzSetup.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine.
