@@ -1426,111 +1426,115 @@ contract FuzzEngineTest is FuzzEngine {
     )
         internal
         returns (
-            AdvancedOrder[] memory advancedOrders,
-            FulfillmentComponent[][] memory offerComponents,
-            FulfillmentComponent[][] memory considerationComponents
+            AdvancedOrder[] memory,
+            FulfillmentComponent[][] memory,
+            FulfillmentComponent[][] memory
         )
     {
-        // Offer ERC20
-        OfferItem[] memory offerItems = SeaportArrays.OfferItems(
-            OfferItemLib
-                .empty()
-                .withItemType(ItemType.ERC20)
-                .withToken(address(erc20s[0]))
-                .withStartAmount(1)
-                .withEndAmount(1)
-        );
+        AdvancedOrder[] memory orders;
+        {
+            OrderComponents memory orderComponents1 = OrderComponentsLib
+                .fromDefault(STANDARD)
+                .withOfferer(address(contractOfferer1))
+                .withOrderType(OrderType.CONTRACT);
+            {
+                TestCalldataHashContractOfferer _temp = contractOfferer1;
+                {
+                    ConsiderationItem[]
+                        memory considerationItems = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withRecipient(address(_temp))
+                                    .withItemType(ItemType.ERC721)
+                                    .withToken(address(erc721s[0]))
+                                    .withIdentifierOrCriteria(1)
+                                    .withAmount(1)
+                            );
+                    orderComponents1 = orderComponents1.withConsideration(
+                        considerationItems
+                    );
+                }
 
-        ConsiderationItem[] memory considerationItems = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib
-                    .empty()
-                    .withRecipient(address(contractOfferer1))
-                    .withItemType(ItemType.ERC721)
-                    .withToken(address(erc721s[0]))
-                    .withIdentifierOrCriteria(1)
-                    .withAmount(1)
+                // Offer ERC20
+                {
+                    OfferItem[] memory offerItems = SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withItemType(ItemType.ERC20)
+                            .withToken(address(erc20s[0]))
+                            .withStartAmount(1)
+                            .withEndAmount(1)
+                    );
+                    orderComponents1 = orderComponents1.withOffer(offerItems);
+                }
+            }
+
+            OrderComponents memory orderComponents2;
+
+            {
+                TestCalldataHashContractOfferer _temp = contractOfferer2;
+
+                // Overwrite existing ConsiderationItem[] for order2
+                ConsiderationItem[] memory considerationItems = SeaportArrays
+                    .ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withRecipient(address(_temp))
+                            .withItemType(ItemType.ERC721)
+                            .withToken(address(erc721s[0]))
+                            .withIdentifierOrCriteria(2)
+                            .withAmount(1)
+                    );
+
+                orderComponents2 = OrderComponentsLib
+                    .fromDefault(STANDARD)
+                    .withOfferer(address(_temp))
+                    .withOffer(orderComponents1.offer)
+                    .withOrderType(OrderType.CONTRACT)
+                    .withConsideration(considerationItems);
+            }
+            orders = SeaportArrays.AdvancedOrders(
+                AdvancedOrderLib.fromDefault(FULL).withParameters(
+                    orderComponents1.toOrderParameters()
+                ),
+                AdvancedOrderLib.fromDefault(FULL).withParameters(
+                    orderComponents2.toOrderParameters()
+                )
             );
-
-        OrderComponents memory orderComponents1 = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .withOfferer(address(contractOfferer1))
-            .withOffer(offerItems)
-            .withOrderType(OrderType.CONTRACT)
-            .withConsideration(considerationItems);
-
-        // Overwrite existing ConsiderationItem[] for order2
-        considerationItems = SeaportArrays.ConsiderationItems(
-            ConsiderationItemLib
-                .empty()
-                .withRecipient(address(contractOfferer2))
-                .withItemType(ItemType.ERC721)
-                .withToken(address(erc721s[0]))
-                .withIdentifierOrCriteria(2)
-                .withAmount(1)
-        );
-
-        OrderComponents memory orderComponents2 = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .withOfferer(address(contractOfferer2))
-            .withOffer(offerItems)
-            .withOrderType(OrderType.CONTRACT)
-            .withConsideration(considerationItems);
-
-        Order[] memory orders = SeaportArrays.Orders(
-            OrderLib.fromDefault(STANDARD).withParameters(
-                orderComponents1.toOrderParameters()
-            ),
-            OrderLib.fromDefault(STANDARD).withParameters(
-                orderComponents2.toOrderParameters()
-            )
-        );
-
-        advancedOrders[0] = orders[0].toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
-        advancedOrders[1] = orders[1].toAdvancedOrder({
-            numerator: 0,
-            denominator: 0,
-            extraData: bytes("")
-        });
-
-        (
-            offerComponents,
-            considerationComponents
-        ) = getNaiveFulfillmentComponents(orders);
-
-        SpentItem[] memory minimumReceived = offerItems.toSpentItemArray();
-
-        // can pass in same maximumSpent array to both orders since it goes unused
-        SpentItem[] memory maximumSpent = considerationItems.toSpentItemArray();
+        }
 
         // Activate the contract orders
         contractOfferer1.activate(
             address(this),
-            minimumReceived,
-            maximumSpent,
+            orders[0].parameters.offer.toSpentItemArray(),
+            orders[0].parameters.consideration.toSpentItemArray(),
             ""
         );
         contractOfferer2.activate(
             address(this),
-            minimumReceived,
-            maximumSpent,
+            orders[1].parameters.offer.toSpentItemArray(),
+            orders[1].parameters.consideration.toSpentItemArray(),
             ""
         );
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(orders);
+
+        return (orders, offerComponents, considerationComponents);
     }
 
     function test_check_contractOrderExpectedDataHashes() public {
-        AdvancedOrder[] memory advancedOrders;
-        FulfillmentComponent[][] memory offerComponents;
-        FulfillmentComponent[][] memory considerationComponents;
-
         (
             TestCalldataHashContractOfferer contractOfferer1,
             TestCalldataHashContractOfferer contractOfferer2
         ) = _prepareContractOfferers();
+
+        AdvancedOrder[] memory advancedOrders;
+        FulfillmentComponent[][] memory offerComponents;
+        FulfillmentComponent[][] memory considerationComponents;
 
         (
             advancedOrders,
