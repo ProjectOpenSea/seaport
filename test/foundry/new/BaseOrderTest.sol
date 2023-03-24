@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "seaport-sol/SeaportSol.sol";
+
 import { BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
+
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
@@ -16,17 +19,22 @@ import {
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
 import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 import { ArithmeticUtil } from "./helpers/ArithmeticUtil.sol";
 
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
 
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
+
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
+
 import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
+
 import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
-import "seaport-sol/SeaportSol.sol";
 
 /**
  * @dev used to store address and key outputs from makeAddrAndKey(name)
@@ -45,6 +53,7 @@ contract BaseOrderTest is
 {
     using Strings for uint256;
     using ArithmeticUtil for *;
+
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;

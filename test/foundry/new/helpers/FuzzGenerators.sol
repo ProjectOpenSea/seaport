@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import "seaport-sol/SeaportSol.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
@@ -12,9 +13,11 @@ import {
     OfferItemSpace,
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
+
 import {
     Amount,
     BroadOrderType,
+    ConduitChoice,
     Criteria,
     Offerer,
     Recipient,
@@ -22,8 +25,7 @@ import {
     Time,
     TokenIndex,
     Zone,
-    ZoneHash,
-    ConduitChoice
+    ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
 
 import {
@@ -251,13 +253,13 @@ library AdvancedOrdersSpaceGenerator {
 library OrderComponentsSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
+    using ConduitGenerator for ConduitChoice;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace[];
     using OffererGenerator for Offerer;
     using OfferItemSpaceGenerator for OfferItemSpace[];
     using PRNGHelpers for FuzzGeneratorContext;
     using TimeGenerator for OrderParameters;
     using ZoneGenerator for OrderParameters;
-    using ConduitGenerator for ConduitChoice;
 
     function generate(
         OrderComponentsSpace memory space,

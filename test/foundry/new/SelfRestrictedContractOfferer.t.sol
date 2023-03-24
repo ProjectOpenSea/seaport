@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "seaport-sol/SeaportSol.sol";
+
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+
 import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
+
 import {
     ERC20Interface,
     ERC721Interface
 } from "seaport-core/interfaces/AbridgedTokenInterfaces.sol";
-import "seaport-sol/SeaportSol.sol";
 
 contract SelfRestrictedContractOffererTest is BaseOrderTest {
     using OfferItemLib for OfferItem;
@@ -201,12 +204,11 @@ contract SelfRestrictedContractOffererTest is BaseOrderTest {
                     .withIdentifierOrCriteria(1)
             );
             components = components
-            .copy()
-            .withOffer(offer)
-            .withConsideration(consideration)
-            .withOrderType(OrderType.FULL_OPEN).withCounter( //.withZone(address(zone))
-                    context.seaport.getCounter(address(offerer))
-                );
+                .copy()
+                .withOffer(offer)
+                .withConsideration(consideration)
+                .withOrderType(OrderType.FULL_OPEN)
+                .withCounter(context.seaport.getCounter(address(offerer))); //.withZone(address(zone))
             // .withConduitKey(bytes32(0));
 
             orderHash = seaport.getOrderHash(components);

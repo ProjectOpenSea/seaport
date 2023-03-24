@@ -2,11 +2,15 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
+
 import "seaport-sol/SeaportSol.sol";
 
 import { FuzzChecks } from "./FuzzChecks.sol";
+
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
 import { FuzzHelpers } from "./FuzzHelpers.sol";
+
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
@@ -50,8 +54,8 @@ library CheckHelpers {
 }
 
 abstract contract FuzzSetup is Test, AmountDeriver {
-    using FuzzEngineLib for FuzzTestContext;
     using CheckHelpers for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
 
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
