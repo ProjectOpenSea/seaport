@@ -57,9 +57,12 @@ contract BaseSeaportTest is DifferentialTest {
     }
 
     function debugEnabled() internal returns (bool) {
-        return
-            vm.envOr("SEAPORT_COVERAGE", false) ||
-            stringEq(vm.envOr("FOUNDRY_PROFILE", string("")), "debug");
+        return vm.envOr("SEAPORT_COVERAGE", false) || debugProfileEnabled();
+    }
+
+    function debugProfileEnabled() internal returns (bool) {
+        string memory env = vm.envOr("FOUNDRY_PROFILE", string(""));
+        return stringEq(env, "debug") || stringEq(env, "moat_debug");
     }
 
     function setUp() public virtual {
