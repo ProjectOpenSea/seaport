@@ -50,9 +50,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
-    // action selector => call count
-    mapping(bytes4 => uint256) calls;
-
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run a
      *      `FuzzEngine` test. Calls the following test lifecycle functions in
@@ -192,8 +189,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     function exec(FuzzTestContext memory context) internal {
         if (context.caller != address(0)) vm.startPrank(context.caller);
         bytes4 _action = context.action();
-        calls[_action]++;
         if (_action == context.seaport.fulfillOrder.selector) {
+            logCall("fulfillOrder");
             AdvancedOrder memory order = context.orders[0];
 
             context.returnValues.fulfilled = context.seaport.fulfillOrder(
@@ -201,6 +198,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 context.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            logCall("fulfillAdvancedOrder");
             AdvancedOrder memory order = context.orders[0];
 
             context.returnValues.fulfilled = context
@@ -212,6 +210,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                     context.recipient
                 );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            logCall("fulfillBasicOrder");
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
                 context.basicOrderParameters
             );
@@ -219,12 +218,14 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
+            logCall("fulfillBasicOrder_efficient");
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillBasicOrder_efficient_6GL6yc(
                     context.basicOrderParameters
                 );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            logCall("fulfillAvailableOrders");
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
@@ -241,6 +242,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         } else if (
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
+            logCall("fulfillAvailableAdvancedOrders");
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
@@ -257,6 +259,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.availableOrders = availableOrders;
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
+            logCall("matchOrders");
             Execution[] memory executions = context.seaport.matchOrders(
                 context.orders.toOrders(),
                 context.fulfillments
@@ -264,6 +267,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            logCall("matchAdvancedOrders");
             Execution[] memory executions = context.seaport.matchAdvancedOrders(
                 context.orders,
                 context.criteriaResolvers,
@@ -273,6 +277,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.cancel.selector) {
+            logCall("cancel");
             AdvancedOrder[] memory orders = context.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](
                 orders.length
@@ -290,6 +295,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 orderComponents
             );
         } else if (_action == context.seaport.validate.selector) {
+            logCall("validate");
             context.returnValues.validated = context.seaport.validate(
                 context.orders.toOrders()
             );
@@ -344,42 +350,10 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         }
     }
 
-    function summary(FuzzTestContext memory context) internal view {
-        console.log("Call summary:");
-        console.log("----------------------------------------");
-        console.log(
-            "fulfillOrder: ",
-            calls[context.seaport.fulfillOrder.selector]
-        );
-        console.log(
-            "fulfillAdvancedOrder: ",
-            calls[context.seaport.fulfillAdvancedOrder.selector]
-        );
-        console.log(
-            "fulfillBasicOrder: ",
-            calls[context.seaport.fulfillBasicOrder.selector]
-        );
-        console.log(
-            "fulfillBasicOrder_efficient: ",
-            calls[context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector]
-        );
-        console.log(
-            "fulfillAvailableOrders: ",
-            calls[context.seaport.fulfillAvailableOrders.selector]
-        );
-        console.log(
-            "fulfillAvailableAdvancedOrders: ",
-            calls[context.seaport.fulfillAvailableAdvancedOrders.selector]
-        );
-        console.log(
-            "matchOrders: ",
-            calls[context.seaport.matchOrders.selector]
-        );
-        console.log(
-            "matchAdvancedOrders: ",
-            calls[context.seaport.matchAdvancedOrders.selector]
-        );
-        console.log("cancel: ", calls[context.seaport.cancel.selector]);
-        console.log("validate: ", calls[context.seaport.validate.selector]);
+    function logCall(string memory callName) internal {
+        if (vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
+            string memory metric = string.concat(callName, ":1|c");
+            vm.writeLine("metrics.txt", metric);
+        }
     }
 }
