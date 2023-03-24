@@ -100,7 +100,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
 
     function setUpChecks(FuzzTestContext memory context) public pure {
         context.registerCheck(FuzzChecks.check_executions.selector);
-        context.registerCheck(FuzzChecks.check_orderStatusCorrect.selector);
+        context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
     }
 
     function setUpOfferItems(FuzzTestContext memory context) public {

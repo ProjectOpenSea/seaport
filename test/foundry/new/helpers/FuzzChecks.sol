@@ -168,11 +168,7 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderStatusCorrect(
-        FuzzTestContext memory context
-        // ,
-        // State expectedState
-    ) public {
+    function check_orderStatusFullyFilled(FuzzTestContext memory context) public {
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
             uint256 counter = context.seaport.getCounter(
@@ -186,18 +182,7 @@ abstract contract FuzzChecks is Test {
                 .seaport
                 .getOrderStatus(orderHash);
 
-            if (totalFilled != totalSize) {
-                emit log_named_uint("totalFilled", totalFilled);
-                emit log_named_uint("totalSize", totalSize);
-                revert('NOT EQUAL');
-            }
-
-            // TODO: Can we pass arguments into these?
-            //if (expectedState == State.FULLY_FILLED) {
-                assertEq(totalFilled, totalSize);
-            // } else if (expectedState == State.PARTIALLY_FILLED) {
-            //     assertTrue(totalFilled < totalSize);
-            // }
+            assertEq(totalFilled, totalSize);
         }
     }
 }

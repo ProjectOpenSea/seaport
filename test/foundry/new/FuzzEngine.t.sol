@@ -493,7 +493,7 @@ contract FuzzEngineTest is FuzzEngine {
             );
 
         context.registerCheck(this.check_orderFulfilled.selector);
-        context.registerCheck(this.check_orderStatusCorrect.selector);
+        context.registerCheck(this.check_orderStatusFullyFilled.selector);
 
         exec(context);
     }
@@ -522,7 +522,7 @@ contract FuzzEngineTest is FuzzEngine {
             );
 
         context.registerCheck(this.check_orderFulfilled.selector);
-        context.registerCheck(this.check_orderStatusCorrect.selector);
+        context.registerCheck(this.check_orderStatusFullyFilled.selector);
 
         exec(context);
     }
@@ -841,7 +841,7 @@ contract FuzzEngineTest is FuzzEngine {
 
         context.registerCheck(this.check_allOrdersFilled.selector);
         context.registerCheck(this.check_executions.selector);
-        context.registerCheck(this.check_orderStatusCorrect.selector);
+        context.registerCheck(this.check_orderStatusFullyFilled.selector);
 
         exec(context);
         checkAll(context);
@@ -946,7 +946,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withFulfillments(fulfillments);
 
         context.registerCheck(this.check_executions.selector);
-        context.registerCheck(this.check_orderStatusCorrect.selector);
+        context.registerCheck(this.check_orderStatusFullyFilled.selector);
 
         exec(context);
         checkAll(context);
@@ -1055,7 +1055,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withFulfillments(fulfillments);
 
         context.registerCheck(this.check_executions.selector);
-        context.registerCheck(this.check_orderStatusCorrect.selector);
+        context.registerCheck(this.check_orderStatusFullyFilled.selector);
 
         exec(context);
         checkAll(context);
