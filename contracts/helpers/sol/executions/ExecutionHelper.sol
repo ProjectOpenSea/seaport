@@ -229,7 +229,7 @@ contract ExecutionHelper is AmountDeriverHelper {
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
                 item: ReceivedItem({
-                    itemType: orderDetails.consideration[i].itemType,
+                    itemType: orderDetails.offer[i].itemType,
                     token: orderDetails.offer[i].token,
                     identifier: orderDetails.offer[i].identifier,
                     amount: orderDetails.offer[i].amount,
