@@ -99,9 +99,8 @@ abstract contract FuzzChecks is Test {
                     orderComponents
                 );
 
-                bytes32 actualCalldataHash = HashValidationZoneOfferer(
-                    testZone
-                ).orderHashToValidateOrderDataHash(orderHash);
+                bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
+                    .orderHashToValidateOrderDataHash(orderHash);
 
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
@@ -109,7 +108,7 @@ abstract contract FuzzChecks is Test {
     }
 
     function check_contractOrderExpectedDataHashes(
-        TestContext memory context
+        FuzzTestContext memory context
     ) public {
         bytes32[] memory orderHashes = context.orders.getOrderHashes(
             address(context.seaport)
