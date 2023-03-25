@@ -434,32 +434,3 @@ function serializeDynArrayExecution(
     }
     return vm.serializeString(objectKey, valueKey, out);
 }
-
-function serializeOrderArray(
-    string memory objectKey,
-    string memory valueKey,
-    OrderArray memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeDynArrayOrder(obj, "orders", value.orders);
-    serializeDynArrayOrderComponents(obj, "orders1", value.orders1);
-    serializeDynArrayOrderParameters(obj, "orders2", value.orders2);
-    serializeDynArrayAdvancedOrder(obj, "orders3", value.orders3);
-    serializeDynArrayFulfillment(obj, "fulfillments", value.fulfillments);
-    serializeDynArrayFulfillmentComponent(
-        obj,
-        "remainingOfferComponents",
-        value.remainingOfferComponents
-    );
-    serializeDynArrayDynArrayFulfillmentComponent(
-        obj,
-        "offerFulfillments",
-        value.offerFulfillments
-    );
-    string memory finalJson = serializeDynArrayExecution(
-        obj,
-        "expectedImplicitExecutions",
-        value.expectedImplicitExecutions
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
