@@ -143,6 +143,12 @@ struct FuzzTestContext {
      */
     bytes32[] expectedZoneCalldataHash;
     /**
+     * @dev Expected contract order calldata hashes. Index 0 of the outer array
+     *      corresponds to the generateOrder hash, while index 1 corresponds to
+     *      the ratifyOrder hash.
+     */
+    bytes32[2][] expectedContractOrderCalldataHashes;
+    /**
      * @dev Expected Result state for each order. Indexes correspond to the
      *      indexes of the orders in the orders array.
      */
@@ -150,7 +156,7 @@ struct FuzzTestContext {
     /**
      * @dev Expected executions.  Implicit means it doesn't correspond directly
      *      with a fulfillment that was passed in.
-     */ 
+     */
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     /**
@@ -219,6 +225,7 @@ library FuzzTestContextLib {
                     executions: executions
                 }),
                 expectedZoneCalldataHash: hashes,
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
                 testHelpers: TestHelpers(address(this))

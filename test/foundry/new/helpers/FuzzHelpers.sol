@@ -79,9 +79,13 @@ library FuzzHelpers {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
+    using OfferItemLib for OfferItem[];
+    using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder[];
+
+    event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
@@ -498,6 +502,110 @@ library FuzzHelpers {
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
             );
         }
+    }
+
+    /**
+     * @dev Get the orderHashes of an array of orders.
+     */
+    function getOrderHashes(
+        AdvancedOrder[] memory orders,
+        address seaport
+    ) internal view returns (bytes32[] memory) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+
+        // Iterate over all orders to derive orderHashes
+        for (uint256 i; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+
+            if (getType(order) == Type.CONTRACT) {
+                // Get contract nonce of the offerer
+                uint256 contractNonce = seaportInterface
+                    .getContractOffererNonce(order.parameters.offerer);
+
+                // Get the contract order's orderHash
+                orderHashes[i] = bytes32(
+                    contractNonce ^
+                        (uint256(uint160(order.parameters.offerer)) << 96)
+                );
+            } else {
+                // Get OrderComponents from OrderParameters
+                OrderComponents memory orderComponents = order
+                    .parameters
+                    .toOrderComponents(
+                        seaportInterface.getCounter(order.parameters.offerer)
+                    );
+
+                // Derive the orderHash from OrderComponents
+                orderHashes[i] = seaportInterface.getOrderHash(orderComponents);
+            }
+        }
+
+        return orderHashes;
+    }
+
+    /**
+     * @dev Get the orderHashes of an array of AdvancedOrders and return
+     *      the expected calldata hashes for calls to validateOrder.
+     */
+    function getExpectedContractOffererCalldataHashes(
+        AdvancedOrder[] memory orders,
+        address seaport,
+        address fulfiller
+    ) internal returns (bytes32[2][] memory) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        bytes32[] memory orderHashes = getOrderHashes(orders, seaport);
+        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
+
+        // Iterate over contract orders to derive calldataHashes
+        for (uint256 i; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+
+            // calldataHashes for non-contract orders should be null
+            if (getType(order) != Type.CONTRACT) {
+                continue;
+            }
+
+            SpentItem[] memory minimumReceived = order
+                .parameters
+                .offer
+                .toSpentItemArray();
+
+            SpentItem[] memory maximumSpent = order
+                .parameters
+                .consideration
+                .toSpentItemArray();
+
+            ReceivedItem[] memory receivedItems = order
+                .parameters
+                .consideration
+                .toReceivedItemArray();
+
+            // Derive the expected calldata hash for the call to generateOrder
+            calldataHashes[i][0] = keccak256(
+                abi.encodeCall(
+                    ContractOffererInterface.generateOrder,
+                    (fulfiller, minimumReceived, maximumSpent, "")
+                )
+            );
+
+            // Get counter of the order offerer
+            uint256 counter = seaportInterface.getCounter(
+                order.parameters.offerer
+            );
+
+            // Derive the expected calldata hash for the call to ratifyOrder
+            calldataHashes[i][1] = keccak256(
+                abi.encodeCall(
+                    ContractOffererInterface.ratifyOrder,
+                    (minimumReceived, receivedItems, "", orderHashes, counter)
+                )
+            );
+        }
+
+        return calldataHashes;
     }
 
     /**
