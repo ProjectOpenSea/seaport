@@ -20,6 +20,9 @@ import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
+import {
+    TestCalldataHashContractOfferer
+} from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using AdvancedOrderLib for AdvancedOrder;
@@ -435,7 +438,8 @@ contract FuzzEngineTest is FuzzEngine {
             .empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
-            .withAmount(1);
+            .withAmount(1)
+            .withRecipient(offerer1.addr);
 
         considerationItems[0] = considerationItem;
 
@@ -1389,6 +1393,192 @@ contract FuzzEngineTest is FuzzEngine {
         context.expectedZoneCalldataHash = expectedCalldataHashes;
 
         run(context);
+    }
+
+    function _prepareContractOfferers()
+        internal
+        returns (
+            TestCalldataHashContractOfferer contractOfferer1,
+            TestCalldataHashContractOfferer contractOfferer2
+        )
+    {
+        contractOfferer1 = new TestCalldataHashContractOfferer(
+            address(seaport)
+        );
+        contractOfferer2 = new TestCalldataHashContractOfferer(
+            address(seaport)
+        );
+        contractOfferer1.setExpectedOfferRecipient(address(this));
+        contractOfferer2.setExpectedOfferRecipient(address(this));
+
+        // Mint the erc20 to the test contract to be transferred to the contract offerers
+        // in the call to activate
+        erc20s[0].mint(address(this), 2);
+
+        // Approve the contract offerers to transfer tokens from the test contract
+        erc20s[0].approve(address(contractOfferer1), 1);
+        erc20s[0].approve(address(contractOfferer2), 1);
+    }
+
+    function _getAdvancedOrdersAndFulfillmentComponents(
+        TestCalldataHashContractOfferer contractOfferer1,
+        TestCalldataHashContractOfferer contractOfferer2
+    )
+        internal
+        returns (
+            AdvancedOrder[] memory,
+            FulfillmentComponent[][] memory,
+            FulfillmentComponent[][] memory
+        )
+    {
+        AdvancedOrder[] memory orders;
+        {
+            OrderComponents memory orderComponents1 = OrderComponentsLib
+                .fromDefault(STANDARD)
+                .withOfferer(address(contractOfferer1))
+                .withOrderType(OrderType.CONTRACT);
+            {
+                TestCalldataHashContractOfferer _temp = contractOfferer1;
+                {
+                    ConsiderationItem[]
+                        memory considerationItems = SeaportArrays
+                            .ConsiderationItems(
+                                ConsiderationItemLib
+                                    .empty()
+                                    .withRecipient(address(_temp))
+                                    .withItemType(ItemType.ERC721)
+                                    .withToken(address(erc721s[0]))
+                                    .withIdentifierOrCriteria(1)
+                                    .withAmount(1)
+                            );
+                    orderComponents1 = orderComponents1.withConsideration(
+                        considerationItems
+                    );
+                }
+
+                // Offer ERC20
+                {
+                    OfferItem[] memory offerItems = SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withItemType(ItemType.ERC20)
+                            .withToken(address(erc20s[0]))
+                            .withStartAmount(1)
+                            .withEndAmount(1)
+                    );
+                    orderComponents1 = orderComponents1.withOffer(offerItems);
+                }
+            }
+
+            OrderComponents memory orderComponents2;
+
+            {
+                TestCalldataHashContractOfferer _temp = contractOfferer2;
+
+                // Overwrite existing ConsiderationItem[] for order2
+                ConsiderationItem[] memory considerationItems = SeaportArrays
+                    .ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withRecipient(address(_temp))
+                            .withItemType(ItemType.ERC721)
+                            .withToken(address(erc721s[0]))
+                            .withIdentifierOrCriteria(2)
+                            .withAmount(1)
+                    );
+
+                orderComponents2 = OrderComponentsLib
+                    .fromDefault(STANDARD)
+                    .withOfferer(address(_temp))
+                    .withOffer(orderComponents1.offer)
+                    .withOrderType(OrderType.CONTRACT)
+                    .withConsideration(considerationItems);
+            }
+            orders = SeaportArrays.AdvancedOrders(
+                AdvancedOrderLib.fromDefault(FULL).withParameters(
+                    orderComponents1.toOrderParameters()
+                ),
+                AdvancedOrderLib.fromDefault(FULL).withParameters(
+                    orderComponents2.toOrderParameters()
+                )
+            );
+        }
+
+        // Activate the contract orders
+        contractOfferer1.activate(
+            address(this),
+            orders[0].parameters.offer.toSpentItemArray(),
+            orders[0].parameters.consideration.toSpentItemArray(),
+            ""
+        );
+        contractOfferer2.activate(
+            address(this),
+            orders[1].parameters.offer.toSpentItemArray(),
+            orders[1].parameters.consideration.toSpentItemArray(),
+            ""
+        );
+
+        (
+            FulfillmentComponent[][] memory offerComponents,
+            FulfillmentComponent[][] memory considerationComponents
+        ) = getNaiveFulfillmentComponents(orders);
+
+        return (orders, offerComponents, considerationComponents);
+    }
+
+    function test_check_contractOrderExpectedDataHashes() public {
+        (
+            TestCalldataHashContractOfferer contractOfferer1,
+            TestCalldataHashContractOfferer contractOfferer2
+        ) = _prepareContractOfferers();
+
+        AdvancedOrder[] memory advancedOrders;
+        FulfillmentComponent[][] memory offerComponents;
+        FulfillmentComponent[][] memory considerationComponents;
+
+        (
+            advancedOrders,
+            offerComponents,
+            considerationComponents
+        ) = _getAdvancedOrdersAndFulfillmentComponents(
+            contractOfferer1,
+            contractOfferer2
+        );
+
+        {
+            bytes4[] memory checks = new bytes4[](1);
+            checks[0] = this.check_contractOrderExpectedDataHashes.selector;
+
+            FuzzTestContext memory context = FuzzTestContextLib
+                .from({
+                    orders: advancedOrders,
+                    seaport: seaport,
+                    caller: address(this)
+                })
+                .withFuzzParams(
+                    FuzzParams({
+                        seed: 0,
+                        totalOrders: 0,
+                        maxOfferItems: 0,
+                        maxConsiderationItems: 0
+                    })
+                )
+                .withOfferFulfillments(offerComponents)
+                .withConsiderationFulfillments(considerationComponents)
+                .withChecks(checks)
+                .withMaximumFulfilled(2);
+
+            bytes32[2][] memory expectedContractOrderCalldataHashes;
+            expectedContractOrderCalldataHashes = advancedOrders
+                .getExpectedContractOffererCalldataHashes(
+                    address(seaport),
+                    address(this)
+                );
+            context
+                .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
+
+            run(context);
+        }
     }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it

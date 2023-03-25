@@ -57,8 +57,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
     error NativeTokenTransferFailed();
 
-    event GenerateOrderDataHash(bytes32 dataHash);
-    event RatifyOrderDataHash(bytes32 dataHash);
+    event GenerateOrderDataHash(bytes32 orderHash, bytes32 dataHash);
+    event RatifyOrderDataHash(bytes32 orderHash, bytes32 dataHash);
 
     address private immutable _SEAPORT;
     address internal _expectedOfferRecipient;
@@ -167,15 +167,13 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
                 .getContractOffererNonce(address(this));
 
             bytes32 orderHash = bytes32(
-                abi.encodePacked(
-                    (uint160(address(this)) + uint96(contractOffererNonce))
-                )
-            ) >> 0;
+                contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
+            );
 
             // Store the hash of msg.data
             orderHashToGenerateOrderDataHash[orderHash] = calldataHash;
 
-            emit GenerateOrderDataHash(calldataHash);
+            emit GenerateOrderDataHash(orderHash, calldataHash);
         }
 
         return previewOrder(address(this), address(this), a, b, c);
@@ -243,15 +241,13 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
                 .getContractOffererNonce(address(this));
 
             bytes32 orderHash = bytes32(
-                abi.encodePacked(
-                    (uint160(address(this)) + uint96(contractOffererNonce))
-                )
-            ) >> 0;
+                contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
+            );
 
             // Store the hash of msg.data
             orderHashToRatifyOrderDataHash[orderHash] = calldataHash;
 
-            emit RatifyOrderDataHash(calldataHash);
+            emit RatifyOrderDataHash(orderHash, calldataHash);
             // Check if Seaport is empty. This makes sure that we've transferred
             // all native token balance out of Seaport before we do the validation.
             uint256 seaportBalance = address(msg.sender).balance;
