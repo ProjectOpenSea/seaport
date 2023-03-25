@@ -9,11 +9,20 @@ import { console2 } from "forge-std/console2.sol";
 import { getEventHash, getTopicsHash } from "./EventHashes.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
+import {
+    ERC20TransferEvent,
+    ERC721TransferEvent,
+    ERC1155TransferEvent,
+    EventSerializer,
+    vm
+} from "./EventSerializer.sol";
+
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
 bytes32 constant Topic0_ERC1155_TransferSingle = 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
 
 library ForgeEventsLib {
     using { ifTrue } for bytes32;
+    using EventSerializer for *;
 
     function getForgeEventHash(
         Vm.Log memory log
@@ -68,69 +77,62 @@ library ForgeEventsLib {
             }
             default {
                 log0(data, mload(data))
-         
-              }
+            }
         }
         console2.log("Emitter: ", log.emitter);
     }
 
-    function describeLog(Vm.Log memory log) internal returns (string memory) {
+    function serializeTransferLog(
+        Vm.Log memory log,
+        string memory objectKey,
+        string memory valueKey
+    ) internal {
         (
             bytes32 topic0,
             bytes32 topic1,
             bytes32 topic2,
             bytes32 topic3
         ) = getTopics(log);
-
-        address from;
-        address to;
-        string memory prefix;
-        string memory suffix;
-
         if (topic0 == Topic0_ERC20_ERC721_Transfer) {
-            from = address(uint160(uint256(topic1)));
-            to = address(uint160(uint256(topic2)));
+            address from = address(uint160(uint256(topic1)));
+            address to = address(uint160(uint256(topic2)));
             if (topic3 != bytes32(0)) {
-                uint256 id = uint256(topic3);
-                prefix = "ERC721";
-                suffix = string.concat(" | id: ", Strings.toString(id));
+                ERC721TransferEvent(
+                    "ERC721",
+                    log.emitter,
+                    from,
+                    to,
+                    uint256(topic3)
+                ).serializeERC721TransferEvent(objectKey, valueKey);
             } else {
-                prefix = "ERC20";
                 uint256 amount = log.data.length >= 32
                     ? abi.decode(log.data, (uint256))
                     : 0;
-                suffix = string.concat(" | amount: ", Strings.toString(amount));
+                ERC20TransferEvent("ERC20", log.emitter, from, to, amount)
+                    .serializeERC20TransferEvent(objectKey, valueKey);
+                if (log.data.length == 0) {
+                  string memory obj = string.concat(objectKey, valueKey);
+                  string memory finalJson = vm.serializeString(obj, "amount", "No data provided in log for token amount");
+                  vm.serializeString(objectKey, valueKey, finalJson);
+                }
             }
         } else if (topic0 == Topic0_ERC1155_TransferSingle) {
-            address operator = address(uint160(uint256(topic1)));
-            from = address(uint160(uint256(topic2)));
-            to = address(uint160(uint256(topic3)));
-            prefix = string.concat(
-                "ERC1155 | operator: ",
-                Strings.toHexString(operator)
-            );
             (uint256 id, uint256 amount) = abi.decode(
                 log.data,
                 (uint256, uint256)
             );
-            suffix = string.concat(
-                " | id: ",
-                Strings.toString(id),
-                "amount: ",
-                Strings.toString(amount)
-            );
+            ERC1155TransferEvent(
+                "ERC1155",
+                log.emitter,
+                address(uint160(uint256(topic1))),
+                address(uint160(uint256(topic2))),
+                address(uint160(uint256(topic3))),
+                id,
+                amount
+            ).serializeERC1155TransferEvent(objectKey, valueKey);
+        } else {
+            vm.serializeString(objectKey, valueKey, "UNKNOWN");
         }
-        return
-            string.concat(
-                prefix,
-                " | token: ",
-                Strings.toHexString(log.emitter),
-                " | from: ",
-                Strings.toHexString(from),
-                " | to: ",
-                Strings.toHexString(to),
-                suffix
-            );
     }
 
     function getTopics(

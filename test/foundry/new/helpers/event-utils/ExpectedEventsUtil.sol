@@ -17,6 +17,11 @@ import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import {
+    serializeDynArrayAdvancedOrder,
+    serializeDynArrayExecution,
+    serializeDynArrayFulfillment
+} from "../Searializer.sol";
 
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
 bytes32 constant Topic0_ERC1155_TransferSingle = 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
@@ -92,21 +97,31 @@ library ExpectedEventsUtil {
                     0
                 )
             );
-
-            console2.log(
-                string.concat(
-                  "\n\t\tmethod: ", context.actionName(),
-                  "\n\t\texpected watched events: ",
-                  Strings.toString(expectedEventHashes.length),
-                  "\n\t\texplicit executions: ",
-                  Strings.toString(context.expectedExplicitExecutions.length),
-                  "\n\t\timplicit executions: ",
-                  Strings.toString(context.expectedImplicitExecutions.length),
-                  "\n"
-                )
+            vm.serializeString("root", "action", context.actionName());
+            serializeDynArrayAdvancedOrder("root", "orders", context.orders);
+            serializeDynArrayAdvancedOrder("root", "orders", context.orders);
+            serializeDynArrayFulfillment(
+                "root",
+                "fulfillments",
+                context.fulfillments
+            );
+            serializeDynArrayExecution(
+                "root",
+                "expectedExplicitExecutions",
+                context.expectedExplicitExecutions
             );
             Vm.Log memory nextLog = logs[uint256(nextWatchedEventIndex)];
-            nextLog.reEmit();
+            nextLog.serializeTransferLog("root", "unexpectedEvent");
+            vm.writeJson(
+                serializeDynArrayExecution(
+                    "root",
+                    "expectedImplicitExecutions",
+                    context.expectedImplicitExecutions
+                ),
+                "./fuzz_debug.json"
+            );
+            // Vm.Log memory nextLog = logs[uint256(nextWatchedEventIndex)];
+            // nextLog.reEmit();
 
             revert("expected events failure -- too many watched events");
         }
