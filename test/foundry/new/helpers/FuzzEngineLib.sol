@@ -30,9 +30,22 @@ library FuzzEngineLib {
      * @return bytes4 selector of a SeaportInterface function.
      */
     function action(FuzzTestContext memory context) internal returns (bytes4) {
+        if (context._action != bytes4(0)) return context._action;
         bytes4[] memory _actions = actions(context);
-        return _actions[context.fuzzParams.seed % _actions.length];
+        return (context._action = _actions[context.fuzzParams.seed % _actions.length]);
     }
+
+    function actionName(FuzzTestContext memory context) internal returns (string memory) {
+      bytes4 selector = action(context);
+      if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
+      if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
+      if (selector == 0xed98a574) return "fulfillAvailableOrders";
+      if (selector == 0xfb0f3ee1) return "fulfillBasicOrder";
+      if (selector == 0x00000000) return "fulfillBasicOrder_efficient_6GL6yc";
+      if (selector == 0xb3a34c4c) return "fulfillOrder";
+      if (selector == 0xf2d12b12) return "matchAdvancedOrders";
+      if (selector == 0xa8174404) return "matchOrders";
+  }
 
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
