@@ -24,8 +24,8 @@ library MatchFulfillmentLayout {
         view
         returns (MatchFulfillmentStorageLayout storage layout)
     {
-        FulfillmentHelperCounterLayout storage counterLayout =
-            getCounterLayout();
+        FulfillmentHelperCounterLayout
+            storage counterLayout = getCounterLayout();
         uint256 counter = counterLayout.fulfillmentCounter;
         bytes32 storageLayoutKey = MATCH_FULFILLMENT_STORAGE_BASE_KEY;
         assembly {
@@ -53,8 +53,8 @@ library MatchFulfillmentLayout {
      * @notice increment the fulfillmentCounter to effectively clear the mappings and enumerations between calls
      */
     function incrementFulfillmentCounter() internal {
-        FulfillmentHelperCounterLayout storage counterLayout =
-            getCounterLayout();
+        FulfillmentHelperCounterLayout
+            storage counterLayout = getCounterLayout();
         counterLayout.fulfillmentCounter += 1;
     }
 
@@ -62,19 +62,14 @@ library MatchFulfillmentLayout {
      * @notice Get the mapping of tokens for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
      * @param key Original key used to derive the slot of the enumeration
      */
-    function getMap(bytes32 key)
+    function getMap(
+        bytes32 key
+    )
         internal
         view
         returns (
-            mapping(
-                address /*offererOrRecipient*/
-                    => mapping(
-                        address /*tokenContract*/
-                            => mapping(
-                                uint256 /*identifier*/ => MatchComponent[] /*components*/
-                            )
-                    )
-                ) storage map
+            mapping(address /*offererOrRecipient*/ => mapping(address /*tokenContract*/ => mapping(uint256 /*identifier*/ => MatchComponent[] /*components*/)))
+                storage map
         )
     {
         bytes32 counterKey = MATCH_FULFILLMENT_COUNTER_KEY;
@@ -89,11 +84,9 @@ library MatchFulfillmentLayout {
      * @notice Get the enumeration of AggregatableConsiderations for a given key (offer or consideration), derived from the hash of the key and the current fulfillmentCounter value
      * @param key Original key used to derive the slot of the enumeration
      */
-    function getEnumeration(bytes32 key)
-        internal
-        view
-        returns (AggregatableConsideration[] storage tokens)
-    {
+    function getEnumeration(
+        bytes32 key
+    ) internal view returns (AggregatableConsideration[] storage tokens) {
         bytes32 counterKey = MATCH_FULFILLMENT_COUNTER_KEY;
         assembly {
             mstore(0, key)

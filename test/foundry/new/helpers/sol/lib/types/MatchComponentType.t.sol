@@ -10,14 +10,17 @@ import {
 
 contract MatchComponentTypeTest is Test {
     function testCreateGetAndUnpack() public {
-        MatchComponent component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+        MatchComponent component = MatchComponentType.createMatchComponent(
+            1,
+            2,
+            3
+        );
         assertEq(component.getAmount(), 1, "amount");
         assertEq(component.getOrderIndex(), 2, "orderIndex");
         assertEq(component.getItemIndex(), 3, "itemIndex");
 
-        (uint256 amount, uint256 orderIndex, uint256 itemIndex) =
-            component.unpack();
+        (uint256 amount, uint256 orderIndex, uint256 itemIndex) = component
+            .unpack();
         assertEq(amount, 1, "unpacked amount");
         assertEq(orderIndex, 2, "unpacked orderIndex");
         assertEq(itemIndex, 3, "unpacked itemIndex");
@@ -29,7 +32,9 @@ contract MatchComponentTypeTest is Test {
         uint8 itemIndex
     ) public {
         MatchComponent component = MatchComponentType.createMatchComponent(
-            amount, orderIndex, itemIndex
+            amount,
+            orderIndex,
+            itemIndex
         );
         assertEq(component.getAmount(), amount, "amount");
         assertEq(component.getOrderIndex(), orderIndex, "orderIndex");
@@ -46,8 +51,11 @@ contract MatchComponentTypeTest is Test {
     }
 
     function testSetters() public {
-        MatchComponent component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+        MatchComponent component = MatchComponentType.createMatchComponent(
+            1,
+            2,
+            3
+        );
 
         MatchComponent newComponent = component.setAmount(4);
         assertEq(newComponent.getAmount(), 4, "amount");
@@ -65,11 +73,16 @@ contract MatchComponentTypeTest is Test {
         assertEq(newComponent.getItemIndex(), 6, "itemIndex");
     }
 
-    function testSetters(uint240 amount, uint8 orderIndex, uint8 itemIndex)
-        public
-    {
-        MatchComponent component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+    function testSetters(
+        uint240 amount,
+        uint8 orderIndex,
+        uint8 itemIndex
+    ) public {
+        MatchComponent component = MatchComponentType.createMatchComponent(
+            1,
+            2,
+            3
+        );
 
         MatchComponent newComponent = component.setAmount(amount);
         assertEq(newComponent.getAmount(), amount, "amount");
@@ -88,15 +101,19 @@ contract MatchComponentTypeTest is Test {
     }
 
     function testToFromUints() public {
-        MatchComponent component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+        MatchComponent component = MatchComponentType.createMatchComponent(
+            1,
+            2,
+            3
+        );
         MatchComponent[] memory components = new MatchComponent[](1);
         components[0] = component;
         uint256[] memory uints = MatchComponentType.toUints(components);
         assertEq(uints.length, 1, "length");
-        assertEq(uints[0], 1 << 16 | 2 << 8 | 3, "uints[0]");
-        MatchComponent[] memory newComponents =
-            MatchComponentType.fromUints(uints);
+        assertEq(uints[0], (1 << 16) | (2 << 8) | 3, "uints[0]");
+        MatchComponent[] memory newComponents = MatchComponentType.fromUints(
+            uints
+        );
         assertEq(newComponents.length, 1, "length");
         assertEq(newComponents[0].getAmount(), 1, "amount");
         assertEq(newComponents[0].getOrderIndex(), 2, "orderIndex");

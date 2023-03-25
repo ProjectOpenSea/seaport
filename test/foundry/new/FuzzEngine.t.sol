@@ -438,7 +438,8 @@ contract FuzzEngineTest is FuzzEngine {
             .empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
-            .withAmount(1);
+            .withAmount(1)
+            .withRecipient(offerer1.addr);
 
         considerationItems[0] = considerationItem;
 

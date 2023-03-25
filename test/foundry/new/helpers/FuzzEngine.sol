@@ -211,19 +211,33 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder");
+
+            BasicOrderParameters memory basicOrderParameters = context
+                .orders[0]
+                .toBasicOrderParameters(context.orders[0].getBasicOrderType());
+
+            basicOrderParameters.fulfillerConduitKey = context
+                .fulfillerConduitKey;
+
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
-                context.basicOrderParameters
+                basicOrderParameters
             );
         } else if (
             _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             logCall("fulfillBasicOrder_efficient");
+
+            BasicOrderParameters memory basicOrderParameters = context
+                .orders[0]
+                .toBasicOrderParameters(context.orders[0].getBasicOrderType());
+
+            basicOrderParameters.fulfillerConduitKey = context
+                .fulfillerConduitKey;
+
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc(
-                    context.basicOrderParameters
-                );
+                .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders");
             (

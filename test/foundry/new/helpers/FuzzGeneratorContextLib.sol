@@ -23,6 +23,15 @@ import {
 
 import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
 
+import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
+
+import {
+    Amount,
+    BasicOrderCategory,
+    Criteria,
+    TokenIndex
+} from "seaport-sol/SpaceEnums.sol";
+
 struct TestConduit {
     address addr;
     bytes32 key;
@@ -53,6 +62,8 @@ struct FuzzGeneratorContext {
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
     bytes32[] orderHashes;
+    BasicOrderCategory basicOrderCategory;
+    OfferItemSpace basicOfferSpace;
 }
 
 library FuzzGeneratorContextLib {
@@ -91,7 +102,14 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0)
+                orderHashes: new bytes32[](0),
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.NONE,
+                    Amount.FIXED
+                )
             });
     }
 
@@ -141,7 +159,14 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0)
+                orderHashes: new bytes32[](0),
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.NONE,
+                    Amount.FIXED
+                )
             });
     }
 

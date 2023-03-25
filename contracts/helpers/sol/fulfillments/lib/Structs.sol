@@ -14,60 +14,17 @@ struct FulfillmentHelperCounterLayout {
 // TODO: won't work for partial fulfills of criteria resolved
 // TODO: won't work for hybrid tokens that implement multiple token interfaces
 struct MatchFulfillmentStorageLayout {
-    mapping(
-        address /*tokenContract*/
-            => mapping(
-                uint256 /*identifier*/
-                    => mapping(
-                        address /*offerer*/
-                            => mapping(
-                                bytes32 /*conduitKey*/ => MatchComponent[] /*components*/
-                            )
-                    )
-            )
-        ) offerMap;
-    mapping(
-        address /*recipient*/
-            => mapping(
-                address /*tokenContract*/
-                    => mapping(
-                        uint256 /*identifier*/ => MatchComponent[] /*components*/
-                    )
-            )
-        ) considerationMap;
+    mapping(address /*tokenContract*/ => mapping(uint256 /*identifier*/ => mapping(address /*offerer*/ => mapping(bytes32 /*conduitKey*/ => MatchComponent[] /*components*/)))) offerMap;
+    mapping(address /*recipient*/ => mapping(address /*tokenContract*/ => mapping(uint256 /*identifier*/ => MatchComponent[] /*components*/))) considerationMap;
     // a given aggregatable consideration component will have its own set of aggregatable offer components
-    mapping(
-        address /*token*/
-            => mapping(
-                uint256 /*tokenId*/ => AggregatableOfferer[] /*offererEnumeration*/
-            )
-        ) tokenToOffererEnumeration;
+    mapping(address /*token*/ => mapping(uint256 /*tokenId*/ => AggregatableOfferer[] /*offererEnumeration*/)) tokenToOffererEnumeration;
     // aggregatable consideration components can be enumerated normally
     AggregatableConsideration[] considerationEnumeration;
 }
 
 struct FulfillAvailableHelperStorageLayout {
-    mapping(
-        address /*tokenContract*/
-            => mapping(
-                uint256 /*identifier*/
-                    => mapping(
-                        address /*offerer*/
-                            => mapping(
-                                bytes32 /*conduitKey*/ => FulfillmentComponent[] /*components*/
-                            )
-                    )
-            )
-        ) offerMap;
-    mapping(
-        address /*recipient*/
-            => mapping(
-                address /*tokenContract*/
-                    => mapping(
-                        uint256 /*identifier*/ => FulfillmentComponent[] /*components*/
-                    )
-            )
-        ) considerationMap;
+    mapping(address /*tokenContract*/ => mapping(uint256 /*identifier*/ => mapping(address /*offerer*/ => mapping(bytes32 /*conduitKey*/ => FulfillmentComponent[] /*components*/)))) offerMap;
+    mapping(address /*recipient*/ => mapping(address /*tokenContract*/ => mapping(uint256 /*identifier*/ => FulfillmentComponent[] /*components*/))) considerationMap;
     // a given aggregatable consideration component will have its own set of aggregatable offer components
     AggregatableOffer[] offerEnumeration;
     // aggregatable consideration components can be enumerated normally
