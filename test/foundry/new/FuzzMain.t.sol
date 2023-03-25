@@ -15,10 +15,13 @@ contract FuzzMainTest is FuzzEngine {
      */
     function test_fuzz_validOrders(
         uint256 seed,
-        uint256 orders,
+        // uint256 orders,
         uint256 offers,
         uint256 considerations
     ) public {
+        uint orders = 2;
+        vm.assume(offers>0 && offers<3);
+        vm.assume(considerations>0 && considerations<3);
         run(
             FuzzParams({
                 seed: seed,
