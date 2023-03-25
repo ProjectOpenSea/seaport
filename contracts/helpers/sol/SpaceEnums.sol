@@ -332,6 +332,12 @@ enum AggregatedFulfillAvailableFulfillments {
     BOTH
 }
 
+enum BasicOrderCategory {
+    NONE,
+    LISTING,
+    BID
+}
+
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?
 
 // // Zone.PASS/FAIL <- ZoneParams

@@ -16,6 +16,7 @@ import {
 
 import {
     Amount,
+    BasicOrderCategory,
     BroadOrderType,
     ConduitChoice,
     Criteria,
@@ -81,7 +82,14 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 starting721considerationIndex: 1,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0),
-                conduits: new TestConduit[](2)
+                conduits: new TestConduit[](2),
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.NONE,
+                    Amount.FIXED
+                )
             });
     }
 

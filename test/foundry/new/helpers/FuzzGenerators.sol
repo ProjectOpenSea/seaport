@@ -16,6 +16,7 @@ import {
 
 import {
     Amount,
+    BasicOrderCategory,
     BroadOrderType,
     ConduitChoice,
     Criteria,
@@ -53,10 +54,40 @@ library TestStateGenerator {
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
     ) internal pure returns (AdvancedOrdersSpace memory) {
-        bool isMatchable = context.randRange(0, 1) == 1 ? true : false;
+        context.prng.state = uint256(keccak256(msg.data));
+
+        {
+            uint256 basicToggle = context.randRange(0, 10);
+            if (basicToggle == 0) {
+                context.basicOrderCategory = BasicOrderCategory.LISTING;
+            } else if (basicToggle == 1) {
+                context.basicOrderCategory = BasicOrderCategory.BID;
+            } else {
+                context.basicOrderCategory = BasicOrderCategory.NONE;
+            }
+        }
+
+        bool isMatchable = false;
+
+        if (context.basicOrderCategory != BasicOrderCategory.NONE) {
+            totalOrders = 1;
+            maxOfferItemsPerOrder = 1;
+            if (maxConsiderationItemsPerOrder == 0) {
+                maxConsiderationItemsPerOrder = 1;
+            }
+        } else {
+            isMatchable = context.randRange(0, 1) == 1 ? true : false;
+        }
+
+        if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
+            maxOfferItemsPerOrder = context.randRange(0, 1);
+            maxConsiderationItemsPerOrder = 1 - maxOfferItemsPerOrder;
+        }
+
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
             totalOrders
         );
+
         for (uint256 i; i < totalOrders; ++i) {
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
@@ -79,6 +110,7 @@ library TestStateGenerator {
                 conduit: ConduitChoice(context.randEnum(0, 2))
             });
         }
+
         return
             AdvancedOrdersSpace({
                 orders: components,
@@ -90,39 +122,95 @@ library TestStateGenerator {
         uint256 maxOfferItemsPerOrder,
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItemSpace[] memory) {
-        uint256 len = context.randRange(0, maxOfferItemsPerOrder);
-        OfferItemSpace[] memory offer = new OfferItemSpace[](len);
-        for (uint256 i; i < len; ++i) {
-            offer[i] = OfferItemSpace({
-                // TODO: Native items + criteria - should be 0-5
-                itemType: ItemType(context.randEnum(1, 3)),
+        if (context.basicOrderCategory == BasicOrderCategory.NONE) {
+            uint256 len = context.randRange(0, maxOfferItemsPerOrder);
+
+            OfferItemSpace[] memory offer = new OfferItemSpace[](len);
+            for (uint256 i; i < len; ++i) {
+                offer[i] = OfferItemSpace({
+                    // TODO: Native items + criteria - should be 0-5
+                    itemType: ItemType(context.randEnum(1, 3)),
+                    tokenIndex: TokenIndex(context.randEnum(0, 2)),
+                    criteria: Criteria(context.randEnum(0, 2)),
+                    // TODO: Fixed amounts only, should be 0-2
+                    amount: Amount(context.randEnum(0, 0))
+                });
+            }
+
+            return offer;
+        } else {
+            OfferItemSpace[] memory offer = new OfferItemSpace[](1);
+            offer[0] = OfferItemSpace({
+                itemType: ItemType(
+                    context.basicOrderCategory == BasicOrderCategory.LISTING
+                        ? context.randEnum(2, 3)
+                        : 1
+                ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                criteria: Criteria(context.randEnum(0, 2)),
+                criteria: Criteria(0),
                 // TODO: Fixed amounts only, should be 0-2
                 amount: Amount(context.randEnum(0, 0))
             });
+
+            context.basicOfferSpace = offer[0];
+
+            return offer;
         }
-        return offer;
     }
 
     function generateConsideration(
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItemSpace[] memory) {
-        // TODO: Can we handle zero?
-        uint256 len = context.randRange(1, maxConsiderationItemsPerOrder);
+        bool isBasic = context.basicOrderCategory != BasicOrderCategory.NONE;
+
+        uint256 len = context.randRange(
+            isBasic ? 1 : 0,
+            maxConsiderationItemsPerOrder
+        );
+
         ConsiderationItemSpace[]
             memory consideration = new ConsiderationItemSpace[](len);
-        for (uint256 i; i < len; ++i) {
-            consideration[i] = ConsiderationItemSpace({
+
+        if (!isBasic) {
+            for (uint256 i; i < len; ++i) {
+                consideration[i] = ConsiderationItemSpace({
+                    // TODO: Native items + criteria - should be 0-5
+                    itemType: ItemType(context.randEnum(1, 3)),
+                    tokenIndex: TokenIndex(context.randEnum(0, 2)),
+                    criteria: Criteria(context.randEnum(0, 2)),
+                    // TODO: Fixed amounts only, should be 0-2
+                    amount: Amount(context.randEnum(0, 0)),
+                    recipient: Recipient(context.randEnum(0, 4))
+                });
+            }
+        } else {
+            consideration[0] = ConsiderationItemSpace({
                 // TODO: Native items + criteria - should be 0-5
-                itemType: ItemType(context.randEnum(1, 3)),
+                itemType: ItemType(
+                    context.basicOrderCategory == BasicOrderCategory.BID
+                        ? context.randEnum(2, 3)
+                        : 1
+                ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                criteria: Criteria(context.randEnum(0, 2)),
+                criteria: Criteria(0),
                 // TODO: Fixed amounts only, should be 0-2
                 amount: Amount(context.randEnum(0, 0)),
-                recipient: Recipient(context.randEnum(0, 4))
+                recipient: Recipient(0) // Always offerer
             });
+
+            for (uint256 i = 1; i < len; ++i) {
+                consideration[i] = ConsiderationItemSpace({
+                    // TODO: Native items + criteria - should be 0-5
+                    itemType: context.basicOfferSpace.itemType,
+                    tokenIndex: context.basicOfferSpace.tokenIndex,
+                    criteria: Criteria(0),
+                    // TODO: Fixed amounts only, should be 0-2
+                    // TODO: sum(amounts) must be less than offer amount
+                    amount: Amount(context.randEnum(0, 0)),
+                    recipient: Recipient(context.randEnum(0, 4))
+                });
+            }
         }
         return consideration;
     }
@@ -278,11 +366,15 @@ library OrderComponentsSpaceGenerator {
     ) internal pure returns (OrderParameters memory) {
         OrderParameters memory params;
         {
+            address offerer = space.offerer.generate(context);
+
             params = OrderParametersLib
                 .empty()
-                .withOfferer(space.offerer.generate(context))
+                .withOfferer(offerer)
                 .withOffer(space.offer.generate(context))
-                .withConsideration(space.consideration.generate(context))
+                .withConsideration(
+                    space.consideration.generate(context, offerer)
+                )
                 .withConduitKey(space.conduit.generate(context).key);
         }
 
@@ -389,7 +481,8 @@ library ConsiderationItemSpaceGenerator {
 
     function generate(
         ConsiderationItemSpace[] memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        address offerer
     ) internal pure returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -398,22 +491,26 @@ library ConsiderationItemSpaceGenerator {
         );
 
         for (uint256 i; i < len; ++i) {
-            considerationItems[i] = generate(space[i], context);
+            considerationItems[i] = generate(space[i], context, offerer);
         }
+
         return considerationItems;
     }
 
     function generate(
         ConsiderationItemSpace memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        address offerer
     ) internal pure returns (ConsiderationItem memory) {
+        ConsiderationItem memory considerationItem = ConsiderationItemLib
+            .empty()
+            .withItemType(space.itemType)
+            .withToken(space.tokenIndex.generate(space.itemType, context))
+            .withGeneratedAmount(space.amount, context);
+
         return
-            ConsiderationItemLib
-                .empty()
-                .withItemType(space.itemType)
-                .withToken(space.tokenIndex.generate(space.itemType, context))
-                .withGeneratedAmount(space.amount, context)
-                .withRecipient(space.recipient.generate(context))
+            considerationItem
+                .withRecipient(space.recipient.generate(context, offerer))
                 .withGeneratedIdentifierOrCriteria(
                     space.itemType,
                     space.criteria,
@@ -556,6 +653,12 @@ library AmountGenerator {
         uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
         uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
 
+        // TODO: Work out a better way to handle this
+        if (context.basicOrderCategory == BasicOrderCategory.BID) {
+            a *= 1000;
+            b *= 1000;
+        }
+
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
 
@@ -605,10 +708,11 @@ library RecipientGenerator {
 
     function generate(
         Recipient recipient,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        address offerer
     ) internal pure returns (address) {
         if (recipient == Recipient.OFFERER) {
-            return context.offerer.addr;
+            return offerer;
         } else if (recipient == Recipient.RECIPIENT) {
             return context.caller;
         } else if (recipient == Recipient.DILLON) {

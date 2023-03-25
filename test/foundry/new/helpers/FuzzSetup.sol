@@ -163,6 +163,45 @@ abstract contract FuzzSetup is Test, AmountDeriver {
             context.action() == context.seaport.matchOrders.selector
         ) return;
 
+        // Special handling for basic orders that are bids; only first item
+        // needs to be approved
+        if (
+            (context.action() == context.seaport.fulfillBasicOrder.selector ||
+                context.action() ==
+                context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector) &&
+            context.orders[0].parameters.offer[0].itemType == ItemType.ERC20
+        ) {
+            ConsiderationItem memory item = context
+                .orders[0]
+                .parameters
+                .consideration[0];
+
+            if (item.itemType == ItemType.ERC721) {
+                TestERC721(item.token).mint(
+                    context.caller,
+                    item.identifierOrCriteria
+                );
+                vm.prank(context.caller);
+                TestERC721(item.token).setApprovalForAll(
+                    _getApproveTo(context),
+                    true
+                );
+            } else {
+                TestERC1155(item.token).mint(
+                    context.caller,
+                    item.identifierOrCriteria,
+                    item.startAmount
+                );
+                vm.prank(context.caller);
+                TestERC1155(item.token).setApprovalForAll(
+                    _getApproveTo(context),
+                    true
+                );
+            }
+
+            return;
+        }
+
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup

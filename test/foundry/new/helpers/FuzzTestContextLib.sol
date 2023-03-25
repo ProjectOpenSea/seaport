@@ -150,7 +150,7 @@ struct FuzzTestContext {
     /**
      * @dev Expected executions.  Implicit means it doesn't correspond directly
      *      with a fulfillment that was passed in.
-     */ 
+     */
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     /**

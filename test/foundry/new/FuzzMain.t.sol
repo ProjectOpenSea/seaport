@@ -16,15 +16,19 @@ contract FuzzMainTest is FuzzEngine {
     function test_fuzz_validOrders(
         uint256 seed,
         uint256 orders,
-        uint256 offers,
-        uint256 considerations
+        uint256 maxOfferItemsPerOrder,
+        uint256 maxConsiderationItemsPerOrder
     ) public {
         run(
             FuzzParams({
                 seed: seed,
                 totalOrders: bound(orders, 1, 10),
-                maxOfferItems: bound(offers, 1, 25),
-                maxConsiderationItems: bound(considerations, 1, 25)
+                maxOfferItems: bound(maxOfferItemsPerOrder, 0, 10),
+                maxConsiderationItems: bound(
+                    maxConsiderationItemsPerOrder,
+                    0,
+                    10
+                )
             })
         );
     }
