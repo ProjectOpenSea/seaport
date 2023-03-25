@@ -243,7 +243,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         );
         assertEq(
             orders[0].parameters.consideration[0].recipient,
-            context.offerer.addr
+            orders[0].parameters.offerer
         );
 
         assertEq(
