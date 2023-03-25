@@ -54,10 +54,6 @@ library ArrayHelpers {
      * @dev filterMap calls a defined callback function on each element of an array
      *      and returns an array that contains only the non-zero results
      *
-     * @notice  this method should not be used for arrays with value base types,
-     *          as it does not shift the head/tail of the array to the appropriate
-     *          position for such an array
-     *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
      *                returns a new value to put in its place in the new array
@@ -96,6 +92,29 @@ library ArrayHelpers {
         }
     }
 
+    function flatten(
+        MemoryPointer array1,
+        MemoryPointer array2
+    ) internal view returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 arrayLength1 = array1.readUint256();
+            uint256 arrayLength2 = array2.readUint256();
+            uint256 array1HeadSize = arrayLength1 * 32;
+            uint256 array2HeadSize = arrayLength2 * 32;
+
+            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray.write(arrayLength1 + arrayLength2);
+
+            MemoryPointer dst = newArray.next();
+            if (arrayLength1 > 0) {
+                array1.next().copy(dst, array1HeadSize);
+            }
+            if (arrayLength2 > 0) {
+                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
+            }
+        }
+    }
+
     // =====================================================================//
     //      filterMap with (element, arg) => (newElement) predicate         //
     // =====================================================================//
@@ -104,9 +123,9 @@ library ArrayHelpers {
      * @dev filterMap calls a defined callback function on each element of an array
      *      and returns an array that contains only the non-zero results
      *
-     * @notice  this method should not be used for arrays with value base types,
-     *          as it does not shift the head/tail of the array to the appropriate
-     *          position for such an array
+     *        filterMapWithArg = (arr, predicate, arg) => arr.map(
+     *          (element) => predicate(element, arg)
+     *        ).filter(result => result != 0)
      *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
@@ -121,7 +140,10 @@ library ArrayHelpers {
     function filterMapWithArg(
         MemoryPointer array,
         /* function (MemoryPointer element, MemoryPointer arg) returns (uint256 newValue) */
-        function(MemoryPointer, MemoryPointer) internal pure returns (MemoryPointer) fn,
+        function(MemoryPointer, MemoryPointer)
+            internal
+            pure
+            returns (MemoryPointer) fn,
         MemoryPointer arg
     ) internal pure returns (MemoryPointer newArray) {
         unchecked {
@@ -156,10 +178,6 @@ library ArrayHelpers {
      * @dev filter calls a defined callback function on each element of an array
      *      and returns an array that contains only the elements which the callback
      *      returned true for
-     *
-     * @notice  this method should not be used for arrays with value base types,
-     *          as it does not shift the head/tail of the array to the appropriate
-     *          position for such an array
      *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
@@ -319,10 +337,10 @@ library ArrayHelpers {
     function reduceWithArg(
         MemoryPointer array,
         /* function (uint256 currentResult, uint256 element, uint256 arg) returns (uint256 newResult) */
-        function(uint256, uint256, MemoryPointer) internal  returns (uint256) fn,
+        function(uint256, uint256, MemoryPointer) internal returns (uint256) fn,
         uint256 initialValue,
         MemoryPointer arg
-    ) internal  returns (uint256 result) {
+    ) internal returns (uint256 result) {
         unchecked {
             uint256 length = array.readUint256();
 
@@ -339,9 +357,9 @@ library ArrayHelpers {
 
     function forEach(
         MemoryPointer array,
-        uint256 arg,
-        /* function (uint256 element, uint256 arg) */
-        function(uint256, uint256) internal pure fn
+        /* function (MemoryPointer element, MemoryPointer arg) */
+        function(MemoryPointer, MemoryPointer) internal pure fn,
+        MemoryPointer arg
     ) internal pure {
         unchecked {
             uint256 length = array.readUint256();
@@ -350,7 +368,7 @@ library ArrayHelpers {
             MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
 
             while (srcPosition.lt(srcEnd)) {
-                fn(srcPosition.readUint256(), arg);
+                fn(srcPosition.readMemoryPointer(), arg);
                 srcPosition = srcPosition.next();
             }
         }
@@ -358,8 +376,8 @@ library ArrayHelpers {
 
     function forEach(
         MemoryPointer array,
-        /* function (uint256 element, uint256 arg) */
-        function(uint256) internal pure fn
+        /* function (MemoryPointer element) */
+        function(MemoryPointer) internal pure fn
     ) internal pure {
         unchecked {
             uint256 length = array.readUint256();
@@ -368,7 +386,7 @@ library ArrayHelpers {
             MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
 
             while (srcPosition.lt(srcEnd)) {
-                fn(srcPosition.readUint256());
+                fn(srcPosition.readMemoryPointer());
                 srcPosition = srcPosition.next();
             }
         }
@@ -532,7 +550,6 @@ library ArrayHelpers {
         }
     }
 
-
     // =====================================================================//
     //                     findIndex from start index                       //
     // =====================================================================//
@@ -555,6 +572,25 @@ library ArrayHelpers {
             return -1;
         }
     }
+
+  function countFrom(
+      MemoryPointer array,
+      function(MemoryPointer) internal pure returns (bool) predicate,
+      uint256 fromIndex
+  ) internal pure returns (int256 count) {
+      unchecked {
+          uint256 index = fromIndex;
+          uint256 length = array.readUint256();
+          MemoryPointer src = array.offset(fromIndex * 0x20);
+          while (index < length) {
+              if (predicate((src = src.next()).readMemoryPointer())) {
+                  count += 1;
+              }
+              index += 1;
+          }
+          
+      }
+  }
 
     // =====================================================================//
     //                      includes with one argument                      //
