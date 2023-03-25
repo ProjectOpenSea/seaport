@@ -711,7 +711,10 @@ library RecipientGenerator {
         FuzzGeneratorContext memory context,
         address offerer
     ) internal pure returns (address) {
-        if (recipient == Recipient.OFFERER) {
+        if (
+            recipient == Recipient.OFFERER ||
+            context.basicOrderCategory != BasicOrderCategory.NONE
+        ) {
             return offerer;
         } else if (recipient == Recipient.RECIPIENT) {
             return context.caller;

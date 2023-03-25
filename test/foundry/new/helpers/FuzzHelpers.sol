@@ -377,6 +377,11 @@ library FuzzHelpers {
             }
         }
 
+        // The offerer must be the recipient of the first consideration item.
+        if (consideration[0].recipient != order.parameters.offerer) {
+            return false;
+        }
+
         // If the NFT is the first consideration item, the sum of the amounts of
         // all the other consideration items cannot exceed the amount of the
         // offer item.
