@@ -10,21 +10,20 @@ import {
 } from "../../../../../contracts/lib/ConsiderationStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
-import { getEventHashWithTopics } from "./EventHashes.sol";
+import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
 import "forge-std/console2.sol";
-
-struct EventData {
-    address emitter;
-    bytes32 topic0;
-    bytes32 topic1;
-    bytes32 topic2;
-    bytes32 topic3;
-    bytes32 dataHash;
-}
+import {
+    ERC20TransferEvent,
+    ERC721TransferEvent,
+    ERC1155TransferEvent,
+    EventSerializer,
+    vm
+} from "./EventSerializer.sol";
 
 library TransferEventsLib {
     using { toBytes32 } for address;
     using TransferEventsLibCasts for *;
+    using EventSerializer for *;
 
     // ERC721 and ERC20 share the same topic0 for the Transfer event, but
     // for ERC721, the third parameter (identifier) is indexed.
@@ -43,28 +42,99 @@ library TransferEventsLib {
         uint256 value
     );
 
-    event ExpectedERC20Transfer(
-        address indexed token,
-        address indexed from,
-        address indexed to,
-        uint256 valueOrIdentifier
-    );
+    function serializeTransferLog(
+        Execution memory execution,
+        string memory objectKey,
+        string memory valueKey,
+        FuzzTestContext memory context
+    ) internal returns (string memory eventHash) {
+        ItemType itemType = execution.item.itemType;
 
-    event ExpectedERC721Transfer(
-        address indexed token,
-        address indexed from,
-        address indexed to,
-        uint256 valueOrIdentifier
-    );
+        if (itemType == ItemType.ERC20) {
+            ReceivedItem memory item = execution.item;
 
-    event ExpectedERC1155Transfer(
-        address token,
-        address indexed operator,
-        address indexed from,
-        address indexed to,
-        uint256 id,
-        uint256 value
-    );
+            ERC20TransferEvent memory eventData = ERC20TransferEvent(
+                "ERC20",
+                item.token,
+                execution.offerer,
+                address(item.recipient),
+                item.amount
+            );
+            return eventData.serializeERC20TransferEvent(objectKey, valueKey);
+        }
+
+        if (itemType == ItemType.ERC721) {
+            ReceivedItem memory item = execution.item;
+
+            return
+                ERC721TransferEvent(
+                    "ERC721",
+                    item.token,
+                    execution.offerer,
+                    address(item.recipient),
+                    item.identifier
+                    // getTopicsHash(
+                    //     Transfer.selector, // topic0
+                    //     execution.offerer.toBytes32(), // topic1
+                    //     toBytes32(item.recipient), // topic2
+                    //     bytes32(item.identifier) // topic3
+                    // ),
+                    // keccak256(""),
+                    // getERC721TransferEventHash(execution)
+                ).serializeERC721TransferEvent(objectKey, valueKey);
+        }
+        if (itemType == ItemType.ERC1155) {
+            ReceivedItem memory item = execution.item;
+            address operator = _getConduit(execution.conduitKey, context);
+
+            ERC1155TransferEvent memory eventData = ERC1155TransferEvent(
+                "ERC1155",
+                item.token,
+                operator,
+                execution.offerer,
+                address(item.recipient),
+                item.identifier,
+                item.amount
+              //   getTopicsHash(
+              //     TransferSingle.selector, // topic0
+              //     _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
+              //     execution.offerer.toBytes32(), // topic2 = from
+              //     toBytes32(item.recipient) // topic3 = to
+              // ),
+              // keccak256(abi.encode(item.identifier, item.amount)), // dataHash
+              // getERC1155TransferEventHash(execution, context) // event hash
+            );
+
+            return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
+        }
+    }
+
+    function serializeTransferLogs(
+        Execution[] memory value,
+        string memory objectKey,
+        string memory valueKey,
+        FuzzTestContext memory context
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            string memory _log = serializeTransferLog(
+                value[i],
+                obj,
+                string.concat("event", vm.toString(i)),
+                context
+            );
+            uint256 len;
+            assembly {
+                len := mload(_log)
+            }
+            if (length > 0) {
+                out = _log;
+            }
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
     function getTransferEventHash(
         Execution memory execution,
@@ -74,36 +144,16 @@ library TransferEventsLib {
 
         if (itemType == ItemType.ERC20) {
             ReceivedItem memory item = execution.item;
-            emit ExpectedERC20Transfer(
-                item.token,
-                execution.offerer,
-                address(item.recipient),
-                item.amount
-            );
             return getERC20TransferEventHash(execution);
         }
 
         if (itemType == ItemType.ERC721) {
             ReceivedItem memory item = execution.item;
-            emit ExpectedERC721Transfer(
-                item.token,
-                execution.offerer,
-                address(item.recipient),
-                item.identifier
-            );
             return getERC721TransferEventHash(execution);
         }
         if (itemType == ItemType.ERC1155) {
             ReceivedItem memory item = execution.item;
             address operator = _getConduit(execution.conduitKey, context);
-            emit ExpectedERC1155Transfer(
-                item.token,
-                operator,
-                execution.offerer,
-                address(item.recipient),
-                item.identifier,
-                item.amount
-            );
             return getERC1155TransferEventHash(execution, context);
         }
     }
@@ -157,18 +207,11 @@ library TransferEventsLib {
         bytes32 conduitKey,
         FuzzTestContext memory context
     ) internal view returns (address) {
-        if (conduitKey == bytes32(0)) {
-            return address(context.seaport);
-        }
-
+        if (conduitKey == bytes32(0)) return address(context.seaport);
         (address conduit, bool exists) = context.conduitController.getConduit(
             conduitKey
         );
-
-        if (exists) {
-            return conduit;
-        }
-
+        if (exists) return conduit;
         revert("TransferEventsLib: bad conduit key");
     }
 }
