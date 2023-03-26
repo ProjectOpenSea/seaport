@@ -129,12 +129,7 @@ abstract contract FuzzChecks is Test {
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
         bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            return;
-        }
+
         assertEq(
             context.returnValues.executions.length,
             context.expectedExplicitExecutions.length,
@@ -185,15 +180,7 @@ abstract contract FuzzChecks is Test {
         FuzzTestContext memory context
     ) public {
         bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            return;
-        }
-        if (action == context.seaport.matchOrders.selector) {
-            check_executions(context);
-        }
+
         ExpectedEventsUtil.checkExpectedEvents(context);
     }
 }
