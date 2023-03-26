@@ -170,14 +170,14 @@ contract ExecutionHelper is AmountDeriverHelper {
         if (excessNativeTokens > 0) {
             // technically ether comes back from seaport, but possibly useful for balance changes?
             Execution memory excessNativeExecution = Execution({
-                offerer: fulfiller,
+                offerer: fulfillmentDetails.fulfiller,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
                     token: address(0),
                     identifier: 0,
                     amount: excessNativeTokens,
-                    recipient: fulfiller
+                    recipient: fulfillmentDetails.fulfiller
                 })
             });
             Execution[] memory tempExecutions = new Execution[](
