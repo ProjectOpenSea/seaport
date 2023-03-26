@@ -159,6 +159,10 @@ struct FuzzTestContext {
      */
     bytes32[] expectedEventHashes;
     /**
+     * @dev Actual events emitted.
+     */
+    Vm.Log[] actualEvents;
+    /**
      * @dev Return values from the last call to exec. Superset of return values
      *      from all Seaport functions.
      */
@@ -191,6 +195,7 @@ library FuzzTestContextLib {
         Execution[] memory executions;
         bytes32[] memory hashes;
         bytes32[] memory expectedEventHashes;
+        Vm.Log[] memory actualEvents;
 
         return
             FuzzTestContext({
@@ -229,6 +234,7 @@ library FuzzTestContextLib {
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
                 expectedEventHashes: expectedEventHashes,
+                actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))
             });
     }
