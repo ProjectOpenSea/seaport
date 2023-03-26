@@ -85,8 +85,8 @@ contract FulfillAvailableHelperTest is Test {
                         .withItemType(ItemType.ERC721)
                         .withToken(address(1235)),
                     OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                            address(5679)
-                        ),
+                        address(5679)
+                    ),
                     OfferItemLib
                         .empty()
                         .withItemType(ItemType.ERC1155)

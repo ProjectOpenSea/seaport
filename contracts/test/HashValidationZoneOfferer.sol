@@ -23,14 +23,11 @@ import {
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 /**
- * @dev This contract is used to validate hashes.  Use the 
+ * @dev This contract is used to validate hashes.  Use the
  *      TestTransferValidationZoneOfferer to validate transfers within the
  *      zone/offerer.
  */
-contract HashValidationZoneOfferer is
-    ContractOffererInterface,
-    ZoneInterface
-{
+contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     error InvalidNativeTokenBalance(
         uint256 expectedBalance,
         uint256 actualBalance,
