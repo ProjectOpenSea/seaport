@@ -103,7 +103,12 @@ abstract contract FuzzDerivers is
                 explicitExecutions,
                 implicitExecutions
             ) = getFulfillAvailableExecutions(
-                toFulfillmentDetails(context.orders, context.recipient),
+                toFulfillmentDetails(
+                    context.orders,
+                    recipient,
+                    caller,
+                    context.fulfillerConduitKey
+                ),
                 context.offerFulfillments,
                 context.considerationFulfillments,
                 0 // TODO: Native tokens?
@@ -115,7 +120,12 @@ abstract contract FuzzDerivers is
             FulfillmentComponent[] memory remainingOfferComponents;
 
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
-                toFulfillmentDetails(context.orders, recipient),
+                toFulfillmentDetails(
+                    context.orders,
+                    recipient,
+                    caller,
+                    context.fulfillerConduitKey
+                ),
                 context.fulfillments,
                 remainingOfferComponents
             );
