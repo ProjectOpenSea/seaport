@@ -14,23 +14,23 @@ function getTopicsHash(
     bytes32 topic0,
     bytes32 topic1,
     bytes32 topic2
-) pure returns (bytes32 eventHash) {
-    return getTopicsHash(topic0, topic1, topic2, bytes32(0));
+) pure returns (bytes32 topicsHash) {
+    topicsHash = keccak256(abi.encode(topic0, topic1, topic2));
 }
 
 function getTopicsHash(
     bytes32 topic0,
     bytes32 topic1
-) pure returns (bytes32 eventHash) {
-    return getTopicsHash(topic0, topic1, bytes32(0), bytes32(0));
+) pure returns (bytes32 topicsHash) {
+    topicsHash = keccak256(abi.encode(topic0, topic1));
 }
 
-function getTopicsHash(bytes32 topic0) pure returns (bytes32 eventHash) {
-    return getTopicsHash(topic0, bytes32(0), bytes32(0), bytes32(0));
+function getTopicsHash(bytes32 topic0) pure returns (bytes32 topicsHash) {
+    topicsHash = keccak256(abi.encode(topic0));
 }
 
-function getTopicsHash() pure returns (bytes32 eventHash) {
-    return getTopicsHash(bytes32(0), bytes32(0), bytes32(0), bytes32(0));
+function getTopicsHash() pure returns (bytes32 topicsHash) {
+    topicsHash = keccak256("");
 }
 
 function getEventHash(

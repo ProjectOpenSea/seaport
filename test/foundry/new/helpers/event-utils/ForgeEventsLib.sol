@@ -41,8 +41,9 @@ library ForgeEventsLib {
     }
 
     function getDataHash(Vm.Log memory log) internal pure returns (bytes32) {
-        MemoryPointer data = toMemoryPointer(log).pptr(32);
-        return data.offset(32).hash(data.readUint256());
+        return keccak256(log.data);
+        // MemoryPointer data = toMemoryPointer(log).pptr(32);
+        // return data.offset(32).hash(data.readUint256());
     }
 
     function getTopic0(Vm.Log memory log) internal pure returns (bytes32) {
@@ -56,9 +57,13 @@ library ForgeEventsLib {
         uint256 topicsCount = topics.readUint256();
         (
             bytes32 topic0,
+            bool hasTopic0,
             bytes32 topic1,
+            bool hasTopic1,
             bytes32 topic2,
-            bytes32 topic3
+            bool hasTopic2,
+            bytes32 topic3,
+            bool hasTopic3
         ) = getTopics(log);
         MemoryPointer data = toMemoryPointer(log).pptr(32);
         assembly {
@@ -86,53 +91,93 @@ library ForgeEventsLib {
         Vm.Log memory log,
         string memory objectKey,
         string memory valueKey
-    ) internal {
+    ) internal returns (string memory) {
         (
             bytes32 topic0,
+            ,
             bytes32 topic1,
+            ,
             bytes32 topic2,
-            bytes32 topic3
+            ,
+            bytes32 topic3,
+            bool hasTopic3
         ) = getTopics(log);
         if (topic0 == Topic0_ERC20_ERC721_Transfer) {
-            address from = address(uint160(uint256(topic1)));
-            address to = address(uint160(uint256(topic2)));
-            if (topic3 != bytes32(0)) {
-                ERC721TransferEvent(
-                    "ERC721",
-                    log.emitter,
-                    from,
-                    to,
-                    uint256(topic3)
-                ).serializeERC721TransferEvent(objectKey, valueKey);
+            if (hasTopic3) {
+                return
+                    ERC721TransferEvent(
+                        "ERC721",
+                        log.emitter,
+                        address(uint160(uint256(topic1))),
+                        address(uint160(uint256(topic2))),
+                        uint256(topic3)
+                        // getForgeTopicsHash(log),
+                        // getDataHash(log),
+                        // getForgeEventHash(log)
+                    ).serializeERC721TransferEvent(objectKey, valueKey);
             } else {
-                uint256 amount = log.data.length >= 32
+                ERC20TransferEvent memory eventData;
+                eventData.kind = "ERC20";
+                eventData.token = log.emitter;
+                eventData.from = address(uint160(uint256(topic1)));
+                eventData.to = address(uint160(uint256(topic2)));
+                eventData.amount = log.data.length >= 32
                     ? abi.decode(log.data, (uint256))
                     : 0;
-                ERC20TransferEvent("ERC20", log.emitter, from, to, amount)
-                    .serializeERC20TransferEvent(objectKey, valueKey);
                 if (log.data.length == 0) {
-                  string memory obj = string.concat(objectKey, valueKey);
-                  string memory finalJson = vm.serializeString(obj, "amount", "No data provided in log for token amount");
-                  vm.serializeString(objectKey, valueKey, finalJson);
+                    string memory obj = string.concat(objectKey, valueKey);
+                    string memory finalJson = vm.serializeString(
+                        obj,
+                        "amount",
+                        "No data provided in log for token amount"
+                    );
+                    vm.serializeString(objectKey, valueKey, finalJson);
                 }
+                return
+                    eventData.serializeERC20TransferEvent(objectKey, valueKey);
             }
         } else if (topic0 == Topic0_ERC1155_TransferSingle) {
-            (uint256 id, uint256 amount) = abi.decode(
+            ERC1155TransferEvent memory eventData;
+            eventData.kind = "ERC1155";
+            eventData.token = log.emitter;
+            eventData.operator = address(uint160(uint256(topic1)));
+            eventData.from = address(uint160(uint256(topic2)));
+            eventData.to = address(uint160(uint256(topic3)));
+            (eventData.identifier, eventData.amount) = abi.decode(
                 log.data,
                 (uint256, uint256)
             );
-            ERC1155TransferEvent(
-                "ERC1155",
-                log.emitter,
-                address(uint160(uint256(topic1))),
-                address(uint160(uint256(topic2))),
-                address(uint160(uint256(topic3))),
-                id,
-                amount
-            ).serializeERC1155TransferEvent(objectKey, valueKey);
-        } else {
-            vm.serializeString(objectKey, valueKey, "UNKNOWN");
+            // eventData.topicHash = getForgeTopicsHash(log);
+            // eventData.dataHash = getDataHash(log);
+            // eventData.eventHash = getForgeEventHash(log);
+
+            return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }
+    }
+
+    function serializeTransferLogs(
+        Vm.Log[] memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            string memory _log = serializeTransferLog(
+                value[i],
+                obj,
+                string.concat("event", vm.toString(i))
+            );
+            uint256 len;
+            assembly {
+                len := mload(_log)
+            }
+            if (length > 0) {
+                out = _log;
+            }
+        }
+        return vm.serializeString(objectKey, valueKey, out);
     }
 
     function getTopics(
@@ -140,34 +185,46 @@ library ForgeEventsLib {
     )
         internal
         pure
-        returns (bytes32 topic0, bytes32 topic1, bytes32 topic2, bytes32 topic3)
+        returns (
+            bytes32 topic0,
+            bool hasTopic0,
+            bytes32 topic1,
+            bool hasTopic1,
+            bytes32 topic2,
+            bool hasTopic2,
+            bytes32 topic3,
+            bool hasTopic3
+        )
     {
         MemoryPointer topics = toMemoryPointer(log).pptr();
         uint256 topicsCount = topics.readUint256();
-        topic0 = topics.offset(0x20).readBytes32().ifTrue(topicsCount > 0);
-        topic1 = topics.offset(0x40).readBytes32().ifTrue(topicsCount > 1);
-        topic2 = topics.offset(0x60).readBytes32().ifTrue(topicsCount > 2);
-        topic3 = topics.offset(0x80).readBytes32().ifTrue(topicsCount > 3);
+        hasTopic0 = topicsCount > 0;
+        topic0 = topics.offset(0x20).readBytes32().ifTrue(hasTopic0);
+
+        hasTopic1 = topicsCount > 1;
+        topic1 = topics.offset(0x40).readBytes32().ifTrue(hasTopic1);
+
+        hasTopic2 = topicsCount > 2;
+        topic2 = topics.offset(0x60).readBytes32().ifTrue(hasTopic2);
+
+        hasTopic3 = topicsCount > 3;
+        topic3 = topics.offset(0x80).readBytes32().ifTrue(hasTopic3);
     }
 
     function getForgeTopicsHash(
         Vm.Log memory log
     ) internal pure returns (bytes32 topicHash) {
-        MemoryPointer topics = toMemoryPointer(log).pptr();
-        uint256 topicsCount = topics.readUint256();
-        bytes32 topic0 = topics.offset(0x20).readBytes32().ifTrue(
-            topicsCount > 0
-        );
-        bytes32 topic1 = topics.offset(0x40).readBytes32().ifTrue(
-            topicsCount > 1
-        );
-        bytes32 topic2 = topics.offset(0x60).readBytes32().ifTrue(
-            topicsCount > 2
-        );
-        bytes32 topic3 = topics.offset(0x80).readBytes32().ifTrue(
-            topicsCount > 3
-        );
-        return getTopicsHash(topic0, topic1, topic2, topic3);
+        (
+            bytes32 topic0,
+            bool hasTopic0,
+            bytes32 topic1,
+            bool hasTopic1,
+            bytes32 topic2,
+            bool hasTopic2,
+            bytes32 topic3,
+            bool hasTopic3
+        ) = getTopics(log);
+        return keccak256(abi.encodePacked(log.topics));
     }
 }
 

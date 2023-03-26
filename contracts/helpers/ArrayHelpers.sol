@@ -9,7 +9,7 @@ import "./PointerLibraries.sol";
  */
 library ArrayHelpers {
     // =====================================================================//
-    //            map with (element) => (newElement) predicate              //
+    //            map with (element) => (newElement) callback               //
     // =====================================================================//
 
     /**
@@ -47,7 +47,7 @@ library ArrayHelpers {
     }
 
     // =====================================================================//
-    //         filterMap with (element) => (newElement) predicate           //
+    //         filterMap with (element) => (newElement) callback            //
     // =====================================================================//
 
     /**
@@ -116,15 +116,15 @@ library ArrayHelpers {
     }
 
     // =====================================================================//
-    //      filterMap with (element, arg) => (newElement) predicate         //
+    //      filterMap with (element, arg) => (newElement) callback          //
     // =====================================================================//
 
     /**
      * @dev filterMap calls a defined callback function on each element of an array
      *      and returns an array that contains only the non-zero results
      *
-     *        filterMapWithArg = (arr, predicate, arg) => arr.map(
-     *          (element) => predicate(element, arg)
+     *        filterMapWithArg = (arr, callback, arg) => arr.map(
+     *          (element) => callback(element, arg)
      *        ).filter(result => result != 0)
      *
      * @param array   the array to map
