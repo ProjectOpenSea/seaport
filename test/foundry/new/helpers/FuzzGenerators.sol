@@ -356,7 +356,58 @@ library AdvancedOrdersSpaceGenerator {
                     .consideration = consideration;
             }
 
-            // TODO: handle orders with only filtered executions
+            // handle orders with only filtered executions Note: technically
+            // orders with no unfiltered consideration items can still be called
+            // in some cases via fulfillAvailable as long as there are offer
+            // items that don't have to be filtered as well. Also note that this
+            // does not account for unfilterable matchOrders combinations yet.
+            bool allFilterable = true;
+            address caller = context.caller == address(0)
+                ? address(this)
+                : context.caller;
+            for (uint256 i = 0; i < len; ++i) {
+                OrderParameters memory order = orders[i].parameters;
+
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ConsiderationItem memory item = order.consideration[j];
+
+                    if (item.recipient != caller) {
+                        allFilterable = false;
+                        break;
+                    }
+                }
+
+                if (!allFilterable) {
+                    break;
+                }
+            }
+
+            if (allFilterable) {
+                OrderParameters memory orderParams;
+                while (true) {
+                    uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                    orderParams = orders[orderInsertionIndex].parameters;
+
+                    if (orderParams.consideration.length != 0) {
+                        break;
+                    }
+                }
+
+                uint256 itemIndex = context.randRange(
+                    0,
+                    orderParams.consideration.length - 1
+                );
+
+                if (caller != context.alice.addr) {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.alice.addr
+                    );
+                } else {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.bob.addr
+                    );
+                }
+            }
         }
 
         // Sign phase
