@@ -117,8 +117,6 @@ abstract contract FuzzDerivers is
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
         ) {
-            FulfillmentComponent[] memory remainingOfferComponents;
-
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
                 toFulfillmentDetails(
                     context.orders,
@@ -127,7 +125,7 @@ abstract contract FuzzDerivers is
                     context.fulfillerConduitKey
                 ),
                 context.fulfillments,
-                remainingOfferComponents
+                0 // TODO: Native tokens?
             );
         }
         context.expectedImplicitExecutions = implicitExecutions;
