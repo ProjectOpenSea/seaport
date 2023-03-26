@@ -157,12 +157,19 @@ library TransferEventsLib {
         bytes32 conduitKey,
         FuzzTestContext memory context
     ) internal view returns (address) {
-        require(conduitKey != bytes32(0));
+        if (conduitKey == bytes32(0)) {
+            return address(context.seaport);
+        }
+
         (address conduit, bool exists) = context.conduitController.getConduit(
             conduitKey
         );
-        if (exists) return conduit;
-        return address(context.seaport);
+
+        if (exists) {
+            return conduit;
+        }
+
+        revert("TransferEventsLib: bad conduit key");
     }
 }
 
