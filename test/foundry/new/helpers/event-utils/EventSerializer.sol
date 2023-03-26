@@ -21,6 +21,9 @@ struct ERC721TransferEvent {
     address from;
     address to;
     uint256 identifier;
+    // bytes32 topicHash;
+    // bytes32 dataHash;
+    // bytes32 eventHash;
 }
 
 struct ERC1155TransferEvent {
@@ -31,6 +34,9 @@ struct ERC1155TransferEvent {
     address to;
     uint256 identifier;
     uint256 amount;
+    // bytes32 topicHash;
+    // bytes32 dataHash;
+    // bytes32 eventHash;
 }
 
 library EventSerializer {
@@ -48,6 +54,14 @@ library EventSerializer {
         address value
     ) internal returns (string memory) {
         return vm.serializeAddress(objectKey, valueKey, value);
+    }
+
+    function serializeBytes32(
+        string memory objectKey,
+        string memory valueKey,
+        bytes32 value
+    ) internal returns (string memory) {
+        return vm.serializeBytes32(objectKey, valueKey, value);
     }
 
     function serializeUint256(
@@ -87,6 +101,14 @@ library EventSerializer {
             "identifier",
             value.identifier
         );
+        // serializeUint256(obj, "identifier", value.identifier);
+        // serializeBytes32(obj, "topicHash", value.topicHash);
+        // serializeBytes32(obj, "dataHash", value.dataHash);
+        // string memory finalJson = serializeBytes32(
+        //     obj,
+        //     "eventHash",
+        //     value.eventHash
+        // );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -103,6 +125,14 @@ library EventSerializer {
         serializeAddress(obj, "to", value.to);
         serializeUint256(obj, "identifier", value.identifier);
         string memory finalJson = serializeUint256(obj, "amount", value.amount);
+        // serializeUint256(obj, "amount", value.amount);
+        // serializeBytes32(obj, "topicHash", value.topicHash);
+        // serializeBytes32(obj, "dataHash", value.dataHash);
+        // string memory finalJson = serializeBytes32(
+        //     obj,
+        //     "eventHash",
+        //     value.eventHash
+        // );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 }
