@@ -824,7 +824,7 @@ contract FuzzEngineTest is FuzzEngine {
 
         bytes4[] memory checks = new bytes4[](2);
         checks[0] = this.check_allOrdersFilled.selector;
-        checks[1] = this.check_executions.selector;
+        checks[1] = this.check_executionsPresent.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({

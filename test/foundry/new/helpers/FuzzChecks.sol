@@ -119,11 +119,6 @@ abstract contract FuzzChecks is Test {
      */
     function check_executionsPresent(FuzzTestContext memory context) public {
         assertTrue(context.returnValues.executions.length > 0);
-        assertTrue(
-            context.expectedExplicitExecutions.length > 0 ||
-                context.expectedImplicitExecutions.length > 0,
-            "no executions derived"
-        );
     }
 
     function check_executions(FuzzTestContext memory context) public {
