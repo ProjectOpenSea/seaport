@@ -67,15 +67,21 @@ abstract contract FuzzDerivers is
         bytes4 action = context.action();
         Execution[] memory implicitExecutions;
         Execution[] memory explicitExecutions;
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
         if (
             action == context.seaport.fulfillOrder.selector ||
             action == context.seaport.fulfillAdvancedOrder.selector
         ) {
             implicitExecutions = getStandardExecutions(
                 toOrderDetails(context.orders[0].parameters),
-                context.caller,
+                caller,
                 context.fulfillerConduitKey,
-                context.recipient,
+                recipient,
                 0 // TODO: Native tokens?
             );
         } else if (
@@ -85,7 +91,7 @@ abstract contract FuzzDerivers is
         ) {
             implicitExecutions = getBasicExecutions(
                 toOrderDetails(context.orders[0].parameters),
-                context.caller,
+                caller,
                 context.fulfillerConduitKey,
                 0 // TODO: Native tokens?
             );
@@ -97,7 +103,12 @@ abstract contract FuzzDerivers is
                 explicitExecutions,
                 implicitExecutions
             ) = getFulfillAvailableExecutions(
-                toFulfillmentDetails(context.orders, context.recipient),
+                toFulfillmentDetails(
+                    context.orders,
+                    recipient,
+                    caller,
+                    context.fulfillerConduitKey
+                ),
                 context.offerFulfillments,
                 context.considerationFulfillments,
                 0 // TODO: Native tokens?
@@ -106,11 +117,15 @@ abstract contract FuzzDerivers is
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
         ) {
-            FulfillmentComponent[] memory remainingOfferComponents;
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
-                toFulfillmentDetails(context.orders, context.recipient),
+                toFulfillmentDetails(
+                    context.orders,
+                    recipient,
+                    caller,
+                    context.fulfillerConduitKey
+                ),
                 context.fulfillments,
-                remainingOfferComponents
+                0 // TODO: Native tokens?
             );
         }
         context.expectedImplicitExecutions = implicitExecutions;

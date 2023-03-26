@@ -52,10 +52,16 @@ contract ExecutionHelper is AmountDeriverHelper {
      * @param recipient the explicit recipient of all offer items in the
      *        fulfillAvailable case; implicit recipient of excess offer items
      *        in the match case
+     * @param fulfiller the explicit recipient of all unspent native tokens;
+     *        provides all consideration items in the fulfillAvailable case
+     * @param fulfillerConduitKey used to transfer tokens from the fulfiller
+     *        providing all consideration items in the fulfillAvailable case
      */
     struct FulfillmentDetails {
         OrderDetails[] orders;
         address payable recipient;
+        address payable fulfiller;
+        bytes32 fulfillerConduitKey;
     }
 
     /// @dev Temp set of fulfillment components to track implicit offer executions;
@@ -68,13 +74,17 @@ contract ExecutionHelper is AmountDeriverHelper {
      */
     function toFulfillmentDetails(
         Order[] memory orders,
-        address recipient
+        address recipient,
+        address fulfiller,
+        bytes32 fulfillerConduitKey
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders);
         return
             FulfillmentDetails({
                 orders: details,
-                recipient: payable(recipient)
+                recipient: payable(recipient),
+                fulfiller: payable(fulfiller),
+                fulfillerConduitKey: fulfillerConduitKey
             });
     }
 
@@ -84,13 +94,17 @@ contract ExecutionHelper is AmountDeriverHelper {
      */
     function toFulfillmentDetails(
         AdvancedOrder[] memory orders,
-        address recipient
+        address recipient,
+        address fulfiller,
+        bytes32 fulfillerConduitKey
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders);
         return
             FulfillmentDetails({
                 orders: details,
-                recipient: payable(recipient)
+                recipient: payable(recipient),
+                fulfiller: payable(fulfiller),
+                fulfillerConduitKey: fulfillerConduitKey
             });
     }
 
@@ -101,13 +115,17 @@ contract ExecutionHelper is AmountDeriverHelper {
     function toFulfillmentDetails(
         AdvancedOrder[] memory orders,
         address recipient,
+        address fulfiller,
+        bytes32 fulfillerConduitKey,
         CriteriaResolver[] memory resolvers
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders, resolvers);
         return
             FulfillmentDetails({
                 orders: details,
-                recipient: payable(recipient)
+                recipient: payable(recipient),
+                fulfiller: payable(fulfiller),
+                fulfillerConduitKey: fulfillerConduitKey
             });
     }
 
@@ -133,42 +151,37 @@ contract ExecutionHelper is AmountDeriverHelper {
             Execution[] memory implicitExecutions
         )
     {
-        temp.clear();
-        OrderDetails[] memory orderDetails = fulfillmentDetails.orders;
-        address payable recipient = fulfillmentDetails.recipient;
+        uint256 excessNativeTokens = processExcessNativeTokens(
+            fulfillmentDetails.orders,
+            nativeTokensSupplied
+        );
+
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
             fulfillmentDetails,
             offerFulfillments,
             considerationFulfillments
         );
-        implicitExecutions = processImplicitOfferExecutionsFromExplicitAggregatedComponents(
-            fulfillmentDetails,
-            offerFulfillments
-        );
-        uint256 excessNativeTokens = processExcessNativeTokens(
-            orderDetails,
-            nativeTokensSupplied
-        );
+
+        implicitExecutions = processImplicitOfferExecutions(fulfillmentDetails);
+
         if (excessNativeTokens > 0) {
             // technically ether comes back from seaport, but possibly useful for balance changes?
-            Execution memory excessNativeExecution = Execution({
-                offerer: recipient,
+            implicitExecutions[implicitExecutions.length - 1] = Execution({
+                offerer: fulfillmentDetails.fulfiller,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
                     token: address(0),
                     identifier: 0,
                     amount: excessNativeTokens,
-                    recipient: recipient
+                    recipient: fulfillmentDetails.fulfiller
                 })
             });
-            Execution[] memory tempExecutions = new Execution[](
-                implicitExecutions.length + 1
-            );
-            for (uint256 i = 0; i < implicitExecutions.length; i++) {
-                tempExecutions[i] = implicitExecutions[i];
+        } else {
+            // reduce length of the implicit executions array by one.
+            assembly {
+                mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
             }
-            tempExecutions[implicitExecutions.length] = excessNativeExecution;
         }
     }
 
@@ -177,33 +190,77 @@ contract ExecutionHelper is AmountDeriverHelper {
      *         implicit executions.
      * @param fulfillmentDetails The fulfillment details.
      * @param fulfillments An array of fulfillments.
-     * @param remainingOfferComponents A *sorted*  array of offer fulfillment
-     *        components that were not used in any fulfillment.
+     * @param nativeTokensSupplied the amount of native tokens supplied
      */
     function getMatchExecutions(
         FulfillmentDetails memory fulfillmentDetails,
         Fulfillment[] memory fulfillments,
-        FulfillmentComponent[] memory remainingOfferComponents
+        uint256 nativeTokensSupplied
     )
         internal
-        pure
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
         )
     {
+        uint256 excessNativeTokens = processExcessNativeTokens(
+            fulfillmentDetails.orders,
+            nativeTokensSupplied
+        );
+
         explicitExecutions = new Execution[](fulfillments.length);
+
+        uint256 filteredExecutions = 0;
+
         for (uint256 i = 0; i < fulfillments.length; i++) {
-            explicitExecutions[i] = processExecutionFromFulfillment(
+            Execution memory execution = processExecutionFromFulfillment(
                 fulfillmentDetails,
                 fulfillments[i]
             );
+
+            if (
+                execution.item.recipient == execution.offerer &&
+                execution.item.itemType != ItemType.NATIVE
+            ) {
+                filteredExecutions++;
+            } else {
+                explicitExecutions[i - filteredExecutions] = execution;
+            }
         }
-        implicitExecutions = processExecutionsFromIndividualOfferFulfillmentComponents(
-            fulfillmentDetails.orders,
-            fulfillmentDetails.recipient,
-            remainingOfferComponents
-        );
+
+        // If some number of executions have been filtered...
+        if (filteredExecutions != 0) {
+            // reduce the total length of the executions array.
+            assembly {
+                mstore(
+                    explicitExecutions,
+                    sub(mload(explicitExecutions), filteredExecutions)
+                )
+            }
+        }
+
+        implicitExecutions = processImplicitOfferExecutions(fulfillmentDetails);
+
+        if (excessNativeTokens > 0) {
+            // technically ether comes back from seaport, but possibly useful for balance changes?
+            implicitExecutions[implicitExecutions.length - 1] = Execution({
+                offerer: fulfillmentDetails.fulfiller,
+                conduitKey: bytes32(0),
+                item: ReceivedItem({
+                    itemType: ItemType.NATIVE,
+                    token: address(0),
+                    identifier: 0,
+                    amount: excessNativeTokens,
+                    recipient: fulfillmentDetails.fulfiller
+                })
+            });
+        } else {
+            // reduce length of the implicit executions array by one.
+            assembly {
+                mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
+            }
+        }
     }
 
     // return executions for fulfilOrder and fulfillAdvancedOrder
@@ -382,18 +439,32 @@ contract ExecutionHelper is AmountDeriverHelper {
                 nativeTokensSupplied -= orderDetails.consideration[i].amount;
             }
         }
+
+        // Check offer items as well; these are only set for match &
+        // on contract orders (NOTE: some additional logic is
+        // likely required for the contract order case as those can
+        // provide the native tokens themselves).
+        for (uint256 i = 0; i < orderDetails.offer.length; i++) {
+            if (orderDetails.offer[i].token == address(0)) {
+                if (nativeTokensSupplied < orderDetails.offer[i].amount) {
+                    revert InsufficientNativeTokensSupplied();
+                }
+                nativeTokensSupplied -= orderDetails.offer[i].amount;
+            }
+        }
+
         excessNativeTokens = nativeTokensSupplied;
     }
 
     /**
      * @notice Get the item and recipient for a given fulfillment component
-     * @param orders The order details
+     * @param fulfillmentDetails The order fulfillment details
      * @param offerRecipient The offer recipient
      * @param component The fulfillment component
      * @param side The side of the order
      */
     function getItemAndRecipient(
-        OrderDetails[] memory orders,
+        FulfillmentDetails memory fulfillmentDetails,
         address payable offerRecipient,
         FulfillmentComponent memory component,
         Side side
@@ -402,7 +473,9 @@ contract ExecutionHelper is AmountDeriverHelper {
         pure
         returns (SpentItem memory item, address payable trueRecipient)
     {
-        OrderDetails memory details = orders[component.orderIndex];
+        OrderDetails memory details = fulfillmentDetails.orders[
+            component.orderIndex
+        ];
         if (side == Side.OFFER) {
             item = details.offer[component.itemIndex];
             trueRecipient = offerRecipient;
@@ -420,17 +493,16 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     /**
      * @notice Process the aggregated fulfillment components for a given side of an order
-     * @param orders The fulfillment details
+     * @param fulfillmentDetails The order fulfillment details
      * @param offerRecipient The recipient for any offer items
      *        Note: may not be FulfillmentDetails' recipient, eg, when
      *        processing matchOrders fulfillments
      * @param aggregatedComponents The aggregated fulfillment components
-     
      * @param side The side of the order
      * @return The execution
      */
     function processExecutionFromAggregatedFulfillmentComponents(
-        OrderDetails[] memory orders,
+        FulfillmentDetails memory fulfillmentDetails,
         address payable offerRecipient,
         FulfillmentComponent[] memory aggregatedComponents,
         Side side
@@ -439,7 +511,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 aggregatedAmount;
         for (uint256 j = 0; j < aggregatedComponents.length; j++) {
             (SpentItem memory item, ) = getItemAndRecipient(
-                orders,
+                fulfillmentDetails,
                 offerRecipient,
                 aggregatedComponents[j],
                 side
@@ -451,12 +523,23 @@ contract ExecutionHelper is AmountDeriverHelper {
         (
             SpentItem memory firstItem,
             address payable trueRecipient
-        ) = getItemAndRecipient(orders, offerRecipient, first, side);
-        OrderDetails memory details = orders[first.orderIndex];
+        ) = getItemAndRecipient(
+                fulfillmentDetails,
+                offerRecipient,
+                first,
+                side
+            );
+        OrderDetails memory details = fulfillmentDetails.orders[
+            first.orderIndex
+        ];
         return
             Execution({
-                offerer: details.offerer,
-                conduitKey: details.conduitKey,
+                offerer: side == Side.OFFER
+                    ? details.offerer
+                    : fulfillmentDetails.fulfiller,
+                conduitKey: side == Side.OFFER
+                    ? details.conduitKey
+                    : fulfillmentDetails.fulfillerConduitKey,
                 item: ReceivedItem({
                     itemType: firstItem.itemType,
                     token: firstItem.token,
@@ -469,7 +552,8 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     /**
      * @notice Process explicit executions from 2d aggregated fulfillAvailable
-     *         fulfillment components arrays
+     *         fulfillment components arrays. Note that amounts on OrderDetails
+     *         are modified in-place during fulfillment processing.
      * @param fulfillmentDetails The fulfillment details
      * @param offerComponents The offer components
      * @param considerationComponents The consideration components
@@ -480,39 +564,127 @@ contract ExecutionHelper is AmountDeriverHelper {
         FulfillmentComponent[][] memory offerComponents,
         FulfillmentComponent[][] memory considerationComponents
     ) internal pure returns (Execution[] memory explicitExecutions) {
-        // convert offerFulfillments to explicitExecutions
         explicitExecutions = new Execution[](
             offerComponents.length + considerationComponents.length
         );
-        OrderDetails[] memory orders = fulfillmentDetails.orders;
-        address payable recipient = fulfillmentDetails.recipient;
-        // process offers
+
+        uint256 filteredExecutions = 0;
+
+        // process offer components
         // iterate over each array of fulfillment components
         for (uint256 i = 0; i < offerComponents.length; i++) {
             FulfillmentComponent[]
                 memory aggregatedComponents = offerComponents[i];
-            explicitExecutions[
-                i
-            ] = processExecutionFromAggregatedFulfillmentComponents(
-                orders,
-                recipient,
-                aggregatedComponents,
-                Side.OFFER
-            );
+
+            // aggregate & zero-out the amounts of each offer item
+            uint256 aggregatedAmount;
+            for (uint256 j = 0; j < aggregatedComponents.length; j++) {
+                FulfillmentComponent memory component = aggregatedComponents[j];
+
+                // TODO: handle unavailable orders & OOR items
+                OrderDetails memory details = fulfillmentDetails.orders[
+                    component.orderIndex
+                ];
+
+                SpentItem memory item = details.offer[component.itemIndex];
+
+                aggregatedAmount += item.amount;
+
+                item.amount = 0;
+            }
+
+            // use the first fulfillment component to get the order details
+            FulfillmentComponent memory first = aggregatedComponents[0];
+            OrderDetails memory details = fulfillmentDetails.orders[
+                first.orderIndex
+            ];
+            SpentItem memory firstItem = details.offer[first.itemIndex];
+
+            if (
+                fulfillmentDetails.recipient == details.offerer &&
+                firstItem.itemType != ItemType.NATIVE
+            ) {
+                filteredExecutions++;
+            } else {
+                explicitExecutions[i - filteredExecutions] = Execution({
+                    offerer: details.offerer,
+                    conduitKey: details.conduitKey,
+                    item: ReceivedItem({
+                        itemType: firstItem.itemType,
+                        token: firstItem.token,
+                        identifier: firstItem.identifier,
+                        amount: aggregatedAmount,
+                        recipient: fulfillmentDetails.recipient
+                    })
+                });
+            }
         }
-        // process considerations
+
+        // process consideration components
         // iterate over each array of fulfillment components
         for (uint256 i; i < considerationComponents.length; i++) {
             FulfillmentComponent[]
                 memory aggregatedComponents = considerationComponents[i];
-            explicitExecutions[
-                i + offerComponents.length
-            ] = processExecutionFromAggregatedFulfillmentComponents(
-                orders,
-                recipient,
-                aggregatedComponents,
-                Side.CONSIDERATION
-            );
+
+            // aggregate & zero-out the amounts of each offer item
+            uint256 aggregatedAmount;
+            for (uint256 j = 0; j < aggregatedComponents.length; j++) {
+                FulfillmentComponent memory component = aggregatedComponents[j];
+
+                // TODO: handle unavailable orders & OOR items
+                OrderDetails memory details = fulfillmentDetails.orders[
+                    component.orderIndex
+                ];
+
+                ReceivedItem memory item = details.consideration[
+                    component.itemIndex
+                ];
+
+                aggregatedAmount += item.amount;
+
+                item.amount = 0;
+            }
+
+            // use the first fulfillment component to get the order details
+            FulfillmentComponent memory first = aggregatedComponents[0];
+            OrderDetails memory details = fulfillmentDetails.orders[
+                first.orderIndex
+            ];
+            ReceivedItem memory firstItem = details.consideration[
+                first.itemIndex
+            ];
+
+            if (
+                firstItem.recipient == fulfillmentDetails.fulfiller &&
+                firstItem.itemType != ItemType.NATIVE
+            ) {
+                filteredExecutions++;
+            } else {
+                explicitExecutions[
+                    i + offerComponents.length - filteredExecutions
+                ] = Execution({
+                    offerer: fulfillmentDetails.fulfiller,
+                    conduitKey: fulfillmentDetails.fulfillerConduitKey,
+                    item: ReceivedItem({
+                        itemType: firstItem.itemType,
+                        token: firstItem.token,
+                        identifier: firstItem.identifier,
+                        amount: aggregatedAmount,
+                        recipient: firstItem.recipient
+                    })
+                });
+            }
+        }
+
+        // If some number of executions have been filtered...
+        if (filteredExecutions != 0) {
+            // reduce the total length of the executions array.
+            assembly {
+                mstore(
+                    explicitExecutions,
+                    sub(mload(explicitExecutions), filteredExecutions)
+                )
+            }
         }
     }
 
@@ -550,43 +722,49 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     /**
      * @notice Generate implicit Executions for a set of orders by getting all
-     *         offer items that are not explicitly enumerated in the aggregated
-     *         offer fulfillment components.
+     *         offer items that are not fully spent as part of a fulfillment.
      * @param fulfillmentDetails fulfillment details
-     * @param offerFulfillments explicitly enumerated aggregated offer
-     *        fulfillment components
      */
-    function processImplicitOfferExecutionsFromExplicitAggregatedComponents(
-        FulfillmentDetails memory fulfillmentDetails,
-        FulfillmentComponent[][] memory offerFulfillments
-    ) internal returns (Execution[] memory implicitExecutions) {
-        // add all offer fulfillment components to temp
+    function processImplicitOfferExecutions(
+        FulfillmentDetails memory fulfillmentDetails
+    ) internal pure returns (Execution[] memory implicitExecutions) {
         OrderDetails[] memory orderDetails = fulfillmentDetails.orders;
-        address payable recipient = fulfillmentDetails.recipient;
-        for (uint256 i = 0; i < orderDetails.length; i++) {
-            OrderDetails memory details = orderDetails[i];
-            for (uint256 j; j < details.offer.length; j++) {
-                temp.add(FulfillmentComponent({ orderIndex: i, itemIndex: j }));
-            }
+
+        // Get the maximum possible number of implicit executions.
+        uint256 maxPossible = 1;
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            maxPossible += orderDetails[i].offer.length;
         }
-        // remove all explicitly enumerated offer fulfillment components
-        for (uint256 i = 0; i < offerFulfillments.length; i++) {
-            for (uint256 j = 0; j < offerFulfillments[i].length; j++) {
-                temp.remove(offerFulfillments[i][j]);
+
+        // Insert an implicit execution for each non-zero offer item.
+        implicitExecutions = new Execution[](maxPossible);
+        uint256 insertionIndex = 0;
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            OrderDetails memory details = orderDetails[i];
+            for (uint256 j; j < details.offer.length; ++j) {
+                SpentItem memory item = details.offer[j];
+                if (item.amount != 0) {
+                    // Insert the item and increment insertion index.
+                    implicitExecutions[insertionIndex++] = Execution({
+                        offerer: details.offerer,
+                        conduitKey: details.conduitKey,
+                        item: ReceivedItem({
+                            itemType: item.itemType,
+                            token: item.token,
+                            identifier: item.identifier,
+                            amount: item.amount,
+                            recipient: fulfillmentDetails.recipient
+                        })
+                    });
+                }
             }
         }
 
-        // enumerate all remaining offer fulfillment components
-        // and assemble them into the implicitExecutions array, if any
-        FulfillmentComponent[] memory implicit = temp.enumeration;
-        // sort them by orderIndex and itemIndex, since that is how Seaport
-        // will execute them
-        implicit.sort();
-        implicitExecutions = processExecutionsFromIndividualOfferFulfillmentComponents(
-            orderDetails,
-            recipient,
-            temp.enumeration
-        );
+        // Set the final length of the implicit executions array.
+        // Leave space for possible excess native token return.
+        assembly {
+            mstore(implicitExecutions, add(insertionIndex, 1))
+        }
     }
 
     /**
@@ -599,20 +777,86 @@ contract ExecutionHelper is AmountDeriverHelper {
         FulfillmentDetails memory fulfillmentDetails,
         Fulfillment memory fulfillment
     ) internal pure returns (Execution memory) {
-        // grab first consideration component
+        // aggregate & zero-out the amounts of each offer item
+        uint256 aggregatedOfferAmount;
+        for (uint256 j = 0; j < fulfillment.offerComponents.length; j++) {
+            FulfillmentComponent memory component = fulfillment.offerComponents[
+                j
+            ];
+
+            // TODO: handle unavailable orders & OOR items
+            OrderDetails memory details = fulfillmentDetails.orders[
+                component.orderIndex
+            ];
+
+            SpentItem memory item = details.offer[component.itemIndex];
+
+            aggregatedOfferAmount += item.amount;
+
+            item.amount = 0;
+        }
+
+        // aggregate & zero-out the amounts of each offer item
+        uint256 aggregatedConsiderationAmount;
+        for (
+            uint256 j = 0;
+            j < fulfillment.considerationComponents.length;
+            j++
+        ) {
+            FulfillmentComponent memory component = fulfillment
+                .considerationComponents[j];
+
+            // TODO: handle unavailable orders & OOR items
+            OrderDetails memory details = fulfillmentDetails.orders[
+                component.orderIndex
+            ];
+
+            ReceivedItem memory item = details.consideration[
+                component.itemIndex
+            ];
+
+            aggregatedConsiderationAmount += item.amount;
+
+            item.amount = 0;
+        }
+
+        // Get the first item on each side
+        FulfillmentComponent memory firstOfferComponent = fulfillment
+            .offerComponents[0];
+        OrderDetails memory sourceOrder = fulfillmentDetails.orders[
+            firstOfferComponent.orderIndex
+        ];
+
         FulfillmentComponent memory firstConsiderationComponent = fulfillment
             .considerationComponents[0];
-        // get recipient of the execution
-        address payable recipient = fulfillmentDetails
+        ReceivedItem memory item = fulfillmentDetails
             .orders[firstConsiderationComponent.orderIndex]
-            .consideration[firstConsiderationComponent.itemIndex]
-            .recipient;
+            .consideration[firstConsiderationComponent.itemIndex];
+
+        // put back any extra (TODO: put it on first *available* item)
+        uint256 amount = aggregatedOfferAmount;
+        if (aggregatedOfferAmount > aggregatedConsiderationAmount) {
+            sourceOrder
+                .offer[firstOfferComponent.itemIndex]
+                .amount += (aggregatedOfferAmount -
+                aggregatedConsiderationAmount);
+            amount = aggregatedConsiderationAmount;
+        } else if (aggregatedOfferAmount < aggregatedConsiderationAmount) {
+            item.amount += (aggregatedConsiderationAmount -
+                aggregatedOfferAmount);
+        }
+
         return
-            processExecutionFromAggregatedFulfillmentComponents(
-                fulfillmentDetails.orders,
-                recipient,
-                fulfillment.offerComponents,
-                Side.OFFER
-            );
+            Execution({
+                offerer: sourceOrder.offerer,
+                conduitKey: sourceOrder.conduitKey,
+                item: ReceivedItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifier: item.identifier,
+                    amount: amount,
+                    recipient: item.recipient
+                })
+            });
     }
 }

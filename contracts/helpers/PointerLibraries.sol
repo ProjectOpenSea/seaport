@@ -74,6 +74,12 @@ library CalldataPointerLib {
         }
     }
 
+    function isNull(CalldataPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
+        }
+    }
+
     /// @dev Resolves an offset stored at `cdPtr + headOffset` to a calldata.
     ///      pointer `cdPtr` must point to some parent object with a dynamic
     ///      type's head stored at `cdPtr + headOffset`.
@@ -152,6 +158,12 @@ library ReturndataPointerLib {
     ) internal pure returns (bool c) {
         assembly {
             c := eq(a, b)
+        }
+    }
+
+    function isNull(ReturndataPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
         }
     }
 
@@ -253,6 +265,21 @@ library MemoryPointerLib {
     ) internal pure returns (bool c) {
         assembly {
             c := eq(a, b)
+        }
+    }
+
+    function isNull(MemoryPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
+        }
+    }
+
+    function hash(
+        MemoryPointer ptr,
+        uint256 length
+    ) internal pure returns (bytes32 _hash) {
+        assembly {
+            _hash := keccak256(ptr, length)
         }
     }
 

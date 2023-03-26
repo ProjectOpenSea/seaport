@@ -41,6 +41,7 @@ interface TestHelpers {
 }
 
 struct FuzzTestContext {
+    bytes4 _action;
     /**
      * @dev A Seaport interface, either the reference or optimized version.
      */
@@ -160,6 +161,14 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     /**
+     * @dev Expected event hashes. Encompasses all events that match watched topic0s.
+     */
+    bytes32[] expectedEventHashes;
+    /**
+     * @dev Actual events emitted.
+     */
+    Vm.Log[] actualEvents;
+    /**
      * @dev Return values from the last call to exec. Superset of return values
      *      from all Seaport functions.
      */
@@ -191,9 +200,12 @@ library FuzzTestContextLib {
         bool[] memory available;
         Execution[] memory executions;
         bytes32[] memory hashes;
+        bytes32[] memory expectedEventHashes;
+        Vm.Log[] memory actualEvents;
 
         return
             FuzzTestContext({
+                _action: bytes4(0),
                 orders: orders,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
@@ -228,6 +240,8 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                expectedEventHashes: expectedEventHashes,
+                actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))
             });
     }

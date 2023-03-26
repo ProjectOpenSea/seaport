@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
-
 import { Test } from "forge-std/Test.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 import {
@@ -21,6 +20,8 @@ import {
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
+import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
 /**
  * @dev Check functions are the post-execution assertions we want to validate.
  *      Checks should be public functions that accept a FuzzTestContext as their
@@ -30,7 +31,11 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
  */
 abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
+
+    using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder[];
+   
+
 
     address payable testZone;
     address payable contractOfferer;
@@ -182,6 +187,64 @@ abstract contract FuzzChecks is Test {
      */
     function check_executionsPresent(FuzzTestContext memory context) public {
         assertTrue(context.returnValues.executions.length > 0);
+    }
+
+    function check_executions(FuzzTestContext memory context) public {
+        // TODO: fulfillAvailable cases return an extra expected execution
+        bytes4 action = context.action();
+
+        assertEq(
+            context.returnValues.executions.length,
+            context.expectedExplicitExecutions.length,
+            "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
+        );
+        for (uint256 i; i < context.expectedExplicitExecutions.length; i++) {
+            Execution memory actual = context.returnValues.executions[i];
+            Execution memory expected = context.expectedExplicitExecutions[i];
+            assertEq(
+                uint256(actual.item.itemType),
+                uint256(expected.item.itemType),
+                "check_executions: itemType"
+            );
+            assertEq(
+                actual.item.token,
+                expected.item.token,
+                "check_executions: token"
+            );
+            assertEq(
+                actual.item.identifier,
+                expected.item.identifier,
+                "check_executions: identifier"
+            );
+            assertEq(
+                actual.item.amount,
+                expected.item.amount,
+                "check_executions: amount"
+            );
+            assertEq(
+                address(actual.item.recipient),
+                address(expected.item.recipient),
+                "check_executions: recipient"
+            );
+            assertEq(
+                actual.conduitKey,
+                expected.conduitKey,
+                "check_executions: conduitKey"
+            );
+            assertEq(
+                actual.offerer,
+                expected.offerer,
+                "check_executions: offerer"
+            );
+        }
+    }
+
+    function check_expectedEventsEmitted(
+        FuzzTestContext memory context
+    ) public {
+        bytes4 action = context.action();
+
+        ExpectedEventsUtil.checkExpectedEvents(context);
     }
 }
 
