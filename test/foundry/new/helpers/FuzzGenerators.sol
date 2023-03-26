@@ -98,7 +98,8 @@ library TestStateGenerator {
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
-                    context
+                    context,
+                    false
                 ),
                 orderType: BroadOrderType(context.randEnum(0, 2)),
                 // TODO: Restricted range to 1 and 2 to avoid unavailable.
@@ -160,13 +161,16 @@ library TestStateGenerator {
 
     function generateConsideration(
         uint256 maxConsiderationItemsPerOrder,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool atLeastOne
     ) internal pure returns (ConsiderationItemSpace[] memory) {
         bool isBasic = context.basicOrderCategory != BasicOrderCategory.NONE;
 
         uint256 len = context.randRange(
-            isBasic ? 1 : 0,
-            maxConsiderationItemsPerOrder
+            (isBasic || atLeastOne) ? 1 : 0,
+            ((isBasic || atLeastOne) && maxConsiderationItemsPerOrder == 0)
+                ? 1
+                : maxConsiderationItemsPerOrder
         );
 
         ConsiderationItemSpace[]
@@ -222,6 +226,7 @@ library AdvancedOrdersSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
+    using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
 
@@ -315,6 +320,43 @@ library AdvancedOrdersSpaceGenerator {
 
                 orders[orderInsertionIndex].parameters.offer = newOffer;
             }
+        }
+
+        // Handle combined orders (need to have at least one execution)
+        if (len > 1) {
+            // handle orders with no items
+            bool allEmpty = true;
+            for (uint256 i = 0; i < len; ++i) {
+                OrderParameters memory orderParams = orders[i].parameters;
+                if (
+                    orderParams.offer.length +
+                        orderParams.consideration.length >
+                    0
+                ) {
+                    allEmpty = false;
+                    break;
+                }
+            }
+
+            if (allEmpty) {
+                uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                OrderParameters memory orderParams = orders[orderInsertionIndex]
+                    .parameters;
+
+                ConsiderationItem[]
+                    memory consideration = new ConsiderationItem[](1);
+                consideration[0] = TestStateGenerator
+                .generateConsideration(1, context, true)[0].generate(
+                        context,
+                        orderParams.offerer
+                    );
+
+                orders[orderInsertionIndex]
+                    .parameters
+                    .consideration = consideration;
+            }
+
+            // TODO: handle orders with only filtered executions
         }
 
         // Sign phase
