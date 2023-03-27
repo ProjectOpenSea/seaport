@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "seaport-sol/../ArrayHelpers.sol";
+import "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     Execution,
@@ -10,7 +10,9 @@ import {
 } from "../../../../../contracts/lib/ConsiderationStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
+
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
+
 import {
     ERC20TransferEvent,
     ERC721TransferEvent,
@@ -41,12 +43,22 @@ library TransferEventsLib {
         uint256 value
     );
 
+    /**
+     * @dev Serializes a token transfer log for an ERC20, ERC721, or ERC1155.
+     *
+     * @param execution The execution that corresponds to the transfer event.
+     * @param objectKey The key to use for the object in the JSON.
+     * @param valueKey  The key to use for the value in the JSON.
+     * @param context   The context of the fuzz test.
+     *
+     * @return json The json for the event.
+     */
     function serializeTransferLog(
         Execution memory execution,
         string memory objectKey,
         string memory valueKey,
         FuzzTestContext memory context
-    ) internal returns (string memory eventHash) {
+    ) internal returns (string memory json) {
         ItemType itemType = execution.item.itemType;
 
         if (itemType == ItemType.ERC20) {
@@ -94,20 +106,25 @@ library TransferEventsLib {
                 address(item.recipient),
                 item.identifier,
                 item.amount
-              //   getTopicsHash(
-              //     TransferSingle.selector, // topic0
-              //     _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
-              //     execution.offerer.toBytes32(), // topic2 = from
-              //     toBytes32(item.recipient) // topic3 = to
-              // ),
-              // keccak256(abi.encode(item.identifier, item.amount)), // dataHash
-              // getERC1155TransferEventHash(execution, context) // event hash
+                //   getTopicsHash(
+                //     TransferSingle.selector, // topic0
+                //     _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
+                //     execution.offerer.toBytes32(), // topic2 = from
+                //     toBytes32(item.recipient) // topic3 = to
+                // ),
+                // keccak256(abi.encode(item.identifier, item.amount)), // dataHash
+                // getERC1155TransferEventHash(execution, context) // event hash
             );
 
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }
+
+        revert("Invalid event log");
     }
 
+    /**
+     * @dev Serializes an array of token transfer logs.
+     */
     function serializeTransferLogs(
         Execution[] memory value,
         string memory objectKey,
@@ -215,12 +232,18 @@ library TransferEventsLib {
     }
 }
 
+/**
+ * @dev Low level helper to cast an address to a bytes32.
+ */
 function toBytes32(address a) pure returns (bytes32 b) {
     assembly {
         b := a
     }
 }
 
+/**
+ * @dev Low level helper.
+ */
 library TransferEventsLibCasts {
     function cast(
         function(
