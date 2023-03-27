@@ -146,6 +146,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 nativeTokensSupplied
     )
         public
+        pure
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
@@ -198,7 +199,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 nativeTokensSupplied
     )
         internal
-        view
+        pure
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
@@ -582,11 +583,11 @@ contract ExecutionHelper is AmountDeriverHelper {
                 FulfillmentComponent memory component = aggregatedComponents[j];
 
                 // TODO: handle unavailable orders & OOR items
-                OrderDetails memory details = fulfillmentDetails.orders[
+                OrderDetails memory offerOrderDetails = fulfillmentDetails.orders[
                     component.orderIndex
                 ];
 
-                SpentItem memory item = details.offer[component.itemIndex];
+                SpentItem memory item = offerOrderDetails.offer[component.itemIndex];
 
                 aggregatedAmount += item.amount;
 
@@ -632,11 +633,11 @@ contract ExecutionHelper is AmountDeriverHelper {
                 FulfillmentComponent memory component = aggregatedComponents[j];
 
                 // TODO: handle unavailable orders & OOR items
-                OrderDetails memory details = fulfillmentDetails.orders[
+                OrderDetails memory considerationOrderDetails = fulfillmentDetails.orders[
                     component.orderIndex
                 ];
 
-                ReceivedItem memory item = details.consideration[
+                ReceivedItem memory item = considerationOrderDetails.consideration[
                     component.itemIndex
                 ];
 
@@ -789,11 +790,11 @@ contract ExecutionHelper is AmountDeriverHelper {
                 component.orderIndex
             ];
 
-            SpentItem memory item = details.offer[component.itemIndex];
+            SpentItem memory offerSpentItem = details.offer[component.itemIndex];
 
-            aggregatedOfferAmount += item.amount;
+            aggregatedOfferAmount += offerSpentItem.amount;
 
-            item.amount = 0;
+            offerSpentItem.amount = 0;
         }
 
         // aggregate & zero-out the amounts of each offer item
@@ -811,13 +812,13 @@ contract ExecutionHelper is AmountDeriverHelper {
                 component.orderIndex
             ];
 
-            ReceivedItem memory item = details.consideration[
+            ReceivedItem memory considerationSpentItem = details.consideration[
                 component.itemIndex
             ];
 
-            aggregatedConsiderationAmount += item.amount;
+            aggregatedConsiderationAmount += considerationSpentItem.amount;
 
-            item.amount = 0;
+            considerationSpentItem.amount = 0;
         }
 
         // Get the first item on each side

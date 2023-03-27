@@ -57,14 +57,18 @@ library ForgeEventsLib {
         uint256 topicsCount = topics.readUint256();
         (
             bytes32 topic0,
-            bool hasTopic0,
+            ,
+            // bool hasTopic0,
             bytes32 topic1,
-            bool hasTopic1,
+            ,
+            // bool hasTopic1,
             bytes32 topic2,
-            bool hasTopic2,
+            ,
+            // bool hasTopic2,
             bytes32 topic3,
-            bool hasTopic3
-        ) = getTopics(log);
+
+        ) = // bool hasTopic3
+            getTopics(log);
         MemoryPointer data = toMemoryPointer(log).pptr(32);
         assembly {
             switch topicsCount
@@ -153,6 +157,8 @@ library ForgeEventsLib {
 
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }
+
+        revert("Invalid event log");
     }
 
     function serializeTransferLogs(
@@ -214,16 +220,16 @@ library ForgeEventsLib {
     function getForgeTopicsHash(
         Vm.Log memory log
     ) internal pure returns (bytes32 topicHash) {
-        (
-            bytes32 topic0,
-            bool hasTopic0,
-            bytes32 topic1,
-            bool hasTopic1,
-            bytes32 topic2,
-            bool hasTopic2,
-            bytes32 topic3,
-            bool hasTopic3
-        ) = getTopics(log);
+        // (
+        //     bytes32 topic0,
+        //     bool hasTopic0,
+        //     bytes32 topic1,
+        //     bool hasTopic1,
+        //     bytes32 topic2,
+        //     bool hasTopic2,
+        //     bytes32 topic3,
+        //     bool hasTopic3
+        // ) = getTopics(log);
         return keccak256(abi.encodePacked(log.topics));
     }
 }

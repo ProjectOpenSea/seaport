@@ -11,7 +11,6 @@ import {
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
-import "forge-std/console2.sol";
 import {
     ERC20TransferEvent,
     ERC721TransferEvent,
@@ -139,21 +138,21 @@ library TransferEventsLib {
     function getTransferEventHash(
         Execution memory execution,
         FuzzTestContext memory context
-    ) internal returns (bytes32 eventHash) {
+    ) internal view returns (bytes32 eventHash) {
         ItemType itemType = execution.item.itemType;
 
         if (itemType == ItemType.ERC20) {
-            ReceivedItem memory item = execution.item;
+            // ReceivedItem memory item = execution.item;
             return getERC20TransferEventHash(execution);
         }
 
         if (itemType == ItemType.ERC721) {
-            ReceivedItem memory item = execution.item;
+            // ReceivedItem memory item = execution.item;
             return getERC721TransferEventHash(execution);
         }
         if (itemType == ItemType.ERC1155) {
-            ReceivedItem memory item = execution.item;
-            address operator = _getConduit(execution.conduitKey, context);
+            // ReceivedItem memory item = execution.item;
+            //  address operator = _getConduit(execution.conduitKey, context);
             return getERC1155TransferEventHash(execution, context);
         }
     }

@@ -97,7 +97,7 @@ library ExpectedEventsUtil {
     function checkExpectedEvents(FuzzTestContext memory context) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         context.actualEvents = logs;
-        uint256 logIndex;
+        // uint256 logIndex;
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedEventHashes = context.expectedEventHashes;
