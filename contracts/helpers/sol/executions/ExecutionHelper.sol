@@ -413,7 +413,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         excessNativeTokens = nativeTokensSupplied;
         for (uint256 i = 0; i < orderDetails.length; i++) {
             // subtract native tokens consumed by each order
-            excessNativeTokens -= processExcessNativeTokens(
+            excessNativeTokens = processExcessNativeTokens(
                 orderDetails[i],
                 nativeTokensSupplied
             );
