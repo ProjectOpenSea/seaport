@@ -60,7 +60,7 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     /**
      * @dev Temp set of fulfillment components to track implicit
-     *      offerexEcutions; cleared each time getFulfillAvailableExecutions is
+     *      offer executions; cleared each time getFulfillAvailableExecutions is
      *      called.
      */
     FulfillmentComponentSet temp;
