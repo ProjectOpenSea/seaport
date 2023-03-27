@@ -32,4 +32,8 @@ contract FuzzMainTest is FuzzEngine {
             })
         );
     }
+
+    function fail() internal virtual override {
+        revert("Assertion failed.");
+    }
 }

@@ -97,11 +97,14 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
+        ConsiderationInterface seaport_ = getSeaport();
+        ConduitControllerInterface conduitController_ = getConduitController();
+
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
                 vm: vm,
-                seaport: seaport,
-                conduitController: conduitController,
+                seaport: seaport_,
+                conduitController: conduitController_,
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s
@@ -123,10 +126,10 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             FuzzTestContextLib
                 .from({
                     orders: orders,
-                    seaport: seaport,
+                    seaport: seaport_,
                     caller: address(this)
                 })
-                .withConduitController(conduitController)
+                .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams);
     }
 
