@@ -28,8 +28,6 @@ import { DifferentialTest } from "./DifferentialTest.sol";
 
 import { StructCopier } from "./StructCopier.sol";
 
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
-
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
 import { Consideration } from "../../../contracts/lib/Consideration.sol";
@@ -40,8 +38,6 @@ import {
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
-    using stdStorage for StdStorage;
-
     ConsiderationInterface consideration;
     ConsiderationInterface referenceConsideration;
     bytes32 conduitKeyOne;
