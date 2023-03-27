@@ -92,7 +92,7 @@ abstract contract FuzzChecks is Test {
     function check_validateOrderExpectedDataHash(
         FuzzTestContext memory context
     ) public {
-        // Iterate over the orders.abi
+        // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
             // If the order has a zone, check the calldata.
             if (context.orders[i].parameters.zone != address(0)) {
