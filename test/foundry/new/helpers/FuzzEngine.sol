@@ -194,22 +194,23 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             logCall("fulfillOrder");
             AdvancedOrder memory order = context.orders[0];
 
-            context.returnValues.fulfilled = context.seaport.fulfillOrder(
-                order.toOrder(),
-                context.fulfillerConduitKey
-            );
+            context.returnValues.fulfilled = context.seaport.fulfillOrder{
+                value: context.getNativeTokensToSupply()
+            }(order.toOrder(), context.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder");
             AdvancedOrder memory order = context.orders[0];
 
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillAdvancedOrder(
-                    order,
-                    context.criteriaResolvers,
-                    context.fulfillerConduitKey,
-                    context.recipient
-                );
+                .fulfillAdvancedOrder{
+                value: context.getNativeTokensToSupply()
+            }(
+                order,
+                context.criteriaResolvers,
+                context.fulfillerConduitKey,
+                context.recipient
+            );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder");
 
@@ -220,9 +221,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             basicOrderParameters.fulfillerConduitKey = context
                 .fulfillerConduitKey;
 
-            context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
-                basicOrderParameters
-            );
+            context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
+                value: context.getNativeTokensToSupply()
+            }(basicOrderParameters);
         } else if (
             _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
@@ -238,13 +239,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
 
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters);
+                .fulfillBasicOrder_efficient_6GL6yc{
+                value: context.getNativeTokensToSupply()
+            }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders");
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders(
+            ) = context.seaport.fulfillAvailableOrders{
+                    value: context.getNativeTokensToSupply()
+                }(
                     context.orders.toOrders(),
                     context.offerFulfillments,
                     context.considerationFulfillments,
@@ -261,7 +266,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{
+                    value: context.getNativeTokensToSupply()
+                }(
                     context.orders,
                     context.criteriaResolvers,
                     context.offerFulfillments,
@@ -275,15 +282,16 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
             logCall("matchOrders");
-            Execution[] memory executions = context.seaport.matchOrders(
-                context.orders.toOrders(),
-                context.fulfillments
-            );
+            Execution[] memory executions = context.seaport.matchOrders{
+                value: context.getNativeTokensToSupply()
+            }(context.orders.toOrders(), context.fulfillments);
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             logCall("matchAdvancedOrders");
-            Execution[] memory executions = context.seaport.matchAdvancedOrders(
+            Execution[] memory executions = context.seaport.matchAdvancedOrders{
+                value: context.getNativeTokensToSupply()
+            }(
                 context.orders,
                 context.criteriaResolvers,
                 context.fulfillments,

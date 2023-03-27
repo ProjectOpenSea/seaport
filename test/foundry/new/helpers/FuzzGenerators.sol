@@ -179,8 +179,8 @@ library TestStateGenerator {
         if (!isBasic) {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(1, 3)),
+                    // TODO: criteria - should be 0-5
+                    itemType: ItemType(context.randEnum(0, 3)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 2)),
                     // TODO: Fixed amounts only, should be 0-2
@@ -673,6 +673,10 @@ library TokenIndexGenerator {
         ItemType itemType,
         FuzzGeneratorContext memory context
     ) internal pure returns (address) {
+        if (itemType == ItemType.NATIVE) {
+            return address(0);
+        }
+
         uint256 i = uint8(tokenIndex);
 
         // TODO: missing native tokens
