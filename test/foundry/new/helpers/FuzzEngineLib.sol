@@ -63,7 +63,11 @@ library FuzzEngineLib {
     ) internal returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
-        if (family == Family.SINGLE) {
+        bool invalidNativeOfferItemsLocated = (
+            hasInvalidNativeOfferItems(context)
+        );
+
+        if (family == Family.SINGLE && !invalidNativeOfferItemsLocated) {
             AdvancedOrder memory order = context.orders[0];
             Structure structure = order.getStructure(address(context.seaport));
 
@@ -93,50 +97,42 @@ library FuzzEngineLib {
             }
         }
 
-        if (family == Family.COMBINED) {
-            (, , MatchComponent[] memory remainders) = context
-                .testHelpers
-                .getMatchedFulfillments(context.orders);
+        (, , MatchComponent[] memory remainders) = context
+            .testHelpers
+            .getMatchedFulfillments(context.orders);
 
-            bool invalidNativeOfferItemsLocated = (
-                hasInvalidNativeOfferItems(context)
-            );
-
-            if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
-                revert("FuzzEngineLib: cannot fulfill provided combined order");
-            }
-
-            if (remainders.length != 0) {
-                bytes4[] memory selectors = new bytes4[](2);
-                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                //selectors[2] = context.seaport.cancel.selector;
-                //selectors[3] = context.seaport.validate.selector;
-                return selectors;
-            } else if (invalidNativeOfferItemsLocated) {
-                bytes4[] memory selectors = new bytes4[](2);
-                selectors[0] = context.seaport.matchOrders.selector;
-                selectors[1] = context.seaport.matchAdvancedOrders.selector;
-                return selectors;
-            } else {
-                bytes4[] memory selectors = new bytes4[](4);
-                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                selectors[2] = context.seaport.matchOrders.selector;
-                selectors[3] = context.seaport.matchAdvancedOrders.selector;
-                //selectors[4] = context.seaport.cancel.selector;
-                //selectors[5] = context.seaport.validate.selector;
-                return selectors;
-            }
+        if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
+            revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
 
-        revert("FuzzEngine: Actions not found");
+        if (remainders.length != 0) {
+            bytes4[] memory selectors = new bytes4[](2);
+            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+            selectors[1] = context
+                .seaport
+                .fulfillAvailableAdvancedOrders
+                .selector;
+            //selectors[2] = context.seaport.cancel.selector;
+            //selectors[3] = context.seaport.validate.selector;
+            return selectors;
+        } else if (invalidNativeOfferItemsLocated) {
+            bytes4[] memory selectors = new bytes4[](2);
+            selectors[0] = context.seaport.matchOrders.selector;
+            selectors[1] = context.seaport.matchAdvancedOrders.selector;
+            return selectors;
+        } else {
+            bytes4[] memory selectors = new bytes4[](4);
+            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+            selectors[1] = context
+                .seaport
+                .fulfillAvailableAdvancedOrders
+                .selector;
+            selectors[2] = context.seaport.matchOrders.selector;
+            selectors[3] = context.seaport.matchAdvancedOrders.selector;
+            //selectors[4] = context.seaport.cancel.selector;
+            //selectors[5] = context.seaport.validate.selector;
+            return selectors;
+        }
     }
 
     function hasInvalidNativeOfferItems(
