@@ -22,79 +22,33 @@ contract ExpectedBalancesTest is Test {
 
     ExpectedBalances internal balances;
 
+    address payable internal alice = payable(address(0xa11ce));
+    address payable internal bob = payable(address(0xb0b));
+
     function setUp() public virtual {
         balances = new ExpectedBalances();
         _deployTestTokenContracts();
     }
 
-    function testERC20InsufficientBalance(address alice, address bob) external {
-        vm.expectRevert(stdError.arithmeticError);
-        balances.addTransfer(
-            Execution({
-                offerer: alice,
-                conduitKey: bytes32(0),
-                item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    200,
-                    payable(bob)
-                )
-            })
-        );
-    }
+    function testCheckBalances() external {
+        erc20.mint(alice, 500);
+        erc721.mint(bob, 1);
+        erc1155.mint(bob, 1, 100);
+        vm.deal(alice, 1 ether);
 
-    function testERC1155InsufficientBalance(
-        address alice,
-        address bob
-    ) external {
-        vm.expectRevert(stdError.arithmeticError);
-        balances.addTransfer(
-            Execution({
-                offerer: alice,
-                conduitKey: bytes32(0),
-                item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    200,
-                    payable(bob)
-                )
-            })
-        );
-    }
-
-    function testNativeInsufficientBalance(
-        address alice,
-        address bob
-    ) external {
-        vm.expectRevert(stdError.arithmeticError);
         balances.addTransfer(
             Execution({
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
                     ItemType.NATIVE,
-                    address(erc20),
+                    address(0),
                     0,
-                    alice.balance + 1,
+                    0.5 ether,
                     payable(bob)
                 )
             })
         );
-    }
-
-    function test1(address alice, address bob) external {
-        if (alice == address(0)) {
-            alice = address(1);
-        }
-        if (bob == address(0)) {
-            bob = address(2);
-        }
-        erc20.mint(alice, 500);
-        erc721.mint(bob, 1);
-        erc1155.mint(bob, 1, 100);
-
         balances.addTransfer(
             Execution({
                 offerer: alice,
@@ -142,48 +96,335 @@ contract ExpectedBalancesTest is Test {
 
         vm.prank(bob);
         erc1155.safeTransferFrom(bob, alice, 1, 50, "");
-        balances.checkBalances();
 
-        // balances.addTransfer(
-        //     Execution({
-        //         offerer: bob,
-        //         conduitKey: bytes32(0),
-        //         item: ReceivedItem(
-        //             ItemType.ERC721,
-        //             address(erc721s[0]),
-        //             99,
-        //             1,
-        //             payable(bob)
-        //         )
-        //     })
-        // );
-        {
-            // ERC20TokenDump[] memory dump = balances.dumpERC20Balances();
-            // require(dump.length == 1);
-            // require(dump[0].token == address(erc20s[0]));
-            // require(dump[0].accounts.length == 2);
-            // require(dump[0].accounts[0].account == alice);
-            // require(dump[0].accounts[0].balance == 300);
-            // require(dump[0].accounts[1].account == bob);
-            // require(dump[0].accounts[1].balance == 200);
-            // string memory finalJson = tojsonDynArrayERC20TokenDump("root", "erc20", dump);
-            // string memory finalJson = tojsonExpectedBalancesDump(
-            // "root",
-            // "data",
-            // dump
-            // );
-            // vm.writeJson(finalJson, "./fuzz_debug.json");
-        }
-        {
-            // require(dump.length == 1);
-            // require(dump[0].token == address(erc721s[0]));
-            // require(dump[0].accounts.length == 2);
-            // require(dump[0].accounts[0].account == bob);
-            // require(dump[0].accounts[0].identifiers.length == 0);
-            // require(dump[0].accounts[1].account == alice);
-            // require(dump[0].accounts[1].identifiers.length == 1);
-            // require(dump[0].accounts[1].identifiers[0] == 99);
-        }
+        vm.prank(alice);
+        bob.send(0.5 ether);
+
+        balances.checkBalances();
+    }
+
+    // =====================================================================//
+    //                            NATIVE TESTS                              //
+    // =====================================================================//
+
+    function testNativeInsufficientBalance() external {
+        vm.expectRevert(stdError.arithmeticError);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    alice.balance + 1,
+                    payable(bob)
+                )
+            })
+        );
+    }
+
+    function testNativeExtraBalance() external {
+        vm.deal(alice, 0.5 ether);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    0.5 ether,
+                    payable(bob)
+                )
+            })
+        );
+        vm.deal(bob, 0.5 ether);
+        vm.expectRevert("ExpectedBalances: Native balance does not match");
+        balances.checkBalances();
+    }
+
+    function testNativeNotTransferred() external {
+        vm.deal(alice, 0.5 ether);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    0.5 ether,
+                    payable(bob)
+                )
+            })
+        );
+        vm.expectRevert("ExpectedBalances: Native balance does not match");
+        balances.checkBalances();
+    }
+
+    // =====================================================================//
+    //                             ERC20 TESTS                              //
+    // =====================================================================//
+
+    function testERC20InsufficientBalance() external {
+        vm.expectRevert(stdError.arithmeticError);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    200,
+                    payable(bob)
+                )
+            })
+        );
+    }
+
+    function testERC20ExtraBalance() external {
+        erc20.mint(alice, 10);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    5,
+                    payable(bob)
+                )
+            })
+        );
+        vm.prank(alice);
+        erc20.transfer(bob, 5);
+        erc20.mint(alice, 1);
+        vm.expectRevert("ExpectedBalances: Token balance does not match");
+        balances.checkBalances();
+    }
+
+    function testERC20NotTransferred() external {
+        erc20.mint(alice, 10);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    5,
+                    payable(bob)
+                )
+            })
+        );
+        vm.expectRevert("ExpectedBalances: Token balance does not match");
+        balances.checkBalances();
+    }
+
+    function testERC20MultipleSenders() external {
+        erc20.mint(alice, 100);
+        erc20.mint(bob, 200);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    50,
+                    payable(bob)
+                )
+            })
+        );
+        balances.addTransfer(
+            Execution({
+                offerer: bob,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    50,
+                    payable(alice)
+                )
+            })
+        );
+        balances.checkBalances();
+    }
+
+    // =====================================================================//
+    //                            ERC721 TESTS                              //
+    // =====================================================================//
+
+    function testERC721InsufficientBalance() external {
+        erc721.mint(bob, 1);
+        vm.expectRevert("ExpectedBalances: sender does not own token");
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC721,
+                    address(erc721),
+                    1,
+                    1,
+                    payable(bob)
+                )
+            })
+        );
+    }
+
+    function testERC721ExtraBalance() external {
+        erc721.mint(alice, 1);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC721,
+                    address(erc721),
+                    1,
+                    1,
+                    payable(bob)
+                )
+            })
+        );
+        erc721.mint(alice, 2);
+        vm.expectRevert(
+            "ExpectedBalances: account has more than expected # of tokens"
+        );
+        balances.checkBalances();
+    }
+
+    function testERC721NotTransferred() external {
+        erc721.mint(alice, 1);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC721,
+                    address(erc721),
+                    1,
+                    1,
+                    payable(bob)
+                )
+            })
+        );
+        erc721.mint(bob, 2);
+        vm.prank(alice);
+        erc721.transferFrom(alice, address(1000), 1);
+        vm.expectRevert(
+            "ExpectedBalances: account does not own expected token"
+        );
+        balances.checkBalances();
+    }
+
+    function testERC721MultipleIdentifiers() external {
+        erc721.mint(alice, 1);
+        erc721.mint(alice, 2);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC721,
+                    address(erc721),
+                    1,
+                    1,
+                    payable(bob)
+                )
+            })
+        );
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC721,
+                    address(erc721),
+                    2,
+                    1,
+                    payable(bob)
+                )
+            })
+        );
+        vm.prank(alice);
+        erc721.transferFrom(alice, bob, 1);
+        vm.prank(alice);
+        erc721.transferFrom(alice, bob, 2);
+        balances.checkBalances();
+    }
+
+    // =====================================================================//
+    //                            ERC1155 TESTS                             //
+    // =====================================================================//
+
+    function testERC1155InsufficientBalance() external {
+        vm.expectRevert(stdError.arithmeticError);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC20,
+                    address(erc20),
+                    0,
+                    200,
+                    payable(bob)
+                )
+            })
+        );
+    }
+
+    function testERC1155ExtraBalance() external {
+        erc1155.mint(alice, 1, 10);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC1155,
+                    address(erc1155),
+                    1,
+                    5,
+                    payable(bob)
+                )
+            })
+        );
+        vm.prank(alice);
+        erc1155.safeTransferFrom(alice, bob, 1, 5, "");
+        erc1155.mint(alice, 1, 1);
+        vm.expectRevert(
+            "ExpectedBalances: account does not own expected balance for id"
+        );
+        balances.checkBalances();
+    }
+
+    function testERC1155NotTransferred() external {
+        erc1155.mint(alice, 1, 10);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.ERC1155,
+                    address(erc1155),
+                    1,
+                    5,
+                    payable(bob)
+                )
+            })
+        );
+        vm.expectRevert(
+            "ExpectedBalances: account does not own expected balance for id"
+        );
+        balances.checkBalances();
     }
 
     /**
