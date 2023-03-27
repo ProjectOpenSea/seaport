@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-
 enum CoreConsiderationErrors {
     BAD_FRACTION,
     CANNOT_CANCEL_ORDER,
