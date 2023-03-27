@@ -9,6 +9,11 @@ import "openzeppelin-contracts/contracts/interfaces/IERC721.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC1155.sol";
 
+struct NativeAccountDump {
+    address account;
+    uint256 balance;
+}
+
 /* struct ERC20AccountDump {
     address account;
     uint256 balance;
@@ -56,6 +61,59 @@ struct ExpectedBalancesDump {
     ERC20TokenDump[] erc20;
     ERC721TokenDump[] erc721;
     ERC1155TokenDump[] erc1155;
+}
+
+contract NativeBalances is Test {
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
+
+    EnumerableMap.AddressToUintMap private accountsMap;
+
+    function addNativeTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) public {
+        (bool fromExists, uint256 fromBalance) = accountsMap.tryGet(from);
+        if (!fromExists) {
+            fromBalance = from.balance;
+        }
+        accountsMap.set(from, fromBalance - amount);
+
+        (bool toExists, uint256 toBalance) = accountsMap.tryGet(to);
+        if (!toExists) {
+            toBalance = to.balance;
+        }
+        accountsMap.set(to, toBalance + amount);
+    }
+
+    function checkNativeBalances() internal {
+        address[] memory accounts = accountsMap.keys();
+        uint256 accountsLength = accounts.length;
+        for (uint256 j; j < accountsLength; j++) {
+            address account = accounts[j];
+            assertEq(
+                accountsMap.get(account),
+                account.balance,
+                "ExpectedBalances: Native balance does not match"
+            );
+        }
+    }
+
+    function dumpNativeBalances()
+        public
+        view
+        returns (NativeAccountDump[] memory accountBalances)
+    {
+        address[] memory accounts = accountsMap.keys();
+        accountBalances = new NativeAccountDump[](accounts.length);
+        for (uint256 i; i < accounts.length; i++) {
+            address account = accounts[i];
+            accountBalances[i] = NativeAccountDump(
+                account,
+                accountsMap.get(account)
+            );
+        }
+    }
 }
 
 contract ERC20Balances is Test {
@@ -298,7 +356,7 @@ contract ERC1155Balances is Test {
             if (!toExists) {
                 toBalance = IERC1155(token).balanceOf(to, identifier);
             }
-            toIdentifiers.set(identifier, toBalance - amount);
+            toIdentifiers.set(identifier, toBalance + amount);
         }
     }
 
@@ -395,9 +453,22 @@ contract ERC1155Balances is Test {
     } */
 }
 
-contract ExpectedBalances is ERC20Balances, ERC721Balances, ERC1155Balances {
+contract ExpectedBalances is
+    NativeBalances,
+    ERC20Balances,
+    ERC721Balances,
+    ERC1155Balances
+{
     function addTransfer(Execution calldata execution) external {
         ReceivedItem memory item = execution.item;
+        if (item.itemType == ItemType.NATIVE) {
+            return
+                addNativeTransfer(
+                    execution.offerer,
+                    item.recipient,
+                    item.amount
+                );
+        }
         if (item.itemType == ItemType.ERC20) {
             return
                 addERC20Transfer(
@@ -428,11 +499,11 @@ contract ExpectedBalances is ERC20Balances, ERC721Balances, ERC1155Balances {
         }
     }
 
-        function checkBalances() external {
-            checkERC20Balances();
-            checkERC721Balances();
-            checkERC1155Balances();
-        }
+    function checkBalances() external {
+        checkERC20Balances();
+        checkERC721Balances();
+        checkERC1155Balances();
+    }
 
     //     function dumpBalances()
     //         external
