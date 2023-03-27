@@ -98,6 +98,14 @@ library FuzzEngineLib {
                 .testHelpers
                 .getMatchedFulfillments(context.orders);
 
+            bool invalidNativeOfferItemsLocated = (
+                hasInvalidNativeOfferItems(context)
+            );
+
+            if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
+                revert("FuzzEngineLib: cannot fulfill provided combined order");
+            }
+
             if (remainders.length != 0) {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
@@ -107,6 +115,11 @@ library FuzzEngineLib {
                     .selector;
                 //selectors[2] = context.seaport.cancel.selector;
                 //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            } else if (invalidNativeOfferItemsLocated) {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.matchOrders.selector;
+                selectors[1] = context.seaport.matchAdvancedOrders.selector;
                 return selectors;
             } else {
                 bytes4[] memory selectors = new bytes4[](4);
@@ -124,6 +137,27 @@ library FuzzEngineLib {
         }
 
         revert("FuzzEngine: Actions not found");
+    }
+
+    function hasInvalidNativeOfferItems(
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            OrderParameters memory orderParams = context.orders[i].parameters;
+            if (orderParams.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
+            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                OfferItem memory item = orderParams.offer[j];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     function getNativeTokensToSupply(
