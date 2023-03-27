@@ -176,47 +176,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setupExpectedEvents(context);
     }
 
-    function _getNativeTokensToSupply(
-        FuzzTestContext memory context
-    ) internal returns (uint256) {
-        uint256 value = 0;
-
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            OrderParameters memory orderParams = context.orders[i].parameters;
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
-
-                // TODO: support ascending / descending
-                if (item.startAmount != item.endAmount) {
-                    revert(
-                        "FuzzEngine: ascending/descending not yet supported"
-                    );
-                }
-
-                if (item.itemType == ItemType.NATIVE) {
-                    value += item.startAmount;
-                }
-            }
-
-            for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
-                ConsiderationItem memory item = orderParams.consideration[j];
-
-                // TODO: support ascending / descending
-                if (item.startAmount != item.endAmount) {
-                    revert(
-                        "FuzzEngine: ascending/descending not yet supported"
-                    );
-                }
-
-                if (item.itemType == ItemType.NATIVE) {
-                    value += item.startAmount;
-                }
-            }
-        }
-
-        return value;
-    }
-
     /**
      * @dev Call an available Seaport function based on the orders in the given
      *      FuzzTestContext. FuzzEngine will deduce which actions are available
@@ -236,7 +195,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             AdvancedOrder memory order = context.orders[0];
 
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(order.toOrder(), context.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder");
@@ -245,7 +204,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillAdvancedOrder{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(
                 order,
                 context.criteriaResolvers,
@@ -263,7 +222,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 .fulfillerConduitKey;
 
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(basicOrderParameters);
         } else if (
             _action ==
@@ -281,7 +240,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillBasicOrder_efficient_6GL6yc{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders");
@@ -289,7 +248,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableOrders{
-                    value: _getNativeTokensToSupply(context)
+                    value: context.getNativeTokensToSupply()
                 }(
                     context.orders.toOrders(),
                     context.offerFulfillments,
@@ -308,7 +267,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 bool[] memory availableOrders,
                 Execution[] memory executions
             ) = context.seaport.fulfillAvailableAdvancedOrders{
-                    value: _getNativeTokensToSupply(context)
+                    value: context.getNativeTokensToSupply()
                 }(
                     context.orders,
                     context.criteriaResolvers,
@@ -324,14 +283,14 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         } else if (_action == context.seaport.matchOrders.selector) {
             logCall("matchOrders");
             Execution[] memory executions = context.seaport.matchOrders{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(context.orders.toOrders(), context.fulfillments);
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             logCall("matchAdvancedOrders");
             Execution[] memory executions = context.seaport.matchAdvancedOrders{
-                value: _getNativeTokensToSupply(context)
+                value: context.getNativeTokensToSupply()
             }(
                 context.orders,
                 context.criteriaResolvers,
