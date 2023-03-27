@@ -173,7 +173,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-        setupExpectedEvents(context);
+        setupExpectedEventsAndBalances(context);
     }
 
     /**

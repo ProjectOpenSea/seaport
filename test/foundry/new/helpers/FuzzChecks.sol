@@ -34,8 +34,6 @@ abstract contract FuzzChecks is Test {
 
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder[];
-   
-
 
     address payable testZone;
     address payable contractOfferer;
@@ -242,9 +240,11 @@ abstract contract FuzzChecks is Test {
     function check_expectedEventsEmitted(
         FuzzTestContext memory context
     ) public {
-        bytes4 action = context.action();
-
         ExpectedEventsUtil.checkExpectedEvents(context);
+    }
+
+    function check_expectedBalances(FuzzTestContext memory context) public {
+        context.testHelpers.balanceChecker().checkBalances();
     }
 }
 

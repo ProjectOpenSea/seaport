@@ -15,6 +15,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -273,7 +274,14 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function setupExpectedEvents(FuzzTestContext memory context) public {
+    function setupExpectedEventsAndBalances(
+        FuzzTestContext memory context
+    ) public {
+        ExecutionsFlattener.flattenExecutions(context);
+        context.registerCheck(FuzzChecks.check_expectedBalances.selector);
+        context.testHelpers.balanceChecker().addTransfers(
+          context.allExpectedExecutions
+        );
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedEventHashes(context);
         context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);
