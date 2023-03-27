@@ -3,7 +3,6 @@ pragma solidity >=0.8.17;
 
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
-import "forge-std/Test.sol";
 import "../../../../contracts/lib/ConsiderationStructs.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC721.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
@@ -63,7 +62,7 @@ struct ExpectedBalancesDump {
     ERC1155TokenDump[] erc1155;
 }
 
-contract NativeBalances is Test {
+contract NativeBalances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     EnumerableMap.AddressToUintMap private accountsMap;
@@ -86,14 +85,13 @@ contract NativeBalances is Test {
         accountsMap.set(to, toBalance + amount);
     }
 
-    function checkNativeBalances() internal {
+    function checkNativeBalances() internal view {
         address[] memory accounts = accountsMap.keys();
         uint256 accountsLength = accounts.length;
         for (uint256 j; j < accountsLength; j++) {
             address account = accounts[j];
-            assertEq(
-                accountsMap.get(account),
-                account.balance,
+            require(
+                accountsMap.get(account) == account.balance,
                 "ExpectedBalances: Native balance does not match"
             );
         }
@@ -116,7 +114,7 @@ contract NativeBalances is Test {
     }
 }
 
-contract ERC20Balances is Test {
+contract ERC20Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -145,7 +143,7 @@ contract ERC20Balances is Test {
         accounts.set(to, toBalance + amount);
     }
 
-    function checkERC20Balances() internal {
+    function checkERC20Balances() internal view {
         uint256 length = tokens.length();
         for (uint256 i; i < length; i++) {
             address token = tokens.at(i);
@@ -156,9 +154,9 @@ contract ERC20Balances is Test {
             uint256 accountsLength = accounts.length;
             for (uint256 j; j < accountsLength; j++) {
                 address account = accounts[j];
-                assertEq(
-                    accountsMap.get(account),
-                    IERC20(token).balanceOf(account),
+                require(
+                    accountsMap.get(account) ==
+                        IERC20(token).balanceOf(account),
                     "ExpectedBalances: Token balance does not match"
                 );
             }
@@ -192,7 +190,7 @@ contract ERC20Balances is Test {
     }
 }
 
-contract ERC721Balances is Test {
+contract ERC721Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -200,6 +198,7 @@ contract ERC721Balances is Test {
     struct TokenData721 {
         EnumerableSet.AddressSet accounts;
         mapping(address => EnumerableSet.UintSet) accountIdentifiers;
+        EnumerableSet.UintSet touchedIdentifiers;
     }
 
     EnumerableSet.AddressSet private tokens;
@@ -213,28 +212,28 @@ contract ERC721Balances is Test {
     ) public {
         tokens.add(token);
         TokenData721 storage tokenData = tokenDatas[token];
-
-        if (tokenData.accounts.add(from)) {
-            assertEq(
-                IERC721(token).ownerOf(identifier),
-                from,
+        tokenData.accounts.add(from);
+        tokenData.accounts.add(to);
+        // If we have not seen the identifier before, assert that the sender owns it
+        if (tokenData.touchedIdentifiers.add(identifier)) {
+            require(
+                IERC721(token).ownerOf(identifier) == from,
                 "ExpectedBalances: sender does not own token"
             );
         } else {
-            assertTrue(
+            require(
                 tokenData.accountIdentifiers[from].remove(identifier),
                 "ExpectedBalances: sender does not own token"
             );
         }
-        tokenData.accounts.add(to);
 
-        assertTrue(
+        require(
             tokenData.accountIdentifiers[to].add(identifier),
             "ExpectedBalances: receiver already owns token"
         );
     }
 
-    function checkERC721Balances() internal {
+    function checkERC721Balances() internal view {
         address[] memory tokensArray = tokens.values();
 
         uint256 length = tokensArray.length;
@@ -257,16 +256,14 @@ contract ERC721Balances is Test {
 
                 uint256 identifiersLength = identifiers.length;
 
-                assertEq(
-                    IERC721(token).balanceOf(account),
-                    identifiersLength,
+                require(
+                    IERC721(token).balanceOf(account) == identifiersLength,
                     "ExpectedBalances: account has more than expected # of tokens"
                 );
 
                 for (uint256 k; k < identifiersLength; k++) {
-                    assertEq(
-                        IERC721(token).ownerOf(identifiers[k]),
-                        account,
+                    require(
+                        IERC721(token).ownerOf(identifiers[k]) == account,
                         "ExpectedBalances: account does not own expected token"
                     );
                 }
@@ -308,7 +305,7 @@ contract ERC721Balances is Test {
     }
 }
 
-contract ERC1155Balances is Test {
+contract ERC1155Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableMap for EnumerableMap.UintToUintMap;
@@ -392,9 +389,9 @@ contract ERC1155Balances is Test {
                 // assert their balance matches the expected balance.
                 for (uint256 k; k < identifiersLength; k++) {
                     uint256 identifier = identifiers[k];
-                    assertEq(
-                        IERC1155(token).balanceOf(account, identifier),
-                        accountIdentifiers.get(identifier),
+                    require(
+                        IERC1155(token).balanceOf(account, identifier) ==
+                            accountIdentifiers.get(identifier),
                         "ExpectedBalances: account does not own expected balance for id"
                     );
                 }
@@ -499,7 +496,10 @@ contract ExpectedBalances is
         }
     }
 
+    function addTransfers(Execution[] calldata executions) external {}
+
     function checkBalances() external {
+        checkNativeBalances();
         checkERC20Balances();
         checkERC721Balances();
         checkERC1155Balances();
