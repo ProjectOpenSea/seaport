@@ -36,6 +36,8 @@ import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
 
 import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
 
+import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
+
 /**
  * @dev used to store address and key outputs from makeAddrAndKey(name)
  */
@@ -139,6 +141,8 @@ contract BaseOrderTest is
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
 
+    ExpectedBalances public balanceChecker;
+
     address[] preapprovals;
 
     string constant SINGLE_ERC721 = "single erc721";
@@ -154,6 +158,8 @@ contract BaseOrderTest is
 
     function setUp() public virtual override {
         super.setUp();
+
+        balanceChecker = new ExpectedBalances();
 
         preapprovals = [
             address(seaport),
