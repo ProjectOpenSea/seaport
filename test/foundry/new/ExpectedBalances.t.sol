@@ -64,6 +64,26 @@ contract ExpectedBalancesTest is Test {
         );
     }
 
+    function testNativeInsufficientBalance(
+        address alice,
+        address bob
+    ) external {
+        vm.expectRevert(stdError.arithmeticError);
+        balances.addTransfer(
+            Execution({
+                offerer: alice,
+                conduitKey: bytes32(0),
+                item: ReceivedItem(
+                    ItemType.NATIVE,
+                    address(erc20),
+                    0,
+                    alice.balance + 1,
+                    payable(bob)
+                )
+            })
+        );
+    }
+
     function test1(address alice, address bob) external {
         if (alice == address(0)) {
             alice = address(1);
@@ -74,14 +94,6 @@ contract ExpectedBalancesTest is Test {
         erc20.mint(alice, 500);
         erc721.mint(bob, 1);
         erc1155.mint(bob, 1, 100);
-        vm.prank(alice);
-        erc20.transfer(bob, 250);
-
-        vm.prank(bob);
-        erc721.transferFrom(bob, alice, 1);
-
-        vm.prank(bob);
-        erc1155.safeTransferFrom(bob, alice, 1, 50, "");
 
         balances.addTransfer(
             Execution({
@@ -122,6 +134,14 @@ contract ExpectedBalancesTest is Test {
                 )
             })
         );
+        vm.prank(alice);
+        erc20.transfer(bob, 250);
+
+        vm.prank(bob);
+        erc721.transferFrom(bob, alice, 1);
+
+        vm.prank(bob);
+        erc1155.safeTransferFrom(bob, alice, 1, 50, "");
         balances.checkBalances();
 
         // balances.addTransfer(
