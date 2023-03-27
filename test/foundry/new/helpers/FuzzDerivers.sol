@@ -82,7 +82,7 @@ abstract contract FuzzDerivers is
                 caller,
                 context.fulfillerConduitKey,
                 recipient,
-                0 // TODO: Native tokens?
+                context.getNativeTokensToSupply()
             );
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
@@ -93,7 +93,7 @@ abstract contract FuzzDerivers is
                 toOrderDetails(context.orders[0].parameters),
                 caller,
                 context.fulfillerConduitKey,
-                0 // TODO: Native tokens?
+                context.getNativeTokensToSupply()
             );
         } else if (
             action == context.seaport.fulfillAvailableOrders.selector ||
@@ -111,7 +111,7 @@ abstract contract FuzzDerivers is
                 ),
                 context.offerFulfillments,
                 context.considerationFulfillments,
-                0 // TODO: Native tokens?
+                context.getNativeTokensToSupply()
             );
         } else if (
             action == context.seaport.matchOrders.selector ||
@@ -125,7 +125,7 @@ abstract contract FuzzDerivers is
                     context.fulfillerConduitKey
                 ),
                 context.fulfillments,
-                0 // TODO: Native tokens?
+                context.getNativeTokensToSupply()
             );
         }
         context.expectedImplicitExecutions = implicitExecutions;
