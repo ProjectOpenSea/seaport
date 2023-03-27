@@ -32,20 +32,24 @@ library FuzzEngineLib {
     function action(FuzzTestContext memory context) internal returns (bytes4) {
         if (context._action != bytes4(0)) return context._action;
         bytes4[] memory _actions = actions(context);
-        return (context._action = _actions[context.fuzzParams.seed % _actions.length]);
+        return (context._action = _actions[
+            context.fuzzParams.seed % _actions.length
+        ]);
     }
 
-    function actionName(FuzzTestContext memory context) internal returns (string memory) {
-      bytes4 selector = action(context);
-      if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
-      if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
-      if (selector == 0xed98a574) return "fulfillAvailableOrders";
-      if (selector == 0xfb0f3ee1) return "fulfillBasicOrder";
-      if (selector == 0x00000000) return "fulfillBasicOrder_efficient_6GL6yc";
-      if (selector == 0xb3a34c4c) return "fulfillOrder";
-      if (selector == 0xf2d12b12) return "matchAdvancedOrders";
-      if (selector == 0xa8174404) return "matchOrders";
-  }
+    function actionName(
+        FuzzTestContext memory context
+    ) internal returns (string memory) {
+        bytes4 selector = action(context);
+        if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
+        if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
+        if (selector == 0xed98a574) return "fulfillAvailableOrders";
+        if (selector == 0xfb0f3ee1) return "fulfillBasicOrder";
+        if (selector == 0x00000000) return "fulfillBasicOrder_efficient_6GL6yc";
+        if (selector == 0xb3a34c4c) return "fulfillOrder";
+        if (selector == 0xf2d12b12) return "matchAdvancedOrders";
+        if (selector == 0xa8174404) return "matchOrders";
+    }
 
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
@@ -120,5 +124,46 @@ library FuzzEngineLib {
         }
 
         revert("FuzzEngine: Actions not found");
+    }
+
+    function getNativeTokensToSupply(
+        FuzzTestContext memory context
+    ) internal returns (uint256) {
+        uint256 value = 0;
+
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            OrderParameters memory orderParams = context.orders[i].parameters;
+            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                OfferItem memory item = orderParams.offer[j];
+
+                // TODO: support ascending / descending
+                if (item.startAmount != item.endAmount) {
+                    revert(
+                        "FuzzEngineLib: ascending/descending not yet supported"
+                    );
+                }
+
+                if (item.itemType == ItemType.NATIVE) {
+                    value += item.startAmount;
+                }
+            }
+
+            for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                ConsiderationItem memory item = orderParams.consideration[j];
+
+                // TODO: support ascending / descending
+                if (item.startAmount != item.endAmount) {
+                    revert(
+                        "FuzzEngineLib: ascending/descending not yet supported"
+                    );
+                }
+
+                if (item.itemType == ItemType.NATIVE) {
+                    value += item.startAmount;
+                }
+            }
+        }
+
+        return value;
     }
 }
