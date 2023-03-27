@@ -351,9 +351,7 @@ library AdvancedOrdersSpaceGenerator {
                         orderParams.offerer
                     );
 
-                orders[orderInsertionIndex]
-                    .parameters
-                    .consideration = consideration;
+                orderParams.consideration = consideration;
             }
 
             // handle orders with only filtered executions Note: technically
@@ -384,13 +382,32 @@ library AdvancedOrdersSpaceGenerator {
 
             if (allFilterable) {
                 OrderParameters memory orderParams;
-                while (true) {
+
+                for (
                     uint256 orderInsertionIndex = context.randRange(0, len - 1);
-                    orderParams = orders[orderInsertionIndex].parameters;
+                    orderInsertionIndex < len * 2;
+                    ++orderInsertionIndex
+                ) {
+                    orderParams = orders[orderInsertionIndex % len].parameters;
 
                     if (orderParams.consideration.length != 0) {
                         break;
                     }
+                }
+
+                if (orderParams.consideration.length == 0) {
+                    uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                    orderParams = orders[orderInsertionIndex].parameters;
+
+                    ConsiderationItem[]
+                        memory consideration = new ConsiderationItem[](1);
+                    consideration[0] = TestStateGenerator
+                    .generateConsideration(1, context, true)[0].generate(
+                            context,
+                            orderParams.offerer
+                        );
+
+                    orderParams.consideration = consideration;
                 }
 
                 uint256 itemIndex = context.randRange(
