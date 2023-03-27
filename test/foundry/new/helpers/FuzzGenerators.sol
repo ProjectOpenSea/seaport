@@ -98,7 +98,8 @@ library TestStateGenerator {
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
-                    context
+                    context,
+                    false
                 ),
                 orderType: BroadOrderType(context.randEnum(0, 2)),
                 // TODO: Restricted range to 1 and 2 to avoid unavailable.
@@ -160,13 +161,16 @@ library TestStateGenerator {
 
     function generateConsideration(
         uint256 maxConsiderationItemsPerOrder,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool atLeastOne
     ) internal pure returns (ConsiderationItemSpace[] memory) {
         bool isBasic = context.basicOrderCategory != BasicOrderCategory.NONE;
 
         uint256 len = context.randRange(
-            isBasic ? 1 : 0,
-            maxConsiderationItemsPerOrder
+            (isBasic || atLeastOne) ? 1 : 0,
+            ((isBasic || atLeastOne) && maxConsiderationItemsPerOrder == 0)
+                ? 1
+                : maxConsiderationItemsPerOrder
         );
 
         ConsiderationItemSpace[]
@@ -175,8 +179,8 @@ library TestStateGenerator {
         if (!isBasic) {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(1, 3)),
+                    // TODO: criteria - should be 0-5
+                    itemType: ItemType(context.randEnum(0, 3)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 2)),
                     // TODO: Fixed amounts only, should be 0-2
@@ -222,6 +226,7 @@ library AdvancedOrdersSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
+    using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
 
@@ -231,9 +236,34 @@ library AdvancedOrdersSpaceGenerator {
     ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
-        context.orderHashes = new bytes32[](len);
 
-        // Build orders
+        // Build orders.
+        orders = _buildOrders(len, space, context);
+
+        // Handle match case.
+        if (space.isMatchable) {
+            orders = _squareUpRemainders(orders, context);
+        }
+
+        // Handle combined orders (need to have at least one execution).
+        if (len > 1) {
+            orders = _handleInsertIfAllEmpty(len, orders, context);
+            orders = _handleInsertIfAllFilterable(len, orders, context);
+        }
+
+        // Sign orders and add the hashes to the context.
+        (orders, context) = _signOrders(space, len, orders, context);
+
+        return orders;
+    }
+
+    function _buildOrders(
+        uint256 len,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder[] memory _orders) {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](len);
+
         for (uint256 i; i < len; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context
@@ -248,76 +278,215 @@ library AdvancedOrdersSpaceGenerator {
                 });
         }
 
-        // Handle matches
-        if (space.isMatchable) {
-            (, , MatchComponent[] memory remainders) = context
-                .testHelpers
-                .getMatchedFulfillments(orders);
+        return orders;
+    }
 
-            for (uint256 i = 0; i < remainders.length; ++i) {
-                (
-                    uint240 amount,
-                    uint8 orderIndex,
-                    uint8 itemIndex
-                ) = remainders[i].unpack();
+    function _squareUpRemainders(
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal returns (AdvancedOrder[] memory _orders) {
+        (, , MatchComponent[] memory remainders) = context
+            .testHelpers
+            .getMatchedFulfillments(orders);
 
-                ConsiderationItem memory item = orders[orderIndex]
-                    .parameters
-                    .consideration[itemIndex];
+        for (uint256 i = 0; i < remainders.length; ++i) {
+            (uint240 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
+                .unpack();
 
-                uint256 orderInsertionIndex = context.randRange(
+            ConsiderationItem memory item = orders[orderIndex]
+                .parameters
+                .consideration[itemIndex];
+
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
+
+            OfferItem[] memory newOffer = new OfferItem[](
+                orders[orderInsertionIndex].parameters.offer.length + 1
+            );
+
+            if (orders[orderInsertionIndex].parameters.offer.length == 0) {
+                newOffer[0] = OfferItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifierOrCriteria: item.identifierOrCriteria,
+                    startAmount: uint256(amount),
+                    endAmount: uint256(amount)
+                });
+            } else {
+                uint256 itemInsertionIndex = context.randRange(
                     0,
-                    orders.length - 1
+                    orders[orderInsertionIndex].parameters.offer.length - 1
                 );
 
-                OfferItem[] memory newOffer = new OfferItem[](
-                    orders[orderInsertionIndex].parameters.offer.length + 1
-                );
-
-                if (orders[orderInsertionIndex].parameters.offer.length == 0) {
-                    newOffer[0] = OfferItem({
-                        itemType: item.itemType,
-                        token: item.token,
-                        identifierOrCriteria: item.identifierOrCriteria,
-                        startAmount: uint256(amount),
-                        endAmount: uint256(amount)
-                    });
-                } else {
-                    uint256 itemInsertionIndex = context.randRange(
-                        0,
-                        orders[orderInsertionIndex].parameters.offer.length - 1
-                    );
-
-                    for (uint256 j = 0; j < itemInsertionIndex; ++j) {
-                        newOffer[j] = orders[orderInsertionIndex]
-                            .parameters
-                            .offer[j];
-                    }
-
-                    newOffer[itemInsertionIndex] = OfferItem({
-                        itemType: item.itemType,
-                        token: item.token,
-                        identifierOrCriteria: item.identifierOrCriteria,
-                        startAmount: uint256(amount),
-                        endAmount: uint256(amount)
-                    });
-
-                    for (
-                        uint256 j = itemInsertionIndex + 1;
-                        j < newOffer.length;
-                        ++j
-                    ) {
-                        newOffer[j] = orders[orderInsertionIndex]
-                            .parameters
-                            .offer[j - 1];
-                    }
+                for (uint256 j = 0; j < itemInsertionIndex; ++j) {
+                    newOffer[j] = orders[orderInsertionIndex].parameters.offer[
+                        j
+                    ];
                 }
 
-                orders[orderInsertionIndex].parameters.offer = newOffer;
+                newOffer[itemInsertionIndex] = OfferItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifierOrCriteria: item.identifierOrCriteria,
+                    startAmount: uint256(amount),
+                    endAmount: uint256(amount)
+                });
+
+                for (
+                    uint256 j = itemInsertionIndex + 1;
+                    j < newOffer.length;
+                    ++j
+                ) {
+                    newOffer[j] = orders[orderInsertionIndex].parameters.offer[
+                        j - 1
+                    ];
+                }
+            }
+
+            orders[orderInsertionIndex].parameters.offer = newOffer;
+        }
+
+        return orders;
+    }
+
+    function _handleInsertIfAllEmpty(
+        uint256 len,
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder[] memory _orders) {
+        bool allEmpty = true;
+        for (uint256 i = 0; i < len; ++i) {
+            OrderParameters memory orderParams = orders[i].parameters;
+            if (
+                orderParams.offer.length + orderParams.consideration.length > 0
+            ) {
+                allEmpty = false;
+                break;
             }
         }
 
-        // Sign phase
+        if (allEmpty) {
+            uint256 orderInsertionIndex = context.randRange(0, len - 1);
+            OrderParameters memory orderParams = orders[orderInsertionIndex]
+                .parameters;
+
+            ConsiderationItem[] memory consideration = new ConsiderationItem[](
+                1
+            );
+            consideration[0] = TestStateGenerator
+            .generateConsideration(1, context, true)[0].generate(
+                    context,
+                    orderParams.offerer
+                );
+
+            orderParams.consideration = consideration;
+        }
+
+        return orders;
+    }
+
+    /**
+     * @dev Handle orders with only filtered executions. Note: technically
+     *      orders with no unfiltered consideration items can still be called in
+     *      some cases via fulfillAvailable as long as there are offer items
+     *      that don't have to be filtered as well. Also note that this does not
+     *      account for unfilterable matchOrders combinations yet. But the
+     *      baseline behavior is that an order with no explicit executions,
+     *      Seaport will revert.
+     */
+    function _handleInsertIfAllFilterable(
+        uint256 len,
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal view returns (AdvancedOrder[] memory _orders) {
+        bool allFilterable = true;
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        for (uint256 i = 0; i < len; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ConsiderationItem memory item = order.consideration[j];
+
+                if (item.recipient != caller) {
+                    allFilterable = false;
+                    break;
+                }
+            }
+
+            if (!allFilterable) {
+                break;
+            }
+        }
+
+        // If they're all filterable, then we need to add a consideration
+        // item to one of the orders.
+        if (allFilterable) {
+            OrderParameters memory orderParams;
+
+            for (
+                uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                orderInsertionIndex < len * 2;
+                ++orderInsertionIndex
+            ) {
+                orderParams = orders[orderInsertionIndex % len].parameters;
+
+                if (orderParams.consideration.length != 0) {
+                    break;
+                }
+            }
+
+            if (orderParams.consideration.length == 0) {
+                uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                orderParams = orders[orderInsertionIndex].parameters;
+
+                ConsiderationItem[]
+                    memory consideration = new ConsiderationItem[](1);
+                consideration[0] = TestStateGenerator
+                .generateConsideration(1, context, true)[0].generate(
+                        context,
+                        orderParams.offerer
+                    );
+
+                orderParams.consideration = consideration;
+            }
+
+            uint256 itemIndex = context.randRange(
+                0,
+                orderParams.consideration.length - 1
+            );
+
+            // Make the recipient an address other than the caller so that
+            // it produces a non-filterable transfer.
+            if (caller != context.alice.addr) {
+                orderParams.consideration[itemIndex].recipient = payable(
+                    context.alice.addr
+                );
+            } else {
+                orderParams.consideration[itemIndex].recipient = payable(
+                    context.bob.addr
+                );
+            }
+        }
+
+        return orders;
+    }
+
+    function _signOrders(
+        AdvancedOrdersSpace memory space,
+        uint256 len,
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    )
+        internal
+        view
+        returns (AdvancedOrder[] memory, FuzzGeneratorContext memory _context)
+    {
+        context.orderHashes = new bytes32[](len);
+
         for (uint256 i = 0; i < len; ++i) {
             AdvancedOrder memory order = orders[i];
 
@@ -345,7 +514,8 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         }
-        return orders;
+
+        return (orders, context);
     }
 }
 
@@ -563,6 +733,10 @@ library TokenIndexGenerator {
         ItemType itemType,
         FuzzGeneratorContext memory context
     ) internal pure returns (address) {
+        if (itemType == ItemType.NATIVE) {
+            return address(0);
+        }
+
         uint256 i = uint8(tokenIndex);
 
         // TODO: missing native tokens
