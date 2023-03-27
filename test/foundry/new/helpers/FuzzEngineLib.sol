@@ -128,7 +128,7 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 value = 0;
 
         for (uint256 i = 0; i < context.orders.length; ++i) {
