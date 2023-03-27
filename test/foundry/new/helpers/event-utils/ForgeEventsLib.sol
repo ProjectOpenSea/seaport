@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "seaport-sol/../PointerLibraries.sol";
+import "../../../../../contracts/helpers/PointerLibraries.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 import { console2 } from "forge-std/console2.sol";
