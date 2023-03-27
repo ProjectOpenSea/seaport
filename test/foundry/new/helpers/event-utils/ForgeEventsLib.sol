@@ -1,13 +1,15 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "seaport-sol/../PointerLibraries.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
+
+import "../../../../../contracts/helpers/PointerLibraries.sol";
 
 import { Vm } from "forge-std/Vm.sol";
+
 import { console2 } from "forge-std/console2.sol";
 
 import { getEventHash, getTopicsHash } from "./EventHashes.sol";
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import {
     ERC20TransferEvent,
@@ -24,6 +26,9 @@ library ForgeEventsLib {
     using { ifTrue } for bytes32;
     using EventSerializer for *;
 
+    /**
+     * @dev Returns the hash of the event emitted by Forge.
+     */
     function getForgeEventHash(
         Vm.Log memory log
     ) internal pure returns (bytes32) {
@@ -32,6 +37,9 @@ library ForgeEventsLib {
         return getEventHash(log.emitter, topicsHash, dataHash);
     }
 
+    /**
+     * @dev Returns the memory pointer for a given log.
+     */
     function toMemoryPointer(
         Vm.Log memory log
     ) internal pure returns (MemoryPointer ptr) {
@@ -40,30 +48,39 @@ library ForgeEventsLib {
         }
     }
 
+    /**
+     * @dev Returns the hash of the data on the event.
+     */
     function getDataHash(Vm.Log memory log) internal pure returns (bytes32) {
         return keccak256(log.data);
         // MemoryPointer data = toMemoryPointer(log).pptr(32);
         // return data.offset(32).hash(data.readUint256());
     }
 
+    /**
+     * @dev Gets the first topic of the log.
+     */
     function getTopic0(Vm.Log memory log) internal pure returns (bytes32) {
         MemoryPointer topics = toMemoryPointer(log).pptr();
         uint256 topicsCount = topics.readUint256();
         return topics.offset(0x20).readBytes32().ifTrue(topicsCount > 0);
     }
 
+    /**
+     * @dev Emits a log again.
+     */
     function reEmit(Vm.Log memory log) internal {
         MemoryPointer topics = toMemoryPointer(log).pptr();
         uint256 topicsCount = topics.readUint256();
         (
             bytes32 topic0,
-            bool hasTopic0,
+            ,
             bytes32 topic1,
-            bool hasTopic1,
+            ,
             bytes32 topic2,
-            bool hasTopic2,
+            ,
             bytes32 topic3,
-            bool hasTopic3
+
         ) = getTopics(log);
         MemoryPointer data = toMemoryPointer(log).pptr(32);
         assembly {
@@ -87,6 +104,9 @@ library ForgeEventsLib {
         console2.log("Emitter: ", log.emitter);
     }
 
+    /**
+     * @dev Serializes a token transfer log for an ERC20, ERC721, or ERC1155.
+     */
     function serializeTransferLog(
         Vm.Log memory log,
         string memory objectKey,
@@ -153,8 +173,13 @@ library ForgeEventsLib {
 
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }
+
+        revert("Invalid event log");
     }
 
+    /**
+     * @dev Serializes an array of token transfer logs.
+     */
     function serializeTransferLogs(
         Vm.Log[] memory value,
         string memory objectKey,
@@ -180,6 +205,9 @@ library ForgeEventsLib {
         return vm.serializeString(objectKey, valueKey, out);
     }
 
+    /**
+     * @dev Gets the topics for a log.
+     */
     function getTopics(
         Vm.Log memory log
     )
@@ -211,23 +239,29 @@ library ForgeEventsLib {
         topic3 = topics.offset(0x80).readBytes32().ifTrue(hasTopic3);
     }
 
+    /**
+     * @dev Gets the hash for a log's topics.
+     */
     function getForgeTopicsHash(
         Vm.Log memory log
     ) internal pure returns (bytes32 topicHash) {
-        (
-            bytes32 topic0,
-            bool hasTopic0,
-            bytes32 topic1,
-            bool hasTopic1,
-            bytes32 topic2,
-            bool hasTopic2,
-            bytes32 topic3,
-            bool hasTopic3
-        ) = getTopics(log);
+        // (
+        //     bytes32 topic0,
+        //     bool hasTopic0,
+        //     bytes32 topic1,
+        //     bool hasTopic1,
+        //     bytes32 topic2,
+        //     bool hasTopic2,
+        //     bytes32 topic3,
+        //     bool hasTopic3
+        // ) = getTopics(log);
         return keccak256(abi.encodePacked(log.topics));
     }
 }
 
+/**
+ * @dev Convenience helper.
+ */
 function ifTrue(bytes32 a, bool b) pure returns (bytes32 c) {
     assembly {
         c := mul(a, b)

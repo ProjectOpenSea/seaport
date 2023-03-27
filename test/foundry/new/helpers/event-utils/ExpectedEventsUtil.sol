@@ -1,22 +1,22 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import { Vm } from "forge-std/Vm.sol";
-import { console2 } from "forge-std/console2.sol";
 
-import "seaport-sol/../ArrayHelpers.sol";
+import "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     Execution
 } from "../../../../../contracts/lib/ConsiderationStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
+
 import { FuzzEngineLib } from "../FuzzEngineLib.sol";
 
 import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 import {
     serializeDynArrayAdvancedOrder,
     serializeDynArrayExecution,
@@ -31,6 +31,10 @@ struct ReduceInput {
     FuzzTestContext context;
 }
 
+/**
+ * @dev This library is used to check that the events emitted by tests match the
+ *      expected events.
+ */
 library ExpectedEventsUtil {
     using ArrayHelpers for MemoryPointer;
     using FuzzEngineLib for FuzzTestContext;
@@ -38,11 +42,18 @@ library ExpectedEventsUtil {
     using ForgeEventsLib for Vm.Log[];
     using Casts for *;
 
+    /**
+     * @dev Set up the Vm.
+     */
     address private constant VM_ADDRESS =
         address(uint160(uint256(keccak256("hevm cheat code"))));
-
     Vm private constant vm = Vm(VM_ADDRESS);
 
+    /**
+     * @dev Sets up the expected event hashes.
+     *
+     * @param context The test context
+     */
     function setExpectedEventHashes(FuzzTestContext memory context) internal {
         Execution[] memory executions = ArrayHelpers
             .flatten
@@ -64,6 +75,7 @@ library ExpectedEventsUtil {
                 TransferEventsLib.getTransferEventHash,
                 context
             );
+
         vm.serializeBytes32(
             "root",
             "expectedEventHashes",
@@ -71,10 +83,16 @@ library ExpectedEventsUtil {
         );
     }
 
+    /**
+     * @dev Starts recording logs.
+     */
     function startRecordingLogs() internal {
         vm.recordLogs();
     }
 
+    /**
+     * @dev Dumps the logs in a JSON file.
+     */
     function dump(FuzzTestContext memory context) internal {
         vm.serializeString("root", "action", context.actionName());
         context.actualEvents.serializeTransferLogs("root", "actualEvents");
@@ -94,10 +112,16 @@ library ExpectedEventsUtil {
         vm.writeJson(finalJson, "./fuzz_debug.json");
     }
 
+    /**
+     * @dev Checks that the events emitted by the test match the expected
+     *      events.
+     *
+     * @param context The test context
+     */
     function checkExpectedEvents(FuzzTestContext memory context) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         context.actualEvents = logs;
-        uint256 logIndex;
+        // uint256 logIndex;
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedEventHashes = context.expectedEventHashes;
@@ -118,15 +142,21 @@ library ExpectedEventsUtil {
 
         if (nextWatchedEventIndex != -1) {
             dump(context);
-            revert("ExpectedEvents: too many watched events - info written to fuzz_debug.json");
+            revert(
+                "ExpectedEvents: too many watched events - info written to fuzz_debug.json"
+            );
         }
     }
 
     /**
      * @dev This function defines which logs matter for the sake of the fuzz
      *      tests. This is called for every log emitted during a test run. If
-     *      it returns true, `checkNextEvent` will assert that the log matches the
-     *      next expected event recorded in the test context.
+     *      it returns true, `checkNextEvent` will assert that the log matches
+     *      the next expected event recorded in the test context.
+     *
+     * @param log The log to check
+     *
+     * @return True if the log is a watched event, false otherwise
      */
     function isWatchedEvent(Vm.Log memory log) internal pure returns (bool) {
         bytes32 topic0 = log.getTopic0();
@@ -135,6 +165,15 @@ library ExpectedEventsUtil {
             topic0 == Topic0_ERC1155_TransferSingle;
     }
 
+    /**
+     * @dev Checks that the next log matches the next expected event.
+     *
+     * @param lastLogIndex The index of the last log that was checked
+     * @param expectedEventHash The expected event hash
+     * @param input The input to the reduce function
+     *
+     * @return nextLogIndex The index of the next log to check
+     */
     function checkNextEvent(
         uint256 lastLogIndex,
         uint256 expectedEventHash,
@@ -154,7 +193,9 @@ library ExpectedEventsUtil {
                 bytes32(expectedEventHash)
             );
             dump(input.context);
-            revert("ExpectedEvents: event not found - info written to fuzz_debug.json");
+            revert(
+                "ExpectedEvents: event not found - info written to fuzz_debug.json"
+            );
         }
 
         require(nextWatchedEventIndex != -1, "ExpectedEvents: event not found");
@@ -172,6 +213,9 @@ library ExpectedEventsUtil {
     }
 }
 
+/**
+ * @dev Low level helpers.
+ */
 library Casts {
     function asExecutionsFlatten(
         function(MemoryPointer, MemoryPointer)

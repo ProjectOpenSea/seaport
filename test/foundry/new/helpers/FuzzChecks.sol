@@ -191,7 +191,7 @@ abstract contract FuzzChecks is Test {
 
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
-        bytes4 action = context.action();
+        // bytes4 action = context.action();
 
         assertEq(
             context.returnValues.executions.length,
@@ -242,7 +242,7 @@ abstract contract FuzzChecks is Test {
     function check_expectedEventsEmitted(
         FuzzTestContext memory context
     ) public {
-        bytes4 action = context.action();
+        // bytes4 action = context.action();
 
         ExpectedEventsUtil.checkExpectedEvents(context);
     }

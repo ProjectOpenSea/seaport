@@ -49,6 +49,8 @@ library FuzzEngineLib {
         if (selector == 0xb3a34c4c) return "fulfillOrder";
         if (selector == 0xf2d12b12) return "matchAdvancedOrders";
         if (selector == 0xa8174404) return "matchOrders";
+
+        revert("Unknown selector");
     }
 
     /**
