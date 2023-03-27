@@ -44,13 +44,7 @@ library ExpectedEventsUtil {
     Vm private constant vm = Vm(VM_ADDRESS);
 
     function setExpectedEventHashes(FuzzTestContext memory context) internal {
-        Execution[] memory executions = ArrayHelpers
-            .flatten
-            .asExecutionsFlatten()(
-                context.expectedExplicitExecutions,
-                context.expectedImplicitExecutions
-            );
-
+        Execution[] memory executions = context.allExpectedExecutions;
         require(
             executions.length ==
                 context.expectedExplicitExecutions.length +
@@ -78,12 +72,7 @@ library ExpectedEventsUtil {
     function dump(FuzzTestContext memory context) internal {
         vm.serializeString("root", "action", context.actionName());
         context.actualEvents.serializeTransferLogs("root", "actualEvents");
-        Execution[] memory executions = ArrayHelpers
-            .flatten
-            .asExecutionsFlatten()(
-                context.expectedExplicitExecutions,
-                context.expectedImplicitExecutions
-            );
+        Execution[] memory executions = context.allExpectedExecutions;
 
         string memory finalJson = TransferEventsLib.serializeTransferLogs(
             executions,
@@ -173,25 +162,6 @@ library ExpectedEventsUtil {
 }
 
 library Casts {
-    function asExecutionsFlatten(
-        function(MemoryPointer, MemoryPointer)
-            internal
-            view
-            returns (MemoryPointer) fnIn
-    )
-        internal
-        pure
-        returns (
-            function(Execution[] memory, Execution[] memory)
-                internal
-                pure
-                returns (Execution[] memory) fnOut
-        )
-    {
-        assembly {
-            fnOut := fnIn
-        }
-    }
 
     function asLogsFindIndex(
         function(
