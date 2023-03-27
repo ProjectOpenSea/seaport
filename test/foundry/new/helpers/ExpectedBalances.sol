@@ -357,7 +357,7 @@ contract ERC1155Balances {
         }
     }
 
-    function checkERC1155Balances() internal {
+    function checkERC1155Balances() internal view {
         address[] memory tokensArray = tokens.values();
 
         uint256 length = tokensArray.length;
@@ -456,7 +456,7 @@ contract ExpectedBalances is
     ERC721Balances,
     ERC1155Balances
 {
-    function addTransfer(Execution calldata execution) external {
+    function addTransfer(Execution calldata execution) public {
         ReceivedItem memory item = execution.item;
         if (item.itemType == ItemType.NATIVE) {
             return
@@ -496,9 +496,13 @@ contract ExpectedBalances is
         }
     }
 
-    function addTransfers(Execution[] calldata executions) external {}
+    function addTransfers(Execution[] calldata executions) external {
+      for (uint256 i; i < executions.length; i++) {
+        addTransfer(executions[i]);
+      }
+    }
 
-    function checkBalances() external {
+    function checkBalances() external view {
         checkNativeBalances();
         checkERC20Balances();
         checkERC721Balances();

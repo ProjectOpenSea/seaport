@@ -30,6 +30,73 @@ contract ExpectedBalancesTest is Test {
         _deployTestTokenContracts();
     }
 
+    function testAddTransfers() external {
+        erc20.mint(alice, 500);
+        erc721.mint(bob, 1);
+        erc1155.mint(bob, 1, 100);
+        vm.deal(alice, 1 ether);
+        Execution[] memory executions = new Execution[](4);
+
+        executions[0] = Execution({
+            offerer: alice,
+            conduitKey: bytes32(0),
+            item: ReceivedItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                0.5 ether,
+                payable(bob)
+            )
+        });
+        executions[1] = Execution({
+            offerer: alice,
+            conduitKey: bytes32(0),
+            item: ReceivedItem(
+                ItemType.ERC20,
+                address(erc20),
+                0,
+                250,
+                payable(bob)
+            )
+        });
+        executions[2] = Execution({
+            offerer: bob,
+            conduitKey: bytes32(0),
+            item: ReceivedItem(
+                ItemType.ERC721,
+                address(erc721),
+                1,
+                1,
+                payable(alice)
+            )
+        });
+        executions[3] = Execution({
+            offerer: bob,
+            conduitKey: bytes32(0),
+            item: ReceivedItem(
+                ItemType.ERC1155,
+                address(erc1155),
+                1,
+                50,
+                payable(alice)
+            )
+        });
+        balances.addTransfers(executions);
+        vm.prank(alice);
+        erc20.transfer(bob, 250);
+
+        vm.prank(bob);
+        erc721.transferFrom(bob, alice, 1);
+
+        vm.prank(bob);
+        erc1155.safeTransferFrom(bob, alice, 1, 50, "");
+
+        vm.prank(alice);
+        bob.send(0.5 ether);
+
+        balances.checkBalances();
+    }
+
     function testCheckBalances() external {
         erc20.mint(alice, 500);
         erc721.mint(bob, 1);
