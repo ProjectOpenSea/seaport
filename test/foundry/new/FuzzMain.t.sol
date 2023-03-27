@@ -23,12 +23,10 @@ contract FuzzMainTest is FuzzEngine {
             FuzzParams({
                 seed: seed,
                 totalOrders: bound(orders, 1, 10),
-                // TODO: the lower bound on these should be zero (especially
-                // if a subsequent bound ensures that they're not both zero)
-                maxOfferItems: bound(maxOfferItemsPerOrder, 1, 10),
+                maxOfferItems: bound(maxOfferItemsPerOrder, 0, 10),
                 maxConsiderationItems: bound(
                     maxConsiderationItemsPerOrder,
-                    1,
+                    0,
                     10
                 )
             })
