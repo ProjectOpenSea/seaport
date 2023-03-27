@@ -70,7 +70,6 @@ enum TokenIndex {
 }
 
 enum Criteria {
-    NONE, // real identifier
     WILDCARD, // criteria zero
     MERKLE // non-zero criteria
 }

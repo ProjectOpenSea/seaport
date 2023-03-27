@@ -15,6 +15,11 @@ import {
 } from "seaport-sol/StructSpace.sol";
 
 import {
+    CriteriaResolverHelper,
+    CriteriaMetadata
+} from "./CriteriaResolverHelper.sol";
+
+import {
     Amount,
     BasicOrderCategory,
     BroadOrderType,
@@ -53,7 +58,7 @@ library TestStateGenerator {
         uint256 maxOfferItemsPerOrder,
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
-    ) internal pure returns (AdvancedOrdersSpace memory) {
+    ) internal returns (AdvancedOrdersSpace memory) {
         context.prng.state = uint256(keccak256(msg.data));
 
         {
@@ -130,9 +135,9 @@ library TestStateGenerator {
             for (uint256 i; i < len; ++i) {
                 offer[i] = OfferItemSpace({
                     // TODO: Native items + criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(1, 3)),
-                    tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    itemType: ItemType(context.randEnum(0, 5)),
+                    tokenIndex: TokenIndex(context.randEnum(0, 1)),
+                    criteria: Criteria(context.randEnum(1, 2)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0))
                 });
@@ -849,7 +854,7 @@ library CriteriaGenerator {
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
         ItemType itemType,
-        Criteria /** criteria */,
+        Criteria criteria,
         FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
@@ -866,14 +871,35 @@ library CriteriaGenerator {
                             context.potential1155TokenIds.length
                     ]
                 );
+            // Else, item is a criteria-based item
+        } else {
+            if (criteria == Criteria.MERKLE) {
+                // Deploy criteria helper with maxLeaves of 10
+                CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
+                        10
+                    );
+
+                // Resolve a random tokenId from a random number of random tokenIds
+                CriteriaMetadata
+                    memory criteriaMetadata = criteriaResolverHelper
+                        .generateCriteriaMetadata(context.prng);
+
+                // Return the item with the resolved tokenId
+                return
+                    item.withIdentifierOrCriteria(
+                        criteriaMetadata.resolvedIdentifier
+                    );
+            } else {
+                // Return wildcard criteria item with identifier 0
+                return item.withIdentifierOrCriteria(0);
+            }
         }
-        revert("CriteriaGenerator: invalid ItemType");
     }
 
     function withGeneratedIdentifierOrCriteria(
         OfferItem memory item,
         ItemType itemType,
-        Criteria /** criteria */,
+        Criteria criteria,
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
@@ -890,8 +916,22 @@ library CriteriaGenerator {
                             context.potential1155TokenIds.length
                     ]
                 );
+        } else {
+            // Deploy criteria helper with maxLeaves of 10
+            CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
+                    10
+                );
+
+            // Resolve a random tokenId from a random number of random tokenIds
+            CriteriaMetadata memory criteriaMetadata = criteriaResolverHelper
+                .generateCriteriaMetadata(context.prng);
+
+            // Return the item with the resolved tokenId
+            return
+                item.withIdentifierOrCriteria(
+                    criteriaMetadata.resolvedIdentifier
+                );
         }
-        revert("CriteriaGenerator: invalid ItemType");
     }
 }
 
