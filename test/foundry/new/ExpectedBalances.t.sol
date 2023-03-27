@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import "../../../contracts/lib/ConsiderationStructs.sol";
 import {
     ExpectedBalances,
+    BalanceErrorMessages,
     ERC721TokenDump
 } from "./helpers/ExpectedBalances.sol";
 // import "./ExpectedBalanceSerializer.sol";
@@ -207,7 +208,16 @@ contract ExpectedBalancesTest is Test {
             })
         );
         vm.deal(bob, 0.5 ether);
-        vm.expectRevert("ExpectedBalances: Native balance does not match");
+        vm.expectRevert(
+            bytes(
+                BalanceErrorMessages.nativeUnexpectedBalance(
+                    alice,
+                    0,
+                    0.5 ether
+                )
+            )
+        );
+
         balances.checkBalances();
     }
 
@@ -226,7 +236,14 @@ contract ExpectedBalancesTest is Test {
                 )
             })
         );
-        vm.expectRevert("ExpectedBalances: Native balance does not match");
+        vm.prank(alice);
+        payable(address(1000)).send(0.5 ether);
+
+        vm.expectRevert(
+            bytes(
+                BalanceErrorMessages.nativeUnexpectedBalance(bob, 0.5 ether, 0)
+            )
+        );
         balances.checkBalances();
     }
 
@@ -269,7 +286,17 @@ contract ExpectedBalancesTest is Test {
         vm.prank(alice);
         erc20.transfer(bob, 5);
         erc20.mint(alice, 1);
-        vm.expectRevert("ExpectedBalances: Token balance does not match");
+
+        vm.expectRevert(
+            bytes(
+                BalanceErrorMessages.erc20UnexpectedBalance(
+                    address(erc20),
+                    alice,
+                    5,
+                    6
+                )
+            )
+        );
         balances.checkBalances();
     }
 
@@ -288,7 +315,17 @@ contract ExpectedBalancesTest is Test {
                 )
             })
         );
-        vm.expectRevert("ExpectedBalances: Token balance does not match");
+
+        vm.expectRevert(
+            bytes(
+                BalanceErrorMessages.erc20UnexpectedBalance(
+                    address(erc20),
+                    alice,
+                    5,
+                    10
+                )
+            )
+        );
         balances.checkBalances();
     }
 
@@ -330,7 +367,7 @@ contract ExpectedBalancesTest is Test {
 
     function testERC721InsufficientBalance() external {
         erc721.mint(bob, 1);
-        vm.expectRevert("ExpectedBalances: sender does not own token");
+        vm.expectRevert(stdError.arithmeticError);
         balances.addTransfer(
             Execution({
                 offerer: alice,
@@ -362,8 +399,16 @@ contract ExpectedBalancesTest is Test {
             })
         );
         erc721.mint(alice, 2);
+
         vm.expectRevert(
-            "ExpectedBalances: account has more than expected # of tokens"
+            bytes(
+                BalanceErrorMessages.erc721UnexpectedBalance(
+                    address(erc721),
+                    alice,
+                    0,
+                    2
+                )
+            )
         );
         balances.checkBalances();
     }
@@ -467,8 +512,17 @@ contract ExpectedBalancesTest is Test {
         vm.prank(alice);
         erc1155.safeTransferFrom(alice, bob, 1, 5, "");
         erc1155.mint(alice, 1, 1);
+
         vm.expectRevert(
-            "ExpectedBalances: account does not own expected balance for id"
+            bytes(
+                BalanceErrorMessages.erc1155UnexpectedBalance(
+                    address(erc1155),
+                    alice,
+                    1,
+                    5,
+                    6
+                )
+            )
         );
         balances.checkBalances();
     }
@@ -488,8 +542,18 @@ contract ExpectedBalancesTest is Test {
                 )
             })
         );
+        vm.prank(alice);
+        erc1155.safeTransferFrom(alice, address(1000), 1, 5, "");
         vm.expectRevert(
-            "ExpectedBalances: account does not own expected balance for id"
+            bytes(
+                BalanceErrorMessages.erc1155UnexpectedBalance(
+                    address(erc1155),
+                    bob,
+                    1,
+                    5,
+                    0
+                )
+            )
         );
         balances.checkBalances();
     }
