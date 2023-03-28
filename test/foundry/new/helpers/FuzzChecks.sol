@@ -106,18 +106,31 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                uint256 counter = context.seaport.getCounter(
-                    order.parameters.offerer
-                );
+                bytes32 orderHash;
+                {
+                    uint256 counter = context.seaport.getCounter(
+                        order.parameters.offerer
+                    );
 
-                OrderComponents memory orderComponents = order
-                    .parameters
-                    .toOrderComponents(counter);
+                    OrderComponents memory components = (
+                        order.parameters.toOrderComponents(counter)
+                    );
 
-                // Get the order hash.
-                bytes32 orderHash = context.seaport.getOrderHash(
-                    orderComponents
-                );
+                    ConsiderationItem[] memory considerationSansTips = (
+                        components.consideration
+                    );
+
+                    uint256 lengthSansTips = (
+                        order.parameters.totalOriginalConsiderationItems
+                    );
+
+                    // set proper length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthSansTips)
+                    }
+
+                    orderHash = context.seaport.getOrderHash(components);
+                }
 
                 // Use the order hash to get the expected calldata hash from the
                 // zone.
