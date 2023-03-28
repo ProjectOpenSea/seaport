@@ -294,7 +294,7 @@ library AdvancedOrdersSpaceGenerator {
             .testHelpers
             .getMatchedFulfillments(orders);
 
-        //Iterate over the remainders and insert them into the orders.
+        // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
             // Unpack the remainder from the MatchComponent into its
             // constituent parts.
