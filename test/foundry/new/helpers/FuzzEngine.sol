@@ -233,8 +233,6 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-
-        setupExpectedEventsAndBalances(context);
     }
 
     /**
@@ -243,7 +241,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @param context A Fuzz test context.
      */
     function runCheckRegistration(FuzzTestContext memory context) internal {
-        registerExpectedEvents(context);
+        registerExpectedEventsAndBalances(context);
         registerCommonChecks(context);
         registerFunctionSpecificChecks(context);
     }
