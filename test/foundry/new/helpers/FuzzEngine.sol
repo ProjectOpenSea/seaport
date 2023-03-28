@@ -32,7 +32,7 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
-import { FuzzSetup } from "./FuzzSetup.sol";
+import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -45,30 +45,21 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FuzzTestContextLib for FuzzTestContext;
+    using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using FuzzTestContextLib for FuzzTestContext;
 
     /**
-     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run a
-     *      `FuzzEngine` test. Calls the following test lifecycle functions in
-     *      order:
-     *
-     *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
-     *      2. runDerivers: Run deriver functions for the test.
-     *      3. runSetup: Run setup functions for the test.
-     *      3. exec: Select and call a Seaport function.
-     *      4. checkAll: Call all registered checks.
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
+     *      a `FuzzEngine` test.
      *
      * @param fuzzParams A FuzzParams struct containing fuzzed values.
      */
     function run(FuzzParams memory fuzzParams) internal {
         FuzzTestContext memory context = generate(fuzzParams);
-        runDerivers(context);
-        runSetup(context);
-        exec(context);
-        checkAll(context);
+        run(context);
     }
 
     /**
@@ -76,15 +67,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      *      following test lifecycle functions in order:
      *
      *      1. runDerivers: Run deriver functions for the test.
-     *      1. runSetup: Run setup functions for the test.
-     *      2. exec: Select and call a Seaport function.
-     *      3. checkAll: Call all registered checks.
+     *      2. runSetup: Run setup functions for the test.
+     *      3. runCheckRegistration: Register checks for the test.
+     *      4. exec: Select and call a Seaport function.
+     *      5. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
         runDerivers(context);
         runSetup(context);
+        runCheckRegistration(context);
         exec(context);
         checkAll(context);
     }
@@ -99,7 +92,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     ) internal returns (FuzzTestContext memory) {
         ConsiderationInterface seaport_ = getSeaport();
         ConduitControllerInterface conduitController_ = getConduitController();
-        
+
         // Set up a default context.
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
@@ -179,7 +172,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-        setUpExpectedEvents(context);
+    }
+
+    /**
+     * @dev Register checks for the test.
+     *
+     * @param context A Fuzz test context.
+     */
+    function runCheckRegistration(FuzzTestContext memory context) internal {
+        registerExpectedEvents(context);
+        registerCommonChecks(context);
+        registerFunctionSpecificChecks(context);
     }
 
     /**
