@@ -52,7 +52,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.STANDARD);
+        assertEq(order.getStructure(address(getSeaport())), Structure.STANDARD);
     }
 
     /// @dev An order with no advanced order parameters that meets various
@@ -103,7 +103,10 @@ contract FuzzHelpersTest is BaseOrderTest {
             extraData: bytes("")
         });
 
-        assertEq(advancedOrder.getStructure(address(seaport)), Structure.BASIC);
+        assertEq(
+            advancedOrder.getStructure(address(getSeaport())),
+            Structure.BASIC
+        );
     }
 
     /// @dev An order with numerator, denominator, or extraData is ADVANCED
@@ -124,7 +127,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: extraData
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with offer item criteria is ADVANCED
@@ -148,7 +151,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with offer item criteria is ADVANCED
@@ -172,7 +175,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with consideration item criteria is ADVANCED
@@ -196,7 +199,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev A non-contract order with consideration item criteria is ADVANCED
@@ -220,7 +223,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev A contract order with consideration item criteria is STANDARD if
@@ -248,7 +251,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.STANDARD);
+        assertEq(order.getStructure(address(getSeaport())), Structure.STANDARD);
     }
 
     /// @dev A contract order with consideration item criteria is ADVANCED if
@@ -277,7 +280,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getStructure(address(seaport)), Structure.ADVANCED);
+        assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
 
     /// @dev An order with type FULL_OPEN is OPEN
@@ -377,14 +380,14 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev A validated order is in state VALIDATED
     function test_getState_ValidatedOrder() public {
-        uint256 counter = seaport.getCounter(offerer1.addr);
+        uint256 counter = getSeaport().getCounter(offerer1.addr);
         OrderParameters memory orderParameters = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr)
             .withCounter(counter)
             .withOrderType(OrderType.FULL_OPEN)
             .toOrderParameters();
-        bytes32 orderHash = seaport.getOrderHash(
+        bytes32 orderHash = getSeaport().getOrderHash(
             orderParameters.toOrderComponents(counter)
         );
 
@@ -392,9 +395,9 @@ contract FuzzHelpersTest is BaseOrderTest {
         orders[0] = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
-            .withSignature(signOrder(seaport, offerer1.key, orderHash));
+            .withSignature(signOrder(getSeaport(), offerer1.key, orderHash));
 
-        assertEq(seaport.validate(orders), true);
+        assertEq(getSeaport().validate(orders), true);
 
         AdvancedOrder memory order = orders[0].toAdvancedOrder({
             numerator: 0,
@@ -402,19 +405,19 @@ contract FuzzHelpersTest is BaseOrderTest {
             extraData: bytes("")
         });
 
-        assertEq(order.getState(seaport), State.VALIDATED);
+        assertEq(order.getState(getSeaport()), State.VALIDATED);
     }
 
     /// @dev A cancelled order is in state CANCELLED
     function test_getState_CancelledOrder() public {
-        uint256 counter = seaport.getCounter(offerer1.addr);
+        uint256 counter = getSeaport().getCounter(offerer1.addr);
         OrderParameters memory orderParameters = OrderComponentsLib
             .fromDefault(STANDARD)
             .withOfferer(offerer1.addr)
             .withCounter(counter)
             .withOrderType(OrderType.FULL_OPEN)
             .toOrderParameters();
-        bytes32 orderHash = seaport.getOrderHash(
+        bytes32 orderHash = getSeaport().getOrderHash(
             orderParameters.toOrderComponents(counter)
         );
 
@@ -422,15 +425,15 @@ contract FuzzHelpersTest is BaseOrderTest {
         orders[0] = OrderLib
             .fromDefault(STANDARD)
             .withParameters(orderParameters)
-            .withSignature(signOrder(seaport, offerer1.key, orderHash));
+            .withSignature(signOrder(getSeaport(), offerer1.key, orderHash));
 
         OrderComponents[] memory orderComponents = new OrderComponents[](1);
         orderComponents[0] = orderParameters.toOrderComponents(counter);
 
-        assertEq(seaport.validate(orders), true);
+        assertEq(getSeaport().validate(orders), true);
 
         vm.prank(offerer1.addr);
-        assertEq(seaport.cancel(orderComponents), true);
+        assertEq(getSeaport().cancel(orderComponents), true);
 
         AdvancedOrder memory order = orders[0].toAdvancedOrder({
             numerator: 0,
@@ -438,7 +441,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             extraData: bytes("")
         });
 
-        assertEq(order.getState(seaport), State.CANCELLED);
+        assertEq(order.getState(getSeaport()), State.CANCELLED);
     }
 
     /// @dev A new order is in state UNUSED
@@ -451,7 +454,7 @@ contract FuzzHelpersTest is BaseOrderTest {
                 extraData: bytes("")
             });
 
-        assertEq(order.getState(seaport), State.UNUSED);
+        assertEq(order.getState(getSeaport()), State.UNUSED);
     }
 
     /// @dev An order[] quantity is its length
@@ -555,7 +558,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC721_FULL_OPEN
@@ -573,7 +576,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
@@ -591,7 +594,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED
@@ -609,7 +612,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
@@ -627,7 +630,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
@@ -645,7 +648,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN
@@ -663,7 +666,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED
@@ -681,7 +684,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
@@ -699,7 +702,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
@@ -717,7 +720,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN
@@ -735,7 +738,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED
@@ -755,7 +758,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
@@ -773,7 +776,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
@@ -791,7 +794,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN
@@ -809,7 +812,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED
@@ -829,7 +832,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
@@ -847,7 +850,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
@@ -865,7 +868,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN
@@ -883,7 +886,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED
@@ -903,7 +906,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
@@ -921,7 +924,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
@@ -939,7 +942,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_OPEN
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
@@ -957,7 +960,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
@@ -977,7 +980,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             OrderType.PARTIAL_RESTRICTED
         );
 
-        order.getBasicOrderTypeEligibility(address(seaport));
+        order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
             order.getBasicOrderType(),
             BasicOrderType.ERC1155_TO_ERC20_PARTIAL_RESTRICTED
@@ -994,7 +997,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         order.parameters.consideration[0].itemType = ItemType
             .ERC1155_WITH_CRITERIA;
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function test_getBasicOrderTypeEligibility_failure_extraData() public {
@@ -1006,7 +1009,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         order.extraData = bytes("extraData");
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function test_getBasicOrderTypeEligibility_failure_offerItemLength()
@@ -1025,11 +1028,11 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         order.parameters.offer = offer;
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
 
         order.parameters.offer = new OfferItem[](0);
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function test_getBasicOrderTypeEligibility_failure_considerationItemLength()
@@ -1043,7 +1046,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         order.parameters.consideration = new ConsiderationItem[](0);
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function test_getBasicOrderTypeEligibility_failure_nftCount() public {
@@ -1058,7 +1061,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         order.parameters.offer = offer;
 
-        assertFalse(order.getBasicOrderTypeEligibility(address(seaport)));
+        assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function assertEq(State a, State b) internal {

@@ -1,6 +1,3 @@
-[submodule "lib/ds-test"]
-	path = lib/ds-test
-	url = https://github.com/dapphub/ds-test
 [submodule "lib/murky"]
 	path = lib/murky
 	url = https://github.com/dmfxyz/murky
@@ -21,3 +18,6 @@
 [submodule "lib/solarray"]
 	path = lib/solarray
 	url = https://github.com/emo-eth/solarray
+[submodule "lib/ds-test"]
+	path = lib/ds-test
+	url = https://github.com/dapphub/ds-test
