@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
-import { console2 } from "forge-std/console2.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
 address constant VM_ADDRESS = address(
@@ -13,20 +13,12 @@ address constant LABELER_ADDRESS = address(
     uint160(uint256(keccak256(".labeler")))
 );
 
-function setupLabeler() {}
-
-function getLabelView(address account) view returns (string memory _label) {
-    bytes32 storedLabel = vm.load(
+function setLabel(address account, string memory _label) {
+    vm.store(
         LABELER_ADDRESS,
-        bytes32(uint256(uint160(account)))
+        bytes32(uint256(uint160(account))),
+        LibString.packOne(_label)
     );
-    if (storedLabel != bytes32(0)) {
-        return LibString.unpackOne(storedLabel);
-    }
-}
-
-function getLabel(address account) pure returns (string memory) {
-    return pureGetLabel()(account);
 }
 
 function withLabel(address account) pure returns (string memory out) {
@@ -41,14 +33,27 @@ function withLabel(address account) pure returns (string memory out) {
     }
 }
 
-function withLabel(
-    address[] memory accounts
-) pure returns (string[] memory out) {
+function getLabel(address account) pure returns (string memory) {
+    return pureGetLabel()(account);
+}
+
+function getLabelView(address account) view returns (string memory _label) {
+    bytes32 storedLabel = vm.load(
+        LABELER_ADDRESS,
+        bytes32(uint256(uint160(account)))
+    );
+    if (storedLabel != bytes32(0)) {
+        return LibString.unpackOne(storedLabel);
+    }
+}
+
+function withLabel(address[] memory accounts) pure returns (string[] memory) {
     uint256 length = accounts.length;
-    out = new string[](length);
+    string[] memory out = new string[](length);
     for (uint256 i; i < length; i++) {
         out[i] = withLabel(accounts[i]);
     }
+    return out;
 }
 
 function pureGetLabel()
@@ -63,34 +68,3 @@ function pureGetLabel()
         pureFn := viewFn
     }
 }
-
-function setLabel(address account, string memory _label) {
-    vm.store(
-        LABELER_ADDRESS,
-        bytes32(uint256(uint160(account))),
-        LibString.packOne(_label)
-    );
-    /* if (labeler.hasLabel(account)) return;
-    labeler.label(account, _label);
-    vm.label(account, _label); */
-}
-
-/* contract Labeler {
-    mapping(address => string) public _getLabel;
-
-    function hasLabel(address account) external view returns (bool have) {
-        string memory s = _getLabel[account];
-        assembly {
-            have := iszero(iszero(mload(s)))
-        }
-    }
-
-    function label(
-        address account,
-        string memory _label
-    ) external returns (bool) {
-        _getLabel[account] = _label;
-        return true;
-    }
-}
- */

@@ -36,7 +36,7 @@ import {
     ReferenceConsideration
 } from "../../../../reference/ReferenceConsideration.sol";
 
-import { setLabel, setupLabeler } from "./Labeler.sol";
+import { setLabel } from "./Labeler.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseSeaportTest is DifferentialTest {
@@ -68,8 +68,6 @@ contract BaseSeaportTest is DifferentialTest {
     }
 
     function setUp() public virtual {
-        setupLabeler();
-
         // conditionally deploy contracts normally or from precompiled source
         // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
         // or when FOUNDRY_PROFILE is "debug" for debugging with source maps
