@@ -34,6 +34,8 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzSetup } from "./FuzzSetup.sol";
 
+import { dumpExecutions } from "./DebugUtil.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -362,6 +364,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         );
 
         if (!success) {
+            dumpExecutions(context);
             if (result.length == 0) revert();
             assembly {
                 revert(add(0x20, result), mload(result))

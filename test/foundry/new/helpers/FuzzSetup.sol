@@ -17,6 +17,7 @@ import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
 import { ExpectedBalances } from "./ExpectedBalances.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -340,6 +341,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
             bytes memory reason
         ) {
             context.allExpectedExecutions = executions;
+            dumpExecutions(context);
             assembly {
                 revert(add(reason, 32), mload(reason))
             }
