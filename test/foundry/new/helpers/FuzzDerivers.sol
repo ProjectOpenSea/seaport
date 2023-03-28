@@ -116,7 +116,8 @@ abstract contract FuzzDerivers is
                 caller,
                 context.fulfillerConduitKey,
                 recipient,
-                context.getNativeTokensToSupply()
+                context.getNativeTokensToSupply(),
+                address(context.seaport)
             );
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
@@ -131,7 +132,8 @@ abstract contract FuzzDerivers is
                 toOrderDetails(context.orders[0].parameters),
                 caller,
                 context.fulfillerConduitKey,
-                context.getNativeTokensToSupply()
+                context.getNativeTokensToSupply(),
+                address(context.seaport)
             );
         } else if (
             action == context.seaport.fulfillAvailableOrders.selector ||
@@ -147,7 +149,8 @@ abstract contract FuzzDerivers is
                     context.orders,
                     recipient,
                     caller,
-                    context.fulfillerConduitKey
+                    context.fulfillerConduitKey,
+                    address(context.seaport)
                 ),
                 context.offerFulfillments,
                 context.considerationFulfillments,
@@ -164,7 +167,8 @@ abstract contract FuzzDerivers is
                     context.orders,
                     recipient,
                     caller,
-                    context.fulfillerConduitKey
+                    context.fulfillerConduitKey,
+                    address(context.seaport)
                 ),
                 context.fulfillments,
                 context.getNativeTokensToSupply()

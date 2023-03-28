@@ -172,6 +172,55 @@ library ArrayHelpers {
         }
     }
 
+
+    // ====================================================================//
+    //         filter  with (element, arg) => (bool) predicate             //
+    // ====================================================================//
+
+    /**
+     * @dev filter calls a defined callback function on each element of an array
+     *      and returns an array that contains only the elements which the
+     *      callback returned true for
+     *
+     * @param array   the array to map
+     * @param fn      a function that accepts each element in the array and
+     *                returns a boolean that indicates whether the element
+     *                should be included in the new array
+     * @param arg     an arbitrary value provided in each call to fn
+     *
+     * @return newArray the new array created with the elements which the
+     *                  callback returned true for
+     */
+    function filterWithArg(
+      MemoryPointer array,
+      /* function (uint256 value, uint256 arg) returns (bool) */
+      function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
+      MemoryPointer arg
+  ) internal pure returns (MemoryPointer newArray) {
+      unchecked {
+          uint256 length = array.readUint256();
+
+          newArray = malloc((length + 1) * 32);
+
+          MemoryPointer srcPosition = array.next();
+          MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
+          MemoryPointer dstPosition = newArray.next();
+
+          length = 0;
+
+          while (srcPosition.lt(srcEnd)) {
+              MemoryPointer element = srcPosition.readMemoryPointer();
+              if (fn(element, arg)) {
+                  dstPosition.write(element);
+                  dstPosition = dstPosition.next();
+                  length += 1;
+              }
+              srcPosition = srcPosition.next();
+          }
+          newArray.write(length);
+      }
+  }
+
     // ====================================================================//
     //            filter  with (element) => (bool) predicate               //
     // ====================================================================//

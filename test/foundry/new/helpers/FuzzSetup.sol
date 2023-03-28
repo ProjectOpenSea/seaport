@@ -15,6 +15,9 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
+import { ExpectedBalances } from "./ExpectedBalances.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -75,6 +78,8 @@ abstract contract FuzzSetup is Test, AmountDeriver {
 
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
+
+    using ExecutionLib for Execution;
 
     /**
      *  @dev Set up the zone params on a test context.
@@ -303,12 +308,44 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    /**
-     *  @dev Set up the expected events on a test context.
-     *
-     * @param context The test context.
-     */
-    function registerExpectedEvents(FuzzTestContext memory context) public {
+    function registerExpectedEventsAndBalances(
+        FuzzTestContext memory context
+    ) public {
+        ExecutionsFlattener.flattenExecutions(context);
+        context.registerCheck(FuzzChecks.check_expectedBalances.selector);
+        ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
+
+        uint256 callValue = context.getNativeTokensToSupply();
+
+        Execution[] memory _executions = context.allExpectedExecutions;
+        Execution[] memory executions = _executions;
+
+        if (callValue > 0) {
+            address caller = context.caller;
+            if (caller == address(0)) caller = address(this);
+            address seaport = address(context.seaport);
+            executions = new Execution[](_executions.length + 1);
+            executions[0] = ExecutionLib.empty().withOfferer(caller);
+            executions[0].item.amount = callValue;
+            executions[0].item.recipient = payable(seaport);
+            for (uint256 i; i < _executions.length; i++) {
+                Execution memory execution = _executions[i].copy();
+                executions[i + 1] = execution;
+                if (execution.item.itemType == ItemType.NATIVE) {
+                    execution.offerer = seaport;
+                }
+            }
+        }
+
+        try balanceChecker.addTransfers(executions) {} catch (
+            bytes memory reason
+        ) {
+            context.allExpectedExecutions = executions;
+            dumpExecutions(context);
+            assembly {
+                revert(add(reason, 32), mload(reason))
+            }
+        }
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedEventHashes(context);
         context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);

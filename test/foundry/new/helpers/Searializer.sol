@@ -8,776 +8,921 @@ import {
     Result,
     FuzzTestContext
 } from "./FuzzTestContextLib.sol";
+import {
+    NativeAccountDump,
+    ERC20TokenDump,
+    ERC721TokenDump,
+    ERC1155AccountDump,
+    ERC1155TokenDump,
+    ExpectedBalancesDump
+} from "./ExpectedBalances.sol";
+import { withLabel } from "./Labeler.sol";
 
 address constant VM_ADDRESS = address(
     uint160(uint256(keccak256("hevm cheat code")))
 );
 Vm constant vm = Vm(VM_ADDRESS);
 
-function serializeAddress(
-    string memory objectKey,
-    string memory valueKey,
-    address value
-) returns (string memory) {
-    return vm.serializeAddress(objectKey, valueKey, value);
-}
-
-function serializeItemType(
-    string memory objectKey,
-    string memory valueKey,
-    ItemType value
-) returns (string memory) {
-    string[6] memory members = [
-        "NATIVE",
-        "ERC20",
-        "ERC721",
-        "ERC1155",
-        "ERC721_WITH_CRITERIA",
-        "ERC1155_WITH_CRITERIA"
-    ];
-    uint256 index = uint256(value);
-    return vm.serializeString(objectKey, valueKey, members[index]);
-}
-
-function serializeUint256(
-    string memory objectKey,
-    string memory valueKey,
-    uint256 value
-) returns (string memory) {
-    return vm.serializeUint(objectKey, valueKey, value);
-}
-
-function serializeOfferItem(
-    string memory objectKey,
-    string memory valueKey,
-    OfferItem memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeItemType(obj, "itemType", value.itemType);
-    serializeAddress(obj, "token", value.token);
-    serializeUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
-    serializeUint256(obj, "startAmount", value.startAmount);
-    string memory finalJson = serializeUint256(
-        obj,
-        "endAmount",
-        value.endAmount
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayOfferItem(
-    string memory objectKey,
-    string memory valueKey,
-    OfferItem[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeOfferItem(
-            obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
-        );
+library Searializer {
+    function tojsonBytes32(
+        string memory objectKey,
+        string memory valueKey,
+        bytes32 value
+    ) internal returns (string memory) {
+        return vm.serializeBytes32(objectKey, valueKey, value);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeConsiderationItem(
-    string memory objectKey,
-    string memory valueKey,
-    ConsiderationItem memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeItemType(obj, "itemType", value.itemType);
-    serializeAddress(obj, "token", value.token);
-    serializeUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
-    serializeUint256(obj, "startAmount", value.startAmount);
-    serializeUint256(obj, "endAmount", value.endAmount);
-    string memory finalJson = serializeAddress(
-        obj,
-        "recipient",
-        value.recipient
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayConsiderationItem(
-    string memory objectKey,
-    string memory valueKey,
-    ConsiderationItem[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeConsiderationItem(
-            obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
-        );
+    function tojsonAddress(
+        string memory objectKey,
+        string memory valueKey,
+        address value
+    ) internal returns (string memory) {
+        return vm.serializeString(objectKey, valueKey, withLabel(value));
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeOrderType(
-    string memory objectKey,
-    string memory valueKey,
-    OrderType value
-) returns (string memory) {
-    string[5] memory members = [
-        "FULL_OPEN",
-        "PARTIAL_OPEN",
-        "FULL_RESTRICTED",
-        "PARTIAL_RESTRICTED",
-        "CONTRACT"
-    ];
-    uint256 index = uint256(value);
-    return vm.serializeString(objectKey, valueKey, members[index]);
-}
-
-function serializeBytes32(
-    string memory objectKey,
-    string memory valueKey,
-    bytes32 value
-) returns (string memory) {
-    return vm.serializeBytes32(objectKey, valueKey, value);
-}
-
-function serializeOrderParameters(
-    string memory objectKey,
-    string memory valueKey,
-    OrderParameters memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeAddress(obj, "offerer", value.offerer);
-    serializeAddress(obj, "zone", value.zone);
-    serializeDynArrayOfferItem(obj, "offer", value.offer);
-    serializeDynArrayConsiderationItem(
-        obj,
-        "consideration",
-        value.consideration
-    );
-    serializeOrderType(obj, "orderType", value.orderType);
-    serializeUint256(obj, "startTime", value.startTime);
-    serializeUint256(obj, "endTime", value.endTime);
-    serializeBytes32(obj, "zoneHash", value.zoneHash);
-    serializeUint256(obj, "salt", value.salt);
-    serializeBytes32(obj, "conduitKey", value.conduitKey);
-    string memory finalJson = serializeUint256(
-        obj,
-        "totalOriginalConsiderationItems",
-        value.totalOriginalConsiderationItems
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeBytes(
-    string memory objectKey,
-    string memory valueKey,
-    bytes memory value
-) returns (string memory) {
-    return vm.serializeBytes(objectKey, valueKey, value);
-}
-
-function serializeOrder(
-    string memory objectKey,
-    string memory valueKey,
-    Order memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeOrderParameters(obj, "parameters", value.parameters);
-    string memory finalJson = serializeBytes(obj, "signature", value.signature);
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayOrder(
-    string memory objectKey,
-    string memory valueKey,
-    Order[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeOrder(
-            obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
-        );
+    function tojsonUint256(
+        string memory objectKey,
+        string memory valueKey,
+        uint256 value
+    ) internal returns (string memory) {
+        return vm.serializeUint(objectKey, valueKey, value);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeOrderComponents(
-    string memory objectKey,
-    string memory valueKey,
-    OrderComponents memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeAddress(obj, "offerer", value.offerer);
-    serializeAddress(obj, "zone", value.zone);
-    serializeDynArrayOfferItem(obj, "offer", value.offer);
-    serializeDynArrayConsiderationItem(
-        obj,
-        "consideration",
-        value.consideration
-    );
-    serializeOrderType(obj, "orderType", value.orderType);
-    serializeUint256(obj, "startTime", value.startTime);
-    serializeUint256(obj, "endTime", value.endTime);
-    serializeBytes32(obj, "zoneHash", value.zoneHash);
-    serializeUint256(obj, "salt", value.salt);
-    serializeBytes32(obj, "conduitKey", value.conduitKey);
-    string memory finalJson = serializeUint256(obj, "counter", value.counter);
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayOrderComponents(
-    string memory objectKey,
-    string memory valueKey,
-    OrderComponents[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeOrderComponents(
+    function tojsonFuzzParams(
+        string memory objectKey,
+        string memory valueKey,
+        FuzzParams memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonUint256(obj, "seed", value.seed);
+        tojsonUint256(obj, "totalOrders", value.totalOrders);
+        tojsonUint256(obj, "maxOfferItems", value.maxOfferItems);
+        string memory finalJson = tojsonUint256(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "maxConsiderationItems",
+            value.maxConsiderationItems
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeDynArrayOrderParameters(
-    string memory objectKey,
-    string memory valueKey,
-    OrderParameters[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeOrderParameters(
+    function tojsonItemType(
+        string memory objectKey,
+        string memory valueKey,
+        ItemType value
+    ) internal returns (string memory) {
+        string[6] memory members = [
+            "NATIVE",
+            "ERC20",
+            "ERC721",
+            "ERC1155",
+            "ERC721_WITH_CRITERIA",
+            "ERC1155_WITH_CRITERIA"
+        ];
+        uint256 index = uint256(value);
+        return vm.serializeString(objectKey, valueKey, members[index]);
+    }
+
+    function tojsonOfferItem(
+        string memory objectKey,
+        string memory valueKey,
+        OfferItem memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonItemType(obj, "itemType", value.itemType);
+        tojsonAddress(obj, "token", value.token);
+        tojsonUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
+        tojsonUint256(obj, "startAmount", value.startAmount);
+        string memory finalJson = tojsonUint256(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "endAmount",
+            value.endAmount
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeAdvancedOrder(
-    string memory objectKey,
-    string memory valueKey,
-    AdvancedOrder memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeOrderParameters(obj, "parameters", value.parameters);
-    serializeUint256(obj, "numerator", value.numerator);
-    serializeUint256(obj, "denominator", value.denominator);
-    serializeBytes(obj, "signature", value.signature);
-    string memory finalJson = serializeBytes(obj, "extraData", value.extraData);
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
+    function tojsonDynArrayOfferItem(
+        string memory objectKey,
+        string memory valueKey,
+        OfferItem[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonOfferItem(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayAdvancedOrder(
-    string memory objectKey,
-    string memory valueKey,
-    AdvancedOrder[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeAdvancedOrder(
+    function tojsonConsiderationItem(
+        string memory objectKey,
+        string memory valueKey,
+        ConsiderationItem memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonItemType(obj, "itemType", value.itemType);
+        tojsonAddress(obj, "token", value.token);
+        tojsonUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
+        tojsonUint256(obj, "startAmount", value.startAmount);
+        tojsonUint256(obj, "endAmount", value.endAmount);
+        string memory finalJson = tojsonAddress(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "recipient",
+            value.recipient
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeFulfillment(
-    string memory objectKey,
-    string memory valueKey,
-    Fulfillment memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeDynArrayFulfillmentComponent(
-        obj,
-        "offerComponents",
-        value.offerComponents
-    );
-    string memory finalJson = serializeDynArrayFulfillmentComponent(
-        obj,
-        "considerationComponents",
-        value.considerationComponents
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
+    function tojsonDynArrayConsiderationItem(
+        string memory objectKey,
+        string memory valueKey,
+        ConsiderationItem[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonConsiderationItem(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayDynArrayFulfillmentComponent(
-    string memory objectKey,
-    string memory valueKey,
-    FulfillmentComponent[][] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeDynArrayFulfillmentComponent(
+    function tojsonOrderType(
+        string memory objectKey,
+        string memory valueKey,
+        OrderType value
+    ) internal returns (string memory) {
+        string[5] memory members = [
+            "FULL_OPEN",
+            "PARTIAL_OPEN",
+            "FULL_RESTRICTED",
+            "PARTIAL_RESTRICTED",
+            "CONTRACT"
+        ];
+        uint256 index = uint256(value);
+        return vm.serializeString(objectKey, valueKey, members[index]);
+    }
+
+    function tojsonOrderParameters(
+        string memory objectKey,
+        string memory valueKey,
+        OrderParameters memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "offerer", value.offerer);
+        tojsonAddress(obj, "zone", value.zone);
+        tojsonDynArrayOfferItem(obj, "offer", value.offer);
+        tojsonDynArrayConsiderationItem(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "consideration",
+            value.consideration
         );
-    }
-    return vm.serializeString(objectKey, valueKey, out);
-}
-
-function serializeCriteriaResolver(
-    string memory objectKey,
-    string memory valueKey,
-    CriteriaResolver memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeUint256(obj, "orderIndex", value.orderIndex);
-    serializeSide(obj, "side", value.side);
-    serializeUint256(obj, "index", value.index);
-    serializeUint256(obj, "identifier", value.identifier);
-    string memory finalJson = serializeDynArrayBytes32(
-        obj,
-        "criteriaProof",
-        value.criteriaProof
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeReceivedItem(
-    string memory objectKey,
-    string memory valueKey,
-    ReceivedItem memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeItemType(obj, "itemType", value.itemType);
-    serializeAddress(obj, "token", value.token);
-    serializeUint256(obj, "identifier", value.identifier);
-    serializeUint256(obj, "amount", value.amount);
-    string memory finalJson = serializeAddress(
-        obj,
-        "recipient",
-        value.recipient
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayCriteriaResolver(
-    string memory objectKey,
-    string memory valueKey,
-    CriteriaResolver[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeCriteriaResolver(
+        tojsonOrderType(obj, "orderType", value.orderType);
+        tojsonUint256(obj, "startTime", value.startTime);
+        tojsonUint256(obj, "endTime", value.endTime);
+        tojsonBytes32(obj, "zoneHash", value.zoneHash);
+        tojsonUint256(obj, "salt", value.salt);
+        tojsonBytes32(obj, "conduitKey", value.conduitKey);
+        string memory finalJson = tojsonUint256(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "totalOriginalConsiderationItems",
+            value.totalOriginalConsiderationItems
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeSide(
-    string memory objectKey,
-    string memory valueKey,
-    Side value
-) returns (string memory) {
-    string[2] memory members = ["OFFER", "CONSIDERATION"];
-    uint256 index = uint256(value);
-    return vm.serializeString(objectKey, valueKey, members[index]);
-}
+    function tojsonBytes(
+        string memory objectKey,
+        string memory valueKey,
+        bytes memory value
+    ) internal returns (string memory) {
+        return vm.serializeBytes(objectKey, valueKey, value);
+    }
 
-function serializeFuzzParams(
-    string memory objectKey,
-    string memory valueKey,
-    FuzzParams memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeUint256(obj, "seed", value.seed);
-    serializeUint256(obj, "totalOrders", value.totalOrders);
-    serializeUint256(obj, "maxOfferItems", value.maxOfferItems);
-    string memory finalJson = serializeUint256(
-        obj,
-        "maxConsiderationItems",
-        value.maxConsiderationItems
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeFulfillmentComponent(
-    string memory objectKey,
-    string memory valueKey,
-    FulfillmentComponent memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeUint256(obj, "orderIndex", value.orderIndex);
-    string memory finalJson = serializeUint256(
-        obj,
-        "itemIndex",
-        value.itemIndex
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayFulfillmentComponent(
-    string memory objectKey,
-    string memory valueKey,
-    FulfillmentComponent[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeFulfillmentComponent(
+    function tojsonAdvancedOrder(
+        string memory objectKey,
+        string memory valueKey,
+        AdvancedOrder memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonOrderParameters(obj, "parameters", value.parameters);
+        tojsonUint256(obj, "numerator", value.numerator);
+        tojsonUint256(obj, "denominator", value.denominator);
+        tojsonBytes(obj, "signature", value.signature);
+        string memory finalJson = tojsonBytes(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "extraData",
+            value.extraData
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeDynArrayFulfillment(
-    string memory objectKey,
-    string memory valueKey,
-    Fulfillment[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeFulfillment(
+    function tojsonDynArrayAdvancedOrder(
+        string memory objectKey,
+        string memory valueKey,
+        AdvancedOrder[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonAdvancedOrder(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonSide(
+        string memory objectKey,
+        string memory valueKey,
+        Side value
+    ) internal returns (string memory) {
+        string[2] memory members = ["OFFER", "CONSIDERATION"];
+        uint256 index = uint256(value);
+        return vm.serializeString(objectKey, valueKey, members[index]);
+    }
+
+    function tojsonDynArrayBytes32(
+        string memory objectKey,
+        string memory valueKey,
+        bytes32[] memory value
+    ) internal returns (string memory) {
+        return vm.serializeBytes32(objectKey, valueKey, value);
+    }
+
+    function tojsonCriteriaResolver(
+        string memory objectKey,
+        string memory valueKey,
+        CriteriaResolver memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonUint256(obj, "orderIndex", value.orderIndex);
+        tojsonSide(obj, "side", value.side);
+        tojsonUint256(obj, "index", value.index);
+        tojsonUint256(obj, "identifier", value.identifier);
+        string memory finalJson = tojsonDynArrayBytes32(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "criteriaProof",
+            value.criteriaProof
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeBasicOrderType(
-    string memory objectKey,
-    string memory valueKey,
-    BasicOrderType value
-) returns (string memory) {
-    string[24] memory members = [
-        "ETH_TO_ERC721_FULL_OPEN",
-        "ETH_TO_ERC721_PARTIAL_OPEN",
-        "ETH_TO_ERC721_FULL_RESTRICTED",
-        "ETH_TO_ERC721_PARTIAL_RESTRICTED",
-        "ETH_TO_ERC1155_FULL_OPEN",
-        "ETH_TO_ERC1155_PARTIAL_OPEN",
-        "ETH_TO_ERC1155_FULL_RESTRICTED",
-        "ETH_TO_ERC1155_PARTIAL_RESTRICTED",
-        "ERC20_TO_ERC721_FULL_OPEN",
-        "ERC20_TO_ERC721_PARTIAL_OPEN",
-        "ERC20_TO_ERC721_FULL_RESTRICTED",
-        "ERC20_TO_ERC721_PARTIAL_RESTRICTED",
-        "ERC20_TO_ERC1155_FULL_OPEN",
-        "ERC20_TO_ERC1155_PARTIAL_OPEN",
-        "ERC20_TO_ERC1155_FULL_RESTRICTED",
-        "ERC20_TO_ERC1155_PARTIAL_RESTRICTED",
-        "ERC721_TO_ERC20_FULL_OPEN",
-        "ERC721_TO_ERC20_PARTIAL_OPEN",
-        "ERC721_TO_ERC20_FULL_RESTRICTED",
-        "ERC721_TO_ERC20_PARTIAL_RESTRICTED",
-        "ERC1155_TO_ERC20_FULL_OPEN",
-        "ERC1155_TO_ERC20_PARTIAL_OPEN",
-        "ERC1155_TO_ERC20_FULL_RESTRICTED",
-        "ERC1155_TO_ERC20_PARTIAL_RESTRICTED"
-    ];
-    uint256 index = uint256(value);
-    return vm.serializeString(objectKey, valueKey, members[index]);
-}
+    function tojsonDynArrayCriteriaResolver(
+        string memory objectKey,
+        string memory valueKey,
+        CriteriaResolver[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonCriteriaResolver(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeAdditionalRecipient(
-    string memory objectKey,
-    string memory valueKey,
-    AdditionalRecipient memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeUint256(obj, "amount", value.amount);
-    string memory finalJson = serializeAddress(
-        obj,
-        "recipient",
-        value.recipient
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
-
-function serializeDynArrayAdditionalRecipient(
-    string memory objectKey,
-    string memory valueKey,
-    AdditionalRecipient[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeAdditionalRecipient(
+    function tojsonFulfillmentComponent(
+        string memory objectKey,
+        string memory valueKey,
+        FulfillmentComponent memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonUint256(obj, "orderIndex", value.orderIndex);
+        string memory finalJson = tojsonUint256(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "itemIndex",
+            value.itemIndex
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeBasicOrderParameters(
-    string memory objectKey,
-    string memory valueKey,
-    BasicOrderParameters memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeAddress(obj, "considerationToken", value.considerationToken);
-    serializeUint256(
-        obj,
-        "considerationIdentifier",
-        value.considerationIdentifier
-    );
-    serializeUint256(obj, "considerationAmount", value.considerationAmount);
-    serializeAddress(obj, "offerer", value.offerer);
-    serializeAddress(obj, "zone", value.zone);
-    serializeAddress(obj, "offerToken", value.offerToken);
-    serializeUint256(obj, "offerIdentifier", value.offerIdentifier);
-    serializeUint256(obj, "offerAmount", value.offerAmount);
-    serializeBasicOrderType(obj, "basicOrderType", value.basicOrderType);
-    serializeUint256(obj, "startTime", value.startTime);
-    serializeUint256(obj, "endTime", value.endTime);
-    serializeBytes32(obj, "zoneHash", value.zoneHash);
-    serializeUint256(obj, "salt", value.salt);
-    serializeBytes32(obj, "offererConduitKey", value.offererConduitKey);
-    serializeBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
-    serializeUint256(
-        obj,
-        "totalOriginalAdditionalRecipients",
-        value.totalOriginalAdditionalRecipients
-    );
-    serializeDynArrayAdditionalRecipient(
-        obj,
-        "additionalRecipients",
-        value.additionalRecipients
-    );
-    string memory finalJson = serializeBytes(obj, "signature", value.signature);
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
+    function tojsonDynArrayFulfillmentComponent(
+        string memory objectKey,
+        string memory valueKey,
+        FulfillmentComponent[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonFulfillmentComponent(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayBytes4(
-    string memory objectKey,
-    string memory valueKey,
-    bytes4[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeBytes32(
+    function tojsonFulfillment(
+        string memory objectKey,
+        string memory valueKey,
+        Fulfillment memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonDynArrayFulfillmentComponent(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "offerComponents",
+            value.offerComponents
         );
-    }
-    return vm.serializeString(objectKey, valueKey, out);
-}
-
-function serializeResult(
-    string memory objectKey,
-    string memory valueKey,
-    Result value
-) returns (string memory) {
-    string[4] memory members = [
-        "FULFILLMENT",
-        "UNAVAILABLE",
-        "VALIDATE",
-        "CANCEL"
-    ];
-    uint256 index = uint256(value);
-    return vm.serializeString(objectKey, valueKey, members[index]);
-}
-
-function serializeDynArrayResult(
-    string memory objectKey,
-    string memory valueKey,
-    Result[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeResult(
+        string memory finalJson = tojsonDynArrayFulfillmentComponent(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "considerationComponents",
+            value.considerationComponents
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeExecution(
-    string memory objectKey,
-    string memory valueKey,
-    Execution memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeReceivedItem(obj, "item", value.item);
-    serializeAddress(obj, "offerer", value.offerer);
-    string memory finalJson = serializeBytes32(
-        obj,
-        "conduitKey",
-        value.conduitKey
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
+    function tojsonDynArrayFulfillment(
+        string memory objectKey,
+        string memory valueKey,
+        Fulfillment[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonFulfillment(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayExecution(
-    string memory objectKey,
-    string memory valueKey,
-    Execution[] memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    uint256 length = value.length;
-    string memory out;
-    for (uint256 i; i < length; i++) {
-        out = serializeExecution(
+    function tojsonDynArrayDynArrayFulfillmentComponent(
+        string memory objectKey,
+        string memory valueKey,
+        FulfillmentComponent[][] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonDynArrayFulfillmentComponent(
+                obj,
+                vm.toString(i),
+                value[i]
+            );
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonBasicOrderType(
+        string memory objectKey,
+        string memory valueKey,
+        BasicOrderType value
+    ) internal returns (string memory) {
+        string[24] memory members = [
+            "ETH_TO_ERC721_FULL_OPEN",
+            "ETH_TO_ERC721_PARTIAL_OPEN",
+            "ETH_TO_ERC721_FULL_RESTRICTED",
+            "ETH_TO_ERC721_PARTIAL_RESTRICTED",
+            "ETH_TO_ERC1155_FULL_OPEN",
+            "ETH_TO_ERC1155_PARTIAL_OPEN",
+            "ETH_TO_ERC1155_FULL_RESTRICTED",
+            "ETH_TO_ERC1155_PARTIAL_RESTRICTED",
+            "ERC20_TO_ERC721_FULL_OPEN",
+            "ERC20_TO_ERC721_PARTIAL_OPEN",
+            "ERC20_TO_ERC721_FULL_RESTRICTED",
+            "ERC20_TO_ERC721_PARTIAL_RESTRICTED",
+            "ERC20_TO_ERC1155_FULL_OPEN",
+            "ERC20_TO_ERC1155_PARTIAL_OPEN",
+            "ERC20_TO_ERC1155_FULL_RESTRICTED",
+            "ERC20_TO_ERC1155_PARTIAL_RESTRICTED",
+            "ERC721_TO_ERC20_FULL_OPEN",
+            "ERC721_TO_ERC20_PARTIAL_OPEN",
+            "ERC721_TO_ERC20_FULL_RESTRICTED",
+            "ERC721_TO_ERC20_PARTIAL_RESTRICTED",
+            "ERC1155_TO_ERC20_FULL_OPEN",
+            "ERC1155_TO_ERC20_PARTIAL_OPEN",
+            "ERC1155_TO_ERC20_FULL_RESTRICTED",
+            "ERC1155_TO_ERC20_PARTIAL_RESTRICTED"
+        ];
+        uint256 index = uint256(value);
+        return vm.serializeString(objectKey, valueKey, members[index]);
+    }
+
+    function tojsonAdditionalRecipient(
+        string memory objectKey,
+        string memory valueKey,
+        AdditionalRecipient memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonUint256(obj, "amount", value.amount);
+        string memory finalJson = tojsonAddress(
             obj,
-            string.concat("element", vm.toString(i)),
-            value[i]
+            "recipient",
+            value.recipient
         );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
-    return vm.serializeString(objectKey, valueKey, out);
-}
 
-function serializeBool(
-    string memory objectKey,
-    string memory valueKey,
-    bool value
-) returns (string memory) {
-    return vm.serializeBool(objectKey, valueKey, value);
-}
+    function tojsonDynArrayAdditionalRecipient(
+        string memory objectKey,
+        string memory valueKey,
+        AdditionalRecipient[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonAdditionalRecipient(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayBool(
-    string memory objectKey,
-    string memory valueKey,
-    bool[] memory value
-) returns (string memory) {
-    return vm.serializeBool(objectKey, valueKey, value);
-}
+    function tojsonBasicOrderParameters(
+        string memory objectKey,
+        string memory valueKey,
+        BasicOrderParameters memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "considerationToken", value.considerationToken);
+        tojsonUint256(
+            obj,
+            "considerationIdentifier",
+            value.considerationIdentifier
+        );
+        tojsonUint256(obj, "considerationAmount", value.considerationAmount);
+        tojsonAddress(obj, "offerer", value.offerer);
+        tojsonAddress(obj, "zone", value.zone);
+        tojsonAddress(obj, "offerToken", value.offerToken);
+        tojsonUint256(obj, "offerIdentifier", value.offerIdentifier);
+        tojsonUint256(obj, "offerAmount", value.offerAmount);
+        tojsonBasicOrderType(obj, "basicOrderType", value.basicOrderType);
+        tojsonUint256(obj, "startTime", value.startTime);
+        tojsonUint256(obj, "endTime", value.endTime);
+        tojsonBytes32(obj, "zoneHash", value.zoneHash);
+        tojsonUint256(obj, "salt", value.salt);
+        tojsonBytes32(obj, "offererConduitKey", value.offererConduitKey);
+        tojsonBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
+        tojsonUint256(
+            obj,
+            "totalOriginalAdditionalRecipients",
+            value.totalOriginalAdditionalRecipients
+        );
+        tojsonDynArrayAdditionalRecipient(
+            obj,
+            "additionalRecipients",
+            value.additionalRecipients
+        );
+        string memory finalJson = tojsonBytes(
+            obj,
+            "signature",
+            value.signature
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
 
-function serializeReturnValues(
-    string memory objectKey,
-    string memory valueKey,
-    ReturnValues memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeBool(obj, "fulfilled", value.fulfilled);
-    serializeBool(obj, "cancelled", value.cancelled);
-    serializeBool(obj, "validated", value.validated);
-    serializeDynArrayBool(obj, "availableOrders", value.availableOrders);
-    string memory finalJson = serializeDynArrayExecution(
-        obj,
-        "executions",
-        value.executions
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
-}
+    function tojsonDynArrayBytes4(
+        string memory objectKey,
+        string memory valueKey,
+        bytes4[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonBytes32(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeDynArrayBytes32(
-    string memory objectKey,
-    string memory valueKey,
-    bytes32[] memory value
-) returns (string memory) {
-    return vm.serializeBytes32(objectKey, valueKey, value);
-}
+    function tojsonArray2Bytes32(
+        string memory objectKey,
+        string memory valueKey,
+        bytes32[2] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonBytes32(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
 
-function serializeFuzzTestContext(
-    string memory objectKey,
-    string memory valueKey,
-    FuzzTestContext memory value
-) returns (string memory) {
-    string memory obj = string.concat(objectKey, valueKey);
-    serializeBytes32(obj, "_action", value._action);
-    serializeAddress(obj, "seaport", address(value.seaport));
-    serializeAddress(
-        obj,
-        "conduitController",
-        address(value.conduitController)
-    );
-    serializeAddress(obj, "caller", value.caller);
-    serializeAddress(obj, "recipient", value.recipient);
-    serializeFuzzParams(obj, "fuzzParams", value.fuzzParams);
-    serializeDynArrayAdvancedOrder(obj, "orders", value.orders);
-    serializeDynArrayAdvancedOrder(obj, "initialOrders", value.initialOrders);
-    serializeUint256(obj, "counter", value.counter);
-    serializeBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
-    serializeDynArrayCriteriaResolver(
-        obj,
-        "criteriaResolvers",
-        value.criteriaResolvers
-    );
-    serializeDynArrayFulfillment(obj, "fulfillments", value.fulfillments);
-    serializeDynArrayFulfillmentComponent(
-        obj,
-        "remainingOfferComponents",
-        value.remainingOfferComponents
-    );
-    serializeDynArrayDynArrayFulfillmentComponent(
-        obj,
-        "offerFulfillments",
-        value.offerFulfillments
-    );
-    serializeDynArrayDynArrayFulfillmentComponent(
-        obj,
-        "considerationFulfillments",
-        value.considerationFulfillments
-    );
-    serializeUint256(obj, "maximumFulfilled", value.maximumFulfilled);
-    serializeBasicOrderParameters(
-        obj,
-        "basicOrderParameters",
-        value.basicOrderParameters
-    );
-    serializeAddress(obj, "testHelpers", address(value.testHelpers));
-    serializeDynArrayBytes4(obj, "checks", value.checks);
-    serializeDynArrayBytes32(
-        obj,
-        "expectedZoneCalldataHash",
-        value.expectedZoneCalldataHash
-    );
-    serializeDynArrayResult(obj, "expectedResults", value.expectedResults);
-    serializeDynArrayExecution(
-        obj,
-        "expectedImplicitExecutions",
-        value.expectedImplicitExecutions
-    );
-    serializeDynArrayExecution(
-        obj,
-        "expectedExplicitExecutions",
-        value.expectedExplicitExecutions
-    );
-    serializeDynArrayBytes32(
-        obj,
-        "expectedEventHashes",
-        value.expectedEventHashes
-    );
-    string memory finalJson = serializeReturnValues(
-        obj,
-        "returnValues",
-        value.returnValues
-    );
-    return vm.serializeString(objectKey, valueKey, finalJson);
+    function tojsonDynArrayArray2Bytes32(
+        string memory objectKey,
+        string memory valueKey,
+        bytes32[2][] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonArray2Bytes32(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonResult(
+        string memory objectKey,
+        string memory valueKey,
+        Result value
+    ) internal returns (string memory) {
+        string[4] memory members = [
+            "FULFILLMENT",
+            "UNAVAILABLE",
+            "VALIDATE",
+            "CANCEL"
+        ];
+        uint256 index = uint256(value);
+        return vm.serializeString(objectKey, valueKey, members[index]);
+    }
+
+    function tojsonDynArrayResult(
+        string memory objectKey,
+        string memory valueKey,
+        Result[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonResult(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonReceivedItem(
+        string memory objectKey,
+        string memory valueKey,
+        ReceivedItem memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonItemType(obj, "itemType", value.itemType);
+        tojsonAddress(obj, "token", value.token);
+        tojsonUint256(obj, "identifier", value.identifier);
+        tojsonUint256(obj, "amount", value.amount);
+        string memory finalJson = tojsonAddress(
+            obj,
+            "recipient",
+            value.recipient
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonExecution(
+        string memory objectKey,
+        string memory valueKey,
+        Execution memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonReceivedItem(obj, "item", value.item);
+        tojsonAddress(obj, "offerer", value.offerer);
+        string memory finalJson = tojsonBytes32(
+            obj,
+            "conduitKey",
+            value.conduitKey
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayExecution(
+        string memory objectKey,
+        string memory valueKey,
+        Execution[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonExecution(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonLog(
+        string memory objectKey,
+        string memory valueKey,
+        Vm.Log memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonDynArrayBytes32(obj, "topics", value.topics);
+        tojsonBytes(obj, "data", value.data);
+        string memory finalJson = tojsonAddress(obj, "emitter", value.emitter);
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayLog(
+        string memory objectKey,
+        string memory valueKey,
+        Vm.Log[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonLog(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonBool(
+        string memory objectKey,
+        string memory valueKey,
+        bool value
+    ) internal returns (string memory) {
+        return vm.serializeBool(objectKey, valueKey, value);
+    }
+
+    function tojsonDynArrayBool(
+        string memory objectKey,
+        string memory valueKey,
+        bool[] memory value
+    ) internal returns (string memory) {
+        return vm.serializeBool(objectKey, valueKey, value);
+    }
+
+    function tojsonReturnValues(
+        string memory objectKey,
+        string memory valueKey,
+        ReturnValues memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonBool(obj, "fulfilled", value.fulfilled);
+        tojsonBool(obj, "cancelled", value.cancelled);
+        tojsonBool(obj, "validated", value.validated);
+        tojsonDynArrayBool(obj, "availableOrders", value.availableOrders);
+        string memory finalJson = tojsonDynArrayExecution(
+            obj,
+            "executions",
+            value.executions
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonFuzzTestContext(
+        string memory objectKey,
+        string memory valueKey,
+        FuzzTestContext memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonBytes32(obj, "_action", value._action);
+        tojsonAddress(obj, "seaport", address(value.seaport));
+        tojsonAddress(
+            obj,
+            "conduitController",
+            address(value.conduitController)
+        );
+        tojsonAddress(obj, "caller", value.caller);
+        tojsonAddress(obj, "recipient", value.recipient);
+        tojsonFuzzParams(obj, "fuzzParams", value.fuzzParams);
+        tojsonDynArrayAdvancedOrder(obj, "orders", value.orders);
+        tojsonDynArrayAdvancedOrder(obj, "initialOrders", value.initialOrders);
+        tojsonUint256(obj, "counter", value.counter);
+        tojsonBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
+        tojsonDynArrayCriteriaResolver(
+            obj,
+            "criteriaResolvers",
+            value.criteriaResolvers
+        );
+        tojsonDynArrayFulfillment(obj, "fulfillments", value.fulfillments);
+        tojsonDynArrayFulfillmentComponent(
+            obj,
+            "remainingOfferComponents",
+            value.remainingOfferComponents
+        );
+        tojsonDynArrayDynArrayFulfillmentComponent(
+            obj,
+            "offerFulfillments",
+            value.offerFulfillments
+        );
+        tojsonDynArrayDynArrayFulfillmentComponent(
+            obj,
+            "considerationFulfillments",
+            value.considerationFulfillments
+        );
+        tojsonUint256(obj, "maximumFulfilled", value.maximumFulfilled);
+        tojsonBasicOrderParameters(
+            obj,
+            "basicOrderParameters",
+            value.basicOrderParameters
+        );
+        tojsonAddress(obj, "testHelpers", address(value.testHelpers));
+        tojsonDynArrayBytes4(obj, "checks", value.checks);
+        tojsonDynArrayBytes32(
+            obj,
+            "expectedZoneCalldataHash",
+            value.expectedZoneCalldataHash
+        );
+        tojsonDynArrayArray2Bytes32(
+            obj,
+            "expectedContractOrderCalldataHashes",
+            value.expectedContractOrderCalldataHashes
+        );
+        tojsonDynArrayResult(obj, "expectedResults", value.expectedResults);
+        tojsonDynArrayExecution(
+            obj,
+            "expectedImplicitExecutions",
+            value.expectedImplicitExecutions
+        );
+        tojsonDynArrayExecution(
+            obj,
+            "expectedExplicitExecutions",
+            value.expectedExplicitExecutions
+        );
+        tojsonDynArrayExecution(
+            obj,
+            "allExpectedExecutions",
+            value.allExpectedExecutions
+        );
+        tojsonDynArrayBytes32(
+            obj,
+            "expectedEventHashes",
+            value.expectedEventHashes
+        );
+        tojsonDynArrayLog(obj, "actualEvents", value.actualEvents);
+        string memory finalJson = tojsonReturnValues(
+            obj,
+            "returnValues",
+            value.returnValues
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonNativeAccountDump(
+        string memory objectKey,
+        string memory valueKey,
+        NativeAccountDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "account", value.account);
+        string memory finalJson = tojsonUint256(obj, "balance", value.balance);
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayNativeAccountDump(
+        string memory objectKey,
+        string memory valueKey,
+        NativeAccountDump[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonNativeAccountDump(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonDynArrayAddress(
+        string memory objectKey,
+        string memory valueKey,
+        address[] memory value
+    ) internal returns (string memory) {
+        return vm.serializeString(objectKey, valueKey, withLabel(value));
+    }
+
+    function tojsonDynArrayUint256(
+        string memory objectKey,
+        string memory valueKey,
+        uint256[] memory value
+    ) internal returns (string memory) {
+        return vm.serializeUint(objectKey, valueKey, value);
+    }
+
+    function tojsonERC20TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC20TokenDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "token", value.token);
+        tojsonDynArrayAddress(obj, "accounts", value.accounts);
+        string memory finalJson = tojsonDynArrayUint256(
+            obj,
+            "balances",
+            value.balances
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayDynArrayUint256(
+        string memory objectKey,
+        string memory valueKey,
+        uint256[][] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonDynArrayUint256(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonERC721TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC721TokenDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "token", value.token);
+        tojsonDynArrayAddress(obj, "accounts", value.accounts);
+        string memory finalJson = tojsonDynArrayDynArrayUint256(
+            obj,
+            "accountIdentifiers",
+            value.accountIdentifiers
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonERC1155AccountDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC1155AccountDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "account", value.account);
+        tojsonDynArrayUint256(obj, "identifiers", value.identifiers);
+        string memory finalJson = tojsonDynArrayUint256(
+            obj,
+            "balances",
+            value.balances
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayERC1155AccountDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC1155AccountDump[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonERC1155AccountDump(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonERC1155TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC1155TokenDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonAddress(obj, "token", value.token);
+        string memory finalJson = tojsonDynArrayERC1155AccountDump(
+            obj,
+            "accounts",
+            value.accounts
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayERC20TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC20TokenDump[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonERC20TokenDump(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonDynArrayERC721TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC721TokenDump[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonERC721TokenDump(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonDynArrayERC1155TokenDump(
+        string memory objectKey,
+        string memory valueKey,
+        ERC1155TokenDump[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonERC1155TokenDump(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonExpectedBalancesDump(
+        string memory objectKey,
+        string memory valueKey,
+        ExpectedBalancesDump memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        tojsonDynArrayERC20TokenDump(obj, "erc20", value.erc20);
+        tojsonDynArrayERC721TokenDump(obj, "erc721", value.erc721);
+        string memory finalJson = tojsonDynArrayERC1155TokenDump(
+            obj,
+            "erc1155",
+            value.erc1155
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
 }

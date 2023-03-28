@@ -34,6 +34,8 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
+import { dumpExecutions } from "./DebugUtil.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -239,7 +241,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @param context A Fuzz test context.
      */
     function runCheckRegistration(FuzzTestContext memory context) internal {
-        registerExpectedEvents(context);
+        registerExpectedEventsAndBalances(context);
         registerCommonChecks(context);
         registerFunctionSpecificChecks(context);
     }
@@ -426,6 +428,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         );
 
         if (!success) {
+            dumpExecutions(context);
             if (result.length == 0) revert();
             assembly {
                 revert(add(0x20, result), mload(result))

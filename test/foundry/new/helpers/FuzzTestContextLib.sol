@@ -9,6 +9,8 @@ import { Account } from "../BaseOrderTest.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 
+import { ExpectedBalances } from "./ExpectedBalances.sol";
+
 struct FuzzParams {
     uint256 seed;
     uint256 totalOrders;
@@ -25,6 +27,8 @@ struct ReturnValues {
 }
 
 interface TestHelpers {
+    function balanceChecker() external view returns (ExpectedBalances);
+
     function makeAccount(
         string memory name
     ) external view returns (Account memory);
@@ -160,6 +164,7 @@ struct FuzzTestContext {
      */
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
+    Execution[] allExpectedExecutions;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched topic0s.
      */
@@ -240,6 +245,7 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                allExpectedExecutions: executions,
                 expectedEventHashes: expectedEventHashes,
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))

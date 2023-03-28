@@ -16,12 +16,7 @@ import { FuzzEngineLib } from "../FuzzEngineLib.sol";
 import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
-
-import {
-    serializeDynArrayAdvancedOrder,
-    serializeDynArrayExecution,
-    serializeDynArrayFulfillment
-} from "../Searializer.sol";
+import { dumpTransfers } from "../DebugUtil.sol";
 
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
 bytes32 constant Topic0_ERC1155_TransferSingle = 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
@@ -55,13 +50,7 @@ library ExpectedEventsUtil {
      * @param context The test context
      */
     function setExpectedEventHashes(FuzzTestContext memory context) internal {
-        Execution[] memory executions = ArrayHelpers
-            .flatten
-            .asExecutionsFlatten()(
-                context.expectedExplicitExecutions,
-                context.expectedImplicitExecutions
-            );
-
+        Execution[] memory executions = context.allExpectedExecutions;
         require(
             executions.length ==
                 context.expectedExplicitExecutions.length +
@@ -88,28 +77,6 @@ library ExpectedEventsUtil {
      */
     function startRecordingLogs() internal {
         vm.recordLogs();
-    }
-
-    /**
-     * @dev Dumps the logs in a JSON file.
-     */
-    function dump(FuzzTestContext memory context) internal {
-        vm.serializeString("root", "action", context.actionName());
-        context.actualEvents.serializeTransferLogs("root", "actualEvents");
-        Execution[] memory executions = ArrayHelpers
-            .flatten
-            .asExecutionsFlatten()(
-                context.expectedExplicitExecutions,
-                context.expectedImplicitExecutions
-            );
-
-        string memory finalJson = TransferEventsLib.serializeTransferLogs(
-            executions,
-            "root",
-            "expectedEvents",
-            context
-        );
-        vm.writeJson(finalJson, "./fuzz_debug.json");
     }
 
     /**
@@ -141,7 +108,7 @@ library ExpectedEventsUtil {
             .asLogsFindIndex()(logs, isWatchedEvent, lastLogIndex);
 
         if (nextWatchedEventIndex != -1) {
-            dump(context);
+            dumpTransfers(context);
             revert(
                 "ExpectedEvents: too many watched events - info written to fuzz_debug.json"
             );
@@ -192,7 +159,7 @@ library ExpectedEventsUtil {
                 "expectedEventHash",
                 bytes32(expectedEventHash)
             );
-            dump(input.context);
+            dumpTransfers(input.context);
             revert(
                 "ExpectedEvents: event not found - info written to fuzz_debug.json"
             );
@@ -217,26 +184,6 @@ library ExpectedEventsUtil {
  * @dev Low level helpers.
  */
 library Casts {
-    function asExecutionsFlatten(
-        function(MemoryPointer, MemoryPointer)
-            internal
-            view
-            returns (MemoryPointer) fnIn
-    )
-        internal
-        pure
-        returns (
-            function(Execution[] memory, Execution[] memory)
-                internal
-                pure
-                returns (Execution[] memory) fnOut
-        )
-    {
-        assembly {
-            fnOut := fnIn
-        }
-    }
-
     function asLogsFindIndex(
         function(
             MemoryPointer,

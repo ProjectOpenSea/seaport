@@ -281,6 +281,10 @@ abstract contract FuzzChecks is Test {
         ExpectedEventsUtil.checkExpectedEvents(context);
     }
 
+    function check_expectedBalances(FuzzTestContext memory context) public {
+        context.testHelpers.balanceChecker().checkBalances();
+    }
+
     /**
      * @dev Check that the order status is in expected state.
      *
