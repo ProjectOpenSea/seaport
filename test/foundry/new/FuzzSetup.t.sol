@@ -32,7 +32,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
     function test_setUpOfferItems_erc20() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](2);
         offerItems[0] = OfferItemLib
@@ -62,19 +62,19 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 200);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 200);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 200);
     }
 
     function test_setUpOfferItems_erc20_ascending() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
         offerItems[0] = OfferItemLib
@@ -101,7 +101,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
@@ -109,12 +109,12 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 750);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 750);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 750);
     }
 
     function test_setUpOfferItems_erc20_descending() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
         offerItems[0] = OfferItemLib
@@ -141,7 +141,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
@@ -149,7 +149,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 750);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 750);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 750);
     }
 
     function test_setUpOfferItems_erc721() public {
@@ -187,21 +187,21 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
         setUpOfferItems(context);
 
         assertEq(erc721s[0].balanceOf(charlie.addr), 2);
-        assertEq(erc721s[0].getApproved(1), address(seaport));
-        assertEq(erc721s[0].getApproved(2), address(seaport));
+        assertEq(erc721s[0].getApproved(1), address(getSeaport()));
+        assertEq(erc721s[0].getApproved(2), address(getSeaport()));
     }
 
     function test_setUpOfferItems_erc1155() public {
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 0);
         assertFalse(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
 
         OfferItem[] memory offerItems = new OfferItem[](2);
@@ -234,7 +234,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
@@ -242,14 +242,14 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 200);
         assertTrue(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
     }
 
     function test_setUpOfferItems_erc1155_ascending() public {
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 0);
         assertFalse(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
 
         OfferItem[] memory offerItems = new OfferItem[](1);
@@ -278,7 +278,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: address(this)
         });
 
@@ -287,13 +287,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 500);
         assertTrue(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
     }
 
     function test_setUpConsiderationItems_erc20() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 0);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
             2
@@ -325,20 +325,20 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: charlie.addr
         });
 
         setUpConsiderationItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 200);
-        assertEq(erc20s[0].allowance(charlie.addr, address(seaport)), 200);
+        assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 200);
     }
 
     function test_setUpConsiderationItems_erc721() public {
         assertEq(erc721s[0].balanceOf(charlie.addr), 0);
         assertEq(
-            erc721s[0].isApprovedForAll(charlie.addr, address(seaport)),
+            erc721s[0].isApprovedForAll(charlie.addr, address(getSeaport())),
             false
         );
 
@@ -374,7 +374,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: charlie.addr
         });
 
@@ -382,7 +382,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         assertEq(erc721s[0].balanceOf(charlie.addr), 2);
         assertEq(
-            erc721s[0].isApprovedForAll(charlie.addr, address(seaport)),
+            erc721s[0].isApprovedForAll(charlie.addr, address(getSeaport())),
             true
         );
     }
@@ -390,7 +390,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     function test_setUpConsiderationItems_erc1155() public {
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 0);
         assertFalse(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
 
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
@@ -425,7 +425,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
-            seaport: seaport,
+            seaport: getSeaport(),
             caller: charlie.addr
         });
 
@@ -433,7 +433,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 200);
         assertTrue(
-            erc1155s[0].isApprovedForAll(charlie.addr, address(seaport))
+            erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
     }
 }

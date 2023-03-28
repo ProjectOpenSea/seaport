@@ -2,25 +2,28 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+
 import { Test } from "forge-std/Test.sol";
-import { FuzzHelpers } from "./FuzzHelpers.sol";
-import {
-    TestCalldataHashContractOfferer
-} from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
-
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-
-import {
-    HashValidationZoneOfferer
-} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
 
+import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+import {
+    TestCalldataHashContractOfferer
+} from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
+
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 /**
  * @dev Check functions are the post-execution assertions we want to validate.
@@ -89,12 +92,16 @@ abstract contract FuzzChecks is Test {
     function check_validateOrderExpectedDataHash(
         FuzzTestContext memory context
     ) public {
+        // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
+            // If the order has a zone, check the calldata.
             if (context.orders[i].parameters.zone != address(0)) {
                 testZone = payable(context.orders[i].parameters.zone);
 
                 AdvancedOrder memory order = context.orders[i];
 
+                // Each order has a calldata hash, indexed to orders, that is
+                // expected to be returned by the zone.
                 bytes32 expectedCalldataHash = context.expectedZoneCalldataHash[
                     i
                 ];
@@ -107,13 +114,18 @@ abstract contract FuzzChecks is Test {
                     .parameters
                     .toOrderComponents(counter);
 
+                // Get the order hash.
                 bytes32 orderHash = context.seaport.getOrderHash(
                     orderComponents
                 );
 
+                // Use the order hash to get the expected calldata hash from the
+                // zone.
                 bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
                     .orderHashToValidateOrderDataHash(orderHash);
 
+                // Check that the expected calldata hash matches the actual
+                // calldata hash.
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
         }
@@ -247,5 +259,3 @@ abstract contract FuzzChecks is Test {
         context.testHelpers.balanceChecker().checkBalances();
     }
 }
-
-// state variable accessible in test or pass into FuzzTestContext

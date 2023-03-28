@@ -40,6 +40,14 @@ interface TestERC1155 {
 }
 
 library CheckHelpers {
+    /**
+     *  @dev Register a check to be run after the test is executed.
+     *
+     * @param context The test context.
+     * @param check   The check to register.
+     *
+     * @return The updated test context.
+     */
     function registerCheck(
         FuzzTestContext memory context,
         bytes4 check
@@ -69,8 +77,14 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
 
+    /**
+     *  @dev Set up the zone params on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpZoneParameters(FuzzTestContext memory context) public view {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
+        // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
             .orders
             .getExpectedZoneCalldataHash(
@@ -78,12 +92,16 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 context.caller
             );
 
+        // Provision the expected zone calldata hash array.
         bytes32[] memory expectedZoneCalldataHash = new bytes32[](
             context.orders.length
         );
 
         bool registerChecks;
 
+        // Iterate over the orders and for each restricted order, set up the
+        // expected zone calldata hash. If any of the orders is restricted,
+        // flip the flag to register the hash validation check.
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             if (
@@ -104,7 +122,13 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Set up the offer items on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpOfferItems(FuzzTestContext memory context) public {
+        // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             OfferItem[] memory items = orderParams.offer;
@@ -158,6 +182,11 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Set up the consideration items on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpConsiderationItems(FuzzTestContext memory context) public {
         // Skip creating consideration items if we're calling a match function
         if (
@@ -207,6 +236,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup
+        // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             ConsiderationItem[] memory items = orderParams.consideration;
@@ -282,12 +312,18 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         context.testHelpers.balanceChecker().addTransfers(
           context.allExpectedExecutions
         );
+
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedEventHashes(context);
         context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);
         ExpectedEventsUtil.startRecordingLogs();
     }
 
+    /**
+     *  @dev Get the address to approve to for a given test context.
+     *
+     * @param context The test context.
+     */
     function _getApproveTo(
         FuzzTestContext memory context
     ) internal view returns (address) {
@@ -305,6 +341,12 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Get the address to approve to for a given test context and order.
+     *
+     * @param context The test context.
+     * @param orderParams The order parameters.
+     */
     function _getApproveTo(
         FuzzTestContext memory context,
         OrderParameters memory orderParams

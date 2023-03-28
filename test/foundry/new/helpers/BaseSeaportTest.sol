@@ -88,6 +88,36 @@ contract BaseSeaportTest is DifferentialTest {
         vm.label(address(this), "testContract");
     }
 
+    /**
+     * @dev Get the configured preferred Seaport
+     */
+    function getSeaport() internal returns (ConsiderationInterface seaport_) {
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (stringEq(profile, "reference")) {
+            emit log("Using reference Seaport and ConduitController");
+            seaport_ = referenceSeaport;
+        } else {
+            seaport_ = seaport;
+        }
+    }
+
+    /**
+     * @dev Get the configured preferred ConduitController
+     */
+    function getConduitController()
+        internal
+        returns (ConduitControllerInterface conduitController_)
+    {
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (stringEq(profile, "reference")) {
+            conduitController_ = referenceConduitController;
+        } else {
+            conduitController_ = conduitController;
+        }
+    }
+
     ///@dev deploy optimized consideration contracts from pre-compiled source
     //      (solc-0.8.17, IR pipeline enabled, unless running coverage or debug)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {

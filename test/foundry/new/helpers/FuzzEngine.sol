@@ -97,16 +97,21 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
+        ConsiderationInterface seaport_ = getSeaport();
+        ConduitControllerInterface conduitController_ = getConduitController();
+        
+        // Set up a default context.
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
                 vm: vm,
-                seaport: seaport,
-                conduitController: conduitController,
+                seaport: seaport_,
+                conduitController: conduitController_,
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s
             });
 
+        // Generate a random order space.
         AdvancedOrdersSpace memory space = TestStateGenerator.generate(
             fuzzParams.totalOrders,
             fuzzParams.maxOfferItems,
@@ -114,6 +119,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             generatorContext
         );
 
+        // Generate orders from the space.
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
             generatorContext
@@ -123,10 +129,10 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             FuzzTestContextLib
                 .from({
                     orders: orders,
-                    seaport: seaport,
+                    seaport: seaport_,
                     caller: address(this)
                 })
-                .withConduitController(conduitController)
+                .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams);
     }
 
@@ -188,8 +194,13 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context) internal {
+        // If the caller is not the zero address, prank the address.
         if (context.caller != address(0)) vm.startPrank(context.caller);
+
+        // Get the action to execute.
         bytes4 _action = context.action();
+
+        // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
             logCall("fulfillOrder");
             AdvancedOrder memory order = context.orders[0];
