@@ -56,6 +56,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         address payable recipient;
         address payable fulfiller;
         bytes32 fulfillerConduitKey;
+        address seaport;
     }
 
     /**
@@ -80,7 +81,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         Order[] memory orders,
         address recipient,
         address fulfiller,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address seaport
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders);
         return
@@ -88,7 +90,8 @@ contract ExecutionHelper is AmountDeriverHelper {
                 orders: details,
                 recipient: payable(recipient),
                 fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey
+                fulfillerConduitKey: fulfillerConduitKey,
+                seaport: seaport
             });
     }
 
@@ -107,7 +110,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         AdvancedOrder[] memory orders,
         address recipient,
         address fulfiller,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address seaport
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders);
         return
@@ -115,7 +119,8 @@ contract ExecutionHelper is AmountDeriverHelper {
                 orders: details,
                 recipient: payable(recipient),
                 fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey
+                fulfillerConduitKey: fulfillerConduitKey,
+                seaport: seaport
             });
     }
 
@@ -128,7 +133,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         address recipient,
         address fulfiller,
         bytes32 fulfillerConduitKey,
-        CriteriaResolver[] memory resolvers
+        CriteriaResolver[] memory resolvers,
+        address seaport
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
         OrderDetails[] memory details = toOrderDetails(orders, resolvers);
         return
@@ -136,7 +142,8 @@ contract ExecutionHelper is AmountDeriverHelper {
                 orders: details,
                 recipient: payable(recipient),
                 fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey
+                fulfillerConduitKey: fulfillerConduitKey,
+                seaport: seaport
             });
     }
 
@@ -252,7 +259,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         address fulfiller,
         bytes32 fulfillerConduitKey,
         address recipient,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
         uint256 excessNativeTokens = processExcessNativeTokens(
             orderDetails,
@@ -293,7 +301,7 @@ contract ExecutionHelper is AmountDeriverHelper {
 
         if (excessNativeTokens > 0) {
             implicitExecutions[executionIndex] = Execution({
-                offerer: fulfiller, // should be seaport
+                offerer: seaport,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
@@ -314,7 +322,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         OrderDetails memory orderDetails,
         address fulfiller,
         bytes32 fulfillerConduitKey,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
         if (orderDetails.offer.length != 1) {
             revert("not a basic order");
@@ -365,7 +374,8 @@ contract ExecutionHelper is AmountDeriverHelper {
                 fulfiller,
                 fulfillerConduitKey,
                 fulfiller,
-                nativeTokensSupplied
+                nativeTokensSupplied,
+                seaport
             );
 
             require(standardExecutions.length > 1, "too short for basic order");
@@ -896,10 +906,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         );
 
         if (excessNativeTokens > 0) {
-            // Technically ether comes back from seaport, but possibly useful
-            // for balance changes?
             implicitExecutions[implicitExecutions.length - 1] = Execution({
-                offerer: fulfillmentDetails.fulfiller,
+                offerer: fulfillmentDetails.seaport,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
