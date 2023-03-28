@@ -106,18 +106,38 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                uint256 counter = context.seaport.getCounter(
-                    order.parameters.offerer
-                );
+                bytes32 orderHash;
+                {
+                    uint256 counter = context.seaport.getCounter(
+                        order.parameters.offerer
+                    );
 
-                OrderComponents memory orderComponents = order
-                    .parameters
-                    .toOrderComponents(counter);
+                    OrderComponents memory components = (
+                        order.parameters.toOrderComponents(counter)
+                    );
 
-                // Get the order hash.
-                bytes32 orderHash = context.seaport.getOrderHash(
-                    orderComponents
-                );
+                    uint256 lengthWithTips = components.consideration.length;
+
+                    ConsiderationItem[] memory considerationSansTips = (
+                        components.consideration
+                    );
+
+                    uint256 lengthSansTips = (
+                        order.parameters.totalOriginalConsiderationItems
+                    );
+
+                    // set proper length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthSansTips)
+                    }
+
+                    orderHash = context.seaport.getOrderHash(components);
+
+                    // restore length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthWithTips)
+                    }
+                }
 
                 // Use the order hash to get the expected calldata hash from the
                 // zone.
@@ -201,14 +221,20 @@ abstract contract FuzzChecks is Test {
 
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
-        // bytes4 action = context.action();
+        //bytes4 action = context.action();
 
         assertEq(
             context.returnValues.executions.length,
             context.expectedExplicitExecutions.length,
             "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
         );
-        for (uint256 i; i < context.expectedExplicitExecutions.length; i++) {
+
+        for (
+            uint256 i;
+            (i < context.expectedExplicitExecutions.length &&
+                i < context.returnValues.executions.length);
+            i++
+        ) {
             Execution memory actual = context.returnValues.executions[i];
             Execution memory expected = context.expectedExplicitExecutions[i];
             assertEq(

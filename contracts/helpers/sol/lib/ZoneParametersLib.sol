@@ -61,8 +61,28 @@ library ZoneParametersLib {
             counter: counter
         });
 
+        uint256 lengthWithTips = orderComponents.consideration.length;
+
+        ConsiderationItem[] memory considerationSansTips = (
+            orderComponents.consideration
+        );
+
+        uint256 lengthSansTips = (
+            orderParameters.totalOriginalConsiderationItems
+        );
+
+        // set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
         // Get orderHash from orderComponents
         bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
+
+        // restore length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthWithTips)
+        }
 
         // Create spentItems array
         SpentItem[] memory spentItems = new SpentItem[](
@@ -136,6 +156,21 @@ library ZoneParametersLib {
                 counter: seaportInterface.getCounter(orderParameters.offerer)
             });
 
+            uint256 lengthWithTips = orderComponents.consideration.length;
+
+            ConsiderationItem[] memory considerationSansTips = (
+                orderComponents.consideration
+            );
+
+            uint256 lengthSansTips = (
+                orderParameters.totalOriginalConsiderationItems
+            );
+
+            // set proper length of the considerationSansTips array.
+            assembly {
+                mstore(considerationSansTips, lengthSansTips)
+            }
+
             if (i >= maximumFulfilled) {
                 // Set orderHash to 0 if order index exceeds maximumFulfilled
                 orderHashes[i] = bytes32(0);
@@ -147,6 +182,11 @@ library ZoneParametersLib {
 
                 // Add orderHash to orderHashes
                 orderHashes[i] = orderHash;
+            }
+
+            // restore length of the considerationSansTips array.
+            assembly {
+                mstore(considerationSansTips, lengthWithTips)
             }
         }
 
