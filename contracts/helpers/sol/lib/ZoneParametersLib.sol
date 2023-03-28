@@ -156,6 +156,8 @@ library ZoneParametersLib {
                 counter: seaportInterface.getCounter(orderParameters.offerer)
             });
 
+            uint256 lengthWithTips = orderComponents.consideration.length;
+
             ConsiderationItem[] memory considerationSansTips = (
                 orderComponents.consideration
             );
@@ -180,6 +182,11 @@ library ZoneParametersLib {
 
                 // Add orderHash to orderHashes
                 orderHashes[i] = orderHash;
+            }
+
+            // restore length of the considerationSansTips array.
+            assembly {
+                mstore(considerationSansTips, lengthWithTips)
             }
         }
 

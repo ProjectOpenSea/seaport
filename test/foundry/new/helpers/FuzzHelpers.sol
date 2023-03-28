@@ -246,7 +246,10 @@ library FuzzHelpers {
         if (offer.length != 1) {
             return false;
         }
-        if (consideration.length == 0) {
+        if (
+            consideration.length == 0 ||
+            order.parameters.totalOriginalConsiderationItems == 0
+        ) {
             return false;
         }
 
