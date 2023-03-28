@@ -37,8 +37,55 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
+ *
+ *         The BaseOrderTest used in this fuzz engine is not the same as the
+ *         BaseOrderTest contract used in the legacy tests.  The relative path
+ *         for the relevant version is `test/foundry/new/BaseOrderTest.sol`.
+ *
+ *         Running test_fuzz_validOrders in FuzzMain triggers the following
+ *         lifecycle. First, a pseudorandom `FuzzTestContext` is generated from
+ *         the FuzzParams. The important bits of his phase are order and action
+ *         generation. Then, the fuzz derivers are run to derive values
+ *         such as fulfillments and executions from the orders. Next, the
+ *         setup phase is run to set up the necessary conditions for a test to
+ *         pass, including minting the necessary tokens and setting up the
+ *         necessary approvals. The setup phase also lays out the expectations
+ *         for the post-execution state of the test. Then, during the execution
+ *         phase, some Seaport function gets called according the the action
+ *         determined by the seed in the FuzzParams. Finally, the checks phase
+ *         runs all registered checks to ensure that the post-execution state
+ *         matches the expectations set up in the setup phase.
+ *
+ *         The `generate` function in this file calls out to the `generate`
+ *         functions in `TestStateGenerator` (responsible for setting up the
+ *         order components) and `AdvancedOrdersSpaceGenerator` (responsible for
+ *         setting up the orders and actions). The generation phase relies on a
+ *         `FuzzGeneratorContext` internally, but it returns a `FuzzTestContext`
+ *         struct, which is used throughout the rest of the lifecycle.
+ *
+ *         The `runDerivers` function in this file serves as a central location
+ *         to slot in calls to functions that deterministically derive values
+ *         from the state that was created in the generation phase.
+ *
+ *         The `runSetup` function should hold everything that mutates state,
+ *         such as minting and approving tokens.  It also contains the logic
+ *         for setting up the expectations for the post-execution state of the
+ *         test. Logic for handling unavailable orders and balance checking
+ *         will also live here.
+ *
+ *         The `exec` function is lean and only 1) sets up a prank if the caller
+ *         is not the test contract, 2) logs the action, 3) calls the Seaport
+ *         function, and adds the values returned by the function call to the
+ *         context for later use in checks.
+ *
+ *         The `checkAll` function runs all of the checks that were registered
+ *         throughout the test lifecycle. To add a new check, add a function
+ *         to `FuzzChecks` and then register it with `registerCheck`.
+ *
  */
 contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
+    // Use the various builder libraries.  These allow for creating structs in a
+    // more readable way.
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using OrderComponentsLib for OrderComponents;
@@ -90,10 +137,16 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
+        // Set either the optimized version or the reference version of Seaport,
+        // depending on the active profile.
         ConsiderationInterface seaport_ = getSeaport();
+        // Get the conduit controller, which allows dpeloying and managing
+        // conduits.  Conduits are used to transfer tokens between accounts.
         ConduitControllerInterface conduitController_ = getConduitController();
 
-        // Set up a default context.
+        // Set up a default FuzzGeneratorContext.  Note that this is only used
+        // for the generation pphase.  The `FuzzTestContext` is used throughout
+        // the rest of the lifecycle.
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
                 vm: vm,
@@ -104,7 +157,12 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                 erc1155s: erc1155s
             });
 
-        // Generate a random order space.
+        // Generate a pseudorandom order space. The `AdvancedOrdersSpace` is
+        // made up of an `OrderComponentsSpace` array and an `isMatchable` bool.
+        // Each `OrderComponentsSpace` is a struct with fields that are enums
+        // (or arrays of enums) from `SpaceEnums.sol`. In other words, the
+        // `AdvancedOrdersSpace` is a container for a set of constrained
+        // possibilities.
         AdvancedOrdersSpace memory space = TestStateGenerator.generate(
             fuzzParams.totalOrders,
             fuzzParams.maxOfferItems,
@@ -112,7 +170,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             generatorContext
         );
 
-        // Generate orders from the space.
+        // Generate orders from the space. These are the actual orders that will
+        // be used in the test.
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
             generatorContext
@@ -200,7 +259,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         // If the caller is not the zero address, prank the address.
         if (context.caller != address(0)) vm.startPrank(context.caller);
 
-        // Get the action to execute.
+        // Get the action to execute.  The action is derived from the fuzz seed,
+        // so it will be the same for each run of the test throughout the entire
+        // lifecycle of the test.
         bytes4 _action = context.action();
 
         // Execute the action.

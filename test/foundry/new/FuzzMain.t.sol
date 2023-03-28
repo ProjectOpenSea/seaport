@@ -11,7 +11,8 @@ contract FuzzMainTest is FuzzEngine {
     /**
      * @dev FuzzEngine test for valid orders. Generates a random valid order
      *      configuration, selects and calls a Seaport method, and runs all
-     *      registered checks. This test should never revert.
+     *      registered checks. This test should never revert.  For more details
+     *      on the lifecycle of this test, see FuzzEngine.sol.
      */
     function test_fuzz_validOrders(
         uint256 seed,
