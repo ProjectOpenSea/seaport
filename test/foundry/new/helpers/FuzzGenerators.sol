@@ -5,7 +5,7 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrdersSpace,
@@ -100,7 +100,8 @@ library TestStateGenerator {
                 offerer: Offerer(context.randEnum(1, 2)),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
-                offer: generateOffer(maxOfferItemsPerOrder, context),
+                criteriaMetadata: new CriteriaMetadata[](0),
+                offer: generateOffer(maxOfferItemsPerOrder, i, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
                     context,
@@ -126,6 +127,7 @@ library TestStateGenerator {
 
     function generateOffer(
         uint256 maxOfferItemsPerOrder,
+        uint256 orderIndex,
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItemSpace[] memory) {
         if (context.basicOrderCategory == BasicOrderCategory.NONE) {
@@ -185,9 +187,9 @@ library TestStateGenerator {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
                     // TODO: Native items + criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(1, 3)),
+                    itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    criteria: Criteria(context.randEnum(1, 2)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0)),
                     recipient: Recipient(context.randEnum(0, 4))
@@ -563,15 +565,17 @@ library OfferItemSpaceGenerator {
         OfferItem[] memory offerItems = new OfferItem[](len);
 
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], context);
+            offerItems[i] = generate(space[i], i, context);
         }
         return offerItems;
     }
 
     function generate(
         OfferItemSpace memory space,
+        uint256 orderIndex,
+        uint256 itemIndex,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OfferItem memory) {
+    ) internal returns (OfferItem memory) {
         return
             OfferItemLib
                 .empty()
@@ -580,6 +584,8 @@ library OfferItemSpaceGenerator {
                 .withGeneratedAmount(space.amount, context)
                 .withGeneratedIdentifierOrCriteria(
                     space.itemType,
+                    orderIndex,
+                    itemIndex,
                     space.criteria,
                     context
                 );
@@ -854,9 +860,11 @@ library CriteriaGenerator {
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
         ItemType itemType,
+        uint256 orderIndex,
+        uint256 itemIndex,
         Criteria criteria,
         FuzzGeneratorContext memory context
-    ) internal pure returns (ConsiderationItem memory) {
+    ) internal returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
@@ -874,20 +882,52 @@ library CriteriaGenerator {
             // Else, item is a criteria-based item
         } else {
             if (criteria == Criteria.MERKLE) {
+                // TODO: deploy only once
                 // Deploy criteria helper with maxLeaves of 10
                 CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
                         10
                     );
 
                 // Resolve a random tokenId from a random number of random tokenIds
-                CriteriaMetadata
-                    memory criteriaMetadata = criteriaResolverHelper
-                        .generateCriteriaMetadata(context.prng);
+                (
+                    uint256 resolvedIdentifier,
+                    bytes32 root,
+                    bytes32[] memory proof
+                ) = criteriaResolverHelper.generateCriteriaMetadata(
+                        context.prng
+                    );
+
+                CriteriaResolver criteriaResolver = new CriteriaResolver({
+                    orderIndex: orderIndex,
+                    side: Side.CONSIDERATION,
+                    index: itemIndex,
+                    identifier: resolvedIdentifier,
+                    criteriaProof: proof
+                });
+
+                uint256 criteriaResolverLength = context
+                    .criteriaResolver
+                    .length;
+
+                CriteriaResolver[]
+                    memory tempCriteriaResolvers = new CriteriaResolver[](
+                        criteriaResolverLength + 1
+                    );
+
+                for (uint256 i; i < context.criteriaResolver.length; i++) {
+                    tempCriteriaResolvers[i] = context.criteriaResolver[i];
+                }
+
+                tempCriteriaResolvers[
+                    criteriaResolverLength
+                ] = criteriaResolver;
+
+                context.criteriaResolver = tempCriteriaResolvers;
 
                 // Return the item with the resolved tokenId
                 return
                     item.withIdentifierOrCriteria(
-                        criteriaMetadata.resolvedIdentifier
+                        uint256(criteriaMetadata.root)
                     );
             } else {
                 // Return wildcard criteria item with identifier 0
@@ -899,9 +939,11 @@ library CriteriaGenerator {
     function withGeneratedIdentifierOrCriteria(
         OfferItem memory item,
         ItemType itemType,
+        uint256 orderIndex,
+        uint256 itemIndex,
         Criteria criteria,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OfferItem memory) {
+    ) internal returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
@@ -917,20 +959,26 @@ library CriteriaGenerator {
                     ]
                 );
         } else {
-            // Deploy criteria helper with maxLeaves of 10
-            CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
-                    10
-                );
+            if (criteria == Criteria.MERKLE) {
+                // Deploy criteria helper with maxLeaves of 10
+                CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
+                        10
+                    );
 
-            // Resolve a random tokenId from a random number of random tokenIds
-            CriteriaMetadata memory criteriaMetadata = criteriaResolverHelper
-                .generateCriteriaMetadata(context.prng);
+                // Resolve a random tokenId from a random number of random tokenIds
+                CriteriaMetadata
+                    memory criteriaMetadata = criteriaResolverHelper
+                        .generateCriteriaMetadata(context.prng);
 
-            // Return the item with the resolved tokenId
-            return
-                item.withIdentifierOrCriteria(
-                    criteriaMetadata.resolvedIdentifier
-                );
+                // Return the item with the resolved tokenId
+                return
+                    item.withIdentifierOrCriteria(
+                        uint256(criteriaMetadata.root)
+                    );
+            } else {
+                // Return wildcard criteria item with identifier 0
+                return item.withIdentifierOrCriteria(0);
+            }
         }
     }
 }

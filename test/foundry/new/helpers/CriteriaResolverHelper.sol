@@ -31,23 +31,24 @@ contract CriteriaResolverHelper {
      */
     function generateCriteriaMetadata(
         LibPRNG.PRNG memory prng
-    ) public view returns (CriteriaMetadata memory criteria) {
+    )
+        public
+        view
+        returns (
+            uint256 resolvedIdentifier,
+            bytes32 root,
+            bytes32[] memory proof
+        )
+    {
         uint256[] memory identifiers = generateIdentifiers(prng);
 
         uint256 selectedIdentifierIndex = prng.next() % identifiers.length;
         uint256 selectedIdentifier = identifiers[selectedIdentifierIndex];
         bytes32[] memory leaves = hashIdentifiersToLeaves(identifiers);
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
-        bytes32 root = MERKLE.getRoot(leaves);
-        bytes32[] memory proof = MERKLE.getProof(
-            leaves,
-            selectedIdentifierIndex
-        );
-        criteria = CriteriaMetadata({
-            resolvedIdentifier: selectedIdentifier,
-            root: root,
-            proof: proof
-        });
+        resolvedIdentifier = selectedIdentifier;
+        root = MERKLE.getRoot(leaves);
+        proof = MERKLE.getProof(leaves, selectedIdentifierIndex);
     }
 
     /**
