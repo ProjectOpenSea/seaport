@@ -116,6 +116,8 @@ abstract contract FuzzChecks is Test {
                         order.parameters.toOrderComponents(counter)
                     );
 
+                    uint256 lengthWithTips = components.consideration.length;
+
                     ConsiderationItem[] memory considerationSansTips = (
                         components.consideration
                     );
@@ -130,6 +132,11 @@ abstract contract FuzzChecks is Test {
                     }
 
                     orderHash = context.seaport.getOrderHash(components);
+
+                    // restore length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthWithTips)
+                    }
                 }
 
                 // Use the order hash to get the expected calldata hash from the
@@ -214,14 +221,20 @@ abstract contract FuzzChecks is Test {
 
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
-        // bytes4 action = context.action();
+        //bytes4 action = context.action();
 
         assertEq(
             context.returnValues.executions.length,
             context.expectedExplicitExecutions.length,
             "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
         );
-        for (uint256 i; i < context.expectedExplicitExecutions.length; i++) {
+
+        for (
+            uint256 i;
+            (i < context.expectedExplicitExecutions.length &&
+                i < context.returnValues.executions.length);
+            i++
+        ) {
             Execution memory actual = context.returnValues.executions[i];
             Execution memory expected = context.expectedExplicitExecutions[i];
             assertEq(

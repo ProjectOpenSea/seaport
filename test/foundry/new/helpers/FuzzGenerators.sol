@@ -502,6 +502,8 @@ library AdvancedOrdersSpaceGenerator {
                     order.parameters.toOrderComponents(counter)
                 );
 
+                uint256 lengthWithTips = components.consideration.length;
+
                 ConsiderationItem[] memory considerationSansTips = (
                     components.consideration
                 );
@@ -516,6 +518,11 @@ library AdvancedOrdersSpaceGenerator {
                 }
 
                 orderHash = context.seaport.getOrderHash(components);
+
+                // restore length of the considerationSansTips array.
+                assembly {
+                    mstore(considerationSansTips, lengthWithTips)
+                }
 
                 context.orderHashes[i] = orderHash;
             }
