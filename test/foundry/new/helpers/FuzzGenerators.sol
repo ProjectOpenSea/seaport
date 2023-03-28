@@ -24,6 +24,7 @@ import {
     Recipient,
     SignatureMethod,
     Time,
+    Tips,
     TokenIndex,
     Zone,
     ZoneHash
@@ -108,7 +109,8 @@ library TestStateGenerator {
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
                 signatureMethod: SignatureMethod(0),
-                conduit: ConduitChoice(context.randEnum(0, 2))
+                conduit: ConduitChoice(context.randEnum(0, 2)),
+                tips: Tips(context.randEnum(0, 1))
             });
         }
 
@@ -490,19 +492,30 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < len; ++i) {
             AdvancedOrder memory order = orders[i];
 
-            // TODO: choose an arbitrary number of tips
-            order.parameters.totalOriginalConsiderationItems = (
-                order.parameters.consideration.length
-            );
-
             bytes32 orderHash;
             {
                 uint256 counter = context.seaport.getCounter(
                     order.parameters.offerer
                 );
-                orderHash = context.seaport.getOrderHash(
+
+                OrderComponents memory components = (
                     order.parameters.toOrderComponents(counter)
                 );
+
+                ConsiderationItem[] memory considerationSansTips = (
+                    components.consideration
+                );
+
+                uint256 lengthSansTips = (
+                    order.parameters.totalOriginalConsiderationItems
+                );
+
+                // set proper length of the considerationSansTips array.
+                assembly {
+                    mstore(considerationSansTips, lengthSansTips)
+                }
+
+                orderHash = context.seaport.getOrderHash(components);
 
                 context.orderHashes[i] = orderHash;
             }
@@ -547,6 +560,15 @@ library OrderComponentsSpaceGenerator {
                 )
                 .withConduitKey(space.conduit.generate(context).key);
         }
+
+        // Choose an arbitrary number of tips based on the tip space
+        // (TODO: refactor as a library function)
+        params.totalOriginalConsiderationItems = (
+            (space.tips == Tips.TIPS && params.consideration.length != 0)
+                ? params.consideration.length -
+                    context.randRange(1, params.consideration.length)
+                : params.consideration.length
+        );
 
         return
             params

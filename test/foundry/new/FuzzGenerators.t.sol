@@ -24,6 +24,7 @@ import {
     Recipient,
     SignatureMethod,
     Time,
+    Tips,
     TokenIndex,
     Zone,
     ZoneHash
@@ -121,7 +122,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -163,7 +165,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -216,7 +219,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
