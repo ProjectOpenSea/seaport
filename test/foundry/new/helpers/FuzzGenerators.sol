@@ -240,33 +240,31 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
 
         // Build orders.
-        orders = _buildOrders(len, space, context);
+        _buildOrders(orders, space, context);
 
         // Handle match case.
         if (space.isMatchable) {
-            orders = _squareUpRemainders(orders, context);
+            _squareUpRemainders(orders, context);
         }
 
         // Handle combined orders (need to have at least one execution).
         if (len > 1) {
-            orders = _handleInsertIfAllEmpty(len, orders, context);
-            orders = _handleInsertIfAllFilterable(len, orders, context);
+            _handleInsertIfAllEmpty(orders, context);
+            _handleInsertIfAllFilterable(orders, context);
         }
 
         // Sign orders and add the hashes to the context.
-        (orders, context) = _signOrders(space, len, orders, context);
+        _signOrders(space, orders, context);
 
         return orders;
     }
 
     function _buildOrders(
-        uint256 len,
+        AdvancedOrder[] memory orders,
         AdvancedOrdersSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal pure returns (AdvancedOrder[] memory _orders) {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](len);
-
-        for (uint256 i; i < len; ++i) {
+    ) internal pure {
+        for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context
             );
@@ -279,35 +277,48 @@ library AdvancedOrdersSpaceGenerator {
                     extraData: bytes("")
                 });
         }
-
-        return orders;
     }
 
+    /**
+     * @dev This function gets the remainders from the match and inserts them
+     *      into the orders. This is done to ensure that the orders are
+     *      matchable. If there are consideration remainders, they are inserted
+     *      into the orders on the offer side.
+     */
     function _squareUpRemainders(
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal returns (AdvancedOrder[] memory _orders) {
+    ) internal {
+        // Get the remainders.
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
             .getMatchedFulfillments(orders);
 
+        //Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
+            // Unpack the remainder from the MatchComponent into its
+            // constituent parts.
             (uint240 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
                 .unpack();
 
+            // Get the consideration item with the remainder.
             ConsiderationItem memory item = orders[orderIndex]
                 .parameters
                 .consideration[itemIndex];
 
+            // Pick a random order to insert the remainder into.
             uint256 orderInsertionIndex = context.randRange(
                 0,
                 orders.length - 1
             );
 
+            // Create a new offer array with room for the remainder.
             OfferItem[] memory newOffer = new OfferItem[](
                 orders[orderInsertionIndex].parameters.offer.length + 1
             );
 
+            // If the targeted order has no offer, just add the remainder to the
+            // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
                 newOffer[0] = OfferItem({
                     itemType: item.itemType,
@@ -317,17 +328,24 @@ library AdvancedOrdersSpaceGenerator {
                     endAmount: uint256(amount)
                 });
             } else {
+                // If the targeted order has an offer, pick a random index to
+                // insert the remainder into.
                 uint256 itemInsertionIndex = context.randRange(
                     0,
                     orders[orderInsertionIndex].parameters.offer.length - 1
                 );
 
+                // Copy the offer items from the targeted order into the new
+                // offer array.  This loop handles everything before the
+                // insertion index.
                 for (uint256 j = 0; j < itemInsertionIndex; ++j) {
                     newOffer[j] = orders[orderInsertionIndex].parameters.offer[
                         j
                     ];
                 }
 
+                // Insert the remainder into the new offer array at the
+                // insertion index.
                 newOffer[itemInsertionIndex] = OfferItem({
                     itemType: item.itemType,
                     token: item.token,
@@ -336,6 +354,8 @@ library AdvancedOrdersSpaceGenerator {
                     endAmount: uint256(amount)
                 });
 
+                // Copy the offer items after the insertion index into the new
+                // offer array.
                 for (
                     uint256 j = itemInsertionIndex + 1;
                     j < newOffer.length;
@@ -347,19 +367,21 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
 
+            // Replace the offer in the targeted order with the new offer.
             orders[orderInsertionIndex].parameters.offer = newOffer;
         }
-
-        return orders;
     }
 
     function _handleInsertIfAllEmpty(
-        uint256 len,
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal pure returns (AdvancedOrder[] memory _orders) {
+    ) internal pure {
         bool allEmpty = true;
-        for (uint256 i = 0; i < len; ++i) {
+
+        // Iterate over the orders and check if they have any offer or
+        // consideration items in them.  As soon as we find one that does, set
+        // allEmpty to false and break out of the loop.
+        for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory orderParams = orders[i].parameters;
             if (
                 orderParams.offer.length + orderParams.consideration.length > 0
@@ -369,8 +391,13 @@ library AdvancedOrdersSpaceGenerator {
             }
         }
 
+        // If all the orders are empty, insert a consideration item into a
+        // random order.
         if (allEmpty) {
-            uint256 orderInsertionIndex = context.randRange(0, len - 1);
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
             OrderParameters memory orderParams = orders[orderInsertionIndex]
                 .parameters;
 
@@ -385,8 +412,6 @@ library AdvancedOrdersSpaceGenerator {
 
             orderParams.consideration = consideration;
         }
-
-        return orders;
     }
 
     /**
@@ -399,15 +424,18 @@ library AdvancedOrdersSpaceGenerator {
      *      Seaport will revert.
      */
     function _handleInsertIfAllFilterable(
-        uint256 len,
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal view returns (AdvancedOrder[] memory _orders) {
+    ) internal view {
         bool allFilterable = true;
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
-        for (uint256 i = 0; i < len; ++i) {
+
+        // Iterate over the orders and check if there's a single instance of a
+        // non-filterable consideration item.  If there is, set allFilterable to
+        // false and break out of the loop.
+        for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
 
             for (uint256 j = 0; j < order.consideration.length; ++j) {
@@ -424,38 +452,68 @@ library AdvancedOrdersSpaceGenerator {
             }
         }
 
-        // If they're all filterable, then we need to add a consideration
-        // item to one of the orders.
+        // If they're all filterable, then add a consideration item to one of
+        // the orders.
         if (allFilterable) {
             OrderParameters memory orderParams;
 
+            // Pick a random order to insert the consideration item into and
+            // iterate from that index to the end of the orders array. At the
+            // end of the loop, start back at the beginning
+            // (orders[orderInsertionIndex % orders.length]) and iterate on. As
+            // soon as an order with consideration items is found, break out of
+            // the loop. The orderParams variable will be set to the order with
+            // consideration items. There's chance that no order will have
+            // consideration items, in which case the orderParams variable will
+            // be set to those of the last order iterated over.
             for (
-                uint256 orderInsertionIndex = context.randRange(0, len - 1);
-                orderInsertionIndex < len * 2;
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
+                orderInsertionIndex < orders.length * 2;
                 ++orderInsertionIndex
             ) {
-                orderParams = orders[orderInsertionIndex % len].parameters;
+                orderParams = orders[orderInsertionIndex % orders.length]
+                    .parameters;
 
                 if (orderParams.consideration.length != 0) {
                     break;
                 }
             }
 
+            // If there are no consideration items in any of the orders, then
+            // add a consideration item to a random order.
             if (orderParams.consideration.length == 0) {
-                uint256 orderInsertionIndex = context.randRange(0, len - 1);
+                // Pick a random order to insert the consideration item into.
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
+
+                // Set the orderParams variable to the parameters of the order
+                // that was picked.
                 orderParams = orders[orderInsertionIndex].parameters;
 
+                // Provision a new consideration item array with a single
+                // element.
                 ConsiderationItem[]
                     memory consideration = new ConsiderationItem[](1);
+
+                // Generate a consideration item and add it to the consideration
+                // item array.  The `true` argument indicates that the
+                // consideration item will be unfilterable.
                 consideration[0] = TestStateGenerator
                 .generateConsideration(1, context, true)[0].generate(
                         context,
                         orderParams.offerer
                     );
 
+                // Set the consideration item array on the order parameters.
                 orderParams.consideration = consideration;
             }
 
+            // Pick a random consideration item to modify.
             uint256 itemIndex = context.randRange(
                 0,
                 orderParams.consideration.length - 1
@@ -473,60 +531,64 @@ library AdvancedOrdersSpaceGenerator {
                 );
             }
         }
-
-        return orders;
     }
 
     function _signOrders(
         AdvancedOrdersSpace memory space,
-        uint256 len,
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    )
-        internal
-        view
-        returns (AdvancedOrder[] memory, FuzzGeneratorContext memory _context)
-    {
-        context.orderHashes = new bytes32[](len);
+    ) internal view {
+        // Reset the order hashes array to the correct length.
+        context.orderHashes = new bytes32[](orders.length);
 
-        for (uint256 i = 0; i < len; ++i) {
+        // Iterate over the orders and sign them.
+        for (uint256 i = 0; i < orders.length; ++i) {
+            // Set up variables.
             AdvancedOrder memory order = orders[i];
-
             bytes32 orderHash;
+
             {
+                // Get the counter for the offerer.
                 uint256 counter = context.seaport.getCounter(
                     order.parameters.offerer
                 );
 
+                // Convert the order parameters to order components.
                 OrderComponents memory components = (
                     order.parameters.toOrderComponents(counter)
                 );
 
+                // Get the length of the consideration array.
                 uint256 lengthWithTips = components.consideration.length;
 
+                // Get a reference to the consideration array.
                 ConsiderationItem[] memory considerationSansTips = (
                     components.consideration
                 );
 
+                // Get the length of the consideration array without tips.
                 uint256 lengthSansTips = (
                     order.parameters.totalOriginalConsiderationItems
                 );
 
-                // set proper length of the considerationSansTips array.
+                // Set proper length of the considerationSansTips array.
                 assembly {
                     mstore(considerationSansTips, lengthSansTips)
                 }
 
+                // Get the order hash using the tweaked components.
                 orderHash = context.seaport.getOrderHash(components);
 
-                // restore length of the considerationSansTips array.
+                // Restore length of the considerationSansTips array.
                 assembly {
                     mstore(considerationSansTips, lengthWithTips)
                 }
 
+                // Set the order hash in the context.
                 context.orderHashes[i] = orderHash;
             }
 
+            // Replace the unsigned order with a signed order.
             orders[i] = order.withGeneratedSignature(
                 space.orders[i].signatureMethod,
                 space.orders[i].offerer,
@@ -534,8 +596,6 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         }
-
-        return (orders, context);
     }
 }
 
