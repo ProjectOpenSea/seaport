@@ -183,6 +183,7 @@ contract ExecutionHelper is AmountDeriverHelper {
 
         _handleExcessNativeTokens(
             fulfillmentDetails,
+            explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied
         );
@@ -246,9 +247,23 @@ contract ExecutionHelper is AmountDeriverHelper {
 
         _handleExcessNativeTokens(
             fulfillmentDetails,
+            explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied
         );
+    }
+
+    function processExcessNativeTokens(
+        Execution[] memory explicitExecutions,
+        uint256 nativeTokensSupplied
+    ) internal pure returns (uint256 excessNativeTokens) {
+        excessNativeTokens = nativeTokensSupplied;
+        for (uint256 i; i < explicitExecutions.length; i++) {
+            ReceivedItem memory item = explicitExecutions[i].item;
+            if (item.itemType == ItemType.NATIVE) {
+                excessNativeTokens -= item.amount;
+            }
+        }
     }
 
     /**
@@ -262,15 +277,10 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 nativeTokensSupplied,
         address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
-        uint256 excessNativeTokens = processExcessNativeTokens(
-            orderDetails,
-            nativeTokensSupplied
-        );
+        uint256 excessNativeTokens = nativeTokensSupplied;
 
         implicitExecutions = new Execution[](
-            orderDetails.offer.length +
-                orderDetails.consideration.length +
-                (excessNativeTokens > 0 ? 1 : 0)
+            orderDetails.offer.length + orderDetails.consideration.length + 1
         );
 
         uint256 executionIndex = 0;
@@ -291,6 +301,9 @@ contract ExecutionHelper is AmountDeriverHelper {
         }
 
         for (uint256 i = 0; i < orderDetails.consideration.length; i++) {
+            if (orderDetails.consideration[i].itemType == ItemType.NATIVE) {
+                excessNativeTokens -= orderDetails.consideration[i].amount;
+            }
             implicitExecutions[executionIndex] = Execution({
                 offerer: fulfiller,
                 conduitKey: fulfillerConduitKey,
@@ -311,6 +324,11 @@ contract ExecutionHelper is AmountDeriverHelper {
                     recipient: payable(fulfiller)
                 })
             });
+        } else {
+            // Reduce length of the implicit executions array by one.
+            assembly {
+                mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
+            }
         }
     }
 
@@ -405,59 +423,6 @@ contract ExecutionHelper is AmountDeriverHelper {
                 ] = standardExecutions[1];
             }
         }
-    }
-
-    /**
-     * @dev Given orders, return any excess native tokens.
-     */
-    function processExcessNativeTokens(
-        OrderDetails[] memory orderDetails,
-        uint256 nativeTokensSupplied
-    ) internal pure returns (uint256 excessNativeTokens) {
-        excessNativeTokens = nativeTokensSupplied;
-        for (uint256 i = 0; i < orderDetails.length; i++) {
-            // subtract native tokens consumed by each order
-            excessNativeTokens = processExcessNativeTokens(
-                orderDetails[i],
-                nativeTokensSupplied
-            );
-        }
-        // any remaining native tokens are returned
-        return excessNativeTokens;
-    }
-
-    /**
-     * @dev Given an order, return any excess native tokens.
-     */
-    function processExcessNativeTokens(
-        OrderDetails memory orderDetails,
-        uint256 nativeTokensSupplied
-    ) internal pure returns (uint256 excessNativeTokens) {
-        for (uint256 i = 0; i < orderDetails.consideration.length; i++) {
-            if (orderDetails.consideration[i].token == address(0)) {
-                if (
-                    nativeTokensSupplied < orderDetails.consideration[i].amount
-                ) {
-                    revert InsufficientNativeTokensSupplied();
-                }
-                nativeTokensSupplied -= orderDetails.consideration[i].amount;
-            }
-        }
-
-        // Check offer items as well; these are only set for match &
-        // on contract orders (NOTE: some additional logic is
-        // likely required for the contract order case as those can
-        // provide the native tokens themselves).
-        for (uint256 i = 0; i < orderDetails.offer.length; i++) {
-            if (orderDetails.offer[i].token == address(0)) {
-                if (nativeTokensSupplied < orderDetails.offer[i].amount) {
-                    revert InsufficientNativeTokensSupplied();
-                }
-                nativeTokensSupplied -= orderDetails.offer[i].amount;
-            }
-        }
-
-        excessNativeTokens = nativeTokensSupplied;
     }
 
     /**
@@ -892,16 +857,18 @@ contract ExecutionHelper is AmountDeriverHelper {
      *      array. If not, reduce the length of the implicitExecutions array.
      *
      * @param fulfillmentDetails fulfillment details
+     * @param explicitExecutions explicit executions
      * @param implicitExecutions implicit executions
-     * @param nativeTokensSupplied native tokens supplied
+     * @param nativeTokensSupplied native tokens sent
      */
     function _handleExcessNativeTokens(
         FulfillmentDetails memory fulfillmentDetails,
+        Execution[] memory explicitExecutions,
         Execution[] memory implicitExecutions,
         uint256 nativeTokensSupplied
     ) internal pure {
         uint256 excessNativeTokens = processExcessNativeTokens(
-            fulfillmentDetails.orders,
+            explicitExecutions,
             nativeTokensSupplied
         );
 
