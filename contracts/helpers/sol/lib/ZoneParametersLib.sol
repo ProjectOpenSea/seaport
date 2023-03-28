@@ -61,6 +61,19 @@ library ZoneParametersLib {
             counter: counter
         });
 
+        ConsiderationItem[] memory considerationSansTips = (
+            orderComponents.consideration
+        );
+
+        uint256 lengthSansTips = (
+            orderParameters.totalOriginalConsiderationItems
+        );
+
+        // set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
         // Get orderHash from orderComponents
         bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
 
@@ -135,6 +148,19 @@ library ZoneParametersLib {
                 conduitKey: orderParameters.conduitKey,
                 counter: seaportInterface.getCounter(orderParameters.offerer)
             });
+
+            ConsiderationItem[] memory considerationSansTips = (
+                orderComponents.consideration
+            );
+
+            uint256 lengthSansTips = (
+                orderParameters.totalOriginalConsiderationItems
+            );
+
+            // set proper length of the considerationSansTips array.
+            assembly {
+                mstore(considerationSansTips, lengthSansTips)
+            }
 
             if (i >= maximumFulfilled) {
                 // Set orderHash to 0 if order index exceeds maximumFulfilled
