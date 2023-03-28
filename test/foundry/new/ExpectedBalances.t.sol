@@ -7,9 +7,7 @@ import {
     BalanceErrorMessages,
     ERC721TokenDump
 } from "./helpers/ExpectedBalances.sol";
-// import "./ExpectedBalanceSerializer.sol";
 import "forge-std/Test.sol";
-// import "forge-std/StdError.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
@@ -176,7 +174,9 @@ contract ExpectedBalancesTest is Test {
     // =====================================================================//
 
     function testNativeInsufficientBalance() external {
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(
+          bytes(BalanceErrorMessages.insufficientNativeBalance(alice, bob, 0, 1, false))
+        );
         balances.addTransfer(
             Execution({
                 offerer: alice,
@@ -252,7 +252,9 @@ contract ExpectedBalancesTest is Test {
     // =====================================================================//
 
     function testERC20InsufficientBalance() external {
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(
+          bytes(BalanceErrorMessages.insufficientERC20Balance(address(erc20), alice, bob, 0, 200, false))
+        );
         balances.addTransfer(
             Execution({
                 offerer: alice,
@@ -478,14 +480,16 @@ contract ExpectedBalancesTest is Test {
     // =====================================================================//
 
     function testERC1155InsufficientBalance() external {
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(
+          bytes(BalanceErrorMessages.insufficientERC1155Balance(address(erc1155), 0, alice, bob, 0, 200, false))
+        );
         balances.addTransfer(
             Execution({
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
+                    ItemType.ERC1155,
+                    address(erc1155),
                     0,
                     200,
                     payable(bob)
@@ -570,18 +574,18 @@ contract ExpectedBalancesTest is Test {
     function createErc20Token() internal {
         TestERC20 token = new TestERC20();
         erc20 = token;
-        vm.label(address(token), string(abi.encodePacked("ERC20")));
+        vm.label(address(token), "ERC20");
     }
 
     function createErc721Token() internal {
         TestERC721 token = new TestERC721();
         erc721 = token;
-        vm.label(address(token), string(abi.encodePacked("ERC721")));
+        vm.label(address(token), "ERC721");
     }
 
     function createErc1155Token() internal {
         TestERC1155 token = new TestERC1155();
         erc1155 = token;
-        vm.label(address(token), string(abi.encodePacked("ERC1155")));
+        vm.label(address(token), "ERC1155");
     }
 }
