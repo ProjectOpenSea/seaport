@@ -308,7 +308,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function registerExpectedEvents(
+    function registerExpectedEventsAndBalances(
         FuzzTestContext memory context
     ) public {
         ExecutionsFlattener.flattenExecutions(context);
