@@ -36,6 +36,8 @@ import {
     ReferenceConsideration
 } from "../../../../reference/ReferenceConsideration.sol";
 
+import { setLabel, setupLabeler } from "./Labeler.sol";
+
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseSeaportTest is DifferentialTest {
     using stdStorage for StdStorage;
@@ -66,6 +68,8 @@ contract BaseSeaportTest is DifferentialTest {
     }
 
     function setUp() public virtual {
+        setupLabeler();
+
         // conditionally deploy contracts normally or from precompiled source
         // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
         // or when FOUNDRY_PROFILE is "debug" for debugging with source maps
@@ -76,16 +80,16 @@ contract BaseSeaportTest is DifferentialTest {
         _deployAndConfigurePrecompiledOptimizedConsideration();
         _deployAndConfigurePrecompiledReferenceConsideration();
 
-        vm.label(address(conduitController), "conduitController");
-        vm.label(address(seaport), "seaport");
-        vm.label(address(conduit), "conduit");
-        vm.label(
+        setLabel(address(conduitController), "conduitController");
+        setLabel(address(seaport), "seaport");
+        setLabel(address(conduit), "conduit");
+        setLabel(
             address(referenceConduitController),
             "referenceConduitController"
         );
-        vm.label(address(referenceSeaport), "referenceSeaport");
-        vm.label(address(referenceConduit), "referenceConduit");
-        vm.label(address(this), "testContract");
+        setLabel(address(referenceSeaport), "referenceSeaport");
+        setLabel(address(referenceConduit), "referenceConduit");
+        setLabel(address(this), "testContract");
     }
 
     /**

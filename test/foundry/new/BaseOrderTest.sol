@@ -3,7 +3,9 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
+import { setLabel, BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
+
+import { LibString } from "solady/src/utils/LibString.sol";
 
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
@@ -296,6 +298,7 @@ contract BaseOrderTest is
      */
     function makeAccount(string memory name) public returns (Account memory) {
         (address addr, uint256 key) = makeAddrAndKey(name);
+        setLabel(addr, name);
         return Account(addr, key);
     }
 
@@ -335,9 +338,9 @@ contract BaseOrderTest is
         i = erc20s.length;
         TestERC20 token = new TestERC20();
         erc20s.push(token);
-        vm.label(
+        setLabel(
             address(token),
-            string(abi.encodePacked("erc20_", erc20s.length))
+            string.concat("ERC20", LibString.toString(i))
         );
     }
 
@@ -345,9 +348,9 @@ contract BaseOrderTest is
         i = erc721s.length;
         TestERC721 token = new TestERC721();
         erc721s.push(token);
-        vm.label(
+        setLabel(
             address(token),
-            string(abi.encodePacked("erc721_", erc721s.length))
+            string.concat("ERC721", LibString.toString(i))
         );
     }
 
@@ -355,9 +358,9 @@ contract BaseOrderTest is
         i = erc1155s.length;
         TestERC1155 token = new TestERC1155();
         erc1155s.push(token);
-        vm.label(
+        setLabel(
             address(token),
-            string(abi.encodePacked("erc1155_", erc1155s.length))
+            string.concat("ERC1155", LibString.toString(i))
         );
     }
 
