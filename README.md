@@ -422,6 +422,8 @@ SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && lcov -o l
 open html/index.html
 ```
 
+When working on the test suite based around `FuzzEngine.sol`, using `FOUNDRY_PROFILE=moat_debug` will cut compile times roughly in half.
+
 **Note** that Forge does not yet ignore specific filepaths when running coverage tests.
 
 For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).

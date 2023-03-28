@@ -67,6 +67,10 @@ struct FuzzGeneratorContext {
 }
 
 library FuzzGeneratorContextLib {
+    /**
+     * @dev Create a new FuzzGeneratorContext.  Typically, the `from` function
+     * is likely to be preferable.
+     */
     function empty() internal returns (FuzzGeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
@@ -113,6 +117,9 @@ library FuzzGeneratorContextLib {
             });
     }
 
+    /**
+     * @dev Create a new FuzzGeneratorContext from the given parameters.
+     */
     function from(
         Vm vm,
         SeaportInterface seaport,
@@ -121,15 +128,20 @@ library FuzzGeneratorContextLib {
         TestERC721[] memory erc721s,
         TestERC1155[] memory erc1155s
     ) internal returns (FuzzGeneratorContext memory) {
+        // Get a new PRNG lib.Account
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
 
+        // Create a list of potential 1155 token IDs.
         uint256[] memory potential1155TokenIds = new uint256[](3);
         potential1155TokenIds[0] = 1;
         potential1155TokenIds[1] = 2;
         potential1155TokenIds[2] = 3;
 
+        // Create a new TestHelpers instance.  The helpers get passed around the
+        // test suite through the context.
         TestHelpers testHelpers = TestHelpers(address(this));
 
+        // Set up the conduits.
         TestConduit[] memory conduits = new TestConduit[](2);
         conduits[0] = _createConduit(conduitController, seaport, uint96(1));
         conduits[1] = _createConduit(conduitController, seaport, uint96(2));
@@ -170,6 +182,9 @@ library FuzzGeneratorContextLib {
             });
     }
 
+    /**
+     * @dev Internal helper used to create a new conduit based on the salt.
+     */
     function _createConduit(
         ConduitControllerInterface conduitController,
         SeaportInterface seaport,
