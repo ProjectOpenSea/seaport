@@ -855,7 +855,7 @@ contract ExpectedBalances is
         }
     }
 
-    function checkBalances() external {
+    function checkBalances() external view {
         checkNativeBalances();
         checkERC20Balances();
         checkERC721Balances();
