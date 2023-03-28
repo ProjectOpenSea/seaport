@@ -278,8 +278,29 @@ abstract contract FuzzChecks is Test {
     function check_expectedEventsEmitted(
         FuzzTestContext memory context
     ) public {
-        // bytes4 action = context.action();
-
         ExpectedEventsUtil.checkExpectedEvents(context);
+    }
+
+    /**
+     * @dev Check that the order status is in expected state.
+     *
+     * @param context A Fuzz test context.
+     */
+    function check_orderStatusFullyFilled(FuzzTestContext memory context) public {
+        for (uint256 i; i < context.orders.length; i++) {
+            AdvancedOrder memory order = context.orders[i];
+            uint256 counter = context.seaport.getCounter(
+                order.parameters.offerer
+            );
+            OrderComponents memory orderComponents = order
+                .parameters
+                .toOrderComponents(counter);
+            bytes32 orderHash = context.seaport.getOrderHash(orderComponents);
+            (, , uint256 totalFilled, uint256 totalSize) = context
+                .seaport
+                .getOrderStatus(orderHash);
+
+            assertEq(totalFilled, totalSize);
+        }
     }
 }
