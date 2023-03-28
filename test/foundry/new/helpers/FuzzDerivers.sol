@@ -43,6 +43,7 @@ abstract contract FuzzDerivers is
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
+            // TODO: Use `getAggregatedFulfillmentComponents` sometimes?
             (
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments

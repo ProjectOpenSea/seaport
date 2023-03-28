@@ -308,7 +308,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function setupExpectedEventsAndBalances(
+    function registerExpectedEvents(
         FuzzTestContext memory context
     ) public {
         ExecutionsFlattener.flattenExecutions(context);
@@ -346,11 +346,58 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 revert(add(reason, 32), mload(reason))
             }
         }
-
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedEventHashes(context);
         context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);
         ExpectedEventsUtil.startRecordingLogs();
+    }
+
+    /**
+     *  @dev Set up the checks that will always be run.
+     *
+     * @param context The test context.
+     */
+    function registerCommonChecks(FuzzTestContext memory context) public pure {
+        context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
+    }
+
+    /**
+     *  @dev Set up the function-specific checks.
+     *
+     * @param context The test context.
+     */
+    function registerFunctionSpecificChecks(
+        FuzzTestContext memory context
+    ) public {
+        bytes4 _action = context.action();
+        if (_action == context.seaport.fulfillOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (_action == context.seaport.matchOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.cancel.selector) {
+            context.registerCheck(FuzzChecks.check_orderCancelled.selector);
+        } else if (_action == context.seaport.validate.selector) {
+            context.registerCheck(FuzzChecks.check_orderValidated.selector);
+        } else {
+            revert("FuzzEngine: Action not implemented");
+        }
     }
 
     /**

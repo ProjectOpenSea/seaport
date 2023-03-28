@@ -338,6 +338,11 @@ enum BasicOrderCategory {
     BID
 }
 
+enum Tips {
+    NONE,
+    TIPS
+}
+
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?
 
 // // Zone.PASS/FAIL <- ZoneParams

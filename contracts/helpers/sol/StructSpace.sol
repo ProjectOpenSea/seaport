@@ -11,6 +11,7 @@ import {
     Recipient,
     SignatureMethod,
     Time,
+    Tips,
     TokenIndex,
     Zone,
     ZoneHash,
@@ -53,6 +54,7 @@ struct OrderComponentsSpace {
     ZoneHash zoneHash;
     SignatureMethod signatureMethod;
     ConduitChoice conduit;
+    Tips tips;
     // TODO: zone may have to be per-test depending on the zone
 }
 
