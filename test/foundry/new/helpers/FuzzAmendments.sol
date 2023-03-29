@@ -9,6 +9,8 @@ import { FuzzChecks } from "./FuzzChecks.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
@@ -26,6 +28,7 @@ abstract contract FuzzAmendments is Test {
 
     using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
 
     /**
      *  @dev Validate orders.
@@ -36,30 +39,15 @@ abstract contract FuzzAmendments is Test {
         FuzzTestContext memory context
     ) public {
         if (context.preExecOrderStatus == OrderStatusEnum.VALIDATED) {
-            bool shouldRegisterCheck = true;
-
             for (uint256 i = 0; i < context.orders.length; i++) {
-                // Don't validate orders that will fail and don't register the
-                // check if any of the orders are not validated.
-                if (
-                    context.orders[i].parameters.consideration.length ==
-                    context.orders[i].parameters.totalOriginalConsiderationItems
-                ) {
-                    bool validated = context.seaport.validate(
-                        SeaportArrays.Orders(context.orders[i].toOrder())
-                    );
-
-                    require(validated, "Failed to validate orders.");
-                } else {
-                    shouldRegisterCheck = false;
-                }
-            }
-
-            if (shouldRegisterCheck) {
-                context.registerCheck(
-                    FuzzChecks.check_ordersValidated.selector
+                bool validated = context.orders[i].validateTipNeutralizedOrder(
+                    context.seaport.validate
                 );
+
+                require(validated, "Failed to validate orders.");
             }
+
+            context.registerCheck(FuzzChecks.check_ordersValidated.selector);
         }
     }
 }

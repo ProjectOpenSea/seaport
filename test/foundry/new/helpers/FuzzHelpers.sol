@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
 /**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
@@ -614,6 +616,72 @@ library FuzzHelpers {
         }
 
         return calldataHashes;
+    }
+
+    function getTipNeutralizedOrderHash(
+        AdvancedOrder memory order,
+        FuzzTestContext memory context,
+        function(OrderComponents memory) external returns (bytes32) fn
+    ) internal returns (bytes32 orderHash) {
+        uint256 counter = context.seaport.getCounter(order.parameters.offerer);
+
+        OrderComponents memory components = (
+            order.parameters.toOrderComponents(counter)
+        );
+
+        uint256 lengthWithTips = components.consideration.length;
+
+        uint256 lengthSansTips = (
+            order.parameters.totalOriginalConsiderationItems
+        );
+
+        ConsiderationItem[] memory considerationSansTips = (
+            components.consideration
+        );
+
+        // set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
+        orderHash = fn(components);
+
+        // restore length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthWithTips)
+        }
+    }
+
+    function validateTipNeutralizedOrder(
+        AdvancedOrder memory order,
+        function(Order[] memory) external returns (bool) fn
+    ) internal returns (bool validated) {
+        // Get the length of the consideration array.
+        uint256 lengthWithTips = order.parameters.consideration.length;
+
+        // Get the length of the consideration array without tips.
+        uint256 lengthSansTips = order
+            .parameters
+            .totalOriginalConsiderationItems;
+
+        // Get a reference to the consideration array.
+        ConsiderationItem[] memory considerationSansTips = (
+            order.parameters.consideration
+        );
+
+        // Set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
+        validated = fn(SeaportArrays.Orders(order.toOrder()));
+
+        require(validated, "Failed to validate orders.");
+
+        // Restore length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthWithTips)
+        }
     }
 
     /**

@@ -36,6 +36,7 @@ abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
 
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
     address payable testZone;
@@ -106,38 +107,10 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                bytes32 orderHash;
-                {
-                    uint256 counter = context.seaport.getCounter(
-                        order.parameters.offerer
-                    );
-
-                    OrderComponents memory components = (
-                        order.parameters.toOrderComponents(counter)
-                    );
-
-                    uint256 lengthWithTips = components.consideration.length;
-
-                    ConsiderationItem[] memory considerationSansTips = (
-                        components.consideration
-                    );
-
-                    uint256 lengthSansTips = (
-                        order.parameters.totalOriginalConsiderationItems
-                    );
-
-                    // set proper length of the considerationSansTips array.
-                    assembly {
-                        mstore(considerationSansTips, lengthSansTips)
-                    }
-
-                    orderHash = context.seaport.getOrderHash(components);
-
-                    // restore length of the considerationSansTips array.
-                    assembly {
-                        mstore(considerationSansTips, lengthWithTips)
-                    }
-                }
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                    context,
+                    context.seaport.getOrderHash
+                );
 
                 // Use the order hash to get the expected calldata hash from the
                 // zone.
@@ -315,13 +288,12 @@ abstract contract FuzzChecks is Test {
     function check_ordersValidated(FuzzTestContext memory context) public {
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
-            uint256 counter = context.seaport.getCounter(
-                order.parameters.offerer
-            );
-            OrderComponents memory orderComponents = order
-                .parameters
-                .toOrderComponents(counter);
-            bytes32 orderHash = context.seaport.getOrderHash(orderComponents);
+
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                    context,
+                    context.seaport.getOrderHash
+                );
+
             (bool isValid, , , ) = context.seaport.getOrderStatus(orderHash);
             assertTrue(isValid);
         }
