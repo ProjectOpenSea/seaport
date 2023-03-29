@@ -41,7 +41,7 @@ abstract contract FuzzAmendments is Test {
         if (context.preExecOrderStatus == OrderStatusEnum.VALIDATED) {
             for (uint256 i = 0; i < context.orders.length; i++) {
                 bool validated = context.orders[i].validateTipNeutralizedOrder(
-                    context.seaport.validate
+                    context
                 );
 
                 require(validated, "Failed to validate orders.");

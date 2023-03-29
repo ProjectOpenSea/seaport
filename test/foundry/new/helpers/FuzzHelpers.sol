@@ -620,9 +620,8 @@ library FuzzHelpers {
 
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
-        FuzzTestContext memory context,
-        function(OrderComponents memory) external returns (bytes32) fn
-    ) internal returns (bytes32 orderHash) {
+        FuzzTestContext memory context
+    ) internal view returns (bytes32 orderHash) {
         uint256 counter = context.seaport.getCounter(order.parameters.offerer);
 
         OrderComponents memory components = (
@@ -644,7 +643,7 @@ library FuzzHelpers {
             mstore(considerationSansTips, lengthSansTips)
         }
 
-        orderHash = fn(components);
+        orderHash = context.seaport.getOrderHash(components);
 
         // restore length of the considerationSansTips array.
         assembly {
@@ -654,7 +653,7 @@ library FuzzHelpers {
 
     function validateTipNeutralizedOrder(
         AdvancedOrder memory order,
-        function(Order[] memory) external returns (bool) fn
+        FuzzTestContext memory context
     ) internal returns (bool validated) {
         // Get the length of the consideration array.
         uint256 lengthWithTips = order.parameters.consideration.length;
@@ -674,7 +673,7 @@ library FuzzHelpers {
             mstore(considerationSansTips, lengthSansTips)
         }
 
-        validated = fn(SeaportArrays.Orders(order.toOrder()));
+        validated = context.seaport.validate(SeaportArrays.Orders(order.toOrder()));
 
         require(validated, "Failed to validate orders.");
 
