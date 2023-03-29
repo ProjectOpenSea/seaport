@@ -221,6 +221,24 @@ library FuzzHelpers {
         return Structure.STANDARD;
     }
 
+    function getStructure(
+        AdvancedOrder[] memory orders,
+        address seaport
+    ) internal view returns (Structure) {
+        if (orders.length == 1) {
+            return getStructure(orders[0], seaport);
+        }
+
+        for (uint256 i; i < orders.length; i++) {
+            Structure structure = getStructure(orders[i], seaport);
+            if (structure == Structure.ADVANCED) {
+                return Structure.ADVANCED;
+            }
+        }
+
+        return Structure.STANDARD;
+    }
+
     /**
      * @dev Inspect an AdvancedOrder and check that it is eligible for the
      *      fulfillBasic functions.

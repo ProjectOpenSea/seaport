@@ -107,33 +107,62 @@ library FuzzEngineLib {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
 
+        Structure structure = context.orders.getStructure(
+            address(context.seaport)
+        );
+
         if (remainders.length != 0) {
-            bytes4[] memory selectors = new bytes4[](2);
-            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-            selectors[1] = context
-                .seaport
-                .fulfillAvailableAdvancedOrders
-                .selector;
-            //selectors[2] = context.seaport.cancel.selector;
-            //selectors[3] = context.seaport.validate.selector;
-            return selectors;
+            if (structure == Structure.ADVANCED) {
+                bytes4[] memory selectors = new bytes4[](1);
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                //selectors[2] = context.seaport.cancel.selector;
+                //selectors[3] = context.seaport.validate.selector;
+                return selectors;
+            }
         } else if (invalidNativeOfferItemsLocated) {
-            bytes4[] memory selectors = new bytes4[](2);
-            selectors[0] = context.seaport.matchOrders.selector;
-            selectors[1] = context.seaport.matchAdvancedOrders.selector;
-            return selectors;
+            if (structure == Structure.ADVANCED) {
+                bytes4[] memory selectors = new bytes4[](1);
+                selectors[0] = context.seaport.matchAdvancedOrders.selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.matchOrders.selector;
+                selectors[1] = context.seaport.matchAdvancedOrders.selector;
+                return selectors;
+            }
         } else {
-            bytes4[] memory selectors = new bytes4[](4);
-            selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-            selectors[1] = context
-                .seaport
-                .fulfillAvailableAdvancedOrders
-                .selector;
-            selectors[2] = context.seaport.matchOrders.selector;
-            selectors[3] = context.seaport.matchAdvancedOrders.selector;
-            //selectors[4] = context.seaport.cancel.selector;
-            //selectors[5] = context.seaport.validate.selector;
-            return selectors;
+            if (structure == Structure.ADVANCED) {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                selectors[1] = context.seaport.matchAdvancedOrders.selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](4);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                selectors[2] = context.seaport.matchOrders.selector;
+                selectors[3] = context.seaport.matchAdvancedOrders.selector;
+                //selectors[4] = context.seaport.cancel.selector;
+                //selectors[5] = context.seaport.validate.selector;
+                return selectors;
+            }
         }
     }
 
