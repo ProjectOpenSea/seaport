@@ -9,6 +9,29 @@ import "./PointerLibraries.sol";
  *                  documentation
  */
 library ArrayHelpers {
+    function flatten(
+        MemoryPointer array1,
+        MemoryPointer array2
+    ) internal view returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 arrayLength1 = array1.readUint256();
+            uint256 arrayLength2 = array2.readUint256();
+            uint256 array1HeadSize = arrayLength1 * 32;
+            uint256 array2HeadSize = arrayLength2 * 32;
+
+            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray.write(arrayLength1 + arrayLength2);
+
+            MemoryPointer dst = newArray.next();
+            if (arrayLength1 > 0) {
+                array1.next().copy(dst, array1HeadSize);
+            }
+            if (arrayLength2 > 0) {
+                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
+            }
+        }
+    }
+
     // =====================================================================//
     //            map with (element) => (newElement) callback               //
     // =====================================================================//
@@ -90,29 +113,6 @@ library ArrayHelpers {
                 srcPosition = srcPosition.next();
             }
             newArray.write(length);
-        }
-    }
-
-    function flatten(
-        MemoryPointer array1,
-        MemoryPointer array2
-    ) internal view returns (MemoryPointer newArray) {
-        unchecked {
-            uint256 arrayLength1 = array1.readUint256();
-            uint256 arrayLength2 = array2.readUint256();
-            uint256 array1HeadSize = arrayLength1 * 32;
-            uint256 array2HeadSize = arrayLength2 * 32;
-
-            newArray = malloc(array1HeadSize + array2HeadSize + 32);
-            newArray.write(arrayLength1 + arrayLength2);
-
-            MemoryPointer dst = newArray.next();
-            if (arrayLength1 > 0) {
-                array1.next().copy(dst, array1HeadSize);
-            }
-            if (arrayLength2 > 0) {
-                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
-            }
         }
     }
 
