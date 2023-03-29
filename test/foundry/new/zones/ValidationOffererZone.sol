@@ -11,7 +11,6 @@ import {
 import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
 
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
-    event log(string);
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
 
     uint256 expectedMaxSpentAmount;
@@ -33,7 +32,6 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external override returns (bytes4 validOrderMagicValue) {
-        emit log("validateOrder called");
         validate(zoneParameters.fulfiller, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.
