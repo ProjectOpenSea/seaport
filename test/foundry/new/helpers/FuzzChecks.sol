@@ -281,7 +281,9 @@ abstract contract FuzzChecks is Test {
         ExpectedEventsUtil.checkExpectedEvents(context);
     }
 
-    function check_expectedBalances(FuzzTestContext memory context) public {
+    function check_expectedBalances(
+        FuzzTestContext memory context
+    ) public view {
         context.testHelpers.balanceChecker().checkBalances();
     }
 
@@ -290,7 +292,9 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderStatusFullyFilled(FuzzTestContext memory context) public {
+    function check_orderStatusFullyFilled(
+        FuzzTestContext memory context
+    ) public {
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
             uint256 counter = context.seaport.getCounter(

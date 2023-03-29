@@ -91,7 +91,7 @@ contract ExpectedBalancesTest is Test {
         erc1155.safeTransferFrom(bob, alice, 1, 50, "");
 
         vm.prank(alice);
-        bob.send(0.5 ether);
+        bob.transfer(0.5 ether);
 
         balances.checkBalances();
     }
@@ -164,7 +164,7 @@ contract ExpectedBalancesTest is Test {
         erc1155.safeTransferFrom(bob, alice, 1, 50, "");
 
         vm.prank(alice);
-        bob.send(0.5 ether);
+        bob.transfer(0.5 ether);
 
         balances.checkBalances();
     }
@@ -175,7 +175,15 @@ contract ExpectedBalancesTest is Test {
 
     function testNativeInsufficientBalance() external {
         vm.expectRevert(
-          bytes(BalanceErrorMessages.insufficientNativeBalance(alice, bob, 0, 1, false))
+            bytes(
+                BalanceErrorMessages.insufficientNativeBalance(
+                    alice,
+                    bob,
+                    0,
+                    1,
+                    false
+                )
+            )
         );
         balances.addTransfer(
             Execution({
@@ -237,7 +245,7 @@ contract ExpectedBalancesTest is Test {
             })
         );
         vm.prank(alice);
-        payable(address(1000)).send(0.5 ether);
+        payable(address(1000)).transfer(0.5 ether);
 
         vm.expectRevert(
             bytes(
@@ -253,7 +261,16 @@ contract ExpectedBalancesTest is Test {
 
     function testERC20InsufficientBalance() external {
         vm.expectRevert(
-          bytes(BalanceErrorMessages.insufficientERC20Balance(address(erc20), alice, bob, 0, 200, false))
+            bytes(
+                BalanceErrorMessages.insufficientERC20Balance(
+                    address(erc20),
+                    alice,
+                    bob,
+                    0,
+                    200,
+                    false
+                )
+            )
         );
         balances.addTransfer(
             Execution({
@@ -481,7 +498,17 @@ contract ExpectedBalancesTest is Test {
 
     function testERC1155InsufficientBalance() external {
         vm.expectRevert(
-          bytes(BalanceErrorMessages.insufficientERC1155Balance(address(erc1155), 0, alice, bob, 0, 200, false))
+            bytes(
+                BalanceErrorMessages.insufficientERC1155Balance(
+                    address(erc1155),
+                    0,
+                    alice,
+                    bob,
+                    0,
+                    200,
+                    false
+                )
+            )
         );
         balances.addTransfer(
             Execution({
