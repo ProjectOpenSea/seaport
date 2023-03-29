@@ -7,7 +7,10 @@ import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+import {
+    CriteriaMetadata,
+    CriteriaResolverHelper
+} from "./CriteriaResolverHelper.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
