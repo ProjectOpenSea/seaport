@@ -618,39 +618,74 @@ library FuzzHelpers {
         return calldataHashes;
     }
 
+    /**
+     * @dev Get the orderHash for an AdvancedOrders and return the orderHash.
+     *      This function can be treated as a wrapper around Seaport's
+     *      getOrderHash function. It is used to get the orderHash of an
+     *      AdvancedOrder that has a tip added onto it.  Calling it on an
+     *      AdvancedOrder that does not have a tip will return the same
+     *      orderHash as calling Seaport's getOrderHash function directly.
+     *      Seaport handles tips gracefully inside of the top level fulfill and
+     *      match functions, but since we're adding tips early in the fuzz test
+     *      lifecycle, it's necessary to flip them back and forth when we need
+     *      to pass order components into getOrderHash. Note: they're two
+     *      different orders, so e.g. cancelling or validating order with a tip
+     *      on it is not the same as cancelling the order without a tip on it.
+     */
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
         FuzzTestContext memory context
     ) internal view returns (bytes32 orderHash) {
+        // Get the counter of the order offerer.
         uint256 counter = context.seaport.getCounter(order.parameters.offerer);
 
+        // Get the OrderComponents from the OrderParameters.
         OrderComponents memory components = (
             order.parameters.toOrderComponents(counter)
         );
 
+        // Get the length of the consideration array (which might have
+        // additional consideration items set as tips).
         uint256 lengthWithTips = components.consideration.length;
 
+        // Get the length of the consideration array without tips, which is
+        // stored in the totalOriginalConsiderationItems field.
         uint256 lengthSansTips = (
             order.parameters.totalOriginalConsiderationItems
         );
 
+        // Get a reference to the consideration array.
         ConsiderationItem[] memory considerationSansTips = (
             components.consideration
         );
 
-        // set proper length of the considerationSansTips array.
+        // Set proper length of the considerationSansTips array.
         assembly {
             mstore(considerationSansTips, lengthSansTips)
         }
 
+        // Get the orderHash using the tweaked OrderComponents.
         orderHash = context.seaport.getOrderHash(components);
 
-        // restore length of the considerationSansTips array.
+        // Restore the length of the considerationSansTips array.
         assembly {
             mstore(considerationSansTips, lengthWithTips)
         }
     }
 
+    /**
+     * @dev Call `validate` on an AdvancedOrders and return the success bool.
+     *      This function can be treated as a wrapper around Seaport's
+     *      `validate` function. It is used to validate an AdvancedOrder that
+     *      thas a tip added onto it.  Calling it on an AdvancedOrder that does
+     *      not have a tip is identical to calling Seaport's `validate` function
+     *      directly. Seaport handles tips gracefully inside of the top level
+     *      fulfill and match functions, but since we're adding tips early in
+     *      the fuzz test lifecycle, it's necessary to flip them back and forth
+     *      when we need to validate orders. Note: they're two different orders,
+     *      so e.g. cancelling or validating order with a tip on it is not the
+     *      same as cancelling the order without a tip on it.
+     */
     function validateTipNeutralizedOrder(
         AdvancedOrder memory order,
         FuzzTestContext memory context
@@ -673,8 +708,12 @@ library FuzzHelpers {
             mstore(considerationSansTips, lengthSansTips)
         }
 
-        validated = context.seaport.validate(SeaportArrays.Orders(order.toOrder()));
+        // Validate the order using the tweaked consideration array.
+        validated = context.seaport.validate(
+            SeaportArrays.Orders(order.toOrder())
+        );
 
+        // Ensure that validation is successful.
         require(validated, "Failed to validate orders.");
 
         // Restore length of the considerationSansTips array.
