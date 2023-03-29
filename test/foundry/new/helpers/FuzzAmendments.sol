@@ -38,7 +38,7 @@ abstract contract FuzzAmendments is Test {
     function validateOrdersAndRegisterCheck(
         FuzzTestContext memory context
     ) public {
-        for (uint256 i = 0; i < context.orders.length; ++i) {
+        for (uint256 i = 0; i < context.preExecOrderStatuses.length; ++i) {
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
                 bool validated = context.orders[i].validateTipNeutralizedOrder(
                     context

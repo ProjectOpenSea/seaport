@@ -290,7 +290,7 @@ abstract contract FuzzChecks is Test {
         // Iterate over all orders and if the order was validated pre-execution,
         // check that calling `getOrderStatus` on the order hash returns `true`
         // for `isValid`.
-        for (uint256 i; i < context.orders.length; i++) {
+        for (uint256 i; i < context.preExecOrderStatuses.length; i++) {
             // Only check orders that were validated pre-execution.
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
                 AdvancedOrder memory order = context.orders[i];
