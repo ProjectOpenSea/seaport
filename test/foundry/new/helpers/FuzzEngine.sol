@@ -71,6 +71,10 @@ import { dumpExecutions } from "./DebugUtil.sol";
  *         to slot in calls to functions that deterministically derive values
  *         from the state that was created in the generation phase.
  *
+ *         The `amendOrderState` function in this file serves as a central
+ *         location to slot in calls to functions that amend the state of the
+ *         orders.  For example, calling `validate` on an order.
+ *
  *         The `runSetup` function should hold everything that mutates state,
  *         such as minting and approving tokens.  It also contains the logic
  *         for setting up the expectations for the post-execution state of the
@@ -124,8 +128,8 @@ contract FuzzEngine is
      *      following test lifecycle functions in order:
      *
      *      1. runDerivers: Run deriver functions for the test.
-     *      2. runSetup: Run setup functions for the test.
-     *      3. amendOrderState: Amend the order state.
+     *      2. amendOrderState: Amend the order state.
+     *      3. runSetup: Run setup functions for the test.
      *      4. runCheckRegistration: Register checks for the test.
      *      5. exec: Select and call a Seaport function.
      *      6. checkAll: Call all registered checks.
@@ -134,8 +138,8 @@ contract FuzzEngine is
      */
     function run(FuzzTestContext memory context) internal {
         runDerivers(context);
-        runSetup(context);
         amendOrderState(context);
+        runSetup(context);
         runCheckRegistration(context);
         exec(context);
         checkAll(context);
@@ -198,7 +202,7 @@ contract FuzzEngine is
                 })
                 .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams)
-                .withPreExecOrderStatus();
+                .withPreExecOrderStatuses();
     }
 
     /**

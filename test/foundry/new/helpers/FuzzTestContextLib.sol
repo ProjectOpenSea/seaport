@@ -138,7 +138,7 @@ struct FuzzTestContext {
      *      fulfillBasic functions.
      */
     BasicOrderParameters basicOrderParameters;
-    OrderStatusEnum preExecOrderStatus;
+    OrderStatusEnum[] preExecOrderStatuses;
     /**
      * @dev A struct containing test helpers. These are used to generate
      *      accounts and fulfillments.
@@ -239,7 +239,7 @@ library FuzzTestContextLib {
                 offerFulfillments: componentsArray,
                 considerationFulfillments: componentsArray,
                 maximumFulfilled: 0,
-                preExecOrderStatus: OrderStatusEnum(0),
+                preExecOrderStatuses: new OrderStatusEnum[](0),
                 basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: orders,
                 expectedResults: results,
@@ -535,20 +535,29 @@ library FuzzTestContextLib {
     }
 
     /**
-     * @dev Sets a pseudorandom preExecOrderStatus on a FuzzTestContext
+     * @dev Sets a pseudorandom OrderStatus for each order on a FuzzTestContext.
+     *      The preExecOrderStatuses are indexed to orders.
      *
-     * @param context the FuzzTestContext to set the preExecOrderStatus of
      *
-     * @return _context the FuzzTestContext with the preExecOrderStatus set
+     * @param context the FuzzTestContext to set the preExecOrderStatuses of
+     *
+     * @return _context the FuzzTestContext with the preExecOrderStatuses set
      */
-    function withPreExecOrderStatus(
+    function withPreExecOrderStatuses(
         FuzzTestContext memory context
     ) internal pure returns (FuzzTestContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
-        context.preExecOrderStatus = OrderStatusEnum(
-            uint8(bound(prng.next(), 0, 6))
+        context.preExecOrderStatuses = new OrderStatusEnum[](
+            context.orders.length
         );
+
+        for (uint256 i = 0; i < context.orders.length; i++) {
+            context.preExecOrderStatuses[i] = OrderStatusEnum(
+                uint8(bound(prng.next(), 0, 6))
+            );
+        }
+
         return context;
     }
 

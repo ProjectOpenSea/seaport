@@ -38,16 +38,16 @@ abstract contract FuzzAmendments is Test {
     function validateOrdersAndRegisterCheck(
         FuzzTestContext memory context
     ) public {
-        if (context.preExecOrderStatus == OrderStatusEnum.VALIDATED) {
-            for (uint256 i = 0; i < context.orders.length; i++) {
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
                 bool validated = context.orders[i].validateTipNeutralizedOrder(
                     context
                 );
 
                 require(validated, "Failed to validate orders.");
             }
-
-            context.registerCheck(FuzzChecks.check_ordersValidated.selector);
         }
+
+        context.registerCheck(FuzzChecks.check_ordersValidated.selector);
     }
 }

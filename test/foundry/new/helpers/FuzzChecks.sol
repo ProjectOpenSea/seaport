@@ -11,6 +11,10 @@ import {
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
+import {
+    OrderStatus as OrderStatusEnum
+} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
@@ -283,13 +287,19 @@ abstract contract FuzzChecks is Test {
     }
 
     function check_ordersValidated(FuzzTestContext memory context) public {
+        // Iterate over all orders and if the order was validated pre-execution,
+        // check that calling `getOrderStatus` on the order hash returns `true`
+        // for `isValid`.
         for (uint256 i; i < context.orders.length; i++) {
-            AdvancedOrder memory order = context.orders[i];
-
-            bytes32 orderHash = order.getTipNeutralizedOrderHash(context);
-
-            (bool isValid, , , ) = context.seaport.getOrderStatus(orderHash);
-            assertTrue(isValid);
+            // Only check orders that were validated pre-execution.
+            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
+                AdvancedOrder memory order = context.orders[i];
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(context);
+                (bool isValid, , , ) = context.seaport.getOrderStatus(
+                    orderHash
+                );
+                assertTrue(isValid);
+            }
         }
     }
 }
