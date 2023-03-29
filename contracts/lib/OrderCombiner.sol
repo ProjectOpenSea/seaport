@@ -805,9 +805,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             // to _transfer and cache the original endAmount so it
                             // can be restored after the transfer.
                             uint256 originalEndAmount = _replaceEndAmountWithRecipient(
-                                  offerItem,
-                                  recipient
-                            );
+                                    offerItem,
+                                    recipient
+                                );
 
                             // Transfer excess offer item amount to recipient.
                             _toOfferItemInput(_transfer)(

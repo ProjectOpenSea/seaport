@@ -172,7 +172,6 @@ library ArrayHelpers {
         }
     }
 
-
     // ====================================================================//
     //         filter  with (element, arg) => (bool) predicate             //
     // ====================================================================//
@@ -192,34 +191,34 @@ library ArrayHelpers {
      *                  callback returned true for
      */
     function filterWithArg(
-      MemoryPointer array,
-      /* function (uint256 value, uint256 arg) returns (bool) */
-      function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
-      MemoryPointer arg
-  ) internal pure returns (MemoryPointer newArray) {
-      unchecked {
-          uint256 length = array.readUint256();
+        MemoryPointer array,
+        /* function (uint256 value, uint256 arg) returns (bool) */
+        function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
+        MemoryPointer arg
+    ) internal pure returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 length = array.readUint256();
 
-          newArray = malloc((length + 1) * 32);
+            newArray = malloc((length + 1) * 32);
 
-          MemoryPointer srcPosition = array.next();
-          MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
-          MemoryPointer dstPosition = newArray.next();
+            MemoryPointer srcPosition = array.next();
+            MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
+            MemoryPointer dstPosition = newArray.next();
 
-          length = 0;
+            length = 0;
 
-          while (srcPosition.lt(srcEnd)) {
-              MemoryPointer element = srcPosition.readMemoryPointer();
-              if (fn(element, arg)) {
-                  dstPosition.write(element);
-                  dstPosition = dstPosition.next();
-                  length += 1;
-              }
-              srcPosition = srcPosition.next();
-          }
-          newArray.write(length);
-      }
-  }
+            while (srcPosition.lt(srcEnd)) {
+                MemoryPointer element = srcPosition.readMemoryPointer();
+                if (fn(element, arg)) {
+                    dstPosition.write(element);
+                    dstPosition = dstPosition.next();
+                    length += 1;
+                }
+                srcPosition = srcPosition.next();
+            }
+            newArray.write(length);
+        }
+    }
 
     // ====================================================================//
     //            filter  with (element) => (bool) predicate               //
