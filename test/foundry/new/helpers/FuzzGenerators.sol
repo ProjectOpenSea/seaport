@@ -836,9 +836,15 @@ library TokenIndexGenerator {
         // TODO: missing native tokens
         if (itemType == ItemType.ERC20) {
             return address(context.erc20s[i]);
-        } else if (itemType == ItemType.ERC721) {
+        } else if (
+            itemType == ItemType.ERC721 ||
+            itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return address(context.erc721s[i]);
-        } else if (itemType == ItemType.ERC1155) {
+        } else if (
+            itemType == ItemType.ERC1155 ||
+            itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
             return address(context.erc1155s[i]);
         } else {
             revert("TokenIndexGenerator: Invalid itemType");
@@ -914,7 +920,10 @@ library AmountGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         // Assumes ordering, might be dangerous
-        if (item.itemType == ItemType.ERC721) {
+        if (
+            item.itemType == ItemType.ERC721 ||
+            item.itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
@@ -948,7 +957,10 @@ library AmountGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         // Assumes ordering, might be dangerous
-        if (item.itemType == ItemType.ERC721) {
+        if (
+            item.itemType == ItemType.ERC721 ||
+            item.itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
