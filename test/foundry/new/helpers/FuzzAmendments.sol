@@ -35,18 +35,12 @@ abstract contract FuzzAmendments is Test {
     function validateOrdersAndRegisterCheck(
         FuzzTestContext memory context
     ) public {
-        // Placeholder logic. TODO: figure out how to gracefully handle the case
-        // where we can't validate.
-
-        emit log_named_uint(
-            "targetOrderStatus",
-            uint256(context.targetOrderStatus)
-        );
-
-        if (context.targetOrderStatus == OrderStatusEnum.VALIDATED) {
+        if (context.preExecOrderStatus == OrderStatusEnum.VALIDATED) {
             bool shouldRegisterCheck = true;
 
             for (uint256 i = 0; i < context.orders.length; i++) {
+                // Don't validate orders that will fail and don't register the
+                // check if any of the orders are not validated.
                 if (
                     context.orders[i].parameters.consideration.length ==
                     context.orders[i].parameters.totalOriginalConsiderationItems

@@ -198,7 +198,7 @@ contract FuzzEngine is
                 })
                 .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams)
-                .withTargetOrderStatus();
+                .withPreExecOrderStatus();
     }
 
     /**

@@ -138,7 +138,7 @@ struct FuzzTestContext {
      *      fulfillBasic functions.
      */
     BasicOrderParameters basicOrderParameters;
-    OrderStatusEnum targetOrderStatus;
+    OrderStatusEnum preExecOrderStatus;
     /**
      * @dev A struct containing test helpers. These are used to generate
      *      accounts and fulfillments.
@@ -239,7 +239,7 @@ library FuzzTestContextLib {
                 offerFulfillments: componentsArray,
                 considerationFulfillments: componentsArray,
                 maximumFulfilled: 0,
-                targetOrderStatus: OrderStatusEnum(0),
+                preExecOrderStatus: OrderStatusEnum(0),
                 basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: orders,
                 expectedResults: results,
@@ -535,18 +535,18 @@ library FuzzTestContextLib {
     }
 
     /**
-     * @dev Sets a pseudorandom targetOrderStatus on a FuzzTestContext
+     * @dev Sets a pseudorandom preExecOrderStatus on a FuzzTestContext
      *
-     * @param context the FuzzTestContext to set the targetOrderStatus of
+     * @param context the FuzzTestContext to set the preExecOrderStatus of
      *
-     * @return _context the FuzzTestContext with the targetOrderStatus set
+     * @return _context the FuzzTestContext with the preExecOrderStatus set
      */
-    function withTargetOrderStatus(
+    function withPreExecOrderStatus(
         FuzzTestContext memory context
     ) internal pure returns (FuzzTestContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
-        context.targetOrderStatus = OrderStatusEnum(
+        context.preExecOrderStatus = OrderStatusEnum(
             uint8(bound(prng.next(), 0, 6))
         );
         return context;
