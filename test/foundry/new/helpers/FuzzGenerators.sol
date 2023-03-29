@@ -100,7 +100,6 @@ library TestStateGenerator {
                 offerer: Offerer(context.randEnum(1, 2)),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
-                criteriaMetadata: new CriteriaMetadata[](0),
                 offer: generateOffer(maxOfferItemsPerOrder, i, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
@@ -558,37 +557,94 @@ library OfferItemSpaceGenerator {
 
     function generate(
         OfferItemSpace[] memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex
     ) internal pure returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
 
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
+            len
+        );
+
+        // Deploy criteria helper with maxLeaves of 10
+        CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
+                10
+            );
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], i, context);
+            offerItems[i] = generate(
+                space[i],
+                context,
+                criteriaResolverHelper,
+                orderIndex,
+                i
+            );
         }
         return offerItems;
     }
 
     function generate(
         OfferItemSpace memory space,
+        FuzzGeneratorContext memory context,
+        CriteriaResolverHelper criteriaResolverHelper,
         uint256 orderIndex,
-        uint256 itemIndex,
-        FuzzGeneratorContext memory context
-    ) internal returns (OfferItem memory) {
-        return
-            OfferItemLib
-                .empty()
-                .withItemType(space.itemType)
-                .withToken(space.tokenIndex.generate(space.itemType, context))
-                .withGeneratedAmount(space.amount, context)
-                .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
-                    orderIndex,
-                    itemIndex,
-                    space.criteria,
-                    context
-                );
+        uint256 itemIndex
+    )
+        internal
+        returns (
+            OfferItem memory offerItem,
+            CriteriaResolver memory criteriaResolver
+        )
+    {
+        offerItem = OfferItemLib
+            .empty()
+            .withItemType(space.itemType)
+            .withToken(space.tokenIndex.generate(space.itemType, context))
+            .withGeneratedAmount(space.amount, context)
+            .withGeneratedIdentifierOrCriteria(
+                space.itemType,
+                space.criteria,
+                context,
+                orderIndex,
+                itemIndex
+            );
+
+        criteriaResolver = CriteriaResolver({
+            orderIndex: orderIndex,
+            side: Side.OFFER,
+            index: itemIndex,
+            identifier: 0,
+            criteriaProof: new bytes32[](0)
+        });
+
+        if (
+            offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+            offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
+            if (space.criteria == Criteria.MERKLE) {
+                (
+                    uint256 resolvedIdentifier,
+                    bytes32 root,
+                    bytes32[] memory proof
+                ) = criteriaResolverHelper.generateCriteriaMetadata(
+                        context.prng
+                    );
+
+                offerItem = offerItem.withIdentifierOrCriteria(uint256(root));
+
+                criteriaResolver = CriteriaResolver({
+                    orderIndex: orderIndex,
+                    side: Side.OFFER,
+                    index: itemIndex,
+                    identifier: resolvedIdentifier,
+                    criteriaProof: proof
+                });
+            } else {
+                // Item is a "wildcard" criteria-based item
+                offerItem = offerItem.withIdentifierOrCriteria(0);
+            }
+        }
     }
 }
 
@@ -603,7 +659,9 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal pure returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -612,7 +670,13 @@ library ConsiderationItemSpaceGenerator {
         );
 
         for (uint256 i; i < len; ++i) {
-            considerationItems[i] = generate(space[i], context, offerer);
+            considerationItems[i] = generate(
+                space[i],
+                context,
+                offerer,
+                orderIndex,
+                itemIndex
+            );
         }
 
         return considerationItems;
@@ -621,7 +685,9 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal pure returns (ConsiderationItem memory) {
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
@@ -635,8 +701,25 @@ library ConsiderationItemSpaceGenerator {
                 .withGeneratedIdentifierOrCriteria(
                     space.itemType,
                     space.criteria,
-                    context
+                    context,
+                    orderIndex,
+                    itemIndex
                 );
+    }
+}
+
+library CriteriaResolverGenerator {
+    function generate(
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal returns (CriteriaResolver[] memory) {
+        uint256 len = orders.length;
+
+        // Iterate over each order to generate criteria resolvers
+        for (uint256 i; i < len; ++i) {
+            AdvancedOrder memory order = orders[i];
+            OfferItem[] memory offerItems = order.offerItems;
+        }
     }
 }
 
@@ -857,13 +940,14 @@ library CriteriaGenerator {
 
     using LibPRNG for LibPRNG.PRNG;
 
+    // TODO: bubble up OfferItems and ConsiderationItems along with CriteriaResolvers
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
         ItemType itemType,
-        uint256 orderIndex,
-        uint256 itemIndex,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -897,7 +981,9 @@ library CriteriaGenerator {
                         context.prng
                     );
 
-                CriteriaResolver criteriaResolver = new CriteriaResolver({
+                // Create a new CriteriaResolver from the returned values from
+                // the call to generateCriteriaMetadata
+                CriteriaResolver memory criteriaResolver = CriteriaResolver({
                     orderIndex: orderIndex,
                     side: Side.CONSIDERATION,
                     index: itemIndex,
@@ -905,30 +991,34 @@ library CriteriaGenerator {
                     criteriaProof: proof
                 });
 
+                // Get the length of the current criteriaResolver array
                 uint256 criteriaResolverLength = context
-                    .criteriaResolver
+                    .criteriaResolvers
                     .length;
 
+                // Create a new CriteriaResolver array and increment length
+                // to include the new criteriaResolver
                 CriteriaResolver[]
                     memory tempCriteriaResolvers = new CriteriaResolver[](
                         criteriaResolverLength + 1
                     );
 
+                // Copy over the existing criteriaResolvers to tempCriteriaResolvers
                 for (uint256 i; i < context.criteriaResolver.length; i++) {
                     tempCriteriaResolvers[i] = context.criteriaResolver[i];
                 }
 
+                // Add the new criteriaResolver to the end of the array
                 tempCriteriaResolvers[
                     criteriaResolverLength
                 ] = criteriaResolver;
 
+                // Set the context's criteriaResolver to the new array
                 context.criteriaResolver = tempCriteriaResolvers;
 
-                // Return the item with the resolved tokenId
-                return
-                    item.withIdentifierOrCriteria(
-                        uint256(criteriaMetadata.root)
-                    );
+                // Return the item with the Merkle root of the random tokenId
+                // as criteria
+                return item.withIdentifierOrCriteria(uint256(root));
             } else {
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);
@@ -939,10 +1029,10 @@ library CriteriaGenerator {
     function withGeneratedIdentifierOrCriteria(
         OfferItem memory item,
         ItemType itemType,
-        uint256 orderIndex,
-        uint256 itemIndex,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -960,21 +1050,60 @@ library CriteriaGenerator {
                 );
         } else {
             if (criteria == Criteria.MERKLE) {
+                // TODO: deploy only once
                 // Deploy criteria helper with maxLeaves of 10
                 CriteriaResolverHelper criteriaResolverHelper = new CriteriaResolverHelper(
                         10
                     );
 
                 // Resolve a random tokenId from a random number of random tokenIds
-                CriteriaMetadata
-                    memory criteriaMetadata = criteriaResolverHelper
-                        .generateCriteriaMetadata(context.prng);
-
-                // Return the item with the resolved tokenId
-                return
-                    item.withIdentifierOrCriteria(
-                        uint256(criteriaMetadata.root)
+                (
+                    uint256 resolvedIdentifier,
+                    bytes32 root,
+                    bytes32[] memory proof
+                ) = criteriaResolverHelper.generateCriteriaMetadata(
+                        context.prng
                     );
+
+                // Create a new CriteriaResolver from the returned values from
+                // the call to generateCriteriaMetadata
+                CriteriaResolver
+                    memory criteriaResolver = new CriteriaResolver({
+                        orderIndex: orderIndex,
+                        side: Side.OFFER,
+                        index: itemIndex,
+                        identifier: resolvedIdentifier,
+                        criteriaProof: proof
+                    });
+
+                // Get the length of the current criteriaResolver array
+                uint256 criteriaResolverLength = context
+                    .criteriaResolver
+                    .length;
+
+                // Create a new CriteriaResolver array and increment length
+                // to include the new criteriaResolver
+                CriteriaResolver[]
+                    memory tempCriteriaResolvers = new CriteriaResolver[](
+                        criteriaResolverLength + 1
+                    );
+
+                // Copy over the existing criteriaResolvers to tempCriteriaResolvers
+                for (uint256 i; i < context.criteriaResolver.length; i++) {
+                    tempCriteriaResolvers[i] = context.criteriaResolver[i];
+                }
+
+                // Add the new criteriaResolver to the end of the array
+                tempCriteriaResolvers[
+                    criteriaResolverLength
+                ] = criteriaResolver;
+
+                // Set the context's criteriaResolver to the new array
+                context.criteriaResolver = tempCriteriaResolvers;
+
+                // Return the item with the Merkle root of the random tokenId
+                // as criteria
+                return item.withIdentifierOrCriteria(uint256(root));
             } else {
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);

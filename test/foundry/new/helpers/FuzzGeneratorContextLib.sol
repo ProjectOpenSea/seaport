@@ -106,7 +106,7 @@ library FuzzGeneratorContextLib {
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0),
-                criteriaResolver: new CriteriaResolver[](0),
+                criteriaResolvers: new CriteriaResolver[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
@@ -164,7 +164,7 @@ library FuzzGeneratorContextLib {
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0),
-                criteriaMetadata: new CriteriaMetadata[](0),
+                criteriaResolvers: new CriteriaResolver[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
