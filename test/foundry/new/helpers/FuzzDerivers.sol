@@ -119,11 +119,12 @@ abstract contract FuzzDerivers is
                     totalCriteriaItems++;
                 }
             }
-
-            // TODO: Set criteria resolvers in test context
-            // TODO: read from test context
-            // TODO: handle wildcard
         }
+
+        context.criteriaResolvers = criteriaResolvers;
+
+        // TODO: read from test context
+        // TODO: handle wildcard
     }
 
     /**
