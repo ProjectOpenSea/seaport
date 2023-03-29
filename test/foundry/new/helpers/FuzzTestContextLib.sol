@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import "seaport-sol/SeaportSol.sol";
 
 import { Account } from "../BaseOrderTest.sol";
@@ -10,6 +12,10 @@ import { Account } from "../BaseOrderTest.sol";
 import { Result } from "./FuzzHelpers.sol";
 
 import { ExpectedBalances } from "./ExpectedBalances.sol";
+
+import {
+    OrderStatus as OrderStatusEnum
+} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
 
 struct FuzzParams {
     uint256 seed;
@@ -132,6 +138,7 @@ struct FuzzTestContext {
      *      fulfillBasic functions.
      */
     BasicOrderParameters basicOrderParameters;
+    OrderStatusEnum targetOrderStatus;
     /**
      * @dev A struct containing test helpers. These are used to generate
      *      accounts and fulfillments.
@@ -188,6 +195,7 @@ library FuzzTestContextLib {
     using AdvancedOrderLib for AdvancedOrder[];
     using BasicOrderParametersLib for BasicOrderParameters;
     using FuzzTestContextLib for FuzzTestContext;
+    using LibPRNG for LibPRNG.PRNG;
 
     /**
      * @dev Create an empty FuzzTestContext.
@@ -231,6 +239,7 @@ library FuzzTestContextLib {
                 offerFulfillments: componentsArray,
                 considerationFulfillments: componentsArray,
                 maximumFulfilled: 0,
+                targetOrderStatus: OrderStatusEnum(0),
                 basicOrderParameters: BasicOrderParametersLib.empty(),
                 initialOrders: orders,
                 expectedResults: results,
@@ -525,6 +534,24 @@ library FuzzTestContextLib {
         return context;
     }
 
+    /**
+     * @dev Sets a pseudorandom targetOrderStatus on a FuzzTestContext
+     *
+     * @param context the FuzzTestContext to set the targetOrderStatus of
+     *
+     * @return _context the FuzzTestContext with the targetOrderStatus set
+     */
+    function withTargetOrderStatus(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
+
+        context.targetOrderStatus = OrderStatusEnum(
+            uint8(bound(prng.next(), 0, 6))
+        );
+        return context;
+    }
+
     function _copyBytes4(
         bytes4[] memory selectors
     ) private pure returns (bytes4[] memory) {
@@ -577,5 +604,39 @@ library FuzzTestContextLib {
                 maxOfferItems: params.maxOfferItems,
                 maxConsiderationItems: params.maxConsiderationItems
             });
+    }
+}
+
+// @dev Implementation cribbed from forge-std bound
+function bound(
+    uint256 x,
+    uint256 min,
+    uint256 max
+) pure returns (uint256 result) {
+    require(min <= max, "Max is less than min.");
+    // If x is between min and max, return x directly. This is to ensure that
+    // dictionary values do not get shifted if the min is nonzero.
+    if (x >= min && x <= max) return x;
+
+    uint256 size = max - min + 1;
+
+    // If the value is 0, 1, 2, 3, warp that to min, min+1, min+2, min+3.
+    // Similarly for the UINT256_MAX side. This helps ensure coverage of the
+    // min/max values.
+    if (x <= 3 && size > x) return min + x;
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+        return max - (type(uint256).max - x);
+
+    // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
+    if (x > max) {
+        uint256 diff = x - max;
+        uint256 rem = diff % size;
+        if (rem == 0) return max;
+        result = min + rem - 1;
+    } else if (x < min) {
+        uint256 diff = min - x;
+        uint256 rem = diff % size;
+        if (rem == 0) return min;
+        result = max - rem + 1;
     }
 }

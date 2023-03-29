@@ -24,6 +24,8 @@ import {
     TestStateGenerator
 } from "./FuzzGenerators.sol";
 
+import { FuzzAmendments } from "./FuzzAmendments.sol";
+
 import { FuzzChecks } from "./FuzzChecks.sol";
 
 import { FuzzDerivers } from "./FuzzDerivers.sol";
@@ -85,7 +87,13 @@ import { dumpExecutions } from "./DebugUtil.sol";
  *         to `FuzzChecks` and then register it with `registerCheck`.
  *
  */
-contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
+contract FuzzEngine is
+    BaseOrderTest,
+    FuzzAmendments,
+    FuzzChecks,
+    FuzzDerivers,
+    FuzzSetup
+{
     // Use the various builder libraries.  These allow for creating structs in a
     // more readable way.
     using AdvancedOrderLib for AdvancedOrder;
@@ -117,15 +125,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      *
      *      1. runDerivers: Run deriver functions for the test.
      *      2. runSetup: Run setup functions for the test.
-     *      3. runCheckRegistration: Register checks for the test.
-     *      4. exec: Select and call a Seaport function.
-     *      5. checkAll: Call all registered checks.
+     *      3. amendOrderState: Amend the order state.
+     *      4. runCheckRegistration: Register checks for the test.
+     *      5. exec: Select and call a Seaport function.
+     *      6. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
         runDerivers(context);
         runSetup(context);
+        amendOrderState(context);
         runCheckRegistration(context);
         exec(context);
         checkAll(context);
@@ -187,7 +197,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
                     caller: address(this)
                 })
                 .withConduitController(conduitController_)
-                .withFuzzParams(fuzzParams);
+                .withFuzzParams(fuzzParams)
+                .withTargetOrderStatus();
     }
 
     /**
@@ -233,6 +244,15 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
+    }
+
+    /**
+     * @dev Amend the order state.
+     *
+     * @param context A Fuzz test context.
+     */
+    function amendOrderState(FuzzTestContext memory context) internal {
+        validateOrdersAndRegisterCheck(context);
     }
 
     /**
