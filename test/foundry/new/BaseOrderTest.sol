@@ -338,10 +338,7 @@ contract BaseOrderTest is
         i = erc20s.length;
         TestERC20 token = new TestERC20();
         erc20s.push(token);
-        setLabel(
-            address(token),
-            string.concat("ERC20", LibString.toString(i))
-        );
+        setLabel(address(token), string.concat("ERC20", LibString.toString(i)));
     }
 
     function createErc721Token() internal returns (uint256 i) {

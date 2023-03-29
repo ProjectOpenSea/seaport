@@ -9,6 +9,29 @@ import "./PointerLibraries.sol";
  *                  documentation
  */
 library ArrayHelpers {
+    function flatten(
+        MemoryPointer array1,
+        MemoryPointer array2
+    ) internal view returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 arrayLength1 = array1.readUint256();
+            uint256 arrayLength2 = array2.readUint256();
+            uint256 array1HeadSize = arrayLength1 * 32;
+            uint256 array2HeadSize = arrayLength2 * 32;
+
+            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray.write(arrayLength1 + arrayLength2);
+
+            MemoryPointer dst = newArray.next();
+            if (arrayLength1 > 0) {
+                array1.next().copy(dst, array1HeadSize);
+            }
+            if (arrayLength2 > 0) {
+                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
+            }
+        }
+    }
+
     // =====================================================================//
     //            map with (element) => (newElement) callback               //
     // =====================================================================//
@@ -93,29 +116,6 @@ library ArrayHelpers {
         }
     }
 
-    function flatten(
-        MemoryPointer array1,
-        MemoryPointer array2
-    ) internal view returns (MemoryPointer newArray) {
-        unchecked {
-            uint256 arrayLength1 = array1.readUint256();
-            uint256 arrayLength2 = array2.readUint256();
-            uint256 array1HeadSize = arrayLength1 * 32;
-            uint256 array2HeadSize = arrayLength2 * 32;
-
-            newArray = malloc(array1HeadSize + array2HeadSize + 32);
-            newArray.write(arrayLength1 + arrayLength2);
-
-            MemoryPointer dst = newArray.next();
-            if (arrayLength1 > 0) {
-                array1.next().copy(dst, array1HeadSize);
-            }
-            if (arrayLength2 > 0) {
-                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
-            }
-        }
-    }
-
     // =====================================================================//
     //      filterMap with (element, arg) => (newElement) callback          //
     // =====================================================================//
@@ -172,7 +172,6 @@ library ArrayHelpers {
         }
     }
 
-
     // ====================================================================//
     //         filter  with (element, arg) => (bool) predicate             //
     // ====================================================================//
@@ -192,34 +191,34 @@ library ArrayHelpers {
      *                  callback returned true for
      */
     function filterWithArg(
-      MemoryPointer array,
-      /* function (uint256 value, uint256 arg) returns (bool) */
-      function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
-      MemoryPointer arg
-  ) internal pure returns (MemoryPointer newArray) {
-      unchecked {
-          uint256 length = array.readUint256();
+        MemoryPointer array,
+        /* function (uint256 value, uint256 arg) returns (bool) */
+        function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
+        MemoryPointer arg
+    ) internal pure returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 length = array.readUint256();
 
-          newArray = malloc((length + 1) * 32);
+            newArray = malloc((length + 1) * 32);
 
-          MemoryPointer srcPosition = array.next();
-          MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
-          MemoryPointer dstPosition = newArray.next();
+            MemoryPointer srcPosition = array.next();
+            MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
+            MemoryPointer dstPosition = newArray.next();
 
-          length = 0;
+            length = 0;
 
-          while (srcPosition.lt(srcEnd)) {
-              MemoryPointer element = srcPosition.readMemoryPointer();
-              if (fn(element, arg)) {
-                  dstPosition.write(element);
-                  dstPosition = dstPosition.next();
-                  length += 1;
-              }
-              srcPosition = srcPosition.next();
-          }
-          newArray.write(length);
-      }
-  }
+            while (srcPosition.lt(srcEnd)) {
+                MemoryPointer element = srcPosition.readMemoryPointer();
+                if (fn(element, arg)) {
+                    dstPosition.write(element);
+                    dstPosition = dstPosition.next();
+                    length += 1;
+                }
+                srcPosition = srcPosition.next();
+            }
+            newArray.write(length);
+        }
+    }
 
     // ====================================================================//
     //            filter  with (element) => (bool) predicate               //
