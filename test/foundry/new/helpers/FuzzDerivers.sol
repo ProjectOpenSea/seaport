@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import "forge-std/Test.sol";
 import "seaport-sol/SeaportSol.sol";
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
-
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import {
@@ -44,8 +44,8 @@ abstract contract FuzzDerivers is
             for (uint256 j; j < order.parameters.offer.length; j++) {
                 OfferItem memory offerItem = order.parameters.offer[j];
                 if (
-                    offerItem.ItemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.ItemType == ItemType.ERC1155_WITH_CRITERIA
+                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     totalCriteriaItems++;
                 }
@@ -56,9 +56,9 @@ abstract contract FuzzDerivers is
                     .parameters
                     .consideration[j];
                 if (
-                    considerationItem.ItemType ==
+                    considerationItem.itemType ==
                     ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.ItemType == ItemType.ERC1155_WITH_CRITERIA
+                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     totalCriteriaItems++;
                 }
@@ -77,8 +77,8 @@ abstract contract FuzzDerivers is
             for (uint256 j; j < order.parameters.offer.length; j++) {
                 OfferItem memory offerItem = order.parameters.offer[j];
                 if (
-                    offerItem.ItemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.ItemType == ItemType.ERC1155_WITH_CRITERIA
+                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     CriteriaMetadata
                         memory criteriaMetadata = criteriaResolverHelper
@@ -87,10 +87,10 @@ abstract contract FuzzDerivers is
                             );
                     criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
                         orderIndex: i,
-                        itemIndex: j,
+                        index: j,
                         side: Side.OFFER,
                         identifier: criteriaMetadata.resolvedIdentifier,
-                        proof: criteriaMetadata.proof
+                        criteriaProof: criteriaMetadata.proof
                     });
                     // TODO: choose one at random for wildcards
                     totalCriteriaItems++;
@@ -102,9 +102,9 @@ abstract contract FuzzDerivers is
                     .parameters
                     .consideration[j];
                 if (
-                    considerationItem.ItemType ==
+                    considerationItem.itemType ==
                     ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.ItemType == ItemType.ERC1155_WITH_CRITERIA
+                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     CriteriaMetadata
                         memory criteriaMetadata = criteriaResolverHelper
@@ -113,10 +113,10 @@ abstract contract FuzzDerivers is
                             );
                     criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
                         orderIndex: i,
-                        itemIndex: j,
+                        index: j,
                         side: Side.CONSIDERATION,
                         identifier: criteriaMetadata.resolvedIdentifier,
-                        proof: criteriaMetadata.proof
+                        criteriaProof: criteriaMetadata.proof
                     });
                     // TODO: choose one at random for wildcards
                     totalCriteriaItems++;
