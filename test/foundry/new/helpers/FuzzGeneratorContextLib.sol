@@ -25,8 +25,6 @@ import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
 
 import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
 
-import { CriteriaMetadata } from "./CriteriaResolverHelper.sol";
-
 import {
     Amount,
     BasicOrderCategory,
@@ -64,7 +62,6 @@ struct FuzzGeneratorContext {
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
     bytes32[] orderHashes;
-    CriteriaResolver[] criteriaResolvers;
     BasicOrderCategory basicOrderCategory;
     OfferItemSpace basicOfferSpace;
 }
@@ -110,7 +107,6 @@ library FuzzGeneratorContextLib {
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0),
-                criteriaResolvers: new CriteriaResolver[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
@@ -176,7 +172,6 @@ library FuzzGeneratorContextLib {
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
                 orderHashes: new bytes32[](0),
-                criteriaResolvers: new CriteriaResolver[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,

@@ -101,7 +101,7 @@ library TestStateGenerator {
                 offerer: Offerer(context.randEnum(1, 2)),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
-                offer: generateOffer(maxOfferItemsPerOrder, i, context),
+                offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
                     maxConsiderationItemsPerOrder,
                     context,
@@ -128,7 +128,6 @@ library TestStateGenerator {
 
     function generateOffer(
         uint256 maxOfferItemsPerOrder,
-        uint256 orderIndex,
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItemSpace[] memory) {
         if (context.basicOrderCategory == BasicOrderCategory.NONE) {
@@ -140,7 +139,7 @@ library TestStateGenerator {
                     // TODO: Native items + criteria - should be 0-5
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
-                    criteria: Criteria(context.randEnum(1, 2)),
+                    criteria: Criteria(context.randEnum(0, 2)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0))
                 });
@@ -190,7 +189,7 @@ library TestStateGenerator {
                     // TODO: Native items + criteria - should be 0-5
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(1, 2)),
+                    criteria: Criteria(context.randEnum(0, 2)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0)),
                     recipient: Recipient(context.randEnum(0, 4))
