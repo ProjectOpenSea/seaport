@@ -8,6 +8,10 @@ import { ItemType } from "seaport-sol/SeaportEnums.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import {
+    AmountDeriverHelper,
+    OrderDetails
+} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+import {
     CriteriaMetadata,
     CriteriaResolverHelper
 } from "./CriteriaResolverHelper.sol";
@@ -31,7 +35,9 @@ abstract contract FuzzDerivers is
     using AdvancedOrderLib for AdvancedOrder[];
     using MatchComponentType for MatchComponent[];
 
-    function deriveCriteriaResolvers(FuzzTestContext memory context) public {
+    function deriveCriteriaResolvers(
+        FuzzTestContext memory context
+    ) public view {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
@@ -80,10 +86,13 @@ abstract contract FuzzDerivers is
                     offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
+                    uint256 identifierOrCriteria = offerItem
+                        .identifierOrCriteria;
+
                     CriteriaMetadata
                         memory criteriaMetadata = criteriaResolverHelper
                             .resolvableIdentifierForGivenCriteria(
-                                offerItem.identifierOrCriteria
+                                identifierOrCriteria
                             );
                     criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
                         orderIndex: i,
@@ -215,7 +224,7 @@ abstract contract FuzzDerivers is
             // because the caller doesn't pass in fulfillments for these
             // functions.
             implicitExecutions = getStandardExecutions(
-                toOrderDetails(context.orders[0].parameters),
+                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
                 caller,
                 context.fulfillerConduitKey,
                 recipient,
@@ -232,7 +241,7 @@ abstract contract FuzzDerivers is
             // because the caller doesn't pass in fulfillments for these
             // functions.
             implicitExecutions = getBasicExecutions(
-                toOrderDetails(context.orders[0].parameters),
+                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
                 caller,
                 context.fulfillerConduitKey,
                 context.getNativeTokensToSupply(),
@@ -253,6 +262,7 @@ abstract contract FuzzDerivers is
                     recipient,
                     caller,
                     context.fulfillerConduitKey,
+                    context.criteriaResolvers,
                     address(context.seaport)
                 ),
                 context.offerFulfillments,
@@ -271,6 +281,7 @@ abstract contract FuzzDerivers is
                     recipient,
                     caller,
                     context.fulfillerConduitKey,
+                    context.criteriaResolvers,
                     address(context.seaport)
                 ),
                 context.fulfillments,

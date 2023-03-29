@@ -13,6 +13,10 @@ import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
+import {
+    AmountDeriverHelper
+} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+
 struct FuzzParams {
     uint256 seed;
     uint256 totalOrders;
@@ -30,6 +34,8 @@ struct ReturnValues {
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
+
+    function amountDeriverHelper() external view returns (AmountDeriverHelper);
 
     function criteriaResolverHelper()
         external

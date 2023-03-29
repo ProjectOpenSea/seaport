@@ -18,11 +18,17 @@ contract CriteriaResolverHelper {
     Merkle public immutable MERKLE;
 
     mapping(uint256 => CriteriaMetadata)
-        public resolvableIdentifierForGivenCriteria;
+        internal _resolvableIdentifierForGivenCriteria;
 
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
         MERKLE = new Merkle();
+    }
+
+    function resolvableIdentifierForGivenCriteria(
+        uint256 criteria
+    ) public view returns (CriteriaMetadata memory) {
+        return _resolvableIdentifierForGivenCriteria[criteria];
     }
 
     /**
@@ -47,7 +53,7 @@ contract CriteriaResolverHelper {
             selectedIdentifierIndex
         );
 
-        resolvableIdentifierForGivenCriteria[criteria] = CriteriaMetadata({
+        _resolvableIdentifierForGivenCriteria[criteria] = CriteriaMetadata({
             resolvedIdentifier: resolvedIdentifier,
             proof: proof
         });

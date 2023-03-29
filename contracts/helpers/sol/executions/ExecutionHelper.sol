@@ -2,7 +2,8 @@
 pragma solidity ^0.8.17;
 
 import {
-    AmountDeriverHelper
+    AmountDeriverHelper,
+    OrderDetails
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
 import {

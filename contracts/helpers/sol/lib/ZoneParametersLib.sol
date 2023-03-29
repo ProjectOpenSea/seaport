@@ -10,7 +10,8 @@ import {
     OrderParameters,
     SpentItem,
     ReceivedItem,
-    ZoneParameters
+    ZoneParameters,
+    CriteriaResolver
 } from "../../../lib/ConsiderationStructs.sol";
 
 import { SeaportInterface } from "../../../interfaces/SeaportInterface.sol";
@@ -29,6 +30,11 @@ import { OrderParametersLib } from "./OrderParametersLib.sol";
 
 import { StructCopier } from "./StructCopier.sol";
 
+import {
+    OrderDetails,
+    AmountDeriverHelper
+} from "./fulfillment/AmountDeriverHelper.sol";
+
 library ZoneParametersLib {
     using AdvancedOrderLib for AdvancedOrder;
     using OfferItemLib for OfferItem;
@@ -40,7 +46,8 @@ library ZoneParametersLib {
         AdvancedOrder memory advancedOrder,
         address fulfiller,
         uint256 counter,
-        address seaport
+        address seaport,
+        CriteriaResolver[] memory criteriaResolvers
     ) internal view returns (ZoneParameters memory zoneParameters) {
         SeaportInterface seaportInterface = SeaportInterface(seaport);
         // Get orderParameters from advancedOrder
@@ -129,8 +136,11 @@ library ZoneParametersLib {
         AdvancedOrder[] memory advancedOrders,
         address fulfiller,
         uint256 maximumFulfilled,
-        address seaport
-    ) internal view returns (ZoneParameters[] memory zoneParameters) {
+        address seaport,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal returns (ZoneParameters[] memory zoneParameters) {
+        // TODO: use testHelpers pattern to use single amount deriver helper
+        AmountDeriverHelper amountDeriverHelper = new AmountDeriverHelper();
         SeaportInterface seaportInterface = SeaportInterface(seaport);
 
         bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
@@ -192,6 +202,10 @@ library ZoneParametersLib {
 
         zoneParameters = new ZoneParameters[](maximumFulfilled);
 
+        OrderDetails[] memory orderDetails = amountDeriverHelper.toOrderDetails(
+            advancedOrders,
+            criteriaResolvers
+        );
         // Iterate through advanced orders to create zoneParameters
         for (uint i = 0; i < advancedOrders.length; i++) {
             if (i >= maximumFulfilled) {
@@ -201,35 +215,13 @@ library ZoneParametersLib {
             OrderParameters memory orderParameters = advancedOrders[i]
                 .parameters;
 
-            // Create spentItems array
-            SpentItem[] memory spentItems = new SpentItem[](
-                orderParameters.offer.length
-            );
-
-            // Convert offer to spentItems and add to spentItems array
-            for (uint256 j = 0; j < orderParameters.offer.length; j++) {
-                spentItems[j] = orderParameters.offer[j].toSpentItem();
-            }
-
-            // Create receivedItems array
-            ReceivedItem[] memory receivedItems = new ReceivedItem[](
-                orderParameters.consideration.length
-            );
-
-            // Convert consideration to receivedItems and add to receivedItems array
-            for (uint256 k = 0; k < orderParameters.consideration.length; k++) {
-                receivedItems[k] = orderParameters
-                    .consideration[k]
-                    .toReceivedItem();
-            }
-
             // Create ZoneParameters and add to zoneParameters array
             zoneParameters[i] = ZoneParameters({
                 orderHash: orderHashes[i],
                 fulfiller: fulfiller,
                 offerer: orderParameters.offerer,
-                offer: spentItems,
-                consideration: receivedItems,
+                offer: orderDetails[i].offer,
+                consideration: orderDetails[i].consideration,
                 extraData: advancedOrders[i].extraData,
                 orderHashes: orderHashes,
                 startTime: orderParameters.startTime,

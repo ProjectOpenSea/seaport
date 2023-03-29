@@ -18,6 +18,10 @@ import {
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
 import {
+    CriteriaResolver
+} from "../../../contracts/lib/ConsiderationStructs.sol";
+
+import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 import {
@@ -1481,7 +1485,8 @@ contract FuzzEngineTest is FuzzEngine {
                 expectedCalldataHashes[i] = advancedOrders
                     .getExpectedZoneCalldataHash(
                         address(getSeaport()),
-                        address(this)
+                        address(this),
+                        new CriteriaResolver[](0)
                     )[i];
             }
         }

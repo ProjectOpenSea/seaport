@@ -25,7 +25,8 @@ import { MatchFulfillmentLib } from "./MatchFulfillmentLib.sol";
 import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
 
 import {
-    AmountDeriverHelper
+    AmountDeriverHelper,
+    OrderDetails
 } from "../../lib/fulfillment/AmountDeriverHelper.sol";
 import { MatchArrays } from "../lib/MatchArrays.sol";
 
