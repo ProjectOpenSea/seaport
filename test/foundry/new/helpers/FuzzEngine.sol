@@ -204,6 +204,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
+        deriveCriteriaResolvers(context);
         deriveFulfillments(context);
         deriveMaximumFulfilled(context);
         // TODO: deriveUnavailable(context);
