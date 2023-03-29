@@ -11,6 +11,10 @@ import {
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
+import {
+    OrderStatus as OrderStatusEnum
+} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
@@ -36,6 +40,7 @@ abstract contract FuzzChecks is Test {
     using OrderParametersLib for OrderParameters;
 
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
 
     address payable testZone;
@@ -106,38 +111,7 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                bytes32 orderHash;
-                {
-                    uint256 counter = context.seaport.getCounter(
-                        order.parameters.offerer
-                    );
-
-                    OrderComponents memory components = (
-                        order.parameters.toOrderComponents(counter)
-                    );
-
-                    uint256 lengthWithTips = components.consideration.length;
-
-                    ConsiderationItem[] memory considerationSansTips = (
-                        components.consideration
-                    );
-
-                    uint256 lengthSansTips = (
-                        order.parameters.totalOriginalConsiderationItems
-                    );
-
-                    // set proper length of the considerationSansTips array.
-                    assembly {
-                        mstore(considerationSansTips, lengthSansTips)
-                    }
-
-                    orderHash = context.seaport.getOrderHash(components);
-
-                    // restore length of the considerationSansTips array.
-                    assembly {
-                        mstore(considerationSansTips, lengthWithTips)
-                    }
-                }
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(context);
 
                 // Use the order hash to get the expected calldata hash from the
                 // zone.
@@ -309,6 +283,23 @@ abstract contract FuzzChecks is Test {
                 .getOrderStatus(orderHash);
 
             assertEq(totalFilled, totalSize);
+        }
+    }
+
+    function check_ordersValidated(FuzzTestContext memory context) public {
+        // Iterate over all orders and if the order was validated pre-execution,
+        // check that calling `getOrderStatus` on the order hash returns `true`
+        // for `isValid`.
+        for (uint256 i; i < context.preExecOrderStatuses.length; i++) {
+            // Only check orders that were validated pre-execution.
+            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
+                AdvancedOrder memory order = context.orders[i];
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(context);
+                (bool isValid, , , ) = context.seaport.getOrderStatus(
+                    orderHash
+                );
+                assertTrue(isValid);
+            }
         }
     }
 }
