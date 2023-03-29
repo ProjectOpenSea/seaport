@@ -13,8 +13,12 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
+import { ExpectedBalances } from "./ExpectedBalances.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
@@ -39,6 +43,14 @@ interface TestERC1155 {
 }
 
 library CheckHelpers {
+    /**
+     *  @dev Register a check to be run after the test is executed.
+     *
+     * @param context The test context.
+     * @param check   The check to register.
+     *
+     * @return The updated test context.
+     */
     function registerCheck(
         FuzzTestContext memory context,
         bytes4 check
@@ -68,8 +80,16 @@ abstract contract FuzzSetup is Test, AmountDeriver {
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
 
+    using ExecutionLib for Execution;
+
+    /**
+     *  @dev Set up the zone params on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpZoneParameters(FuzzTestContext memory context) public view {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
+        // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
             .orders
             .getExpectedZoneCalldataHash(
@@ -77,12 +97,16 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 context.caller
             );
 
+        // Provision the expected zone calldata hash array.
         bytes32[] memory expectedZoneCalldataHash = new bytes32[](
             context.orders.length
         );
 
         bool registerChecks;
 
+        // Iterate over the orders and for each restricted order, set up the
+        // expected zone calldata hash. If any of the orders is restricted,
+        // flip the flag to register the hash validation check.
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             if (
@@ -103,7 +127,13 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Set up the offer items on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpOfferItems(FuzzTestContext memory context) public {
+        // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             OfferItem[] memory items = orderParams.offer;
@@ -157,6 +187,11 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Set up the consideration items on a test context.
+     *
+     * @param context The test context.
+     */
     function setUpConsiderationItems(FuzzTestContext memory context) public {
         // Skip creating consideration items if we're calling a match function
         if (
@@ -206,6 +241,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup
+        // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             ConsiderationItem[] memory items = orderParams.consideration;
@@ -273,13 +309,103 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
-    function setupExpectedEvents(FuzzTestContext memory context) public {
+    function registerExpectedEventsAndBalances(
+        FuzzTestContext memory context
+    ) public {
+        ExecutionsFlattener.flattenExecutions(context);
+        context.registerCheck(FuzzChecks.check_expectedBalances.selector);
+        ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
+
+        uint256 callValue = context.getNativeTokensToSupply();
+
+        Execution[] memory _executions = context.allExpectedExecutions;
+        Execution[] memory executions = _executions;
+
+        if (callValue > 0) {
+            address caller = context.caller;
+            if (caller == address(0)) caller = address(this);
+            address seaport = address(context.seaport);
+            executions = new Execution[](_executions.length + 1);
+            executions[0] = ExecutionLib.empty().withOfferer(caller);
+            executions[0].item.amount = callValue;
+            executions[0].item.recipient = payable(seaport);
+            for (uint256 i; i < _executions.length; i++) {
+                Execution memory execution = _executions[i].copy();
+                executions[i + 1] = execution;
+                if (execution.item.itemType == ItemType.NATIVE) {
+                    execution.offerer = seaport;
+                }
+            }
+        }
+
+        try balanceChecker.addTransfers(executions) {} catch (
+            bytes memory reason
+        ) {
+            context.allExpectedExecutions = executions;
+            dumpExecutions(context);
+            assembly {
+                revert(add(reason, 32), mload(reason))
+            }
+        }
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedEventHashes(context);
         context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);
         ExpectedEventsUtil.startRecordingLogs();
     }
 
+    /**
+     *  @dev Set up the checks that will always be run.
+     *
+     * @param context The test context.
+     */
+    function registerCommonChecks(FuzzTestContext memory context) public pure {
+        context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
+    }
+
+    /**
+     *  @dev Set up the function-specific checks.
+     *
+     * @param context The test context.
+     */
+    function registerFunctionSpecificChecks(
+        FuzzTestContext memory context
+    ) public {
+        bytes4 _action = context.action();
+        if (_action == context.seaport.fulfillOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+        } else if (_action == context.seaport.matchOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            // Add match-specific checks
+        } else if (_action == context.seaport.cancel.selector) {
+            context.registerCheck(FuzzChecks.check_orderCancelled.selector);
+        } else if (_action == context.seaport.validate.selector) {
+            context.registerCheck(FuzzChecks.check_orderValidated.selector);
+        } else {
+            revert("FuzzEngine: Action not implemented");
+        }
+    }
+
+    /**
+     *  @dev Get the address to approve to for a given test context.
+     *
+     * @param context The test context.
+     */
     function _getApproveTo(
         FuzzTestContext memory context
     ) internal view returns (address) {
@@ -297,6 +423,12 @@ abstract contract FuzzSetup is Test, AmountDeriver {
         }
     }
 
+    /**
+     *  @dev Get the address to approve to for a given test context and order.
+     *
+     * @param context The test context.
+     * @param orderParams The order parameters.
+     */
     function _getApproveTo(
         FuzzTestContext memory context,
         OrderParameters memory orderParams

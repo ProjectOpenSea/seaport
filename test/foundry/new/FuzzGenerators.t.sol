@@ -24,6 +24,7 @@ import {
     Recipient,
     SignatureMethod,
     Time,
+    Tips,
     TokenIndex,
     Zone,
     ZoneHash
@@ -63,8 +64,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 testHelpers: TestHelpers(address(this)),
                 prng: prng,
                 timestamp: block.timestamp,
-                seaport: seaport,
-                conduitController: conduitController,
+                seaport: getSeaport(),
+                conduitController: getConduitController(),
                 validatorZone: new HashValidationZoneOfferer(address(0)),
                 erc20s: erc20s,
                 erc721s: erc721s,
@@ -122,7 +123,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -164,7 +166,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -217,7 +220,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            tips: Tips.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](

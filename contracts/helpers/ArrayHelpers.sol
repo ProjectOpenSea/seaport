@@ -5,9 +5,33 @@ import "./PointerLibraries.sol";
 
 /**
  * @author d1ll0n
- * @custom:coauthor Most of the natspec is stolen from the TypeScript documentation
+ * @custom:coauthor Most of the natspec is cribbed from the TypeScript
+ *                  documentation
  */
 library ArrayHelpers {
+    function flatten(
+        MemoryPointer array1,
+        MemoryPointer array2
+    ) internal view returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 arrayLength1 = array1.readUint256();
+            uint256 arrayLength2 = array2.readUint256();
+            uint256 array1HeadSize = arrayLength1 * 32;
+            uint256 array2HeadSize = arrayLength2 * 32;
+
+            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray.write(arrayLength1 + arrayLength2);
+
+            MemoryPointer dst = newArray.next();
+            if (arrayLength1 > 0) {
+                array1.next().copy(dst, array1HeadSize);
+            }
+            if (arrayLength2 > 0) {
+                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
+            }
+        }
+    }
+
     // =====================================================================//
     //            map with (element) => (newElement) callback               //
     // =====================================================================//
@@ -51,8 +75,8 @@ library ArrayHelpers {
     // =====================================================================//
 
     /**
-     * @dev filterMap calls a defined callback function on each element of an array
-     *      and returns an array that contains only the non-zero results
+     * @dev filterMap calls a defined callback function on each element of an
+     *      array and returns an array that contains only the non-zero results
      *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
@@ -92,36 +116,13 @@ library ArrayHelpers {
         }
     }
 
-    function flatten(
-        MemoryPointer array1,
-        MemoryPointer array2
-    ) internal view returns (MemoryPointer newArray) {
-        unchecked {
-            uint256 arrayLength1 = array1.readUint256();
-            uint256 arrayLength2 = array2.readUint256();
-            uint256 array1HeadSize = arrayLength1 * 32;
-            uint256 array2HeadSize = arrayLength2 * 32;
-
-            newArray = malloc(array1HeadSize + array2HeadSize + 32);
-            newArray.write(arrayLength1 + arrayLength2);
-
-            MemoryPointer dst = newArray.next();
-            if (arrayLength1 > 0) {
-                array1.next().copy(dst, array1HeadSize);
-            }
-            if (arrayLength2 > 0) {
-                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
-            }
-        }
-    }
-
     // =====================================================================//
     //      filterMap with (element, arg) => (newElement) callback          //
     // =====================================================================//
 
     /**
-     * @dev filterMap calls a defined callback function on each element of an array
-     *      and returns an array that contains only the non-zero results
+     * @dev filterMap calls a defined callback function on each element of an
+     *      array and returns an array that contains only the non-zero results
      *
      *        filterMapWithArg = (arr, callback, arg) => arr.map(
      *          (element) => callback(element, arg)
@@ -139,7 +140,8 @@ library ArrayHelpers {
      */
     function filterMapWithArg(
         MemoryPointer array,
-        /* function (MemoryPointer element, MemoryPointer arg) returns (uint256 newValue) */
+        /* function (MemoryPointer element, MemoryPointer arg) */
+        /* returns (uint256 newValue) */
         function(MemoryPointer, MemoryPointer)
             internal
             pure
@@ -171,21 +173,69 @@ library ArrayHelpers {
     }
 
     // ====================================================================//
+    //         filter  with (element, arg) => (bool) predicate             //
+    // ====================================================================//
+
+    /**
+     * @dev filter calls a defined callback function on each element of an array
+     *      and returns an array that contains only the elements which the
+     *      callback returned true for
+     *
+     * @param array   the array to map
+     * @param fn      a function that accepts each element in the array and
+     *                returns a boolean that indicates whether the element
+     *                should be included in the new array
+     * @param arg     an arbitrary value provided in each call to fn
+     *
+     * @return newArray the new array created with the elements which the
+     *                  callback returned true for
+     */
+    function filterWithArg(
+        MemoryPointer array,
+        /* function (uint256 value, uint256 arg) returns (bool) */
+        function(MemoryPointer, MemoryPointer) internal pure returns (bool) fn,
+        MemoryPointer arg
+    ) internal pure returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 length = array.readUint256();
+
+            newArray = malloc((length + 1) * 32);
+
+            MemoryPointer srcPosition = array.next();
+            MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
+            MemoryPointer dstPosition = newArray.next();
+
+            length = 0;
+
+            while (srcPosition.lt(srcEnd)) {
+                MemoryPointer element = srcPosition.readMemoryPointer();
+                if (fn(element, arg)) {
+                    dstPosition.write(element);
+                    dstPosition = dstPosition.next();
+                    length += 1;
+                }
+                srcPosition = srcPosition.next();
+            }
+            newArray.write(length);
+        }
+    }
+
+    // ====================================================================//
     //            filter  with (element) => (bool) predicate               //
     // ====================================================================//
 
     /**
      * @dev filter calls a defined callback function on each element of an array
-     *      and returns an array that contains only the elements which the callback
-     *      returned true for
+     *      and returns an array that contains only the elements which the
+     *      callback returned true for
      *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
      *                returns a boolean that indicates whether the element
      *                should be included in the new array
      *
-     * @return newArray the new array created with the elements which the callback
-     *                  returned true for
+     * @return newArray the new array created with the elements which the
+     *                  callback returned true for
      */
     function filter(
         MemoryPointer array,
@@ -218,7 +268,8 @@ library ArrayHelpers {
 
     /**
      * @dev mapWithIndex calls a defined callback function with each element of
-     *      an array and its index and returns an array that contains the results
+     *      an array and its index and returns an array that contains the
+     *      results
      *
      * @param array   the array to map
      * @param fn      a function that accepts each element in the array and
@@ -291,7 +342,8 @@ library ArrayHelpers {
 
     function mapWithIndex(
         MemoryPointer array,
-        /* function (uint256 value, uint256 index, uint256 arg) returns (uint256 newValue) */
+        /* function (uint256 value, uint256 index, uint256 arg) */
+        /* returns (uint256 newValue) */
         function(uint256, uint256, uint256) internal pure returns (uint256) fn,
         uint256 arg
     ) internal pure returns (MemoryPointer newArray) {
@@ -316,7 +368,8 @@ library ArrayHelpers {
 
     function reduce(
         MemoryPointer array,
-        /* function (uint256 currentResult, uint256 element) returns (uint256 newResult) */
+        /* function (uint256 currentResult, uint256 element) */
+        /* returns (uint256 newResult) */
         function(uint256, uint256) internal pure returns (uint256) fn,
         uint256 initialValue
     ) internal pure returns (uint256 result) {
@@ -336,7 +389,8 @@ library ArrayHelpers {
 
     function reduceWithArg(
         MemoryPointer array,
-        /* function (uint256 currentResult, uint256 element, uint256 arg) returns (uint256 newResult) */
+        /* function (uint256 currentResult, uint256 element, uint256 arg) */
+        /* returns (uint256 newResult) */
         function(uint256, uint256, MemoryPointer) internal returns (uint256) fn,
         uint256 initialValue,
         MemoryPointer arg
@@ -397,16 +451,18 @@ library ArrayHelpers {
     // =====================================================================//
 
     /**
-     * @dev calls `predicate` once for each element of the array, in ascending order, until it
-     *      finds one where predicate returns true. If such an element is found, find immediately
-     *      returns that element value. Otherwise, find returns 0.
+     * @dev calls `predicate` once for each element of the array, in ascending
+     *      order, until it finds one where predicate returns true. If such an
+     *      element is found, find immediately returns that element value.
+     *      Otherwise, find returns 0.
      *
-     * @param array   array to search
-     * @param predicate function that checks whether each element meets the search filter.
-     * @param arg     second input to `predicate`
+     * @param array     array to search
+     * @param predicate function that checks whether each element meets the
+     *                  search filter.
+     * @param arg       second input to `predicate`
      *
-     * @return          the value of the first element in the array where predicate is true
-     *                  and 0 otherwise.
+     * @return          the value of the first element in the array where
+     *                  predicate is true and 0 otherwise.
      */
     function find(
         MemoryPointer array,
@@ -431,16 +487,18 @@ library ArrayHelpers {
     // =====================================================================//
 
     /**
-     * @dev calls `predicate` once for each element of the array, in ascending order, until it
-     *      finds one where predicate returns true. If such an element is found, find immediately
-     *      returns that element value. Otherwise, find returns 0.
+     * @dev calls `predicate` once for each element of the array, in ascending
+     *      order, until it finds one where predicate returns true. If such an
+     *      element is found, find immediately returns that element value.
+     *      Otherwise, find returns 0.
      *
      * @param array     array to search
-     * @param predicate function that checks whether each element meets the search filter.
+     * @param predicate function that checks whether each element meets the
+     *                  search filter.
      * @param fromIndex index to start search at
      *
-     * @return          the value of the first element in the array where predicate is true
-     *                  and 0 otherwise.
+     * @custom:return   the value of the first element in the array where
+     *                  predicate is trueand 0 otherwise.
      */
     function find(
         MemoryPointer array,
@@ -465,15 +523,17 @@ library ArrayHelpers {
     // =====================================================================//
 
     /**
-     * @dev calls `predicate` once for each element of the array, in ascending order, until it
-     *      finds one where predicate returns true. If such an element is found, find immediately
-     *      returns that element value. Otherwise, find returns 0.
+     * @dev calls `predicate` once for each element of the array, in ascending
+     *      order, until it finds one where predicate returns true. If such an
+     *      element is found, find immediately returns that element value.
+     *      Otherwise, find returns 0.
      *
      * @param array     array to search
-     * @param predicate function that checks whether each element meets the search filter.
+     * @param predicate function that checks whether each element meets the
+     *                  search filter.
      *
-     * @return          the value of the first element in the array where predicate is true
-     *                  and 0 otherwise.
+     * @return          the value of the first element in the array where
+     *                  predicate is true and 0 otherwise.
      */
     function find(
         MemoryPointer array,
@@ -573,24 +633,23 @@ library ArrayHelpers {
         }
     }
 
-  function countFrom(
-      MemoryPointer array,
-      function(MemoryPointer) internal pure returns (bool) predicate,
-      uint256 fromIndex
-  ) internal pure returns (int256 count) {
-      unchecked {
-          uint256 index = fromIndex;
-          uint256 length = array.readUint256();
-          MemoryPointer src = array.offset(fromIndex * 0x20);
-          while (index < length) {
-              if (predicate((src = src.next()).readMemoryPointer())) {
-                  count += 1;
-              }
-              index += 1;
-          }
-          
-      }
-  }
+    function countFrom(
+        MemoryPointer array,
+        function(MemoryPointer) internal pure returns (bool) predicate,
+        uint256 fromIndex
+    ) internal pure returns (int256 count) {
+        unchecked {
+            uint256 index = fromIndex;
+            uint256 length = array.readUint256();
+            MemoryPointer src = array.offset(fromIndex * 0x20);
+            while (index < length) {
+                if (predicate((src = src.next()).readMemoryPointer())) {
+                    count += 1;
+                }
+                index += 1;
+            }
+        }
+    }
 
     // =====================================================================//
     //                      includes with one argument                      //

@@ -2,25 +2,28 @@
 pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
+
 import { Test } from "forge-std/Test.sol";
-import { FuzzHelpers } from "./FuzzHelpers.sol";
-import {
-    TestCalldataHashContractOfferer
-} from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
-
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-
-import {
-    HashValidationZoneOfferer
-} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import {
     OrderParametersLib
 } from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
 
+import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+import {
+    TestCalldataHashContractOfferer
+} from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
+
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 /**
  * @dev Check functions are the post-execution assertions we want to validate.
@@ -34,8 +37,6 @@ abstract contract FuzzChecks is Test {
 
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder[];
-   
-
 
     address payable testZone;
     address payable contractOfferer;
@@ -91,31 +92,60 @@ abstract contract FuzzChecks is Test {
     function check_validateOrderExpectedDataHash(
         FuzzTestContext memory context
     ) public {
+        // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
+            // If the order has a zone, check the calldata.
             if (context.orders[i].parameters.zone != address(0)) {
                 testZone = payable(context.orders[i].parameters.zone);
 
                 AdvancedOrder memory order = context.orders[i];
 
+                // Each order has a calldata hash, indexed to orders, that is
+                // expected to be returned by the zone.
                 bytes32 expectedCalldataHash = context.expectedZoneCalldataHash[
                     i
                 ];
 
-                uint256 counter = context.seaport.getCounter(
-                    order.parameters.offerer
-                );
+                bytes32 orderHash;
+                {
+                    uint256 counter = context.seaport.getCounter(
+                        order.parameters.offerer
+                    );
 
-                OrderComponents memory orderComponents = order
-                    .parameters
-                    .toOrderComponents(counter);
+                    OrderComponents memory components = (
+                        order.parameters.toOrderComponents(counter)
+                    );
 
-                bytes32 orderHash = context.seaport.getOrderHash(
-                    orderComponents
-                );
+                    uint256 lengthWithTips = components.consideration.length;
 
+                    ConsiderationItem[] memory considerationSansTips = (
+                        components.consideration
+                    );
+
+                    uint256 lengthSansTips = (
+                        order.parameters.totalOriginalConsiderationItems
+                    );
+
+                    // set proper length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthSansTips)
+                    }
+
+                    orderHash = context.seaport.getOrderHash(components);
+
+                    // restore length of the considerationSansTips array.
+                    assembly {
+                        mstore(considerationSansTips, lengthWithTips)
+                    }
+                }
+
+                // Use the order hash to get the expected calldata hash from the
+                // zone.
                 bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
                     .orderHashToValidateOrderDataHash(orderHash);
 
+                // Check that the expected calldata hash matches the actual
+                // calldata hash.
                 assertEq(actualCalldataHash, expectedCalldataHash);
             }
         }
@@ -191,14 +221,20 @@ abstract contract FuzzChecks is Test {
 
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
-        bytes4 action = context.action();
+        //bytes4 action = context.action();
 
         assertEq(
             context.returnValues.executions.length,
             context.expectedExplicitExecutions.length,
             "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
         );
-        for (uint256 i; i < context.expectedExplicitExecutions.length; i++) {
+
+        for (
+            uint256 i;
+            (i < context.expectedExplicitExecutions.length &&
+                i < context.returnValues.executions.length);
+            i++
+        ) {
             Execution memory actual = context.returnValues.executions[i];
             Execution memory expected = context.expectedExplicitExecutions[i];
             assertEq(
@@ -242,10 +278,37 @@ abstract contract FuzzChecks is Test {
     function check_expectedEventsEmitted(
         FuzzTestContext memory context
     ) public {
-        bytes4 action = context.action();
-
         ExpectedEventsUtil.checkExpectedEvents(context);
     }
-}
 
-// state variable accessible in test or pass into FuzzTestContext
+    function check_expectedBalances(
+        FuzzTestContext memory context
+    ) public view {
+        context.testHelpers.balanceChecker().checkBalances();
+    }
+
+    /**
+     * @dev Check that the order status is in expected state.
+     *
+     * @param context A Fuzz test context.
+     */
+    function check_orderStatusFullyFilled(
+        FuzzTestContext memory context
+    ) public {
+        for (uint256 i; i < context.orders.length; i++) {
+            AdvancedOrder memory order = context.orders[i];
+            uint256 counter = context.seaport.getCounter(
+                order.parameters.offerer
+            );
+            OrderComponents memory orderComponents = order
+                .parameters
+                .toOrderComponents(counter);
+            bytes32 orderHash = context.seaport.getOrderHash(orderComponents);
+            (, , uint256 totalFilled, uint256 totalSize) = context
+                .seaport
+                .getOrderStatus(orderHash);
+
+            assertEq(totalFilled, totalSize);
+        }
+    }
+}

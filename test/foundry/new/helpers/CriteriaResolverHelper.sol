@@ -8,7 +8,6 @@ import { LibSort } from "solady/src/utils/LibSort.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;
-    bytes32 root;
     bytes32[] proof;
 }
 
@@ -17,6 +16,9 @@ contract CriteriaResolverHelper {
 
     uint256 immutable MAX_LEAVES;
     Merkle public immutable MERKLE;
+
+    mapping(uint256 => CriteriaMetadata)
+        public resolvableIdentifierForGivenCriteria;
 
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
@@ -31,24 +33,24 @@ contract CriteriaResolverHelper {
      */
     function generateCriteriaMetadata(
         LibPRNG.PRNG memory prng
-    )
-        public
-        view
-        returns (
-            uint256 resolvedIdentifier,
-            bytes32 root,
-            bytes32[] memory proof
-        )
-    {
+    ) public returns (uint256 criteria) {
         uint256[] memory identifiers = generateIdentifiers(prng);
 
         uint256 selectedIdentifierIndex = prng.next() % identifiers.length;
         uint256 selectedIdentifier = identifiers[selectedIdentifierIndex];
         bytes32[] memory leaves = hashIdentifiersToLeaves(identifiers);
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
-        resolvedIdentifier = selectedIdentifier;
-        root = MERKLE.getRoot(leaves);
-        proof = MERKLE.getProof(leaves, selectedIdentifierIndex);
+        uint256 resolvedIdentifier = selectedIdentifier;
+        criteria = uint256(MERKLE.getRoot(leaves));
+        bytes32[] memory proof = MERKLE.getProof(
+            leaves,
+            selectedIdentifierIndex
+        );
+
+        resolvableIdentifierForGivenCriteria[criteria] = CriteriaMetadata({
+            resolvedIdentifier: resolvedIdentifier,
+            proof: proof
+        });
     }
 
     /**

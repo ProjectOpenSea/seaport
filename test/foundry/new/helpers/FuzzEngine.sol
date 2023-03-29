@@ -32,43 +32,83 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
-import { FuzzSetup } from "./FuzzSetup.sol";
+import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
+
+import { dumpExecutions } from "./DebugUtil.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
+ *
+ *         The BaseOrderTest used in this fuzz engine is not the same as the
+ *         BaseOrderTest contract used in the legacy tests.  The relative path
+ *         for the relevant version is `test/foundry/new/BaseOrderTest.sol`.
+ *
+ *         Running test_fuzz_validOrders in FuzzMain triggers the following
+ *         lifecycle. First, a pseudorandom `FuzzTestContext` is generated from
+ *         the FuzzParams. The important bits of his phase are order and action
+ *         generation. Then, the fuzz derivers are run to derive values
+ *         such as fulfillments and executions from the orders. Next, the
+ *         setup phase is run to set up the necessary conditions for a test to
+ *         pass, including minting the necessary tokens and setting up the
+ *         necessary approvals. The setup phase also lays out the expectations
+ *         for the post-execution state of the test. Then, during the execution
+ *         phase, some Seaport function gets called according the the action
+ *         determined by the seed in the FuzzParams. Finally, the checks phase
+ *         runs all registered checks to ensure that the post-execution state
+ *         matches the expectations set up in the setup phase.
+ *
+ *         The `generate` function in this file calls out to the `generate`
+ *         functions in `TestStateGenerator` (responsible for setting up the
+ *         order components) and `AdvancedOrdersSpaceGenerator` (responsible for
+ *         setting up the orders and actions). The generation phase relies on a
+ *         `FuzzGeneratorContext` internally, but it returns a `FuzzTestContext`
+ *         struct, which is used throughout the rest of the lifecycle.
+ *
+ *         The `runDerivers` function in this file serves as a central location
+ *         to slot in calls to functions that deterministically derive values
+ *         from the state that was created in the generation phase.
+ *
+ *         The `runSetup` function should hold everything that mutates state,
+ *         such as minting and approving tokens.  It also contains the logic
+ *         for setting up the expectations for the post-execution state of the
+ *         test. Logic for handling unavailable orders and balance checking
+ *         will also live here.
+ *
+ *         The `exec` function is lean and only 1) sets up a prank if the caller
+ *         is not the test contract, 2) logs the action, 3) calls the Seaport
+ *         function, and adds the values returned by the function call to the
+ *         context for later use in checks.
+ *
+ *         The `checkAll` function runs all of the checks that were registered
+ *         throughout the test lifecycle. To add a new check, add a function
+ *         to `FuzzChecks` and then register it with `registerCheck`.
+ *
  */
 contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
+    // Use the various builder libraries.  These allow for creating structs in a
+    // more readable way.
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FuzzTestContextLib for FuzzTestContext;
+    using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using FuzzTestContextLib for FuzzTestContext;
 
     /**
-     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run a
-     *      `FuzzEngine` test. Calls the following test lifecycle functions in
-     *      order:
-     *
-     *      1. generate: Generate a new `FuzzTestContext` from fuzz parameters
-     *      2. runDerivers: Run deriver functions for the test.
-     *      3. runSetup: Run setup functions for the test.
-     *      3. exec: Select and call a Seaport function.
-     *      4. checkAll: Call all registered checks.
+     * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
+     *      a `FuzzEngine` test.
      *
      * @param fuzzParams A FuzzParams struct containing fuzzed values.
      */
     function run(FuzzParams memory fuzzParams) internal {
         FuzzTestContext memory context = generate(fuzzParams);
-        runDerivers(context);
-        runSetup(context);
-        exec(context);
-        checkAll(context);
+        run(context);
     }
 
     /**
@@ -76,15 +116,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      *      following test lifecycle functions in order:
      *
      *      1. runDerivers: Run deriver functions for the test.
-     *      1. runSetup: Run setup functions for the test.
-     *      2. exec: Select and call a Seaport function.
-     *      3. checkAll: Call all registered checks.
+     *      2. runSetup: Run setup functions for the test.
+     *      3. runCheckRegistration: Register checks for the test.
+     *      4. exec: Select and call a Seaport function.
+     *      5. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
         runDerivers(context);
         runSetup(context);
+        runCheckRegistration(context);
         exec(context);
         checkAll(context);
     }
@@ -97,16 +139,32 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
+        // Set either the optimized version or the reference version of Seaport,
+        // depending on the active profile.
+        ConsiderationInterface seaport_ = getSeaport();
+        // Get the conduit controller, which allows dpeloying and managing
+        // conduits.  Conduits are used to transfer tokens between accounts.
+        ConduitControllerInterface conduitController_ = getConduitController();
+
+        // Set up a default FuzzGeneratorContext.  Note that this is only used
+        // for the generation pphase.  The `FuzzTestContext` is used throughout
+        // the rest of the lifecycle.
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
                 vm: vm,
-                seaport: seaport,
-                conduitController: conduitController,
+                seaport: seaport_,
+                conduitController: conduitController_,
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s
             });
 
+        // Generate a pseudorandom order space. The `AdvancedOrdersSpace` is
+        // made up of an `OrderComponentsSpace` array and an `isMatchable` bool.
+        // Each `OrderComponentsSpace` is a struct with fields that are enums
+        // (or arrays of enums) from `SpaceEnums.sol`. In other words, the
+        // `AdvancedOrdersSpace` is a container for a set of constrained
+        // possibilities.
         AdvancedOrdersSpace memory space = TestStateGenerator.generate(
             fuzzParams.totalOrders,
             fuzzParams.maxOfferItems,
@@ -114,6 +172,8 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             generatorContext
         );
 
+        // Generate orders from the space. These are the actual orders that will
+        // be used in the test.
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
             generatorContext
@@ -123,10 +183,10 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             FuzzTestContextLib
                 .from({
                     orders: orders,
-                    seaport: seaport,
+                    seaport: seaport_,
                     caller: address(this)
                 })
-                .withConduitController(conduitController)
+                .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams);
     }
 
@@ -173,7 +233,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-        setupExpectedEvents(context);
+    }
+
+    /**
+     * @dev Register checks for the test.
+     *
+     * @param context A Fuzz test context.
+     */
+    function runCheckRegistration(FuzzTestContext memory context) internal {
+        registerExpectedEventsAndBalances(context);
+        registerCommonChecks(context);
+        registerFunctionSpecificChecks(context);
     }
 
     /**
@@ -188,28 +258,36 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context) internal {
+        // If the caller is not the zero address, prank the address.
         if (context.caller != address(0)) vm.startPrank(context.caller);
+
+        // Get the action to execute.  The action is derived from the fuzz seed,
+        // so it will be the same for each run of the test throughout the entire
+        // lifecycle of the test.
         bytes4 _action = context.action();
+
+        // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
             logCall("fulfillOrder");
             AdvancedOrder memory order = context.orders[0];
 
-            context.returnValues.fulfilled = context.seaport.fulfillOrder(
-                order.toOrder(),
-                context.fulfillerConduitKey
-            );
+            context.returnValues.fulfilled = context.seaport.fulfillOrder{
+                value: context.getNativeTokensToSupply()
+            }(order.toOrder(), context.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder");
             AdvancedOrder memory order = context.orders[0];
 
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillAdvancedOrder(
-                    order,
-                    context.criteriaResolvers,
-                    context.fulfillerConduitKey,
-                    context.recipient
-                );
+                .fulfillAdvancedOrder{
+                value: context.getNativeTokensToSupply()
+            }(
+                order,
+                context.criteriaResolvers,
+                context.fulfillerConduitKey,
+                context.recipient
+            );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder");
 
@@ -220,9 +298,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             basicOrderParameters.fulfillerConduitKey = context
                 .fulfillerConduitKey;
 
-            context.returnValues.fulfilled = context.seaport.fulfillBasicOrder(
-                basicOrderParameters
-            );
+            context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
+                value: context.getNativeTokensToSupply()
+            }(basicOrderParameters);
         } else if (
             _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
@@ -238,13 +316,17 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
 
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc(basicOrderParameters);
+                .fulfillBasicOrder_efficient_6GL6yc{
+                value: context.getNativeTokensToSupply()
+            }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders");
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders(
+            ) = context.seaport.fulfillAvailableOrders{
+                    value: context.getNativeTokensToSupply()
+                }(
                     context.orders.toOrders(),
                     context.offerFulfillments,
                     context.considerationFulfillments,
@@ -261,7 +343,9 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{
+                    value: context.getNativeTokensToSupply()
+                }(
                     context.orders,
                     context.criteriaResolvers,
                     context.offerFulfillments,
@@ -275,15 +359,16 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
             logCall("matchOrders");
-            Execution[] memory executions = context.seaport.matchOrders(
-                context.orders.toOrders(),
-                context.fulfillments
-            );
+            Execution[] memory executions = context.seaport.matchOrders{
+                value: context.getNativeTokensToSupply()
+            }(context.orders.toOrders(), context.fulfillments);
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             logCall("matchAdvancedOrders");
-            Execution[] memory executions = context.seaport.matchAdvancedOrders(
+            Execution[] memory executions = context.seaport.matchAdvancedOrders{
+                value: context.getNativeTokensToSupply()
+            }(
                 context.orders,
                 context.criteriaResolvers,
                 context.fulfillments,
@@ -343,6 +428,7 @@ contract FuzzEngine is BaseOrderTest, FuzzDerivers, FuzzSetup, FuzzChecks {
         );
 
         if (!success) {
+            dumpExecutions(context);
             if (result.length == 0) revert();
             assembly {
                 revert(add(0x20, result), mload(result))

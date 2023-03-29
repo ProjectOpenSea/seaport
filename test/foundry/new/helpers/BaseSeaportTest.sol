@@ -36,6 +36,8 @@ import {
     ReferenceConsideration
 } from "../../../../reference/ReferenceConsideration.sol";
 
+import { setLabel } from "./Labeler.sol";
+
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseSeaportTest is DifferentialTest {
     using stdStorage for StdStorage;
@@ -76,16 +78,46 @@ contract BaseSeaportTest is DifferentialTest {
         _deployAndConfigurePrecompiledOptimizedConsideration();
         _deployAndConfigurePrecompiledReferenceConsideration();
 
-        vm.label(address(conduitController), "conduitController");
-        vm.label(address(seaport), "seaport");
-        vm.label(address(conduit), "conduit");
-        vm.label(
+        setLabel(address(conduitController), "conduitController");
+        setLabel(address(seaport), "seaport");
+        setLabel(address(conduit), "conduit");
+        setLabel(
             address(referenceConduitController),
             "referenceConduitController"
         );
-        vm.label(address(referenceSeaport), "referenceSeaport");
-        vm.label(address(referenceConduit), "referenceConduit");
-        vm.label(address(this), "testContract");
+        setLabel(address(referenceSeaport), "referenceSeaport");
+        setLabel(address(referenceConduit), "referenceConduit");
+        setLabel(address(this), "testContract");
+    }
+
+    /**
+     * @dev Get the configured preferred Seaport
+     */
+    function getSeaport() internal returns (ConsiderationInterface seaport_) {
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (stringEq(profile, "reference")) {
+            emit log("Using reference Seaport and ConduitController");
+            seaport_ = referenceSeaport;
+        } else {
+            seaport_ = seaport;
+        }
+    }
+
+    /**
+     * @dev Get the configured preferred ConduitController
+     */
+    function getConduitController()
+        internal
+        returns (ConduitControllerInterface conduitController_)
+    {
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (stringEq(profile, "reference")) {
+            conduitController_ = referenceConduitController;
+        } else {
+            conduitController_ = conduitController;
+        }
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source

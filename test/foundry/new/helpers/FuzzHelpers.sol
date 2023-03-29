@@ -246,7 +246,10 @@ library FuzzHelpers {
         if (offer.length != 1) {
             return false;
         }
-        if (consideration.length == 0) {
+        if (
+            consideration.length == 0 ||
+            order.parameters.totalOriginalConsiderationItems == 0
+        ) {
             return false;
         }
 
@@ -558,7 +561,7 @@ library FuzzHelpers {
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller
-    ) internal returns (bytes32[2][] memory) {
+    ) internal view returns (bytes32[2][] memory) {
         SeaportInterface seaportInterface = SeaportInterface(seaport);
 
         bytes32[] memory orderHashes = getOrderHashes(orders, seaport);

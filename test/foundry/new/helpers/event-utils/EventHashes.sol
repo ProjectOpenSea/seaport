@@ -1,6 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+/**
+ * @dev Low level helpers. getTopicsHash and getEventHash are used to generate
+ *      the hashes for topics and events respectively. getEventHashWithTopics is
+ *      a convenience wrapper around the two.
+ */
 function getTopicsHash(
     bytes32 topic0,
     bytes32 topic1,
