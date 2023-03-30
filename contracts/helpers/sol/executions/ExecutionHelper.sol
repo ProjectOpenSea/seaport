@@ -97,35 +97,6 @@ contract ExecutionHelper is AmountDeriverHelper {
     }
 
     /**
-     * @dev convert an array of AdvancedOrders and an explicit recipient to a
-     *      FulfillmentDetails struct
-     *
-     * @param orders              array of AdvancedOrders to process
-     * @param recipient           explicit recipient if one is set
-     * @param fulfiller           the order fulfiller
-     * @param fulfillerConduitKey the conduit key
-     *
-     * @return fulfillmentDetails the fulfillment details
-     */
-    function toFulfillmentDetails(
-        AdvancedOrder[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        address seaport
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders);
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
-            });
-    }
-
-    /**
      * @dev convert an array of AdvancedOrders, an explicit recipient, and
      *      CriteriaResolvers to a FulfillmentDetails struct
      */

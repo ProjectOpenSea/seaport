@@ -58,10 +58,12 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
      * NOTE: this will break for multiple criteria items that resolve
      * to different identifiers
      * @param orders orders
+     * @param resolvers resolvers
      * @return fulfillments
      */
     function getMatchedFulfillments(
-        AdvancedOrder[] memory orders
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
     )
         public
         returns (
@@ -70,7 +72,6 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        CriteriaResolver[] memory resolvers;
         OrderDetails[] memory details = toOrderDetails(orders, resolvers);
         return getMatchedFulfillments(details);
     }
