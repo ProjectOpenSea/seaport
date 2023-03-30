@@ -53,7 +53,8 @@ interface TestHelpers {
     ) external view returns (Account memory);
 
     function getMatchedFulfillments(
-        AdvancedOrder[] memory orders
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
     )
         external
         returns (

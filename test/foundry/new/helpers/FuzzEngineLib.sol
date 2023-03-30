@@ -104,7 +104,7 @@ library FuzzEngineLib {
 
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
-            .getMatchedFulfillments(context.orders);
+            .getMatchedFulfillments(context.orders, context.criteriaResolvers);
 
         if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");

@@ -1029,9 +1029,10 @@ contract FuzzEngineTest is FuzzEngine {
             denominator: 0,
             extraData: bytes("")
         });
+        CriteriaResolver[] memory resolvers;
 
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(orders);
+            .getMatchedFulfillments(orders, resolvers);
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_executionsPresent.selector;
@@ -1139,9 +1140,9 @@ contract FuzzEngineTest is FuzzEngine {
             denominator: 1,
             extraData: bytes("")
         });
-
+        CriteriaResolver[] memory resolvers;
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(advancedOrders);
+            .getMatchedFulfillments(advancedOrders, resolvers);
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_executionsPresent.selector;

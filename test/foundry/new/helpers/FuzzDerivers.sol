@@ -173,7 +173,10 @@ abstract contract FuzzDerivers is
                 Fulfillment[] memory fulfillments,
                 MatchComponent[] memory remainingOfferComponents,
 
-            ) = context.testHelpers.getMatchedFulfillments(context.orders);
+            ) = context.testHelpers.getMatchedFulfillments(
+                    context.orders,
+                    context.criteriaResolvers
+                );
             context.fulfillments = fulfillments;
             context.remainingOfferComponents = remainingOfferComponents
                 .toFulfillmentComponents();
