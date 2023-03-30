@@ -158,7 +158,7 @@ abstract contract FuzzDerivers is
             (
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(context.orders.toOrders());
+            ) = getNaiveFulfillmentComponents(toOrderDetails(context.orders));
 
             context.offerFulfillments = offerFulfillments;
             context.considerationFulfillments = considerationFulfillments;

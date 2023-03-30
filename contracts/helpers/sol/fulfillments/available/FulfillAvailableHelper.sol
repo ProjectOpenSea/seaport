@@ -14,6 +14,7 @@ import {
     FULFILL_AVAILABLE_COUNTER_KEY,
     FULFILL_AVAILABLE_STORAGE_BASE_KEY
 } from "../lib/Constants.sol";
+import { OrderDetails } from "../lib/Structs.sol";
 
 contract FulfillAvailableHelper {
     /**
@@ -114,6 +115,60 @@ contract FulfillAvailableHelper {
             }
             // do the same for consideration
             for (uint256 j; j < parameters.consideration.length; j++) {
+                consideration[considerationIndex] = SeaportArrays
+                    .FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: i, itemIndex: j })
+                    );
+                ++considerationIndex;
+            }
+        }
+        return (offer, consideration);
+    }
+
+    /**
+     * @notice get naive 2d fulfillment component arrays for
+     * fulfillAvailableOrders, one 1d array for each offer and consideration
+     * item
+     * @param orders OrderDetails[]
+     * @return offer
+     * @return consideration
+     */
+    function getNaiveFulfillmentComponents(
+        OrderDetails[] memory orders
+    )
+        public
+        pure
+        returns (
+            FulfillmentComponent[][] memory offer,
+            FulfillmentComponent[][] memory consideration
+        )
+    {
+        // get total number of offer items and consideration items
+        uint256 numOffers;
+        uint256 numConsiderations;
+        for (uint256 i = 0; i < orders.length; i++) {
+            OrderDetails memory order = orders[i];
+
+            numOffers += order.offer.length;
+            numConsiderations += order.consideration.length;
+        }
+
+        // create arrays
+        offer = new FulfillmentComponent[][](numOffers);
+        consideration = new FulfillmentComponent[][](numConsiderations);
+        uint256 offerIndex;
+        uint256 considerationIndex;
+        // iterate over orders again, creating one one-element array per offer and consideration item
+        for (uint256 i = 0; i < orders.length; i++) {
+            OrderDetails memory order = orders[i];
+            for (uint256 j; j < order.offer.length; j++) {
+                offer[offerIndex] = SeaportArrays.FulfillmentComponents(
+                    FulfillmentComponent({ orderIndex: i, itemIndex: j })
+                );
+                ++offerIndex;
+            }
+            // do the same for consideration
+            for (uint256 j; j < order.consideration.length; j++) {
                 consideration[considerationIndex] = SeaportArrays
                     .FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: i, itemIndex: j })
