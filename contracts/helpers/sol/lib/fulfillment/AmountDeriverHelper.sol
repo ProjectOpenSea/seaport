@@ -13,10 +13,9 @@ import {
     CriteriaResolver
 } from "../../../../lib/ConsiderationStructs.sol";
 import { Side, ItemType } from "../../../../lib/ConsiderationEnums.sol";
-import "../SeaportStructLib.sol";
-
 import { OfferItemLib } from "../OfferItemLib.sol";
 import { ConsiderationItemLib } from "../ConsiderationItemLib.sol";
+import { OrderParametersLib } from "../OrderParametersLib.sol";
 import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 
 /**
@@ -25,6 +24,7 @@ import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 contract AmountDeriverHelper is AmountDeriver {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem[];
+    using OrderParametersLib for OrderParameters;
 
     function getSpentAndReceivedItems(
         Order calldata order
@@ -146,6 +146,8 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
+        // create a deep copy of parameters to avoid modifying the original
+        parameters = parameters.copy();
         applyCriteriaResolvers(parameters, orderIndex, criteriaResolvers);
 
         spent = getSpentItems(parameters, numerator, denominator);
