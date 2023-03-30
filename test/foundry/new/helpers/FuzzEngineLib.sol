@@ -69,9 +69,12 @@ library FuzzEngineLib {
             hasInvalidNativeOfferItems(context)
         );
 
+        Structure structure = context.orders.getStructure(
+            address(context.seaport)
+        );
+
         if (family == Family.SINGLE && !invalidNativeOfferItemsLocated) {
             AdvancedOrder memory order = context.orders[0];
-            Structure structure = order.getStructure(address(context.seaport));
 
             if (structure == Structure.BASIC) {
                 bytes4[] memory selectors = new bytes4[](4);
@@ -106,10 +109,6 @@ library FuzzEngineLib {
         if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
-
-        Structure structure = context.orders.getStructure(
-            address(context.seaport)
-        );
 
         if (remainders.length != 0) {
             if (structure == Structure.ADVANCED) {

@@ -652,9 +652,11 @@ library FuzzHelpers {
             ItemType itemType = offerItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (offerItem.identifierOrCriteria != 0) {
-                hasNonzeroCriteria = true;
-                return (hasCriteria, hasNonzeroCriteria);
+            if (hasCriteria) {
+                return (
+                    hasCriteria,
+                    offerItem.identifierOrCriteria != 0
+                );
             }
         }
 
@@ -667,10 +669,14 @@ library FuzzHelpers {
             ItemType itemType = considerationItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (considerationItem.identifierOrCriteria != 0) {
-                hasNonzeroCriteria = true;
-                return (hasCriteria, hasNonzeroCriteria);
+            if (hasCriteria) {
+                return (
+                    hasCriteria,
+                    considerationItem.identifierOrCriteria != 0
+                );
             }
         }
+
+        return (false, false);
     }
 }
