@@ -192,6 +192,87 @@ contract EIP712MerkleTree is Test {
     }
 
     /**
+     *  @dev Creates a single bulk signature: a base signature + a three byte
+     * index + a series of 32 byte proofs.  The height of the tree is determined
+     * by the height parameter and this function will fill empty orders into the
+     * tree until the specified height is reached.
+     */
+    function signSparseBulkOrder(
+        ConsiderationInterface consideration,
+        uint256 privateKey,
+        bytes32 orderHash,
+        uint256 height,
+        uint24 orderIndex,
+        bool useCompact2098
+    ) public view returns (bytes memory) {
+        require(orderIndex < 2 ** height, "orderIndex out of bounds");
+        // get initial empty order components hash
+        bytes32 emptyComponentsHash = consideration.getOrderHash(
+            emptyOrderComponents
+        );
+
+        // calculate intermediate hashes of a sparse order tree
+        // this will also serve as our proof
+        bytes32[] memory emptyHashes = new bytes32[]((height));
+        // first layer is empty order hash
+        emptyHashes[0] = emptyComponentsHash;
+        for (uint256 i = 1; i < height; i++) {
+            bytes32 nextHash;
+            bytes32 lastHash = emptyHashes[i - 1];
+            // subsequent layers are hash of emptyHeight+emptyHeight
+            assembly {
+                mstore(0, lastHash)
+                mstore(0x20, lastHash)
+                nextHash := keccak256(0, 0x40)
+            }
+            emptyHashes[i] = nextHash;
+        }
+        // begin calculating order tree root
+        bytes32 root = orderHash;
+        // hashIndex is the index within the layer of the non-sparse hash
+        uint24 hashIndex = orderIndex;
+
+        for (uint256 i = 0; i < height; i++) {
+            // get sparse hash at this height
+            bytes32 heightEmptyHash = emptyHashes[i];
+            assembly {
+                // if the hashIndex is odd, our "root" is second component
+                if and(hashIndex, 1) {
+                    mstore(0, heightEmptyHash)
+                    mstore(0x20, root)
+                }
+                // else it is even and our "root" is first component
+                // (this can def be done in a branchless way but who has the
+                // time??)
+                if iszero(and(hashIndex, 1)) {
+                    mstore(0, root)
+                    mstore(0x20, heightEmptyHash)
+                }
+                // compute new intermediate hash (or final root)
+                root := keccak256(0, 0x40)
+            }
+            // divide hashIndex by 2 to get index of next layer
+            // 0 -> 0
+            // 1 -> 0
+            // 2 -> 1
+            // 3 -> 1
+            // etc
+            hashIndex /= 2;
+        }
+
+        return
+            _getSignature(
+                consideration,
+                privateKey,
+                _lookupBulkOrderTypehash(height),
+                root,
+                emptyHashes,
+                orderIndex,
+                useCompact2098
+            );
+    }
+
+    /**
      * @dev same lookup seaport optimized does
      */
     function _lookupBulkOrderTypehash(

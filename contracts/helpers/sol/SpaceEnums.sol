@@ -195,11 +195,11 @@ enum MatchValidation {
 }
 
 enum SignatureMethod {
-    EOA
-    // VALIDATE
-    // EIP1271
-    // CONTRACT
-    // SELF_AD_HOC
+    EOA,
+    VALIDATE,
+    EIP1271,
+    CONTRACT,
+    SELF_AD_HOC
 }
 
 // Offerer.EOA <- EOASignature

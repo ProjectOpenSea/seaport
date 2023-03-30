@@ -7,6 +7,7 @@ import {
     Amount,
     BroadOrderType,
     Criteria,
+    EOASignature,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -53,6 +54,7 @@ struct OrderComponentsSpace {
     Time time;
     ZoneHash zoneHash;
     SignatureMethod signatureMethod;
+    EOASignature eoaSignatureType;
     ConduitChoice conduit;
     Tips tips;
     // TODO: zone may have to be per-test depending on the zone
