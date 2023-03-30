@@ -20,6 +20,7 @@ import {
     BroadOrderType,
     ConduitChoice,
     Criteria,
+    EOASignature,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -122,6 +123,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
+            eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE
         });
@@ -165,6 +167,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
+            eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE
         });
@@ -219,6 +222,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             time: Time.ONGOING,
             zoneHash: ZoneHash.NONE,
             signatureMethod: SignatureMethod.EOA,
+            eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE
         });

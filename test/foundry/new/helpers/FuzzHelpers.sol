@@ -634,10 +634,10 @@ library FuzzHelpers {
      */
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
-        FuzzTestContext memory context
+        ConsiderationInterface seaport
     ) internal view returns (bytes32 orderHash) {
         // Get the counter of the order offerer.
-        uint256 counter = context.seaport.getCounter(order.parameters.offerer);
+        uint256 counter = seaport.getCounter(order.parameters.offerer);
 
         // Get the OrderComponents from the OrderParameters.
         OrderComponents memory components = (
@@ -665,7 +665,7 @@ library FuzzHelpers {
         }
 
         // Get the orderHash using the tweaked OrderComponents.
-        orderHash = context.seaport.getOrderHash(components);
+        orderHash = seaport.getOrderHash(components);
 
         // Restore the length of the considerationSansTips array.
         assembly {

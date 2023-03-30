@@ -5,6 +5,8 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import "seaport-sol/SeaportSol.sol";
 
+import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
+
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
@@ -20,6 +22,7 @@ import {
     BroadOrderType,
     ConduitChoice,
     Criteria,
+    EOASignature,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -34,6 +37,8 @@ import {
     FuzzGeneratorContext,
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -109,6 +114,7 @@ library TestStateGenerator {
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
                 signatureMethod: SignatureMethod(0),
+                eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1))
             });
@@ -537,7 +543,7 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrdersSpace memory space,
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal view {
+    ) internal {
         // Reset the order hashes array to the correct length.
         context.orderHashes = new bytes32[](orders.length);
 
@@ -591,6 +597,7 @@ library AdvancedOrdersSpaceGenerator {
             // Replace the unsigned order with a signed order.
             orders[i] = order.withGeneratedSignature(
                 space.orders[i].signatureMethod,
+                space.orders[i].eoaSignatureType,
                 space.orders[i].offerer,
                 orderHash,
                 context
@@ -779,40 +786,127 @@ library ConsiderationItemSpaceGenerator {
 }
 
 library SignatureGenerator {
-    using AdvancedOrderLib for AdvancedOrder;
+    using LibPRNG for LibPRNG.PRNG;
 
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
+
+    using FuzzHelpers for AdvancedOrder;
     using OffererGenerator for Offerer;
 
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
+        EOASignature eoaSignatureType,
         Offerer offerer,
         bytes32 orderHash,
         FuzzGeneratorContext memory context
-    ) internal view returns (AdvancedOrder memory) {
+    ) internal returns (AdvancedOrder memory) {
         if (method == SignatureMethod.EOA) {
-            (, bytes32 domainSeparator, ) = context.seaport.information();
-            bytes memory message = abi.encodePacked(
-                bytes2(0x1901),
-                domainSeparator,
-                orderHash
-            );
-            bytes32 digest = keccak256(message);
-            (uint8 v, bytes32 r, bytes32 s) = context.vm.sign(
-                offerer.getKey(context),
-                digest
-            );
-            bytes memory signature = abi.encodePacked(r, s, v);
-            address recovered = ecrecover(digest, v, r, s);
-            if (
-                recovered != offerer.generate(context) ||
-                recovered == address(0)
-            ) {
-                revert("SignatureGenerator: Invalid signature");
+            bytes32 digest;
+            uint8 v;
+            bytes32 r;
+            bytes32 s;
+            bytes memory signature;
+
+            uint256 offererKey = offerer.getKey(context);
+
+            if (eoaSignatureType == EOASignature.STANDARD) {
+                digest = _getDigest(orderHash, context);
+                (v, r, s) = context.vm.sign(offererKey, digest);
+                signature = abi.encodePacked(r, s, v);
+
+                _checkSig(digest, v, r, s, offerer, context);
+                return order.withSignature(signature);
+            } else if (eoaSignatureType == EOASignature.EIP2098) {
+                digest = _getDigest(orderHash, context);
+                (v, r, s) = context.vm.sign(offererKey, digest);
+
+                {
+                    uint256 yParity;
+                    if (v == 27) {
+                        yParity = 0;
+                    } else {
+                        yParity = 1;
+                    }
+                    uint256 yParityAndS = (yParity << 255) | uint256(s);
+                    signature = abi.encodePacked(r, yParityAndS);
+                }
+
+                _checkSig(digest, v, r, s, offerer, context);
+                return order.withSignature(signature);
+            } else if (eoaSignatureType == EOASignature.BULK) {
+                signature = _getBulkSig(order, offererKey, false, context);
+                return order.withSignature(signature);
+            } else if (eoaSignatureType == EOASignature.BULK2098) {
+                signature = _getBulkSig(order, offererKey, true, context);
+                return order.withSignature(signature);
+            } else {
+                revert("SignatureGenerator: Invalid EOA signature type");
             }
-            return order.withSignature(signature);
+        } else if (method == SignatureMethod.VALIDATE) {
+            revert("Validate not implemented");
+        } else if (method == SignatureMethod.EIP1271) {
+            revert("EIP1271 not implemented");
+        } else if (method == SignatureMethod.CONTRACT) {
+            revert("Contract not implemented");
+        } else if (method == SignatureMethod.SELF_AD_HOC) {
+            revert("Self ad hoc not implemented");
+        } else {
+            revert("SignatureGenerator: Invalid signature method");
         }
-        revert("SignatureGenerator: Invalid signature method");
+    }
+
+    function _getDigest(
+        bytes32 orderHash,
+        FuzzGeneratorContext memory context
+    ) internal view returns (bytes32 digest) {
+        (, bytes32 domainSeparator, ) = context.seaport.information();
+        bytes memory message = abi.encodePacked(
+            bytes2(0x1901),
+            domainSeparator,
+            orderHash
+        );
+        digest = keccak256(message);
+    }
+
+    function _getBulkSig(
+        AdvancedOrder memory order,
+        uint256 offererKey,
+        bool useEIP2098,
+        FuzzGeneratorContext memory context
+    ) internal returns (bytes memory signature) {
+        EIP712MerkleTree merkleTree = new EIP712MerkleTree();
+
+        // Pass the hash into `signSparseBulkOrder` instead of the order
+        // components, since we need to neutralize the tip for validation to
+        // work.
+        bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+        uint256 height = bound(context.prng.next(), 1, 24);
+        uint256 index = bound(context.prng.next(), 0, 2 ** height - 1);
+
+        signature = merkleTree.signSparseBulkOrder(
+            context.seaport,
+            offererKey,
+            orderHash,
+            height,
+            uint24(index),
+            useEIP2098
+        );
+    }
+
+    function _checkSig(
+        bytes32 digest,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        Offerer offerer,
+        FuzzGeneratorContext memory context
+    ) internal pure {
+        address recovered = ecrecover(digest, v, r, s);
+        if (recovered != offerer.generate(context) || recovered == address(0)) {
+            revert("SignatureGenerator: Invalid signature");
+        }
     }
 }
 
