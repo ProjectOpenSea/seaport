@@ -88,7 +88,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
                     TokenIndex.ONE,
-                    Criteria.NONE,
+                    Criteria.MERKLE,
                     Amount.FIXED
                 )
             });
@@ -150,7 +150,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         offer[0] = OfferItemSpace({
             itemType: ItemType.ERC20,
             tokenIndex: TokenIndex.ONE,
-            criteria: Criteria.NONE,
+            criteria: Criteria.MERKLE,
             amount: Amount.FIXED
         });
         ConsiderationItemSpace[]
@@ -205,7 +205,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         consideration[0] = ConsiderationItemSpace({
             itemType: ItemType.ERC20,
             tokenIndex: TokenIndex.ONE,
-            criteria: Criteria.NONE,
+            criteria: Criteria.MERKLE,
             amount: Amount.ASCENDING,
             recipient: Recipient.OFFERER
         });

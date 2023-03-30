@@ -136,10 +136,10 @@ library TestStateGenerator {
             OfferItemSpace[] memory offer = new OfferItemSpace[](len);
             for (uint256 i; i < len; ++i) {
                 offer[i] = OfferItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    // TODO: support wildcard criteria, should be 0-1
+                    criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0))
                 });
@@ -186,10 +186,10 @@ library TestStateGenerator {
         if (!isBasic) {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    // TODO: support wildcard criteria, should be 0-1
+                    criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0)),
                     recipient: Recipient(context.randEnum(0, 4))
@@ -197,11 +197,10 @@ library TestStateGenerator {
             }
         } else {
             consideration[0] = ConsiderationItemSpace({
-                // TODO: Native items + criteria - should be 0-5
                 itemType: ItemType(
                     context.basicOrderCategory == BasicOrderCategory.BID
                         ? context.randEnum(2, 3)
-                        : 1
+                        : context.randEnum(0, 1)
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
@@ -212,7 +211,6 @@ library TestStateGenerator {
 
             for (uint256 i = 1; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
                     itemType: context.basicOfferSpace.itemType,
                     tokenIndex: context.basicOfferSpace.tokenIndex,
                     criteria: Criteria(0),
