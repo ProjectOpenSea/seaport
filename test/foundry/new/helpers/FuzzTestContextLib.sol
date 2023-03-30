@@ -55,6 +55,21 @@ interface TestHelpers {
             MatchComponent[] memory remainingOfferComponents,
             MatchComponent[] memory remainingConsiderationComponents
         );
+
+    function getMatchedFulfillments(
+        OrderDetails[] memory orders
+    )
+        external
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        );
+
+    function toOrderDetails(
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
+    ) external returns (OrderDetails[] memory);
 }
 
 struct FuzzTestContext {

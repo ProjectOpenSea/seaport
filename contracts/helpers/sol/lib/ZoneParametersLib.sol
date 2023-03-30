@@ -30,10 +30,8 @@ import { OrderParametersLib } from "./OrderParametersLib.sol";
 
 import { StructCopier } from "./StructCopier.sol";
 
-import {
-    OrderDetails,
-    AmountDeriverHelper
-} from "./fulfillment/AmountDeriverHelper.sol";
+import { AmountDeriverHelper } from "./fulfillment/AmountDeriverHelper.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 library ZoneParametersLib {
     using AdvancedOrderLib for AdvancedOrder;

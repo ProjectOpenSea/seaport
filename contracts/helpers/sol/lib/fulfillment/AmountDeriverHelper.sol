@@ -17,13 +17,7 @@ import "../SeaportStructLib.sol";
 
 import { OfferItemLib } from "../OfferItemLib.sol";
 import { ConsiderationItemLib } from "../ConsiderationItemLib.sol";
-
-struct OrderDetails {
-    address offerer;
-    bytes32 conduitKey;
-    SpentItem[] offer;
-    ReceivedItem[] consideration;
-}
+import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 
 /**
  * @notice Note that this contract relies on current block.timestamp to determine amounts.

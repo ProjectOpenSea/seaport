@@ -5,6 +5,7 @@ import {
     AggregatableConsideration,
     ProcessComponentParams,
     AggregatableOfferer,
+    OrderDetails,
     MatchFulfillmentStorageLayout
 } from "../lib/Structs.sol";
 import {
@@ -25,8 +26,7 @@ import { MatchFulfillmentLib } from "./MatchFulfillmentLib.sol";
 import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
 
 import {
-    AmountDeriverHelper,
-    OrderDetails
+    AmountDeriverHelper
 } from "../../lib/fulfillment/AmountDeriverHelper.sol";
 import { MatchArrays } from "../lib/MatchArrays.sol";
 

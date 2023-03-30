@@ -5,7 +5,11 @@ import {
     MatchComponent,
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
-import { FulfillmentComponent } from "../../SeaportStructs.sol";
+import {
+    FulfillmentComponent,
+    SpentItem,
+    ReceivedItem
+} from "../../SeaportStructs.sol";
 
 struct FulfillmentHelperCounterLayout {
     uint256 fulfillmentCounter;
@@ -62,4 +66,11 @@ struct ProcessComponentParams {
     uint256 offerItemIndex;
     uint256 considerationItemIndex;
     bool midCredit;
+}
+
+struct OrderDetails {
+    address offerer;
+    bytes32 conduitKey;
+    SpentItem[] offer;
+    ReceivedItem[] consideration;
 }

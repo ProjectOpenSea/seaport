@@ -2,8 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {
-    AmountDeriverHelper,
-    OrderDetails
+    AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
@@ -25,6 +24,7 @@ import {
 } from "./FulfillmentComponentSet.sol";
 
 import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 /**
  * @dev Helper contract for deriving explicit and executions from orders and

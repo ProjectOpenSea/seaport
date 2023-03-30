@@ -31,6 +31,76 @@ contract CriteriaResolverHelper {
         return _resolvableIdentifierForGivenCriteria[criteria];
     }
 
+    function deriveCriteriaResolvers(
+        AdvancedOrder[] memory orders
+    ) public view returns (CriteriaResolver[] memory criteriaResolvers) {
+        uint256 maxLength;
+
+        for (uint256 i; i < orders.length; i++) {
+            AdvancedOrder memory order = orders[i];
+            maxLength += (order.parameters.offer.length +
+                order.parameters.consideration.length);
+        }
+        criteriaResolvers = new CriteriaResolver[](maxLength);
+        uint256 index;
+
+        for (uint256 i; i < orders.length; i++) {
+            AdvancedOrder memory order = orders[i];
+
+            for (uint256 j; j < order.parameters.offer.length; j++) {
+                OfferItem memory offerItem = order.parameters.offer[j];
+                if (
+                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    CriteriaMetadata
+                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                            offerItem.identifierOrCriteria
+                        ];
+                    criteriaResolvers[index] = CriteriaResolver({
+                        orderIndex: i,
+                        index: j,
+                        side: Side.OFFER,
+                        identifier: criteriaMetadata.resolvedIdentifier,
+                        criteriaProof: criteriaMetadata.proof
+                    });
+                    index++;
+                }
+            }
+
+            for (uint256 j; j < order.parameters.consideration.length; j++) {
+                ConsiderationItem memory considerationItem = order
+                    .parameters
+                    .consideration[j];
+                if (
+                    considerationItem.itemType ==
+                    ItemType.ERC721_WITH_CRITERIA ||
+                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    CriteriaMetadata
+                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                            considerationItem.identifierOrCriteria
+                        ];
+                    criteriaResolvers[index] = CriteriaResolver({
+                        orderIndex: i,
+                        index: j,
+                        side: Side.CONSIDERATION,
+                        identifier: criteriaMetadata.resolvedIdentifier,
+                        criteriaProof: criteriaMetadata.proof
+                    });
+                    index++;
+                }
+            }
+        }
+        // update actual length
+        assembly {
+            mstore(criteriaResolvers, index)
+        }
+
+        // TODO: read from test context
+        // TODO: handle wildcard
+    }
+
     /**
      * @notice Generates a random number of random token identifiers to use as
      *         leaves in a Merkle tree, then hashes them to leaves, and finally

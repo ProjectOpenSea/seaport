@@ -8,8 +8,7 @@ import { ItemType } from "seaport-sol/SeaportEnums.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import {
-    AmountDeriverHelper,
-    OrderDetails
+    AmountDeriverHelper
 } from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
 import {
     CriteriaMetadata,

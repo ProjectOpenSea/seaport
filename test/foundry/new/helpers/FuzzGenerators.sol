@@ -251,7 +251,6 @@ library AdvancedOrdersSpaceGenerator {
         if (space.isMatchable) {
             _squareUpRemainders(orders, context);
         }
-
         // Handle combined orders (need to have at least one execution).
         if (len > 1) {
             _handleInsertIfAllEmpty(orders, context);
@@ -294,10 +293,18 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
+        CriteriaResolver[] memory resolvers = context
+            .testHelpers
+            .criteriaResolverHelper()
+            .deriveCriteriaResolvers(orders);
+        OrderDetails[] memory details = context.testHelpers.toOrderDetails(
+            orders,
+            resolvers
+        );
         // Get the remainders.
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
-            .getMatchedFulfillments(orders);
+            .getMatchedFulfillments(details);
 
         // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
