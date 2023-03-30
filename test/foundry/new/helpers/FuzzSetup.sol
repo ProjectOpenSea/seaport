@@ -17,9 +17,13 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 import {
     AmountDeriverHelper
 } from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
 import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
+
 import { ExpectedBalances } from "./ExpectedBalances.sol";
+
 import { dumpExecutions } from "./DebugUtil.sol";
 
 interface TestERC20 {
