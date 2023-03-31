@@ -5,6 +5,8 @@ import {
     AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
+import { FuzzTestContext } from "../../../../test/foundry/new/helpers/FuzzTestContextLib.sol";
+
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -18,12 +20,6 @@ import {
 
 import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
 
-import {
-    FulfillmentComponentSet,
-    FulfillmentComponentSetLib
-} from "./FulfillmentComponentSet.sol";
-
-import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
 import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 /**
@@ -33,8 +29,6 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
-    using FulfillmentComponentSetLib for FulfillmentComponentSet;
-    using FulfillmentComponentSortLib for FulfillmentComponent[];
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -59,13 +53,6 @@ contract ExecutionHelper is AmountDeriverHelper {
         bytes32 fulfillerConduitKey;
         address seaport;
     }
-
-    /**
-     * @dev Temp set of fulfillment components to track implicit
-     *      offer executions; cleared each time getFulfillAvailableExecutions is
-     *      called.
-     */
-    FulfillmentComponentSet temp;
 
     /**
      * @dev convert an array of Orders and an explicit recipient to a
@@ -93,6 +80,31 @@ contract ExecutionHelper is AmountDeriverHelper {
                 fulfiller: payable(fulfiller),
                 fulfillerConduitKey: fulfillerConduitKey,
                 seaport: seaport
+            });
+    }
+
+    function toFulfillmentDetails(
+        FuzzTestContext memory context
+    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
+
+        OrderDetails[] memory details = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
+        return
+            FulfillmentDetails({
+                orders: details,
+                recipient: payable(recipient),
+                fulfiller: payable(caller),
+                fulfillerConduitKey: context.fulfillerConduitKey,
+                seaport: address(context.seaport)
             });
     }
 
