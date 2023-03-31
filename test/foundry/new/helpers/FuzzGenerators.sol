@@ -7,7 +7,7 @@ import "seaport-sol/SeaportSol.sol";
 
 import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrdersSpace,
@@ -15,6 +15,11 @@ import {
     OfferItemSpace,
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
+
+import {
+    CriteriaResolverHelper,
+    CriteriaMetadata
+} from "./CriteriaResolverHelper.sol";
 
 import {
     Amount,
@@ -53,13 +58,14 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
  */
 library TestStateGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
+    using MatchComponentType for MatchComponent;
 
     function generate(
         uint256 totalOrders,
         uint256 maxOfferItemsPerOrder,
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
-    ) internal pure returns (AdvancedOrdersSpace memory) {
+    ) internal returns (AdvancedOrdersSpace memory) {
         context.prng.state = uint256(keccak256(msg.data));
 
         {
@@ -137,10 +143,10 @@ library TestStateGenerator {
             OfferItemSpace[] memory offer = new OfferItemSpace[](len);
             for (uint256 i; i < len; ++i) {
                 offer[i] = OfferItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(1, 3)),
-                    tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    itemType: ItemType(context.randEnum(0, 5)),
+                    tokenIndex: TokenIndex(context.randEnum(0, 1)),
+                    // TODO: support wildcard criteria, should be 0-1
+                    criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0))
                 });
@@ -187,10 +193,10 @@ library TestStateGenerator {
         if (!isBasic) {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: criteria - should be 0-5
-                    itemType: ItemType(context.randEnum(0, 3)),
+                    itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    criteria: Criteria(context.randEnum(0, 2)),
+                    // TODO: support wildcard criteria, should be 0-1
+                    criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0)),
                     recipient: Recipient(context.randEnum(0, 4))
@@ -198,11 +204,10 @@ library TestStateGenerator {
             }
         } else {
             consideration[0] = ConsiderationItemSpace({
-                // TODO: Native items + criteria - should be 0-5
                 itemType: ItemType(
                     context.basicOrderCategory == BasicOrderCategory.BID
                         ? context.randEnum(2, 3)
-                        : 1
+                        : context.randEnum(0, 1)
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
@@ -213,7 +218,6 @@ library TestStateGenerator {
 
             for (uint256 i = 1; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    // TODO: Native items + criteria - should be 0-5
                     itemType: context.basicOfferSpace.itemType,
                     tokenIndex: context.basicOfferSpace.tokenIndex,
                     criteria: Criteria(0),
@@ -253,7 +257,6 @@ library AdvancedOrdersSpaceGenerator {
         if (space.isMatchable) {
             _squareUpRemainders(orders, context);
         }
-
         // Handle combined orders (need to have at least one execution).
         if (len > 1) {
             _handleInsertIfAllEmpty(orders, context);
@@ -270,7 +273,7 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         AdvancedOrdersSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context
@@ -296,10 +299,18 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
+        CriteriaResolver[] memory resolvers = context
+            .testHelpers
+            .criteriaResolverHelper()
+            .deriveCriteriaResolvers(orders);
+        OrderDetails[] memory details = context.testHelpers.toOrderDetails(
+            orders,
+            resolvers
+        );
         // Get the remainders.
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
-            .getMatchedFulfillments(orders);
+            .getMatchedFulfillments(details);
 
         // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
@@ -382,7 +393,7 @@ library AdvancedOrdersSpaceGenerator {
     function _handleInsertIfAllEmpty(
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
         bool allEmpty = true;
 
         // Iterate over the orders and check if they have any offer or
@@ -433,7 +444,7 @@ library AdvancedOrdersSpaceGenerator {
     function _handleInsertIfAllFilterable(
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
-    ) internal view {
+    ) internal {
         bool allFilterable = true;
         address caller = context.caller == address(0)
             ? address(this)
@@ -621,7 +632,7 @@ library OrderComponentsSpaceGenerator {
     function generate(
         OrderComponentsSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OrderParameters memory) {
+    ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
             address offerer = space.offerer.generate(context);
@@ -709,7 +720,7 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace[] memory space,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OfferItem[] memory) {
+    ) internal returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
@@ -723,7 +734,7 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OfferItem memory) {
+    ) internal returns (OfferItem memory) {
         return
             OfferItemLib
                 .empty()
@@ -750,7 +761,7 @@ library ConsiderationItemSpaceGenerator {
         ConsiderationItemSpace[] memory space,
         FuzzGeneratorContext memory context,
         address offerer
-    ) internal pure returns (ConsiderationItem[] memory) {
+    ) internal returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
@@ -768,7 +779,7 @@ library ConsiderationItemSpaceGenerator {
         ConsiderationItemSpace memory space,
         FuzzGeneratorContext memory context,
         address offerer
-    ) internal pure returns (ConsiderationItem memory) {
+    ) internal returns (ConsiderationItem memory) {
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
             .withItemType(space.itemType)
@@ -926,9 +937,15 @@ library TokenIndexGenerator {
         // TODO: missing native tokens
         if (itemType == ItemType.ERC20) {
             return address(context.erc20s[i]);
-        } else if (itemType == ItemType.ERC721) {
+        } else if (
+            itemType == ItemType.ERC721 ||
+            itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return address(context.erc721s[i]);
-        } else if (itemType == ItemType.ERC1155) {
+        } else if (
+            itemType == ItemType.ERC1155 ||
+            itemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
             return address(context.erc1155s[i]);
         } else {
             revert("TokenIndexGenerator: Invalid itemType");
@@ -1004,7 +1021,10 @@ library AmountGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (OfferItem memory) {
         // Assumes ordering, might be dangerous
-        if (item.itemType == ItemType.ERC721) {
+        if (
+            item.itemType == ItemType.ERC721 ||
+            item.itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
@@ -1038,7 +1058,10 @@ library AmountGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (ConsiderationItem memory) {
         // Assumes ordering, might be dangerous
-        if (item.itemType == ItemType.ERC721) {
+        if (
+            item.itemType == ItemType.ERC721 ||
+            item.itemType == ItemType.ERC721_WITH_CRITERIA
+        ) {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
@@ -1094,12 +1117,13 @@ library CriteriaGenerator {
 
     using LibPRNG for LibPRNG.PRNG;
 
+    // TODO: bubble up OfferItems and ConsiderationItems along with CriteriaResolvers
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
         ItemType itemType,
-        Criteria /** criteria */,
+        Criteria criteria,
         FuzzGeneratorContext memory context
-    ) internal pure returns (ConsiderationItem memory) {
+    ) internal returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
@@ -1114,16 +1138,35 @@ library CriteriaGenerator {
                             context.potential1155TokenIds.length
                     ]
                 );
+            // Else, item is a criteria-based item
+        } else {
+            if (criteria == Criteria.MERKLE) {
+                // Get CriteriaResolverHelper from testHelpers
+                CriteriaResolverHelper criteriaResolverHelper = context
+                    .testHelpers
+                    .criteriaResolverHelper();
+
+                // Resolve a random tokenId from a random number of random tokenIds
+                uint256 derivedCriteria = criteriaResolverHelper
+                    .generateCriteriaMetadata(context.prng);
+                // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
+
+                // Return the item with the Merkle root of the random tokenId
+                // as criteria
+                return item.withIdentifierOrCriteria(derivedCriteria);
+            } else {
+                // Return wildcard criteria item with identifier 0
+                return item.withIdentifierOrCriteria(0);
+            }
         }
-        revert("CriteriaGenerator: invalid ItemType");
     }
 
     function withGeneratedIdentifierOrCriteria(
         OfferItem memory item,
         ItemType itemType,
-        Criteria /** criteria */,
+        Criteria criteria,
         FuzzGeneratorContext memory context
-    ) internal pure returns (OfferItem memory) {
+    ) internal returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
@@ -1138,10 +1181,40 @@ library CriteriaGenerator {
                             context.potential1155TokenIds.length
                     ]
                 );
+        } else {
+            if (criteria == Criteria.MERKLE) {
+                // Get CriteriaResolverHelper from testHelpers
+                CriteriaResolverHelper criteriaResolverHelper = context
+                    .testHelpers
+                    .criteriaResolverHelper();
+
+                // Resolve a random tokenId from a random number of random tokenIds
+                uint256 derivedCriteria = criteriaResolverHelper
+                    .generateCriteriaMetadata(context.prng);
+                // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
+
+                // Return the item with the Merkle root of the random tokenId
+                // as criteria
+                return item.withIdentifierOrCriteria(derivedCriteria);
+            } else {
+                // Return wildcard criteria item with identifier 0
+                return item.withIdentifierOrCriteria(0);
+            }
         }
-        revert("CriteriaGenerator: invalid ItemType");
     }
 }
+
+// execution lib generates fulfillments on the fly
+// generation phase geared around buidling orders
+// if some additional context needed,
+// building up crit resolver array in generation phase is more akin to fulfillments array
+// would rather we derive criteria resolvers rather than dictating what fuzz engine needs to do
+// need one more helper function to take generator context and add withCriteriaResolvers
+
+// right now, we're inserting item + order indexes whicih could get shuffled around in generation stage
+// ideally we would have mapping of merkle root => criteria resolver
+// when execution hits item w merkle root, look up root to get proof and identifier
+// add storage mapping to CriteriaResolverHelper
 
 library OffererGenerator {
     function generate(
