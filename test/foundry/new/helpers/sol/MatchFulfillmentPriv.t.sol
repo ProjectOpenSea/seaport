@@ -26,6 +26,7 @@ contract MatchFulfillmentLibTest is Test {
     using OrderParametersLib for OrderParameters;
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
+    using MatchComponentType for MatchComponent;
 
     address A;
     address B;
@@ -53,15 +54,12 @@ contract MatchFulfillmentLibTest is Test {
         // copy to dynamic array
         MatchComponent[] memory toBeSorted = new MatchComponent[](10);
         for (uint256 i = 0; i < 10; i++) {
-            MatchComponent temp = MatchComponentType.createMatchComponent(
-                amounts[i],
-                0,
-                0
-            );
+            MatchComponent memory temp = MatchComponentType
+                .createMatchComponent(amounts[i], 0, 0);
             toBeSorted[i] = temp;
         }
         // sort dynamic array in-place
-        LibSort.sort(toBeSorted.toUints());
+        MatchArrays.sortByAmount(toBeSorted);
         // copy to storage
         for (uint256 i = 0; i < 10; i++) {
             _components.push(toBeSorted[i]);
@@ -341,14 +339,16 @@ contract MatchFulfillmentLibTest is Test {
         }
     }
 
-    function assertEq(MatchComponent left, MatchComponent right) internal {
+    function assertEq(
+        MatchComponent memory left,
+        MatchComponent memory right
+    ) internal {
         FulfillmentComponent memory leftComponent = left
             .toFulfillmentComponent();
         FulfillmentComponent memory rightComponent = right
             .toFulfillmentComponent();
         assertEq(leftComponent, rightComponent, "component");
-
-        assertEq(left.getAmount(), right.getAmount(), "componentType");
+        assertEq(left.getAmount(), right.getAmount(), "amount");
     }
 
     event LogFulfillmentComponent(FulfillmentComponent);

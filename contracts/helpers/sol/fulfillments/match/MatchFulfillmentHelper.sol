@@ -216,11 +216,12 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             // grab offer item
             // TODO: spentItems?
             SpentItem memory item = offer[j];
-            MatchComponent component = MatchComponentType.createMatchComponent({
-                amount: uint240(item.amount),
-                orderIndex: uint8(orderIndex),
-                itemIndex: uint8(j)
-            });
+            MatchComponent memory component = MatchComponentType
+                .createMatchComponent({
+                    amount: uint240(item.amount),
+                    orderIndex: uint8(orderIndex),
+                    itemIndex: uint8(j)
+                });
             AggregatableOfferer
                 memory aggregatableOfferer = AggregatableOfferer({
                     offerer: offerer,
@@ -288,11 +289,12 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             // grab consideration item
             ReceivedItem memory item = consideration[j];
             // TODO: use receivedItem here?
-            MatchComponent component = MatchComponentType.createMatchComponent({
-                amount: uint240(item.amount),
-                orderIndex: uint8(orderIndex),
-                itemIndex: uint8(j)
-            });
+            MatchComponent memory component = MatchComponentType
+                .createMatchComponent({
+                    amount: uint240(item.amount),
+                    orderIndex: uint8(orderIndex),
+                    itemIndex: uint8(j)
+                });
             // create enumeration struct
             AggregatableConsideration memory token = AggregatableConsideration({
                 recipient: item.recipient,
