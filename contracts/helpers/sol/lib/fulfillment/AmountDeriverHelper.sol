@@ -24,13 +24,7 @@ import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 contract AmountDeriverHelper is AmountDeriver {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem[];
-
-    struct OrderDetails {
-        address offerer;
-        bytes32 conduitKey;
-        SpentItem[] offer;
-        ReceivedItem[] consideration;
-    }
+    using OrderParametersLib for OrderParameters;
 
     function getSpentAndReceivedItems(
         Order calldata order
@@ -115,13 +109,6 @@ contract AmountDeriverHelper is AmountDeriver {
     }
 
     function toOrderDetails(
-        AdvancedOrder[] memory orders
-    ) public view returns (OrderDetails[] memory) {
-        CriteriaResolver[] memory resolvers;
-        return toOrderDetails(orders, resolvers);
-    }
-
-    function toOrderDetails(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
     ) public view returns (OrderDetails[] memory) {
@@ -159,35 +146,48 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        parameters = applyCriteriaResolvers(
-            parameters,
-            orderIndex,
-            criteriaResolvers
-        );
+        // create a deep copy of parameters to avoid modifying the original
+        parameters = parameters.copy();
+        applyCriteriaResolvers(parameters, orderIndex, criteriaResolvers);
+
         spent = getSpentItems(parameters, numerator, denominator);
         received = getReceivedItems(parameters, numerator, denominator);
+    }
+
+    function convertCriteriaItemType(
+        ItemType itemType
+    ) internal pure returns (ItemType) {
+        if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+            return ItemType.ERC721;
+        } else if (itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            return ItemType.ERC1155;
+        } else {
+            revert("amount deriver helper resolving non criteria item type");
+        }
     }
 
     function applyCriteriaResolvers(
         OrderParameters memory parameters,
         uint256 orderIndex,
         CriteriaResolver[] memory criteriaResolvers
-    ) private pure returns (OrderParameters memory) {
+    ) private pure {
+        OfferItem[] memory offer = parameters.offer;
+        ConsiderationItem[] memory consideration = parameters.consideration;
         for (uint256 i = 0; i < criteriaResolvers.length; i++) {
             CriteriaResolver memory resolver = criteriaResolvers[i];
             if (resolver.orderIndex != orderIndex) {
                 continue;
             }
             if (resolver.side == Side.OFFER) {
-                parameters.offer[resolver.index].identifierOrCriteria = resolver
-                    .identifier;
+                OfferItem memory item = offer[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifierOrCriteria = resolver.identifier;
             } else {
-                parameters
-                    .consideration[resolver.index]
-                    .identifierOrCriteria = resolver.identifier;
+                ConsiderationItem memory item = consideration[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifierOrCriteria = resolver.identifier;
             }
         }
-        return parameters;
     }
 
     function getSpentItems(
@@ -253,6 +253,11 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime
     ) private view returns (SpentItem memory spent) {
+        require(
+            offerItem.itemType != ItemType.ERC721_WITH_CRITERIA &&
+                offerItem.itemType != ItemType.ERC1155_WITH_CRITERIA,
+            "Cannot convert a criteria  amount for criteria item type"
+        );
         spent = SpentItem({
             itemType: offerItem.itemType,
             token: offerItem.token,
@@ -272,6 +277,11 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (SpentItem memory spent) {
+        require(
+            item.itemType != ItemType.ERC721_WITH_CRITERIA &&
+                item.itemType != ItemType.ERC1155_WITH_CRITERIA,
+            "Cannot convert a criteria  amount for criteria item type"
+        );
         spent = SpentItem({
             itemType: item.itemType,
             token: item.token,
@@ -357,6 +367,11 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime
     ) private view returns (ReceivedItem memory received) {
+        require(
+            considerationItem.itemType != ItemType.ERC721_WITH_CRITERIA &&
+                considerationItem.itemType != ItemType.ERC1155_WITH_CRITERIA,
+            "Cannot convert a criteria  amount for criteria item type"
+        );
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
@@ -377,6 +392,11 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (ReceivedItem memory received) {
+        require(
+            considerationItem.itemType != ItemType.ERC721_WITH_CRITERIA &&
+                considerationItem.itemType != ItemType.ERC1155_WITH_CRITERIA,
+            "Cannot convert a criteria  amount for criteria item type"
+        );
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
