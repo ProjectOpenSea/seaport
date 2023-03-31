@@ -5,6 +5,9 @@ import {
     AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
+import { FuzzTestContext } from "../../../../test/foundry/new/helpers/FuzzTestContextLib.sol";
+import { FuzzEngineLib } from "../../../../test/foundry/new/helpers/FuzzEngineLib.sol";
+
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -18,12 +21,7 @@ import {
 
 import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
 
-import {
-    FulfillmentComponentSet,
-    FulfillmentComponentSetLib
-} from "./FulfillmentComponentSet.sol";
-
-import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
@@ -34,8 +32,8 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
-    using FulfillmentComponentSetLib for FulfillmentComponentSet;
-    using FulfillmentComponentSortLib for FulfillmentComponent[];
+    using FuzzEngineLib for FuzzTestContext;
+
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -60,13 +58,6 @@ contract ExecutionHelper is AmountDeriverHelper {
         bytes32 fulfillerConduitKey;
         address seaport;
     }
-
-    /**
-     * @dev Temp set of fulfillment components to track implicit
-     *      offer executions; cleared each time getFulfillAvailableExecutions is
-     *      called.
-     */
-    FulfillmentComponentSet temp;
 
     /**
      * @dev convert an array of Orders and an explicit recipient to a
@@ -97,32 +88,28 @@ contract ExecutionHelper is AmountDeriverHelper {
             });
     }
 
-    /**
-     * @dev convert an array of AdvancedOrders and an explicit recipient to a
-     *      FulfillmentDetails struct
-     *
-     * @param orders              array of AdvancedOrders to process
-     * @param recipient           explicit recipient if one is set
-     * @param fulfiller           the order fulfiller
-     * @param fulfillerConduitKey the conduit key
-     *
-     * @return fulfillmentDetails the fulfillment details
-     */
     function toFulfillmentDetails(
-        AdvancedOrder[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        address seaport
+        FuzzTestContext memory context
     ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders);
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
+
+        OrderDetails[] memory details = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
         return
             FulfillmentDetails({
                 orders: details,
                 recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
+                fulfiller: payable(caller),
+                fulfillerConduitKey: context.fulfillerConduitKey,
+                seaport: address(context.seaport)
             });
     }
 
@@ -147,6 +134,24 @@ contract ExecutionHelper is AmountDeriverHelper {
                 fulfillerConduitKey: fulfillerConduitKey,
                 seaport: seaport
             });
+    }
+
+    function getFulfillAvailableExecutions(
+        FuzzTestContext memory context
+    )
+        public
+        view
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutions
+        )
+    {
+        return getFulfillAvailableExecutions(
+            toFulfillmentDetails(context),
+            context.offerFulfillments,
+            context.considerationFulfillments,
+            context.getNativeTokensToSupply()
+        );
     }
 
     /**
@@ -188,6 +193,23 @@ contract ExecutionHelper is AmountDeriverHelper {
             explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied
+        );
+    }
+
+    function getMatchExecutions(
+        FuzzTestContext memory context
+    )
+        internal
+        view
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutions
+        )
+    {
+        return getMatchExecutions(
+            toFulfillmentDetails(context),
+            context.fulfillments,
+            context.getNativeTokensToSupply()
         );
     }
 
@@ -268,6 +290,28 @@ contract ExecutionHelper is AmountDeriverHelper {
         }
     }
 
+    function getStandardExecutions(
+        FuzzTestContext memory context
+    ) public view returns (
+        Execution[] memory implicitExecutions
+    ) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
+
+        return getStandardExecutions(
+            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+            caller,
+            context.fulfillerConduitKey,
+            recipient,
+            context.getNativeTokensToSupply(),
+            address(context.seaport)
+        );
+    }
+
     /**
      * @dev Return executions for fulfilOrder and fulfillAdvancedOrder.
      */
@@ -332,6 +376,22 @@ contract ExecutionHelper is AmountDeriverHelper {
                 mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
             }
         }
+    }
+
+    function getBasicExecutions(
+        FuzzTestContext memory context
+    ) public view returns (Execution[] memory implicitExecutions) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+
+        return getBasicExecutions(
+            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+            caller,
+            context.fulfillerConduitKey,
+            context.getNativeTokensToSupply(),
+            address(context.seaport)
+        );
     }
 
     /**
