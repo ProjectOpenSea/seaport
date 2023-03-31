@@ -493,7 +493,7 @@ library FuzzHelpers {
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller
-    ) internal view returns (bytes32[] memory calldataHashes) {
+    ) internal returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = new ZoneParameters[](
@@ -504,7 +504,8 @@ library FuzzHelpers {
             zoneParameters[i] = orders.getZoneParameters(
                 fulfiller,
                 orders.length,
-                seaport
+                seaport,
+                new CriteriaResolver[](0)
             )[i];
 
             // Derive the expected calldata hash for the call to validateOrder
