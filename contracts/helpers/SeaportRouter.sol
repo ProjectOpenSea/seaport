@@ -156,14 +156,18 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
                     break;
                 }
             } catch (bytes memory data) {
-                // Set initial value of first four bytes of revert data to the mask.
+                // Set initial value of first four bytes of revert data
+                // to the mask.
                 bytes4 customErrorSelector = bytes4(0xffffffff);
 
-                // Utilize assembly to read first four bytes (if present) directly.
+                // Utilize assembly to read first four bytes
+                // (if present) directly.
                 assembly {
-                    // Combine original mask with first four bytes of revert data.
+                    // Combine original mask with first four bytes of
+                    // revert data.
                     customErrorSelector := and(
-                        mload(add(data, 0x20)), // Data begins after length offset.
+                        // Data begins after length offset.
+                        mload(add(data, 0x20)),
                         customErrorSelector
                     )
                 }
