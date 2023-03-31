@@ -16,10 +16,7 @@ import {
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
 
-import {
-    CriteriaResolverHelper,
-    CriteriaMetadata
-} from "./CriteriaResolverHelper.sol";
+import { CriteriaMetadata } from "./CriteriaResolverHelper.sol";
 
 import {
     Amount,
@@ -299,18 +296,21 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
-        CriteriaResolver[] memory resolvers = context
-            .testHelpers
-            .criteriaResolverHelper()
-            .deriveCriteriaResolvers(orders);
-        OrderDetails[] memory details = context.testHelpers.toOrderDetails(
-            orders,
-            resolvers
-        );
-        // Get the remainders.
-        (, , MatchComponent[] memory remainders) = context
-            .testHelpers
-            .getMatchedFulfillments(details);
+        MatchComponent[] memory remainders;
+        {
+            CriteriaResolver[] memory resolvers = context
+                .testHelpers
+                .criteriaResolverHelper()
+                .deriveCriteriaResolvers(orders);
+            OrderDetails[] memory details = context.testHelpers.toOrderDetails(
+                orders,
+                resolvers
+            );
+            // Get the remainders.
+            (, , remainders) = context
+                .testHelpers
+                .getMatchedFulfillments(details);
+        }
 
         // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
@@ -1141,13 +1141,10 @@ library CriteriaGenerator {
             // Else, item is a criteria-based item
         } else {
             if (criteria == Criteria.MERKLE) {
-                // Get CriteriaResolverHelper from testHelpers
-                CriteriaResolverHelper criteriaResolverHelper = context
-                    .testHelpers
-                    .criteriaResolverHelper();
-
                 // Resolve a random tokenId from a random number of random tokenIds
-                uint256 derivedCriteria = criteriaResolverHelper
+                uint256 derivedCriteria = context
+                    .testHelpers
+                    .criteriaResolverHelper()
                     .generateCriteriaMetadata(context.prng);
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
@@ -1183,13 +1180,10 @@ library CriteriaGenerator {
                 );
         } else {
             if (criteria == Criteria.MERKLE) {
-                // Get CriteriaResolverHelper from testHelpers
-                CriteriaResolverHelper criteriaResolverHelper = context
-                    .testHelpers
-                    .criteriaResolverHelper();
-
                 // Resolve a random tokenId from a random number of random tokenIds
-                uint256 derivedCriteria = criteriaResolverHelper
+                uint256 derivedCriteria = context
+                    .testHelpers
+                    .criteriaResolverHelper()
                     .generateCriteriaMetadata(context.prng);
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
