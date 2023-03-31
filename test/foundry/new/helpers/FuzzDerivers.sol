@@ -85,14 +85,12 @@ abstract contract FuzzDerivers is
                     offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    uint256 identifierOrCriteria = offerItem
-                        .identifierOrCriteria;
-
-                    CriteriaMetadata
-                        memory criteriaMetadata = criteriaResolverHelper
+                    CriteriaMetadata memory criteriaMetadata = (
+                        criteriaResolverHelper
                             .resolvableIdentifierForGivenCriteria(
-                                identifierOrCriteria
-                            );
+                                offerItem.identifierOrCriteria
+                            )
+                    );
                     criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
                         orderIndex: i,
                         index: j,

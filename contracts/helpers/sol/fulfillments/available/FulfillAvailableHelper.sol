@@ -89,19 +89,22 @@ contract FulfillAvailableHelper {
             FulfillmentComponent[][] memory consideration
         )
     {
-        // get total number of offer items and consideration items
-        uint256 numOffers;
-        uint256 numConsiderations;
-        for (uint256 i = 0; i < orderParameters.length; i++) {
-            OrderParameters memory parameters = orderParameters[i];
+        {
+            // get total number of offer items and consideration items
+            uint256 numOffers;
+            uint256 numConsiderations;
+            for (uint256 i = 0; i < orderParameters.length; i++) {
+                OrderParameters memory parameters = orderParameters[i];
 
-            numOffers += parameters.offer.length;
-            numConsiderations += parameters.consideration.length;
+                numOffers += parameters.offer.length;
+                numConsiderations += parameters.consideration.length;
+            }
+
+            // create arrays
+            offer = new FulfillmentComponent[][](numOffers);
+            consideration = new FulfillmentComponent[][](numConsiderations);
         }
 
-        // create arrays
-        offer = new FulfillmentComponent[][](numOffers);
-        consideration = new FulfillmentComponent[][](numConsiderations);
         uint256 offerIndex;
         uint256 considerationIndex;
         // iterate over orders again, creating one one-element array per offer and consideration item
@@ -143,19 +146,22 @@ contract FulfillAvailableHelper {
             FulfillmentComponent[][] memory consideration
         )
     {
-        // get total number of offer items and consideration items
-        uint256 numOffers;
-        uint256 numConsiderations;
-        for (uint256 i = 0; i < orders.length; i++) {
-            OrderDetails memory order = orders[i];
+        {
+            // get total number of offer items and consideration items
+            uint256 numOffers;
+            uint256 numConsiderations;
+            for (uint256 i = 0; i < orders.length; i++) {
+                OrderDetails memory order = orders[i];
 
-            numOffers += order.offer.length;
-            numConsiderations += order.consideration.length;
+                numOffers += order.offer.length;
+                numConsiderations += order.consideration.length;
+            }
+
+            // create arrays
+            offer = new FulfillmentComponent[][](numOffers);
+            consideration = new FulfillmentComponent[][](numConsiderations);
         }
 
-        // create arrays
-        offer = new FulfillmentComponent[][](numOffers);
-        consideration = new FulfillmentComponent[][](numConsiderations);
         uint256 offerIndex;
         uint256 considerationIndex;
         // iterate over orders again, creating one one-element array per offer and consideration item
