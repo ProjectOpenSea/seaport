@@ -227,12 +227,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
         AdvancedOrder[] memory advancedOrders;
 
         // Create a block to deal with stack depth issues.
         {
+            OrderComponents memory orderComponentsOne;
+            OrderComponents memory orderComponentsTwo;
+
             // Create the offer items for the first order.
             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
                 OfferItemLib
@@ -349,12 +350,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
         AdvancedOrder[] memory advancedOrders;
 
         // Create a block to deal with stack depth issues.
         {
+            OrderComponents memory orderComponentsOne;
+            OrderComponents memory orderComponentsTwo;
+
             // Create the offer items for the first order.
             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
                 OfferItemLib
@@ -513,14 +515,15 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
         AdvancedOrder[] memory advancedOrders;
         FulfillmentComponent[][] memory offerFulfillments;
         FulfillmentComponent[][] memory considerationFulfillments;
 
         // Create a block to deal with stack depth issues.
         {
+            OrderComponents memory orderComponentsOne;
+            OrderComponents memory orderComponentsTwo;
+
             // Create the offer items for the first order.
             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
                 OfferItemLib
@@ -661,17 +664,19 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
-        OrderComponents memory orderComponentsThree;
+
         AdvancedOrder[] memory advancedOrders;
-        OfferItem[] memory offerItems;
-        ConsiderationItem[] memory considerationItems;
         FulfillmentComponent[][] memory offerFulfillments;
         FulfillmentComponent[][] memory considerationFulfillments;
 
         // Create a block to deal with stack depth issues.
         {
+            OrderComponents memory orderComponentsOne;
+            OrderComponents memory orderComponentsTwo;
+            OrderComponents memory orderComponentsThree;
+            OfferItem[] memory offerItems;
+            ConsiderationItem[] memory considerationItems;
+
             // Create the offer items for the first order.
             offerItems = SeaportArrays.OfferItems(
                 OfferItemLib
@@ -831,12 +836,13 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
 
         // Set up variables we'll use below the following block.
-        OrderComponents memory orderComponentsOne;
-        OrderComponents memory orderComponentsTwo;
         AdvancedOrder[] memory advancedOrders;
 
         // Create a block to deal with stack depth issues.
         {
+            OrderComponents memory orderComponentsOne;
+            OrderComponents memory orderComponentsTwo;
+
             // Create the offer items for the first order.
             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
                 OfferItemLib
@@ -1014,25 +1020,52 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             orders[1].toAdvancedOrder(1, 1, "")
         );
 
+        {
+            bytes32[2][] memory orderHashes = _getOrderHashes(context, orders);
+            bytes32[2][]
+                memory calldataHashes = _generateContractOrderDataHashes(
+                    context,
+                    orders
+                );
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[0].parameters.offerer
+            );
+            emit GenerateOrderDataHash(orderHashes[0][0], calldataHashes[0][0]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[1].parameters.offerer
+            );
+            emit GenerateOrderDataHash(orderHashes[1][0], calldataHashes[1][0]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[0].parameters.offerer
+            );
+            emit RatifyOrderDataHash(orderHashes[0][1], calldataHashes[0][1]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[1].parameters.offerer
+            );
+            emit RatifyOrderDataHash(orderHashes[1][1], calldataHashes[1][1]);
+        }
+
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-
-        bytes32[2][] memory orderHashes = _getOrderHashes(context, orders);
-        bytes32[2][] memory calldataHashes = _generateContractOrderDataHashes(
-            context,
-            orders
-        );
-
-        vm.expectEmit(true, false, false, true, orders[0].parameters.offerer);
-        emit GenerateOrderDataHash(orderHashes[0][0], calldataHashes[0][0]);
-
-        vm.expectEmit(true, false, false, true, orders[1].parameters.offerer);
-        emit GenerateOrderDataHash(orderHashes[1][0], calldataHashes[1][0]);
-
-        vm.expectEmit(true, false, false, true, orders[0].parameters.offerer);
-        emit RatifyOrderDataHash(orderHashes[0][1], calldataHashes[0][1]);
-
-        vm.expectEmit(true, false, false, true, orders[1].parameters.offerer);
-        emit RatifyOrderDataHash(orderHashes[1][1], calldataHashes[1][1]);
 
         context.seaport.matchAdvancedOrders(
             advancedOrders,
@@ -1128,20 +1161,24 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // set offerer2 as the expected offer recipient
         zone.setExpectedOfferRecipient(offerer2.addr);
 
-        (
-            Order[] memory orders,
-            Fulfillment[] memory fulfillments,
-            ,
-
-        ) = _buildFulfillmentDataMirrorOrdersNoConduit(context);
-
+        Fulfillment[] memory fulfillments;
         AdvancedOrder[] memory advancedOrders;
 
-        // Convert the orders to advanced orders.
-        advancedOrders = SeaportArrays.AdvancedOrders(
-            orders[0].toAdvancedOrder(1, 1, ""),
-            orders[1].toAdvancedOrder(1, 1, "")
-        );
+        {
+            Order[] memory orders;
+            (
+                orders,
+                fulfillments,
+                ,
+
+            ) = _buildFulfillmentDataMirrorOrdersNoConduit(context);
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
@@ -1169,42 +1206,72 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     function execMatchAdvancedMirrorContractOrdersWithConduitNoConduit(
         Context memory context
     ) external stateless {
-        (
-            Order[] memory orders,
-            Fulfillment[] memory fulfillments,
-            ,
+        Fulfillment[] memory fulfillments;
+        AdvancedOrder[] memory advancedOrders;
 
-        ) = _buildFulfillmentDataMirrorContractOrdersWithConduitNoConduit(
+        {
+            Order[] memory orders;
+            (
+                orders,
+                fulfillments,
+                ,
+
+            ) = _buildFulfillmentDataMirrorContractOrdersWithConduitNoConduit(
                 context
             );
 
-        AdvancedOrder[] memory advancedOrders;
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
 
-        // Convert the orders to advanced orders.
-        advancedOrders = SeaportArrays.AdvancedOrders(
-            orders[0].toAdvancedOrder(1, 1, ""),
-            orders[1].toAdvancedOrder(1, 1, "")
-        );
+        {
+            bytes32[2][] memory orderHashes = _getOrderHashes(context, orders);
+            bytes32[2][]
+                memory calldataHashes = _generateContractOrderDataHashes(
+                    context,
+                    orders
+                );
 
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[0].parameters.offerer
+            );
+            emit GenerateOrderDataHash(orderHashes[0][0], calldataHashes[0][0]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[1].parameters.offerer
+            );
+            emit GenerateOrderDataHash(orderHashes[1][0], calldataHashes[1][0]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[0].parameters.offerer
+            );
+            emit RatifyOrderDataHash(orderHashes[0][1], calldataHashes[0][1]);
+
+            vm.expectEmit(
+                true,
+                false,
+                false,
+                true,
+                orders[1].parameters.offerer
+            );
+            emit RatifyOrderDataHash(orderHashes[1][1], calldataHashes[1][1]);
+        }
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-
-        bytes32[2][] memory orderHashes = _getOrderHashes(context, orders);
-        bytes32[2][] memory calldataHashes = _generateContractOrderDataHashes(
-            context,
-            orders
-        );
-
-        vm.expectEmit(true, false, false, true, orders[0].parameters.offerer);
-        emit GenerateOrderDataHash(orderHashes[0][0], calldataHashes[0][0]);
-
-        vm.expectEmit(true, false, false, true, orders[1].parameters.offerer);
-        emit GenerateOrderDataHash(orderHashes[1][0], calldataHashes[1][0]);
-
-        vm.expectEmit(true, false, false, true, orders[0].parameters.offerer);
-        emit RatifyOrderDataHash(orderHashes[0][1], calldataHashes[0][1]);
-
-        vm.expectEmit(true, false, false, true, orders[1].parameters.offerer);
-        emit RatifyOrderDataHash(orderHashes[1][1], calldataHashes[1][1]);
 
         context.seaport.matchAdvancedOrders(
             advancedOrders,
@@ -1233,20 +1300,26 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // set offerer2 as the expected offer recipient
         zone.setExpectedOfferRecipient(offerer2.addr);
 
-        (
-            Order[] memory orders,
-            Fulfillment[] memory fulfillments,
-            ,
-
-        ) = _buildFulfillmentDataMirrorOrdersRestrictedAndUnrestricted(context);
-
+        Fulfillment[] memory fulfillments;
         AdvancedOrder[] memory advancedOrders;
 
-        // Convert the orders to advanced orders.
-        advancedOrders = SeaportArrays.AdvancedOrders(
-            orders[0].toAdvancedOrder(1, 1, ""),
-            orders[1].toAdvancedOrder(1, 1, "")
-        );
+        {
+            Order[] memory orders;
+            (
+                orders,
+                fulfillments,
+                ,
+
+            ) = _buildFulfillmentDataMirrorOrdersRestrictedAndUnrestricted(
+                context
+            );
+
+            // Convert the orders to advanced orders.
+            advancedOrders = SeaportArrays.AdvancedOrders(
+                orders[0].toAdvancedOrder(1, 1, ""),
+                orders[1].toAdvancedOrder(1, 1, "")
+            );
+        }
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
