@@ -18,15 +18,15 @@ import {
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
 import {
-    CriteriaResolver
-} from "../../../contracts/lib/ConsiderationStructs.sol";
-
-import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 import {
     TestCalldataHashContractOfferer
 } from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
+
+import {
+    CriteriaResolver
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using AdvancedOrderLib for AdvancedOrder;
@@ -1029,10 +1029,9 @@ contract FuzzEngineTest is FuzzEngine {
             denominator: 0,
             extraData: bytes("")
         });
-        CriteriaResolver[] memory resolvers;
 
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(orders, resolvers);
+            .getMatchedFulfillments(orders);
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_executionsPresent.selector;
@@ -1140,9 +1139,9 @@ contract FuzzEngineTest is FuzzEngine {
             denominator: 1,
             extraData: bytes("")
         });
-        CriteriaResolver[] memory resolvers;
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(advancedOrders, resolvers);
+            .getMatchedFulfillments(advancedOrders);
 
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_executionsPresent.selector;

@@ -17,7 +17,6 @@ import { MatchArrays } from "../lib/MatchArrays.sol";
 
 library MatchFulfillmentLib {
     using MatchComponentType for MatchComponent[];
-    using MatchComponentType for MatchComponent;
 
     /**
      * @notice Check if a token already exists in a mapping by checking the length of the array at that slot
@@ -56,10 +55,9 @@ library MatchFulfillmentLib {
         ProcessComponentParams memory params
     ) internal {
         while (params.offerItemIndex < offerComponents.length) {
-            MatchComponent
-                memory considerationComponent = considerationComponents[
-                    params.considerationItemIndex
-                ];
+            MatchComponent considerationComponent = considerationComponents[
+                params.considerationItemIndex
+            ];
 
             // if consideration has been completely credited, break to next consideration component
             if (considerationComponent.getAmount() == 0) {
@@ -85,10 +83,8 @@ library MatchFulfillmentLib {
         ProcessComponentParams memory params
     ) internal {
         // re-load components each iteration as they may have been modified
-        MatchComponent memory offerComponent = offerComponents[
-            params.offerItemIndex
-        ];
-        MatchComponent memory considerationComponent = considerationComponents[
+        MatchComponent offerComponent = offerComponents[params.offerItemIndex];
+        MatchComponent considerationComponent = considerationComponents[
             params.considerationItemIndex
         ];
 
@@ -265,7 +261,7 @@ library MatchFulfillmentLib {
         // consolidate the amounts of credited non-zero components into the
         // first component. This is what Seaport does internally when a
         // fulfillment is credited.
-        MatchComponent memory first = cachedComponents[0];
+        MatchComponent first = cachedComponents[0];
 
         // consolidate all non-zero components used in this fulfillment into the
         // first component
@@ -279,7 +275,7 @@ library MatchFulfillmentLib {
         }
         // push any remaining non-zero components back into storage
         for (uint256 i = excludeIndex; i < cachedComponents.length; ++i) {
-            MatchComponent memory component = cachedComponents[i];
+            MatchComponent component = cachedComponents[i];
             if (component.getAmount() > 0) {
                 components.push(component);
             }
@@ -293,17 +289,19 @@ library MatchFulfillmentLib {
             return components;
         }
         // sort components
-        // uint256[] memory cast = components.toUints();
-        // LibSort.sort(cast);
-        // components = MatchComponentType.fromUints(cast);
+        uint256[] memory cast = components.toUints();
+        LibSort.sort(cast);
+        components = MatchComponentType.fromUints(cast);
         // create a new array of same size; it will be truncated if necessary
-        MatchArrays.sortByIndex(components);
         dedupedComponents = new MatchComponent[](components.length);
         dedupedComponents[0] = components[0];
         uint256 dedupedIndex = 1;
         for (uint256 i = 1; i < components.length; i++) {
             // compare current component to last deduped component
-            if (!components[i].equals(dedupedComponents[dedupedIndex - 1])) {
+            if (
+                MatchComponent.unwrap(components[i]) !=
+                MatchComponent.unwrap(dedupedComponents[dedupedIndex - 1])
+            ) {
                 // if it is different, add it to the deduped array and increment the index
                 dedupedComponents[dedupedIndex] = components[i];
                 ++dedupedIndex;

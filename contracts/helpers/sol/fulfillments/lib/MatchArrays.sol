@@ -1875,7 +1875,7 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a
+        MatchComponent a
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](1);
         arr[0] = a;
@@ -1883,8 +1883,8 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b
+        MatchComponent a,
+        MatchComponent b
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](2);
         arr[0] = a;
@@ -1893,9 +1893,9 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](3);
         arr[0] = a;
@@ -1905,10 +1905,10 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](4);
         arr[0] = a;
@@ -1919,11 +1919,11 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](5);
         arr[0] = a;
@@ -1935,12 +1935,12 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e,
-        MatchComponent memory f
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e,
+        MatchComponent f
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](6);
         arr[0] = a;
@@ -1953,13 +1953,13 @@ library MatchArrays {
     }
 
     function MatchComponents(
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e,
-        MatchComponent memory f,
-        MatchComponent memory g
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e,
+        MatchComponent f,
+        MatchComponent g
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](7);
         arr[0] = a;
@@ -1974,7 +1974,7 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a
+        MatchComponent a
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -1986,8 +1986,8 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b
+        MatchComponent a,
+        MatchComponent b
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2000,9 +2000,9 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2016,10 +2016,10 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2034,11 +2034,11 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2054,12 +2054,12 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e,
-        MatchComponent memory f
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e,
+        MatchComponent f
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2076,13 +2076,13 @@ library MatchArrays {
 
     function MatchComponentsWithMaxLength(
         uint256 maxLength,
-        MatchComponent memory a,
-        MatchComponent memory b,
-        MatchComponent memory c,
-        MatchComponent memory d,
-        MatchComponent memory e,
-        MatchComponent memory f,
-        MatchComponent memory g
+        MatchComponent a,
+        MatchComponent b,
+        MatchComponent c,
+        MatchComponent d,
+        MatchComponent e,
+        MatchComponent f,
+        MatchComponent g
     ) internal pure returns (MatchComponent[] memory) {
         MatchComponent[] memory arr = new MatchComponent[](maxLength);
         assembly {
@@ -2162,7 +2162,7 @@ library MatchArrays {
 
     function append(
         MatchComponent[] memory arr,
-        MatchComponent memory value
+        MatchComponent value
     ) internal pure returns (MatchComponent[] memory newArr) {
         uint256 length = arr.length;
         newArr = new MatchComponent[](length + 1);
@@ -2177,7 +2177,7 @@ library MatchArrays {
 
     function appendUnsafe(
         MatchComponent[] memory arr,
-        MatchComponent memory value
+        MatchComponent value
     ) internal pure returns (MatchComponent[] memory modifiedArr) {
         uint256 length = arr.length;
         modifiedArr = arr;
@@ -2236,7 +2236,7 @@ library MatchArrays {
 
     function pop(
         MatchComponent[] memory arr
-    ) internal pure returns (MatchComponent memory value) {
+    ) internal pure returns (MatchComponent value) {
         assembly {
             let length := mload(arr)
             returndatacopy(returndatasize(), returndatasize(), iszero(length))
@@ -2247,7 +2247,7 @@ library MatchArrays {
 
     function popUnsafe(
         MatchComponent[] memory arr
-    ) internal pure returns (MatchComponent memory value) {
+    ) internal pure returns (MatchComponent value) {
         // This function is unsafe because it does not check if the array is empty.
         assembly {
             let length := mload(arr)
@@ -2261,7 +2261,7 @@ library MatchArrays {
     )
         internal
         pure
-        returns (MatchComponent[] memory newArr, MatchComponent memory value)
+        returns (MatchComponent[] memory newArr, MatchComponent value)
     {
         assembly {
             let length := mload(arr)
@@ -2277,7 +2277,7 @@ library MatchArrays {
     )
         internal
         pure
-        returns (MatchComponent[] memory newArr, MatchComponent memory value)
+        returns (MatchComponent[] memory newArr, MatchComponent value)
     {
         // This function is unsafe because it does not check if the array is empty.
         assembly {
@@ -2933,102 +2933,6 @@ library MatchArrays {
         arr = new int[](length);
         assembly {
             mstore(arr, 0)
-        }
-    }
-
-    function amountKey(
-        MatchComponent memory component
-    ) internal pure returns (uint256) {
-        return component.amount;
-    }
-
-    function indexKey(MatchComponent memory component) internal pure returns (uint256) {
-        return (component.orderIndex << 8) | component.itemIndex;
-    }
-
-    function sortByAmount(MatchComponent[] memory components) internal pure {
-        sort(components, amountKey);
-    }
-
-    function sortByIndex(MatchComponent[] memory components) internal pure {
-        sort(components,indexKey);
-    }
-
-    // Sorts the array in-place with intro-quicksort.
-    function sort(
-        MatchComponent[] memory a,
-        function(MatchComponent memory) internal pure returns (uint256) accessor
-    ) internal pure {
-        if (a.length < 2) {
-            return;
-        }
-
-        uint256[] memory stack = new uint256[](2 * a.length);
-        uint256 stackIndex = 0;
-
-        uint256 l = 0;
-        uint256 h = a.length - 1;
-
-        stack[stackIndex++] = l;
-        stack[stackIndex++] = h;
-
-        while (stackIndex > 0) {
-            h = stack[--stackIndex];
-            l = stack[--stackIndex];
-
-            if (h - l <= 12) {
-                // Insertion sort for small subarrays
-                for (uint256 i = l + 1; i <= h; i++) {
-                    MatchComponent memory k = a[i];
-                    uint256 j = i;
-                    while (j > l && accessor(a[j - 1]) > accessor(k)) {
-                        a[j] = a[j - 1];
-                        j--;
-                    }
-                    a[j] = k;
-                }
-            } else {
-                // Intro-Quicksort
-                uint256 p = (l + h) / 2;
-
-                // Median of 3
-                if (accessor(a[l]) > accessor(a[p])) {
-                    (a[l], a[p]) = (a[p], a[l]);
-                }
-                if (accessor(a[l]) > accessor(a[h])) {
-                    (a[l], a[h]) = (a[h], a[l]);
-                }
-                if (accessor(a[p]) > accessor(a[h])) {
-                    (a[p], a[h]) = (a[h], a[p]);
-                }
-
-                uint256 pivot = accessor(a[p]);
-                uint256 i = l;
-                uint256 j = h;
-
-                while (i <= j) {
-                    while (accessor(a[i]) < pivot) {
-                        i++;
-                    }
-                    while (accessor(a[j]) > pivot) {
-                        j--;
-                    }
-                    if (i <= j) {
-                        (a[i], a[j]) = (a[j], a[i]);
-                        i++;
-                        j--;
-                    }
-                }
-
-                if (j > l) {
-                    stack[stackIndex++] = l;
-                    stack[stackIndex++] = j;
-                }
-                if (i < h) {
-                    stack[stackIndex++] = i;
-                    stack[stackIndex++] = h;
-                }
-            }
         }
     }
 }
