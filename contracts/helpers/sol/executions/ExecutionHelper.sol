@@ -6,6 +6,7 @@ import {
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
 import { FuzzTestContext } from "../../../../test/foundry/new/helpers/FuzzTestContextLib.sol";
+import { FuzzEngineLib } from "../../../../test/foundry/new/helpers/FuzzEngineLib.sol";
 
 import {
     AdvancedOrder,
@@ -29,6 +30,8 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
+    using FuzzEngineLib for FuzzTestContext;
+
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -252,7 +255,7 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     function getStandardExecutions(
         FuzzTestContext memory context
-    ) public pure returns (
+    ) public view returns (
         Execution[] memory implicitExecutions
     ) {
         address caller = context.caller == address(0)
@@ -340,7 +343,7 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     function getBasicExecutions(
         FuzzTestContext memory context
-    ) public pure returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
