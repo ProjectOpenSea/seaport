@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {
     AdvancedOrder,
     ConsiderationItem,
+    CriteriaResolver,
     OfferItem,
     Order,
     OrderComponents,
