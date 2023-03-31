@@ -237,6 +237,7 @@ library AdvancedOrdersSpaceGenerator {
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
+    using MatchComponentType for MatchComponent;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -304,7 +305,7 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < remainders.length; ++i) {
             // Unpack the remainder from the MatchComponent into its
             // constituent parts.
-            (uint240 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
+            (uint256 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
                 .unpack();
 
             // Get the consideration item with the remainder.
