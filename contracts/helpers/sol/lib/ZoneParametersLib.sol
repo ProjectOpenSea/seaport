@@ -52,43 +52,11 @@ library ZoneParametersLib {
         // Get orderParameters from advancedOrder
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
-        // Get orderComponents from orderParameters
-        OrderComponents memory orderComponents = OrderComponents({
-            offerer: orderParameters.offerer,
-            zone: orderParameters.zone,
-            offer: orderParameters.offer,
-            consideration: orderParameters.consideration,
-            orderType: orderParameters.orderType,
-            startTime: orderParameters.startTime,
-            endTime: orderParameters.endTime,
-            zoneHash: orderParameters.zoneHash,
-            salt: orderParameters.salt,
-            conduitKey: orderParameters.conduitKey,
-            counter: counter
-        });
-
-        uint256 lengthWithTips = orderComponents.consideration.length;
-
-        ConsiderationItem[] memory considerationSansTips = (
-            orderComponents.consideration
+        // Get orderHash
+        bytes32 orderHash = getTipNeutralizedOrderHash(
+            advancedOrder,
+            seaportInterface
         );
-
-        uint256 lengthSansTips = (
-            orderParameters.totalOriginalConsiderationItems
-        );
-
-        // set proper length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthSansTips)
-        }
-
-        // Get orderHash from orderComponents
-        bytes32 orderHash = seaportInterface.getOrderHash(orderComponents);
-
-        // restore length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthWithTips)
-        }
 
         // Create spentItems array
         SpentItem[] memory spentItems = new SpentItem[](
@@ -138,94 +106,115 @@ library ZoneParametersLib {
         address seaport,
         CriteriaResolver[] memory criteriaResolvers
     ) internal returns (ZoneParameters[] memory zoneParameters) {
+        // TODO: use testHelpers pattern to use single amount deriver helper
+        OrderDetails[] memory orderDetails = (new AmountDeriverHelper())
+            .toOrderDetails(advancedOrders, criteriaResolvers);
+
         bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
-        CriteriaResolver[] memory _resolvers = criteriaResolvers;
+
         // Iterate over advanced orders to calculate orderHashes
         for (uint256 i = 0; i < advancedOrders.length; i++) {
-            // Get orderParameters from advancedOrder
-            OrderParameters memory orderParameters = advancedOrders[i]
-                .parameters;
-
-            // Get orderComponents from orderParameters
-            OrderComponents memory orderComponents = OrderComponents({
-                offerer: orderParameters.offerer,
-                zone: orderParameters.zone,
-                offer: orderParameters.offer,
-                consideration: orderParameters.consideration,
-                orderType: orderParameters.orderType,
-                startTime: orderParameters.startTime,
-                endTime: orderParameters.endTime,
-                zoneHash: orderParameters.zoneHash,
-                salt: orderParameters.salt,
-                conduitKey: orderParameters.conduitKey,
-                counter: SeaportInterface(seaport).getCounter(
-                    orderParameters.offerer
-                )
-            });
-
-            uint256 lengthWithTips = orderComponents.consideration.length;
-
-            ConsiderationItem[] memory considerationSansTips = (
-                orderComponents.consideration
-            );
-
-            uint256 lengthSansTips = (
-                orderParameters.totalOriginalConsiderationItems
-            );
-
-            // set proper length of the considerationSansTips array.
-            assembly {
-                mstore(considerationSansTips, lengthSansTips)
-            }
-
             if (i >= maximumFulfilled) {
                 // Set orderHash to 0 if order index exceeds maximumFulfilled
                 orderHashes[i] = bytes32(0);
             } else {
-                // Get orderHash from orderComponents
-                bytes32 orderHash = SeaportInterface(seaport).getOrderHash(
-                    orderComponents
-                );
-
                 // Add orderHash to orderHashes
-                orderHashes[i] = orderHash;
-            }
-
-            // restore length of the considerationSansTips array.
-            assembly {
-                mstore(considerationSansTips, lengthWithTips)
+                orderHashes[i] = getTipNeutralizedOrderHash(
+                    advancedOrders[i],
+                    SeaportInterface(seaport)
+                );
             }
         }
 
         zoneParameters = new ZoneParameters[](maximumFulfilled);
 
-        // TODO: use testHelpers pattern to use single amount deriver helper
-        OrderDetails[] memory orderDetails = (new AmountDeriverHelper())
-            .toOrderDetails(advancedOrders, _resolvers);
         // Iterate through advanced orders to create zoneParameters
         for (uint i = 0; i < advancedOrders.length; i++) {
             if (i >= maximumFulfilled) {
                 break;
             }
-            // Get orderParameters from advancedOrder
-            OrderParameters memory orderParameters = advancedOrders[i]
-                .parameters;
 
             // Create ZoneParameters and add to zoneParameters array
-            zoneParameters[i] = ZoneParameters({
-                orderHash: orderHashes[i],
-                fulfiller: fulfiller,
-                offerer: orderParameters.offerer,
-                offer: orderDetails[i].offer,
-                consideration: orderDetails[i].consideration,
-                extraData: advancedOrders[i].extraData,
-                orderHashes: orderHashes,
-                startTime: orderParameters.startTime,
-                endTime: orderParameters.endTime,
-                zoneHash: orderParameters.zoneHash
-            });
+            zoneParameters[i] = _createZoneParameters(
+                orderHashes[i],
+                orderDetails[i],
+                advancedOrders[i],
+                fulfiller,
+                orderHashes
+            );
         }
 
         return zoneParameters;
+    }
+
+    function _createZoneParameters(
+        bytes32 orderHash,
+        OrderDetails memory orderDetails,
+        AdvancedOrder memory advancedOrder,
+        address fulfiller,
+        bytes32[] memory orderHashes
+    ) internal returns (ZoneParameters memory) {
+        return ZoneParameters({
+            orderHash: orderHash,
+            fulfiller: fulfiller,
+            offerer: advancedOrder.parameters.offerer,
+            offer: orderDetails.offer,
+            consideration: orderDetails.consideration,
+            extraData: advancedOrder.extraData,
+            orderHashes: orderHashes,
+            startTime: advancedOrder.parameters.startTime,
+            endTime: advancedOrder.parameters.endTime,
+            zoneHash: advancedOrder.parameters.zoneHash
+        });
+    }
+
+    function getTipNeutralizedOrderHash(
+        AdvancedOrder memory order,
+        SeaportInterface seaport
+    ) internal view returns (bytes32 orderHash) {
+        OrderParameters memory orderParameters = order.parameters;
+
+        // Get orderComponents from orderParameters.
+        OrderComponents memory components = OrderComponents({
+            offerer: orderParameters.offerer,
+            zone: orderParameters.zone,
+            offer: orderParameters.offer,
+            consideration: orderParameters.consideration,
+            orderType: orderParameters.orderType,
+            startTime: orderParameters.startTime,
+            endTime: orderParameters.endTime,
+            zoneHash: orderParameters.zoneHash,
+            salt: orderParameters.salt,
+            conduitKey: orderParameters.conduitKey,
+            counter: seaport.getCounter(orderParameters.offerer)
+        });
+
+        // Get the length of the consideration array (which might have
+        // additional consideration items set as tips).
+        uint256 lengthWithTips = components.consideration.length;
+
+        // Get the length of the consideration array without tips, which is
+        // stored in the totalOriginalConsiderationItems field.
+        uint256 lengthSansTips = (
+            orderParameters.totalOriginalConsiderationItems
+        );
+
+        // Get a reference to the consideration array.
+        ConsiderationItem[] memory considerationSansTips = (
+            components.consideration
+        );
+
+        // Set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
+        // Get the orderHash using the tweaked OrderComponents.
+        orderHash = seaport.getOrderHash(components);
+
+        // Restore the length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthWithTips)
+        }
     }
 }
