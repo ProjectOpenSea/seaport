@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
+
 import {
     AdvancedOrder,
     ConsiderationItem,
@@ -40,6 +42,22 @@ library ZoneParametersLib {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
+
+    struct ZoneParametersStruct {
+        AdvancedOrder[] advancedOrders;
+        address fulfiller;
+        uint256 maximumFulfilled;
+        address seaport;
+        CriteriaResolver[] criteriaResolvers;
+    }
+
+    struct ZoneDetails {
+        AdvancedOrder[] advancedOrders;
+        address fulfiller;
+        uint256 maximumFulfilled;
+        OrderDetails[] orderDetails;
+        bytes32[] orderHashes;
+    }
 
     function getZoneParameters(
         AdvancedOrder memory advancedOrder,
@@ -105,42 +123,446 @@ library ZoneParametersLib {
         uint256 maximumFulfilled,
         address seaport,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (ZoneParameters[] memory zoneParameters) {
-        // TODO: use testHelpers pattern to use single amount deriver helper
-        OrderDetails[] memory orderDetails = (new AmountDeriverHelper())
-            .toOrderDetails(advancedOrders, criteriaResolvers);
+    ) internal returns (ZoneParameters[] memory) {
+        return
+            _getZoneParametersFromStruct(
+                _getZoneParametersStruct(
+                    advancedOrders,
+                    fulfiller,
+                    maximumFulfilled,
+                    seaport,
+                    criteriaResolvers
+                )
+            );
+    }
 
-        bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
+    function _getZoneParametersStruct(
+        AdvancedOrder[] memory advancedOrders,
+        address fulfiller,
+        uint256 maximumFulfilled,
+        address seaport,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal returns (ZoneParametersStruct memory) {
+        return
+            ZoneParametersStruct(
+                advancedOrders,
+                fulfiller,
+                maximumFulfilled,
+                seaport,
+                criteriaResolvers
+            );
+    }
+
+    function _getZoneParametersFromStruct(
+        ZoneParametersStruct memory zoneParametersStruct
+    ) internal returns (ZoneParameters[] memory) {
+        // TODO: use testHelpers pattern to use single amount deriver helper
+        ZoneDetails memory details = _getZoneDetails(zoneParametersStruct);
+
+        // Convert offer + consideration to spent + received
+        _applyOrderDetails(details, zoneParametersStruct);
 
         // Iterate over advanced orders to calculate orderHashes
-        for (uint256 i = 0; i < advancedOrders.length; i++) {
-            if (i >= maximumFulfilled) {
+        _applyOrderHashes(details, zoneParametersStruct.seaport);
+
+        return _finalizeZoneParameters(details);
+    }
+
+    function _getZoneDetails(
+        ZoneParametersStruct memory zoneParametersStruct
+    ) internal returns (ZoneDetails memory) {
+        return
+            ZoneDetails({
+                advancedOrders: zoneParametersStruct.advancedOrders,
+                fulfiller: zoneParametersStruct.fulfiller,
+                maximumFulfilled: zoneParametersStruct.maximumFulfilled,
+                orderDetails: new OrderDetails[](
+                    zoneParametersStruct.advancedOrders.length
+                ),
+                orderHashes: new bytes32[](
+                    zoneParametersStruct.advancedOrders.length
+                )
+            });
+    }
+
+    function _applyOrderDetails(
+        ZoneDetails memory details,
+        ZoneParametersStruct memory zoneParametersStruct
+    ) internal {
+        details.orderDetails = _getOrderDetails(
+            zoneParametersStruct.advancedOrders,
+            zoneParametersStruct.criteriaResolvers
+        );
+    }
+
+    function _applyOrderHashes(
+        ZoneDetails memory details,
+        address seaport
+    ) internal {
+        // Iterate over advanced orders to calculate orderHashes
+        for (uint256 i = 0; i < details.advancedOrders.length; i++) {
+            if (i >= details.maximumFulfilled) {
                 // Set orderHash to 0 if order index exceeds maximumFulfilled
-                orderHashes[i] = bytes32(0);
+                details.orderHashes[i] = bytes32(0);
             } else {
                 // Add orderHash to orderHashes
-                orderHashes[i] = getTipNeutralizedOrderHash(
-                    advancedOrders[i],
+                details.orderHashes[i] = getTipNeutralizedOrderHash(
+                    details.advancedOrders[i],
                     SeaportInterface(seaport)
                 );
             }
         }
+    }
 
-        zoneParameters = new ZoneParameters[](maximumFulfilled);
+    function _getOrderDetails(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal returns (OrderDetails[] memory) {
+        OrderDetails[] memory orderDetails = new OrderDetails[](
+            advancedOrders.length
+        );
+        for (uint256 i = 0; i < advancedOrders.length; i++) {
+            orderDetails[i] = toOrderDetails(
+                advancedOrders[i],
+                i,
+                criteriaResolvers
+            );
+        }
+        return orderDetails;
+    }
+
+    function toOrderDetails(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        CriteriaResolver[] memory resolvers
+    ) internal view returns (OrderDetails memory) {
+        (
+            SpentItem[] memory offer,
+            ReceivedItem[] memory consideration
+        ) = getSpentAndReceivedItems(
+                order.parameters,
+                order.numerator,
+                order.denominator,
+                orderIndex,
+                resolvers
+            );
+        return
+            OrderDetails({
+                offerer: order.parameters.offerer,
+                conduitKey: order.parameters.conduitKey,
+                offer: offer,
+                consideration: consideration
+            });
+    }
+
+    function getSpentAndReceivedItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
+    )
+        private
+        view
+        returns (SpentItem[] memory spent, ReceivedItem[] memory received)
+    {
+        spent = getSpentItems(parameters, numerator, denominator);
+        received = getReceivedItems(parameters, numerator, denominator);
+
+        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+    }
+
+    function applyCriteriaResolvers(
+        SpentItem[] memory spentItems,
+        ReceivedItem[] memory receivedItems,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
+    ) private pure {
+        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
+            CriteriaResolver memory resolver = criteriaResolvers[i];
+            if (resolver.orderIndex != orderIndex) {
+                continue;
+            }
+            if (resolver.side == Side.OFFER) {
+                SpentItem memory item = spentItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
+            } else {
+                ReceivedItem memory item = receivedItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
+            }
+        }
+    }
+
+    function convertCriteriaItemType(
+        ItemType itemType
+    ) internal pure returns (ItemType) {
+        if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+            return ItemType.ERC721;
+        } else if (itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            return ItemType.ERC1155;
+        } else {
+            revert(
+                "ZoneParametersLib: amount deriver helper resolving non criteria item type"
+            );
+        }
+    }
+
+    function getSpentItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem[] memory) {
+        return
+            getSpentItems(
+                parameters.offer,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
+    }
+
+    function getReceivedItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem[] memory) {
+        return
+            getReceivedItems(
+                parameters.consideration,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
+    }
+
+    function getSpentItems(
+        OfferItem[] memory items,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = getSpentItem(
+                items[i],
+                startTime,
+                endTime,
+                numerator,
+                denominator
+            );
+        }
+        return spentItems;
+    }
+
+    function getReceivedItems(
+        ConsiderationItem[] memory considerationItems,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem[] memory) {
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            considerationItems.length
+        );
+        for (uint256 i = 0; i < considerationItems.length; i++) {
+            receivedItems[i] = getReceivedItem(
+                considerationItems[i],
+                startTime,
+                endTime,
+                numerator,
+                denominator
+            );
+        }
+        return receivedItems;
+    }
+
+    function getSpentItem(
+        OfferItem memory item,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem memory spent) {
+        spent = SpentItem({
+            itemType: item.itemType,
+            token: item.token,
+            identifier: item.identifierOrCriteria,
+            amount: _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: false
+            })
+        });
+    }
+
+    function getReceivedItem(
+        ConsiderationItem memory considerationItem,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem memory received) {
+        received = ReceivedItem({
+            itemType: considerationItem.itemType,
+            token: considerationItem.token,
+            identifier: considerationItem.identifierOrCriteria,
+            amount: _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: considerationItem.startAmount,
+                endAmount: considerationItem.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: true
+            }),
+            recipient: considerationItem.recipient
+        });
+    }
+
+    function _applyFraction(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 startTime,
+        uint256 endTime,
+        bool roundUp
+    ) internal view returns (uint256 amount) {
+        // If start amount equals end amount, apply fraction to end amount.
+        if (startAmount == endAmount) {
+            // Apply fraction to end amount.
+            amount = _getFraction(numerator, denominator, endAmount);
+        } else {
+            // Otherwise, apply fraction to both and interpolated final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(numerator, denominator, startAmount),
+                _getFraction(numerator, denominator, endAmount),
+                startTime,
+                endTime,
+                roundUp
+            );
+        }
+    }
+
+    function _getFraction(
+        uint256 numerator,
+        uint256 denominator,
+        uint256 value
+    ) internal pure returns (uint256 newValue) {
+        // Return value early in cases where the fraction resolves to 1.
+        if (numerator == denominator) {
+            return value;
+        }
+
+        bool failure = false;
+
+        // Ensure fraction can be applied to the value with no remainder. Note
+        // that the denominator cannot be zero.
+        assembly {
+            // Ensure new value contains no remainder via mulmod operator.
+            // Credit to @hrkrshnn + @axic for proposing this optimal solution.
+            if mulmod(value, numerator, denominator) {
+                failure := true
+            }
+        }
+
+        if (failure) {
+            revert("ZoneParametersLib: bad fraction");
+        }
+
+        // Multiply the numerator by the value and ensure no overflow occurs.
+        uint256 valueTimesNumerator = value * numerator;
+
+        // Divide and check for remainder. Note that denominator cannot be zero.
+        assembly {
+            // Perform division without zero check.
+            newValue := div(valueTimesNumerator, denominator)
+        }
+    }
+
+    function _locateCurrentAmount(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 startTime,
+        uint256 endTime,
+        bool roundUp
+    ) internal view returns (uint256 amount) {
+        // Only modify end amount if it doesn't already equal start amount.
+        if (startAmount != endAmount) {
+            // Declare variables to derive in the subsequent unchecked scope.
+            uint256 duration;
+            uint256 elapsed;
+            uint256 remaining;
+
+            // Skip underflow checks as startTime <= block.timestamp < endTime.
+            unchecked {
+                // Derive the duration for the order and place it on the stack.
+                duration = endTime - startTime;
+
+                // Derive time elapsed since the order started & place on stack.
+                elapsed = block.timestamp - startTime;
+
+                // Derive time remaining until order expires and place on stack.
+                remaining = duration - elapsed;
+            }
+
+            // Aggregate new amounts weighted by time with rounding factor.
+            uint256 totalBeforeDivision = ((startAmount * remaining) +
+                (endAmount * elapsed));
+
+            // Use assembly to combine operations and skip divide-by-zero check.
+            assembly {
+                // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
+                // amount is set to zero if totalBeforeDivision is zero,
+                // as intermediate overflow can occur if it is zero.
+                amount := mul(
+                    iszero(iszero(totalBeforeDivision)),
+                    // Subtract 1 from the numerator and add 1 to the result if
+                    // roundUp is true to get the proper rounding direction.
+                    // Division is performed with no zero check as duration
+                    // cannot be zero as long as startTime < endTime.
+                    add(
+                        div(sub(totalBeforeDivision, roundUp), duration),
+                        roundUp
+                    )
+                )
+            }
+
+            // Return the current amount.
+            return amount;
+        }
+
+        // Return the original amount as startAmount == endAmount.
+        return endAmount;
+    }
+
+    function _finalizeZoneParameters(
+        ZoneDetails memory zoneDetails
+    ) internal returns (ZoneParameters[] memory zoneParameters) {
+        zoneParameters = new ZoneParameters[](zoneDetails.maximumFulfilled);
 
         // Iterate through advanced orders to create zoneParameters
-        for (uint i = 0; i < advancedOrders.length; i++) {
-            if (i >= maximumFulfilled) {
+        for (uint i = 0; i < zoneDetails.advancedOrders.length; i++) {
+            if (i >= zoneDetails.maximumFulfilled) {
                 break;
             }
 
             // Create ZoneParameters and add to zoneParameters array
             zoneParameters[i] = _createZoneParameters(
-                orderHashes[i],
-                orderDetails[i],
-                advancedOrders[i],
-                fulfiller,
-                orderHashes
+                zoneDetails.orderHashes[i],
+                zoneDetails.orderDetails[i],
+                zoneDetails.advancedOrders[i],
+                zoneDetails.fulfiller,
+                zoneDetails.orderHashes
             );
         }
 
@@ -154,39 +576,38 @@ library ZoneParametersLib {
         address fulfiller,
         bytes32[] memory orderHashes
     ) internal returns (ZoneParameters memory) {
-        return ZoneParameters({
-            orderHash: orderHash,
-            fulfiller: fulfiller,
-            offerer: advancedOrder.parameters.offerer,
-            offer: orderDetails.offer,
-            consideration: orderDetails.consideration,
-            extraData: advancedOrder.extraData,
-            orderHashes: orderHashes,
-            startTime: advancedOrder.parameters.startTime,
-            endTime: advancedOrder.parameters.endTime,
-            zoneHash: advancedOrder.parameters.zoneHash
-        });
+        return
+            ZoneParameters({
+                orderHash: orderHash,
+                fulfiller: fulfiller,
+                offerer: advancedOrder.parameters.offerer,
+                offer: orderDetails.offer,
+                consideration: orderDetails.consideration,
+                extraData: advancedOrder.extraData,
+                orderHashes: orderHashes,
+                startTime: advancedOrder.parameters.startTime,
+                endTime: advancedOrder.parameters.endTime,
+                zoneHash: advancedOrder.parameters.zoneHash
+            });
     }
 
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
         SeaportInterface seaport
     ) internal view returns (bytes32 orderHash) {
-        OrderParameters memory orderParameters = order.parameters;
-
         // Get orderComponents from orderParameters.
         OrderComponents memory components = OrderComponents({
-            offerer: orderParameters.offerer,
-            zone: orderParameters.zone,
-            offer: orderParameters.offer,
-            consideration: orderParameters.consideration,
-            orderType: orderParameters.orderType,
-            startTime: orderParameters.startTime,
-            endTime: orderParameters.endTime,
-            zoneHash: orderParameters.zoneHash,
-            salt: orderParameters.salt,
-            conduitKey: orderParameters.conduitKey,
-            counter: seaport.getCounter(orderParameters.offerer)
+            offerer: order.parameters.offerer,
+            zone: order.parameters.zone,
+            offer: order.parameters.offer,
+            consideration: order.parameters.consideration,
+            orderType: order.parameters.orderType,
+            startTime: order.parameters.startTime,
+            endTime: order.parameters.endTime,
+            zoneHash: order.parameters.zoneHash,
+            salt: order.parameters.salt,
+            conduitKey: order.parameters.conduitKey,
+            counter: seaport.getCounter(order.parameters.offerer)
         });
 
         // Get the length of the consideration array (which might have
@@ -196,7 +617,7 @@ library ZoneParametersLib {
         // Get the length of the consideration array without tips, which is
         // stored in the totalOriginalConsiderationItems field.
         uint256 lengthSansTips = (
-            orderParameters.totalOriginalConsiderationItems
+            order.parameters.totalOriginalConsiderationItems
         );
 
         // Get a reference to the consideration array.
