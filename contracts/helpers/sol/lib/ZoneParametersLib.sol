@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {
     AdvancedOrder,
     ConsiderationItem,
+    CriteriaResolver,
     OfferItem,
     Order,
     OrderComponents,
@@ -28,6 +29,9 @@ import { ReceivedItemLib } from "./ReceivedItemLib.sol";
 import { OrderParametersLib } from "./OrderParametersLib.sol";
 
 import { StructCopier } from "./StructCopier.sol";
+
+import { AmountDeriverHelper } from "./fulfillment/AmountDeriverHelper.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 library ZoneParametersLib {
     using AdvancedOrderLib for AdvancedOrder;

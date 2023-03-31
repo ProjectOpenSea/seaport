@@ -12,8 +12,11 @@ import {
     ReceivedItem,
     CriteriaResolver
 } from "../../../../lib/ConsiderationStructs.sol";
-import { Side } from "../../../../lib/ConsiderationEnums.sol";
-import "../SeaportStructLib.sol";
+import { Side, ItemType } from "../../../../lib/ConsiderationEnums.sol";
+import { OfferItemLib } from "../OfferItemLib.sol";
+import { ConsiderationItemLib } from "../ConsiderationItemLib.sol";
+import { OrderParametersLib } from "../OrderParametersLib.sol";
+import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 
 /**
  * @notice Note that this contract relies on current block.timestamp to determine amounts.

@@ -5,6 +5,7 @@ import "./SeaportStructs.sol";
 import "./SeaportEnums.sol";
 import "./lib/SeaportStructLib.sol";
 import "./lib/SeaportEnumsLib.sol";
+import "./fulfillments/lib/Structs.sol";
 import { SeaportArrays } from "./lib/SeaportArrays.sol";
 import { SeaportInterface } from "./SeaportInterface.sol";
 import {

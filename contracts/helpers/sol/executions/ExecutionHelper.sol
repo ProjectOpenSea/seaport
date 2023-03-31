@@ -25,6 +25,8 @@ import {
 
 import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
 
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
+
 /**
  * @dev Helper contract for deriving explicit and executions from orders and
  *      fulfillment details
