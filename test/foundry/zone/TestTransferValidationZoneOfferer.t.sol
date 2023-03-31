@@ -233,7 +233,6 @@
 //         {
 //             OrderComponents memory orderComponentsOne;
 //             OrderComponents memory orderComponentsTwo;
-
 //             // Create the offer items for the first order.
 //             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
 //                 OfferItemLib
@@ -356,7 +355,6 @@
 //         {
 //             OrderComponents memory orderComponentsOne;
 //             OrderComponents memory orderComponentsTwo;
-
 //             // Create the offer items for the first order.
 //             OfferItem[] memory offerItemsOne = SeaportArrays.OfferItems(
 //                 OfferItemLib
