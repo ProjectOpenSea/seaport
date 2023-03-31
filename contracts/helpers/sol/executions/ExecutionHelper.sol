@@ -5,9 +5,6 @@ import {
     AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
-import { FuzzTestContext } from "../../../../test/foundry/new/helpers/FuzzTestContextLib.sol";
-import { FuzzEngineLib } from "../../../../test/foundry/new/helpers/FuzzEngineLib.sol";
-
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -30,8 +27,6 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
-    using FuzzEngineLib for FuzzTestContext;
-
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -86,31 +81,6 @@ contract ExecutionHelper is AmountDeriverHelper {
             });
     }
 
-    function toFulfillmentDetails(
-        FuzzTestContext memory context
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        address caller = context.caller == address(0)
-            ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
-            ? caller
-            : context.recipient;
-
-        OrderDetails[] memory details = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(caller),
-                fulfillerConduitKey: context.fulfillerConduitKey,
-                seaport: address(context.seaport)
-            });
-    }
-
     /**
      * @dev convert an array of AdvancedOrders, an explicit recipient, and
      *      CriteriaResolvers to a FulfillmentDetails struct
@@ -132,24 +102,6 @@ contract ExecutionHelper is AmountDeriverHelper {
                 fulfillerConduitKey: fulfillerConduitKey,
                 seaport: seaport
             });
-    }
-
-    function getFulfillAvailableExecutions(
-        FuzzTestContext memory context
-    )
-        public
-        view
-        returns (
-            Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
-        )
-    {
-        return getFulfillAvailableExecutions(
-            toFulfillmentDetails(context),
-            context.offerFulfillments,
-            context.considerationFulfillments,
-            context.getNativeTokensToSupply()
-        );
     }
 
     /**
@@ -191,23 +143,6 @@ contract ExecutionHelper is AmountDeriverHelper {
             explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied
-        );
-    }
-
-    function getMatchExecutions(
-        FuzzTestContext memory context
-    )
-        internal
-        view
-        returns (
-            Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
-        )
-    {
-        return getMatchExecutions(
-            toFulfillmentDetails(context),
-            context.fulfillments,
-            context.getNativeTokensToSupply()
         );
     }
 
@@ -288,28 +223,6 @@ contract ExecutionHelper is AmountDeriverHelper {
         }
     }
 
-    function getStandardExecutions(
-        FuzzTestContext memory context
-    ) public view returns (
-        Execution[] memory implicitExecutions
-    ) {
-        address caller = context.caller == address(0)
-            ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
-            ? caller
-            : context.recipient;
-
-        return getStandardExecutions(
-            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
-            caller,
-            context.fulfillerConduitKey,
-            recipient,
-            context.getNativeTokensToSupply(),
-            address(context.seaport)
-        );
-    }
-
     /**
      * @dev Return executions for fulfilOrder and fulfillAdvancedOrder.
      */
@@ -374,22 +287,6 @@ contract ExecutionHelper is AmountDeriverHelper {
                 mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
             }
         }
-    }
-
-    function getBasicExecutions(
-        FuzzTestContext memory context
-    ) public view returns (Execution[] memory implicitExecutions) {
-        address caller = context.caller == address(0)
-            ? address(this)
-            : context.caller;
-
-        return getBasicExecutions(
-            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
-            caller,
-            context.fulfillerConduitKey,
-            context.getNativeTokensToSupply(),
-            address(context.seaport)
-        );
     }
 
     /**
