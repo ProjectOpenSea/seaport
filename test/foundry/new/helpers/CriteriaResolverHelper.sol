@@ -8,7 +8,6 @@ import { LibSort } from "solady/src/utils/LibSort.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;
-    bytes32 root;
     bytes32[] proof;
 }
 
@@ -18,9 +17,88 @@ contract CriteriaResolverHelper {
     uint256 immutable MAX_LEAVES;
     Merkle public immutable MERKLE;
 
+    mapping(uint256 => CriteriaMetadata)
+        internal _resolvableIdentifierForGivenCriteria;
+
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
         MERKLE = new Merkle();
+    }
+
+    function resolvableIdentifierForGivenCriteria(
+        uint256 criteria
+    ) public view returns (CriteriaMetadata memory) {
+        return _resolvableIdentifierForGivenCriteria[criteria];
+    }
+
+    function deriveCriteriaResolvers(
+        AdvancedOrder[] memory orders
+    ) public view returns (CriteriaResolver[] memory criteriaResolvers) {
+        uint256 maxLength;
+
+        for (uint256 i; i < orders.length; i++) {
+            AdvancedOrder memory order = orders[i];
+            maxLength += (order.parameters.offer.length +
+                order.parameters.consideration.length);
+        }
+        criteriaResolvers = new CriteriaResolver[](maxLength);
+        uint256 index;
+
+        for (uint256 i; i < orders.length; i++) {
+            AdvancedOrder memory order = orders[i];
+
+            for (uint256 j; j < order.parameters.offer.length; j++) {
+                OfferItem memory offerItem = order.parameters.offer[j];
+                if (
+                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    CriteriaMetadata
+                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                            offerItem.identifierOrCriteria
+                        ];
+                    criteriaResolvers[index] = CriteriaResolver({
+                        orderIndex: i,
+                        index: j,
+                        side: Side.OFFER,
+                        identifier: criteriaMetadata.resolvedIdentifier,
+                        criteriaProof: criteriaMetadata.proof
+                    });
+                    index++;
+                }
+            }
+
+            for (uint256 j; j < order.parameters.consideration.length; j++) {
+                ConsiderationItem memory considerationItem = order
+                    .parameters
+                    .consideration[j];
+                if (
+                    considerationItem.itemType ==
+                    ItemType.ERC721_WITH_CRITERIA ||
+                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    CriteriaMetadata
+                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                            considerationItem.identifierOrCriteria
+                        ];
+                    criteriaResolvers[index] = CriteriaResolver({
+                        orderIndex: i,
+                        index: j,
+                        side: Side.CONSIDERATION,
+                        identifier: criteriaMetadata.resolvedIdentifier,
+                        criteriaProof: criteriaMetadata.proof
+                    });
+                    index++;
+                }
+            }
+        }
+        // update actual length
+        assembly {
+            mstore(criteriaResolvers, index)
+        }
+
+        // TODO: read from test context
+        // TODO: handle wildcard
     }
 
     /**
@@ -31,21 +109,22 @@ contract CriteriaResolverHelper {
      */
     function generateCriteriaMetadata(
         LibPRNG.PRNG memory prng
-    ) public view returns (CriteriaMetadata memory criteria) {
+    ) public returns (uint256 criteria) {
         uint256[] memory identifiers = generateIdentifiers(prng);
 
         uint256 selectedIdentifierIndex = prng.next() % identifiers.length;
         uint256 selectedIdentifier = identifiers[selectedIdentifierIndex];
         bytes32[] memory leaves = hashIdentifiersToLeaves(identifiers);
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
-        bytes32 root = MERKLE.getRoot(leaves);
+        uint256 resolvedIdentifier = selectedIdentifier;
+        criteria = uint256(MERKLE.getRoot(leaves));
         bytes32[] memory proof = MERKLE.getProof(
             leaves,
             selectedIdentifierIndex
         );
-        criteria = CriteriaMetadata({
-            resolvedIdentifier: selectedIdentifier,
-            root: root,
+
+        _resolvableIdentifierForGivenCriteria[criteria] = CriteriaMetadata({
+            resolvedIdentifier: resolvedIdentifier,
             proof: proof
         });
     }
