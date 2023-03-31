@@ -1489,7 +1489,8 @@ contract FuzzEngineTest is FuzzEngine {
                 expectedCalldataHashes[i] = advancedOrders
                     .getExpectedZoneCalldataHash(
                         address(getSeaport()),
-                        address(this)
+                        address(this),
+                        new CriteriaResolver[](0)
                     )[i];
             }
         }

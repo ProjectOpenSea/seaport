@@ -150,6 +150,7 @@ abstract contract FuzzDerivers is
                     recipient,
                     caller,
                     context.fulfillerConduitKey,
+                    context.criteriaResolvers,
                     address(context.seaport)
                 ),
                 context.offerFulfillments,
@@ -168,6 +169,7 @@ abstract contract FuzzDerivers is
                     recipient,
                     caller,
                     context.fulfillerConduitKey,
+                    context.criteriaResolvers,
                     address(context.seaport)
                 ),
                 context.fulfillments,

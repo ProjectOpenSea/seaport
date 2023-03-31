@@ -24,6 +24,7 @@ import {
 } from "./FulfillmentComponentSet.sol";
 
 import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
@@ -81,35 +82,6 @@ contract ExecutionHelper is AmountDeriverHelper {
      */
     function toFulfillmentDetails(
         Order[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        address seaport
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders);
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
-            });
-    }
-
-    /**
-     * @dev convert an array of AdvancedOrders and an explicit recipient to a
-     *      FulfillmentDetails struct
-     *
-     * @param orders              array of AdvancedOrders to process
-     * @param recipient           explicit recipient if one is set
-     * @param fulfiller           the order fulfiller
-     * @param fulfillerConduitKey the conduit key
-     *
-     * @return fulfillmentDetails the fulfillment details
-     */
-    function toFulfillmentDetails(
-        AdvancedOrder[] memory orders,
         address recipient,
         address fulfiller,
         bytes32 fulfillerConduitKey,

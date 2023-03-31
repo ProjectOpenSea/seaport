@@ -449,7 +449,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 .getZoneParameters(
                     address(this),
                     advancedOrders.length - 1,
-                    address(context.seaport)
+                    address(context.seaport),
+                    new CriteriaResolver[](0)
                 );
 
             _emitZoneValidateOrderDataHashes(zoneParameters);
@@ -586,7 +587,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .getZoneParameters(
                 address(this),
                 advancedOrders.length,
-                address(context.seaport)
+                address(context.seaport),
+                new CriteriaResolver[](0)
             );
 
         bytes32[] memory payloadHashes = new bytes32[](zoneParameters.length);
@@ -770,7 +772,12 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         {
             // Get the zone parameters.
             ZoneParameters[] memory zoneParameters = advancedOrders
-                .getZoneParameters(address(this), 1, address(context.seaport));
+                .getZoneParameters(
+                    address(this),
+                    1,
+                    address(context.seaport),
+                    new CriteriaResolver[](0)
+                );
 
             _emitZoneValidateOrderDataHashes(zoneParameters);
         }
@@ -902,7 +909,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             .getZoneParameters(
                 address(this),
                 advancedOrders.length,
-                address(context.seaport)
+                address(context.seaport),
+                new CriteriaResolver[](0)
             );
 
         _emitZoneValidateOrderDataHashes(zoneParameters);

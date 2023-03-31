@@ -13,7 +13,10 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import { AmountDeriver } from "../../../../contracts/lib/AmountDeriver.sol";
+import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+import {
+    AmountDeriverHelper
+} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
@@ -76,7 +79,7 @@ library CheckHelpers {
  *       want to move this to a separate step. Setup happens after derivation,
  *       but before execution.
  */
-abstract contract FuzzSetup is Test, AmountDeriver {
+abstract contract FuzzSetup is Test, AmountDeriverHelper {
     using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
 
@@ -90,14 +93,15 @@ abstract contract FuzzSetup is Test, AmountDeriver {
      *
      * @param context The test context.
      */
-    function setUpZoneParameters(FuzzTestContext memory context) public view {
+    function setUpZoneParameters(FuzzTestContext memory context) public {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
         // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
             .orders
             .getExpectedZoneCalldataHash(
                 address(context.seaport),
-                context.caller
+                context.caller,
+                context.criteriaResolvers
             );
 
         // Provision the expected zone calldata hash array.
@@ -136,52 +140,40 @@ abstract contract FuzzSetup is Test, AmountDeriver {
      * @param context The test context.
      */
     function setUpOfferItems(FuzzTestContext memory context) public {
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < context.orders.length; ++i) {
-            OrderParameters memory orderParams = context.orders[i].parameters;
-            OfferItem[] memory items = orderParams.offer;
-            address offerer = orderParams.offerer;
-            address approveTo = _getApproveTo(context, orderParams);
+        for (uint256 i; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
+            SpentItem[] memory items = order.offer;
+            address offerer = order.offerer;
+            address approveTo = _getApproveTo(context, order);
             for (uint256 j = 0; j < items.length; j++) {
-                OfferItem memory item = items[j];
+                SpentItem memory item = items[j];
 
                 if (item.itemType == ItemType.ERC20) {
-                    uint256 amount = _locateCurrentAmount(
-                        item.startAmount,
-                        item.endAmount,
-                        orderParams.startTime,
-                        orderParams.endTime,
-                        false
-                    );
-                    TestERC20(item.token).mint(offerer, amount);
+                    TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
-                    TestERC20(item.token).increaseAllowance(approveTo, amount);
+                    TestERC20(item.token).increaseAllowance(
+                        approveTo,
+                        item.amount
+                    );
                 }
 
                 if (item.itemType == ItemType.ERC721) {
-                    TestERC721(item.token).mint(
-                        offerer,
-                        item.identifierOrCriteria
-                    );
+                    TestERC721(item.token).mint(offerer, item.identifier);
                     vm.prank(offerer);
-                    TestERC721(item.token).approve(
-                        approveTo,
-                        item.identifierOrCriteria
-                    );
+                    TestERC721(item.token).approve(approveTo, item.identifier);
                 }
 
                 if (item.itemType == ItemType.ERC1155) {
-                    uint256 amount = _locateCurrentAmount(
-                        item.startAmount,
-                        item.endAmount,
-                        orderParams.startTime,
-                        orderParams.endTime,
-                        false
-                    );
                     TestERC1155(item.token).mint(
                         offerer,
-                        item.identifierOrCriteria,
-                        amount
+                        item.identifier,
+                        item.amount
                     );
                     vm.prank(offerer);
                     TestERC1155(item.token).setApprovalForAll(approveTo, true);
@@ -241,26 +233,31 @@ abstract contract FuzzSetup is Test, AmountDeriver {
             return;
         }
 
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < context.orders.length; ++i) {
-            OrderParameters memory orderParams = context.orders[i].parameters;
-            ConsiderationItem[] memory items = orderParams.consideration;
+        for (uint256 i; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
+            ReceivedItem[] memory items = order.consideration;
 
             address owner = context.caller;
             address approveTo = _getApproveTo(context);
 
             for (uint256 j = 0; j < items.length; j++) {
-                ConsiderationItem memory item = items[j];
+                ReceivedItem memory item = items[j];
 
                 if (item.itemType == ItemType.ERC20) {
-                    TestERC20(item.token).mint(owner, item.startAmount);
+                    TestERC20(item.token).mint(owner, item.amount);
                     vm.prank(owner);
                     TestERC20(item.token).increaseAllowance(
                         approveTo,
-                        item.startAmount
+                        item.amount
                     );
                 }
 
@@ -270,17 +267,14 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                         context.caller == context.recipient ||
                         context.recipient == address(0)
                     ) {
-                        for (uint256 k; k < context.orders.length; ++k) {
-                            OfferItem[] memory offerItems = context
-                                .orders[k]
-                                .parameters
+                        for (uint256 k; k < orderDetails.length; ++k) {
+                            SpentItem[] memory spentItems = orderDetails[i]
                                 .offer;
-                            for (uint256 l; l < offerItems.length; ++l) {
+                            for (uint256 l; l < spentItems.length; ++l) {
                                 if (
-                                    offerItems[l].itemType == ItemType.ERC721 &&
-                                    offerItems[l].token == item.token &&
-                                    offerItems[l].identifierOrCriteria ==
-                                    item.identifierOrCriteria
+                                    spentItems[l].itemType == ItemType.ERC721 &&
+                                    spentItems[l].token == item.token &&
+                                    spentItems[l].identifier == item.identifier
                                 ) {
                                     shouldMint = false;
                                     break;
@@ -290,10 +284,7 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                         }
                     }
                     if (shouldMint) {
-                        TestERC721(item.token).mint(
-                            owner,
-                            item.identifierOrCriteria
-                        );
+                        TestERC721(item.token).mint(owner, item.identifier);
                     }
                     vm.prank(owner);
                     TestERC721(item.token).setApprovalForAll(approveTo, true);
@@ -302,8 +293,8 @@ abstract contract FuzzSetup is Test, AmountDeriver {
                 if (item.itemType == ItemType.ERC1155) {
                     TestERC1155(item.token).mint(
                         owner,
-                        item.identifierOrCriteria,
-                        item.startAmount
+                        item.identifier,
+                        item.amount
                     );
                     vm.prank(owner);
                     TestERC1155(item.token).setApprovalForAll(approveTo, true);
@@ -442,6 +433,30 @@ abstract contract FuzzSetup is Test, AmountDeriver {
             (address conduit, bool exists) = context
                 .conduitController
                 .getConduit(orderParams.conduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("FuzzSetup: Conduit not found");
+            }
+        }
+    }
+
+    /**
+     *  @dev Get the address to approve to for a given test context and order.
+     *
+     * @param context The test context.
+     * @param orderDetails The order details.
+     */
+    function _getApproveTo(
+        FuzzTestContext memory context,
+        OrderDetails memory orderDetails
+    ) internal view returns (address) {
+        if (orderDetails.conduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderDetails.conduitKey);
             if (exists) {
                 return conduit;
             } else {
