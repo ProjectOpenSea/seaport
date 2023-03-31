@@ -119,7 +119,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             // Execute the orders, collecting availableOrders and executions.
             // This is wrapped in a try/catch in case a single order is
             // executed that is no longer available, leading to a revert
-            // with `NoSpecifiedOrdersAvailable()`.
+            // with `NoSpecifiedOrdersAvailable()` that can be ignored.
             try
                 SeaportInterface(params.seaportContracts[i])
                     .fulfillAvailableAdvancedOrders{
@@ -155,7 +155,29 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
                 if (fulfillmentsLeft == 0) {
                     break;
                 }
-            } catch {}
+            } catch (bytes memory data) {
+                // Set initial value of first four bytes of revert data to the mask.
+                bytes4 customErrorSelector = bytes4(0xffffffff);
+
+                // Utilize assembly to read first four bytes (if present) directly.
+                assembly {
+                    // Combine original mask with first four bytes of revert data.
+                    customErrorSelector := and(
+                        mload(add(data, 0x20)), // Data begins after length offset.
+                        customErrorSelector
+                    )
+                }
+
+                // Pass through the custom error if the error is
+                // not NoSpecifiedOrdersAvailable()
+                if (
+                    customErrorSelector != NoSpecifiedOrdersAvailable.selector
+                ) {
+                    assembly {
+                        revert(add(data, 32), mload(data))
+                    }
+                }
+            }
 
             // Update fulfillments left.
             calldataParams.maximumFulfilled = fulfillmentsLeft;

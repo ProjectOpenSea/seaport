@@ -676,4 +676,118 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
       });
     });
   });
+  it("Should revert on all errors except NoSpecifiedOrdersAvailable()", async () => {
+    // Seller mints nfts
+    const nftId = await mintAndApprove721(seller, marketplaceContract.address);
+    const nftId2 = await mintAndApprove721(
+      seller,
+      marketplaceContract2.address
+    );
+
+    const offer = [getTestItem721(nftId)];
+    const offer2 = [getTestItem721(nftId2)];
+
+    const consideration = [
+      getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      getItemETH(parseEther("1"), parseEther("1"), zone.address),
+    ];
+
+    const { order, value } = await createOrder(
+      seller,
+      zone,
+      offer,
+      consideration,
+      0 // FULL_OPEN
+    );
+    const { order: order2 } = await createOrder(
+      seller,
+      zone,
+      offer2,
+      consideration,
+      0, // FULL_OPEN
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      marketplaceContract2
+    );
+
+    const offerComponents = [[{ orderIndex: 0, itemIndex: 0 }]];
+    const considerationComponents = [
+      [{ orderIndex: 0, itemIndex: 0 }],
+      [{ orderIndex: 0, itemIndex: 1 }],
+    ];
+
+    const params = {
+      seaportContracts: [
+        marketplaceContract.address,
+        marketplaceContract2.address,
+      ],
+      advancedOrderParams: [
+        {
+          advancedOrders: [order],
+          criteriaResolvers: [],
+          offerFulfillments: offerComponents,
+          considerationFulfillments: considerationComponents,
+          etherValue: value,
+        },
+        {
+          advancedOrders: [order2],
+          criteriaResolvers: [],
+          offerFulfillments: offerComponents,
+          considerationFulfillments: considerationComponents,
+          etherValue: value,
+        },
+      ],
+      fulfillerConduitKey: toKey(0),
+      recipient: buyer.address,
+      maximumFulfilled: 100,
+    };
+
+    const buyerEthBalanceBefore = await provider.getBalance(buyer.address);
+
+    // Execute the first order so it is fulfilled thus invalid for the next call
+    await router.connect(buyer).fulfillAvailableAdvancedOrders(
+      {
+        ...params,
+        seaportContracts: params.seaportContracts.slice(0, 1),
+        advancedOrderParams: params.advancedOrderParams.slice(0, 1),
+      },
+      {
+        value,
+      }
+    );
+
+    // Execute orders
+    await router.connect(buyer).fulfillAvailableAdvancedOrders(params, {
+      value: value.mul(2),
+    });
+
+    // Ensure the recipient (buyer) owns both nfts
+    expect(await testERC721.ownerOf(nftId)).to.equal(buyer.address);
+    expect(await testERC721.ownerOf(nftId2)).to.equal(buyer.address);
+
+    // Ensure the excess eth was returned
+    const buyerEthBalanceAfter = await provider.getBalance(buyer.address);
+    expect(buyerEthBalanceBefore).to.be.gt(
+      buyerEthBalanceAfter.sub(value.mul(3))
+    );
+
+    // Now let's try to throw an error that should bubble up.
+    // Set the order type to CONTRACT which should throw "InvalidContractOrder"
+    params.advancedOrderParams[0].advancedOrders[0].parameters.orderType = 4;
+    await expect(
+      router.connect(buyer).fulfillAvailableAdvancedOrders(params, {
+        value,
+      })
+    ).to.be.revertedWithCustomError(
+      marketplaceContract,
+      "InvalidContractOrder"
+    );
+  });
 });

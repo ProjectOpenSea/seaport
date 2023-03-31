@@ -18,6 +18,11 @@ import { Execution } from "../lib/ConsiderationStructs.sol";
  */
 interface SeaportRouterInterface {
     /**
+     * @dev Ignore reverting on "NoSpecifiedOrdersAvailable()" from Seaport.
+     */
+    error NoSpecifiedOrdersAvailable();
+
+    /**
      * @dev Advanced order parameters for use through the
      *      FulfillAvailableAdvancedOrdersParams struct.
      */
