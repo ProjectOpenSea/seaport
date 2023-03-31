@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Vm } from "forge-std/Vm.sol";
+
 import "seaport-sol/SeaportSol.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
@@ -20,8 +22,6 @@ import {
     OrderComponentsLib,
     OrderLib
 } from "../../../contracts/helpers/sol/lib/SeaportStructLib.sol";
-
-import { Vm } from "forge-std/VM.sol";
 
 contract FuzzHelpersTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
