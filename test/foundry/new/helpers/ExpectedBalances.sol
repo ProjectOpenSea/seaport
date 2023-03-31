@@ -608,6 +608,14 @@ contract ERC721Balances {
     }
 }
 
+struct ERC1155TransferDetails {
+    address token;
+    address from;
+    address to;
+    uint256 identifier;
+    uint256 amount;
+}
+
 contract ERC1155Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -622,77 +630,65 @@ contract ERC1155Balances {
     mapping(address => TokenData1155) private tokenDatas;
 
     function sub(
-        address token,
-        uint256 identifier,
-        address account,
-        address recipient,
+        ERC1155TransferDetails memory details,
         uint256 balance,
-        uint256 amount,
         bool derived
     ) private pure returns (uint256) {
-        if (balance < amount) {
+        if (balance < details.amount) {
             revert(
                 BalanceErrorMessages.insufficientERC1155Balance(
-                    token,
-                    identifier,
-                    account,
-                    recipient,
+                    details.token,
+                    details.identifier,
+                    details.from,
+                    details.to,
                     balance,
-                    amount,
+                    details.amount,
                     derived
                 )
             );
         }
-        return balance - amount;
+        return balance - details.amount;
     }
 
-    function addERC1155Transfer(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    ) public {
-        tokens.add(token);
+    function addERC1155Transfer(ERC1155TransferDetails memory details) public {
+        tokens.add(details.token);
 
-        TokenData1155 storage tokenData = tokenDatas[token];
+        TokenData1155 storage tokenData = tokenDatas[details.token];
 
-        tokenData.accounts.add(from);
-        tokenData.accounts.add(to);
+        tokenData.accounts.add(details.from);
+        tokenData.accounts.add(details.to);
 
         {
             EnumerableMap.UintToUintMap storage fromIdentifiers = tokenData
-                .accountIdentifiers[from];
+                .accountIdentifiers[details.from];
             (bool fromExists, uint256 fromBalance) = fromIdentifiers.tryGet(
-                identifier
+                details.identifier
             );
             if (!fromExists) {
-                fromBalance = IERC1155(token).balanceOf(from, identifier);
+                fromBalance = IERC1155(details.token).balanceOf(
+                    details.from,
+                    details.identifier
+                );
             }
             fromIdentifiers.set(
-                identifier,
-                sub(
-                    token,
-                    identifier,
-                    from,
-                    to,
-                    fromBalance,
-                    amount,
-                    fromExists
-                )
+                details.identifier,
+                sub(details, fromBalance, fromExists)
             );
         }
 
         {
             EnumerableMap.UintToUintMap storage toIdentifiers = tokenData
-                .accountIdentifiers[to];
+                .accountIdentifiers[details.to];
             (bool toExists, uint256 toBalance) = toIdentifiers.tryGet(
-                identifier
+                details.identifier
             );
             if (!toExists) {
-                toBalance = IERC1155(token).balanceOf(to, identifier);
+                toBalance = IERC1155(details.token).balanceOf(
+                    details.to,
+                    details.identifier
+                );
             }
-            toIdentifiers.set(identifier, toBalance + amount);
+            toIdentifiers.set(details.identifier, toBalance + details.amount);
         }
     }
 
@@ -840,11 +836,13 @@ contract ExpectedBalances is
         if (item.itemType == ItemType.ERC1155) {
             return
                 addERC1155Transfer(
-                    item.token,
-                    execution.offerer,
-                    item.recipient,
-                    item.identifier,
-                    item.amount
+                    ERC1155TransferDetails(
+                        item.token,
+                        execution.offerer,
+                        item.recipient,
+                        item.identifier,
+                        item.amount
+                    )
                 );
         }
     }
