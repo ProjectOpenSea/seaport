@@ -1208,6 +1208,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
     ) external stateless {
         Fulfillment[] memory fulfillments;
         AdvancedOrder[] memory advancedOrders;
+        bytes32[2][] memory orderHashes;
+        bytes32[2][] memory calldataHashes;
 
         {
             Order[] memory orders;
@@ -1225,22 +1227,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 orders[0].toAdvancedOrder(1, 1, ""),
                 orders[1].toAdvancedOrder(1, 1, "")
             );
+
+            orderHashes = _getOrderHashes(context, orders);
+            calldataHashes = _generateContractOrderDataHashes(
+                context,
+                orders
+            );
         }
 
         {
-            bytes32[2][] memory orderHashes = _getOrderHashes(context, orders);
-            bytes32[2][]
-                memory calldataHashes = _generateContractOrderDataHashes(
-                    context,
-                    orders
-                );
-
             vm.expectEmit(
                 true,
                 false,
                 false,
                 true,
-                orders[0].parameters.offerer
+                advancedOrders[0].parameters.offerer
             );
             emit GenerateOrderDataHash(orderHashes[0][0], calldataHashes[0][0]);
 
@@ -1249,7 +1250,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 false,
                 false,
                 true,
-                orders[1].parameters.offerer
+                advancedOrders[1].parameters.offerer
             );
             emit GenerateOrderDataHash(orderHashes[1][0], calldataHashes[1][0]);
 
@@ -1258,7 +1259,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 false,
                 false,
                 true,
-                orders[0].parameters.offerer
+                advancedOrders[0].parameters.offerer
             );
             emit RatifyOrderDataHash(orderHashes[0][1], calldataHashes[0][1]);
 
@@ -1267,7 +1268,7 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 false,
                 false,
                 true,
-                orders[1].parameters.offerer
+                advancedOrders[1].parameters.offerer
             );
             emit RatifyOrderDataHash(orderHashes[1][1], calldataHashes[1][1]);
         }
