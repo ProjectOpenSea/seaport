@@ -1478,20 +1478,6 @@ contract FuzzEngineTest is FuzzEngine {
             FulfillmentComponent[][] memory considerationComponents
         ) = getNaiveFulfillmentComponents(orders);
 
-        bytes32[] memory expectedCalldataHashes = new bytes32[](2);
-
-        {
-            // update to context.caller
-            for (uint256 i; i < advancedOrders.length; i++) {
-                expectedCalldataHashes[i] = advancedOrders
-                    .getExpectedZoneCalldataHash(
-                        address(getSeaport()),
-                        address(this),
-                        new CriteriaResolver[](0)
-                    )[i];
-            }
-        }
-
         bytes4[] memory checks = new bytes4[](1);
         checks[0] = this.check_validateOrderExpectedDataHash.selector;
 
@@ -1506,7 +1492,11 @@ contract FuzzEngineTest is FuzzEngine {
             .withChecks(checks)
             .withMaximumFulfilled(2);
 
-        context.expectedZoneCalldataHash = expectedCalldataHashes;
+        context.expectedZoneCalldataHash = advancedOrders
+            .getExpectedZoneCalldataHash(
+                address(getSeaport()),
+                address(this),
+                new CriteriaResolver[](0));
 
         run(context);
     }
