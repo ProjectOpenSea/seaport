@@ -138,7 +138,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         FuzzTestContext memory context
     )
         public
-        pure
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
@@ -198,7 +198,7 @@ contract ExecutionHelper is AmountDeriverHelper {
         FuzzTestContext memory context
     )
         internal
-        pure
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
