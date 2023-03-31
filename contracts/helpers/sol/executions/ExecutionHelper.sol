@@ -134,6 +134,24 @@ contract ExecutionHelper is AmountDeriverHelper {
             });
     }
 
+    function getFulfillAvailableExecutions(
+        FuzzTestContext memory context
+    )
+        public
+        pure
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutions
+        )
+    {
+        return getFulfillAvailableExecutions(
+            toFulfillmentDetails(context),
+            context.offerFulfillments,
+            context.considerationFulfillments,
+            context.getNativeTokensToSupply()
+        );
+    }
+
     /**
      * @dev get explicit and implicit executions for a fulfillAvailable call
      *
@@ -173,6 +191,23 @@ contract ExecutionHelper is AmountDeriverHelper {
             explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied
+        );
+    }
+
+    function getMatchExecutions(
+        FuzzTestContext memory context
+    )
+        internal
+        pure
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutions
+        )
+    {
+        return getMatchExecutions(
+            toFulfillmentDetails(context),
+            context.fulfillments,
+            context.getNativeTokensToSupply()
         );
     }
 

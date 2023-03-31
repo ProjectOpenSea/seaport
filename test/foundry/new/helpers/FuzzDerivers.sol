@@ -209,14 +209,6 @@ abstract contract FuzzDerivers is
         Execution[] memory implicitExecutions;
         Execution[] memory explicitExecutions;
 
-        // Get the parties.
-        address caller = context.caller == address(0)
-            ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
-            ? caller
-            : context.recipient;
-
         if (
             action == context.seaport.fulfillOrder.selector ||
             action == context.seaport.fulfillAdvancedOrder.selector
@@ -245,12 +237,7 @@ abstract contract FuzzDerivers is
             (
                 explicitExecutions,
                 implicitExecutions
-            ) = getFulfillAvailableExecutions(
-                toFulfillmentDetails(context),
-                context.offerFulfillments,
-                context.considerationFulfillments,
-                context.getNativeTokensToSupply()
-            );
+            ) = getFulfillAvailableExecutions(context);
         } else if (
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
@@ -258,9 +245,7 @@ abstract contract FuzzDerivers is
             // For the match functions, derive the expected implicit and
             // explicit executions.
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
-                toFulfillmentDetails(context),
-                context.fulfillments,
-                context.getNativeTokensToSupply()
+                context
             );
         }
         context.expectedImplicitExecutions = implicitExecutions;
