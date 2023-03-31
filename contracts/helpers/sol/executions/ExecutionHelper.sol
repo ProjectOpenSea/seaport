@@ -250,6 +250,28 @@ contract ExecutionHelper is AmountDeriverHelper {
         }
     }
 
+    function getStandardExecutions(
+        FuzzTestContext memory context
+    ) public pure returns (
+        Execution[] memory implicitExecutions
+    ) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
+
+        return getStandardExecutions(
+            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+            caller,
+            context.fulfillerConduitKey,
+            recipient,
+            context.getNativeTokensToSupply(),
+            address(context.seaport)
+        );
+    }
+
     /**
      * @dev Return executions for fulfilOrder and fulfillAdvancedOrder.
      */
@@ -314,6 +336,22 @@ contract ExecutionHelper is AmountDeriverHelper {
                 mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
             }
         }
+    }
+
+    function getBasicExecutions(
+        FuzzTestContext memory context
+    ) public pure returns (Execution[] memory implicitExecutions) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+
+        return getBasicExecutions(
+            toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+            caller,
+            context.fulfillerConduitKey,
+            context.getNativeTokensToSupply(),
+            address(context.seaport)
+        );
     }
 
     /**
