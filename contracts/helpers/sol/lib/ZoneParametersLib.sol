@@ -138,12 +138,8 @@ library ZoneParametersLib {
         address seaport,
         CriteriaResolver[] memory criteriaResolvers
     ) internal returns (ZoneParameters[] memory zoneParameters) {
-        // TODO: use testHelpers pattern to use single amount deriver helper
-        AmountDeriverHelper amountDeriverHelper = new AmountDeriverHelper();
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
-
         bytes32[] memory orderHashes = new bytes32[](advancedOrders.length);
-
+        CriteriaResolver[] memory _resolvers = criteriaResolvers;
         // Iterate over advanced orders to calculate orderHashes
         for (uint256 i = 0; i < advancedOrders.length; i++) {
             // Get orderParameters from advancedOrder
@@ -162,7 +158,9 @@ library ZoneParametersLib {
                 zoneHash: orderParameters.zoneHash,
                 salt: orderParameters.salt,
                 conduitKey: orderParameters.conduitKey,
-                counter: seaportInterface.getCounter(orderParameters.offerer)
+                counter: SeaportInterface(seaport).getCounter(
+                    orderParameters.offerer
+                )
             });
 
             uint256 lengthWithTips = orderComponents.consideration.length;
@@ -185,7 +183,7 @@ library ZoneParametersLib {
                 orderHashes[i] = bytes32(0);
             } else {
                 // Get orderHash from orderComponents
-                bytes32 orderHash = seaportInterface.getOrderHash(
+                bytes32 orderHash = SeaportInterface(seaport).getOrderHash(
                     orderComponents
                 );
 
@@ -201,14 +199,13 @@ library ZoneParametersLib {
 
         zoneParameters = new ZoneParameters[](maximumFulfilled);
 
-        OrderDetails[] memory orderDetails = amountDeriverHelper.toOrderDetails(
-            advancedOrders,
-            criteriaResolvers
-        );
+        // TODO: use testHelpers pattern to use single amount deriver helper
+        OrderDetails[] memory orderDetails = (new AmountDeriverHelper())
+            .toOrderDetails(advancedOrders, _resolvers);
         // Iterate through advanced orders to create zoneParameters
         for (uint i = 0; i < advancedOrders.length; i++) {
             if (i >= maximumFulfilled) {
-                continue;
+                break;
             }
             // Get orderParameters from advancedOrder
             OrderParameters memory orderParameters = advancedOrders[i]
