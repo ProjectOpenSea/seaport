@@ -259,6 +259,7 @@ library AdvancedOrdersSpaceGenerator {
         // Handle match case.
         if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
             _handleInsertIfAllConsiderationEmpty(orders, context);
+            _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
         }
 
@@ -928,6 +929,118 @@ library AdvancedOrdersSpaceGenerator {
             // Make the recipient an address other than the caller so that
             // it produces a non-filterable transfer.
             if (caller != context.alice.addr) {
+                orderParams.consideration[itemIndex].recipient = payable(
+                    context.alice.addr
+                );
+            } else {
+                orderParams.consideration[itemIndex].recipient = payable(
+                    context.bob.addr
+                );
+            }
+        }
+    }
+
+    // TODO: only handles specific orders being unmatchable; consider cases
+    // where all offerers are candidates for matching
+    function _handleInsertIfAllMatchFilterable(
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal {
+        bool allFilterable = true;
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+
+        // Iterate over the orders and check if there's a single instance of a
+        // non-filterable consideration item.  If there is, set allFilterable to
+        // false and break out of the loop.
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ConsiderationItem memory item = order.consideration[j];
+
+                if (item.recipient != order.offerer) {
+                    allFilterable = false;
+                    break;
+                }
+            }
+
+            if (!allFilterable) {
+                break;
+            }
+        }
+
+        // If they're all filterable, then add a consideration item to one of
+        // the orders.
+        if (allFilterable) {
+            OrderParameters memory orderParams;
+
+            // Pick a random order to insert the consideration item into and
+            // iterate from that index to the end of the orders array. At the
+            // end of the loop, start back at the beginning
+            // (orders[orderInsertionIndex % orders.length]) and iterate on. As
+            // soon as an order with consideration items is found, break out of
+            // the loop. The orderParams variable will be set to the order with
+            // consideration items. There's chance that no order will have
+            // consideration items, in which case the orderParams variable will
+            // be set to those of the last order iterated over.
+            for (
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
+                orderInsertionIndex < orders.length * 2;
+                ++orderInsertionIndex
+            ) {
+                orderParams = orders[orderInsertionIndex % orders.length]
+                    .parameters;
+
+                if (orderParams.consideration.length != 0) {
+                    break;
+                }
+            }
+
+            // If there are no consideration items in any of the orders, then
+            // add a consideration item to a random order.
+            if (orderParams.consideration.length == 0) {
+                // Pick a random order to insert the consideration item into.
+                uint256 orderInsertionIndex = context.randRange(
+                    0,
+                    orders.length - 1
+                );
+
+                // Set the orderParams variable to the parameters of the order
+                // that was picked.
+                orderParams = orders[orderInsertionIndex].parameters;
+
+                // Provision a new consideration item array with a single
+                // element.
+                ConsiderationItem[]
+                    memory consideration = new ConsiderationItem[](1);
+
+                // Generate a consideration item and add it to the consideration
+                // item array.  The `true` argument indicates that the
+                // consideration item will be unfilterable.
+                consideration[0] = TestStateGenerator
+                .generateConsideration(1, context, true)[0].generate(
+                        context,
+                        orderParams.offerer
+                    );
+
+                // Set the consideration item array on the order parameters.
+                orderParams.consideration = consideration;
+            }
+
+            // Pick a random consideration item to modify.
+            uint256 itemIndex = context.randRange(
+                0,
+                orderParams.consideration.length - 1
+            );
+
+            // Make the recipient an address other than the caller so that
+            // it produces a non-filterable transfer.
+            if (orderParams.offerer != context.alice.addr) {
                 orderParams.consideration[itemIndex].recipient = payable(
                     context.alice.addr
                 );
