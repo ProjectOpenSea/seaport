@@ -258,6 +258,7 @@ library AdvancedOrdersSpaceGenerator {
 
         // Handle match case.
         if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
+            _handleInsertIfAllConsiderationEmpty(orders, context);
             _squareUpRemainders(orders, context);
         }
 
@@ -751,6 +752,46 @@ library AdvancedOrdersSpaceGenerator {
             if (
                 orderParams.offer.length + orderParams.consideration.length > 0
             ) {
+                allEmpty = false;
+                break;
+            }
+        }
+
+        // If all the orders are empty, insert a consideration item into a
+        // random order.
+        if (allEmpty) {
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
+            OrderParameters memory orderParams = orders[orderInsertionIndex]
+                .parameters;
+
+            ConsiderationItem[] memory consideration = new ConsiderationItem[](
+                1
+            );
+            consideration[0] = TestStateGenerator
+            .generateConsideration(1, context, true)[0].generate(
+                    context,
+                    orderParams.offerer
+                );
+
+            orderParams.consideration = consideration;
+        }
+    }
+
+    function _handleInsertIfAllConsiderationEmpty(
+        AdvancedOrder[] memory orders,
+        FuzzGeneratorContext memory context
+    ) internal {
+        bool allEmpty = true;
+
+        // Iterate over the orders and check if they have any consideration
+        // items in them. As soon as we find one that does, set allEmpty to
+        // false and break out of the loop.
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory orderParams = orders[i].parameters;
+            if (orderParams.consideration.length > 0) {
                 allEmpty = false;
                 break;
             }
@@ -1495,7 +1536,9 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item = item.withIdentifierOrCriteria(context.starting721offerIndex++);
+            item = item.withIdentifierOrCriteria(
+                context.starting721offerIndex++
+            );
             return item;
         } else if (itemType == ItemType.ERC1155) {
             return
@@ -1512,7 +1555,12 @@ library CriteriaGenerator {
                 uint256 derivedCriteria = context
                     .testHelpers
                     .criteriaResolverHelper()
-                    .generateCriteriaMetadata(context.prng, itemType == ItemType.ERC721_WITH_CRITERIA ? context.starting721offerIndex++ : type(uint256).max);
+                    .generateCriteriaMetadata(
+                        context.prng,
+                        itemType == ItemType.ERC721_WITH_CRITERIA
+                            ? context.starting721offerIndex++
+                            : type(uint256).max
+                    );
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
                 // Return the item with the Merkle root of the random tokenId
@@ -1534,7 +1582,9 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item = item.withIdentifierOrCriteria(context.starting721offerIndex++);
+            item = item.withIdentifierOrCriteria(
+                context.starting721offerIndex++
+            );
             return item;
         } else if (itemType == ItemType.ERC1155) {
             return
@@ -1550,7 +1600,12 @@ library CriteriaGenerator {
                 uint256 derivedCriteria = context
                     .testHelpers
                     .criteriaResolverHelper()
-                    .generateCriteriaMetadata(context.prng, itemType == ItemType.ERC721_WITH_CRITERIA ? context.starting721offerIndex++ : type(uint256).max);
+                    .generateCriteriaMetadata(
+                        context.prng,
+                        itemType == ItemType.ERC721_WITH_CRITERIA
+                            ? context.starting721offerIndex++
+                            : type(uint256).max
+                    );
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
                 // Return the item with the Merkle root of the random tokenId

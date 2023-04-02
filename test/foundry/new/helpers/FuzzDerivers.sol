@@ -238,6 +238,12 @@ abstract contract FuzzDerivers is
                 explicitExecutions,
                 implicitExecutions
             ) = getFulfillAvailableExecutions(context);
+
+            if (explicitExecutions.length == 0) {
+                revert(
+                    "FuzzDerivers: no explicit executions derived on fulfillAvailable"
+                );
+            }
         } else if (
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector
@@ -247,6 +253,10 @@ abstract contract FuzzDerivers is
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
                 context
             );
+
+            if (explicitExecutions.length == 0) {
+                revert("FuzzDerivers: no explicit executions derived on match");
+            }
         }
         context.expectedImplicitExecutions = implicitExecutions;
         context.expectedExplicitExecutions = explicitExecutions;
