@@ -250,14 +250,15 @@ library AdvancedOrdersSpaceGenerator {
         // Build orders.
         _buildOrders(orders, space, context);
 
-        // Handle match case.
-        if (space.isMatchable) {
-            _squareUpRemainders(orders, context);
-        }
         // Handle combined orders (need to have at least one execution).
         if (len > 1) {
             _handleInsertIfAllEmpty(orders, context);
             _handleInsertIfAllFilterable(orders, context);
+        }
+
+        // Handle match case.
+        if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
+            _squareUpRemainders(orders, context);
         }
 
         // Sign orders and add the hashes to the context.
@@ -386,6 +387,8 @@ library AdvancedOrdersSpaceGenerator {
             orders[orderInsertionIndex].parameters.offer = newOffer;
         }
 
+        // TODO: remove this check once high confidence in the mechanic has been
+        // established (this just fails fast to rule out downstream issues)
         if (remainders.length > 0) {
             CriteriaResolver[] memory resolvers = context
                 .testHelpers
@@ -959,6 +962,27 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         }
+    }
+
+    function _hasInvalidNativeOfferItems(
+        AdvancedOrder[] memory orders
+    ) internal pure returns (bool) {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory orderParams = orders[i].parameters;
+            if (orderParams.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
+            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                OfferItem memory item = orderParams.offer[j];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
 

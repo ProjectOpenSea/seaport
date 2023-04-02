@@ -119,7 +119,7 @@ contract CriteriaResolverHelper {
             identifiers[selectedIdentifierIndex] = desiredId;
         }
 
-        uint256 selectedIdentifier; = identifiers[selectedIdentifierIndex];
+        uint256 selectedIdentifier = identifiers[selectedIdentifierIndex];
         bytes32[] memory leaves = hashIdentifiersToLeaves(identifiers);
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
         uint256 resolvedIdentifier = selectedIdentifier;
