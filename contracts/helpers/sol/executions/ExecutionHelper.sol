@@ -212,11 +212,18 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     function processExcessNativeTokens(
         Execution[] memory explicitExecutions,
+        Execution[] memory implicitExecutions,
         uint256 nativeTokensSupplied
     ) internal pure returns (uint256 excessNativeTokens) {
         excessNativeTokens = nativeTokensSupplied;
         for (uint256 i; i < explicitExecutions.length; i++) {
             ReceivedItem memory item = explicitExecutions[i].item;
+            if (item.itemType == ItemType.NATIVE) {
+                excessNativeTokens -= item.amount;
+            }
+        }
+        for (uint256 i; i < implicitExecutions.length; i++) {
+            ReceivedItem memory item = implicitExecutions[i].item;
             if (item.itemType == ItemType.NATIVE) {
                 excessNativeTokens -= item.amount;
             }
@@ -826,6 +833,7 @@ contract ExecutionHelper is AmountDeriverHelper {
     ) internal pure {
         uint256 excessNativeTokens = processExcessNativeTokens(
             explicitExecutions,
+            implicitExecutions,
             nativeTokensSupplied
         );
 
