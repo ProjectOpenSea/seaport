@@ -100,13 +100,13 @@ function dumpContext(
     // if (outputSelection.fuzzParams) {
     //     jsonOut = Searializer.tojsonFuzzParams("root", "fuzzParams", context.fuzzParams);
     // }
-    // if (outputSelection.orders) {
-    //     jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
-    //         "root",
-    //         "orders",
-    //         context.orders
-    //     );
-    // }
+    if (outputSelection.orders) {
+        jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
+            "root",
+            "orders",
+            context.orders
+        );
+    }
     // if (outputSelection.initialOrders) {
     //     jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
     //         "root",
@@ -325,6 +325,7 @@ function dumpTransfers(FuzzTestContext memory context) view {
 
 function dumpExecutions(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
+    selection.orders = true;
     selection.allExpectedExecutions = true;
     selection.nativeExpectedBalances = true;
     selection.seaport = true;
@@ -334,7 +335,7 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.recipient = true;
     selection.expectedExplicitExecutions = true;
     selection.expectedImplicitExecutions = true;
-    selection.executionsFilter = ItemType.NATIVE;
+    selection.executionsFilter = ItemType.ERC1155_WITH_CRITERIA; // no filter
     selection.orders = true;
     pureDumpContext()(context, selection);
     console2.log("Dumped executions and balances to ./fuzz_debug.json");
