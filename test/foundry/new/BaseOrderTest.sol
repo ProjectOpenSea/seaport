@@ -166,7 +166,8 @@ contract BaseOrderTest is
 
         balanceChecker = new ExpectedBalances();
 
-        criteriaResolverHelper = new CriteriaResolverHelper(24);
+        // TODO: push to 24 if performance allows
+        criteriaResolverHelper = new CriteriaResolverHelper(6);
 
         preapprovals = [
             address(seaport),

@@ -108,12 +108,18 @@ contract CriteriaResolverHelper {
      * @param prng PRNG to use to generate the criteria metadata
      */
     function generateCriteriaMetadata(
-        LibPRNG.PRNG memory prng
+        LibPRNG.PRNG memory prng,
+        uint256 desiredId
     ) public returns (uint256 criteria) {
         uint256[] memory identifiers = generateIdentifiers(prng);
 
         uint256 selectedIdentifierIndex = prng.next() % identifiers.length;
-        uint256 selectedIdentifier = identifiers[selectedIdentifierIndex];
+
+        if (desiredId != type(uint256).max) {
+            identifiers[selectedIdentifierIndex] = desiredId;
+        }
+
+        uint256 selectedIdentifier; = identifiers[selectedIdentifierIndex];
         bytes32[] memory leaves = hashIdentifiersToLeaves(identifiers);
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
         uint256 resolvedIdentifier = selectedIdentifier;
@@ -137,7 +143,7 @@ contract CriteriaResolverHelper {
     function generateIdentifiers(
         LibPRNG.PRNG memory prng
     ) public view returns (uint256[] memory identifiers) {
-        uint256 numIdentifiers = (prng.next() % MAX_LEAVES);
+        uint256 numIdentifiers = (prng.next() % (2 ** MAX_LEAVES));
         if (numIdentifiers <= 1) {
             numIdentifiers = 2;
         }

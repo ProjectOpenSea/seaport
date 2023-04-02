@@ -385,6 +385,22 @@ library AdvancedOrdersSpaceGenerator {
             // Replace the offer in the targeted order with the new offer.
             orders[orderInsertionIndex].parameters.offer = newOffer;
         }
+
+        if (remainders.length > 0) {
+            CriteriaResolver[] memory resolvers = context
+                .testHelpers
+                .criteriaResolverHelper()
+                .deriveCriteriaResolvers(orders);
+            OrderDetails[] memory details = _getOrderDetails(orders, resolvers);
+            // Get the remainders.
+            (, , remainders) = context.testHelpers.getMatchedFulfillments(
+                details
+            );
+
+            if (remainders.length > 0) {
+                revert("FuzzGenerators: could not satisfy remainders");
+            }
+        }
     }
 
     function _getOrderDetails(
@@ -1455,8 +1471,7 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item = item.withIdentifierOrCriteria(context.starting721offerIndex);
-            ++context.starting721offerIndex;
+            item = item.withIdentifierOrCriteria(context.starting721offerIndex++);
             return item;
         } else if (itemType == ItemType.ERC1155) {
             return
@@ -1473,7 +1488,7 @@ library CriteriaGenerator {
                 uint256 derivedCriteria = context
                     .testHelpers
                     .criteriaResolverHelper()
-                    .generateCriteriaMetadata(context.prng);
+                    .generateCriteriaMetadata(context.prng, itemType == ItemType.ERC721_WITH_CRITERIA ? context.starting721offerIndex++ : type(uint256).max);
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
                 // Return the item with the Merkle root of the random tokenId
@@ -1495,8 +1510,7 @@ library CriteriaGenerator {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
         } else if (itemType == ItemType.ERC721) {
-            item = item.withIdentifierOrCriteria(context.starting721offerIndex);
-            ++context.starting721offerIndex;
+            item = item.withIdentifierOrCriteria(context.starting721offerIndex++);
             return item;
         } else if (itemType == ItemType.ERC1155) {
             return
@@ -1512,7 +1526,7 @@ library CriteriaGenerator {
                 uint256 derivedCriteria = context
                     .testHelpers
                     .criteriaResolverHelper()
-                    .generateCriteriaMetadata(context.prng);
+                    .generateCriteriaMetadata(context.prng, itemType == ItemType.ERC721_WITH_CRITERIA ? context.starting721offerIndex++ : type(uint256).max);
                 // NOTE: resolvable identifier and proof are now registrated on CriteriaResolverHelper
 
                 // Return the item with the Merkle root of the random tokenId
