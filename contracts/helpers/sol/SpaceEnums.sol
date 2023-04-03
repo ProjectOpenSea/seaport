@@ -21,12 +21,11 @@ enum Method {
 
 enum OrderStatus {
     AVAILABLE, // not validated or fulfilled; implicitly validated via signature except when match is called
-    FULFILLED, // completely fulfilled
-    PARTIAL, // partially fulfilled
-    CANCELLED_EXPLICIT, // explicit cancellation
-    CANCELLED_COUNTER, // canceled via counter increment
     VALIDATED, // validated on-chain
-    SKIPPED, // fulfillAvailable case
+    PARTIAL, // partially fulfilled
+    FULFILLED, // completely fulfilled
+    CANCELLED_EXPLICIT, // explicit cancellation
+    CANCELLED_COUNTER, // canceled via counter increment (reverts due to invalid sig)
     REVERT // fulfilling reverts
 }
 

@@ -121,7 +121,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         FulfillmentDetails memory fulfillmentDetails,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        bool[] memory availableOrders
     )
         public
         pure
@@ -133,7 +134,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
             fulfillmentDetails,
             offerFulfillments,
-            considerationFulfillments
+            considerationFulfillments,
+            availableOrders
         );
 
         implicitExecutions = processImplicitOfferExecutions(fulfillmentDetails);
@@ -507,7 +509,8 @@ contract ExecutionHelper is AmountDeriverHelper {
     function processExplicitExecutionsFromAggregatedComponents(
         FulfillmentDetails memory fulfillmentDetails,
         FulfillmentComponent[][] memory offerComponents,
-        FulfillmentComponent[][] memory considerationComponents
+        FulfillmentComponent[][] memory considerationComponents,
+        bool[] memory availableOrders
     ) internal pure returns (Execution[] memory explicitExecutions) {
         explicitExecutions = new Execution[](
             offerComponents.length + considerationComponents.length
@@ -526,17 +529,22 @@ contract ExecutionHelper is AmountDeriverHelper {
             for (uint256 j = 0; j < aggregatedComponents.length; j++) {
                 FulfillmentComponent memory component = aggregatedComponents[j];
 
-                // TODO: handle unavailable orders & OOR items
+                if (!availableOrders[component.orderIndex]) {
+                    continue;
+                }
+
                 OrderDetails memory offerOrderDetails = fulfillmentDetails
                     .orders[component.orderIndex];
 
-                SpentItem memory item = offerOrderDetails.offer[
-                    component.itemIndex
-                ];
+                if (component.itemIndex < offerOrderDetails.offer.length) {
+                    SpentItem memory item = offerOrderDetails.offer[
+                        component.itemIndex
+                    ];
 
-                aggregatedAmount += item.amount;
+                    aggregatedAmount += item.amount;
 
-                item.amount = 0;
+                    item.amount = 0;
+                }
             }
 
             // use the first fulfillment component to get the order details
@@ -577,17 +585,21 @@ contract ExecutionHelper is AmountDeriverHelper {
             for (uint256 j = 0; j < aggregatedComponents.length; j++) {
                 FulfillmentComponent memory component = aggregatedComponents[j];
 
-                // TODO: handle unavailable orders & OOR items
-                OrderDetails
-                    memory considerationOrderDetails = fulfillmentDetails
-                        .orders[component.orderIndex];
+                if (!availableOrders[component.orderIndex]) {
+                    continue;
+                }
 
-                ReceivedItem memory item = considerationOrderDetails
-                    .consideration[component.itemIndex];
+                OrderDetails memory considerationOrderDetails = fulfillmentDetails
+                    .orders[component.orderIndex];
 
-                aggregatedAmount += item.amount;
+                if (component.itemIndex < offerOrderDetails.consideration.length) {
+                    ReceivedItem memory item = considerationOrderDetails
+                        .consideration[component.itemIndex];
 
-                item.amount = 0;
+                    aggregatedAmount += item.amount;
+
+                    item.amount = 0;
+                }
             }
 
             // use the first fulfillment component to get the order details
@@ -737,18 +749,19 @@ contract ExecutionHelper is AmountDeriverHelper {
                 j
             ];
 
-            // TODO: handle unavailable orders & OOR items
             OrderDetails memory details = fulfillmentDetails.orders[
                 component.orderIndex
             ];
 
-            SpentItem memory offerSpentItem = details.offer[
-                component.itemIndex
-            ];
+            if (component.itemIndex < details.offer.length) {
+                SpentItem memory offerSpentItem = details.offer[
+                    component.itemIndex
+                ];
 
-            aggregatedOfferAmount += offerSpentItem.amount;
+                aggregatedOfferAmount += offerSpentItem.amount;
 
-            offerSpentItem.amount = 0;
+                offerSpentItem.amount = 0;
+            }
         }
 
         // aggregate & zero-out the amounts of each offer item
@@ -761,18 +774,19 @@ contract ExecutionHelper is AmountDeriverHelper {
             FulfillmentComponent memory component = fulfillment
                 .considerationComponents[j];
 
-            // TODO: handle unavailable orders & OOR items
             OrderDetails memory details = fulfillmentDetails.orders[
                 component.orderIndex
             ];
 
-            ReceivedItem memory considerationSpentItem = details.consideration[
-                component.itemIndex
-            ];
+            if (component.itemIndex < details.consideration.length) {
+                ReceivedItem memory considerationSpentItem = details.consideration[
+                    component.itemIndex
+                ];
 
-            aggregatedConsiderationAmount += considerationSpentItem.amount;
+                aggregatedConsiderationAmount += considerationSpentItem.amount;
 
-            considerationSpentItem.amount = 0;
+                considerationSpentItem.amount = 0;
+            }
         }
 
         // Get the first item on each side
@@ -788,7 +802,7 @@ contract ExecutionHelper is AmountDeriverHelper {
             .orders[firstConsiderationComponent.orderIndex]
             .consideration[firstConsiderationComponent.itemIndex];
 
-        // put back any extra (TODO: put it on first *available* item)
+        // put back any extra (TODO: put it on first *in-range* item)
         uint256 amount = aggregatedOfferAmount;
         if (aggregatedOfferAmount > aggregatedConsiderationAmount) {
             sourceOrder

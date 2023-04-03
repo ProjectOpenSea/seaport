@@ -73,9 +73,40 @@ library FuzzEngineLib {
             address(context.seaport)
         );
 
+        bool hasUnavailable = false;
+        for (uint256 i = 0; i < context.expectedAvailableOrders; ++i) {
+            if (!context.expectedAvailableOrders[i]) {
+                hasUnavailable = true;
+                break;
+            }
+        }
+
+        if (hasUnavailable) {
+            if (invalidNativeOfferItemsLocated) {
+                revert("FuzzEngineLib: invalid native token + unavailable combination");
+            }
+
+            if (structure == Structure.ADVANCED) {
+                bytes4[] memory selectors = new bytes4[](1);
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                return selectors;
+            } else {
+                bytes4[] memory selectors = new bytes4[](2);
+                selectors[0] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
+                return selectors;
+            }
+        }
+
         if (family == Family.SINGLE && !invalidNativeOfferItemsLocated) {
             if (structure == Structure.BASIC) {
-                bytes4[] memory selectors = new bytes4[](4);
+                bytes4[] memory selectors = new bytes4[](6);
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
                 selectors[2] = context.seaport.fulfillBasicOrder.selector;
@@ -83,19 +114,33 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillBasicOrder_efficient_6GL6yc
                     .selector;
+                selectors[4] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[5] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
 
             if (structure == Structure.STANDARD) {
-                bytes4[] memory selectors = new bytes4[](2);
+                bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
+                selectors[2] = context.seaport.fulfillAvailableOrders.selector;
+                selectors[3] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
 
             if (structure == Structure.ADVANCED) {
-                bytes4[] memory selectors = new bytes4[](1);
+                bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAdvancedOrder.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
         }

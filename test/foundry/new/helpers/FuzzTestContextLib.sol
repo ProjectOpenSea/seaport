@@ -201,6 +201,9 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+
+    bool[] expectedAvailableOrders;
+
     /**
      * @dev Expected event hashes. Encompasses all events that match watched topic0s.
      */
@@ -283,6 +286,7 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
                 expectedEventHashes: expectedEventHashes,
                 actualEvents: actualEvents,
@@ -573,8 +577,9 @@ library FuzzTestContextLib {
      * @return _context the FuzzTestContext with the preExecOrderStatuses set
      */
     function withPreExecOrderStatuses(
-        FuzzTestContext memory context
-    ) internal pure returns (FuzzTestContext memory) {
+        FuzzTestContext memory context,
+        AdvancedOrdersSpace memory space
+    ) internal pure {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
         context.preExecOrderStatuses = new OrderStatusEnum[](
@@ -582,12 +587,21 @@ library FuzzTestContextLib {
         );
 
         for (uint256 i = 0; i < context.orders.length; i++) {
-            context.preExecOrderStatuses[i] = OrderStatusEnum(
-                uint8(bound(prng.next(), 0, 6))
-            );
+            if (
+                space.orders[i].unavailableReason == UnavailableReason.CANCELLED
+            ) {
+                context.preExecOrderStatuses[i] = OrderStatusEnum.CANCELLED_EXPLICIT;
+            } else if (
+                space.orders[i].unavailableReason == UnavailableReason.ALREADY_FULFILLED
+            ) {
+                context.preExecOrderStatuses[i] = OrderStatusEnum.FULFILLED;
+            } else {
+                // TODO: support partial as well (0-2)
+                context.preExecOrderStatuses[i] = OrderStatusEnum(
+                    uint8(bound(prng.next(), 0, 1))
+                );
+            }
         }
-
-        return context;
     }
 
     function _copyBytes4(
