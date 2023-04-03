@@ -342,6 +342,14 @@ enum Tips {
     TIPS
 }
 
+enum UnavailableReason {
+    EXPIRED,
+    STARTS_IN_FUTURE,
+    CANCELLED,
+    ALREADY_FULFILLED,
+    GENERATE_ORDER_FAILURE
+}
+
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?
 
 // // Zone.PASS/FAIL <- ZoneParams

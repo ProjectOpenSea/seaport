@@ -31,6 +31,7 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
@@ -119,7 +120,9 @@ library TestStateGenerator {
                 signatureMethod: SignatureMethod(0),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
-                tips: Tips(context.randEnum(0, 1))
+                tips: Tips(context.randEnum(0, 1)),
+                // TODO: Add more unavailable order reasons (0-4).
+                unavailableReason: UnavailableReason(context.randEnum(0, 1))
             });
         }
 

@@ -27,6 +27,7 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
@@ -125,7 +126,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.EXPIRED // ignored
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -169,7 +171,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.EXPIRED // ignored
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -224,7 +227,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.EXPIRED // ignored
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](

@@ -6,6 +6,7 @@ import { ItemType } from "./SeaportEnums.sol";
 import {
     Amount,
     BroadOrderType,
+    ConduitChoice,
     Criteria,
     EOASignature,
     Offerer,
@@ -14,9 +15,9 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
-    ZoneHash,
-    ConduitChoice
+    ZoneHash
 } from "./SpaceEnums.sol";
 
 struct OfferItemSpace {
@@ -57,7 +58,7 @@ struct OrderComponentsSpace {
     EOASignature eoaSignatureType;
     ConduitChoice conduit;
     Tips tips;
-    // TODO: zone may have to be per-test depending on the zone
+    UnavailableReason unavailableReason; // ignored unless unavailable
 }
 
 struct AdvancedOrdersSpace {
