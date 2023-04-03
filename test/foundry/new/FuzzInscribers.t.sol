@@ -366,20 +366,23 @@ contract FuzzHelpersTest is BaseOrderTest {
             address(context.seaport)
         );
 
-        uint256 expectedReadAccessCount = 1;
+        uint256 expectedReadAccessCount = 4;
 
-        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+        string memory profile = vm.envOr(
+            "FOUNDRY_PROFILE",
+            string("optimized")
+        );
 
         if (
             keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("optimized"))
         ) {
-            expectedReadAccessCount = 4;
+            expectedReadAccessCount = 1;
         }
 
         require(
             readAccesses.length == expectedReadAccessCount,
-            "Expected 4 read accesses."
+            "Expected a different number of read accesses."
         );
 
         return readAccesses[0];
