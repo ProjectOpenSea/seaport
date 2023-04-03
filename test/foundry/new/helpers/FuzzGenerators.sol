@@ -62,7 +62,7 @@ library TestStateGenerator {
         uint256 maxOfferItemsPerOrder,
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
-    ) internal returns (AdvancedOrdersSpace memory) {
+    ) internal pure returns (AdvancedOrdersSpace memory) {
         context.prng.state = uint256(keccak256(msg.data));
 
         {
@@ -411,7 +411,7 @@ library AdvancedOrdersSpaceGenerator {
     function _getOrderDetails(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (OrderDetails[] memory) {
+    ) internal view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](
             advancedOrders.length
         );

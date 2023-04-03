@@ -512,7 +512,7 @@ library FuzzHelpers {
         address seaport,
         address fulfiller,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (bytes32[] memory calldataHashes) {
+    ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = orders.getZoneParameters(

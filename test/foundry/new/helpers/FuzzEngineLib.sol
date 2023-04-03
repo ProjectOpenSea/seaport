@@ -74,8 +74,6 @@ library FuzzEngineLib {
         );
 
         if (family == Family.SINGLE && !invalidNativeOfferItemsLocated) {
-            AdvancedOrder memory order = context.orders[0];
-
             if (structure == Structure.BASIC) {
                 bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillOrder.selector;

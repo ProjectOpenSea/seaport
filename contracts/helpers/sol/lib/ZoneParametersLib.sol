@@ -73,30 +73,20 @@ library ZoneParametersLib {
         // Get orderHash
         bytes32 orderHash = getTipNeutralizedOrderHash(
             advancedOrder,
-            seaportInterface
+            seaportInterface,
+            counter
         );
 
-        // Create spentItems array
-        SpentItem[] memory spentItems = new SpentItem[](
-            orderParameters.offer.length
+        (
+            SpentItem[] memory spentItems,
+            ReceivedItem[] memory receivedItems
+        ) = getSpentAndReceivedItems(
+            orderParameters,
+            advancedOrder.numerator,
+            advancedOrder.denominator,
+            0,
+            criteriaResolvers
         );
-
-        // Convert offer to spentItems and add to spentItems array
-        for (uint256 j = 0; j < orderParameters.offer.length; j++) {
-            spentItems[j] = orderParameters.offer[j].toSpentItem();
-        }
-
-        // Create receivedItems array
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            orderParameters.consideration.length
-        );
-
-        // Convert consideration to receivedItems and add to receivedItems array
-        for (uint256 k = 0; k < orderParameters.consideration.length; k++) {
-            receivedItems[k] = orderParameters
-                .consideration[k]
-                .toReceivedItem();
-        }
 
         // Store orderHash in orderHashes array to pass into zoneParameters
         bytes32[] memory orderHashes = new bytes32[](1);
@@ -123,7 +113,7 @@ library ZoneParametersLib {
         uint256 maximumFulfilled,
         address seaport,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (ZoneParameters[] memory) {
+    ) internal view returns (ZoneParameters[] memory) {
         return
             _getZoneParametersFromStruct(
                 _getZoneParametersStruct(
@@ -142,7 +132,7 @@ library ZoneParametersLib {
         uint256 maximumFulfilled,
         address seaport,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (ZoneParametersStruct memory) {
+    ) internal pure returns (ZoneParametersStruct memory) {
         return
             ZoneParametersStruct(
                 advancedOrders,
@@ -155,7 +145,7 @@ library ZoneParametersLib {
 
     function _getZoneParametersFromStruct(
         ZoneParametersStruct memory zoneParametersStruct
-    ) internal returns (ZoneParameters[] memory) {
+    ) internal view returns (ZoneParameters[] memory) {
         // TODO: use testHelpers pattern to use single amount deriver helper
         ZoneDetails memory details = _getZoneDetails(zoneParametersStruct);
 
@@ -170,7 +160,7 @@ library ZoneParametersLib {
 
     function _getZoneDetails(
         ZoneParametersStruct memory zoneParametersStruct
-    ) internal returns (ZoneDetails memory) {
+    ) internal pure returns (ZoneDetails memory) {
         return
             ZoneDetails({
                 advancedOrders: zoneParametersStruct.advancedOrders,
@@ -188,7 +178,7 @@ library ZoneParametersLib {
     function _applyOrderDetails(
         ZoneDetails memory details,
         ZoneParametersStruct memory zoneParametersStruct
-    ) internal {
+    ) internal view {
         details.orderDetails = _getOrderDetails(
             zoneParametersStruct.advancedOrders,
             zoneParametersStruct.criteriaResolvers
@@ -198,7 +188,7 @@ library ZoneParametersLib {
     function _applyOrderHashes(
         ZoneDetails memory details,
         address seaport
-    ) internal {
+    ) internal view {
         // Iterate over advanced orders to calculate orderHashes
         for (uint256 i = 0; i < details.advancedOrders.length; i++) {
             if (i >= details.maximumFulfilled) {
@@ -208,7 +198,8 @@ library ZoneParametersLib {
                 // Add orderHash to orderHashes
                 details.orderHashes[i] = getTipNeutralizedOrderHash(
                     details.advancedOrders[i],
-                    SeaportInterface(seaport)
+                    SeaportInterface(seaport),
+                    SeaportInterface(seaport).getCounter(details.advancedOrders[i].parameters.offerer)
                 );
             }
         }
@@ -217,7 +208,7 @@ library ZoneParametersLib {
     function _getOrderDetails(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (OrderDetails[] memory) {
+    ) internal view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](
             advancedOrders.length
         );
@@ -547,7 +538,7 @@ library ZoneParametersLib {
 
     function _finalizeZoneParameters(
         ZoneDetails memory zoneDetails
-    ) internal returns (ZoneParameters[] memory zoneParameters) {
+    ) internal pure returns (ZoneParameters[] memory zoneParameters) {
         zoneParameters = new ZoneParameters[](zoneDetails.maximumFulfilled);
 
         // Iterate through advanced orders to create zoneParameters
@@ -575,7 +566,7 @@ library ZoneParametersLib {
         AdvancedOrder memory advancedOrder,
         address fulfiller,
         bytes32[] memory orderHashes
-    ) internal returns (ZoneParameters memory) {
+    ) internal pure returns (ZoneParameters memory) {
         return
             ZoneParameters({
                 orderHash: orderHash,
@@ -593,7 +584,8 @@ library ZoneParametersLib {
 
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
-        SeaportInterface seaport
+        SeaportInterface seaport,
+        uint256 counter
     ) internal view returns (bytes32 orderHash) {
         // Get orderComponents from orderParameters.
         OrderComponents memory components = OrderComponents({
@@ -607,7 +599,7 @@ library ZoneParametersLib {
             zoneHash: order.parameters.zoneHash,
             salt: order.parameters.salt,
             conduitKey: order.parameters.conduitKey,
-            counter: seaport.getCounter(order.parameters.offerer)
+            counter: counter
         });
 
         // Get the length of the consideration array (which might have
