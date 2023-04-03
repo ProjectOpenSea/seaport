@@ -333,6 +333,15 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.orders = orders.copy();
+
+        // Bootstrap with all available to ease direct testing.
+        if (context.expectedAvailableOrders.length == 0) {
+            context.expectedAvailableOrders = new bool[](orders.length);
+            for (uint256 i = 0; i < orders.length; ++i) {
+                context.expectedAvailableOrders[i] = true;
+            }
+        }
+
         return context;
     }
 
