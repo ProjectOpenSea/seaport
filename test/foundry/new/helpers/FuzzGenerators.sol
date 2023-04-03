@@ -269,11 +269,9 @@ library AdvancedOrdersSpaceGenerator {
         // Build orders.
         _buildOrders(orders, space, context);
 
-        // Handle combined orders (need to have at least one execution).
-        if (len > 1) {
-            _handleInsertIfAllEmpty(orders, context);
-            _handleInsertIfAllFilterable(orders, context, space);
-        }
+        // Ensure that orders are not entirely empty of items.
+        _handleInsertIfAllEmpty(orders, context);
+        _handleInsertIfAllFilterable(orders, context, space);
 
         bool ensureMatchable = (
             space.isMatchable || _hasInvalidNativeOfferItems(orders)
