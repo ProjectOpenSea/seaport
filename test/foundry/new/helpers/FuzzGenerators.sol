@@ -257,6 +257,7 @@ library AdvancedOrdersSpaceGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using MatchComponentType for MatchComponent;
+    using TimeGenerator for OrderParameters;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -345,11 +346,18 @@ library AdvancedOrdersSpaceGenerator {
     ) internal pure {
         // UnavailableReason.AVAILABLE => take no action
         if (reason == UnavailableReason.EXPIRED) {
-            // TODO: update startTime / endTime
+            order = order.withGeneratedTime(
+                Time(context.randEnum(3, 4)),
+                context
+            );
         } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {
-            // TODO: update startTime / endTime
+            order = order.withGeneratedTime(
+                Time.STARTS_IN_FUTURE,
+                context
+            );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
             // TODO: update offerer + order type (point to bad contract offerer)
+            revert("FuzzGenerators: no support for failing contract order fuzzing");
         } // CANCELLED + ALREADY_FULFILLED just need a status change
     }
 
@@ -959,13 +967,11 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
 
-            space.orders[orderInsertionIndex % orders.length].unavailableReason = UnavailableReason.AVAILABLE;
-
             // If there are no consideration items in any of the orders, then
             // add a consideration item to a random order.
             if (orderParams.consideration.length == 0) {
                 // Pick a random order to insert the consideration item into.
-                uint256 orderInsertionIndex = context.randRange(
+                orderInsertionIndex = context.randRange(
                     0,
                     orders.length - 1
                 );
@@ -991,6 +997,8 @@ library AdvancedOrdersSpaceGenerator {
                 // Set the consideration item array on the order parameters.
                 orderParams.consideration = consideration;
             }
+
+            space.orders[orderInsertionIndex % orders.length].unavailableReason = UnavailableReason.AVAILABLE;
 
             // Pick a random consideration item to modify.
             uint256 itemIndex = context.randRange(
