@@ -138,7 +138,10 @@ contract ExecutionHelper is AmountDeriverHelper {
             availableOrders
         );
 
-        implicitExecutions = processImplicitOfferExecutions(fulfillmentDetails);
+        implicitExecutions = processImplicitOfferExecutions(
+            fulfillmentDetails,
+            availableOrders
+        );
 
         _handleExcessNativeTokens(
             fulfillmentDetails,
@@ -202,7 +205,15 @@ contract ExecutionHelper is AmountDeriverHelper {
             }
         }
 
-        implicitExecutions = processImplicitOfferExecutions(fulfillmentDetails);
+        bool[] memory availableOrders = new bool[](fulfillmentDetails.orders.length);
+        for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
+            availableOrders[i] = true;
+        }
+
+        implicitExecutions = processImplicitOfferExecutions(
+            fulfillmentDetails,
+            availableOrders
+        );
 
         _handleExcessNativeTokens(
             fulfillmentDetails,
@@ -689,20 +700,27 @@ contract ExecutionHelper is AmountDeriverHelper {
      * @return implicitExecutions The implicit executions
      */
     function processImplicitOfferExecutions(
-        FulfillmentDetails memory fulfillmentDetails
+        FulfillmentDetails memory fulfillmentDetails,
+        bool[] memory availableOrders
     ) internal pure returns (Execution[] memory implicitExecutions) {
         OrderDetails[] memory orderDetails = fulfillmentDetails.orders;
 
         // Get the maximum possible number of implicit executions.
         uint256 maxPossible = 1;
         for (uint256 i = 0; i < orderDetails.length; ++i) {
-            maxPossible += orderDetails[i].offer.length;
+            if (availableOrders[i]) {
+                maxPossible += orderDetails[i].offer.length;
+            }
         }
 
         // Insert an implicit execution for each non-zero offer item.
         implicitExecutions = new Execution[](maxPossible);
         uint256 insertionIndex = 0;
         for (uint256 i = 0; i < orderDetails.length; ++i) {
+            if (!availableOrders[i]) {
+                continue;
+            }
+
             OrderDetails memory details = orderDetails[i];
             for (uint256 j; j < details.offer.length; ++j) {
                 SpentItem memory item = details.offer[j];
