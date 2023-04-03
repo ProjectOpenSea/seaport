@@ -55,7 +55,7 @@ abstract contract FuzzDerivers is
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
                 status != OrderStatusEnum.FULFILLED // not fully filled
-            )
+            );
         }
 
         context.expectedAvailableOrders = expectedAvailableOrders;

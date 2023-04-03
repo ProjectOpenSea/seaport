@@ -592,7 +592,7 @@ contract ExecutionHelper is AmountDeriverHelper {
                 OrderDetails memory considerationOrderDetails = fulfillmentDetails
                     .orders[component.orderIndex];
 
-                if (component.itemIndex < offerOrderDetails.consideration.length) {
+                if (component.itemIndex < considerationOrderDetails.consideration.length) {
                     ReceivedItem memory item = considerationOrderDetails
                         .consideration[component.itemIndex];
 

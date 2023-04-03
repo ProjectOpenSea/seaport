@@ -20,8 +20,13 @@ import {
 } from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
-    OrderStatus as OrderStatusEnum
+    OrderStatus as OrderStatusEnum,
+    UnavailableReason
 } from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+
+import {
+    AdvancedOrdersSpace
+} from "../../../../contracts/helpers/sol/StructSpace.sol";
 
 struct FuzzParams {
     uint256 seed;
@@ -579,7 +584,7 @@ library FuzzTestContextLib {
     function withPreExecOrderStatuses(
         FuzzTestContext memory context,
         AdvancedOrdersSpace memory space
-    ) internal pure {
+    ) internal pure returns (FuzzTestContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
         context.preExecOrderStatuses = new OrderStatusEnum[](
@@ -602,6 +607,8 @@ library FuzzTestContextLib {
                 );
             }
         }
+
+        return context;
     }
 
     function _copyBytes4(

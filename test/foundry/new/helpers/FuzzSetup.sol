@@ -273,7 +273,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         context.recipient == address(0)
                     ) {
                         for (uint256 k; k < orderDetails.length; ++k) {
-                            if (!context.expectedAvailableOrders[checks]) continue;
+                            if (!context.expectedAvailableOrders[k]) continue;
 
                             SpentItem[] memory spentItems = orderDetails[k]
                                 .offer;
