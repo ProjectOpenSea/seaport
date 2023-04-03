@@ -74,7 +74,7 @@ library FuzzEngineLib {
         );
 
         bool hasUnavailable = false;
-        for (uint256 i = 0; i < context.expectedAvailableOrders; ++i) {
+        for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
             if (!context.expectedAvailableOrders[i]) {
                 hasUnavailable = true;
                 break;
