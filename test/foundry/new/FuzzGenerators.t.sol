@@ -127,7 +127,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.EXPIRED // ignored
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -172,7 +172,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.EXPIRED // ignored
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -228,7 +228,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.EXPIRED // ignored
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](

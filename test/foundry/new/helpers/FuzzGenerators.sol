@@ -121,8 +121,11 @@ library TestStateGenerator {
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
-                // TODO: Add more unavailable order reasons (0-4).
-                unavailableReason: UnavailableReason(context.randEnum(0, 1))
+                // TODO: Add more unavailable order reasons (1-5).
+                unavailableReason: (
+                    context.randRange(0, 1) == 0 ? UnavailableReason.AVAILABLE :
+                    UnavailableReason(context.randEnum(1, 2))
+                )
             });
         }
 
@@ -268,14 +271,25 @@ library AdvancedOrdersSpaceGenerator {
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+            _ensureAllAvailable(space);
         } else if (len > 1) {
             _adjustUnavailable(orders, space, context);
+        } else {
+            _ensureAllAvailable(space);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function _ensureAllAvailable(
+        AdvancedOrdersSpace memory space
+    ) internal pure {
+        for (uint256 i = 0; i < space.orders.length; ++i) {
+            space.orders[i].unavailableReason = UnavailableReason.AVAILABLE;
+        }
     }
 
     function _buildOrders(
@@ -304,17 +318,11 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal pure {
         for (uint256 i = 0; i < orders.length; ++i) {
-            OrderParameters memory orderParams = orders[i].parameters;
-
-            bool makeUnavailable = context.randRange(0, 1) == 0;
-
-            if (makeUnavailable) {
-                _adjustUnavailable(
-                    orderParams,
-                    space.orders[i].unavailableReason,
-                    context
-                );
-            }
+            _adjustUnavailable(
+                orders[i].parameters,
+                space.orders[i].unavailableReason,
+                context
+            );
         }
     }
 
@@ -323,6 +331,7 @@ library AdvancedOrdersSpaceGenerator {
         UnavailableReason reason,
         FuzzGeneratorContext memory context
     ) internal pure {
+        // UnavailableReason.AVAILABLE => take no action
         if (reason == UnavailableReason.EXPIRED) {
             // TODO: update startTime / endTime
         } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {

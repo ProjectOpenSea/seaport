@@ -343,6 +343,7 @@ enum Tips {
 }
 
 enum UnavailableReason {
+    AVAILABLE,
     EXPIRED,
     STARTS_IN_FUTURE,
     CANCELLED,
