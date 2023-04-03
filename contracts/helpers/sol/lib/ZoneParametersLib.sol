@@ -81,12 +81,12 @@ library ZoneParametersLib {
             SpentItem[] memory spentItems,
             ReceivedItem[] memory receivedItems
         ) = getSpentAndReceivedItems(
-            orderParameters,
-            advancedOrder.numerator,
-            advancedOrder.denominator,
-            0,
-            criteriaResolvers
-        );
+                orderParameters,
+                advancedOrder.numerator,
+                advancedOrder.denominator,
+                0,
+                criteriaResolvers
+            );
 
         // Store orderHash in orderHashes array to pass into zoneParameters
         bytes32[] memory orderHashes = new bytes32[](1);
@@ -199,7 +199,9 @@ library ZoneParametersLib {
                 details.orderHashes[i] = getTipNeutralizedOrderHash(
                     details.advancedOrders[i],
                     SeaportInterface(seaport),
-                    SeaportInterface(seaport).getCounter(details.advancedOrders[i].parameters.offerer)
+                    SeaportInterface(seaport).getCounter(
+                        details.advancedOrders[i].parameters.offerer
+                    )
                 );
             }
         }
