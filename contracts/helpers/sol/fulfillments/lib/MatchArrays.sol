@@ -2942,7 +2942,9 @@ library MatchArrays {
         return component.amount;
     }
 
-    function indexKey(MatchComponent memory component) internal pure returns (uint256) {
+    function indexKey(
+        MatchComponent memory component
+    ) internal pure returns (uint256) {
         return (component.orderIndex << 8) | component.itemIndex;
     }
 
@@ -2951,7 +2953,7 @@ library MatchArrays {
     }
 
     function sortByIndex(MatchComponent[] memory components) internal pure {
-        sort(components,indexKey);
+        sort(components, indexKey);
     }
 
     // Sorts the array in-place with intro-quicksort.

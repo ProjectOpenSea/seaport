@@ -111,7 +111,9 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                    context.seaport
+                );
 
                 // Use the order hash to get the expected calldata hash from the
                 // zone.
@@ -294,7 +296,9 @@ abstract contract FuzzChecks is Test {
             // Only check orders that were validated pre-execution.
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
                 AdvancedOrder memory order = context.orders[i];
-                bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+                bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                    context.seaport
+                );
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
                 );

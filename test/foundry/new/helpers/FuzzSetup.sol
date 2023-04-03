@@ -93,7 +93,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      *
      * @param context The test context.
      */
-    function setUpZoneParameters(FuzzTestContext memory context) public {
+    function setUpZoneParameters(FuzzTestContext memory context) public view {
         // TODO: This doesn't take maximumFulfilled: should pass it through.
         // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context

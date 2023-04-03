@@ -512,7 +512,7 @@ library FuzzHelpers {
         address seaport,
         address fulfiller,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (bytes32[] memory calldataHashes) {
+    ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
@@ -759,10 +759,7 @@ library FuzzHelpers {
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
             if (hasCriteria) {
-                return (
-                    hasCriteria,
-                    offerItem.identifierOrCriteria != 0
-                );
+                return (hasCriteria, offerItem.identifierOrCriteria != 0);
             }
         }
 
