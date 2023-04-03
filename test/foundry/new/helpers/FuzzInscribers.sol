@@ -26,11 +26,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe an entire order status struct.
-     * 
+     *
      * @param order The order to inscribe.
      * @param orderStatus The order status to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusComprehensive(
         AdvancedOrder memory order,
@@ -45,12 +45,12 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe an entire order status struct, except for the numerator.
-     * 
+     *
      * @param order The order to inscribe.
      * @param numerator The numerator to inscribe.
      * @param denominator The denominator to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusNumeratorAndDenominator(
         AdvancedOrder memory order,
@@ -64,11 +64,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe just the `isValidated` field of an order status struct.
-     * 
+     *
      * @param order The order to inscribe.
      * @param isValidated The boolean value to set for the `isValidated` field.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusValidated(
         AdvancedOrder memory order,
@@ -109,11 +109,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe just the `isCancelled` field of an order status struct.
-     * 
+     *
      * @param order The order to inscribe.
      * @param isCancelled The boolean value to set for the `isCancelled` field.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusCanceled(
         AdvancedOrder memory order,
@@ -156,11 +156,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe just the `numerator` field of an order status struct.
-     * 
+     *
      * @param order The order to inscribe.
      * @param numerator The numerator to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusNumerator(
         AdvancedOrder memory order,
@@ -201,11 +201,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe just the `denominator` field of an order status struct.
-     * 
+     *
      * @param order The order to inscribe.
      * @param denominator The denominator to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeOrderStatusDenominator(
         AdvancedOrder memory order,
@@ -246,11 +246,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe the contract offerer nonce.
-     * 
+     *
      * @param contractOfferer The contract offerer to inscribe the nonce for.
      * @param nonce The nonce to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeContractOffererNonce(
         address contractOfferer,
@@ -273,11 +273,11 @@ library FuzzInscribers {
 
     /**
      * @dev Inscribe the counter for an offerer.
-     * 
+     *
      * @param offerer The offerer to inscribe the counter for.
      * @param counter The counter to inscribe.
      * @param context The fuzz test context.
-     * 
+     *
      */
     function inscribeCounter(
         address offerer,
@@ -308,7 +308,21 @@ library FuzzInscribers {
             address(context.seaport)
         );
 
-        // require(readAccesses.length == 4, "Expected 4 read accesses.");
+        uint256 expectedReadAccessCount = 1;
+
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("optimized"))
+        ) {
+            expectedReadAccessCount = 4;
+        }
+
+        require(
+            readAccesses.length == expectedReadAccessCount,
+            "Expected 4 read accesses."
+        );
 
         return readAccesses[0];
     }
@@ -323,7 +337,7 @@ library FuzzInscribers {
             address(context.seaport)
         );
 
-        // require(readAccesses.length == 1, "Expected 1 read access.");
+        require(readAccesses.length == 1, "Expected 1 read access.");
 
         return readAccesses[0];
     }
@@ -338,7 +352,7 @@ library FuzzInscribers {
             address(context.seaport)
         );
 
-        // require(readAccesses.length == 1, "Expected 1 read access.");
+        require(readAccesses.length == 1, "Expected 1 read access.");
 
         return readAccesses[0];
     }

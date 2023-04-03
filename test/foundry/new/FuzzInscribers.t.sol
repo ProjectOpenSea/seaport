@@ -366,11 +366,21 @@ contract FuzzHelpersTest is BaseOrderTest {
             address(context.seaport)
         );
 
-        // TODO: figure out why this fails in CI.
-        // require(
-        //     readAccesses.length == 4,
-        //     "Expected 4 read access."
-        // );
+        uint256 expectedReadAccessCount = 1;
+
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+
+        if (
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("optimized"))
+        ) {
+            expectedReadAccessCount = 4;
+        }
+
+        require(
+            readAccesses.length == expectedReadAccessCount,
+            "Expected 4 read accesses."
+        );
 
         return readAccesses[0];
     }
@@ -385,7 +395,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             address(context.seaport)
         );
 
-        // require(readAccesses.length == 1, "Expected 1 read access.");
+        require(readAccesses.length == 1, "Expected 1 read access.");
 
         return readAccesses[0];
     }
@@ -400,7 +410,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             address(context.seaport)
         );
 
-        // require(readAccesses.length == 1, "Expected 1 read access.");
+        require(readAccesses.length == 1, "Expected 1 read access.");
 
         return readAccesses[0];
     }
