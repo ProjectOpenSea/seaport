@@ -117,8 +117,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             if (
+                context.expectedAvailableOrders[i] && (
                 order.orderType == OrderType.FULL_RESTRICTED ||
-                order.orderType == OrderType.PARTIAL_RESTRICTED
+                order.orderType == OrderType.PARTIAL_RESTRICTED )
             ) {
                 registerChecks = true;
                 expectedZoneCalldataHash[i] = calldataHashes[i];
