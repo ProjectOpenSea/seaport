@@ -98,7 +98,18 @@ library TestStateGenerator {
             totalOrders
         );
 
+        bool someAvailable = false;
+
         for (uint256 i; i < totalOrders; ++i) {
+            UnavailableReason reason = (
+                context.randRange(0, 1) == 0 ? UnavailableReason.AVAILABLE :
+                UnavailableReason(context.randEnum(1, 2))
+            );
+
+            if (reason == UnavailableReason.AVAILABLE) {
+                someAvailable = true;
+            }
+
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
@@ -122,11 +133,12 @@ library TestStateGenerator {
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
                 // TODO: Add more unavailable order reasons (1-5).
-                unavailableReason: (
-                    context.randRange(0, 1) == 0 ? UnavailableReason.AVAILABLE :
-                    UnavailableReason(context.randEnum(1, 2))
-                )
+                unavailableReason: reason
             });
+        }
+
+        if (!someAvailable) {
+            components[context.randRange(0, totalOrders - 1)].unavailableReason = UnavailableReason.AVAILABLE;
         }
 
         return
@@ -259,7 +271,7 @@ library AdvancedOrdersSpaceGenerator {
         // Handle combined orders (need to have at least one execution).
         if (len > 1) {
             _handleInsertIfAllEmpty(orders, context);
-            _handleInsertIfAllFilterable(orders, context);
+            _handleInsertIfAllFilterable(orders, context, space);
         }
 
         bool ensureMatchable = (
@@ -268,10 +280,10 @@ library AdvancedOrdersSpaceGenerator {
 
         // Handle match case.
         if (ensureMatchable) {
+            _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
-            _ensureAllAvailable(space);
         } else if (len > 1) {
             _adjustUnavailable(orders, space, context);
         } else {
@@ -884,7 +896,8 @@ library AdvancedOrdersSpaceGenerator {
      */
     function _handleInsertIfAllFilterable(
         AdvancedOrder[] memory orders,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        AdvancedOrdersSpace memory space
     ) internal {
         bool allFilterable = true;
         address caller = context.caller == address(0)
@@ -892,10 +905,14 @@ library AdvancedOrdersSpaceGenerator {
             : context.caller;
 
         // Iterate over the orders and check if there's a single instance of a
-        // non-filterable consideration item.  If there is, set allFilterable to
-        // false and break out of the loop.
+        // non-filterable consideration item. If there is, set allFilterable to
+        // false and break out of the loop. Skip unavailable orders as well.
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
+
+            if (space.orders[i].unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
 
             for (uint256 j = 0; j < order.consideration.length; ++j) {
                 ConsiderationItem memory item = order.consideration[j];
@@ -912,7 +929,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         // If they're all filterable, then add a consideration item to one of
-        // the orders.
+        // the orders and ensure that it is available.
         if (allFilterable) {
             OrderParameters memory orderParams;
 
@@ -925,11 +942,12 @@ library AdvancedOrdersSpaceGenerator {
             // consideration items. There's chance that no order will have
             // consideration items, in which case the orderParams variable will
             // be set to those of the last order iterated over.
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
             for (
-                uint256 orderInsertionIndex = context.randRange(
-                    0,
-                    orders.length - 1
-                );
+                ;
                 orderInsertionIndex < orders.length * 2;
                 ++orderInsertionIndex
             ) {
@@ -940,6 +958,8 @@ library AdvancedOrdersSpaceGenerator {
                     break;
                 }
             }
+
+            space.orders[orderInsertionIndex % orders.length].unavailableReason = UnavailableReason.AVAILABLE;
 
             // If there are no consideration items in any of the orders, then
             // add a consideration item to a random order.
