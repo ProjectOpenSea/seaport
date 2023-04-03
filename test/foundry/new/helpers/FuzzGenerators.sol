@@ -145,7 +145,7 @@ library TestStateGenerator {
                     // TODO: support wildcard criteria, should be 0-1
                     criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
-                    amount: Amount(context.randEnum(0, 0))
+                    amount: Amount(context.randEnum(0, 2))
                 });
             }
 
@@ -161,7 +161,7 @@ library TestStateGenerator {
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
                 // TODO: Fixed amounts only, should be 0-2
-                amount: Amount(context.randEnum(0, 0))
+                amount: Amount(context.randEnum(0, 2))
             });
 
             context.basicOfferSpace = offer[0];
@@ -1458,12 +1458,12 @@ library TimeGenerator {
             uint256 a = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint48).max
             );
             uint256 b = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint48).max
             );
             low = a < b ? a : b;
             high = a > b ? a : b;
@@ -1473,7 +1473,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint48).max
             );
         }
         if (time == Time.ONGOING) {
@@ -1481,7 +1481,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint48).max
             );
         }
         if (time == Time.EXACT_END) {
@@ -1517,8 +1517,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         // TODO: Work out a better way to handle this
         if (context.basicOrderCategory == BasicOrderCategory.BID) {
@@ -1554,8 +1554,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
