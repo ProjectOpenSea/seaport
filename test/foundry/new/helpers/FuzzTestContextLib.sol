@@ -13,6 +13,12 @@ import { Result } from "./FuzzHelpers.sol";
 
 import { ExpectedBalances } from "./ExpectedBalances.sol";
 
+import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+
+import {
+    AmountDeriverHelper
+} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+
 import {
     OrderStatus as OrderStatusEnum
 } from "../../../../contracts/helpers/sol/SpaceEnums.sol";
@@ -35,12 +41,20 @@ struct ReturnValues {
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
+    function amountDeriverHelper() external view returns (AmountDeriverHelper);
+
+    function criteriaResolverHelper()
+        external
+        view
+        returns (CriteriaResolverHelper);
+
     function makeAccount(
         string memory name
     ) external view returns (Account memory);
 
     function getMatchedFulfillments(
-        AdvancedOrder[] memory orders
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
     )
         external
         returns (
@@ -48,6 +62,21 @@ interface TestHelpers {
             MatchComponent[] memory remainingOfferComponents,
             MatchComponent[] memory remainingConsiderationComponents
         );
+
+    function getMatchedFulfillments(
+        OrderDetails[] memory orders
+    )
+        external
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents,
+            MatchComponent[] memory remainingConsiderationComponents
+        );
+
+    function toOrderDetails(
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory resolvers
+    ) external returns (OrderDetails[] memory);
 }
 
 struct FuzzTestContext {

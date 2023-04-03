@@ -18,12 +18,7 @@ import {
 
 import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
 
-import {
-    FulfillmentComponentSet,
-    FulfillmentComponentSetLib
-} from "./FulfillmentComponentSet.sol";
-
-import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 /**
  * @dev Helper contract for deriving explicit and executions from orders and
@@ -32,8 +27,6 @@ import { FulfillmentComponentSortLib } from "./FulfillmentComponentSortLib.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
-    using FulfillmentComponentSetLib for FulfillmentComponentSet;
-    using FulfillmentComponentSortLib for FulfillmentComponent[];
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -60,13 +53,6 @@ contract ExecutionHelper is AmountDeriverHelper {
     }
 
     /**
-     * @dev Temp set of fulfillment components to track implicit
-     *      offer executions; cleared each time getFulfillAvailableExecutions is
-     *      called.
-     */
-    FulfillmentComponentSet temp;
-
-    /**
      * @dev convert an array of Orders and an explicit recipient to a
      *      FulfillmentDetails struct.
      *
@@ -79,35 +65,6 @@ contract ExecutionHelper is AmountDeriverHelper {
      */
     function toFulfillmentDetails(
         Order[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        address seaport
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders);
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
-            });
-    }
-
-    /**
-     * @dev convert an array of AdvancedOrders and an explicit recipient to a
-     *      FulfillmentDetails struct
-     *
-     * @param orders              array of AdvancedOrders to process
-     * @param recipient           explicit recipient if one is set
-     * @param fulfiller           the order fulfiller
-     * @param fulfillerConduitKey the conduit key
-     *
-     * @return fulfillmentDetails the fulfillment details
-     */
-    function toFulfillmentDetails(
-        AdvancedOrder[] memory orders,
         address recipient,
         address fulfiller,
         bytes32 fulfillerConduitKey,
@@ -255,11 +212,18 @@ contract ExecutionHelper is AmountDeriverHelper {
 
     function processExcessNativeTokens(
         Execution[] memory explicitExecutions,
+        Execution[] memory implicitExecutions,
         uint256 nativeTokensSupplied
     ) internal pure returns (uint256 excessNativeTokens) {
         excessNativeTokens = nativeTokensSupplied;
         for (uint256 i; i < explicitExecutions.length; i++) {
             ReceivedItem memory item = explicitExecutions[i].item;
+            if (item.itemType == ItemType.NATIVE) {
+                excessNativeTokens -= item.amount;
+            }
+        }
+        for (uint256 i; i < implicitExecutions.length; i++) {
+            ReceivedItem memory item = implicitExecutions[i].item;
             if (item.itemType == ItemType.NATIVE) {
                 excessNativeTokens -= item.amount;
             }
@@ -869,6 +833,7 @@ contract ExecutionHelper is AmountDeriverHelper {
     ) internal pure {
         uint256 excessNativeTokens = processExcessNativeTokens(
             explicitExecutions,
+            implicitExecutions,
             nativeTokensSupplied
         );
 

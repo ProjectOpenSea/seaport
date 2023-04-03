@@ -219,6 +219,7 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
+        deriveCriteriaResolvers(context);
         deriveFulfillments(context);
         deriveMaximumFulfilled(context);
         // TODO: deriveUnavailable(context);
@@ -248,6 +249,7 @@ contract FuzzEngine is
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
+        // TODO: resolve criteria during setup
     }
 
     /**

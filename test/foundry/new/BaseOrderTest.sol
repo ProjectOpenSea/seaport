@@ -11,6 +11,8 @@ import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
+import { CriteriaResolverHelper } from "./helpers/CriteriaResolverHelper.sol";
+
 import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import {
@@ -144,6 +146,7 @@ contract BaseOrderTest is
     TestERC1155[] erc1155s;
 
     ExpectedBalances public balanceChecker;
+    CriteriaResolverHelper public criteriaResolverHelper;
 
     address[] preapprovals;
 
@@ -162,6 +165,9 @@ contract BaseOrderTest is
         super.setUp();
 
         balanceChecker = new ExpectedBalances();
+
+        // TODO: push to 24 if performance allows
+        criteriaResolverHelper = new CriteriaResolverHelper(6);
 
         preapprovals = [
             address(seaport),

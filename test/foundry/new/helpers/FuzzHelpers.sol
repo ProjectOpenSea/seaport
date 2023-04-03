@@ -223,6 +223,24 @@ library FuzzHelpers {
         return Structure.STANDARD;
     }
 
+    function getStructure(
+        AdvancedOrder[] memory orders,
+        address seaport
+    ) internal view returns (Structure) {
+        if (orders.length == 1) {
+            return getStructure(orders[0], seaport);
+        }
+
+        for (uint256 i; i < orders.length; i++) {
+            Structure structure = getStructure(orders[i], seaport);
+            if (structure == Structure.ADVANCED) {
+                return Structure.ADVANCED;
+            }
+        }
+
+        return Structure.STANDARD;
+    }
+
     /**
      * @dev Inspect an AdvancedOrder and check that it is eligible for the
      *      fulfillBasic functions.
@@ -492,21 +510,19 @@ library FuzzHelpers {
     function getExpectedZoneCalldataHash(
         AdvancedOrder[] memory orders,
         address seaport,
-        address fulfiller
-    ) internal view returns (bytes32[] memory calldataHashes) {
+        address fulfiller,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
-        ZoneParameters[] memory zoneParameters = new ZoneParameters[](
-            orders.length
+        ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
+            fulfiller,
+            orders.length, // TODO: use maximumFulfilled
+            seaport,
+            criteriaResolvers
         );
-        for (uint256 i; i < orders.length; ++i) {
-            // Derive the ZoneParameters from the AdvancedOrder
-            zoneParameters[i] = orders.getZoneParameters(
-                fulfiller,
-                orders.length,
-                seaport
-            )[i];
 
+        for (uint256 i; i < zoneParameters.length; ++i) {
             // Derive the expected calldata hash for the call to validateOrder
             calldataHashes[i] = keccak256(
                 abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
@@ -742,9 +758,11 @@ library FuzzHelpers {
             ItemType itemType = offerItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (offerItem.identifierOrCriteria != 0) {
-                hasNonzeroCriteria = true;
-                return (hasCriteria, hasNonzeroCriteria);
+            if (hasCriteria) {
+                return (
+                    hasCriteria,
+                    offerItem.identifierOrCriteria != 0
+                );
             }
         }
 
@@ -757,10 +775,14 @@ library FuzzHelpers {
             ItemType itemType = considerationItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
-            if (considerationItem.identifierOrCriteria != 0) {
-                hasNonzeroCriteria = true;
-                return (hasCriteria, hasNonzeroCriteria);
+            if (hasCriteria) {
+                return (
+                    hasCriteria,
+                    considerationItem.identifierOrCriteria != 0
+                );
             }
         }
+
+        return (false, false);
     }
 }

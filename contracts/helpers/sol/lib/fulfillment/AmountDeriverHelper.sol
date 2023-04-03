@@ -12,8 +12,11 @@ import {
     ReceivedItem,
     CriteriaResolver
 } from "../../../../lib/ConsiderationStructs.sol";
-import { Side } from "../../../../lib/ConsiderationEnums.sol";
-import "../SeaportStructLib.sol";
+import { Side, ItemType } from "../../../../lib/ConsiderationEnums.sol";
+import { OfferItemLib } from "../OfferItemLib.sol";
+import { ConsiderationItemLib } from "../ConsiderationItemLib.sol";
+import { OrderParametersLib } from "../OrderParametersLib.sol";
+import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
 
 /**
  * @notice Note that this contract relies on current block.timestamp to determine amounts.
@@ -21,13 +24,7 @@ import "../SeaportStructLib.sol";
 contract AmountDeriverHelper is AmountDeriver {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem[];
-
-    struct OrderDetails {
-        address offerer;
-        bytes32 conduitKey;
-        SpentItem[] offer;
-        ReceivedItem[] consideration;
-    }
+    using OrderParametersLib for OrderParameters;
 
     function getSpentAndReceivedItems(
         Order calldata order
@@ -112,13 +109,6 @@ contract AmountDeriverHelper is AmountDeriver {
     }
 
     function toOrderDetails(
-        AdvancedOrder[] memory orders
-    ) public view returns (OrderDetails[] memory) {
-        CriteriaResolver[] memory resolvers;
-        return toOrderDetails(orders, resolvers);
-    }
-
-    function toOrderDetails(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
     ) public view returns (OrderDetails[] memory) {
@@ -156,35 +146,45 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        parameters = applyCriteriaResolvers(
-            parameters,
-            orderIndex,
-            criteriaResolvers
-        );
         spent = getSpentItems(parameters, numerator, denominator);
         received = getReceivedItems(parameters, numerator, denominator);
+
+        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
     }
 
     function applyCriteriaResolvers(
-        OrderParameters memory parameters,
+        SpentItem[] memory spentItems,
+        ReceivedItem[] memory receivedItems,
         uint256 orderIndex,
         CriteriaResolver[] memory criteriaResolvers
-    ) private pure returns (OrderParameters memory) {
+    ) private pure {
         for (uint256 i = 0; i < criteriaResolvers.length; i++) {
             CriteriaResolver memory resolver = criteriaResolvers[i];
             if (resolver.orderIndex != orderIndex) {
                 continue;
             }
             if (resolver.side == Side.OFFER) {
-                parameters.offer[resolver.index].identifierOrCriteria = resolver
-                    .identifier;
+                SpentItem memory item = spentItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
             } else {
-                parameters
-                    .consideration[resolver.index]
-                    .identifierOrCriteria = resolver.identifier;
+                ReceivedItem memory item = receivedItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
             }
         }
-        return parameters;
+    }
+
+    function convertCriteriaItemType(
+        ItemType itemType
+    ) internal pure returns (ItemType) {
+        if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+            return ItemType.ERC721;
+        } else if (itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            return ItemType.ERC1155;
+        } else {
+            revert("amount deriver helper resolving non criteria item type");
+        }
     }
 
     function getSpentItems(

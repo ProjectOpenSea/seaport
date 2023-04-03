@@ -111,7 +111,7 @@ library FuzzGeneratorContextLib {
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
                     TokenIndex.ONE,
-                    Criteria.NONE,
+                    Criteria.MERKLE,
                     Amount.FIXED
                 )
             });
@@ -176,7 +176,7 @@ library FuzzGeneratorContextLib {
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
                     TokenIndex.ONE,
-                    Criteria.NONE,
+                    Criteria.MERKLE,
                     Amount.FIXED
                 )
             });
