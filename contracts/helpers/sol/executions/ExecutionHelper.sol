@@ -558,6 +558,11 @@ contract ExecutionHelper is AmountDeriverHelper {
                 }
             }
 
+            if (aggregatedAmount == 0) {
+                filteredExecutions++;
+                continue;
+            }
+
             // use the first fulfillment component to get the order details
             FulfillmentComponent memory first = aggregatedComponents[0];
             OrderDetails memory details = fulfillmentDetails.orders[
@@ -611,6 +616,11 @@ contract ExecutionHelper is AmountDeriverHelper {
 
                     item.amount = 0;
                 }
+            }
+
+            if (aggregatedAmount == 0) {
+                filteredExecutions++;
+                continue;
             }
 
             // use the first fulfillment component to get the order details
