@@ -191,6 +191,11 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             }
         }
 
+        // Throw an error if no orders were fulfilled.
+        if (fulfillmentsLeft == params.maximumFulfilled) {
+            revert NoSpecifiedOrdersAvailable();
+        }
+
         // Return excess ether that may not have been used or was sent back.
         if (address(this).balance > 0) {
             _returnExcessEther();

@@ -778,6 +778,13 @@ describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
       buyerEthBalanceAfter.sub(value.mul(3))
     );
 
+    // Try to execute the orders again, which should fail because both orders are fulfilled
+    await expect(
+      router.connect(buyer).fulfillAvailableAdvancedOrders(params, {
+        value,
+      })
+    ).to.be.revertedWithCustomError(router, "NoSpecifiedOrdersAvailable");
+
     // Now let's try to throw an error that should bubble up.
     // Set the order type to CONTRACT which should throw "InvalidContractOrder"
     params.advancedOrderParams[0].advancedOrders[0].parameters.orderType = 4;

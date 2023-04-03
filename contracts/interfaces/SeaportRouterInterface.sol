@@ -18,7 +18,8 @@ import { Execution } from "../lib/ConsiderationStructs.sol";
  */
 interface SeaportRouterInterface {
     /**
-     * @dev Ignore reverting on "NoSpecifiedOrdersAvailable()" from Seaport.
+     * @dev Revert with an error when attempting to fulfill any number of
+     *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
 
