@@ -259,11 +259,17 @@ library AdvancedOrdersSpaceGenerator {
             _handleInsertIfAllFilterable(orders, context);
         }
 
+        bool ensureMatchable = (
+            space.isMatchable || _hasInvalidNativeOfferItems(orders)
+        );
+
         // Handle match case.
-        if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
+        if (ensureMatchable) {
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+        } else if (len > 1) {
+            _adjustUnavailable(orders, space, context);
         }
 
         // Sign orders and add the hashes to the context.
@@ -290,6 +296,40 @@ library AdvancedOrdersSpaceGenerator {
                     extraData: bytes("")
                 });
         }
+    }
+
+    function _adjustUnavailable(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory orderParams = orders[i].parameters;
+
+            bool makeUnavailable = context.randRange(0, 1) == 0;
+
+            if (makeUnavailable) {
+                _adjustUnavailable(
+                    orderParams,
+                    space.orders[i].unavailableReason,
+                    context
+                );
+            }
+        }
+    }
+
+    function _adjustUnavailable(
+        OrderParameters memory order,
+        UnavailableReason reason,
+        FuzzGeneratorContext memory context
+    ) internal pure {
+        if (reason == UnavailableReason.EXPIRED) {
+            // TODO: update startTime / endTime
+        } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {
+            // TODO: update startTime / endTime
+        } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
+            // TODO: update offerer + order type (point to bad contract offerer)
+        } // CANCELLED + ALREADY_FULFILLED just need a status change
     }
 
     /**
