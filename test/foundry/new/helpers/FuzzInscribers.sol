@@ -9,6 +9,8 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import {console} from "forge-std/Console.sol";
+
 /**
  * @notice Helpers for inscribing order status, contract nonce, and counter.
  */
@@ -314,6 +316,10 @@ library FuzzInscribers {
             "FOUNDRY_PROFILE",
             string("optimized")
         );
+
+        // TEMP
+        console.log('profile', profile);
+        console.log('readAccesses.length', readAccesses.length);
 
         if (
             keccak256(abi.encodePacked(profile)) ==
