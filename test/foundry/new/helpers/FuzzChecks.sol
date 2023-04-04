@@ -75,17 +75,25 @@ abstract contract FuzzChecks is Test {
 
     /**
      * @dev Check that the returned `availableOrders` array length was the
-     *      expected length. and that all values were `true`.
+     *      expected length and matches the expected array.
      *
      * @param context A Fuzz test context.
      */
     function check_allOrdersFilled(FuzzTestContext memory context) public {
         assertEq(
             context.returnValues.availableOrders.length,
-            context.initialOrders.length
+            context.orders.length
         );
+        assertEq(
+            context.returnValues.availableOrders.length,
+            context.expectedAvailableOrders.length
+        );
+
         for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
-            assertTrue(context.returnValues.availableOrders[i]);
+            assertEq(
+                context.returnValues.availableOrders[i],
+                context.expectedAvailableOrders[i]
+            );
         }
     }
 
