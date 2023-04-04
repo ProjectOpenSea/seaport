@@ -31,6 +31,7 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
@@ -97,7 +98,18 @@ library TestStateGenerator {
             totalOrders
         );
 
+        bool someAvailable = false;
+
         for (uint256 i; i < totalOrders; ++i) {
+            UnavailableReason reason = (
+                context.randRange(0, 1) == 0 ? UnavailableReason.AVAILABLE :
+                UnavailableReason(context.randEnum(1, 2))
+            );
+
+            if (reason == UnavailableReason.AVAILABLE) {
+                someAvailable = true;
+            }
+
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
@@ -119,8 +131,14 @@ library TestStateGenerator {
                 signatureMethod: SignatureMethod(0),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
-                tips: Tips(context.randEnum(0, 1))
+                tips: Tips(context.randEnum(0, 1)),
+                // TODO: Add more unavailable order reasons (1-5).
+                unavailableReason: reason
             });
+        }
+
+        if (!someAvailable) {
+            components[context.randRange(0, totalOrders - 1)].unavailableReason = UnavailableReason.AVAILABLE;
         }
 
         return
@@ -239,6 +257,7 @@ library AdvancedOrdersSpaceGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using MatchComponentType for MatchComponent;
+    using TimeGenerator for OrderParameters;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -250,23 +269,38 @@ library AdvancedOrdersSpaceGenerator {
         // Build orders.
         _buildOrders(orders, space, context);
 
-        // Handle combined orders (need to have at least one execution).
-        if (len > 1) {
-            _handleInsertIfAllEmpty(orders, context);
-            _handleInsertIfAllFilterable(orders, context);
-        }
+        // Ensure that orders are not entirely empty of items.
+        _handleInsertIfAllEmpty(orders, context);
+        _handleInsertIfAllFilterable(orders, context, space);
+
+        bool ensureMatchable = (
+            space.isMatchable || _hasInvalidNativeOfferItems(orders)
+        );
 
         // Handle match case.
-        if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
+        if (ensureMatchable) {
+            _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+        } else if (len > 1) {
+            _adjustUnavailable(orders, space, context);
+        } else {
+            _ensureAllAvailable(space);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function _ensureAllAvailable(
+        AdvancedOrdersSpace memory space
+    ) internal pure {
+        for (uint256 i = 0; i < space.orders.length; ++i) {
+            space.orders[i].unavailableReason = UnavailableReason.AVAILABLE;
+        }
     }
 
     function _buildOrders(
@@ -287,6 +321,42 @@ library AdvancedOrdersSpaceGenerator {
                     extraData: bytes("")
                 });
         }
+    }
+
+    function _adjustUnavailable(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            _adjustUnavailable(
+                orders[i].parameters,
+                space.orders[i].unavailableReason,
+                context
+            );
+        }
+    }
+
+    function _adjustUnavailable(
+        OrderParameters memory order,
+        UnavailableReason reason,
+        FuzzGeneratorContext memory context
+    ) internal pure {
+        // UnavailableReason.AVAILABLE => take no action
+        if (reason == UnavailableReason.EXPIRED) {
+            order = order.withGeneratedTime(
+                Time(context.randEnum(3, 4)),
+                context
+            );
+        } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {
+            order = order.withGeneratedTime(
+                Time.STARTS_IN_FUTURE,
+                context
+            );
+        } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
+            // TODO: update offerer + order type (point to bad contract offerer)
+            revert("FuzzGenerators: no support for failing contract order fuzzing");
+        } // CANCELLED + ALREADY_FULFILLED just need a status change
     }
 
     /**
@@ -832,7 +902,8 @@ library AdvancedOrdersSpaceGenerator {
      */
     function _handleInsertIfAllFilterable(
         AdvancedOrder[] memory orders,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        AdvancedOrdersSpace memory space
     ) internal {
         bool allFilterable = true;
         address caller = context.caller == address(0)
@@ -840,10 +911,14 @@ library AdvancedOrdersSpaceGenerator {
             : context.caller;
 
         // Iterate over the orders and check if there's a single instance of a
-        // non-filterable consideration item.  If there is, set allFilterable to
-        // false and break out of the loop.
+        // non-filterable consideration item. If there is, set allFilterable to
+        // false and break out of the loop. Skip unavailable orders as well.
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
+
+            if (space.orders[i].unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
 
             for (uint256 j = 0; j < order.consideration.length; ++j) {
                 ConsiderationItem memory item = order.consideration[j];
@@ -860,7 +935,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         // If they're all filterable, then add a consideration item to one of
-        // the orders.
+        // the orders and ensure that it is available.
         if (allFilterable) {
             OrderParameters memory orderParams;
 
@@ -873,11 +948,12 @@ library AdvancedOrdersSpaceGenerator {
             // consideration items. There's chance that no order will have
             // consideration items, in which case the orderParams variable will
             // be set to those of the last order iterated over.
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
             for (
-                uint256 orderInsertionIndex = context.randRange(
-                    0,
-                    orders.length - 1
-                );
+                ;
                 orderInsertionIndex < orders.length * 2;
                 ++orderInsertionIndex
             ) {
@@ -893,7 +969,7 @@ library AdvancedOrdersSpaceGenerator {
             // add a consideration item to a random order.
             if (orderParams.consideration.length == 0) {
                 // Pick a random order to insert the consideration item into.
-                uint256 orderInsertionIndex = context.randRange(
+                orderInsertionIndex = context.randRange(
                     0,
                     orders.length - 1
                 );
@@ -919,6 +995,8 @@ library AdvancedOrdersSpaceGenerator {
                 // Set the consideration item array on the order parameters.
                 orderParams.consideration = consideration;
             }
+
+            space.orders[orderInsertionIndex % orders.length].unavailableReason = UnavailableReason.AVAILABLE;
 
             // Pick a random consideration item to modify.
             uint256 itemIndex = context.randRange(

@@ -20,8 +20,13 @@ import {
 } from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
-    OrderStatus as OrderStatusEnum
+    OrderStatus as OrderStatusEnum,
+    UnavailableReason
 } from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+
+import {
+    AdvancedOrdersSpace
+} from "../../../../contracts/helpers/sol/StructSpace.sol";
 
 struct FuzzParams {
     uint256 seed;
@@ -201,6 +206,9 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+
+    bool[] expectedAvailableOrders;
+
     /**
      * @dev Expected event hashes. Encompasses all events that match watched topic0s.
      */
@@ -283,6 +291,7 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
                 expectedEventHashes: expectedEventHashes,
                 actualEvents: actualEvents,
@@ -324,6 +333,15 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.orders = orders.copy();
+
+        // Bootstrap with all available to ease direct testing.
+        if (context.expectedAvailableOrders.length == 0) {
+            context.expectedAvailableOrders = new bool[](orders.length);
+            for (uint256 i = 0; i < orders.length; ++i) {
+                context.expectedAvailableOrders[i] = true;
+            }
+        }
+
         return context;
     }
 
@@ -573,7 +591,8 @@ library FuzzTestContextLib {
      * @return _context the FuzzTestContext with the preExecOrderStatuses set
      */
     function withPreExecOrderStatuses(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        AdvancedOrdersSpace memory space
     ) internal pure returns (FuzzTestContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
@@ -582,9 +601,20 @@ library FuzzTestContextLib {
         );
 
         for (uint256 i = 0; i < context.orders.length; i++) {
-            context.preExecOrderStatuses[i] = OrderStatusEnum(
-                uint8(bound(prng.next(), 0, 6))
-            );
+            if (
+                space.orders[i].unavailableReason == UnavailableReason.CANCELLED
+            ) {
+                context.preExecOrderStatuses[i] = OrderStatusEnum.CANCELLED_EXPLICIT;
+            } else if (
+                space.orders[i].unavailableReason == UnavailableReason.ALREADY_FULFILLED
+            ) {
+                context.preExecOrderStatuses[i] = OrderStatusEnum.FULFILLED;
+            } else {
+                // TODO: support partial as well (0-2)
+                context.preExecOrderStatuses[i] = OrderStatusEnum(
+                    uint8(bound(prng.next(), 0, 1))
+                );
+            }
         }
 
         return context;

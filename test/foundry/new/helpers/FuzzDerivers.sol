@@ -14,6 +14,9 @@ import {
     CriteriaMetadata,
     CriteriaResolverHelper
 } from "./CriteriaResolverHelper.sol";
+import {
+    OrderStatus as OrderStatusEnum
+} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -34,6 +37,30 @@ abstract contract FuzzDerivers is
     using AdvancedOrderLib for AdvancedOrder[];
     using MatchComponentType for MatchComponent[];
 
+    function deriveAvailableOrders(
+        FuzzTestContext memory context
+    ) public view {
+        // TODO: handle skipped orders due to generateOrder reverts
+        // TODO: handle maximumFulfilled < orders.length
+        bool[] memory expectedAvailableOrders = new bool[](
+            context.orders.length
+        );
+
+        for (uint256 i; i < context.orders.length; ++i) {
+            OrderParameters memory order = context.orders[i].parameters;
+            OrderStatusEnum status = context.preExecOrderStatuses[i];
+
+            expectedAvailableOrders[i] = (
+                block.timestamp < order.endTime && // not expired
+                block.timestamp >= order.startTime && // started
+                status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
+                status != OrderStatusEnum.FULFILLED // not fully filled
+            );
+        }
+
+        context.expectedAvailableOrders = expectedAvailableOrders;
+    }
+
     function deriveCriteriaResolvers(
         FuzzTestContext memory context
     ) public view {
@@ -44,6 +71,11 @@ abstract contract FuzzDerivers is
         uint256 totalCriteriaItems;
 
         for (uint256 i; i < context.orders.length; i++) {
+            // Note: criteria resolvers do not need to be provided for
+            // unavailable orders, but generally will be provided as
+            // availability is usually unknown at submission time.
+            // Consider adding a fuzz condition to supply all or only
+            // the necessary resolvers.
             AdvancedOrder memory order = context.orders[i];
 
             for (uint256 j; j < order.parameters.offer.length; j++) {
@@ -152,6 +184,12 @@ abstract contract FuzzDerivers is
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
+            // Note: items do not need corresponding fulfillments for
+            // unavailable orders, but generally will be provided as
+            // availability is usually unknown at submission time.
+            // Consider adding a fuzz condition to supply all or only
+            // the necessary consideration fulfillment components.
+
             // TODO: Use `getAggregatedFulfillmentComponents` sometimes?
             (
                 FulfillmentComponent[][] memory offerFulfillments,
@@ -340,7 +378,8 @@ abstract contract FuzzDerivers is
                 toFulfillmentDetails(context),
                 context.offerFulfillments,
                 context.considerationFulfillments,
-                context.getNativeTokensToSupply()
+                context.getNativeTokensToSupply(),
+                context.expectedAvailableOrders
             );
     }
 
