@@ -86,7 +86,7 @@ library TestStateGenerator {
                 maxConsiderationItemsPerOrder = 1;
             }
         } else {
-            isMatchable = context.randRange(0, 1) == 1 ? true : false;
+            isMatchable = context.randRange(0, 4) == 0 ? true : false;
         }
 
         if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
@@ -258,6 +258,7 @@ library AdvancedOrdersSpaceGenerator {
     using SignatureGenerator for AdvancedOrder;
     using MatchComponentType for MatchComponent;
     using TimeGenerator for OrderParameters;
+    using OfferItemSpaceGenerator for OfferItemSpace;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -283,16 +284,42 @@ library AdvancedOrdersSpaceGenerator {
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
-        } else if (len > 1) {
-            _adjustUnavailable(orders, space, context);
         } else {
-            _ensureAllAvailable(space);
+            if (len > 1) {
+                _adjustUnavailable(orders, space, context);
+            } else {
+                _ensureAllAvailable(space);
+            }
+            _ensureDirectSupport(orders, space, context);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function _ensureDirectSupport(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal {
+        // Ensure no native offer items on non-contract order types
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+            if (order.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                OfferItem memory item = order.offer[j];
+                if (item.itemType == ItemType.NATIVE) {
+                    // Generate a new offer and make sure it has no native items
+                    item = space.orders[i].offer[j].generate(context, true);
+                    break;
+                }
+            }
+        }
     }
 
     function _ensureAllAvailable(
@@ -310,7 +337,8 @@ library AdvancedOrdersSpaceGenerator {
     ) internal {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
-                context
+                context,
+                false // ensureDirectSupport false: allow native offer items
             );
             orders[i] = OrderLib
                 .empty()
@@ -1198,7 +1226,8 @@ library OrderComponentsSpaceGenerator {
 
     function generate(
         OrderComponentsSpace memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
@@ -1207,7 +1236,7 @@ library OrderComponentsSpaceGenerator {
             params = OrderParametersLib
                 .empty()
                 .withOfferer(offerer)
-                .withOffer(space.offer.generate(context))
+                .withOffer(space.offer.generate(context, ensureDirectSupport))
                 .withConsideration(
                     space.consideration.generate(context, offerer)
                 )
@@ -1283,30 +1312,39 @@ library OfferItemSpaceGenerator {
     using AmountGenerator for OfferItem;
     using CriteriaGenerator for OfferItem;
     using TokenIndexGenerator for TokenIndex;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function generate(
         OfferItemSpace[] memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
 
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], context);
+            offerItems[i] = generate(space[i], context, ensureDirectSupport);
         }
         return offerItems;
     }
 
     function generate(
         OfferItemSpace memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OfferItem memory) {
+        ItemType itemType = space.itemType;
+
+        if (ensureDirectSupport && itemType == ItemType.NATIVE) {
+            itemType = ItemType(context.randRange(1, 5));
+        }
+
         return
             OfferItemLib
                 .empty()
-                .withItemType(space.itemType)
-                .withToken(space.tokenIndex.generate(space.itemType, context))
+                .withItemType(itemType)
+                .withToken(space.tokenIndex.generate(itemType, context))
                 .withGeneratedAmount(space.amount, context)
                 .withGeneratedIdentifierOrCriteria(
                     space.itemType,
