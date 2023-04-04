@@ -273,18 +273,21 @@ abstract contract FuzzChecks is Test {
     ) public {
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
-            uint256 counter = context.seaport.getCounter(
-                order.parameters.offerer
+
+            bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                context.seaport
             );
-            OrderComponents memory orderComponents = order
-                .parameters
-                .toOrderComponents(counter);
-            bytes32 orderHash = context.seaport.getOrderHash(orderComponents);
+
             (, , uint256 totalFilled, uint256 totalSize) = context
                 .seaport
                 .getOrderStatus(orderHash);
 
-            assertEq(totalFilled, totalSize);
+            if (context.expectedAvailableOrders[i]) {
+                assertEq(totalFilled, totalSize);
+                assertTrue(totalFilled != 0);
+            } else {
+                assertTrue(totalFilled == 0);
+            }
         }
     }
 
