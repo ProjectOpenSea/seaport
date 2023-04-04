@@ -377,7 +377,9 @@ contract FuzzHelpersTest is BaseOrderTest {
             keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("optimized")) ||
             keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("test"))
+            keccak256(abi.encodePacked("test")) ||
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("lite"))
         ) {
             expectedReadAccessCount = 1;
         }
