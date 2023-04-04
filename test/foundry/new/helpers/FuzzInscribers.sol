@@ -9,7 +9,7 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import {console} from "forge-std/Console.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @notice Helpers for inscribing order status, contract nonce, and counter.
