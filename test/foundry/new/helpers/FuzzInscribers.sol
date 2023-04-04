@@ -9,8 +9,6 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import {console} from "forge-std/console.sol";
-
 /**
  * @notice Helpers for inscribing order status, contract nonce, and counter.
  */
@@ -317,13 +315,11 @@ library FuzzInscribers {
             string("optimized")
         );
 
-        // TEMP
-        console.log('profile', profile);
-        console.log('readAccesses.length', readAccesses.length);
-
         if (
             keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("optimized"))
+            keccak256(abi.encodePacked("optimized")) ||
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("test"))
         ) {
             expectedReadAccessCount = 1;
         }
