@@ -23,8 +23,6 @@ import {
     OrderLib
 } from "../../../contracts/helpers/sol/lib/SeaportStructLib.sol";
 
-import { console } from "forge-std/console.sol";
-
 contract FuzzHelpersTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
@@ -374,14 +372,6 @@ contract FuzzHelpersTest is BaseOrderTest {
             "FOUNDRY_PROFILE",
             string("optimized")
         );
-
-        // TEMP
-        console.log("profile");
-        console.log(profile);
-        console.logBytes32(keccak256(abi.encodePacked(profile)));
-        console.log("optimized");
-        console.logBytes32(keccak256(abi.encodePacked("optimized")));
-        console.log("readAccesses.length", readAccesses.length);
 
         if (
             keccak256(abi.encodePacked(profile)) ==
