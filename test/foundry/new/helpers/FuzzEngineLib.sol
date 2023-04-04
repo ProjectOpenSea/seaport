@@ -149,11 +149,13 @@ library FuzzEngineLib {
             .testHelpers
             .getMatchedFulfillments(context.orders, context.criteriaResolvers);
 
-        if (remainders.length != 0 && invalidNativeOfferItemsLocated) {
+        bool cannotMatch = (remainders.length != 0 || hasUnavailable);
+
+        if (cannotMatch && invalidNativeOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
 
-        if (remainders.length != 0) {
+        if (cannotMatch) {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context
