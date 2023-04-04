@@ -73,10 +73,10 @@ contract FuzzHelpersTest is BaseOrderTest {
         );
 
         // Wipe the slot.
-        advancedOrder.inscribeOrderStatusDenominator(0, context);
-        advancedOrder.inscribeOrderStatusNumerator(0, context);
-        advancedOrder.inscribeOrderStatusCanceled(false, context);
-        advancedOrder.inscribeOrderStatusValidated(false, context);
+        advancedOrder.inscribeOrderStatusDenominator(0, context.seaport);
+        advancedOrder.inscribeOrderStatusNumerator(0, context.seaport);
+        advancedOrder.inscribeOrderStatusCanceled(false, context.seaport);
+        advancedOrder.inscribeOrderStatusValidated(false, context.seaport);
 
         // Populate the raw synthetic storage values.  These are the storage
         // values produced by using the inscription helpers.
@@ -109,7 +109,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         assertEq(rawContractOffererNonceValue, bytes32(0));
 
-        FuzzInscribers.inscribeContractOffererNonce(address(this), 1, context);
+        FuzzInscribers.inscribeContractOffererNonce(address(this), 1, context.seaport);
 
         bytes32 newContractOffererNonceValue = vm.load(
             address(context.seaport),
@@ -138,7 +138,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         assertEq(rawCounterValue, bytes32(0));
 
-        FuzzInscribers.inscribeCounter(address(this), 1, context);
+        FuzzInscribers.inscribeCounter(address(this), 1, context.seaport);
 
         bytes32 newCounterValue = vm.load(
             address(context.seaport),
@@ -296,28 +296,28 @@ contract FuzzHelpersTest is BaseOrderTest {
             orderHashStorageSlot
         );
 
-        advancedOrder.inscribeOrderStatusValidated(true, context);
+        advancedOrder.inscribeOrderStatusValidated(true, context.seaport);
 
         rawStorageValues.rawSyntheticOrderStatusAfterValidation = vm.load(
             address(context.seaport),
             orderHashStorageSlot
         );
 
-        advancedOrder.inscribeOrderStatusNumerator(10e34 / 2, context);
-        advancedOrder.inscribeOrderStatusDenominator(10e34, context);
+        advancedOrder.inscribeOrderStatusNumerator(10e34 / 2, context.seaport);
+        advancedOrder.inscribeOrderStatusDenominator(10e34, context.seaport);
 
         rawStorageValues.rawSyntheticOrderStatusAfterPartialFulfillment = vm
             .load(address(context.seaport), orderHashStorageSlot);
 
-        advancedOrder.inscribeOrderStatusNumerator(10e34, context);
-        advancedOrder.inscribeOrderStatusDenominator(10e34, context);
+        advancedOrder.inscribeOrderStatusNumerator(10e34, context.seaport);
+        advancedOrder.inscribeOrderStatusDenominator(10e34, context.seaport);
 
         rawStorageValues.rawSyntheticOrderStatusAfterFullFulfillment = vm.load(
             address(context.seaport),
             orderHashStorageSlot
         );
 
-        advancedOrder.inscribeOrderStatusCanceled(true, context);
+        advancedOrder.inscribeOrderStatusCanceled(true, context.seaport);
 
         rawStorageValues.rawSyntheticOrderStatusAfterCancellation = vm.load(
             address(context.seaport),
