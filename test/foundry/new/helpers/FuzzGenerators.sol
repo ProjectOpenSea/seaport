@@ -286,15 +286,13 @@ library AdvancedOrdersSpaceGenerator {
         _handleInsertIfAllEmpty(orders, context);
         _handleInsertIfAllFilterable(orders, context, space);
 
-        bool ensureMatchable = (space.isMatchable ||
-            _hasInvalidNativeOfferItems(orders));
-
         // Handle match case.
-        if (ensureMatchable) {
+        if (space.isMatchable) {
             _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+            space.maximumFulfilled = orders.length;
         } else {
             if (len > 1) {
                 _adjustUnavailable(orders, space, context);
