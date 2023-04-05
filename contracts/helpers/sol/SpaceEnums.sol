@@ -21,12 +21,11 @@ enum Method {
 
 enum OrderStatus {
     AVAILABLE, // not validated or fulfilled; implicitly validated via signature except when match is called
-    FULFILLED, // completely fulfilled
-    PARTIAL, // partially fulfilled
-    CANCELLED_EXPLICIT, // explicit cancellation
-    CANCELLED_COUNTER, // canceled via counter increment
     VALIDATED, // validated on-chain
-    SKIPPED, // fulfillAvailable case
+    PARTIAL, // partially fulfilled
+    FULFILLED, // completely fulfilled
+    CANCELLED_EXPLICIT, // explicit cancellation
+    CANCELLED_COUNTER, // canceled via counter increment (reverts due to invalid sig)
     REVERT // fulfilling reverts
 }
 
@@ -340,6 +339,15 @@ enum BasicOrderCategory {
 enum Tips {
     NONE,
     TIPS
+}
+
+enum UnavailableReason {
+    AVAILABLE,
+    EXPIRED,
+    STARTS_IN_FUTURE,
+    CANCELLED,
+    ALREADY_FULFILLED,
+    GENERATE_ORDER_FAILURE
 }
 
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?

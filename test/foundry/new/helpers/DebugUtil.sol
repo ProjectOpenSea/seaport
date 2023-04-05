@@ -43,6 +43,7 @@ struct ContextOutputSelection {
     bool expectedImplicitExecutions;
     bool expectedExplicitExecutions;
     bool allExpectedExecutions;
+    bool expectedAvailableOrders;
     ItemType executionsFilter;
     bool expectedEventHashes;
     bool actualEvents;
@@ -236,6 +237,13 @@ function dumpContext(
             )
         );
     }
+    if (outputSelection.expectedAvailableOrders) {
+        jsonOut = Searializer.tojsonDynArrayBool(
+            "root",
+            "expectedAvailableOrders",
+            context.expectedAvailableOrders
+        );
+    }
     // =====================================================================//
     //                               Events                                 //
     // =====================================================================//
@@ -328,6 +336,7 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.orders = true;
     selection.allExpectedExecutions = true;
     selection.nativeExpectedBalances = true;
+    selection.expectedAvailableOrders = true;
     selection.seaport = true;
     selection.caller = true;
     selection.callValue = true;

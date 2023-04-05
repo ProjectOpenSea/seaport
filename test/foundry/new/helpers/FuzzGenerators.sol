@@ -31,6 +31,7 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
@@ -41,6 +42,8 @@ import {
 } from "./FuzzGeneratorContextLib.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -85,7 +88,7 @@ library TestStateGenerator {
                 maxConsiderationItemsPerOrder = 1;
             }
         } else {
-            isMatchable = context.randRange(0, 1) == 1 ? true : false;
+            isMatchable = context.randRange(0, 4) == 0 ? true : false;
         }
 
         if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
@@ -97,7 +100,19 @@ library TestStateGenerator {
             totalOrders
         );
 
+        bool someAvailable = false;
+
         for (uint256 i; i < totalOrders; ++i) {
+            UnavailableReason reason = (
+                context.randRange(0, 1) == 0
+                    ? UnavailableReason.AVAILABLE
+                    : UnavailableReason(context.randEnum(1, 4))
+            );
+
+            if (reason == UnavailableReason.AVAILABLE) {
+                someAvailable = true;
+            }
+
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
@@ -119,8 +134,15 @@ library TestStateGenerator {
                 signatureMethod: SignatureMethod(0),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
-                tips: Tips(context.randEnum(0, 1))
+                tips: Tips(context.randEnum(0, 1)),
+                // TODO: Add more unavailable order reasons (1-5).
+                unavailableReason: reason
             });
+        }
+
+        if (!someAvailable) {
+            components[context.randRange(0, totalOrders - 1)]
+                .unavailableReason = UnavailableReason.AVAILABLE;
         }
 
         return
@@ -232,11 +254,14 @@ library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
+    using FuzzInscribers for AdvancedOrder;
+    using MatchComponentType for MatchComponent;
+    using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
-    using MatchComponentType for MatchComponent;
+    using TimeGenerator for OrderParameters;
+    using OfferItemSpaceGenerator for OfferItemSpace;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -248,23 +273,63 @@ library AdvancedOrdersSpaceGenerator {
         // Build orders.
         _buildOrders(orders, space, context);
 
-        // Handle combined orders (need to have at least one execution).
-        if (len > 1) {
-            _handleInsertIfAllEmpty(orders, context);
-            _handleInsertIfAllFilterable(orders, context);
-        }
+        // Ensure that orders are not entirely empty of items.
+        _handleInsertIfAllEmpty(orders, context);
+        _handleInsertIfAllFilterable(orders, context, space);
+
+        bool ensureMatchable = (space.isMatchable ||
+            _hasInvalidNativeOfferItems(orders));
 
         // Handle match case.
-        if (space.isMatchable || _hasInvalidNativeOfferItems(orders)) {
+        if (ensureMatchable) {
+            _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+        } else {
+            if (len > 1) {
+                _adjustUnavailable(orders, space, context);
+            } else {
+                _ensureAllAvailable(space);
+            }
+            _ensureDirectSupport(orders, space, context);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function _ensureDirectSupport(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal {
+        // Ensure no native offer items on non-contract order types
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+            if (order.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                OfferItem memory item = order.offer[j];
+                if (item.itemType == ItemType.NATIVE) {
+                    // Generate a new offer and make sure it has no native items
+                    item = space.orders[i].offer[j].generate(context, true);
+                    break;
+                }
+            }
+        }
+    }
+
+    function _ensureAllAvailable(
+        AdvancedOrdersSpace memory space
+    ) internal pure {
+        for (uint256 i = 0; i < space.orders.length; ++i) {
+            space.orders[i].unavailableReason = UnavailableReason.AVAILABLE;
+        }
     }
 
     function _buildOrders(
@@ -274,7 +339,8 @@ library AdvancedOrdersSpaceGenerator {
     ) internal {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
-                context
+                context,
+                false // ensureDirectSupport false: allow native offer items
             );
             orders[i] = OrderLib
                 .empty()
@@ -284,6 +350,53 @@ library AdvancedOrdersSpaceGenerator {
                     denominator: 1,
                     extraData: bytes("")
                 });
+        }
+    }
+
+    function _adjustUnavailable(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            _adjustUnavailable(
+                orders[i],
+                space.orders[i].unavailableReason,
+                context
+            );
+        }
+    }
+
+    function _adjustUnavailable(
+        AdvancedOrder memory order,
+        UnavailableReason reason,
+        FuzzGeneratorContext memory context
+    ) internal {
+        OrderParameters memory parameters = order.parameters;
+        // UnavailableReason.AVAILABLE => take no action
+        if (reason == UnavailableReason.EXPIRED) {
+            parameters = parameters.withGeneratedTime(
+                Time(context.randEnum(3, 4)),
+                context
+            );
+        } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {
+            parameters = parameters.withGeneratedTime(
+                Time.STARTS_IN_FUTURE,
+                context
+            );
+        } else if (reason == UnavailableReason.CANCELLED) {
+            order.inscribeOrderStatusCanceled(true, context.seaport);
+        } else if (reason == UnavailableReason.ALREADY_FULFILLED) {
+            order.inscribeOrderStatusNumeratorAndDenominator(
+                1,
+                1,
+                context.seaport
+            );
+        } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
+            // TODO: update offerer + order type (point to bad contract offerer)
+            revert(
+                "FuzzGenerators: no support for failing contract order fuzzing"
+            );
         }
     }
 
@@ -830,7 +943,8 @@ library AdvancedOrdersSpaceGenerator {
      */
     function _handleInsertIfAllFilterable(
         AdvancedOrder[] memory orders,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        AdvancedOrdersSpace memory space
     ) internal {
         bool allFilterable = true;
         address caller = context.caller == address(0)
@@ -838,10 +952,16 @@ library AdvancedOrdersSpaceGenerator {
             : context.caller;
 
         // Iterate over the orders and check if there's a single instance of a
-        // non-filterable consideration item.  If there is, set allFilterable to
-        // false and break out of the loop.
+        // non-filterable consideration item. If there is, set allFilterable to
+        // false and break out of the loop. Skip unavailable orders as well.
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
+
+            if (
+                space.orders[i].unavailableReason != UnavailableReason.AVAILABLE
+            ) {
+                continue;
+            }
 
             for (uint256 j = 0; j < order.consideration.length; ++j) {
                 ConsiderationItem memory item = order.consideration[j];
@@ -858,7 +978,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         // If they're all filterable, then add a consideration item to one of
-        // the orders.
+        // the orders and ensure that it is available.
         if (allFilterable) {
             OrderParameters memory orderParams;
 
@@ -871,11 +991,12 @@ library AdvancedOrdersSpaceGenerator {
             // consideration items. There's chance that no order will have
             // consideration items, in which case the orderParams variable will
             // be set to those of the last order iterated over.
+            uint256 orderInsertionIndex = context.randRange(
+                0,
+                orders.length - 1
+            );
             for (
-                uint256 orderInsertionIndex = context.randRange(
-                    0,
-                    orders.length - 1
-                );
+                ;
                 orderInsertionIndex < orders.length * 2;
                 ++orderInsertionIndex
             ) {
@@ -891,10 +1012,7 @@ library AdvancedOrdersSpaceGenerator {
             // add a consideration item to a random order.
             if (orderParams.consideration.length == 0) {
                 // Pick a random order to insert the consideration item into.
-                uint256 orderInsertionIndex = context.randRange(
-                    0,
-                    orders.length - 1
-                );
+                orderInsertionIndex = context.randRange(0, orders.length - 1);
 
                 // Set the orderParams variable to the parameters of the order
                 // that was picked.
@@ -917,6 +1035,10 @@ library AdvancedOrdersSpaceGenerator {
                 // Set the consideration item array on the order parameters.
                 orderParams.consideration = consideration;
             }
+
+            space
+                .orders[orderInsertionIndex % orders.length]
+                .unavailableReason = UnavailableReason.AVAILABLE;
 
             // Pick a random consideration item to modify.
             uint256 itemIndex = context.randRange(
@@ -1118,7 +1240,8 @@ library OrderComponentsSpaceGenerator {
 
     function generate(
         OrderComponentsSpace memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
@@ -1127,7 +1250,7 @@ library OrderComponentsSpaceGenerator {
             params = OrderParametersLib
                 .empty()
                 .withOfferer(offerer)
-                .withOffer(space.offer.generate(context))
+                .withOffer(space.offer.generate(context, ensureDirectSupport))
                 .withConsideration(
                     space.consideration.generate(context, offerer)
                 )
@@ -1203,30 +1326,39 @@ library OfferItemSpaceGenerator {
     using AmountGenerator for OfferItem;
     using CriteriaGenerator for OfferItem;
     using TokenIndexGenerator for TokenIndex;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function generate(
         OfferItemSpace[] memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
 
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], context);
+            offerItems[i] = generate(space[i], context, ensureDirectSupport);
         }
         return offerItems;
     }
 
     function generate(
         OfferItemSpace memory space,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        bool ensureDirectSupport
     ) internal returns (OfferItem memory) {
+        ItemType itemType = space.itemType;
+
+        if (ensureDirectSupport && itemType == ItemType.NATIVE) {
+            itemType = ItemType(context.randRange(1, 5));
+        }
+
         return
             OfferItemLib
                 .empty()
-                .withItemType(space.itemType)
-                .withToken(space.tokenIndex.generate(space.itemType, context))
+                .withItemType(itemType)
+                .withToken(space.tokenIndex.generate(itemType, context))
                 .withGeneratedAmount(space.amount, context)
                 .withGeneratedIdentifierOrCriteria(
                     space.itemType,

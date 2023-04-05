@@ -117,8 +117,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             if (
+                context.expectedAvailableOrders[i] && (
                 order.orderType == OrderType.FULL_RESTRICTED ||
-                order.orderType == OrderType.PARTIAL_RESTRICTED
+                order.orderType == OrderType.PARTIAL_RESTRICTED )
             ) {
                 registerChecks = true;
                 expectedZoneCalldataHash[i] = calldataHashes[i];
@@ -147,6 +148,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
+            if (!context.expectedAvailableOrders[i]) continue;
+
             OrderDetails memory order = orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
@@ -243,6 +246,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         //       - For matchOrders, we don't need to do any setup
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
+            if (!context.expectedAvailableOrders[i]) continue;
+
             OrderDetails memory order = orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
@@ -268,6 +273,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         context.recipient == address(0)
                     ) {
                         for (uint256 k; k < orderDetails.length; ++k) {
+                            if (!context.expectedAvailableOrders[k]) continue;
+
                             SpentItem[] memory spentItems = orderDetails[k]
                                 .offer;
                             for (uint256 l; l < spentItems.length; ++l) {
@@ -310,6 +317,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         context.registerCheck(FuzzChecks.check_expectedBalances.selector);
         ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
 
+        // Note: fewer (or occcasionally greater) native tokens need to be
+        // supplied when orders are unavailable; however, this is generally
+        // not known at the time of submission. Consider adding a fuzz param
+        // for supplying the minimum possible native token value.
         uint256 callValue = context.getNativeTokensToSupply();
 
         Execution[] memory _executions = context.allExpectedExecutions;

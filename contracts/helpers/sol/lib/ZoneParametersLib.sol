@@ -189,22 +189,53 @@ library ZoneParametersLib {
         ZoneDetails memory details,
         address seaport
     ) internal view {
+        uint256 totalFulfilled = 0;
         // Iterate over advanced orders to calculate orderHashes
         for (uint256 i = 0; i < details.advancedOrders.length; i++) {
-            if (i >= details.maximumFulfilled) {
+            bytes32 orderHash = getTipNeutralizedOrderHash(
+                details.advancedOrders[i],
+                SeaportInterface(seaport),
+                SeaportInterface(seaport).getCounter(
+                    details.advancedOrders[i].parameters.offerer
+                )
+            );
+
+            if (
+                totalFulfilled >= details.maximumFulfilled ||
+                _isUnavailable(
+                    details.advancedOrders[i].parameters,
+                    orderHash,
+                    SeaportInterface(seaport)
+                )
+            ) {
                 // Set orderHash to 0 if order index exceeds maximumFulfilled
                 details.orderHashes[i] = bytes32(0);
             } else {
-                // Add orderHash to orderHashes
-                details.orderHashes[i] = getTipNeutralizedOrderHash(
-                    details.advancedOrders[i],
-                    SeaportInterface(seaport),
-                    SeaportInterface(seaport).getCounter(
-                        details.advancedOrders[i].parameters.offerer
-                    )
-                );
+                // Add orderHash to orderHashes and increment totalFulfilled/
+                details.orderHashes[i] = orderHash;
+                ++totalFulfilled;
             }
         }
+    }
+
+    function _isUnavailable(
+        OrderParameters memory order,
+        bytes32 orderHash,
+        SeaportInterface seaport
+    ) internal view returns (bool) {
+        (
+            ,
+            bool isCancelled,
+            uint256 totalFilled,
+            uint256 totalSize
+        ) = seaport.getOrderStatus(orderHash);
+
+        return (
+            block.timestamp >= order.endTime ||
+            block.timestamp < order.startTime ||
+            isCancelled ||
+            (totalFilled >= totalSize && totalSize > 0)
+        );
     }
 
     function _getOrderDetails(

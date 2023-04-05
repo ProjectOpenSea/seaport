@@ -27,6 +27,7 @@ import {
     Time,
     Tips,
     TokenIndex,
+    UnavailableReason,
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
@@ -95,18 +96,19 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             });
     }
 
-    function test_emptySpace() public {
-        FuzzGeneratorContext memory context = createContext();
-        AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-            orders: new OrderComponentsSpace[](0),
-            isMatchable: false
-        });
-        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
-            space,
-            context
-        );
-        assertEq(orders.length, 0);
-    }
+    // NOTE: empty order space is not supported for now
+    // function test_emptySpace() public {
+    //     FuzzGeneratorContext memory context = createContext();
+    //     AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
+    //         orders: new OrderComponentsSpace[](0),
+    //         isMatchable: false
+    //     });
+    //     AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+    //         space,
+    //         context
+    //     );
+    //     assertEq(orders.length, 0);
+    // }
 
     function test_emptyOfferConsideration() public {
         FuzzGeneratorContext memory context = createContext();
@@ -125,7 +127,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -143,7 +146,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         );
         assertEq(orders.length, 1);
         assertEq(orders[0].parameters.offer.length, 0);
-        assertEq(orders[0].parameters.consideration.length, 0);
+        // Empty order groups have a consideration item inserted on some order
+        assertEq(orders[0].parameters.consideration.length, 1);
     }
 
     function test_singleOffer_emptyConsideration() public {
@@ -169,7 +173,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -197,7 +202,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders[0].parameters.offer[0].endAmount
         );
 
-        assertEq(orders[0].parameters.consideration.length, 0);
+        // Empty order groups have a consideration item inserted on some order
+        assertEq(orders[0].parameters.consideration.length, 1);
     }
 
     function test_emptyOffer_singleConsideration() public {
@@ -224,7 +230,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             signatureMethod: SignatureMethod.EOA,
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
-            tips: Tips.NONE
+            tips: Tips.NONE,
+            unavailableReason: UnavailableReason.AVAILABLE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](

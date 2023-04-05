@@ -202,27 +202,30 @@ contract FuzzEngine is
                 })
                 .withConduitController(conduitController_)
                 .withFuzzParams(fuzzParams)
-                .withPreExecOrderStatuses();
+                .withPreExecOrderStatuses(space);
     }
 
     /**
      * @dev Perform any "deriver" steps necessary before calling `runSetup`.
      *
-     *      1. deriveFulfillments: calculate fulfillments and add them to the
-     *         test context.
-     *      2. deriveMaximumFulfilled: calculate maximumFulfilled and add it to
+     *      1. deriveMaximumFulfilled: calculate maximumFulfilled and add it to
      *         the test context.
-     *      4. TODO: deriveUnavailable.
-     *      3. deriveExecutions: calculate expected implicit/explicit executions
+     *      2. deriveAvailableOrders: calculate which orders are available and
+     *         add them to the test context.
+     *      3. deriveCriteriaResolvers: calculate criteria resolvers and add
+     *         them to the test context.
+     *      4. deriveFulfillments: calculate fulfillments and add them to the
+     *         test context.
+     *      5. deriveExecutions: calculate expected implicit/explicit executions
      *         and add them to the test context.
      *
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
+        deriveMaximumFulfilled(context);
+        deriveAvailableOrders(context);
         deriveCriteriaResolvers(context);
         deriveFulfillments(context);
-        deriveMaximumFulfilled(context);
-        // TODO: deriveUnavailable(context);
         deriveExecutions(context);
     }
 
