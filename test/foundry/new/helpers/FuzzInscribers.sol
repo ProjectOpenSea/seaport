@@ -7,8 +7,6 @@ import "seaport-sol/SeaportSol.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-
 /**
  * @notice Helpers for inscribing order status, contract nonce, and counter.
  */
@@ -29,18 +27,18 @@ library FuzzInscribers {
      *
      * @param order The order to inscribe.
      * @param orderStatus The order status to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusComprehensive(
         AdvancedOrder memory order,
         OrderStatus memory orderStatus,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
-        inscribeOrderStatusValidated(order, orderStatus.isValidated, context);
-        inscribeOrderStatusCanceled(order, orderStatus.isCancelled, context);
-        inscribeOrderStatusNumerator(order, orderStatus.numerator, context);
-        inscribeOrderStatusDenominator(order, orderStatus.denominator, context);
+        inscribeOrderStatusValidated(order, orderStatus.isValidated, seaport);
+        inscribeOrderStatusCanceled(order, orderStatus.isCancelled, seaport);
+        inscribeOrderStatusNumerator(order, orderStatus.numerator, seaport);
+        inscribeOrderStatusDenominator(order, orderStatus.denominator, seaport);
     }
 
     /**
@@ -49,17 +47,17 @@ library FuzzInscribers {
      * @param order The order to inscribe.
      * @param numerator The numerator to inscribe.
      * @param denominator The denominator to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusNumeratorAndDenominator(
         AdvancedOrder memory order,
         uint120 numerator,
         uint120 denominator,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
-        inscribeOrderStatusNumerator(order, numerator, context);
-        inscribeOrderStatusDenominator(order, denominator, context);
+        inscribeOrderStatusNumerator(order, numerator, seaport);
+        inscribeOrderStatusDenominator(order, denominator, seaport);
     }
 
     /**
@@ -67,23 +65,23 @@ library FuzzInscribers {
      *
      * @param order The order to inscribe.
      * @param isValidated The boolean value to set for the `isValidated` field.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusValidated(
         AdvancedOrder memory order,
         bool isValidated,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the order hash.
-        bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+        bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
 
         bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
             orderHash,
-            context
+            seaport
         );
         bytes32 rawOrderStatus = vm.load(
-            address(context.seaport),
+            address(seaport),
             orderHashStorageSlot
         );
 
@@ -100,11 +98,7 @@ library FuzzInscribers {
         }
 
         // Store the new raw order status.
-        vm.store(
-            address(context.seaport),
-            orderHashStorageSlot,
-            rawOrderStatus
-        );
+        vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
     }
 
     /**
@@ -112,23 +106,23 @@ library FuzzInscribers {
      *
      * @param order The order to inscribe.
      * @param isCancelled The boolean value to set for the `isCancelled` field.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusCanceled(
         AdvancedOrder memory order,
         bool isCancelled,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the order hash.
-        bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+        bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
 
         bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
             orderHash,
-            context
+            seaport
         );
         bytes32 rawOrderStatus = vm.load(
-            address(context.seaport),
+            address(seaport),
             orderHashStorageSlot
         );
 
@@ -147,11 +141,7 @@ library FuzzInscribers {
         }
 
         // Store the new raw order status.
-        vm.store(
-            address(context.seaport),
-            orderHashStorageSlot,
-            rawOrderStatus
-        );
+        vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
     }
 
     /**
@@ -159,22 +149,22 @@ library FuzzInscribers {
      *
      * @param order The order to inscribe.
      * @param numerator The numerator to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusNumerator(
         AdvancedOrder memory order,
         uint120 numerator,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the order hash, storage slot, and raw order status.
-        bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+        bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
         bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
             orderHash,
-            context
+            seaport
         );
         bytes32 rawOrderStatus = vm.load(
-            address(context.seaport),
+            address(seaport),
             orderHashStorageSlot
         );
 
@@ -192,11 +182,7 @@ library FuzzInscribers {
         }
 
         // Store the new raw order status.
-        vm.store(
-            address(context.seaport),
-            orderHashStorageSlot,
-            rawOrderStatus
-        );
+        vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
     }
 
     /**
@@ -204,22 +190,22 @@ library FuzzInscribers {
      *
      * @param order The order to inscribe.
      * @param denominator The denominator to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeOrderStatusDenominator(
         AdvancedOrder memory order,
         uint120 denominator,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the order hash, storage slot, and raw order status.
-        bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
+        bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
         bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
             orderHash,
-            context
+            seaport
         );
         bytes32 rawOrderStatus = vm.load(
-            address(context.seaport),
+            address(seaport),
             orderHashStorageSlot
         );
 
@@ -237,11 +223,7 @@ library FuzzInscribers {
         }
 
         // Store the new raw order status.
-        vm.store(
-            address(context.seaport),
-            orderHashStorageSlot,
-            rawOrderStatus
-        );
+        vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
     }
 
     /**
@@ -249,23 +231,23 @@ library FuzzInscribers {
      *
      * @param contractOfferer The contract offerer to inscribe the nonce for.
      * @param nonce The nonce to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeContractOffererNonce(
         address contractOfferer,
         uint256 nonce,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the storage slot for the contract offerer's nonce.
         bytes32 contractOffererNonceStorageSlot = _getStorageSlotForContractNonce(
                 contractOfferer,
-                context
+                seaport
             );
 
         // Store the new nonce.
         vm.store(
-            address(context.seaport),
+            address(seaport),
             contractOffererNonceStorageSlot,
             bytes32(nonce)
         );
@@ -276,23 +258,23 @@ library FuzzInscribers {
      *
      * @param offerer The offerer to inscribe the counter for.
      * @param counter The counter to inscribe.
-     * @param context The fuzz test context.
+     * @param seaport The Seaport instance.
      *
      */
     function inscribeCounter(
         address offerer,
         uint256 counter,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) internal {
         // Get the storage slot for the counter.
         bytes32 contractOffererNonceStorageSlot = _getStorageSlotForContractNonce(
                 offerer,
-                context
+                seaport
             );
 
         // Store the new counter.
         vm.store(
-            address(context.seaport),
+            address(seaport),
             contractOffererNonceStorageSlot,
             bytes32(counter)
         );
@@ -300,13 +282,11 @@ library FuzzInscribers {
 
     function _getStorageSlotForOrderHash(
         bytes32 orderHash,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) private returns (bytes32) {
         vm.record();
-        context.seaport.getOrderStatus(orderHash);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        seaport.getOrderStatus(orderHash);
+        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
 
         uint256 expectedReadAccessCount = 4;
 
@@ -336,13 +316,11 @@ library FuzzInscribers {
 
     function _getStorageSlotForContractNonce(
         address contractOfferer,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) private returns (bytes32) {
         vm.record();
-        context.seaport.getContractOffererNonce(contractOfferer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        seaport.getContractOffererNonce(contractOfferer);
+        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 
@@ -351,13 +329,11 @@ library FuzzInscribers {
 
     function _getStorageSlotForCounter(
         address offerer,
-        FuzzTestContext memory context
+        SeaportInterface seaport
     ) private returns (bytes32) {
         vm.record();
-        context.seaport.getCounter(offerer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        seaport.getCounter(offerer);
+        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 

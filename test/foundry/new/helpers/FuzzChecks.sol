@@ -290,7 +290,10 @@ abstract contract FuzzChecks is Test {
                 .seaport
                 .getOrderStatus(orderHash);
 
-            if (context.expectedAvailableOrders[i]) {
+            if (context.preExecOrderStatuses[i] == OrderStatusEnum.FULFILLED) {
+                assertEq(totalFilled, 1);
+                assertEq(totalSize, 1);
+            } else if (context.expectedAvailableOrders[i]) {
                 assertEq(totalFilled, totalSize);
                 assertTrue(totalFilled != 0);
             } else {
