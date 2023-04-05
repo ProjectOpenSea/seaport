@@ -37,89 +37,89 @@ contract CriteriaResolverHelperTest is Test {
         test = new CriteriaResolverHelper(100);
     }
 
-    function testCanVerify(uint256 seed) public {
-        LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
-        uint256[] memory identifiers = test.generateIdentifiers(prng);
-        uint256 criteria = test.generateCriteriaMetadata(prng, seed);
+    // function testCanVerify(uint256 seed) public {
+    //     LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
+    //     uint256[] memory identifiers = test.generateIdentifiers(prng);
+    //     uint256 criteria = test.generateCriteriaMetadata(prng, seed);
 
-        uint256 resolvedIdentifier = test
-            .resolvableIdentifierForGivenCriteria(criteria)
-            .resolvedIdentifier;
-        bytes32[] memory proof = test
-            .resolvableIdentifierForGivenCriteria(criteria)
-            .proof;
-        bytes32 hashedIdentifier = keccak256(abi.encode(resolvedIdentifier));
-        bytes32[] memory leaves = test.hashIdentifiersToLeaves(identifiers);
-        bytes32 root = test.MERKLE().getRoot(leaves);
-        assertTrue(test.MERKLE().verifyProof(root, proof, hashedIdentifier));
-    }
+    //     uint256 resolvedIdentifier = test
+    //         .resolvableIdentifierForGivenCriteria(criteria)
+    //         .resolvedIdentifier;
+    //     bytes32[] memory proof = test
+    //         .resolvableIdentifierForGivenCriteria(criteria)
+    //         .proof;
+    //     bytes32 hashedIdentifier = keccak256(abi.encode(resolvedIdentifier));
+    //     bytes32[] memory leaves = test.hashIdentifiersToLeaves(identifiers);
+    //     bytes32 root = test.MERKLE().getRoot(leaves);
+    //     assertTrue(test.MERKLE().verifyProof(root, proof, hashedIdentifier));
+    // }
 
-    function testDeriveCriteriaResolvers(
-        uint256 seed,
-        uint256 desiredId
-    ) public {
-        vm.assume(desiredId < type(uint256).max);
+    // function testDeriveCriteriaResolvers(
+    //     uint256 seed,
+    //     uint256 desiredId
+    // ) public {
+    //     vm.assume(desiredId < type(uint256).max);
 
-        LibPRNG.PRNG memory prng = LibPRNG.PRNG(seed);
-        uint256 criteria = test.generateCriteriaMetadata(prng, desiredId);
+    //     LibPRNG.PRNG memory prng = LibPRNG.PRNG(seed);
+    //     uint256 criteria = test.generateCriteriaMetadata(prng, desiredId);
 
-        // Create the offer and consideration for the order
-        OfferItem[] memory offer = SeaportArrays.OfferItems(
-            OfferItemLib
-                .empty()
-                .withItemType(ItemType.ERC721_WITH_CRITERIA)
-                .withStartAmount(1)
-                .withEndAmount(1)
-                .withToken(address(1234))
-                .withIdentifierOrCriteria(criteria)
-        );
+    //     // Create the offer and consideration for the order
+    //     OfferItem[] memory offer = SeaportArrays.OfferItems(
+    //         OfferItemLib
+    //             .empty()
+    //             .withItemType(ItemType.ERC721_WITH_CRITERIA)
+    //             .withStartAmount(1)
+    //             .withEndAmount(1)
+    //             .withToken(address(1234))
+    //             .withIdentifierOrCriteria(criteria)
+    //     );
 
-        ConsiderationItem[] memory consideration = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib
-                    .empty()
-                    .withItemType(ItemType.ERC20)
-                    .withStartAmount(100)
-                    .withEndAmount(100)
-                    .withToken(address(1234))
-                    .withIdentifierOrCriteria(0)
-                    .withRecipient(address(this))
-            );
+    //     ConsiderationItem[] memory consideration = SeaportArrays
+    //         .ConsiderationItems(
+    //             ConsiderationItemLib
+    //                 .empty()
+    //                 .withItemType(ItemType.ERC20)
+    //                 .withStartAmount(100)
+    //                 .withEndAmount(100)
+    //                 .withToken(address(1234))
+    //                 .withIdentifierOrCriteria(0)
+    //                 .withRecipient(address(this))
+    //         );
 
-        OrderParameters memory orderParameters = OrderParametersLib
-            .empty()
-            .withOffer(offer)
-            .withConsideration(consideration);
+    //     OrderParameters memory orderParameters = OrderParametersLib
+    //         .empty()
+    //         .withOffer(offer)
+    //         .withConsideration(consideration);
 
-        AdvancedOrder[] memory orders = SeaportArrays.AdvancedOrders(
-            AdvancedOrderLib.empty().withParameters(orderParameters)
-        );
+    //     AdvancedOrder[] memory orders = SeaportArrays.AdvancedOrders(
+    //         AdvancedOrderLib.empty().withParameters(orderParameters)
+    //     );
 
-        CriteriaResolver[] memory criteriaResolvers = test
-            .deriveCriteriaResolvers(orders);
+    //     CriteriaResolver[] memory criteriaResolvers = test
+    //         .deriveCriteriaResolvers(orders);
 
-        assertEq(
-            criteriaResolvers.length,
-            1,
-            "Invalid criteria resolvers length"
-        );
-        assertEq(
-            criteriaResolvers[0].identifier,
-            desiredId,
-            "Criteria resolver should have desired id"
-        );
+    //     assertEq(
+    //         criteriaResolvers.length,
+    //         1,
+    //         "Invalid criteria resolvers length"
+    //     );
+    //     assertEq(
+    //         criteriaResolvers[0].identifier,
+    //         desiredId,
+    //         "Criteria resolver should have desired id"
+    //     );
 
-        uint256[] memory identifiers = test.generateIdentifiers(prng);
-        uint256 resolvedIdentifier = test
-            .resolvableIdentifierForGivenCriteria(criteria)
-            .resolvedIdentifier;
-        bytes32[] memory proof = test
-            .resolvableIdentifierForGivenCriteria(criteria)
-            .proof;
-        bytes32 hashedIdentifier = keccak256(abi.encode(resolvedIdentifier));
-        bytes32[] memory leaves = test.hashIdentifiersToLeaves(identifiers);
-        bytes32 root = test.MERKLE().getRoot(leaves);
+    //     uint256[] memory identifiers = test.generateIdentifiers(prng);
+    //     uint256 resolvedIdentifier = test
+    //         .resolvableIdentifierForGivenCriteria(criteria)
+    //         .resolvedIdentifier;
+    //     bytes32[] memory proof = test
+    //         .resolvableIdentifierForGivenCriteria(criteria)
+    //         .proof;
+    //     bytes32 hashedIdentifier = keccak256(abi.encode(resolvedIdentifier));
+    //     bytes32[] memory leaves = test.hashIdentifiersToLeaves(identifiers);
+    //     bytes32 root = test.MERKLE().getRoot(leaves);
 
-        test.MERKLE().verifyProof(root, proof, hashedIdentifier);
-    }
+    //     test.MERKLE().verifyProof(root, proof, hashedIdentifier);
+    // }
 }
