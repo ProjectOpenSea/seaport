@@ -1,11 +1,43 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseOrderTest } from "./BaseOrderTest.sol";
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    FulfillmentComponentLib,
+    FulfillmentLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib,
+    SeaportArrays,
+    ZoneParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    OrderType
+} from "../../../contracts/lib/ConsiderationStructs.sol";
 
-import "forge-std/console.sol";
+import {
+    ConsiderationInterface
+} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+
+import {
+    HashValidationZoneOfferer
+} from "../../../contracts/test/HashValidationZoneOfferer.sol";
+
+import {
+    TestCalldataHashContractOfferer
+} from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
 
 import {
     FuzzEngine,
@@ -17,16 +49,7 @@ import {
 
 import { AdvancedOrder, FuzzHelpers } from "./helpers/FuzzHelpers.sol";
 
-import {
-    CriteriaResolver
-} from "../../../contracts/lib/ConsiderationStructs.sol";
-
-import {
-    HashValidationZoneOfferer
-} from "../../../contracts/test/HashValidationZoneOfferer.sol";
-import {
-    TestCalldataHashContractOfferer
-} from "../../../contracts/test/TestCalldataHashContractOfferer.sol";
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using AdvancedOrderLib for AdvancedOrder;

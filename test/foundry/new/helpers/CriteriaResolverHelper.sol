@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-import { Merkle } from "murky/Merkle.sol";
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import { LibSort } from "solady/src/utils/LibSort.sol";
+
+import { Merkle } from "murky/Merkle.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    ItemType,
+    OfferItem,
+    Side
+} from "seaport-sol/SeaportStructs.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;

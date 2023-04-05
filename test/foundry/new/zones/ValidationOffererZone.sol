@@ -31,7 +31,7 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
      */
     function validateOrder(
         ZoneParameters calldata zoneParameters
-    ) external override returns (bytes4 validOrderMagicValue) {
+    ) external override view returns (bytes4 validOrderMagicValue) {
         validate(zoneParameters.fulfiller, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.

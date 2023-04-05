@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../../../../../contracts/helpers/ArrayHelpers.sol";
+import {
+    MemoryPointer
+} from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     Execution,
