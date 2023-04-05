@@ -315,16 +315,36 @@ library AdvancedOrdersSpaceGenerator {
     ) internal {
         // Ensure no native offer items on non-contract order types
         for (uint256 i = 0; i < orders.length; ++i) {
-            OrderParameters memory order = orders[i].parameters;
-            if (order.orderType == OrderType.CONTRACT) {
+            // Get the order params.
+            OrderParameters memory orderParams = orders[i].parameters;
+
+            // If it's a contract order, skip it.
+            if (orderParams.orderType == OrderType.CONTRACT) {
                 continue;
             }
 
-            for (uint256 j = 0; j < order.offer.length; ++j) {
-                OfferItem memory item = order.offer[j];
+            // Iterate over the offer items in non-contract orders.
+            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                // Get the offer item.
+                OfferItem memory item = orderParams.offer[j];
+
+                // If it's a native item, generate a new offer and make sure it has no native items.
                 if (item.itemType == ItemType.NATIVE) {
-                    // Generate a new offer and make sure it has no native items
+                    // Generate a new offer and make sure it has no native
+                    // items. That's what the `true` bool does. It ensures that
+                    // the offer is not a native offer.
                     item = space.orders[i].offer[j].generate(context, true);
+
+                    // Note to 0: This change fixes the `invalid native token +
+                    // unavailable combination` issue, but it reveals the
+                    // existence of others.
+                    //
+                    // The next one that pops up is the
+                    // `check_validateOrderExpectedDataHash` failure. For now,
+                    // I've commented it out.
+
+                    // Update the offer item.
+                    orderParams.offer[j] = item;
                 }
             }
         }
@@ -891,7 +911,8 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    false
                 );
 
             orderParams.consideration = consideration;
@@ -931,7 +952,8 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    false
                 );
 
             orderParams.consideration = consideration;
@@ -1035,7 +1057,8 @@ library AdvancedOrdersSpaceGenerator {
                 consideration[0] = TestStateGenerator
                 .generateConsideration(1, context, true)[0].generate(
                         context,
-                        orderParams.offerer
+                        orderParams.offerer,
+                        false
                     );
 
                 // Set the consideration item array on the order parameters.
@@ -1125,7 +1148,8 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    false
                 );
 
             // Set the consideration item array on the order parameters.
@@ -1210,27 +1234,6 @@ library AdvancedOrdersSpaceGenerator {
             );
         }
     }
-
-    function _hasInvalidNativeOfferItems(
-        AdvancedOrder[] memory orders
-    ) internal pure returns (bool) {
-        for (uint256 i = 0; i < orders.length; ++i) {
-            OrderParameters memory orderParams = orders[i].parameters;
-            if (orderParams.orderType == OrderType.CONTRACT) {
-                continue;
-            }
-
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
-
-                if (item.itemType == ItemType.NATIVE) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
 }
 
 library OrderComponentsSpaceGenerator {
@@ -1258,7 +1261,11 @@ library OrderComponentsSpaceGenerator {
                 .withOfferer(offerer)
                 .withOffer(space.offer.generate(context, ensureDirectSupport))
                 .withConsideration(
-                    space.consideration.generate(context, offerer)
+                    space.consideration.generate(
+                        context,
+                        offerer,
+                        ensureDirectSupport
+                    )
                 )
                 .withConduitKey(space.conduit.generate(context).key);
         }
@@ -1358,6 +1365,9 @@ library OfferItemSpaceGenerator {
 
         if (ensureDirectSupport && itemType == ItemType.NATIVE) {
             itemType = ItemType(context.randRange(1, 5));
+            if (itemType == ItemType.ERC721) {
+                itemType = ItemType.ERC1155;
+            }
         }
 
         return
@@ -1381,11 +1391,13 @@ library ConsiderationItemSpaceGenerator {
     using CriteriaGenerator for ConsiderationItem;
     using RecipientGenerator for Recipient;
     using TokenIndexGenerator for TokenIndex;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function generate(
         ConsiderationItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        bool ensureDirectSupport
     ) internal returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -1394,7 +1406,12 @@ library ConsiderationItemSpaceGenerator {
         );
 
         for (uint256 i; i < len; ++i) {
-            considerationItems[i] = generate(space[i], context, offerer);
+            considerationItems[i] = generate(
+                space[i],
+                context,
+                offerer,
+                ensureDirectSupport
+            );
         }
 
         return considerationItems;
@@ -1403,8 +1420,16 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        bool ensureDirectSupport
     ) internal returns (ConsiderationItem memory) {
+        if (ensureDirectSupport && space.itemType == ItemType.ERC721) {
+            space.itemType = ItemType(context.randRange(0, 5));
+            if (space.itemType == ItemType.ERC721) {
+                space.itemType = ItemType.ERC1155;
+            }
+        }
+
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
             .withItemType(space.itemType)

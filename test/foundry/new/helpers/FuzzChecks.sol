@@ -130,7 +130,11 @@ abstract contract FuzzChecks is Test {
 
                 // Check that the expected calldata hash matches the actual
                 // calldata hash.
-                assertEq(actualCalldataHash, expectedCalldataHash);
+                assertEq(
+                    actualCalldataHash,
+                    expectedCalldataHash,
+                    "Actual and expected calldata hash do not match."
+                );
             }
         }
     }

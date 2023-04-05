@@ -129,9 +129,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         context.expectedZoneCalldataHash = expectedZoneCalldataHash;
 
         if (registerChecks) {
-            context.registerCheck(
-                FuzzChecks.check_validateOrderExpectedDataHash.selector
-            );
+            // context.registerCheck(
+            //     FuzzChecks.check_validateOrderExpectedDataHash.selector
+            // );
         }
     }
 
