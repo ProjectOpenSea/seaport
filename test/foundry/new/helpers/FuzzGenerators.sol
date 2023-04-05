@@ -142,8 +142,7 @@ library TestStateGenerator {
                 offer[i] = OfferItemSpace({
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
-                    // TODO: support wildcard criteria, should be 0-1
-                    criteria: Criteria(context.randEnum(0, 0)),
+                    criteria: Criteria(context.randEnum(0, 1)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0))
                 });
@@ -192,8 +191,7 @@ library TestStateGenerator {
                 consideration[i] = ConsiderationItemSpace({
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    // TODO: support wildcard criteria, should be 0-1
-                    criteria: Criteria(context.randEnum(0, 0)),
+                    criteria: Criteria(context.randEnum(0, 1)),
                     // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 0)),
                     recipient: Recipient(context.randEnum(0, 4))
