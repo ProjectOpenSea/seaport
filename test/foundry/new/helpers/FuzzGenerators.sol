@@ -362,8 +362,8 @@ library AdvancedOrdersSpaceGenerator {
             order.inscribeOrderStatusCanceled(true, context.seaport);
         } else if (reason == UnavailableReason.ALREADY_FULFILLED) {
             order.inscribeOrderStatusNumeratorAndDenominator(
-                order.numerator,
-                order.denominator,
+                1,
+                1,
                 context.seaport
             );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
