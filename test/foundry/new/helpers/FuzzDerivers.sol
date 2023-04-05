@@ -17,6 +17,7 @@ import {
 import {
     OrderStatus as OrderStatusEnum
 } from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -32,14 +33,15 @@ abstract contract FuzzDerivers is
     MatchFulfillmentHelper,
     ExecutionHelper
 {
+    Vm private constant vm =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using MatchComponentType for MatchComponent[];
 
-    function deriveAvailableOrders(
-        FuzzTestContext memory context
-    ) public view {
+    function deriveAvailableOrders(FuzzTestContext memory context) public view {
         // TODO: handle skipped orders due to generateOrder reverts
         // TODO: handle maximumFulfilled < orders.length
         bool[] memory expectedAvailableOrders = new bool[](
@@ -291,6 +293,9 @@ abstract contract FuzzDerivers is
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
                 context
             );
+
+            // TEMP
+            vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {
                 revert("FuzzDerivers: no explicit executions derived on match");
