@@ -81,14 +81,20 @@ library TestStateGenerator {
 
         bool isMatchable = false;
 
+        uint256 maximumFulfilled = totalOrders;
+
         if (context.basicOrderCategory != BasicOrderCategory.NONE) {
             totalOrders = 1;
             maxOfferItemsPerOrder = 1;
             if (maxConsiderationItemsPerOrder == 0) {
                 maxConsiderationItemsPerOrder = 1;
             }
+            maximumFulfilled = 1;
         } else {
             isMatchable = context.randRange(0, 4) == 0 ? true : false;
+            if (!isMatchable) {
+                maximumFulfilled = context.randRange(1, totalOrders);
+            }
         }
 
         if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
@@ -148,7 +154,8 @@ library TestStateGenerator {
         return
             AdvancedOrdersSpace({
                 orders: components,
-                isMatchable: isMatchable
+                isMatchable: isMatchable,
+                maximumFulfilled: maximumFulfilled
             });
     }
 
