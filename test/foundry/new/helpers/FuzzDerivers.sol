@@ -89,7 +89,7 @@ abstract contract FuzzDerivers is
                     if (offerItem.identifierOrCriteria == 0) {
                         // Derive the item hash using the order index,
                         // item index, and side
-                        uint256 itemHash = keccak256(
+                        bytes32 itemHash = keccak256(
                             abi.encodePacked(
                                 i, // orderIndex
                                 j, // itemIndex
@@ -100,7 +100,7 @@ abstract contract FuzzDerivers is
                         // Look up the identifier to use for wildcards on the
                         // criteria resolver helper using the item hash
                         uint256 wildcardIdentifier = criteriaResolverHelper
-                            .wildcardIdentifierForGivenCriteria(itemHash);
+                            .wildcardIdentifierForGivenItemHash(itemHash);
 
                         // Store the criteria resolver
                         criteriaResolvers[
@@ -110,7 +110,7 @@ abstract contract FuzzDerivers is
                             index: j,
                             side: Side.OFFER,
                             identifier: wildcardIdentifier,
-                            criteriaProof: []
+                            criteriaProof: new bytes32[](0)
                         });
 
                         // Handle non-wildcard criteria
@@ -151,7 +151,7 @@ abstract contract FuzzDerivers is
                     if (considerationItem.identifierOrCriteria == 0) {
                         // Derive the item hash using the order index,
                         // item index, and side
-                        uint256 itemHash = keccak256(
+                        bytes32 itemHash = keccak256(
                             abi.encodePacked(
                                 i, // order index
                                 j, // item index
@@ -162,7 +162,7 @@ abstract contract FuzzDerivers is
                         // Look up the identifier to use for wildcards on the
                         // criteria resolver helper using the item hash
                         uint256 wildcardIdentifier = criteriaResolverHelper
-                            .wildcardIdentifierForGivenCriteria(itemHash);
+                            .wildcardIdentifierForGivenItemHash(itemHash);
 
                         // Store the criteria resolver
                         criteriaResolvers[
@@ -172,7 +172,7 @@ abstract contract FuzzDerivers is
                             index: j,
                             side: Side.CONSIDERATION,
                             identifier: wildcardIdentifier,
-                            criteriaProof: []
+                            criteriaProof: new bytes32[](0)
                         });
 
                         // Handle non-wildcard criteria

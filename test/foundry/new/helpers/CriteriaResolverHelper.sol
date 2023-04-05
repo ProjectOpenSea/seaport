@@ -20,7 +20,7 @@ contract CriteriaResolverHelper {
     mapping(uint256 => CriteriaMetadata)
         internal _resolvableIdentifierForGivenCriteria;
 
-    mapping(uint256 => uint256) internal _wildcardIdentifierForGivenCriteria;
+    mapping(bytes32 => uint256) internal _wildcardIdentifierForGivenItemHash;
 
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
@@ -33,15 +33,15 @@ contract CriteriaResolverHelper {
         return _resolvableIdentifierForGivenCriteria[criteria];
     }
 
-    function wildcardIdentifierForGivenCriteria(
-        uint256 criteria
+    function wildcardIdentifierForGivenItemHash(
+        bytes32 itemHash
     ) public view returns (uint256) {
-        return _wildcardIdentifierForGivenCriteria[criteria];
+        return _wildcardIdentifierForGivenItemHash[itemHash];
     }
 
     function deriveCriteriaResolvers(
         AdvancedOrder[] memory orders
-    ) public view returns (CriteriaResolver[] memory criteriaResolvers) {
+    ) public returns (CriteriaResolver[] memory criteriaResolvers) {
         uint256 maxLength;
 
         for (uint256 i; i < orders.length; i++) {
@@ -91,7 +91,7 @@ contract CriteriaResolverHelper {
                         // Assign an identifier to be used in the case of a wildcard
                         // This identifier is arbitrary; here, we add the order index,
                         // item index, and side to create an identifier
-                        _wildcardIdentifierForGivenCriteria[itemHash] =
+                        _wildcardIdentifierForGivenItemHash[itemHash] =
                             criteriaResolver.orderIndex +
                             criteriaResolver.index +
                             uint(criteriaResolver.side);
@@ -128,9 +128,6 @@ contract CriteriaResolverHelper {
         assembly {
             mstore(criteriaResolvers, index)
         }
-
-        // TODO: read from test context
-        // TODO: handle wildcard
     }
 
     /**
