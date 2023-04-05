@@ -324,7 +324,7 @@ library AdvancedOrdersSpaceGenerator {
                 OfferItem memory item = order.offer[j];
                 if (item.itemType == ItemType.NATIVE) {
                     // Generate a new offer and make sure it has no native items
-                    item = space.orders[i].offer[j].generate(context, true);
+                    orders[i].parameters.offer[j] = space.orders[i].offer[j].generate(context, true);
                 }
             }
         }
