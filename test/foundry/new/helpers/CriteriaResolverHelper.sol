@@ -20,6 +20,8 @@ contract CriteriaResolverHelper {
     mapping(uint256 => CriteriaMetadata)
         internal _resolvableIdentifierForGivenCriteria;
 
+    mapping(uint256 => uint256) internal _wildcardIdentifierForGivenCriteria;
+
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
         MERKLE = new Merkle();
@@ -29,6 +31,12 @@ contract CriteriaResolverHelper {
         uint256 criteria
     ) public view returns (CriteriaMetadata memory) {
         return _resolvableIdentifierForGivenCriteria[criteria];
+    }
+
+    function wildcardIdentifierForGivenCriteria(
+        uint256 criteria
+    ) public view returns (uint256) {
+        return _wildcardIdentifierForGivenCriteria[criteria];
     }
 
     function deriveCriteriaResolvers(
@@ -57,13 +65,37 @@ contract CriteriaResolverHelper {
                         memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
                             offerItem.identifierOrCriteria
                         ];
-                    criteriaResolvers[index] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.OFFER,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
+
+                    // Create the criteria resolver to store in the mapping
+                    CriteriaResolver
+                        memory criteriaResolver = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.OFFER,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+
+                    // Store the criteria resolver in the mapping
+                    criteriaResolvers[index] = criteriaResolver;
+
+                    if (offerItem.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(
+                                criteriaResolver.orderIndex,
+                                criteriaResolver.index,
+                                criteriaResolver.side
+                            )
+                        );
+
+                        // Assign an identifier to be used in the case of a wildcard
+                        // This identifier is arbitrary; here, we add the order index,
+                        // item index, and side to create an identifier
+                        _wildcardIdentifierForGivenCriteria[itemHash] =
+                            criteriaResolver.orderIndex +
+                            criteriaResolver.index +
+                            uint(criteriaResolver.side);
+                    }
                     index++;
                 }
             }
@@ -167,7 +199,7 @@ contract CriteriaResolverHelper {
      */
     function hashIdentifiersToLeaves(
         uint256[] memory identifiers
-    ) internal pure returns (bytes32[] memory leaves) {
+    ) public pure returns (bytes32[] memory leaves) {
         assembly {
             leaves := identifiers
         }

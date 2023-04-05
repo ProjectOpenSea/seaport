@@ -85,20 +85,55 @@ abstract contract FuzzDerivers is
                     offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata memory criteriaMetadata = (
-                        criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                offerItem.identifierOrCriteria
+                    // Check if criteria is wildcard
+                    if (offerItem.identifierOrCriteria == 0) {
+                        // Derive the item hash using the order index,
+                        // item index, and side
+                        uint256 itemHash = keccak256(
+                            abi.encodePacked(
+                                i, // orderIndex
+                                j, // itemIndex
+                                Side.OFFER // side
                             )
-                    );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.OFFER,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
+                        );
+
+                        // Look up the identifier to use for wildcards on the
+                        // criteria resolver helper using the item hash
+                        uint256 wildcardIdentifier = criteriaResolverHelper
+                            .wildcardIdentifierForGivenCriteria(itemHash);
+
+                        // Store the criteria resolver
+                        criteriaResolvers[
+                            totalCriteriaItems
+                        ] = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.OFFER,
+                            identifier: wildcardIdentifier,
+                            criteriaProof: []
+                        });
+
+                        // Handle non-wildcard criteria
+                    } else {
+                        // Look up criteria metadata for the given criteria
+                        CriteriaMetadata memory criteriaMetadata = (
+                            criteriaResolverHelper
+                                .resolvableIdentifierForGivenCriteria(
+                                    offerItem.identifierOrCriteria
+                                )
+                        );
+
+                        // Store the criteria resolver
+                        criteriaResolvers[
+                            totalCriteriaItems
+                        ] = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.OFFER,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+                    }
                     totalCriteriaItems++;
                 }
             }
@@ -112,28 +147,60 @@ abstract contract FuzzDerivers is
                     ItemType.ERC721_WITH_CRITERIA ||
                     considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                considerationItem.identifierOrCriteria
-                            );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.CONSIDERATION,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
+                    // Check if criteria is wildcard
+                    if (considerationItem.identifierOrCriteria == 0) {
+                        // Derive the item hash using the order index,
+                        // item index, and side
+                        uint256 itemHash = keccak256(
+                            abi.encodePacked(
+                                i, // order index
+                                j, // item index
+                                Side.CONSIDERATION // side
+                            )
+                        );
+
+                        // Look up the identifier to use for wildcards on the
+                        // criteria resolver helper using the item hash
+                        uint256 wildcardIdentifier = criteriaResolverHelper
+                            .wildcardIdentifierForGivenCriteria(itemHash);
+
+                        // Store the criteria resolver
+                        criteriaResolvers[
+                            totalCriteriaItems
+                        ] = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.CONSIDERATION,
+                            identifier: wildcardIdentifier,
+                            criteriaProof: []
+                        });
+
+                        // Handle non-wildcard criteria
+                    } else {
+                        // Look up criteria metadata for the given criteria
+                        CriteriaMetadata
+                            memory criteriaMetadata = criteriaResolverHelper
+                                .resolvableIdentifierForGivenCriteria(
+                                    considerationItem.identifierOrCriteria
+                                );
+
+                        // Store the criteria resolver
+                        criteriaResolvers[
+                            totalCriteriaItems
+                        ] = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.CONSIDERATION,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+                    }
                     totalCriteriaItems++;
                 }
             }
         }
 
         context.criteriaResolvers = criteriaResolvers;
-
-        // TODO: read from test context
-        // TODO: handle wildcard
     }
 
     /**
