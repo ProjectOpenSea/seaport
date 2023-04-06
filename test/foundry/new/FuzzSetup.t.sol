@@ -50,7 +50,9 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withOffer(offerItems);
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -175,7 +177,9 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withOffer(offerItems);
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -222,7 +226,9 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withOffer(offerItems);
+            .withOffer(offerItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -313,7 +319,9 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withConsideration(considerationItems);
+            .withConsideration(considerationItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -413,7 +421,9 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib
             .empty()
             .withOfferer(charlie.addr)
-            .withConsideration(considerationItems);
+            .withConsideration(considerationItems)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
