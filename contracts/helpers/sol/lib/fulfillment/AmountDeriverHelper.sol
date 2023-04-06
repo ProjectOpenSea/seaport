@@ -80,8 +80,10 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters);
-        received = getReceivedItems(parameters);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters);
+            received = getReceivedItems(parameters);
+        }
     }
 
     function toOrderDetails(
@@ -146,10 +148,17 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters, numerator, denominator);
-        received = getReceivedItems(parameters, numerator, denominator);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
 
-        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
     }
 
     function applyCriteriaResolvers(
@@ -275,16 +284,15 @@ contract AmountDeriverHelper is AmountDeriver {
             itemType: item.itemType,
             token: item.token,
             identifier: item.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: item,
-                startTime: startTime,
-                endTime: endTime
-            })
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: item,
+                    startTime: startTime,
+                    endTime: endTime
+                })
         });
     }
 
@@ -385,16 +393,15 @@ contract AmountDeriverHelper is AmountDeriver {
             itemType: considerationItem.itemType,
             token: considerationItem.token,
             identifier: considerationItem.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: considerationItem,
-                startTime: startTime,
-                endTime: endTime
-            }),
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: considerationItem,
+                    startTime: startTime,
+                    endTime: endTime
+                }),
             recipient: considerationItem.recipient
         });
     }

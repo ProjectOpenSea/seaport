@@ -42,6 +42,7 @@ library ZoneParametersLib {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
+    using OrderParametersLib for OrderParameters;
 
     struct ZoneParametersStruct {
         AdvancedOrder[] advancedOrders;
@@ -155,7 +156,11 @@ library ZoneParametersLib {
         // Iterate over advanced orders to calculate orderHashes
         _applyOrderHashes(details, zoneParametersStruct.seaport);
 
-        return _finalizeZoneParameters(details, SeaportInterface(zoneParametersStruct.seaport));
+        return
+            _finalizeZoneParameters(
+                details,
+                SeaportInterface(zoneParametersStruct.seaport)
+            );
     }
 
     function _getZoneDetails(
@@ -223,19 +228,13 @@ library ZoneParametersLib {
         bytes32 orderHash,
         SeaportInterface seaport
     ) internal view returns (bool) {
-        (
-            ,
-            bool isCancelled,
-            uint256 totalFilled,
-            uint256 totalSize
-        ) = seaport.getOrderStatus(orderHash);
+        (, bool isCancelled, uint256 totalFilled, uint256 totalSize) = seaport
+            .getOrderStatus(orderHash);
 
-        return (
-            block.timestamp >= order.endTime ||
+        return (block.timestamp >= order.endTime ||
             block.timestamp < order.startTime ||
             isCancelled ||
-            (totalFilled >= totalSize && totalSize > 0)
-        );
+            (totalFilled >= totalSize && totalSize > 0));
     }
 
     function _getOrderDetails(
@@ -290,10 +289,17 @@ library ZoneParametersLib {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters, numerator, denominator);
-        received = getReceivedItems(parameters, numerator, denominator);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
 
-        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
     }
 
     function applyCriteriaResolvers(
@@ -416,18 +422,17 @@ library ZoneParametersLib {
             itemType: item.itemType,
             token: item.token,
             identifier: item.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                startAmount: item.startAmount,
-                endAmount: item.endAmount,
-                startTime: startTime,
-                endTime: endTime,
-                roundUp: false
-            })
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    startAmount: item.startAmount,
+                    endAmount: item.endAmount,
+                    startTime: startTime,
+                    endTime: endTime,
+                    roundUp: false
+                })
         });
     }
 
@@ -442,18 +447,17 @@ library ZoneParametersLib {
             itemType: considerationItem.itemType,
             token: considerationItem.token,
             identifier: considerationItem.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                startAmount: considerationItem.startAmount,
-                endAmount: considerationItem.endAmount,
-                startTime: startTime,
-                endTime: endTime,
-                roundUp: true
-            }),
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    startAmount: considerationItem.startAmount,
+                    endAmount: considerationItem.endAmount,
+                    startTime: startTime,
+                    endTime: endTime,
+                    roundUp: true
+                }),
             recipient: considerationItem.recipient
         });
     }
@@ -586,11 +590,13 @@ library ZoneParametersLib {
         // Iterate through advanced orders to create zoneParameters
         uint256 totalFulfilled = 0;
         for (uint i = 0; i < zoneDetails.advancedOrders.length; i++) {
-            if (!_isUnavailable(
-                zoneDetails.advancedOrders[i].parameters,
-                zoneDetails.orderHashes[i],
-                seaport
-            )) {
+            if (
+                !_isUnavailable(
+                    zoneDetails.advancedOrders[i].parameters,
+                    zoneDetails.orderHashes[i],
+                    seaport
+                )
+            ) {
                 // Create ZoneParameters and add to zoneParameters array
                 zoneParameters[i] = _createZoneParameters(
                     zoneDetails.orderHashes[i],

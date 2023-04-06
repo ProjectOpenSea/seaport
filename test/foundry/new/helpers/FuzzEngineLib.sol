@@ -248,7 +248,10 @@ library FuzzEngineLib {
             for (uint256 j = 0; j < orderParams.offer.length; ++j) {
                 OfferItem memory item = orderParams.offer[j];
 
-                if (item.itemType == ItemType.NATIVE) {
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.isAvailable()
+                ) {
                     if (item.startAmount != item.endAmount) {
                         value += _locateCurrentAmount(
                             item.startAmount,
@@ -266,7 +269,10 @@ library FuzzEngineLib {
             for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
                 ConsiderationItem memory item = orderParams.consideration[j];
 
-                if (item.itemType == ItemType.NATIVE) {
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.isAvailable()
+                ) {
                     if (item.startAmount != item.endAmount) {
                         value += _locateCurrentAmount(
                             item.startAmount,

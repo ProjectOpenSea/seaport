@@ -746,8 +746,6 @@ library FuzzHelpers {
     ) internal view returns (bytes32 orderHash) {
         // Get the orderHash using the tweaked OrderComponents.
         orderHash = getTipNeutralizedOrderHash(order, seaport);
-
-
     }
 
     /**
