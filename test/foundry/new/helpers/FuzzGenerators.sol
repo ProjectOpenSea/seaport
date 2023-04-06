@@ -222,7 +222,7 @@ library TestStateGenerator {
                     // TODO: support wildcard criteria, should be 0-1
                     criteria: Criteria(context.randEnum(0, 0)),
                     // TODO: Fixed amounts only, should be 0-2
-                    amount: Amount(context.randEnum(0, 0)),
+                    amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
             }
@@ -236,7 +236,7 @@ library TestStateGenerator {
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
                 // TODO: Fixed amounts only, should be 0-2
-                amount: Amount(context.randEnum(0, 0)),
+                amount: Amount(context.randEnum(0, 2)),
                 recipient: Recipient(0) // Always offerer
             });
 
@@ -247,7 +247,7 @@ library TestStateGenerator {
                     criteria: Criteria(0),
                     // TODO: Fixed amounts only, should be 0-2
                     // TODO: sum(amounts) must be less than offer amount
-                    amount: Amount(context.randEnum(0, 0)),
+                    amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
             }
@@ -578,10 +578,17 @@ library AdvancedOrdersSpaceGenerator {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters, numerator, denominator);
-        received = getReceivedItems(parameters, numerator, denominator);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
 
-        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
     }
 
     function applyCriteriaResolvers(

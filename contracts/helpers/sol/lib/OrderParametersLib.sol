@@ -494,4 +494,12 @@ library OrderParametersLib {
         components.conduitKey = parameters.conduitKey;
         components.counter = counter;
     }
+
+    function isAvailable(
+        OrderParameters memory parameters
+    ) internal view returns (bool) {
+        return
+            block.timestamp >= parameters.startTime &&
+            block.timestamp <= parameters.endTime;
+    }
 }
