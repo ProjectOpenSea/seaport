@@ -269,11 +269,16 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (SpentItem memory spent) {
+        // Detect if the order has an invalid time;
+        // if so, set amount to zero
         spent = SpentItem({
             itemType: item.itemType,
             token: item.token,
             identifier: item.identifierOrCriteria,
-            amount: _applyFraction({
+            amount: (
+                block.timestamp < startTime ||
+                block.timestamp >= endTime
+            ) ? 0 : _applyFraction({
                 numerator: numerator,
                 denominator: denominator,
                 item: item,
@@ -374,14 +379,19 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (ReceivedItem memory received) {
+        // Detect if the order has an invalid time;
+        // if so, set amount to zero
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
             identifier: considerationItem.identifierOrCriteria,
-            amount: _applyFraction({
+            amount: (
+                block.timestamp < startTime ||
+                block.timestamp >= endTime
+            ) ? 0 : _applyFraction({
                 numerator: numerator,
                 denominator: denominator,
-                item: considerationItem,
+                item: item,
                 startTime: startTime,
                 endTime: endTime
             }),
