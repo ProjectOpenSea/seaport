@@ -1539,12 +1539,12 @@ library TimeGenerator {
             uint256 a = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint48).max
+                type(uint40).max
             );
             uint256 b = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint48).max
+                type(uint40).max
             );
             low = a < b ? a : b;
             high = a > b ? a : b;
@@ -1554,7 +1554,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint48).max
+                type(uint40).max
             );
         }
         if (time == Time.ONGOING) {
@@ -1562,7 +1562,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint48).max
+                type(uint40).max
             );
         }
         if (time == Time.EXACT_END) {
