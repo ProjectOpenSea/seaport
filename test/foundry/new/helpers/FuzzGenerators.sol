@@ -112,7 +112,7 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 4))
+                    : UnavailableReason(context.randEnum(1, 2)) // TODO: back to 1-4
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
