@@ -1367,7 +1367,7 @@ library OfferItemSpaceGenerator {
                 .withToken(space.tokenIndex.generate(itemType, context))
                 .withGeneratedAmount(space.amount, context)
                 .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
+                    itemType,
                     space.criteria,
                     context
                 );
