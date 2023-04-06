@@ -45,6 +45,8 @@ import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
+import "hardhat/console.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -416,8 +418,10 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal {
         MatchComponent[] memory remainders;
+        MatchComponent[] memory preLogicRemainders;
+        CriteriaResolver[] memory resolvers;
         {
-            CriteriaResolver[] memory resolvers = context
+            resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
@@ -426,6 +430,24 @@ library AdvancedOrdersSpaceGenerator {
             (, , remainders) = context.testHelpers.getMatchedFulfillments(
                 details
             );
+
+            if (remainders.length > 0) {
+                for (uint256 i; i < remainders.length; i++) {
+                    (
+                        uint256 amount,
+                        uint8 orderIndex,
+                        uint8 itemIndex
+                    ) = remainders[i].unpack();
+                    console.log("first remainders: \n");
+                    console.log(
+                        "amount: , orderIndex: %s, itemIndex: %s",
+                        amount,
+                        orderIndex,
+                        itemIndex
+                    );
+                }
+                preLogicRemainders = remainders;
+            }
         }
 
         // Iterate over the remainders and insert them into the orders.
@@ -501,6 +523,20 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
 
+            bytes32 newOfferHash = keccak256(abi.encode(newOffer));
+
+            bytes32 existingOfferHash = keccak256(
+                abi.encode(orders[orderInsertionIndex].parameters.offer)
+            );
+
+            if (newOfferHash == existingOfferHash) {
+                // If the offer hash is the same, then the offer is unchanged.
+                // This can happen if the offer is empty and the remainder is
+                // inserted at index 0.  In this case, we can just skip this
+                // iteration.
+                revert("FuzzGenerators: offer hash unchanged");
+            }
+
             // Replace the offer in the targeted order with the new offer.
             orders[orderInsertionIndex].parameters.offer = newOffer;
         }
@@ -508,7 +544,21 @@ library AdvancedOrdersSpaceGenerator {
         // TODO: remove this check once high confidence in the mechanic has been
         // established (this just fails fast to rule out downstream issues)
         if (remainders.length > 0) {
-            CriteriaResolver[] memory resolvers = context
+            for (uint256 i; i < remainders.length; i++) {
+                (
+                    uint256 amount,
+                    uint8 orderIndex,
+                    uint8 itemIndex
+                ) = remainders[i].unpack();
+                console.log("second remainders: \n");
+                console.log(
+                    "amount: , orderIndex: %s, itemIndex: %s",
+                    amount,
+                    orderIndex,
+                    itemIndex
+                );
+            }
+            resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
@@ -518,9 +568,7 @@ library AdvancedOrdersSpaceGenerator {
                 details
             );
 
-            if (remainders.length > 0) {
-                revert("FuzzGenerators: could not satisfy remainders");
-            }
+            revert("FuzzGenerators: could not satisfy remainders");
         }
     }
 

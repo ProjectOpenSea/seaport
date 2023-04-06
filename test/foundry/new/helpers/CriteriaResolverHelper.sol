@@ -61,39 +61,41 @@ contract CriteriaResolverHelper {
                     offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
-                            offerItem.identifierOrCriteria
-                        ];
-
-                    // Create the criteria resolver to store in the mapping
-                    CriteriaResolver
-                        memory criteriaResolver = CriteriaResolver({
-                            orderIndex: i,
-                            index: j,
-                            side: Side.OFFER,
-                            identifier: criteriaMetadata.resolvedIdentifier,
-                            criteriaProof: criteriaMetadata.proof
-                        });
-
-                    // Store the criteria resolver in the mapping
-                    criteriaResolvers[index] = criteriaResolver;
-
                     if (offerItem.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
-                            abi.encodePacked(
-                                criteriaResolver.orderIndex,
-                                criteriaResolver.index,
-                                criteriaResolver.side
-                            )
+                            abi.encodePacked(i, j, Side.OFFER)
                         );
 
                         // Assign an identifier to be used in the case of a wildcard
-                        // This identifier is arbitrary; here, we add the order index,
-                        // item index, and side to create an identifier
-                        _wildcardIdentifierForGivenItemHash[itemHash] = uint256(
+                        // Here, we assign tokenId to maxLength and decrement below
+                        // to ensure each id is unique
+                        _wildcardIdentifierForGivenItemHash[
                             itemHash
-                        );
+                        ] = maxLength;
+
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.OFFER,
+                            index: j,
+                            identifier: maxLength,
+                            criteriaProof: new bytes32[](0)
+                        });
+
+                        maxLength--;
+                    } else {
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                offerItem.identifierOrCriteria
+                            ];
+
+                        // Store the criteria resolver in the mapping
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.OFFER,
+                            index: j,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
                     }
                     index++;
                 }
@@ -108,39 +110,41 @@ contract CriteriaResolverHelper {
                     ItemType.ERC721_WITH_CRITERIA ||
                     considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
-                            considerationItem.identifierOrCriteria
-                        ];
-
-                    // Create the criteria resolver to store in the mapping
-                    CriteriaResolver
-                        memory criteriaResolver = CriteriaResolver({
-                            orderIndex: i,
-                            index: j,
-                            side: Side.CONSIDERATION,
-                            identifier: criteriaMetadata.resolvedIdentifier,
-                            criteriaProof: criteriaMetadata.proof
-                        });
-
-                    // Store the criteria resolver in the mapping
-                    criteriaResolvers[index] = criteriaResolver;
-
                     if (considerationItem.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
-                            abi.encodePacked(
-                                criteriaResolver.orderIndex,
-                                criteriaResolver.index,
-                                criteriaResolver.side
-                            )
+                            abi.encodePacked(i, j, Side.CONSIDERATION)
                         );
 
                         // Assign an identifier to be used in the case of a wildcard
-                        // This identifier is arbitrary; here, we add the order index,
-                        // item index, and side to create an identifier
-                        _wildcardIdentifierForGivenItemHash[itemHash] = uint256(
+                        // Here, we assign tokenId to maxLength and decrement below
+                        // to ensure each id is unique
+                        _wildcardIdentifierForGivenItemHash[
                             itemHash
-                        );
+                        ] = maxLength;
+
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.CONSIDERATION,
+                            index: j,
+                            identifier: maxLength,
+                            criteriaProof: new bytes32[](0)
+                        });
+
+                        maxLength--;
+                    } else {
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                considerationItem.identifierOrCriteria
+                            ];
+
+                        // Store the criteria resolver in the mapping
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.CONSIDERATION,
+                            index: j,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
                     }
                     index++;
                 }
