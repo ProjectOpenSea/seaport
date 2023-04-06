@@ -91,10 +91,9 @@ contract CriteriaResolverHelper {
                         // Assign an identifier to be used in the case of a wildcard
                         // This identifier is arbitrary; here, we add the order index,
                         // item index, and side to create an identifier
-                        _wildcardIdentifierForGivenItemHash[itemHash] =
-                            criteriaResolver.orderIndex +
-                            criteriaResolver.index +
-                            uint(criteriaResolver.side);
+                        _wildcardIdentifierForGivenItemHash[itemHash] = uint256(
+                            itemHash
+                        );
                     }
                     index++;
                 }
@@ -113,13 +112,36 @@ contract CriteriaResolverHelper {
                         memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
                             considerationItem.identifierOrCriteria
                         ];
-                    criteriaResolvers[index] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.CONSIDERATION,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
+
+                    // Create the criteria resolver to store in the mapping
+                    CriteriaResolver
+                        memory criteriaResolver = CriteriaResolver({
+                            orderIndex: i,
+                            index: j,
+                            side: Side.CONSIDERATION,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+
+                    // Store the criteria resolver in the mapping
+                    criteriaResolvers[index] = criteriaResolver;
+
+                    if (considerationItem.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(
+                                criteriaResolver.orderIndex,
+                                criteriaResolver.index,
+                                criteriaResolver.side
+                            )
+                        );
+
+                        // Assign an identifier to be used in the case of a wildcard
+                        // This identifier is arbitrary; here, we add the order index,
+                        // item index, and side to create an identifier
+                        _wildcardIdentifierForGivenItemHash[itemHash] = uint256(
+                            itemHash
+                        );
+                    }
                     index++;
                 }
             }

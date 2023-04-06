@@ -52,12 +52,10 @@ abstract contract FuzzDerivers is
             OrderParameters memory order = context.orders[i].parameters;
             OrderStatusEnum status = context.preExecOrderStatuses[i];
 
-            expectedAvailableOrders[i] = (
-                block.timestamp < order.endTime && // not expired
+            expectedAvailableOrders[i] = (block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
-                status != OrderStatusEnum.FULFILLED // not fully filled
-            );
+                status != OrderStatusEnum.FULFILLED); // not fully filled
         }
 
         context.expectedAvailableOrders = expectedAvailableOrders;
