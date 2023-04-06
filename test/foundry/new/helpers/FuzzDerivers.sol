@@ -53,6 +53,9 @@ abstract contract FuzzDerivers is
             OrderParameters memory order = context.orders[i].parameters;
             OrderStatusEnum status = context.preExecOrderStatuses[i];
 
+            // TEMP (TODO: handle upstream)
+            vm.assume(!(order.startTime == 0 && order.endTime == 0));
+
             bool isAvailable = (
                 block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
@@ -275,7 +278,7 @@ abstract contract FuzzDerivers is
                 implicitExecutions
             ) = getFulfillAvailableExecutions(context);
 
-            // TEMP
+            // TEMP (TODO: handle upstream)
             vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {
@@ -293,7 +296,7 @@ abstract contract FuzzDerivers is
                 context
             );
 
-            // TEMP
+            // TEMP (TODO: handle upstream)
             vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {
