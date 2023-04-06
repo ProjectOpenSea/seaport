@@ -255,7 +255,7 @@ library FuzzEngineLib {
                             item.endAmount,
                             orderParams.startTime,
                             orderParams.endTime,
-                            true
+                            false
                         );
                     } else {
                         value += item.startAmount;
@@ -273,7 +273,7 @@ library FuzzEngineLib {
                             item.endAmount,
                             orderParams.startTime,
                             orderParams.endTime,
-                            false
+                            true
                         );
                     } else {
                         value += item.startAmount;
