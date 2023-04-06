@@ -501,9 +501,10 @@ library FuzzHelpers {
      * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
      *
-     * @param orders    The restricted orders.
-     * @param seaport   The Seaport address.
-     * @param fulfiller The fulfiller.
+     * @param orders           The restricted orders.
+     * @param seaport          The Seaport address.
+     * @param fulfiller        The fulfiller.
+     * @param maximumFulfilled The maximum number of orders to fulfill.
      *
      * @return calldataHashes The derived calldata hashes.
      */
@@ -511,13 +512,14 @@ library FuzzHelpers {
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller,
-        CriteriaResolver[] memory criteriaResolvers
+        CriteriaResolver[] memory criteriaResolvers,
+        uint256 maximumFulfilled
     ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
             fulfiller,
-            orders.length, // TODO: use maximumFulfilled
+            maximumFulfilled,
             seaport,
             criteriaResolvers
         );
@@ -736,6 +738,16 @@ library FuzzHelpers {
         assembly {
             mstore(considerationSansTips, lengthWithTips)
         }
+    }
+
+    function cancelTipNeutralizedOrder(
+        AdvancedOrder memory order,
+        ConsiderationInterface seaport
+    ) internal view returns (bytes32 orderHash) {
+        // Get the orderHash using the tweaked OrderComponents.
+        orderHash = getTipNeutralizedOrderHash(order, seaport);
+
+
     }
 
     /**

@@ -1530,7 +1530,8 @@ contract FuzzEngineTest is FuzzEngine {
             .getExpectedZoneCalldataHash(
                 address(getSeaport()),
                 address(this),
-                new CriteriaResolver[](0)
+                new CriteriaResolver[](0),
+                2
             );
 
         run(context);
