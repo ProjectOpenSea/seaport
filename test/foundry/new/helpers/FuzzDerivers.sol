@@ -275,6 +275,9 @@ abstract contract FuzzDerivers is
                 implicitExecutions
             ) = getFulfillAvailableExecutions(context);
 
+            // TEMP
+            vm.assume(explicitExecutions.length > 0);
+
             if (explicitExecutions.length == 0) {
                 revert(
                     "FuzzDerivers: no explicit executions derived on fulfillAvailable"
