@@ -97,18 +97,19 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     }
 
     // NOTE: empty order space is not supported for now
-    // function test_emptySpace() public {
-    //     FuzzGeneratorContext memory context = createContext();
-    //     AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
-    //         orders: new OrderComponentsSpace[](0),
-    //         isMatchable: false
-    //     });
-    //     AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
-    //         space,
-    //         context
-    //     );
-    //     assertEq(orders.length, 0);
-    // }
+    function xtest_emptySpace() public {
+        FuzzGeneratorContext memory context = createContext();
+        AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
+            orders: new OrderComponentsSpace[](0),
+            isMatchable: false,
+            maximumFulfilled: 0
+        });
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            context
+        );
+        assertEq(orders.length, 0);
+    }
 
     function test_emptyOfferConsideration() public {
         FuzzGeneratorContext memory context = createContext();
@@ -138,7 +139,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
-            isMatchable: false
+            isMatchable: false,
+            maximumFulfilled: 1
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -184,7 +186,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
-            isMatchable: false
+            isMatchable: false,
+            maximumFulfilled: 1
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -241,7 +244,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
 
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
-            isMatchable: false
+            isMatchable: false,
+            maximumFulfilled: 1
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

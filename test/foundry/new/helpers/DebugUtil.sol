@@ -98,6 +98,13 @@ function dumpContext(
             context.getNativeTokensToSupply()
         );
     }
+    if (outputSelection.maximumFulfilled) {
+        jsonOut = Searializer.tojsonUint256(
+            "root",
+            "maximumFulfilled",
+            context.maximumFulfilled
+        );
+    }
     // if (outputSelection.fuzzParams) {
     //     jsonOut = Searializer.tojsonFuzzParams("root", "fuzzParams", context.fuzzParams);
     // }
@@ -340,6 +347,7 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.seaport = true;
     selection.caller = true;
     selection.callValue = true;
+    selection.maximumFulfilled = true;
     selection.testHelpers = true;
     selection.recipient = true;
     selection.expectedExplicitExecutions = true;
