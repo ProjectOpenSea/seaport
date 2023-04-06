@@ -173,7 +173,6 @@ library TestStateGenerator {
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
                     // TODO: support wildcard criteria, should be 0-1
                     criteria: Criteria(context.randEnum(0, 0)),
-                    // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 2))
                 });
             }
@@ -189,7 +188,6 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                // TODO: Fixed amounts only, should be 0-2
                 amount: Amount(context.randEnum(0, 2))
             });
 
