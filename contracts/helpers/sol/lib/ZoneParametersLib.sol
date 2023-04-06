@@ -579,7 +579,9 @@ library ZoneParametersLib {
         ZoneDetails memory zoneDetails,
         SeaportInterface seaport
     ) internal view returns (ZoneParameters[] memory zoneParameters) {
-        zoneParameters = new ZoneParameters[](zoneDetails.maximumFulfilled);
+        zoneParameters = new ZoneParameters[](
+            zoneDetails.advancedOrders.length
+        );
 
         // Iterate through advanced orders to create zoneParameters
         uint256 totalFulfilled = 0;
