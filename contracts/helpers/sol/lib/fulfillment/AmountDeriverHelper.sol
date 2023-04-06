@@ -391,7 +391,7 @@ contract AmountDeriverHelper is AmountDeriver {
             ) ? 0 : _applyFraction({
                 numerator: numerator,
                 denominator: denominator,
-                item: item,
+                item: considerationItem,
                 startTime: startTime,
                 endTime: endTime
             }),
