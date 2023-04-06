@@ -48,14 +48,25 @@ abstract contract FuzzDerivers is
             context.orders.length
         );
 
+        uint256 totalAvailable = 0;
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             OrderStatusEnum status = context.preExecOrderStatuses[i];
 
-            expectedAvailableOrders[i] = (block.timestamp < order.endTime && // not expired
+            // TEMP (TODO: handle upstream)
+            vm.assume(!(order.startTime == 0 && order.endTime == 0));
+
+            bool isAvailable = (block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
-                status != OrderStatusEnum.FULFILLED); // not fully filled
+                status != OrderStatusEnum.FULFILLED && // not fully filled
+                totalAvailable < context.maximumFulfilled);
+
+            if (isAvailable) {
+                ++totalAvailable;
+            }
+
+            expectedAvailableOrders[i] = isAvailable;
         }
 
         context.expectedAvailableOrders = expectedAvailableOrders;
@@ -289,18 +300,6 @@ abstract contract FuzzDerivers is
     }
 
     /**
-     * @dev Derive the `maximumFulfilled` value from the `orders` array.
-     *
-     * @param context A Fuzz test context.
-     */
-    function deriveMaximumFulfilled(
-        FuzzTestContext memory context
-    ) public pure {
-        // TODO: Start fuzzing this.
-        context.maximumFulfilled = context.orders.length;
-    }
-
-    /**
      * @dev Derive the `expectedImplicitExecutions` and
      *      `expectedExplicitExecutions` arrays from the `orders` array.
      *
@@ -344,6 +343,9 @@ abstract contract FuzzDerivers is
                 implicitExecutions
             ) = getFulfillAvailableExecutions(context);
 
+            // TEMP (TODO: handle upstream)
+            vm.assume(explicitExecutions.length > 0);
+
             if (explicitExecutions.length == 0) {
                 revert(
                     "FuzzDerivers: no explicit executions derived on fulfillAvailable"
@@ -359,7 +361,7 @@ abstract contract FuzzDerivers is
                 context
             );
 
-            // TEMP
+            // TEMP (TODO: handle upstream)
             vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {

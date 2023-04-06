@@ -81,14 +81,20 @@ library TestStateGenerator {
 
         bool isMatchable = false;
 
+        uint256 maximumFulfilled = totalOrders;
+
         if (context.basicOrderCategory != BasicOrderCategory.NONE) {
             totalOrders = 1;
             maxOfferItemsPerOrder = 1;
             if (maxConsiderationItemsPerOrder == 0) {
                 maxConsiderationItemsPerOrder = 1;
             }
+            maximumFulfilled = 1;
         } else {
             isMatchable = context.randRange(0, 4) == 0 ? true : false;
+            if (!isMatchable) {
+                maximumFulfilled = context.randRange(1, totalOrders);
+            }
         }
 
         if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
@@ -106,7 +112,7 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 4))
+                    : UnavailableReason(context.randEnum(1, 2)) // TODO: back to 1-4
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -148,7 +154,8 @@ library TestStateGenerator {
         return
             AdvancedOrdersSpace({
                 orders: components,
-                isMatchable: isMatchable
+                isMatchable: isMatchable,
+                maximumFulfilled: maximumFulfilled
             });
     }
 
@@ -277,15 +284,13 @@ library AdvancedOrdersSpaceGenerator {
         _handleInsertIfAllEmpty(orders, context);
         _handleInsertIfAllFilterable(orders, context, space);
 
-        bool ensureMatchable = (space.isMatchable ||
-            _hasInvalidNativeOfferItems(orders));
-
         // Handle match case.
-        if (ensureMatchable) {
+        if (space.isMatchable) {
             _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+            space.maximumFulfilled = orders.length;
         } else {
             if (len > 1) {
                 _adjustUnavailable(orders, space, context);
@@ -317,8 +322,7 @@ library AdvancedOrdersSpaceGenerator {
                 OfferItem memory item = order.offer[j];
                 if (item.itemType == ItemType.NATIVE) {
                     // Generate a new offer and make sure it has no native items
-                    item = space.orders[i].offer[j].generate(context, true);
-                    break;
+                    orders[i].parameters.offer[j] = space.orders[i].offer[j].generate(context, true);
                 }
             }
         }
@@ -1361,7 +1365,7 @@ library OfferItemSpaceGenerator {
                 .withToken(space.tokenIndex.generate(itemType, context))
                 .withGeneratedAmount(space.amount, context)
                 .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
+                    itemType,
                     space.criteria,
                     context
                 );

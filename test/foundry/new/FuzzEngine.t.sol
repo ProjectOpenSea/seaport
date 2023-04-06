@@ -94,7 +94,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(context.actions(), expectedActions);
     }
 
@@ -120,7 +121,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(
             context.action(),
             ConsiderationInterface.fulfillOrder.selector
@@ -139,7 +141,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(
             context.action(),
             ConsiderationInterface.fulfillAdvancedOrder.selector
@@ -176,7 +179,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(orders.length);
         assertEq(context.actions(), expectedActions);
     }
 
@@ -202,7 +206,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(
             context.action(),
             ConsiderationInterface.fulfillAdvancedOrder.selector
@@ -226,7 +231,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(
             context.action(),
             ConsiderationInterface.fulfillBasicOrder.selector
@@ -245,7 +251,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(1);
         assertEq(
             context.action(),
             getSeaport().fulfillBasicOrder_efficient_6GL6yc.selector
@@ -285,7 +292,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(orders.length);
         assertEq(context.actions(), expectedActions);
     }
 
@@ -331,7 +339,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(orders.length);
         assertEq(context.actions(), expectedActions);
     }
 
@@ -362,7 +371,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(2);
         assertEq(
             context.action(),
             ConsiderationInterface.fulfillAvailableOrders.selector
@@ -381,7 +391,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(2);
         assertEq(
             context.action(),
             getSeaport().fulfillAvailableAdvancedOrders.selector
@@ -400,7 +411,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(2);
         assertEq(context.action(), ConsiderationInterface.matchOrders.selector);
 
         context = FuzzTestContextLib
@@ -416,7 +428,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(2);
         assertEq(
             context.action(),
             ConsiderationInterface.matchAdvancedOrders.selector
@@ -477,7 +490,8 @@ contract FuzzEngineTest is FuzzEngine {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 })
-            );
+            )
+            .withMaximumFulfilled(orders.length);
 
         exec(context);
         assertEq(context.returnValues.fulfilled, true);
@@ -521,6 +535,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withRecipient(address(0xbeef));
 
         exec(context);
@@ -605,6 +620,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withBasicOrderParameters(
                 orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
@@ -634,6 +650,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withBasicOrderParameters(
                 orders[0].toBasicOrderParameters(orders[0].getBasicOrderType())
             );
@@ -749,6 +766,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(advancedOrders.length)
             .withOfferFulfillments(offerComponents)
             .withConsiderationFulfillments(considerationComponents)
             .withMaximumFulfilled(2);
@@ -846,89 +864,93 @@ contract FuzzEngineTest is FuzzEngine {
     /// @dev Call exec for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.fulfillAvailableAdvancedOrders.
     function test_exec_Combined_FulfillAvailableAdvanced() public {
-        OfferItem[] memory offerItems = new OfferItem[](1);
-        ConsiderationItem[]
-            memory considerationItems1 = new ConsiderationItem[](1);
-        ConsiderationItem[]
-            memory considerationItems2 = new ConsiderationItem[](1);
-        {
-            // Offer ERC20
-            OfferItem memory offerItem = OfferItemLib
-                .empty()
-                .withItemType(ItemType.ERC20)
-                .withToken(address(erc20s[0]))
-                .withStartAmount(1)
-                .withEndAmount(1);
-            offerItems[0] = offerItem;
-
-            // Consider single ERC721 to offerer1
-            erc721s[0].mint(address(this), 1);
-            ConsiderationItem memory considerationItem = ConsiderationItemLib
-                .empty()
-                .withRecipient(offerer1.addr)
-                .withItemType(ItemType.ERC721)
-                .withToken(address(erc721s[0]))
-                .withIdentifierOrCriteria(1)
-                .withAmount(1);
-            considerationItems1[0] = considerationItem;
-
-            // Consider single ERC721 to offerer1
-            erc721s[0].mint(address(this), 2);
-            considerationItem = ConsiderationItemLib
-                .empty()
-                .withRecipient(offerer1.addr)
-                .withItemType(ItemType.ERC721)
-                .withToken(address(erc721s[0]))
-                .withIdentifierOrCriteria(2)
-                .withAmount(1);
-            considerationItems2[0] = considerationItem;
-        }
-
-        OrderComponents memory orderComponents1 = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .withOfferer(offerer1.addr)
-            .withOffer(offerItems)
-            .withConsideration(considerationItems1);
-
-        OrderComponents memory orderComponents2 = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .withOfferer(offerer1.addr)
-            .withOffer(offerItems)
-            .withConsideration(considerationItems2);
-
-        Order memory order1 = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderComponents1.toOrderParameters())
-            .withSignature(
-                signOrder(
-                    getSeaport(),
-                    offerer1.key,
-                    getSeaport().getOrderHash(orderComponents1)
-                )
-            );
-
-        Order memory order2 = OrderLib
-            .fromDefault(STANDARD)
-            .withParameters(orderComponents2.toOrderParameters())
-            .withSignature(
-                signOrder(
-                    getSeaport(),
-                    offerer1.key,
-                    getSeaport().getOrderHash(orderComponents2)
-                )
-            );
-
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
-        advancedOrders[0] = order1.toAdvancedOrder({
-            numerator: 1,
-            denominator: 1,
-            extraData: bytes("")
-        });
-        advancedOrders[1] = order2.toAdvancedOrder({
-            numerator: 1,
-            denominator: 1,
-            extraData: bytes("")
-        });
+
+        {
+            OfferItem[] memory offerItems = new OfferItem[](1);
+            ConsiderationItem[]
+                memory considerationItems1 = new ConsiderationItem[](1);
+            ConsiderationItem[]
+                memory considerationItems2 = new ConsiderationItem[](1);
+            {
+                // Offer ERC20
+                OfferItem memory offerItem = OfferItemLib
+                    .empty()
+                    .withItemType(ItemType.ERC20)
+                    .withToken(address(erc20s[0]))
+                    .withStartAmount(1)
+                    .withEndAmount(1);
+                offerItems[0] = offerItem;
+
+                // Consider single ERC721 to offerer1
+                erc721s[0].mint(address(this), 1);
+                ConsiderationItem
+                    memory considerationItem = ConsiderationItemLib
+                        .empty()
+                        .withRecipient(offerer1.addr)
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(erc721s[0]))
+                        .withIdentifierOrCriteria(1)
+                        .withAmount(1);
+                considerationItems1[0] = considerationItem;
+
+                // Consider single ERC721 to offerer1
+                erc721s[0].mint(address(this), 2);
+                considerationItem = ConsiderationItemLib
+                    .empty()
+                    .withRecipient(offerer1.addr)
+                    .withItemType(ItemType.ERC721)
+                    .withToken(address(erc721s[0]))
+                    .withIdentifierOrCriteria(2)
+                    .withAmount(1);
+                considerationItems2[0] = considerationItem;
+            }
+
+            OrderComponents memory orderComponents1 = OrderComponentsLib
+                .fromDefault(STANDARD)
+                .withOfferer(offerer1.addr)
+                .withOffer(offerItems)
+                .withConsideration(considerationItems1);
+
+            OrderComponents memory orderComponents2 = OrderComponentsLib
+                .fromDefault(STANDARD)
+                .withOfferer(offerer1.addr)
+                .withOffer(offerItems)
+                .withConsideration(considerationItems2);
+
+            Order memory order1 = OrderLib
+                .fromDefault(STANDARD)
+                .withParameters(orderComponents1.toOrderParameters())
+                .withSignature(
+                    signOrder(
+                        getSeaport(),
+                        offerer1.key,
+                        getSeaport().getOrderHash(orderComponents1)
+                    )
+                );
+
+            Order memory order2 = OrderLib
+                .fromDefault(STANDARD)
+                .withParameters(orderComponents2.toOrderParameters())
+                .withSignature(
+                    signOrder(
+                        getSeaport(),
+                        offerer1.key,
+                        getSeaport().getOrderHash(orderComponents2)
+                    )
+                );
+
+            advancedOrders[0] = order1.toAdvancedOrder({
+                numerator: 1,
+                denominator: 1,
+                extraData: bytes("")
+            });
+            advancedOrders[1] = order2.toAdvancedOrder({
+                numerator: 1,
+                denominator: 1,
+                extraData: bytes("")
+            });
+        }
 
         (
             FulfillmentComponent[][] memory offerComponents,
@@ -953,6 +975,9 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(advancedOrders.length);
+
+        context = context
             .withChecks(checks)
             .withOfferFulfillments(offerComponents)
             .withConsiderationFulfillments(considerationComponents)
@@ -1075,6 +1100,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks)
             .withFulfillments(fulfillments);
 
@@ -1194,6 +1220,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(advancedOrders.length)
             .withChecks(checks)
             .withFulfillments(fulfillments);
 
@@ -1248,6 +1275,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks);
 
         exec(context);
@@ -1301,6 +1329,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks);
 
         exec(context);
@@ -1348,6 +1377,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks);
 
         exec(context);
@@ -1397,6 +1427,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks);
 
         exec(context);
@@ -1530,7 +1561,8 @@ contract FuzzEngineTest is FuzzEngine {
             .getExpectedZoneCalldataHash(
                 address(getSeaport()),
                 address(this),
-                new CriteriaResolver[](0)
+                new CriteriaResolver[](0),
+                2
             );
 
         run(context);
@@ -1704,7 +1736,10 @@ contract FuzzEngineTest is FuzzEngine {
                         maxOfferItems: 0,
                         maxConsiderationItems: 0
                     })
-                )
+                );
+
+            context = context
+                .withMaximumFulfilled(advancedOrders.length)
                 .withOfferFulfillments(offerComponents)
                 .withConsiderationFulfillments(considerationComponents)
                 .withChecks(checks)
@@ -1770,6 +1805,7 @@ contract FuzzEngineTest is FuzzEngine {
                     maxConsiderationItems: 0
                 })
             )
+            .withMaximumFulfilled(orders.length)
             .withChecks(checks);
 
         run(context);

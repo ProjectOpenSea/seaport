@@ -73,7 +73,7 @@ library FuzzEngineLib {
             address(context.seaport)
         );
 
-        bool hasUnavailable = false;
+        bool hasUnavailable = context.maximumFulfilled < context.orders.length;
         for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
             if (!context.expectedAvailableOrders[i]) {
                 hasUnavailable = true;
