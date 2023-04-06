@@ -500,6 +500,6 @@ library OrderParametersLib {
     ) internal view returns (bool) {
         return
             block.timestamp >= parameters.startTime &&
-            block.timestamp <= parameters.endTime;
+            block.timestamp < parameters.endTime;
     }
 }
