@@ -414,6 +414,61 @@ contract AmountDeriverHelper is AmountDeriver {
             });
     }
 
+    function deriveFractionCompatibleAmountsAndTimes(
+        uint256 originalStartAmount,
+        uint256 originalEndAmount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 currentTime,
+        uint256 denominator
+    )
+        public
+        pure
+        returns (
+            uint256 newStartAmount,
+            uint256 newEndAmount,
+            uint256 newEndTime,
+            uint256 newCurrentTime
+        )
+    {
+        // calculate total duration and coerce it to a value that will always work with the provided fraction
+        uint256 duration = endTime - startTime;
+        duration = (duration == 0) ? 1 : duration;
+        // ensure duration is also a multiple of the denominator
+        // if duration is larger than denominator, edge-case rounding logic may apply, which means it will be tested
+        duration = (duration / denominator) * denominator;
+        // ensure duration is non-zero
+        duration = (duration == 0) ? denominator : duration;
+
+        // assign a new end time
+        newEndTime = startTime + duration;
+
+        // when fractional+ascending/descending, amounts will be multiplied by
+        // elapsed as well as remaining, which both have a bound of `duration`
+        // ensure neither value is large enough to overflow when multiplied by
+        // `duration`
+        uint256 maxSafeAmount = type(uint256).max / duration;
+
+        // ensure start amount is non-zero and cleanly divisible by the denominator
+        // todo: start or end are able to be non-zero, as long as the other is not also zero,
+        // and current time is not start/end when amount will work out to zero
+        newStartAmount = originalStartAmount % maxSafeAmount;
+        newStartAmount = (newStartAmount / denominator) * denominator;
+        newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
+
+        newEndAmount = originalEndAmount % maxSafeAmount;
+        newEndAmount = (newEndAmount / denominator) * denominator;
+        newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
+
+        // if end time was truncated to before current time, adjust accordingly
+        // todo? for now just add modulo diff to startTime to ensure it's always
+        // within range
+        // todo: is ge necessary?
+        newCurrentTime = (newEndTime >= currentTime)
+            ? currentTime
+            : (currentTime % newEndTime) + startTime;
+    }
+
     function _locateCurrentAmount(
         ConsiderationItem memory item,
         uint256 startTime,
@@ -435,7 +490,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         OfferItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
         return
@@ -456,7 +511,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         ConsiderationItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
 
