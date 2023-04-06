@@ -41,7 +41,7 @@ import {
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
@@ -173,8 +173,7 @@ library TestStateGenerator {
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
                     // TODO: support wildcard criteria, should be 0-1
                     criteria: Criteria(context.randEnum(0, 0)),
-                    // TODO: Fixed amounts only, should be 0-2
-                    amount: Amount(context.randEnum(0, 0))
+                    amount: Amount(context.randEnum(0, 2))
                 });
             }
 
@@ -189,8 +188,7 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                // TODO: Fixed amounts only, should be 0-2
-                amount: Amount(context.randEnum(0, 0))
+                amount: Amount(context.randEnum(0, 2))
             });
 
             context.basicOfferSpace = offer[0];
@@ -324,7 +322,10 @@ library AdvancedOrdersSpaceGenerator {
                 OfferItem memory item = order.offer[j];
                 if (item.itemType == ItemType.NATIVE) {
                     // Generate a new offer and make sure it has no native items
-                    orders[i].parameters.offer[j] = space.orders[i].offer[j].generate(context, true);
+                    orders[i].parameters.offer[j] = space
+                        .orders[i]
+                        .offer[j]
+                        .generate(context, true);
                 }
             }
         }
@@ -798,62 +799,6 @@ library AdvancedOrdersSpaceGenerator {
             // Perform division without zero check.
             newValue := div(valueTimesNumerator, denominator)
         }
-    }
-
-    function _locateCurrentAmount(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 startTime,
-        uint256 endTime,
-        bool roundUp
-    ) internal view returns (uint256 amount) {
-        // Only modify end amount if it doesn't already equal start amount.
-        if (startAmount != endAmount) {
-            // Declare variables to derive in the subsequent unchecked scope.
-            uint256 duration;
-            uint256 elapsed;
-            uint256 remaining;
-
-            // Skip underflow checks as startTime <= block.timestamp < endTime.
-            unchecked {
-                // Derive the duration for the order and place it on the stack.
-                duration = endTime - startTime;
-
-                // Derive time elapsed since the order started & place on stack.
-                elapsed = block.timestamp - startTime;
-
-                // Derive time remaining until order expires and place on stack.
-                remaining = duration - elapsed;
-            }
-
-            // Aggregate new amounts weighted by time with rounding factor.
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed));
-
-            // Use assembly to combine operations and skip divide-by-zero check.
-            assembly {
-                // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
-                // amount is set to zero if totalBeforeDivision is zero,
-                // as intermediate overflow can occur if it is zero.
-                amount := mul(
-                    iszero(iszero(totalBeforeDivision)),
-                    // Subtract 1 from the numerator and add 1 to the result if
-                    // roundUp is true to get the proper rounding direction.
-                    // Division is performed with no zero check as duration
-                    // cannot be zero as long as startTime < endTime.
-                    add(
-                        div(sub(totalBeforeDivision, roundUp), duration),
-                        roundUp
-                    )
-                )
-            }
-
-            // Return the current amount.
-            return amount;
-        }
-
-        // Return the original amount as startAmount == endAmount.
-        return endAmount;
     }
 
     function _handleInsertIfAllEmpty(
@@ -1594,12 +1539,12 @@ library TimeGenerator {
             uint256 a = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
             uint256 b = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
             low = a < b ? a : b;
             high = a > b ? a : b;
@@ -1609,7 +1554,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
         }
         if (time == Time.ONGOING) {
@@ -1617,7 +1562,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
         }
         if (time == Time.EXACT_END) {
@@ -1653,8 +1598,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         // TODO: Work out a better way to handle this
         if (context.basicOrderCategory == BasicOrderCategory.BID) {
@@ -1690,8 +1635,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;

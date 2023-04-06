@@ -112,6 +112,8 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
 
+    uint256 constant JAN_1_2023_UTC = 1672531200;
+
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
      *      a `FuzzEngine` test.
@@ -153,6 +155,7 @@ contract FuzzEngine is
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
+        vm.warp(JAN_1_2023_UTC);
         // Set either the optimized version or the reference version of Seaport,
         // depending on the active profile.
         ConsiderationInterface seaport_ = getSeaport();
