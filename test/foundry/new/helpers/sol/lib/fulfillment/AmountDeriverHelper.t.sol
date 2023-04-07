@@ -32,7 +32,7 @@ contract TestAmountDeriverHelper is AmountDeriverHelper {
         uint256 numerator,
         uint256 denominator,
         uint256 value
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return
             _getFraction({
                 numerator: numerator,
@@ -88,11 +88,7 @@ contract AmountDeriverHelperTest is Test {
         uint120 denominator
     ) public {
         startTime = bound(startTime, 1, type(uint40).max - 2);
-        endTime = bound(endTime, startTime + 2, type(uint40).max);
-
-        currentTime = bound(currentTime, startTime + 1, endTime - 1);
-
-        vm.warp(currentTime);
+        endTime = bound(endTime, startTime + 1, type(uint40).max);
 
         (numerator, denominator) = coerceNumeratorAndDenominator(
             numerator,
@@ -102,37 +98,40 @@ contract AmountDeriverHelperTest is Test {
         originalStartAmount = bound(originalStartAmount, 1, type(uint256).max);
         originalEndAmount = bound(originalEndAmount, 1, type(uint256).max);
 
-        originalStartAmount = bound(originalStartAmount, 1, type(uint256).max);
-        originalEndAmount = bound(originalEndAmount, 1, type(uint256).max);
-
-        (
-            uint256 newStartAmount,
-            uint256 newEndAmount,
-            uint256 newEndTime,
-            uint256 newCurrentTime
-        ) = helper.deriveFractionCompatibleAmountsAndTimes(
+        (uint256 newStartAmount, uint256 newEndAmount) = helper
+            .deriveFractionCompatibleAmounts(
                 originalStartAmount,
                 originalEndAmount,
                 startTime,
                 endTime,
-                currentTime,
+                numerator,
                 denominator
             );
 
-        vm.warp(newCurrentTime);
+        currentTime = bound(currentTime, startTime, endTime - 1);
 
-        require(newCurrentTime > startTime, "bad new current");
-        require(newEndTime > startTime, "bad start");
+        vm.warp(currentTime);
 
         // will revert if invalid
         helper.applyFraction({
             numerator: numerator,
             denominator: denominator,
             startTime: startTime,
-            endTime: newEndTime,
+            endTime: endTime,
             startAmount: newStartAmount,
             endAmount: newEndAmount,
             roundUp: false
+        });
+
+        // will revert if invalid
+        helper.applyFraction({
+            numerator: numerator,
+            denominator: denominator,
+            startTime: startTime,
+            endTime: endTime,
+            startAmount: newStartAmount,
+            endAmount: newEndAmount,
+            roundUp: true
         });
     }
 }
