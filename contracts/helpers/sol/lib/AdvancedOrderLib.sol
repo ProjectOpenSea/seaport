@@ -448,9 +448,9 @@ library AdvancedOrderLib {
         return basicOrderParameters;
     }
 
-    function coerceAmountsForPartialFulfillment(
+    function withCoercedAmountsForPartialFulfillment(
         AdvancedOrder memory order
-    ) internal pure {
+    ) internal pure returns (AdvancedOrder memory) {
         OrderParameters memory orderParams = order.parameters;
         for (uint256 i = 0; i < orderParams.offer.length; ++i) {
             uint256 newStartAmount;
@@ -512,6 +512,8 @@ library AdvancedOrderLib {
             order.parameters.consideration[i].startAmount = newStartAmount;
             order.parameters.consideration[i].endAmount = newEndAmount;
         }
+
+        return order;
     }
 
     function deriveFractionCompatibleAmounts(
