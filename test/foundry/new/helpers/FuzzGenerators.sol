@@ -578,7 +578,9 @@ library AdvancedOrdersSpaceGenerator {
                 details
             );
 
-            revert("FuzzGenerators: could not satisfy remainders");
+            if (remainders.length > 0) {
+                revert("FuzzGenerators: could not satisfy remainders");
+            }
         }
     }
 
