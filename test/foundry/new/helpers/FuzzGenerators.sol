@@ -45,8 +45,6 @@ import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
-import "forge-std/console.sol";
-
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -124,7 +122,7 @@ library TestStateGenerator {
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
-                offerer: Offerer(context.randEnum(1, 3)),
+                offerer: Offerer(context.randEnum(1, 2)),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
@@ -146,6 +144,12 @@ library TestStateGenerator {
                 // TODO: Add more unavailable order reasons (1-5).
                 unavailableReason: reason
             });
+
+            // Set up order components specific to contract order
+            if (components[i].orderType == BroadOrderType.CONTRACT) {
+                components[i].offerer == Offerer.CONTRACT_OFFERER;
+                components[i].signatureMethod == SignatureMethod.CONTRACT;
+            }
         }
 
         if (!someAvailable) {
@@ -1565,21 +1569,9 @@ library SignatureGenerator {
                 _checkSig(digest, v, r, s, offerer, context);
                 return order.withSignature(signature);
             } else if (eoaSignatureType == EOASignature.BULK) {
-                console.log("OFFERER: ", order.parameters.offerer);
-                console.log("ORDER TYPE: ", uint(order.parameters.orderType));
-                console.log(
-                    "EOA SIGNATURE TYPE: BULK ",
-                    uint(eoaSignatureType)
-                );
                 signature = _getBulkSig(order, offererKey, false, context);
                 return order.withSignature(signature);
             } else if (eoaSignatureType == EOASignature.BULK2098) {
-                console.log("OFFERER: ", order.parameters.offerer);
-                console.log("ORDER TYPE: ", uint(order.parameters.orderType));
-                console.log(
-                    "EOA SIGNATURE TYPE: BULK2098",
-                    uint(eoaSignatureType)
-                );
                 signature = _getBulkSig(order, offererKey, true, context);
                 return order.withSignature(signature);
             } else {
@@ -1993,7 +1985,7 @@ library OffererGenerator {
         } else if (offerer == Offerer.BOB) {
             return context.bob.key;
         } else if (offerer == Offerer.CONTRACT_OFFERER) {
-            return 0;
+            revert("getKey -- contract offerer");
         } else {
             revert("Invalid offerer");
         }
