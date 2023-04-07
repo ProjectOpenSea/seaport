@@ -39,6 +39,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -72,7 +73,11 @@ import {
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { _locateCurrentAmount, FuzzHelpers } from "./FuzzHelpers.sol";
+import {
+    _locateCurrentAmount,
+    FuzzHelpers,
+    Structure
+} from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
@@ -143,7 +148,7 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 2)) // TODO: back to 1-4
+                    : UnavailableReason(context.randEnum(1, 4))
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -186,7 +191,9 @@ library TestStateGenerator {
             AdvancedOrdersSpace({
                 orders: components,
                 isMatchable: isMatchable,
-                maximumFulfilled: maximumFulfilled
+                maximumFulfilled: maximumFulfilled,
+                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                conduit: ConduitChoice(context.randEnum(0, 2))
             });
     }
 
@@ -287,6 +294,7 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
@@ -298,6 +306,8 @@ library AdvancedOrdersSpaceGenerator {
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
+    using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using ConduitGenerator for ConduitChoice;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -327,12 +337,59 @@ library AdvancedOrdersSpaceGenerator {
                 _ensureAllAvailable(space);
             }
             _ensureDirectSupport(orders, space, context);
+            _syncStatuses(orders, space, context);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function generateRecipient(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        return space.recipient.generate(context);
+    }
+
+    function generateFulfillerConduitKey(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes32) {
+        return space.conduit.generate(context).key;
+    }
+
+    function _syncStatuses(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal {
+        for (uint256 i = 0; i < orders.length; i++) {
+            if (
+                space.orders[i].unavailableReason == UnavailableReason.CANCELLED
+            ) {
+                orders[i].inscribeOrderStatusCanceled(true, context.seaport);
+            } else if (
+                space.orders[i].unavailableReason ==
+                UnavailableReason.ALREADY_FULFILLED
+            ) {
+                orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    1,
+                    1,
+                    context.seaport
+                );
+            } else if (
+                space.orders[i].unavailableReason == UnavailableReason.AVAILABLE
+            ) {
+                orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    0,
+                    0,
+                    context.seaport
+                );
+                orders[i].inscribeOrderStatusCanceled(false, context.seaport);
+            }
+        }
     }
 
     function _ensureDirectSupport(
@@ -1980,6 +2037,27 @@ library OffererGenerator {
             return context.bob.key;
         } else {
             revert("Invalid offerer");
+        }
+    }
+}
+
+library FulfillmentRecipientGenerator {
+    function generate(
+        FulfillmentRecipient recipient,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        if (recipient == FulfillmentRecipient.ZERO) {
+            return address(0);
+        } else if (recipient == FulfillmentRecipient.OFFERER) {
+            return context.offerer.addr;
+        } else if (recipient == FulfillmentRecipient.ALICE) {
+            return context.alice.addr;
+        } else if (recipient == FulfillmentRecipient.BOB) {
+            return context.bob.addr;
+        } else if (recipient == FulfillmentRecipient.EVE) {
+            return context.eve.addr;
+        } else {
+            revert("Invalid fulfillment recipient");
         }
     }
 }

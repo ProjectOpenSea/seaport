@@ -94,6 +94,14 @@ enum AmountDegree {
     WUMBO
 }
 
+enum FulfillmentRecipient {
+    ZERO,
+    OFFERER,
+    ALICE,
+    BOB,
+    EVE
+}
+
 // ConsiderationItem.* / ReceivedItem.* / Method.*ADVANCED <- Recipient
 enum Recipient {
     // ZERO,?
