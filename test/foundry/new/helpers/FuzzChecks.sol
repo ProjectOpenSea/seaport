@@ -294,8 +294,10 @@ abstract contract FuzzChecks is Test {
                 assertEq(totalFilled, 1);
                 assertEq(totalSize, 1);
             } else if (context.expectedAvailableOrders[i]) {
-                assertEq(totalFilled, totalSize);
-                assertTrue(totalFilled != 0);
+                assertEq(totalFilled, order.numerator, "FuzzChecks: totalFilled != numerator");
+                assertEq(totalSize, order.denominator, "FuzzChecks: totalSize != denominator");
+                assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
+                assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
             } else {
                 assertTrue(totalFilled == 0);
             }
