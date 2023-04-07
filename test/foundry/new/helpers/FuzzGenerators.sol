@@ -161,7 +161,8 @@ library TestStateGenerator {
                 orders: components,
                 isMatchable: isMatchable,
                 maximumFulfilled: maximumFulfilled,
-                recipient: FulfillmentRecipient(context.randEnum(0, 4))
+                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                conduit: ConduitChoice(context.randEnum(0, 2))
             });
     }
 
@@ -275,6 +276,7 @@ library AdvancedOrdersSpaceGenerator {
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
     using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using ConduitGenerator for ConduitChoice;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -318,6 +320,13 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         return space.recipient.generate(context);
+    }
+
+    function generateFulfillerConduitKey(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes32) {
+        return space.conduit.generate(context).key;
     }
 
     function _syncStatuses(

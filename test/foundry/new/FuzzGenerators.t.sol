@@ -104,7 +104,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders: new OrderComponentsSpace[](0),
             isMatchable: false,
             maximumFulfilled: 0,
-            recipient: FulfillmentRecipient.ZERO
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -143,7 +144,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders: components,
             isMatchable: false,
             maximumFulfilled: 1,
-            recipient: FulfillmentRecipient.ZERO
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -191,7 +193,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders: components,
             isMatchable: false,
             maximumFulfilled: 1,
-            recipient: FulfillmentRecipient.ZERO
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -250,7 +253,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders: components,
             isMatchable: false,
             maximumFulfilled: 1,
-            recipient: FulfillmentRecipient.ZERO
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

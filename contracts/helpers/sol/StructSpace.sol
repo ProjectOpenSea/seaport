@@ -67,4 +67,5 @@ struct AdvancedOrdersSpace {
     bool isMatchable;
     uint256 maximumFulfilled;
     FulfillmentRecipient recipient;
+    ConduitChoice conduit;
 }
