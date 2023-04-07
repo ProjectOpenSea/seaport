@@ -275,16 +275,15 @@ contract AmountDeriverHelper is AmountDeriver {
             itemType: item.itemType,
             token: item.token,
             identifier: item.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: item,
-                startTime: startTime,
-                endTime: endTime
-            })
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: item,
+                    startTime: startTime,
+                    endTime: endTime
+                })
         });
     }
 
@@ -385,16 +384,15 @@ contract AmountDeriverHelper is AmountDeriver {
             itemType: considerationItem.itemType,
             token: considerationItem.token,
             identifier: considerationItem.identifierOrCriteria,
-            amount: (
-                block.timestamp < startTime ||
-                block.timestamp >= endTime
-            ) ? 0 : _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: considerationItem,
-                startTime: startTime,
-                endTime: endTime
-            }),
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: considerationItem,
+                    startTime: startTime,
+                    endTime: endTime
+                }),
             recipient: considerationItem.recipient
         });
     }
@@ -414,59 +412,48 @@ contract AmountDeriverHelper is AmountDeriver {
             });
     }
 
-    function deriveFractionCompatibleAmountsAndTimes(
+    function deriveFractionCompatibleAmounts(
         uint256 originalStartAmount,
         uint256 originalEndAmount,
         uint256 startTime,
         uint256 endTime,
-        uint256 currentTime,
+        uint256 numerator,
         uint256 denominator
-    )
-        public
-        pure
-        returns (
-            uint256 newStartAmount,
-            uint256 newEndAmount,
-            uint256 newEndTime,
-            uint256 newCurrentTime
-        )
-    {
-        // calculate total duration and coerce it to a value that will always work with the provided fraction
+    ) public pure returns (uint256 newStartAmount, uint256 newEndAmount) {
+        if (
+            startTime >= endTime ||
+            numerator > denominator ||
+            numerator == 0 ||
+            denominator == 0 ||
+            (originalStartAmount == 0 && originalEndAmount == 0)
+        ) {
+            revert(
+                "AmountDeriverHelper: bad inputs to deriveFractionCompatibleAmounts"
+            );
+        }
+
         uint256 duration = endTime - startTime;
-        duration = (duration == 0) ? 1 : duration;
-        // ensure duration is also a multiple of the denominator
-        // if duration is larger than denominator, edge-case rounding logic may apply, which means it will be tested
-        duration = (duration / denominator) * denominator;
-        // ensure duration is non-zero
-        duration = (duration == 0) ? denominator : duration;
 
-        // assign a new end time
-        newEndTime = startTime + duration;
+        // determine if duration or numerator is more likely to overflow when multiplied by value
+        uint256 overflowBottleneck = (numerator > duration)
+            ? numerator
+            : duration;
 
-        // when fractional+ascending/descending, amounts will be multiplied by
-        // elapsed as well as remaining, which both have a bound of `duration`
-        // ensure neither value is large enough to overflow when multiplied by
-        // `duration`
-        uint256 maxSafeAmount = type(uint256).max / duration;
+        uint256 absoluteMax = type(uint256).max / overflowBottleneck;
+        uint256 fractionCompatibleMax = (absoluteMax / denominator) *
+            denominator;
 
-        // ensure start amount is non-zero and cleanly divisible by the denominator
-        // todo: start or end are able to be non-zero, as long as the other is not also zero,
-        // and current time is not start/end when amount will work out to zero
-        newStartAmount = originalStartAmount % maxSafeAmount;
+        newStartAmount = originalStartAmount % fractionCompatibleMax;
         newStartAmount = (newStartAmount / denominator) * denominator;
         newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
 
-        newEndAmount = originalEndAmount % maxSafeAmount;
+        newEndAmount = originalEndAmount % fractionCompatibleMax;
         newEndAmount = (newEndAmount / denominator) * denominator;
         newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
 
-        // if end time was truncated to before current time, adjust accordingly
-        // todo? for now just add modulo diff to startTime to ensure it's always
-        // within range
-        // todo: is ge necessary?
-        newCurrentTime = (newEndTime >= currentTime)
-            ? currentTime
-            : (currentTime % newEndTime) + startTime;
+        if (newStartAmount == 0 && newEndAmount == 0) {
+            revert("AmountDeriverHelper: derived amount will always be zero");
+        }
     }
 
     function _locateCurrentAmount(
