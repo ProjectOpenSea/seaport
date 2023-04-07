@@ -99,6 +99,15 @@ library FuzzInscribers {
 
         // Store the new raw order status.
         vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
+
+        // Get the fresh baked order status straight from Seaport.
+        (bool isValidatedOrganicValue, , , ) = seaport.getOrderStatus(
+            orderHash
+        );
+
+        if (isValidated != isValidatedOrganicValue) {
+            revert("FuzzInscribers/inscribeOrderStatusValidated: Mismatch");
+        }
     }
 
     /**
@@ -142,6 +151,22 @@ library FuzzInscribers {
 
         // Store the new raw order status.
         vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
+
+        // Get the fresh baked order status straight from Seaport.
+        (
+            bool isValidatedOrganicValue,
+            bool isCancelledOrganicValue,
+            ,
+
+        ) = seaport.getOrderStatus(orderHash);
+
+        if (isCancelled != isCancelledOrganicValue) {
+            revert("FuzzInscribers/inscribeOrderStatusCanceled: Mismatch");
+        }
+
+        if (isCancelledOrganicValue && isValidatedOrganicValue) {
+            revert("FuzzInscribers/inscribeOrderStatusCanceled: Invalid state");
+        }
     }
 
     /**
