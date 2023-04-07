@@ -225,8 +225,50 @@ contract CriteriaResolverHelper {
             _wildcardIdentifierForGivenItemHash[itemHash]
         );
 
+        if (id.set) {
+            revert("CriteriaResolverHelper: wildcard already set for this item");
+        }
+
         id.set = true;
         id.identifier = criteria;
+    }
+
+    function shiftWildcards(
+        uint256 orderIndex,
+        Side side,
+        uint256 insertionIndex,
+        uint256 originalLength
+    ) public {
+        for (uint256 i = originalLength; i > insertionIndex; --i) {
+            bytes32 itemHash = keccak256(
+                abi.encodePacked(orderIndex, i - 1, side)
+            );
+
+            WildcardIdentifier storage id = (
+                _wildcardIdentifierForGivenItemHash[itemHash]
+            );
+
+            if (id.set) {
+                uint256 identifier = id.identifier;
+                id.set = false;
+                id.identifier = 0;
+
+                bytes32 shiftedItemHash = keccak256(
+                    abi.encodePacked(orderIndex, i, side)
+                );
+
+                WildcardIdentifier storage shiftedId = (
+                    _wildcardIdentifierForGivenItemHash[shiftedItemHash]
+                );
+
+                if (shiftedId.set) {
+                    revert("CriteriaResolverHelper: shifting into a set item");
+                }
+
+                shiftedId.set = true;
+                shiftedId.identifier = identifier;
+            }
+        }
     }
 
     /**
