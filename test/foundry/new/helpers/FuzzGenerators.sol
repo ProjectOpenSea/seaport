@@ -1375,56 +1375,27 @@ library BroadOrderTypeGenerator {
         if (broadOrderType == BroadOrderType.PARTIAL) {
             // Adjust the order type based on whether it is restricted
             if (orderParams.orderType == OrderType.FULL_RESTRICTED) {
-                order.parameters = orderParams.withOrderType(OrderType.PARTIAL_RESTRICTED);
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_RESTRICTED
+                );
             } else if (orderParams.orderType == OrderType.FULL_OPEN) {
-                 order.parameters = orderParams.withOrderType(OrderType.PARTIAL_OPEN);
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_OPEN
+                );
             }
 
-            uint120 numerator = uint120(context.randRange(1, type(uint120).max));
-            uint120 denominator = uint120(context.randRange(1, type(uint120).max));
-            if (numerator > denominator) {
-                (numerator, denominator) = (denominator, numerator);
-            }
+            // TODO: get more sophisticated about this down the line
+            uint120 numerator = uint120(context.randRange(1, 10));
+            uint120 denominator = uint120(numerator * context.randRange(2, 10));
 
-            order = order.withNumerator(numerator).withDenominator(denominator);
-
-            // Adjust offer item amounts based on the fraction
-            for (uint256 i = 0; i < orderParams.offer.length; ++i) {
-                OfferItem memory item = orderParams.offer[i];
-                (uint256 newStartAmount, uint256 newEndAmount) = context
-                    .testHelpers
-                    .amountDeriverHelper()
-                    .deriveFractionCompatibleAmounts(
-                        item.startAmount,
-                        item.endAmount,
-                        orderParams.startTime,
-                        orderParams.endTime,
-                        numerator,
-                        denominator
-                    );
-                order.parameters.offer[i].startAmount = newStartAmount;
-                order.parameters.offer[i].endAmount = newEndAmount;
-            }
-
-            // Adjust consideration item amounts based on the fraction
-            for (uint256 i = 0; i < orderParams.consideration.length; ++i) {
-                ConsiderationItem memory item = orderParams.consideration[i];
-                (uint256 newStartAmount, uint256 newEndAmount) = context
-                    .testHelpers
-                    .amountDeriverHelper()
-                    .deriveFractionCompatibleAmounts(
-                        item.startAmount,
-                        item.endAmount,
-                        orderParams.startTime,
-                        orderParams.endTime,
-                        numerator,
-                        denominator
-                    );
-                order.parameters.consideration[i].startAmount = newStartAmount;
-                order.parameters.consideration[i].endAmount = newEndAmount;
-            }
+            return order
+                .withNumerator(numerator)
+                .withDenominator(denominator)
+                .withCoercedAmountsForPartialFulfillment();
         } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            revert("BroadOrderTypeGenerator: contract orders not yet supported");
+            revert(
+                "BroadOrderTypeGenerator: contract orders not yet supported"
+            );
         }
 
         return order;

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { ItemType } from "../../../lib/ConsiderationEnums.sol";
+
 import {
     AdditionalRecipient,
     AdvancedOrder,
@@ -444,5 +446,115 @@ library AdvancedOrderLib {
         basicOrderParameters.signature = advancedOrder.signature;
 
         return basicOrderParameters;
+    }
+
+    function coerceAmountsForPartialFulfillment(
+        AdvancedOrder memory order
+    ) internal pure {
+        OrderParameters memory orderParams = order.parameters;
+        for (uint256 i = 0; i < orderParams.offer.length; ++i) {
+            uint256 newStartAmount;
+            uint256 newEndAmount;
+            OfferItem memory item = orderParams.offer[i];
+
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                uint256 amount = uint256(order.denominator / order.numerator);
+                newStartAmount = amount;
+                newEndAmount = amount;
+            } else {
+                (
+                    newStartAmount,
+                    newEndAmount
+                ) = deriveFractionCompatibleAmounts(
+                    item.startAmount,
+                    item.endAmount,
+                    orderParams.startTime,
+                    orderParams.endTime,
+                    order.numerator,
+                    order.denominator
+                );
+            }
+
+            order.parameters.offer[i].startAmount = newStartAmount;
+            order.parameters.offer[i].endAmount = newEndAmount;
+        }
+
+        // Adjust consideration item amounts based on the fraction
+        for (uint256 i = 0; i < orderParams.consideration.length; ++i) {
+            uint256 newStartAmount;
+            uint256 newEndAmount;
+            ConsiderationItem memory item = orderParams.consideration[i];
+
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                uint256 amount = uint256(order.denominator / order.numerator);
+                newStartAmount = amount;
+                newEndAmount = amount;
+            } else {
+                (
+                    newStartAmount,
+                    newEndAmount
+                ) = deriveFractionCompatibleAmounts(
+                    item.startAmount,
+                    item.endAmount,
+                    orderParams.startTime,
+                    orderParams.endTime,
+                    order.numerator,
+                    order.denominator
+                );
+            }
+
+            order.parameters.consideration[i].startAmount = newStartAmount;
+            order.parameters.consideration[i].endAmount = newEndAmount;
+        }
+    }
+
+    function deriveFractionCompatibleAmounts(
+        uint256 originalStartAmount,
+        uint256 originalEndAmount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) internal pure returns (uint256 newStartAmount, uint256 newEndAmount) {
+        if (
+            startTime >= endTime ||
+            numerator > denominator ||
+            numerator == 0 ||
+            denominator == 0 ||
+            (originalStartAmount == 0 && originalEndAmount == 0)
+        ) {
+            revert(
+                "AdvancedOrderLib: bad inputs to deriveFractionCompatibleAmounts"
+            );
+        }
+
+        uint256 duration = endTime - startTime;
+
+        // determine if duration or numerator is more likely to overflow when multiplied by value
+        uint256 overflowBottleneck = (numerator > duration)
+            ? numerator
+            : duration;
+
+        uint256 absoluteMax = type(uint256).max / overflowBottleneck;
+        uint256 fractionCompatibleMax = (absoluteMax / denominator) *
+            denominator;
+
+        newStartAmount = originalStartAmount % fractionCompatibleMax;
+        newStartAmount = (newStartAmount / denominator) * denominator;
+        newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
+
+        newEndAmount = originalEndAmount % fractionCompatibleMax;
+        newEndAmount = (newEndAmount / denominator) * denominator;
+        newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
+
+        if (newStartAmount == 0 && newEndAmount == 0) {
+            revert("AdvancedOrderLib: derived amount will always be zero");
+        }
     }
 }
