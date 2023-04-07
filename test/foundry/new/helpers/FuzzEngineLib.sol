@@ -3,7 +3,12 @@ pragma solidity ^0.8.17;
 
 import "seaport-sol/SeaportSol.sol";
 
-import { Family, FuzzHelpers, Structure } from "./FuzzHelpers.sol";
+import {
+    Family,
+    FuzzHelpers,
+    Structure,
+    _locateCurrentAmount
+} from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
@@ -73,7 +78,7 @@ library FuzzEngineLib {
             address(context.seaport)
         );
 
-        bool hasUnavailable = false;
+        bool hasUnavailable = context.maximumFulfilled < context.orders.length;
         for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
             if (!context.expectedAvailableOrders[i]) {
                 hasUnavailable = true;
@@ -83,7 +88,9 @@ library FuzzEngineLib {
 
         if (hasUnavailable) {
             if (invalidNativeOfferItemsLocated) {
-                revert("FuzzEngineLib: invalid native token + unavailable combination");
+                revert(
+                    "FuzzEngineLib: invalid native token + unavailable combination"
+                );
             }
 
             if (structure == Structure.ADVANCED) {
@@ -233,7 +240,7 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 value = 0;
 
         for (uint256 i = 0; i < context.orders.length; ++i) {
@@ -241,30 +248,42 @@ library FuzzEngineLib {
             for (uint256 j = 0; j < orderParams.offer.length; ++j) {
                 OfferItem memory item = orderParams.offer[j];
 
-                // TODO: support ascending / descending
-                if (item.startAmount != item.endAmount) {
-                    revert(
-                        "FuzzEngineLib: ascending/descending not yet supported"
-                    );
-                }
-
-                if (item.itemType == ItemType.NATIVE) {
-                    value += item.startAmount;
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.isAvailable()
+                ) {
+                    if (item.startAmount != item.endAmount) {
+                        value += _locateCurrentAmount(
+                            item.startAmount,
+                            item.endAmount,
+                            orderParams.startTime,
+                            orderParams.endTime,
+                            false
+                        );
+                    } else {
+                        value += item.startAmount;
+                    }
                 }
             }
 
             for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
                 ConsiderationItem memory item = orderParams.consideration[j];
 
-                // TODO: support ascending / descending
-                if (item.startAmount != item.endAmount) {
-                    revert(
-                        "FuzzEngineLib: ascending/descending not yet supported"
-                    );
-                }
-
-                if (item.itemType == ItemType.NATIVE) {
-                    value += item.startAmount;
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.isAvailable()
+                ) {
+                    if (item.startAmount != item.endAmount) {
+                        value += _locateCurrentAmount(
+                            item.startAmount,
+                            item.endAmount,
+                            orderParams.startTime,
+                            orderParams.endTime,
+                            true
+                        );
+                    } else {
+                        value += item.startAmount;
+                    }
                 }
             }
         }

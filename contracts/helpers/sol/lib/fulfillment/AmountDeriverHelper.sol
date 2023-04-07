@@ -80,8 +80,10 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters);
-        received = getReceivedItems(parameters);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters);
+            received = getReceivedItems(parameters);
+        }
     }
 
     function toOrderDetails(
@@ -146,10 +148,17 @@ contract AmountDeriverHelper is AmountDeriver {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters, numerator, denominator);
-        received = getReceivedItems(parameters, numerator, denominator);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
 
-        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
     }
 
     function applyCriteriaResolvers(
@@ -269,17 +278,21 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (SpentItem memory spent) {
+        // Detect if the order has an invalid time;
+        // if so, set amount to zero
         spent = SpentItem({
             itemType: item.itemType,
             token: item.token,
             identifier: item.identifierOrCriteria,
-            amount: _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: item,
-                startTime: startTime,
-                endTime: endTime
-            })
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: item,
+                    startTime: startTime,
+                    endTime: endTime
+                })
         });
     }
 
@@ -374,17 +387,21 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 numerator,
         uint256 denominator
     ) private view returns (ReceivedItem memory received) {
+        // Detect if the order has an invalid time;
+        // if so, set amount to zero
         received = ReceivedItem({
             itemType: considerationItem.itemType,
             token: considerationItem.token,
             identifier: considerationItem.identifierOrCriteria,
-            amount: _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                item: considerationItem,
-                startTime: startTime,
-                endTime: endTime
-            }),
+            amount: (block.timestamp < startTime || block.timestamp >= endTime)
+                ? 0
+                : _applyFraction({
+                    numerator: numerator,
+                    denominator: denominator,
+                    item: considerationItem,
+                    startTime: startTime,
+                    endTime: endTime
+                }),
             recipient: considerationItem.recipient
         });
     }
@@ -402,6 +419,50 @@ contract AmountDeriverHelper is AmountDeriver {
                 endTime: endTime,
                 roundUp: false
             });
+    }
+
+    function deriveFractionCompatibleAmounts(
+        uint256 originalStartAmount,
+        uint256 originalEndAmount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) public pure returns (uint256 newStartAmount, uint256 newEndAmount) {
+        if (
+            startTime >= endTime ||
+            numerator > denominator ||
+            numerator == 0 ||
+            denominator == 0 ||
+            (originalStartAmount == 0 && originalEndAmount == 0)
+        ) {
+            revert(
+                "AmountDeriverHelper: bad inputs to deriveFractionCompatibleAmounts"
+            );
+        }
+
+        uint256 duration = endTime - startTime;
+
+        // determine if duration or numerator is more likely to overflow when multiplied by value
+        uint256 overflowBottleneck = (numerator > duration)
+            ? numerator
+            : duration;
+
+        uint256 absoluteMax = type(uint256).max / overflowBottleneck;
+        uint256 fractionCompatibleMax = (absoluteMax / denominator) *
+            denominator;
+
+        newStartAmount = originalStartAmount % fractionCompatibleMax;
+        newStartAmount = (newStartAmount / denominator) * denominator;
+        newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
+
+        newEndAmount = originalEndAmount % fractionCompatibleMax;
+        newEndAmount = (newEndAmount / denominator) * denominator;
+        newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
+
+        if (newStartAmount == 0 && newEndAmount == 0) {
+            revert("AmountDeriverHelper: derived amount will always be zero");
+        }
     }
 
     function _locateCurrentAmount(
@@ -425,7 +486,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         OfferItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
         return
@@ -446,7 +507,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         ConsiderationItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
 

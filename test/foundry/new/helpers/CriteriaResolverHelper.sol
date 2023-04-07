@@ -27,8 +27,16 @@ contract CriteriaResolverHelper {
     uint256 immutable MAX_LEAVES;
     Merkle public immutable MERKLE;
 
+    struct WildcardIdentifier {
+        bool set;
+        uint256 identifier;
+    }
+
     mapping(uint256 => CriteriaMetadata)
         internal _resolvableIdentifierForGivenCriteria;
+
+    mapping(bytes32 => WildcardIdentifier)
+        internal _wildcardIdentifierForGivenItemHash;
 
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
@@ -39,6 +47,22 @@ contract CriteriaResolverHelper {
         uint256 criteria
     ) public view returns (CriteriaMetadata memory) {
         return _resolvableIdentifierForGivenCriteria[criteria];
+    }
+
+    function wildcardIdentifierForGivenItemHash(
+        bytes32 itemHash
+    ) public view returns (uint256) {
+        WildcardIdentifier memory id = _wildcardIdentifierForGivenItemHash[
+            itemHash
+        ];
+
+        if (!id.set) {
+            revert(
+                "CriteriaResolverHelper: no wildcard set for given item hash"
+            );
+        }
+
+        return id.identifier;
     }
 
     function deriveCriteriaResolvers(
@@ -63,17 +87,43 @@ contract CriteriaResolverHelper {
                     offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
-                            offerItem.identifierOrCriteria
-                        ];
-                    criteriaResolvers[index] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.OFFER,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
+                    if (offerItem.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(i, j, Side.OFFER)
+                        );
+
+                        WildcardIdentifier
+                            memory id = _wildcardIdentifierForGivenItemHash[
+                                itemHash
+                            ];
+                        if (!id.set) {
+                            revert(
+                                "CriteriaResolverHelper: no wildcard identifier located for offer item"
+                            );
+                        }
+
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.OFFER,
+                            index: j,
+                            identifier: id.identifier,
+                            criteriaProof: new bytes32[](0)
+                        });
+                    } else {
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                offerItem.identifierOrCriteria
+                            ];
+
+                        // Store the criteria resolver in the mapping
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.OFFER,
+                            index: j,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+                    }
                     index++;
                 }
             }
@@ -87,17 +137,43 @@ contract CriteriaResolverHelper {
                     ItemType.ERC721_WITH_CRITERIA ||
                     considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
-                            considerationItem.identifierOrCriteria
-                        ];
-                    criteriaResolvers[index] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.CONSIDERATION,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
+                    if (considerationItem.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(i, j, Side.CONSIDERATION)
+                        );
+
+                        WildcardIdentifier
+                            memory id = _wildcardIdentifierForGivenItemHash[
+                                itemHash
+                            ];
+                        if (!id.set) {
+                            revert(
+                                "CriteriaResolverHelper: no wildcard identifier located for consideration item"
+                            );
+                        }
+
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.CONSIDERATION,
+                            index: j,
+                            identifier: id.identifier,
+                            criteriaProof: new bytes32[](0)
+                        });
+                    } else {
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                considerationItem.identifierOrCriteria
+                            ];
+
+                        // Store the criteria resolver in the mapping
+                        criteriaResolvers[index] = CriteriaResolver({
+                            orderIndex: i,
+                            side: Side.CONSIDERATION,
+                            index: j,
+                            identifier: criteriaMetadata.resolvedIdentifier,
+                            criteriaProof: criteriaMetadata.proof
+                        });
+                    }
                     index++;
                 }
             }
@@ -106,9 +182,6 @@ contract CriteriaResolverHelper {
         assembly {
             mstore(criteriaResolvers, index)
         }
-
-        // TODO: read from test context
-        // TODO: handle wildcard
     }
 
     /**
@@ -145,6 +218,69 @@ contract CriteriaResolverHelper {
         });
     }
 
+    function generateWildcard(
+        LibPRNG.PRNG memory prng,
+        uint256 desiredId,
+        uint256 orderIndex,
+        uint256 itemIndex,
+        Side side
+    ) public returns (uint256 criteria) {
+        criteria = (desiredId == type(uint256).max) ? prng.next() : desiredId;
+
+        bytes32 itemHash = keccak256(
+            abi.encodePacked(orderIndex, itemIndex, side)
+        );
+
+        WildcardIdentifier storage id = (
+            _wildcardIdentifierForGivenItemHash[itemHash]
+        );
+
+        if (id.set) {
+            revert("CriteriaResolverHelper: wildcard already set for this item");
+        }
+
+        id.set = true;
+        id.identifier = criteria;
+    }
+
+    function shiftWildcards(
+        uint256 orderIndex,
+        Side side,
+        uint256 insertionIndex,
+        uint256 originalLength
+    ) public {
+        for (uint256 i = originalLength; i > insertionIndex; --i) {
+            bytes32 itemHash = keccak256(
+                abi.encodePacked(orderIndex, i - 1, side)
+            );
+
+            WildcardIdentifier storage id = (
+                _wildcardIdentifierForGivenItemHash[itemHash]
+            );
+
+            if (id.set) {
+                uint256 identifier = id.identifier;
+                id.set = false;
+                id.identifier = 0;
+
+                bytes32 shiftedItemHash = keccak256(
+                    abi.encodePacked(orderIndex, i, side)
+                );
+
+                WildcardIdentifier storage shiftedId = (
+                    _wildcardIdentifierForGivenItemHash[shiftedItemHash]
+                );
+
+                if (shiftedId.set) {
+                    revert("CriteriaResolverHelper: shifting into a set item");
+                }
+
+                shiftedId.set = true;
+                shiftedId.identifier = identifier;
+            }
+        }
+    }
+
     /**
      * @notice Generates a random number of random token identifiers to use as
      *         leaves in a Merkle tree
@@ -177,7 +313,7 @@ contract CriteriaResolverHelper {
      */
     function hashIdentifiersToLeaves(
         uint256[] memory identifiers
-    ) internal pure returns (bytes32[] memory leaves) {
+    ) public pure returns (bytes32[] memory leaves) {
         assembly {
             leaves := identifiers
         }

@@ -1674,10 +1674,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
     }
 
-    function testRemainingItems() public {
+    function testRemainingItems_availableOrder() public {
         Order memory order1 = Order({
             parameters: OrderParametersLib
                 .empty()
+                .withStartTime(block.timestamp)
+                .withEndTime(block.timestamp + 1)
                 .withOffer(
                     SeaportArrays.OfferItems(
                         OfferItemLib
@@ -1773,6 +1775,50 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             2,
             "remainingConsideration[1].amount"
         );
+    }
+
+    function testRemainingItems_unavailableOrder() public {
+        Order memory order1 = Order({
+            parameters: OrderParametersLib
+                .empty()
+                .withOffer(
+                    SeaportArrays.OfferItems(
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(erc20s[0]))
+                            .withAmount(10),
+                        OfferItemLib
+                            .empty()
+                            .withToken(address(erc20s[0]))
+                            .withAmount(11)
+                    )
+                )
+                .withTotalConsideration(
+                    SeaportArrays.ConsiderationItems(
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(erc20s[1]))
+                            .withAmount(1),
+                        ConsiderationItemLib
+                            .empty()
+                            .withToken(address(erc20s[1]))
+                            .withAmount(2)
+                    )
+                )
+                .withOfferer(offerer1.addr),
+            signature: ""
+        });
+
+        // Note: there's no order 2.
+
+        (
+            ,
+            MatchComponent[] memory remainingOffer,
+            MatchComponent[] memory remainingConsideration
+        ) = matcher.getMatchedFulfillments(SeaportArrays.Orders(order1));
+
+        assertEq(remainingOffer.length, 0);
+        assertEq(remainingConsideration.length, 0);
     }
 
     function assertEq(

@@ -64,4 +64,5 @@ struct OrderComponentsSpace {
 struct AdvancedOrdersSpace {
     OrderComponentsSpace[] orders;
     bool isMatchable;
+    uint256 maximumFulfilled;
 }

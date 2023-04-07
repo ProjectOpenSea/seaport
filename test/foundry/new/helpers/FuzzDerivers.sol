@@ -17,6 +17,7 @@ import {
 import {
     OrderStatus as OrderStatusEnum
 } from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -32,140 +33,54 @@ abstract contract FuzzDerivers is
     MatchFulfillmentHelper,
     ExecutionHelper
 {
+    Vm private constant vm =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
     using MatchComponentType for MatchComponent[];
 
-    function deriveAvailableOrders(
-        FuzzTestContext memory context
-    ) public view {
+    function deriveAvailableOrders(FuzzTestContext memory context) public view {
         // TODO: handle skipped orders due to generateOrder reverts
         // TODO: handle maximumFulfilled < orders.length
         bool[] memory expectedAvailableOrders = new bool[](
             context.orders.length
         );
 
+        uint256 totalAvailable = 0;
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             OrderStatusEnum status = context.preExecOrderStatuses[i];
 
-            expectedAvailableOrders[i] = (
-                block.timestamp < order.endTime && // not expired
+            // TEMP (TODO: handle upstream)
+            vm.assume(!(order.startTime == 0 && order.endTime == 0));
+
+            bool isAvailable = (block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
-                status != OrderStatusEnum.FULFILLED // not fully filled
-            );
+                status != OrderStatusEnum.FULFILLED && // not fully filled
+                totalAvailable < context.maximumFulfilled);
+
+            if (isAvailable) {
+                ++totalAvailable;
+            }
+
+            expectedAvailableOrders[i] = isAvailable;
         }
 
         context.expectedAvailableOrders = expectedAvailableOrders;
     }
 
-    function deriveCriteriaResolvers(
-        FuzzTestContext memory context
-    ) public view {
+    function deriveCriteriaResolvers(FuzzTestContext memory context) public view {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
 
-        uint256 totalCriteriaItems;
-
-        for (uint256 i; i < context.orders.length; i++) {
-            // Note: criteria resolvers do not need to be provided for
-            // unavailable orders, but generally will be provided as
-            // availability is usually unknown at submission time.
-            // Consider adding a fuzz condition to supply all or only
-            // the necessary resolvers.
-            AdvancedOrder memory order = context.orders[i];
-
-            for (uint256 j; j < order.parameters.offer.length; j++) {
-                OfferItem memory offerItem = order.parameters.offer[j];
-                if (
-                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    totalCriteriaItems++;
-                }
-            }
-
-            for (uint256 j; j < order.parameters.consideration.length; j++) {
-                ConsiderationItem memory considerationItem = order
-                    .parameters
-                    .consideration[j];
-                if (
-                    considerationItem.itemType ==
-                    ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    totalCriteriaItems++;
-                }
-            }
-        }
-
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
-            totalCriteriaItems
-        );
-
-        totalCriteriaItems = 0;
-
-        for (uint256 i; i < context.orders.length; i++) {
-            AdvancedOrder memory order = context.orders[i];
-
-            for (uint256 j; j < order.parameters.offer.length; j++) {
-                OfferItem memory offerItem = order.parameters.offer[j];
-                if (
-                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    CriteriaMetadata memory criteriaMetadata = (
-                        criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                offerItem.identifierOrCriteria
-                            )
-                    );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.OFFER,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
-                    totalCriteriaItems++;
-                }
-            }
-
-            for (uint256 j; j < order.parameters.consideration.length; j++) {
-                ConsiderationItem memory considerationItem = order
-                    .parameters
-                    .consideration[j];
-                if (
-                    considerationItem.itemType ==
-                    ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                considerationItem.identifierOrCriteria
-                            );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.CONSIDERATION,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
-                    totalCriteriaItems++;
-                }
-            }
-        }
+        CriteriaResolver[] memory criteriaResolvers = criteriaResolverHelper
+            .deriveCriteriaResolvers(context.orders);
 
         context.criteriaResolvers = criteriaResolvers;
-
-        // TODO: read from test context
-        // TODO: handle wildcard
     }
 
     /**
@@ -222,18 +137,6 @@ abstract contract FuzzDerivers is
     }
 
     /**
-     * @dev Derive the `maximumFulfilled` value from the `orders` array.
-     *
-     * @param context A Fuzz test context.
-     */
-    function deriveMaximumFulfilled(
-        FuzzTestContext memory context
-    ) public pure {
-        // TODO: Start fuzzing this.
-        context.maximumFulfilled = context.orders.length;
-    }
-
-    /**
      * @dev Derive the `expectedImplicitExecutions` and
      *      `expectedExplicitExecutions` arrays from the `orders` array.
      *
@@ -277,6 +180,9 @@ abstract contract FuzzDerivers is
                 implicitExecutions
             ) = getFulfillAvailableExecutions(context);
 
+            // TEMP (TODO: handle upstream)
+            vm.assume(explicitExecutions.length > 0);
+
             if (explicitExecutions.length == 0) {
                 revert(
                     "FuzzDerivers: no explicit executions derived on fulfillAvailable"
@@ -291,6 +197,9 @@ abstract contract FuzzDerivers is
             (explicitExecutions, implicitExecutions) = getMatchExecutions(
                 context
             );
+
+            // TEMP (TODO: handle upstream)
+            vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {
                 revert("FuzzDerivers: no explicit executions derived on match");

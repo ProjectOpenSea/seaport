@@ -41,7 +41,9 @@ import {
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
+
+import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -79,14 +81,20 @@ library TestStateGenerator {
 
         bool isMatchable = false;
 
+        uint256 maximumFulfilled = totalOrders;
+
         if (context.basicOrderCategory != BasicOrderCategory.NONE) {
             totalOrders = 1;
             maxOfferItemsPerOrder = 1;
             if (maxConsiderationItemsPerOrder == 0) {
                 maxConsiderationItemsPerOrder = 1;
             }
+            maximumFulfilled = 1;
         } else {
             isMatchable = context.randRange(0, 4) == 0 ? true : false;
+            if (!isMatchable) {
+                maximumFulfilled = context.randRange(1, totalOrders);
+            }
         }
 
         if (maxOfferItemsPerOrder == 0 && maxConsiderationItemsPerOrder == 0) {
@@ -102,8 +110,9 @@ library TestStateGenerator {
 
         for (uint256 i; i < totalOrders; ++i) {
             UnavailableReason reason = (
-                context.randRange(0, 1) == 0 ? UnavailableReason.AVAILABLE :
-                UnavailableReason(context.randEnum(1, 2))
+                context.randRange(0, 1) == 0
+                    ? UnavailableReason.AVAILABLE
+                    : UnavailableReason(context.randEnum(1, 2)) // TODO: back to 1-4
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -138,13 +147,15 @@ library TestStateGenerator {
         }
 
         if (!someAvailable) {
-            components[context.randRange(0, totalOrders - 1)].unavailableReason = UnavailableReason.AVAILABLE;
+            components[context.randRange(0, totalOrders - 1)]
+                .unavailableReason = UnavailableReason.AVAILABLE;
         }
 
         return
             AdvancedOrdersSpace({
                 orders: components,
-                isMatchable: isMatchable
+                isMatchable: isMatchable,
+                maximumFulfilled: maximumFulfilled
             });
     }
 
@@ -160,10 +171,8 @@ library TestStateGenerator {
                 offer[i] = OfferItemSpace({
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 1)),
-                    // TODO: support wildcard criteria, should be 0-1
-                    criteria: Criteria(context.randEnum(0, 0)),
-                    // TODO: Fixed amounts only, should be 0-2
-                    amount: Amount(context.randEnum(0, 0))
+                    criteria: Criteria(context.randEnum(0, 1)),
+                    amount: Amount(context.randEnum(0, 2))
                 });
             }
 
@@ -178,8 +187,7 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                // TODO: Fixed amounts only, should be 0-2
-                amount: Amount(context.randEnum(0, 0))
+                amount: Amount(context.randEnum(0, 2))
             });
 
             context.basicOfferSpace = offer[0];
@@ -210,10 +218,9 @@ library TestStateGenerator {
                 consideration[i] = ConsiderationItemSpace({
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
-                    // TODO: support wildcard criteria, should be 0-1
-                    criteria: Criteria(context.randEnum(0, 0)),
+                    criteria: Criteria(context.randEnum(0, 1)),
                     // TODO: Fixed amounts only, should be 0-2
-                    amount: Amount(context.randEnum(0, 0)),
+                    amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
             }
@@ -227,7 +234,7 @@ library TestStateGenerator {
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
                 // TODO: Fixed amounts only, should be 0-2
-                amount: Amount(context.randEnum(0, 0)),
+                amount: Amount(context.randEnum(0, 2)),
                 recipient: Recipient(0) // Always offerer
             });
 
@@ -238,7 +245,7 @@ library TestStateGenerator {
                     criteria: Criteria(0),
                     // TODO: Fixed amounts only, should be 0-2
                     // TODO: sum(amounts) must be less than offer amount
-                    amount: Amount(context.randEnum(0, 0)),
+                    amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
             }
@@ -252,11 +259,12 @@ library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
+    using FuzzInscribers for AdvancedOrder;
+    using MatchComponentType for MatchComponent;
+    using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
-    using MatchComponentType for MatchComponent;
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
 
@@ -274,16 +282,13 @@ library AdvancedOrdersSpaceGenerator {
         _handleInsertIfAllEmpty(orders, context);
         _handleInsertIfAllFilterable(orders, context, space);
 
-        bool ensureMatchable = (
-            space.isMatchable || _hasInvalidNativeOfferItems(orders)
-        );
-
         // Handle match case.
-        if (ensureMatchable) {
+        if (space.isMatchable) {
             _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
             _squareUpRemainders(orders, context);
+            space.maximumFulfilled = orders.length;
         } else {
             if (len > 1) {
                 _adjustUnavailable(orders, space, context);
@@ -315,8 +320,10 @@ library AdvancedOrdersSpaceGenerator {
                 OfferItem memory item = order.offer[j];
                 if (item.itemType == ItemType.NATIVE) {
                     // Generate a new offer and make sure it has no native items
-                    item = space.orders[i].offer[j].generate(context, true);
-                    break;
+                    orders[i].parameters.offer[j] = space
+                        .orders[i]
+                        .offer[j]
+                        .generate(context, true, i, j);
                 }
             }
         }
@@ -338,7 +345,8 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context,
-                false // ensureDirectSupport false: allow native offer items
+                false, // ensureDirectSupport false: allow native offer items
+                i
             );
             orders[i] = OrderLib
                 .empty()
@@ -355,10 +363,10 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         AdvancedOrdersSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
         for (uint256 i = 0; i < orders.length; ++i) {
             _adjustUnavailable(
-                orders[i].parameters,
+                orders[i],
                 space.orders[i].unavailableReason,
                 context
             );
@@ -366,25 +374,36 @@ library AdvancedOrdersSpaceGenerator {
     }
 
     function _adjustUnavailable(
-        OrderParameters memory order,
+        AdvancedOrder memory order,
         UnavailableReason reason,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
+        OrderParameters memory parameters = order.parameters;
         // UnavailableReason.AVAILABLE => take no action
         if (reason == UnavailableReason.EXPIRED) {
-            order = order.withGeneratedTime(
+            parameters = parameters.withGeneratedTime(
                 Time(context.randEnum(3, 4)),
                 context
             );
         } else if (reason == UnavailableReason.STARTS_IN_FUTURE) {
-            order = order.withGeneratedTime(
+            parameters = parameters.withGeneratedTime(
                 Time.STARTS_IN_FUTURE,
                 context
             );
+        } else if (reason == UnavailableReason.CANCELLED) {
+            order.inscribeOrderStatusCanceled(true, context.seaport);
+        } else if (reason == UnavailableReason.ALREADY_FULFILLED) {
+            order.inscribeOrderStatusNumeratorAndDenominator(
+                1,
+                1,
+                context.seaport
+            );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
             // TODO: update offerer + order type (point to bad contract offerer)
-            revert("FuzzGenerators: no support for failing contract order fuzzing");
-        } // CANCELLED + ALREADY_FULFILLED just need a status change
+            revert(
+                "FuzzGenerators: no support for failing contract order fuzzing"
+            );
+        }
     }
 
     /**
@@ -398,8 +417,9 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal {
         MatchComponent[] memory remainders;
+        CriteriaResolver[] memory resolvers;
         {
-            CriteriaResolver[] memory resolvers = context
+            resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
@@ -412,15 +432,52 @@ library AdvancedOrdersSpaceGenerator {
 
         // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
-            // Unpack the remainder from the MatchComponent into its
-            // constituent parts.
-            (uint256 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
-                .unpack();
+            uint256 resolvedIdentifier;
+            ItemType resolvedItemType;
+            ConsiderationItem memory item;
+            uint256 amount;
 
-            // Get the consideration item with the remainder.
-            ConsiderationItem memory item = orders[orderIndex]
-                .parameters
-                .consideration[itemIndex];
+            {
+                uint8 orderIndex;
+                uint8 itemIndex;
+
+                // Unpack the remainder from the MatchComponent into its
+                // constituent parts.
+                (amount, orderIndex, itemIndex) = remainders[i].unpack();
+
+                // Get the consideration item with the remainder.
+                item = orders[orderIndex].parameters.consideration[itemIndex];
+
+                resolvedIdentifier = item.identifierOrCriteria;
+                resolvedItemType = item.itemType;
+                if (
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    item.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    resolvedItemType = convertCriteriaItemType(item.itemType);
+                    if (item.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(
+                                uint256(orderIndex),
+                                uint256(itemIndex),
+                                Side.CONSIDERATION
+                            )
+                        );
+                        resolvedIdentifier = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .wildcardIdentifierForGivenItemHash(itemHash);
+                    } else {
+                        resolvedIdentifier = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .resolvableIdentifierForGivenCriteria(
+                                item.identifierOrCriteria
+                            )
+                            .resolvedIdentifier;
+                    }
+                }
+            }
 
             // Pick a random order to insert the remainder into.
             uint256 orderInsertionIndex = context.randRange(
@@ -437,9 +494,9 @@ library AdvancedOrdersSpaceGenerator {
             // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
                 newOffer[0] = OfferItem({
-                    itemType: item.itemType,
+                    itemType: resolvedItemType,
                     token: item.token,
-                    identifierOrCriteria: item.identifierOrCriteria,
+                    identifierOrCriteria: resolvedIdentifier,
                     startAmount: uint256(amount),
                     endAmount: uint256(amount)
                 });
@@ -463,9 +520,9 @@ library AdvancedOrdersSpaceGenerator {
                 // Insert the remainder into the new offer array at the
                 // insertion index.
                 newOffer[itemInsertionIndex] = OfferItem({
-                    itemType: item.itemType,
+                    itemType: resolvedItemType,
                     token: item.token,
-                    identifierOrCriteria: item.identifierOrCriteria,
+                    identifierOrCriteria: resolvedIdentifier,
                     startAmount: uint256(amount),
                     endAmount: uint256(amount)
                 });
@@ -481,6 +538,28 @@ library AdvancedOrdersSpaceGenerator {
                         j - 1
                     ];
                 }
+
+                // shift any wildcard offer items.
+                context.testHelpers.criteriaResolverHelper().shiftWildcards(
+                    orderInsertionIndex,
+                    Side.OFFER,
+                    itemInsertionIndex,
+                    newOffer.length - 1
+                );
+            }
+
+            bytes32 newOfferHash = keccak256(abi.encode(newOffer));
+
+            bytes32 existingOfferHash = keccak256(
+                abi.encode(orders[orderInsertionIndex].parameters.offer)
+            );
+
+            if (newOfferHash == existingOfferHash) {
+                // If the offer hash is the same, then the offer is unchanged.
+                // This can happen if the offer is empty and the remainder is
+                // inserted at index 0.  In this case, we can just skip this
+                // iteration.
+                revert("FuzzGenerators: offer hash unchanged");
             }
 
             // Replace the offer in the targeted order with the new offer.
@@ -490,7 +569,7 @@ library AdvancedOrdersSpaceGenerator {
         // TODO: remove this check once high confidence in the mechanic has been
         // established (this just fails fast to rule out downstream issues)
         if (remainders.length > 0) {
-            CriteriaResolver[] memory resolvers = context
+            resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
@@ -558,10 +637,17 @@ library AdvancedOrdersSpaceGenerator {
         view
         returns (SpentItem[] memory spent, ReceivedItem[] memory received)
     {
-        spent = getSpentItems(parameters, numerator, denominator);
-        received = getReceivedItems(parameters, numerator, denominator);
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
 
-        applyCriteriaResolvers(spent, received, orderIndex, criteriaResolvers);
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
     }
 
     function applyCriteriaResolvers(
@@ -596,7 +682,7 @@ library AdvancedOrdersSpaceGenerator {
             return ItemType.ERC1155;
         } else {
             revert(
-                "ZoneParametersLib: amount deriver helper resolving non criteria item type"
+                "FuzzGenerators: amount deriver helper resolving non criteria item type"
             );
         }
     }
@@ -781,62 +867,6 @@ library AdvancedOrdersSpaceGenerator {
         }
     }
 
-    function _locateCurrentAmount(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 startTime,
-        uint256 endTime,
-        bool roundUp
-    ) internal view returns (uint256 amount) {
-        // Only modify end amount if it doesn't already equal start amount.
-        if (startAmount != endAmount) {
-            // Declare variables to derive in the subsequent unchecked scope.
-            uint256 duration;
-            uint256 elapsed;
-            uint256 remaining;
-
-            // Skip underflow checks as startTime <= block.timestamp < endTime.
-            unchecked {
-                // Derive the duration for the order and place it on the stack.
-                duration = endTime - startTime;
-
-                // Derive time elapsed since the order started & place on stack.
-                elapsed = block.timestamp - startTime;
-
-                // Derive time remaining until order expires and place on stack.
-                remaining = duration - elapsed;
-            }
-
-            // Aggregate new amounts weighted by time with rounding factor.
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed));
-
-            // Use assembly to combine operations and skip divide-by-zero check.
-            assembly {
-                // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
-                // amount is set to zero if totalBeforeDivision is zero,
-                // as intermediate overflow can occur if it is zero.
-                amount := mul(
-                    iszero(iszero(totalBeforeDivision)),
-                    // Subtract 1 from the numerator and add 1 to the result if
-                    // roundUp is true to get the proper rounding direction.
-                    // Division is performed with no zero check as duration
-                    // cannot be zero as long as startTime < endTime.
-                    add(
-                        div(sub(totalBeforeDivision, roundUp), duration),
-                        roundUp
-                    )
-                )
-            }
-
-            // Return the current amount.
-            return amount;
-        }
-
-        // Return the original amount as startAmount == endAmount.
-        return endAmount;
-    }
-
     function _handleInsertIfAllEmpty(
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
@@ -872,7 +902,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             orderParams.consideration = consideration;
@@ -912,7 +944,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             orderParams.consideration = consideration;
@@ -944,7 +978,9 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
 
-            if (space.orders[i].unavailableReason != UnavailableReason.AVAILABLE) {
+            if (
+                space.orders[i].unavailableReason != UnavailableReason.AVAILABLE
+            ) {
                 continue;
             }
 
@@ -997,10 +1033,7 @@ library AdvancedOrdersSpaceGenerator {
             // add a consideration item to a random order.
             if (orderParams.consideration.length == 0) {
                 // Pick a random order to insert the consideration item into.
-                orderInsertionIndex = context.randRange(
-                    0,
-                    orders.length - 1
-                );
+                orderInsertionIndex = context.randRange(0, orders.length - 1);
 
                 // Set the orderParams variable to the parameters of the order
                 // that was picked.
@@ -1017,14 +1050,18 @@ library AdvancedOrdersSpaceGenerator {
                 consideration[0] = TestStateGenerator
                 .generateConsideration(1, context, true)[0].generate(
                         context,
-                        orderParams.offerer
+                        orderParams.offerer,
+                        orderInsertionIndex,
+                        0
                     );
 
                 // Set the consideration item array on the order parameters.
                 orderParams.consideration = consideration;
             }
 
-            space.orders[orderInsertionIndex % orders.length].unavailableReason = UnavailableReason.AVAILABLE;
+            space
+                .orders[orderInsertionIndex % orders.length]
+                .unavailableReason = UnavailableReason.AVAILABLE;
 
             // Pick a random consideration item to modify.
             uint256 itemIndex = context.randRange(
@@ -1105,7 +1142,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             // Set the consideration item array on the order parameters.
@@ -1227,7 +1266,8 @@ library OrderComponentsSpaceGenerator {
     function generate(
         OrderComponentsSpace memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex
     ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
@@ -1236,9 +1276,15 @@ library OrderComponentsSpaceGenerator {
             params = OrderParametersLib
                 .empty()
                 .withOfferer(offerer)
-                .withOffer(space.offer.generate(context, ensureDirectSupport))
+                .withOffer(
+                    space.offer.generate(
+                        context,
+                        ensureDirectSupport,
+                        orderIndex
+                    )
+                )
                 .withConsideration(
-                    space.consideration.generate(context, offerer)
+                    space.consideration.generate(context, offerer, orderIndex)
                 )
                 .withConduitKey(space.conduit.generate(context).key);
         }
@@ -1317,14 +1363,21 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex
     ) internal returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
 
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], context, ensureDirectSupport);
+            offerItems[i] = generate(
+                space[i],
+                context,
+                ensureDirectSupport,
+                orderIndex,
+                i
+            );
         }
         return offerItems;
     }
@@ -1332,7 +1385,9 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (OfferItem memory) {
         ItemType itemType = space.itemType;
 
@@ -1340,17 +1395,20 @@ library OfferItemSpaceGenerator {
             itemType = ItemType(context.randRange(1, 5));
         }
 
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(itemType)
+            .withToken(space.tokenIndex.generate(itemType, context))
+            .withGeneratedAmount(space.amount, context);
+
         return
-            OfferItemLib
-                .empty()
-                .withItemType(itemType)
-                .withToken(space.tokenIndex.generate(itemType, context))
-                .withGeneratedAmount(space.amount, context)
-                .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
-                    space.criteria,
-                    context
-                );
+            offerItem.withGeneratedIdentifierOrCriteria(
+                itemType,
+                space.criteria,
+                context,
+                orderIndex,
+                itemIndex
+            );
     }
 }
 
@@ -1365,7 +1423,8 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex
     ) internal returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -1374,7 +1433,13 @@ library ConsiderationItemSpaceGenerator {
         );
 
         for (uint256 i; i < len; ++i) {
-            considerationItems[i] = generate(space[i], context, offerer);
+            considerationItems[i] = generate(
+                space[i],
+                context,
+                offerer,
+                orderIndex,
+                i
+            );
         }
 
         return considerationItems;
@@ -1383,22 +1448,25 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (ConsiderationItem memory) {
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
             .withItemType(space.itemType)
             .withToken(space.tokenIndex.generate(space.itemType, context))
-            .withGeneratedAmount(space.amount, context);
+            .withGeneratedAmount(space.amount, context)
+            .withRecipient(space.recipient.generate(context, offerer));
 
         return
-            considerationItem
-                .withRecipient(space.recipient.generate(context, offerer))
-                .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
-                    space.criteria,
-                    context
-                );
+            considerationItem.withGeneratedIdentifierOrCriteria(
+                space.itemType,
+                space.criteria,
+                context,
+                orderIndex,
+                itemIndex
+            );
     }
 }
 
@@ -1574,12 +1642,12 @@ library TimeGenerator {
             uint256 a = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
             uint256 b = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
             low = a < b ? a : b;
             high = a > b ? a : b;
@@ -1589,7 +1657,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
         }
         if (time == Time.ONGOING) {
@@ -1597,7 +1665,7 @@ library TimeGenerator {
             high = bound(
                 context.prng.next(),
                 context.timestamp + 1,
-                type(uint256).max
+                type(uint40).max
             );
         }
         if (time == Time.EXACT_END) {
@@ -1633,8 +1701,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         // TODO: Work out a better way to handle this
         if (context.basicOrderCategory == BasicOrderCategory.BID) {
@@ -1670,8 +1738,8 @@ library AmountGenerator {
             return item.withStartAmount(1).withEndAmount(1);
         }
 
-        uint256 a = bound(context.prng.next(), 1, 1_000_000e18);
-        uint256 b = bound(context.prng.next(), 1, 1_000_000e18);
+        uint256 a = bound(context.prng.next(), 1, 100_000_000e18);
+        uint256 b = bound(context.prng.next(), 1, 100_000_000e18);
 
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
@@ -1727,7 +1795,9 @@ library CriteriaGenerator {
         ConsiderationItem memory item,
         ItemType itemType,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -1763,6 +1833,17 @@ library CriteriaGenerator {
                 // as criteria
                 return item.withIdentifierOrCriteria(derivedCriteria);
             } else {
+                // Select and register an identifier
+                context.testHelpers.criteriaResolverHelper().generateWildcard(
+                    context.prng,
+                    itemType == ItemType.ERC721_WITH_CRITERIA
+                        ? context.starting721offerIndex++
+                        : type(uint256).max,
+                    orderIndex,
+                    itemIndex,
+                    Side.CONSIDERATION
+                );
+
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);
             }
@@ -1773,7 +1854,9 @@ library CriteriaGenerator {
         OfferItem memory item,
         ItemType itemType,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -1808,6 +1891,17 @@ library CriteriaGenerator {
                 // as criteria
                 return item.withIdentifierOrCriteria(derivedCriteria);
             } else {
+                // Select and register an identifier
+                context.testHelpers.criteriaResolverHelper().generateWildcard(
+                    context.prng,
+                    itemType == ItemType.ERC721_WITH_CRITERIA
+                        ? context.starting721offerIndex++
+                        : type(uint256).max,
+                    orderIndex,
+                    itemIndex,
+                    Side.OFFER
+                );
+
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);
             }

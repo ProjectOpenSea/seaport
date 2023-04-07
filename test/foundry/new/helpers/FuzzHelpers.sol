@@ -501,9 +501,10 @@ library FuzzHelpers {
      * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
      *
-     * @param orders    The restricted orders.
-     * @param seaport   The Seaport address.
-     * @param fulfiller The fulfiller.
+     * @param orders           The restricted orders.
+     * @param seaport          The Seaport address.
+     * @param fulfiller        The fulfiller.
+     * @param maximumFulfilled The maximum number of orders to fulfill.
      *
      * @return calldataHashes The derived calldata hashes.
      */
@@ -511,13 +512,14 @@ library FuzzHelpers {
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller,
-        CriteriaResolver[] memory criteriaResolvers
+        CriteriaResolver[] memory criteriaResolvers,
+        uint256 maximumFulfilled
     ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
         ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
             fulfiller,
-            orders.length, // TODO: use maximumFulfilled
+            maximumFulfilled,
             seaport,
             criteriaResolvers
         );
@@ -738,6 +740,14 @@ library FuzzHelpers {
         }
     }
 
+    function cancelTipNeutralizedOrder(
+        AdvancedOrder memory order,
+        ConsiderationInterface seaport
+    ) internal view returns (bytes32 orderHash) {
+        // Get the orderHash using the tweaked OrderComponents.
+        orderHash = getTipNeutralizedOrderHash(order, seaport);
+    }
+
     /**
      * @dev Check all offer and consideration items for criteria.
      *
@@ -782,4 +792,57 @@ library FuzzHelpers {
 
         return (false, false);
     }
+}
+
+function _locateCurrentAmount(
+    uint256 startAmount,
+    uint256 endAmount,
+    uint256 startTime,
+    uint256 endTime,
+    bool roundUp
+) view returns (uint256 amount) {
+    // Only modify end amount if it doesn't already equal start amount.
+    if (startAmount != endAmount) {
+        // Declare variables to derive in the subsequent unchecked scope.
+        uint256 duration;
+        uint256 elapsed;
+        uint256 remaining;
+
+        // Skip underflow checks as startTime <= block.timestamp < endTime.
+        unchecked {
+            // Derive the duration for the order and place it on the stack.
+            duration = endTime - startTime;
+
+            // Derive time elapsed since the order started & place on stack.
+            elapsed = block.timestamp - startTime;
+
+            // Derive time remaining until order expires and place on stack.
+            remaining = duration - elapsed;
+        }
+
+        // Aggregate new amounts weighted by time with rounding factor.
+        uint256 totalBeforeDivision = ((startAmount * remaining) +
+            (endAmount * elapsed));
+
+        // Use assembly to combine operations and skip divide-by-zero check.
+        assembly {
+            // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
+            // amount is set to zero if totalBeforeDivision is zero,
+            // as intermediate overflow can occur if it is zero.
+            amount := mul(
+                iszero(iszero(totalBeforeDivision)),
+                // Subtract 1 from the numerator and add 1 to the result if
+                // roundUp is true to get the proper rounding direction.
+                // Division is performed with no zero check as duration
+                // cannot be zero as long as startTime < endTime.
+                add(div(sub(totalBeforeDivision, roundUp), duration), roundUp)
+            )
+        }
+
+        // Return the current amount.
+        return amount;
+    }
+
+    // Return the original amount as startAmount == endAmount.
+    return endAmount;
 }
