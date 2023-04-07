@@ -617,6 +617,9 @@ library AdvancedOrdersSpaceGenerator {
             );
 
             if (remainders.length > 0) {
+                // NOTE: this may be caused by inserting offer items into orders
+                // with partial fill fractions. The amount on the item that is
+                // inserted should be increased based on fraction in that case.
                 revert("FuzzGenerators: could not satisfy remainders");
             }
         }
