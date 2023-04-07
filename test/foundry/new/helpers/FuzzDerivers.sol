@@ -56,13 +56,11 @@ abstract contract FuzzDerivers is
             // TEMP (TODO: handle upstream)
             vm.assume(!(order.startTime == 0 && order.endTime == 0));
 
-            bool isAvailable = (
-                block.timestamp < order.endTime && // not expired
+            bool isAvailable = (block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
                 status != OrderStatusEnum.FULFILLED && // not fully filled
-                totalAvailable < context.maximumFulfilled
-            );
+                totalAvailable < context.maximumFulfilled);
 
             if (isAvailable) {
                 ++totalAvailable;
@@ -74,111 +72,15 @@ abstract contract FuzzDerivers is
         context.expectedAvailableOrders = expectedAvailableOrders;
     }
 
-    function deriveCriteriaResolvers(
-        FuzzTestContext memory context
-    ) public view {
+    function deriveCriteriaResolvers(FuzzTestContext memory context) public view {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
 
-        uint256 totalCriteriaItems;
-
-        for (uint256 i; i < context.orders.length; i++) {
-            // Note: criteria resolvers do not need to be provided for
-            // unavailable orders, but generally will be provided as
-            // availability is usually unknown at submission time.
-            // Consider adding a fuzz condition to supply all or only
-            // the necessary resolvers.
-            AdvancedOrder memory order = context.orders[i];
-
-            for (uint256 j; j < order.parameters.offer.length; j++) {
-                OfferItem memory offerItem = order.parameters.offer[j];
-                if (
-                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    totalCriteriaItems++;
-                }
-            }
-
-            for (uint256 j; j < order.parameters.consideration.length; j++) {
-                ConsiderationItem memory considerationItem = order
-                    .parameters
-                    .consideration[j];
-                if (
-                    considerationItem.itemType ==
-                    ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    totalCriteriaItems++;
-                }
-            }
-        }
-
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
-            totalCriteriaItems
-        );
-
-        totalCriteriaItems = 0;
-
-        for (uint256 i; i < context.orders.length; i++) {
-            AdvancedOrder memory order = context.orders[i];
-
-            for (uint256 j; j < order.parameters.offer.length; j++) {
-                OfferItem memory offerItem = order.parameters.offer[j];
-                if (
-                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    CriteriaMetadata memory criteriaMetadata = (
-                        criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                offerItem.identifierOrCriteria
-                            )
-                    );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.OFFER,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
-                    totalCriteriaItems++;
-                }
-            }
-
-            for (uint256 j; j < order.parameters.consideration.length; j++) {
-                ConsiderationItem memory considerationItem = order
-                    .parameters
-                    .consideration[j];
-                if (
-                    considerationItem.itemType ==
-                    ItemType.ERC721_WITH_CRITERIA ||
-                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    CriteriaMetadata
-                        memory criteriaMetadata = criteriaResolverHelper
-                            .resolvableIdentifierForGivenCriteria(
-                                considerationItem.identifierOrCriteria
-                            );
-                    criteriaResolvers[totalCriteriaItems] = CriteriaResolver({
-                        orderIndex: i,
-                        index: j,
-                        side: Side.CONSIDERATION,
-                        identifier: criteriaMetadata.resolvedIdentifier,
-                        criteriaProof: criteriaMetadata.proof
-                    });
-                    // TODO: choose one at random for wildcards
-                    totalCriteriaItems++;
-                }
-            }
-        }
+        CriteriaResolver[] memory criteriaResolvers = criteriaResolverHelper
+            .deriveCriteriaResolvers(context.orders);
 
         context.criteriaResolvers = criteriaResolvers;
-
-        // TODO: read from test context
-        // TODO: handle wildcard
     }
 
     /**
