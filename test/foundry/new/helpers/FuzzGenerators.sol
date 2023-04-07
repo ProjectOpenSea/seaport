@@ -297,6 +297,11 @@ library AdvancedOrdersSpaceGenerator {
             _syncStatuses(orders, space, context);
         }
 
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
+        }
+
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
