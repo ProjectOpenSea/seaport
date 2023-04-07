@@ -417,7 +417,6 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal {
         MatchComponent[] memory remainders;
-        MatchComponent[] memory preLogicRemainders;
         CriteriaResolver[] memory resolvers;
         {
             resolvers = context
@@ -429,17 +428,6 @@ library AdvancedOrdersSpaceGenerator {
             (, , remainders) = context.testHelpers.getMatchedFulfillments(
                 details
             );
-
-            if (remainders.length > 0) {
-                for (uint256 i; i < remainders.length; i++) {
-                    (
-                        uint256 amount,
-                        uint8 orderIndex,
-                        uint8 itemIndex
-                    ) = remainders[i].unpack();
-                }
-                preLogicRemainders = remainders;
-            }
         }
 
         // Iterate over the remainders and insert them into the orders.
@@ -470,8 +458,8 @@ library AdvancedOrdersSpaceGenerator {
                     if (item.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
                             abi.encodePacked(
-                                orderIndex,
-                                itemIndex,
+                                uint256(orderIndex),
+                                uint256(itemIndex),
                                 Side.CONSIDERATION
                             )
                         );
