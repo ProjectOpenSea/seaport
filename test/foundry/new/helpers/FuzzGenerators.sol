@@ -444,15 +444,52 @@ library AdvancedOrdersSpaceGenerator {
 
         // Iterate over the remainders and insert them into the orders.
         for (uint256 i = 0; i < remainders.length; ++i) {
-            // Unpack the remainder from the MatchComponent into its
-            // constituent parts.
-            (uint256 amount, uint8 orderIndex, uint8 itemIndex) = remainders[i]
-                .unpack();
+            uint256 resolvedIdentifier;
+            ItemType resolvedItemType;
+            ConsiderationItem memory item;
+            uint256 amount;
 
-            // Get the consideration item with the remainder.
-            ConsiderationItem memory item = orders[orderIndex]
-                .parameters
-                .consideration[itemIndex];
+            {
+                uint8 orderIndex;
+                uint8 itemIndex;
+
+                // Unpack the remainder from the MatchComponent into its
+                // constituent parts.
+                (amount, orderIndex, itemIndex) = remainders[i].unpack();
+
+                // Get the consideration item with the remainder.
+                item = orders[orderIndex].parameters.consideration[itemIndex];
+
+                resolvedIdentifier = item.identifierOrCriteria;
+                resolvedItemType = item.itemType;
+                if (
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    item.itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    resolvedItemType = convertCriteriaItemType(item.itemType);
+                    if (item.identifierOrCriteria == 0) {
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(
+                                orderIndex,
+                                itemIndex,
+                                Side.CONSIDERATION
+                            )
+                        );
+                        resolvedIdentifier = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .wildcardIdentifierForGivenItemHash(itemHash);
+                    } else {
+                        resolvedIdentifier = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .resolvableIdentifierForGivenCriteria(
+                                item.identifierOrCriteria
+                            )
+                            .resolvedIdentifier;
+                    }
+                }
+            }
 
             // Pick a random order to insert the remainder into.
             uint256 orderInsertionIndex = context.randRange(
@@ -469,9 +506,9 @@ library AdvancedOrdersSpaceGenerator {
             // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
                 newOffer[0] = OfferItem({
-                    itemType: item.itemType,
+                    itemType: resolvedItemType,
                     token: item.token,
-                    identifierOrCriteria: item.identifierOrCriteria,
+                    identifierOrCriteria: resolvedIdentifier,
                     startAmount: uint256(amount),
                     endAmount: uint256(amount)
                 });
@@ -495,9 +532,9 @@ library AdvancedOrdersSpaceGenerator {
                 // Insert the remainder into the new offer array at the
                 // insertion index.
                 newOffer[itemInsertionIndex] = OfferItem({
-                    itemType: item.itemType,
+                    itemType: resolvedItemType,
                     token: item.token,
-                    identifierOrCriteria: item.identifierOrCriteria,
+                    identifierOrCriteria: resolvedIdentifier,
                     startAmount: uint256(amount),
                     endAmount: uint256(amount)
                 });
@@ -647,7 +684,7 @@ library AdvancedOrdersSpaceGenerator {
             return ItemType.ERC1155;
         } else {
             revert(
-                "ZoneParametersLib: amount deriver helper resolving non criteria item type"
+                "FuzzGenerators: amount deriver helper resolving non criteria item type"
             );
         }
     }
