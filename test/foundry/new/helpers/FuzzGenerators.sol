@@ -28,8 +28,6 @@ import {
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
-
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {

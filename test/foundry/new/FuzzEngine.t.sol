@@ -28,8 +28,8 @@ import {
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
-    ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+    SeaportInterface
+} from "../../../contracts/interfaces/SeaportInterface.sol";
 
 import {
     HashValidationZoneOfferer
@@ -93,14 +93,14 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         bytes4[] memory expectedActions = new bytes4[](4);
-        expectedActions[0] = ConsiderationInterface.fulfillOrder.selector;
-        expectedActions[1] = ConsiderationInterface
+        expectedActions[0] = SeaportInterface.fulfillOrder.selector;
+        expectedActions[1] = SeaportInterface
             .fulfillAdvancedOrder
             .selector;
-        expectedActions[2] = ConsiderationInterface
+        expectedActions[2] = SeaportInterface
             .fulfillAvailableOrders
             .selector;
-        expectedActions[3] = ConsiderationInterface
+        expectedActions[3] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
 
@@ -148,7 +148,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(1);
         assertEq(
             context.action(),
-            ConsiderationInterface.fulfillOrder.selector
+            SeaportInterface.fulfillOrder.selector
         );
 
         context = FuzzTestContextLib
@@ -168,7 +168,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(1);
         assertEq(
             context.action(),
-            ConsiderationInterface.fulfillAdvancedOrder.selector
+            SeaportInterface.fulfillAdvancedOrder.selector
         );
     }
 
@@ -182,10 +182,10 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         bytes4[] memory expectedActions = new bytes4[](2);
-        expectedActions[0] = ConsiderationInterface
+        expectedActions[0] = SeaportInterface
             .fulfillAdvancedOrder
             .selector;
-        expectedActions[1] = ConsiderationInterface
+        expectedActions[1] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
 
@@ -233,7 +233,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(1);
         assertEq(
             context.action(),
-            ConsiderationInterface.fulfillAdvancedOrder.selector
+            SeaportInterface.fulfillAdvancedOrder.selector
         );
     }
 
@@ -258,7 +258,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(1);
         assertEq(
             context.action(),
-            ConsiderationInterface.fulfillBasicOrder.selector
+            SeaportInterface.fulfillBasicOrder.selector
         );
 
         context = FuzzTestContextLib
@@ -287,18 +287,18 @@ contract FuzzEngineTest is FuzzEngine {
         AdvancedOrder[] memory orders = _setUpBasicOrder();
 
         bytes4[] memory expectedActions = new bytes4[](6);
-        expectedActions[0] = ConsiderationInterface.fulfillOrder.selector;
-        expectedActions[1] = ConsiderationInterface
+        expectedActions[0] = SeaportInterface.fulfillOrder.selector;
+        expectedActions[1] = SeaportInterface
             .fulfillAdvancedOrder
             .selector;
-        expectedActions[2] = ConsiderationInterface.fulfillBasicOrder.selector;
-        expectedActions[3] = ConsiderationInterface
+        expectedActions[2] = SeaportInterface.fulfillBasicOrder.selector;
+        expectedActions[3] = SeaportInterface
             .fulfillBasicOrder_efficient_6GL6yc
             .selector;
-        expectedActions[4] = ConsiderationInterface
+        expectedActions[4] = SeaportInterface
             .fulfillAvailableOrders
             .selector;
-        expectedActions[5] = ConsiderationInterface
+        expectedActions[5] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
 
@@ -335,19 +335,19 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         bytes4[] memory expectedActions = new bytes4[](4);
-        expectedActions[0] = ConsiderationInterface
+        expectedActions[0] = SeaportInterface
             .fulfillAvailableOrders
             .selector;
-        expectedActions[1] = ConsiderationInterface
+        expectedActions[1] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
-        expectedActions[2] = ConsiderationInterface.matchOrders.selector;
-        expectedActions[3] = ConsiderationInterface
+        expectedActions[2] = SeaportInterface.matchOrders.selector;
+        expectedActions[3] = SeaportInterface
             .matchAdvancedOrders
             .selector;
         // TODO: undo pended actions (cancel, validate)
-        /** expectedActions[4] = ConsiderationInterface.cancel.selector;
-        expectedActions[5] = ConsiderationInterface.validate.selector; */
+        /** expectedActions[4] = SeaportInterface.cancel.selector;
+        expectedActions[5] = SeaportInterface.validate.selector; */
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -398,7 +398,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(2);
         assertEq(
             context.action(),
-            ConsiderationInterface.fulfillAvailableOrders.selector
+            SeaportInterface.fulfillAvailableOrders.selector
         );
 
         context = FuzzTestContextLib
@@ -436,7 +436,7 @@ contract FuzzEngineTest is FuzzEngine {
                 })
             )
             .withMaximumFulfilled(2);
-        assertEq(context.action(), ConsiderationInterface.matchOrders.selector);
+        assertEq(context.action(), SeaportInterface.matchOrders.selector);
 
         context = FuzzTestContextLib
             .from({
@@ -455,7 +455,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withMaximumFulfilled(2);
         assertEq(
             context.action(),
-            ConsiderationInterface.matchAdvancedOrders.selector
+            SeaportInterface.matchAdvancedOrders.selector
         );
 
         // TODO: undo pended actions (match, cancel, validate)
@@ -465,7 +465,7 @@ contract FuzzEngineTest is FuzzEngine {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 4 })
         });
-        assertEq(context.action(), ConsiderationInterface.cancel.selector);
+        assertEq(context.action(), SeaportInterface.cancel.selector);
 
         context = FuzzTestContextLib.from({
             orders: orders,
@@ -473,7 +473,7 @@ contract FuzzEngineTest is FuzzEngine {
             caller: address(this),
             fuzzParams: FuzzParams({ seed: 5 })
         });
-        assertEq(context.action(), ConsiderationInterface.validate.selector); */
+        assertEq(context.action(), SeaportInterface.validate.selector); */
     }
 
     /// @dev Call exec for a single standard order.

@@ -5,7 +5,39 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    BasicOrderParametersLib,
+    MatchComponent
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    BasicOrderParameters,
+    CriteriaResolver,
+    Execution,
+    Fulfillment,
+    FulfillmentComponent
+} from "seaport-sol/SeaportStructs.sol";
+
+import {
+    OrderStatus as OrderStatusEnum,
+    UnavailableReason
+} from "seaport-sol/SpaceEnums.sol";
+
+import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import {
+    AmountDeriverHelper
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { Account } from "../BaseOrderTest.sol";
 
@@ -14,19 +46,6 @@ import { Result } from "./FuzzHelpers.sol";
 import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
-
-import {
-    AmountDeriverHelper
-} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
-
-import {
-    OrderStatus as OrderStatusEnum,
-    UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
-
-import {
-    AdvancedOrdersSpace
-} from "seaport-sol/StructSpace.sol";
 
 struct FuzzParams {
     uint256 seed;
@@ -121,7 +140,8 @@ struct FuzzTestContext {
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
-     *      automatically copied if you use the FuzzTestContextLib.from() function.
+     *      automatically copied if you use the FuzzTestContextLib.from()
+     *      function.
      */
     AdvancedOrder[] initialOrders;
     /**
@@ -206,11 +226,10 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
-
     bool[] expectedAvailableOrders;
-
     /**
-     * @dev Expected event hashes. Encompasses all events that match watched topic0s.
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
      */
     bytes32[] expectedEventHashes;
     /**
@@ -372,10 +391,12 @@ library FuzzTestContextLib {
     /**
      * @dev Sets the ConduitControllerInterface on a FuzzTestContext
      *
-     * @param context the FuzzTestContext to set the ConduitControllerInterface of
+     * @param context           the FuzzTestContext to set the
+     *                          ConduitControllerInterface of
      * @param conduitController the ConduitControllerInterface to set
      *
-     * @return _context the FuzzTestContext with the ConduitControllerInterface set
+     * @return _context the FuzzTestContext with the ConduitControllerInterface
+     *                  set
      */
     function withConduitController(
         FuzzTestContext memory context,
@@ -534,10 +555,13 @@ library FuzzTestContextLib {
     /**
      * @dev Sets the considerationFulfillments on a FuzzTestContext
      *
-     * @param context the FuzzTestContext to set the considerationFulfillments of
-     * @param considerationFulfillments the considerationFulfillments value to set
+     * @param context                   the FuzzTestContext to set the
+     *                                  considerationFulfillments of
+     * @param considerationFulfillments the considerationFulfillments value to
+     *                                  set
      *
-     * @return _context the FuzzTestContext with the considerationFulfillments set
+     * @return _context the FuzzTestContext with the considerationFulfillments
+     *                  set
      */
     function withConsiderationFulfillments(
         FuzzTestContext memory context,
@@ -604,9 +628,11 @@ library FuzzTestContextLib {
             if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
-                context.preExecOrderStatuses[i] = OrderStatusEnum.CANCELLED_EXPLICIT;
+                context.preExecOrderStatuses[i] = OrderStatusEnum
+                    .CANCELLED_EXPLICIT;
             } else if (
-                space.orders[i].unavailableReason == UnavailableReason.ALREADY_FULFILLED
+                space.orders[i].unavailableReason ==
+                UnavailableReason.ALREADY_FULFILLED
             ) {
                 context.preExecOrderStatuses[i] = OrderStatusEnum.FULFILLED;
             } else {

@@ -1,31 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Account, BaseOrderTest } from "../../BaseOrderTest.sol";
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    ConsiderationItemLib,
+    FulfillmentComponentLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib,
+    SeaportArrays
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    ConsiderationItem,
+    Fulfillment,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     MatchFulfillmentHelper
 } from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
-
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import {
     MatchComponent,
     MatchComponentType
 } from "seaport-sol/lib/types/MatchComponentType.sol";
 
+import { Account, BaseOrderTest } from "../../BaseOrderTest.sol";
+
 contract MatchFulfillmentHelperTest is BaseOrderTest {
     using Strings for uint256;
 
     using ConsiderationItemLib for ConsiderationItem;
     using FulfillmentComponentLib for FulfillmentComponent;
+    using MatchComponentType for MatchComponent;
     using OfferItemLib for OfferItem;
     using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
     using OrderLib for Order;
-    using MatchComponentType for MatchComponent;
+    using OrderParametersLib for OrderParameters;
 
     // MatchFulfillmentHelper matcher;
 
