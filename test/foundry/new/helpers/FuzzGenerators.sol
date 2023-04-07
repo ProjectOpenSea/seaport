@@ -112,7 +112,7 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 2)) // TODO: back to 1-4
+                    : UnavailableReason(context.randEnum(1, 4))
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -296,12 +296,45 @@ library AdvancedOrdersSpaceGenerator {
                 _ensureAllAvailable(space);
             }
             _ensureDirectSupport(orders, space, context);
+            _syncStatuses(orders, space, context);
         }
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function _syncStatuses(
+        AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal {
+        for (uint256 i = 0; i < orders.length; i++) {
+            if (
+                space.orders[i].unavailableReason == UnavailableReason.CANCELLED
+            ) {
+                orders[i].inscribeOrderStatusCanceled(true, context.seaport);
+            } else if (
+                space.orders[i].unavailableReason ==
+                UnavailableReason.ALREADY_FULFILLED
+            ) {
+                orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    1,
+                    1,
+                    context.seaport
+                );
+            } else if (
+                space.orders[i].unavailableReason == UnavailableReason.AVAILABLE
+            ) {
+                orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    0,
+                    0,
+                    context.seaport
+                );
+                orders[i].inscribeOrderStatusCanceled(false, context.seaport);
+            }
+        }
     }
 
     function _ensureDirectSupport(

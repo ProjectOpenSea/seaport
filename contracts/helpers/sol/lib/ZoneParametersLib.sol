@@ -156,11 +156,7 @@ library ZoneParametersLib {
         // Iterate over advanced orders to calculate orderHashes
         _applyOrderHashes(details, zoneParametersStruct.seaport);
 
-        return
-            _finalizeZoneParameters(
-                details,
-                SeaportInterface(zoneParametersStruct.seaport)
-            );
+        return _finalizeZoneParameters(details);
     }
 
     function _getZoneDetails(
@@ -580,23 +576,21 @@ library ZoneParametersLib {
     }
 
     function _finalizeZoneParameters(
-        ZoneDetails memory zoneDetails,
-        SeaportInterface seaport
-    ) internal view returns (ZoneParameters[] memory zoneParameters) {
+        ZoneDetails memory zoneDetails
+    ) internal pure returns (ZoneParameters[] memory zoneParameters) {
         zoneParameters = new ZoneParameters[](
             zoneDetails.advancedOrders.length
         );
 
         // Iterate through advanced orders to create zoneParameters
         uint256 totalFulfilled = 0;
+
         for (uint i = 0; i < zoneDetails.advancedOrders.length; i++) {
-            if (
-                !_isUnavailable(
-                    zoneDetails.advancedOrders[i].parameters,
-                    zoneDetails.orderHashes[i],
-                    seaport
-                )
-            ) {
+            if (totalFulfilled >= zoneDetails.maximumFulfilled) {
+                break;
+            }
+
+            if (zoneDetails.orderHashes[i] != bytes32(0)) {
                 // Create ZoneParameters and add to zoneParameters array
                 zoneParameters[i] = _createZoneParameters(
                     zoneDetails.orderHashes[i],
@@ -606,10 +600,6 @@ library ZoneParametersLib {
                     zoneDetails.orderHashes
                 );
                 ++totalFulfilled;
-            }
-
-            if (totalFulfilled > zoneDetails.maximumFulfilled) {
-                break;
             }
         }
 
