@@ -918,7 +918,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         if (failure) {
-            revert("ZoneParametersLib: bad fraction");
+            revert("AdvancedOrdersSpaceGenerator: bad fraction");
         }
 
         // Multiply the numerator by the value and ensure no overflow occurs.
