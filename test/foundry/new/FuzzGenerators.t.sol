@@ -21,6 +21,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -102,7 +103,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: new OrderComponentsSpace[](0),
             isMatchable: false,
-            maximumFulfilled: 0
+            maximumFulfilled: 0,
+            recipient: FulfillmentRecipient.ZERO
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -140,7 +142,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -187,7 +190,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -245,7 +249,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

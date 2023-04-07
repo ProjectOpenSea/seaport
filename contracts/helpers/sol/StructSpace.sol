@@ -9,6 +9,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -65,4 +66,5 @@ struct AdvancedOrdersSpace {
     OrderComponentsSpace[] orders;
     bool isMatchable;
     uint256 maximumFulfilled;
+    FulfillmentRecipient recipient;
 }
