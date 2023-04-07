@@ -45,8 +45,6 @@ import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
-import "hardhat/console.sol";
-
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -438,13 +436,6 @@ library AdvancedOrdersSpaceGenerator {
                         uint8 orderIndex,
                         uint8 itemIndex
                     ) = remainders[i].unpack();
-                    console.log("first remainders: \n");
-                    console.log(
-                        "amount: , orderIndex: %s, itemIndex: %s",
-                        amount,
-                        orderIndex,
-                        itemIndex
-                    );
                 }
                 preLogicRemainders = remainders;
             }
@@ -550,13 +541,6 @@ library AdvancedOrdersSpaceGenerator {
                     uint8 orderIndex,
                     uint8 itemIndex
                 ) = remainders[i].unpack();
-                console.log("second remainders: \n");
-                console.log(
-                    "amount: , orderIndex: %s, itemIndex: %s",
-                    amount,
-                    orderIndex,
-                    itemIndex
-                );
             }
             resolvers = context
                 .testHelpers
