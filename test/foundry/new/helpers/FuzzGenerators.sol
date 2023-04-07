@@ -25,6 +25,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -41,7 +42,11 @@ import {
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
+import {
+    FuzzHelpers,
+    Structure,
+    _locateCurrentAmount
+} from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
@@ -154,7 +159,9 @@ library TestStateGenerator {
             AdvancedOrdersSpace({
                 orders: components,
                 isMatchable: isMatchable,
-                maximumFulfilled: maximumFulfilled
+                maximumFulfilled: maximumFulfilled,
+                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                conduit: ConduitChoice(context.randEnum(0, 2))
             });
     }
 
@@ -253,6 +260,7 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
@@ -265,6 +273,8 @@ library AdvancedOrdersSpaceGenerator {
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
     using BroadOrderTypeGenerator for AdvancedOrder;
+    using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using ConduitGenerator for ConduitChoice;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -306,6 +316,20 @@ library AdvancedOrdersSpaceGenerator {
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function generateRecipient(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        return space.recipient.generate(context);
+    }
+
+    function generateFulfillerConduitKey(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes32) {
+        return space.conduit.generate(context).key;
     }
 
     function _syncStatuses(
@@ -2030,6 +2054,27 @@ library OffererGenerator {
             return context.bob.key;
         } else {
             revert("Invalid offerer");
+        }
+    }
+}
+
+library FulfillmentRecipientGenerator {
+    function generate(
+        FulfillmentRecipient recipient,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        if (recipient == FulfillmentRecipient.ZERO) {
+            return address(0);
+        } else if (recipient == FulfillmentRecipient.OFFERER) {
+            return context.offerer.addr;
+        } else if (recipient == FulfillmentRecipient.ALICE) {
+            return context.alice.addr;
+        } else if (recipient == FulfillmentRecipient.BOB) {
+            return context.bob.addr;
+        } else if (recipient == FulfillmentRecipient.EVE) {
+            return context.eve.addr;
+        } else {
+            revert("Invalid fulfillment recipient");
         }
     }
 }
