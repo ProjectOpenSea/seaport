@@ -3,20 +3,34 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
-
-import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
-
-import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    MatchComponent,
+    MatchComponentType,
+    OfferItemLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import {
-    AdvancedOrdersSpace,
-    ConsiderationItemSpace,
-    OfferItemSpace,
-    OrderComponentsSpace
-} from "seaport-sol/StructSpace.sol";
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    ItemType,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    OrderType,
+    ReceivedItem,
+    SpentItem
+} from "seaport-sol/SeaportStructs.sol";
 
-import { CriteriaMetadata } from "./CriteriaResolverHelper.sol";
+import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     Amount,
@@ -36,12 +50,29 @@ import {
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
 
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
+import {
+    AdvancedOrdersSpace,
+    ConsiderationItemSpace,
+    OfferItemSpace,
+    OrderComponentsSpace
+} from "seaport-sol/StructSpace.sol";
+
+import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
+
 import {
     FuzzGeneratorContext,
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
+import { _locateCurrentAmount, FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 

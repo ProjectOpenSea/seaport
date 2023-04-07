@@ -1,8 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "seaport-sol/SeaportStructs.sol";
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
+
+import {
+    ReceivedItem,
+    Schema,
+    SpentItem,
+    ZoneParameters
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     ContractOffererInterface

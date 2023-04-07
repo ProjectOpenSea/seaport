@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
+
+import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzChecks } from "./FuzzChecks.sol";
 
@@ -15,12 +17,10 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
 
-import {
-    OrderStatus as OrderStatusEnum
-} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+import { OrderStatus as OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
 /**
- *  @dev Some documentation.
+ *  @dev Make amendments to state based on the fuzz test context.
  */
 abstract contract FuzzAmendments is Test {
     using AdvancedOrderLib for AdvancedOrder[];

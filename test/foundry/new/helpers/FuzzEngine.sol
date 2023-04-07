@@ -1,9 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/console.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    BasicOrderParameters,
+    Execution,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
@@ -35,8 +59,6 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
-
-import { dumpExecutions } from "./DebugUtil.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -158,7 +180,7 @@ contract FuzzEngine is
         vm.warp(JAN_1_2023_UTC);
         // Set either the optimized version or the reference version of Seaport,
         // depending on the active profile.
-        ConsiderationInterface seaport_ = getSeaport();
+        SeaportInterface seaport_ = getSeaport();
         // Get the conduit controller, which allows dpeloying and managing
         // conduits.  Conduits are used to transfer tokens between accounts.
         ConduitControllerInterface conduitController_ = getConduitController();
@@ -440,7 +462,8 @@ contract FuzzEngine is
      * @dev Perform a "check," i.e. a post-execution assertion we want to
      *      validate. Checks should be public functions that accept a
      *      FuzzTestContext as their only argument. Checks have access to the
-     *      post-execution FuzzTestContext and can use it to make test assertions.
+     *      post-execution FuzzTestContext and can use it to make test
+     *      assertions.
      *
      *      Since we delegatecall ourself, checks must be public functions on
      *      this contract. It's a good idea to prefix them with "check_" as a

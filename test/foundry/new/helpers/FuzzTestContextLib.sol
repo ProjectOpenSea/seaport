@@ -17,16 +17,16 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
 import {
     AmountDeriverHelper
-} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
     OrderStatus as OrderStatusEnum,
     UnavailableReason
-} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+} from "seaport-sol/SpaceEnums.sol";
 
 import {
     AdvancedOrdersSpace
-} from "../../../../contracts/helpers/sol/StructSpace.sol";
+} from "seaport-sol/StructSpace.sol";
 
 struct FuzzParams {
     uint256 seed;

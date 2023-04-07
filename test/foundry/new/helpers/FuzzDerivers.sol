@@ -1,23 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/Test.sol";
-import "seaport-sol/SeaportSol.sol";
-import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
-import { FuzzEngineLib } from "./FuzzEngineLib.sol";
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { Test } from "forge-std/Test.sol";
+
+import { Vm } from "forge-std/Vm.sol";
+
+import {
+    AdvancedOrderLib,
+    FulfillAvailableHelper,
+    MatchComponent,
+    MatchComponentType,
+    MatchFulfillmentHelper
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    Execution,
+    Fulfillment,
+    FulfillmentComponent,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import { OrderStatus as OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+
 import {
     AmountDeriverHelper
-} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
+
+import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
 import {
-    CriteriaMetadata,
     CriteriaResolverHelper
 } from "./CriteriaResolverHelper.sol";
-import {
-    OrderStatus as OrderStatusEnum
-} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
-import { Vm } from "forge-std/Vm.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -43,7 +64,6 @@ abstract contract FuzzDerivers is
 
     function deriveAvailableOrders(FuzzTestContext memory context) public view {
         // TODO: handle skipped orders due to generateOrder reverts
-        // TODO: handle maximumFulfilled < orders.length
         bool[] memory expectedAvailableOrders = new bool[](
             context.orders.length
         );
@@ -72,7 +92,9 @@ abstract contract FuzzDerivers is
         context.expectedAvailableOrders = expectedAvailableOrders;
     }
 
-    function deriveCriteriaResolvers(FuzzTestContext memory context) public view {
+    function deriveCriteriaResolvers(
+        FuzzTestContext memory context
+    ) public view {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
@@ -185,7 +207,7 @@ abstract contract FuzzDerivers is
 
             if (explicitExecutions.length == 0) {
                 revert(
-                    "FuzzDerivers: no explicit executions derived on fulfillAvailable"
+                    "FuzzDerivers: no explicit execs derived - fulfillAvailable"
                 );
             }
         } else if (
@@ -202,7 +224,7 @@ abstract contract FuzzDerivers is
             vm.assume(explicitExecutions.length > 0);
 
             if (explicitExecutions.length == 0) {
-                revert("FuzzDerivers: no explicit executions derived on match");
+                revert("FuzzDerivers: no explicit executions derived - match");
             }
         }
         context.expectedImplicitExecutions = implicitExecutions;

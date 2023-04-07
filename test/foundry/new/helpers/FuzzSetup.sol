@@ -16,7 +16,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 import {
     AmountDeriverHelper
-} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
