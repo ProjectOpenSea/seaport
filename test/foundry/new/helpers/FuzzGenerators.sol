@@ -323,7 +323,7 @@ library AdvancedOrdersSpaceGenerator {
                     orders[i].parameters.offer[j] = space
                         .orders[i]
                         .offer[j]
-                        .generate(context, true);
+                        .generate(context, true, i, j);
                 }
             }
         }
@@ -345,7 +345,8 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i; i < orders.length; ++i) {
             OrderParameters memory orderParameters = space.orders[i].generate(
                 context,
-                false // ensureDirectSupport false: allow native offer items
+                false, // ensureDirectSupport false: allow native offer items
+                i
             );
             orders[i] = OrderLib
                 .empty()
@@ -866,7 +867,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             orderParams.consideration = consideration;
@@ -906,7 +909,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             orderParams.consideration = consideration;
@@ -1010,7 +1015,9 @@ library AdvancedOrdersSpaceGenerator {
                 consideration[0] = TestStateGenerator
                 .generateConsideration(1, context, true)[0].generate(
                         context,
-                        orderParams.offerer
+                        orderParams.offerer,
+                        orderInsertionIndex,
+                        0
                     );
 
                 // Set the consideration item array on the order parameters.
@@ -1100,7 +1107,9 @@ library AdvancedOrdersSpaceGenerator {
             consideration[0] = TestStateGenerator
             .generateConsideration(1, context, true)[0].generate(
                     context,
-                    orderParams.offerer
+                    orderParams.offerer,
+                    orderInsertionIndex,
+                    0
                 );
 
             // Set the consideration item array on the order parameters.
@@ -1222,7 +1231,8 @@ library OrderComponentsSpaceGenerator {
     function generate(
         OrderComponentsSpace memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex
     ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
@@ -1231,9 +1241,15 @@ library OrderComponentsSpaceGenerator {
             params = OrderParametersLib
                 .empty()
                 .withOfferer(offerer)
-                .withOffer(space.offer.generate(context, ensureDirectSupport))
+                .withOffer(
+                    space.offer.generate(
+                        context,
+                        ensureDirectSupport,
+                        orderIndex
+                    )
+                )
                 .withConsideration(
-                    space.consideration.generate(context, offerer)
+                    space.consideration.generate(context, offerer, orderIndex)
                 )
                 .withConduitKey(space.conduit.generate(context).key);
         }
@@ -1312,14 +1328,21 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex
     ) internal returns (OfferItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
         OfferItem[] memory offerItems = new OfferItem[](len);
 
         for (uint256 i; i < len; ++i) {
-            offerItems[i] = generate(space[i], context, ensureDirectSupport);
+            offerItems[i] = generate(
+                space[i],
+                context,
+                ensureDirectSupport,
+                orderIndex,
+                i
+            );
         }
         return offerItems;
     }
@@ -1327,7 +1350,9 @@ library OfferItemSpaceGenerator {
     function generate(
         OfferItemSpace memory space,
         FuzzGeneratorContext memory context,
-        bool ensureDirectSupport
+        bool ensureDirectSupport,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (OfferItem memory) {
         ItemType itemType = space.itemType;
 
@@ -1335,17 +1360,20 @@ library OfferItemSpaceGenerator {
             itemType = ItemType(context.randRange(1, 5));
         }
 
+        OfferItem memory offerItem = OfferItemLib
+            .empty()
+            .withItemType(itemType)
+            .withToken(space.tokenIndex.generate(itemType, context))
+            .withGeneratedAmount(space.amount, context);
+
         return
-            OfferItemLib
-                .empty()
-                .withItemType(itemType)
-                .withToken(space.tokenIndex.generate(itemType, context))
-                .withGeneratedAmount(space.amount, context)
-                .withGeneratedIdentifierOrCriteria(
-                    itemType,
-                    space.criteria,
-                    context
-                );
+            offerItem.withGeneratedIdentifierOrCriteria(
+                itemType,
+                space.criteria,
+                context,
+                orderIndex,
+                itemIndex
+            );
     }
 }
 
@@ -1360,7 +1388,8 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace[] memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex
     ) internal returns (ConsiderationItem[] memory) {
         uint256 len = bound(space.length, 0, 10);
 
@@ -1369,7 +1398,13 @@ library ConsiderationItemSpaceGenerator {
         );
 
         for (uint256 i; i < len; ++i) {
-            considerationItems[i] = generate(space[i], context, offerer);
+            considerationItems[i] = generate(
+                space[i],
+                context,
+                offerer,
+                orderIndex,
+                i
+            );
         }
 
         return considerationItems;
@@ -1378,22 +1413,25 @@ library ConsiderationItemSpaceGenerator {
     function generate(
         ConsiderationItemSpace memory space,
         FuzzGeneratorContext memory context,
-        address offerer
+        address offerer,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (ConsiderationItem memory) {
         ConsiderationItem memory considerationItem = ConsiderationItemLib
             .empty()
             .withItemType(space.itemType)
             .withToken(space.tokenIndex.generate(space.itemType, context))
-            .withGeneratedAmount(space.amount, context);
+            .withGeneratedAmount(space.amount, context)
+            .withRecipient(space.recipient.generate(context, offerer));
 
         return
-            considerationItem
-                .withRecipient(space.recipient.generate(context, offerer))
-                .withGeneratedIdentifierOrCriteria(
-                    space.itemType,
-                    space.criteria,
-                    context
-                );
+            considerationItem.withGeneratedIdentifierOrCriteria(
+                space.itemType,
+                space.criteria,
+                context,
+                orderIndex,
+                itemIndex
+            );
     }
 }
 
@@ -1722,7 +1760,9 @@ library CriteriaGenerator {
         ConsiderationItem memory item,
         ItemType itemType,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (ConsiderationItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -1758,6 +1798,17 @@ library CriteriaGenerator {
                 // as criteria
                 return item.withIdentifierOrCriteria(derivedCriteria);
             } else {
+                // Select and register an identifier
+                context.testHelpers.criteriaResolverHelper().generateWildcard(
+                    context.prng,
+                    itemType == ItemType.ERC721_WITH_CRITERIA
+                        ? context.starting721offerIndex++
+                        : type(uint256).max,
+                    orderIndex,
+                    itemIndex,
+                    Side.CONSIDERATION
+                );
+
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);
             }
@@ -1768,7 +1819,9 @@ library CriteriaGenerator {
         OfferItem memory item,
         ItemType itemType,
         Criteria criteria,
-        FuzzGeneratorContext memory context
+        FuzzGeneratorContext memory context,
+        uint256 orderIndex,
+        uint256 itemIndex
     ) internal returns (OfferItem memory) {
         if (itemType == ItemType.NATIVE || itemType == ItemType.ERC20) {
             return item.withIdentifierOrCriteria(0);
@@ -1803,6 +1856,17 @@ library CriteriaGenerator {
                 // as criteria
                 return item.withIdentifierOrCriteria(derivedCriteria);
             } else {
+                // Select and register an identifier
+                context.testHelpers.criteriaResolverHelper().generateWildcard(
+                    context.prng,
+                    itemType == ItemType.ERC721_WITH_CRITERIA
+                        ? context.starting721offerIndex++
+                        : type(uint256).max,
+                    orderIndex,
+                    itemIndex,
+                    Side.OFFER
+                );
+
                 // Return wildcard criteria item with identifier 0
                 return item.withIdentifierOrCriteria(0);
             }
