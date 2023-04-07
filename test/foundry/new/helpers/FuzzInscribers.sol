@@ -3,7 +3,11 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
-import "seaport-sol/SeaportSol.sol";
+// import "seaport-sol/SeaportSol.sol";
+
+import { AdvancedOrder, OrderStatus } from "seaport-sol/SeaportStructs.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 

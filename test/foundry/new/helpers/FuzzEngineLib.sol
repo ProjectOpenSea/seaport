@@ -20,6 +20,8 @@ import {
     OrderType
 } from "seaport-sol/SeaportStructs.sol";
 
+import { Side } from "seaport-sol/SeaportEnums.sol";
+
 import {
     _locateCurrentAmount,
     Family,
