@@ -21,6 +21,10 @@ import {
     HashValidationZoneOfferer
 } from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+
 import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
 
 import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
@@ -45,6 +49,7 @@ struct FuzzGeneratorContext {
     SeaportInterface seaport;
     ConduitControllerInterface conduitController;
     HashValidationZoneOfferer validatorZone;
+    HashCalldataContractOfferer contractOfferer;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
@@ -93,6 +98,7 @@ library FuzzGeneratorContextLib {
                 testHelpers: testHelpers,
                 timestamp: block.timestamp,
                 validatorZone: new HashValidationZoneOfferer(address(0)),
+                contractOfferer: new HashCalldataContractOfferer(address(0)),
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
                 offerer: testHelpers.makeAccount("offerer"),
@@ -158,6 +164,9 @@ library FuzzGeneratorContextLib {
                 testHelpers: testHelpers,
                 timestamp: block.timestamp,
                 validatorZone: new HashValidationZoneOfferer(address(0)),
+                contractOfferer: new HashCalldataContractOfferer(
+                    address(seaport)
+                ),
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
                 offerer: testHelpers.makeAccount("offerer"),

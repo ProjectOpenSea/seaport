@@ -122,7 +122,7 @@ library TestStateGenerator {
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
-                offerer: Offerer(context.randEnum(1, 2)),
+                offerer: Offerer(context.randEnum(1, 3)),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
@@ -1942,18 +1942,6 @@ library CriteriaGenerator {
     }
 }
 
-// execution lib generates fulfillments on the fly
-// generation phase geared around buidling orders
-// if some additional context needed,
-// building up crit resolver array in generation phase is more akin to fulfillments array
-// would rather we derive criteria resolvers rather than dictating what fuzz engine needs to do
-// need one more helper function to take generator context and add withCriteriaResolvers
-
-// right now, we're inserting item + order indexes whicih could get shuffled around in generation stage
-// ideally we would have mapping of merkle root => criteria resolver
-// when execution hits item w merkle root, look up root to get proof and identifier
-// add storage mapping to CriteriaResolverHelper
-
 library OffererGenerator {
     function generate(
         Offerer offerer,
@@ -1965,6 +1953,8 @@ library OffererGenerator {
             return context.alice.addr;
         } else if (offerer == Offerer.BOB) {
             return context.bob.addr;
+        } else if (offerer == Offerer.CONTRACT_OFFERER) {
+            return address(context.contractOfferer);
         } else {
             revert("Invalid offerer");
         }

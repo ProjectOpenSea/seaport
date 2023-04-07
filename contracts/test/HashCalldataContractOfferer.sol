@@ -60,7 +60,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     event GenerateOrderDataHash(bytes32 orderHash, bytes32 dataHash);
     event RatifyOrderDataHash(bytes32 orderHash, bytes32 dataHash);
 
-    address private immutable _SEAPORT;
+    address private _SEAPORT;
     address internal _expectedOfferRecipient;
 
     mapping(bytes32 => bytes32) public orderHashToGenerateOrderDataHash;
@@ -200,6 +200,15 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         }
 
         return this.ratifyOrder.selector;
+    }
+
+    /**
+     * @dev Allows us to set Seaport address following deployment.
+     *
+     * @param seaportAddress The Seaport address.
+     */
+    function setSeaportAddress(address seaportAddress) external {
+        _SEAPORT = seaportAddress;
     }
 
     function getSeaportMetadata()

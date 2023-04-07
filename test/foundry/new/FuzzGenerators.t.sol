@@ -45,6 +45,10 @@ import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
+import {
+    HashCalldataContractOfferer
+} from "../../../contracts/test/HashCalldataContractOfferer.sol";
+
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
     using PRNGHelpers for FuzzGeneratorContext;
@@ -69,6 +73,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 seaport: getSeaport(),
                 conduitController: getConduitController(),
                 validatorZone: new HashValidationZoneOfferer(address(0)),
+                contractOfferer: new HashCalldataContractOfferer(address(0)),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,

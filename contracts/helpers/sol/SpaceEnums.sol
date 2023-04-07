@@ -114,9 +114,9 @@ enum RecipientDirty {
 enum Offerer {
     TEST_CONTRACT,
     ALICE, // consider EOA space enum
-    BOB
+    BOB,
+    CONTRACT_OFFERER
     // EIP1271,
-    // CONTRACT_OFFERER
 }
 
 // debatable if needed but we do need to test zonehash permutations
