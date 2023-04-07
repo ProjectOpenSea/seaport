@@ -32,7 +32,7 @@ import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
 
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
@@ -196,17 +196,25 @@ contract FuzzEngine is
             generatorContext
         );
 
-        return
-            FuzzTestContextLib
-                .from({
-                    orders: orders,
-                    seaport: seaport_,
-                    caller: address(this)
-                })
-                .withConduitController(conduitController_)
-                .withFuzzParams(fuzzParams)
-                .withMaximumFulfilled(space.maximumFulfilled)
-                .withPreExecOrderStatuses(space);
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({ orders: orders, seaport: seaport_, caller: address(this) })
+            .withConduitController(conduitController_)
+            .withFuzzParams(fuzzParams)
+            .withMaximumFulfilled(space.maximumFulfilled)
+            .withPreExecOrderStatuses(space);
+
+        if (
+            orders.getStructure(address(context.seaport)) == Structure.ADVANCED
+        ) {
+            context = context.withRecipient(
+                AdvancedOrdersSpaceGenerator.generateRecipient(
+                    space,
+                    generatorContext
+                )
+            );
+        }
+
+        return context;
     }
 
     /**
