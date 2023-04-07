@@ -57,7 +57,7 @@ contract CriteriaResolverHelper {
 
     function deriveCriteriaResolvers(
         AdvancedOrder[] memory orders
-    ) public returns (CriteriaResolver[] memory criteriaResolvers) {
+    ) public view returns (CriteriaResolver[] memory criteriaResolvers) {
         uint256 maxLength;
 
         for (uint256 i; i < orders.length; i++) {
