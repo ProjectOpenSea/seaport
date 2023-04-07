@@ -1400,7 +1400,7 @@ library BroadOrderTypeGenerator {
         AdvancedOrder memory order,
         BroadOrderType broadOrderType,
         FuzzGeneratorContext memory context
-    ) internal view returns (AdvancedOrder memory) {
+    ) internal pure returns (AdvancedOrder memory) {
         OrderParameters memory orderParams = order.parameters;
         // NOTE: this assumes that the order type has been set to either
         // FULL_OPEN (by .empty()) or FULL_RESTRICTED (by ZoneGenerator).
