@@ -538,6 +538,14 @@ library AdvancedOrdersSpaceGenerator {
                         j - 1
                     ];
                 }
+
+                // shift any wildcard offer items.
+                context.testHelpers.criteriaResolverHelper().shiftWildcards(
+                    orderInsertionIndex,
+                    Side.OFFER,
+                    itemInsertionIndex,
+                    newOffer.length - 1
+                );
             }
 
             bytes32 newOfferHash = keccak256(abi.encode(newOffer));
@@ -561,13 +569,6 @@ library AdvancedOrdersSpaceGenerator {
         // TODO: remove this check once high confidence in the mechanic has been
         // established (this just fails fast to rule out downstream issues)
         if (remainders.length > 0) {
-            for (uint256 i; i < remainders.length; i++) {
-                (
-                    uint256 amount,
-                    uint8 orderIndex,
-                    uint8 itemIndex
-                ) = remainders[i].unpack();
-            }
             resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()

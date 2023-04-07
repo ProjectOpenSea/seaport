@@ -72,7 +72,7 @@ abstract contract FuzzDerivers is
         context.expectedAvailableOrders = expectedAvailableOrders;
     }
 
-    function deriveCriteriaResolvers(FuzzTestContext memory context) public {
+    function deriveCriteriaResolvers(FuzzTestContext memory context) public view {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
