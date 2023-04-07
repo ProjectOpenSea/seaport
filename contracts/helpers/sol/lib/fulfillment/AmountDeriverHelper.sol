@@ -421,6 +421,50 @@ contract AmountDeriverHelper is AmountDeriver {
             });
     }
 
+    function deriveFractionCompatibleAmounts(
+        uint256 originalStartAmount,
+        uint256 originalEndAmount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) public pure returns (uint256 newStartAmount, uint256 newEndAmount) {
+        if (
+            startTime >= endTime ||
+            numerator > denominator ||
+            numerator == 0 ||
+            denominator == 0 ||
+            (originalStartAmount == 0 && originalEndAmount == 0)
+        ) {
+            revert(
+                "AmountDeriverHelper: bad inputs to deriveFractionCompatibleAmounts"
+            );
+        }
+
+        uint256 duration = endTime - startTime;
+
+        // determine if duration or numerator is more likely to overflow when multiplied by value
+        uint256 overflowBottleneck = (numerator > duration)
+            ? numerator
+            : duration;
+
+        uint256 absoluteMax = type(uint256).max / overflowBottleneck;
+        uint256 fractionCompatibleMax = (absoluteMax / denominator) *
+            denominator;
+
+        newStartAmount = originalStartAmount % fractionCompatibleMax;
+        newStartAmount = (newStartAmount / denominator) * denominator;
+        newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
+
+        newEndAmount = originalEndAmount % fractionCompatibleMax;
+        newEndAmount = (newEndAmount / denominator) * denominator;
+        newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
+
+        if (newStartAmount == 0 && newEndAmount == 0) {
+            revert("AmountDeriverHelper: derived amount will always be zero");
+        }
+    }
+
     function _locateCurrentAmount(
         ConsiderationItem memory item,
         uint256 startTime,
@@ -442,7 +486,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         OfferItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
         return
@@ -463,7 +507,7 @@ contract AmountDeriverHelper is AmountDeriver {
         uint256 startTime,
         uint256 endTime,
         ConsiderationItem memory item
-    ) private view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 startAmount = item.startAmount;
         uint256 endAmount = item.endAmount;
 
