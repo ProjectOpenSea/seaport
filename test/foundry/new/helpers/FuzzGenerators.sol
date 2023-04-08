@@ -182,6 +182,34 @@ library TestStateGenerator {
             if (components[i].orderType == BroadOrderType.CONTRACT) {
                 components[i].offerer == Offerer.CONTRACT_OFFERER;
                 components[i].signatureMethod == SignatureMethod.CONTRACT;
+                components[i].tips = Tips.NONE;
+                if (
+                    components[i].unavailableReason ==
+                    UnavailableReason.ALREADY_FULFILLED ||
+                    components[i].unavailableReason ==
+                    UnavailableReason.CANCELLED
+                ) {
+                    // TODO: also support 5 (GENERATE_ORDER_FAILURE)
+                    components[i].unavailableReason = UnavailableReason(
+                        context.randEnum(1, 2)
+                    );
+                }
+
+                // Contract orders must have fixed amounts.
+                for (uint256 j = 0; j < components[i].offer.length; ++j) {
+                    components[i].offer[j].amount = Amount.FIXED;
+                }
+
+                for (
+                    uint256 j = 0;
+                    j < components[i].consideration.length;
+                    ++j
+                ) {
+                    components[i].consideration[j].amount = Amount.FIXED;
+                    // TODO: support offerer returning other recipients.
+                    components[i].consideration[j].recipient = Recipient
+                        .OFFERER;
+                }
             }
         }
 
@@ -260,8 +288,12 @@ library TestStateGenerator {
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
-                    amount: Amount(context.randEnum(0, 2)),
-                    recipient: Recipient(context.randEnum(0, 4))
+                    amount: atLeastOne
+                        ? Amount.FIXED
+                        : Amount(context.randEnum(0, 2)),
+                    recipient: atLeastOne
+                        ? Recipient.OFFERER
+                        : Recipient(context.randEnum(0, 4))
                 });
             }
         } else {
@@ -273,8 +305,8 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                amount: Amount(context.randEnum(0, 2)),
-                recipient: Recipient(0) // Always offerer
+                amount: Amount.FIXED, // Always fixed
+                recipient: Recipient.OFFERER // Always offerer
             });
 
             for (uint256 i = 1; i < len; ++i) {
@@ -284,8 +316,10 @@ library TestStateGenerator {
                     criteria: Criteria(0),
                     // TODO: sum(amounts) must be less than offer amount, right
                     // now this is enforced in a hacky way
-                    amount: Amount(context.randEnum(0, 2)),
-                    recipient: Recipient(context.randEnum(0, 4))
+                    amount: Amount.FIXED, // Always fixed
+                    recipient: atLeastOne
+                        ? Recipient.OFFERER
+                        : Recipient(context.randEnum(0, 4))
                 });
             }
         }
@@ -929,14 +963,16 @@ library AdvancedOrdersSpaceGenerator {
 
             // Make the recipient an address other than the caller so that
             // it produces a non-filterable transfer.
-            if (caller != context.alice.addr) {
-                orderParams.consideration[itemIndex].recipient = payable(
-                    context.alice.addr
-                );
-            } else {
-                orderParams.consideration[itemIndex].recipient = payable(
-                    context.bob.addr
-                );
+            if (orderParams.orderType != OrderType.CONTRACT) {
+                if (caller != context.alice.addr) {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.alice.addr
+                    );
+                } else {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.bob.addr
+                    );
+                }
             }
         }
     }
@@ -1018,7 +1054,9 @@ library AdvancedOrdersSpaceGenerator {
         // Make the recipient an address other than any offerer so that
         // it produces a non-filterable transfer.
         orderParams.consideration[itemIndex].recipient = payable(
-            context.dillon.addr
+            orderParams.orderType != OrderType.CONTRACT
+                ? context.dillon.addr
+                : address(0)
         );
     }
 
@@ -1514,9 +1552,7 @@ library BroadOrderTypeGenerator {
                     .withCoercedAmountsForPartialFulfillment();
         } else if (broadOrderType == BroadOrderType.CONTRACT) {
             // NOTE: a number of contract order params are already set up.
-            order.parameters = orderParams.withOrderType(
-                OrderType.CONTRACT
-            );
+            order.parameters = orderParams.withOrderType(OrderType.CONTRACT);
         }
 
         return order;
