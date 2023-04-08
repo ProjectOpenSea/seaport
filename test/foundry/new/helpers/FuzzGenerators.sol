@@ -445,7 +445,8 @@ library AdvancedOrdersSpaceGenerator {
                     denominator: 1,
                     extraData: bytes("")
                 })
-                .withBroadOrderType(space.orders[i].orderType, context);
+                .withBroadOrderType(space.orders[i].orderType, context)
+                .withExtraData(space.orders[i].extraData, context);
         }
     }
 
@@ -1501,6 +1502,30 @@ library BroadOrderTypeGenerator {
     }
 }
 
+library ExtraDataGenerator {
+    using PRNGHelpers for FuzzGeneratorContext;
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
+
+    function withGeneratedExtraData(
+        AdvancedOrder memory order,
+        ExtraData extraData,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder memory) {
+        if (extraData == ExtraData.NONE) {
+            return order.withExtraData("");
+        } else if (extraData == ExtraData.RANDOM) {
+            return order.withExtraData(_generateRandomBytesArray(context.randRange(1, 4096)));
+        } else {
+            revert(
+                "ExtraDataGenerator: unsupported ExtraData value"
+            );
+        }
+    }
+
+    function _generateRandomBytesArray(uint256 size)
+}
+
 library ZoneGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using OrderParametersLib for OrderParameters;
@@ -2163,6 +2188,12 @@ library PRNGHelpers {
         uint256 max
     ) internal pure returns (uint256) {
         return bound(context.prng.next(), min, max);
+    }
+
+    function rand(
+        FuzzGeneratorContext memory context
+    ) internal pure returns (uint256) {
+        return context.prng.next();
     }
 }
 
