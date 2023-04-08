@@ -13,17 +13,20 @@ import {
 } from "seaport-sol/SeaportSol.sol";
 
 import {
-    BasicOrderType,
     ConsiderationItem,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
-    OrderParameters,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import {
+    BasicOrderType,
+    ItemType,
     OrderType
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

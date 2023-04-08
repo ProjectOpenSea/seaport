@@ -21,7 +21,7 @@ import {
 } from "seaport-sol/SeaportStructs.sol";
 
 import {
-    OrderStatus as OrderStatusEnum,
+    OrderStatusEnum,
     UnavailableReason
 } from "seaport-sol/SpaceEnums.sol";
 

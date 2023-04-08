@@ -18,15 +18,15 @@ import {
     ConsiderationItem,
     CriteriaResolver,
     Fulfillment,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
     OrderParameters,
-    OrderType,
     ReceivedItem,
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
@@ -48,8 +48,6 @@ import {
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
-
-import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 

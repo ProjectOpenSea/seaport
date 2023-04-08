@@ -19,7 +19,7 @@ enum Method {
     NAME
 }
 
-enum OrderStatus {
+enum OrderStatusEnum {
     AVAILABLE, // not validated or fulfilled; implicitly validated via signature except when match is called
     VALIDATED, // validated on-chain
     PARTIAL, // partially fulfilled

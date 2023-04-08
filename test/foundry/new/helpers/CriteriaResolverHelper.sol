@@ -11,10 +11,10 @@ import {
     AdvancedOrder,
     ConsiderationItem,
     CriteriaResolver,
-    ItemType,
-    OfferItem,
-    Side
+    OfferItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;
@@ -236,7 +236,9 @@ contract CriteriaResolverHelper {
         );
 
         if (id.set) {
-            revert("CriteriaResolverHelper: wildcard already set for this item");
+            revert(
+                "CriteriaResolverHelper: wildcard already set for this item"
+            );
         }
 
         id.set = true;

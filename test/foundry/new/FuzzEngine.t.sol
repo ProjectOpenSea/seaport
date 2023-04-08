@@ -25,11 +25,9 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import {
-    SeaportInterface
-} from "../../../contracts/interfaces/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import {
     HashValidationZoneOfferer
@@ -94,12 +92,8 @@ contract FuzzEngineTest is FuzzEngine {
 
         bytes4[] memory expectedActions = new bytes4[](4);
         expectedActions[0] = SeaportInterface.fulfillOrder.selector;
-        expectedActions[1] = SeaportInterface
-            .fulfillAdvancedOrder
-            .selector;
-        expectedActions[2] = SeaportInterface
-            .fulfillAvailableOrders
-            .selector;
+        expectedActions[1] = SeaportInterface.fulfillAdvancedOrder.selector;
+        expectedActions[2] = SeaportInterface.fulfillAvailableOrders.selector;
         expectedActions[3] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
@@ -146,10 +140,7 @@ contract FuzzEngineTest is FuzzEngine {
                 })
             )
             .withMaximumFulfilled(1);
-        assertEq(
-            context.action(),
-            SeaportInterface.fulfillOrder.selector
-        );
+        assertEq(context.action(), SeaportInterface.fulfillOrder.selector);
 
         context = FuzzTestContextLib
             .from({
@@ -182,9 +173,7 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         bytes4[] memory expectedActions = new bytes4[](2);
-        expectedActions[0] = SeaportInterface
-            .fulfillAdvancedOrder
-            .selector;
+        expectedActions[0] = SeaportInterface.fulfillAdvancedOrder.selector;
         expectedActions[1] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
@@ -256,10 +245,7 @@ contract FuzzEngineTest is FuzzEngine {
                 })
             )
             .withMaximumFulfilled(1);
-        assertEq(
-            context.action(),
-            SeaportInterface.fulfillBasicOrder.selector
-        );
+        assertEq(context.action(), SeaportInterface.fulfillBasicOrder.selector);
 
         context = FuzzTestContextLib
             .from({
@@ -288,16 +274,12 @@ contract FuzzEngineTest is FuzzEngine {
 
         bytes4[] memory expectedActions = new bytes4[](6);
         expectedActions[0] = SeaportInterface.fulfillOrder.selector;
-        expectedActions[1] = SeaportInterface
-            .fulfillAdvancedOrder
-            .selector;
+        expectedActions[1] = SeaportInterface.fulfillAdvancedOrder.selector;
         expectedActions[2] = SeaportInterface.fulfillBasicOrder.selector;
         expectedActions[3] = SeaportInterface
             .fulfillBasicOrder_efficient_6GL6yc
             .selector;
-        expectedActions[4] = SeaportInterface
-            .fulfillAvailableOrders
-            .selector;
+        expectedActions[4] = SeaportInterface.fulfillAvailableOrders.selector;
         expectedActions[5] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
@@ -335,16 +317,12 @@ contract FuzzEngineTest is FuzzEngine {
         });
 
         bytes4[] memory expectedActions = new bytes4[](4);
-        expectedActions[0] = SeaportInterface
-            .fulfillAvailableOrders
-            .selector;
+        expectedActions[0] = SeaportInterface.fulfillAvailableOrders.selector;
         expectedActions[1] = SeaportInterface
             .fulfillAvailableAdvancedOrders
             .selector;
         expectedActions[2] = SeaportInterface.matchOrders.selector;
-        expectedActions[3] = SeaportInterface
-            .matchAdvancedOrders
-            .selector;
+        expectedActions[3] = SeaportInterface.matchAdvancedOrders.selector;
         // TODO: undo pended actions (cancel, validate)
         /** expectedActions[4] = SeaportInterface.cancel.selector;
         expectedActions[5] = SeaportInterface.validate.selector; */

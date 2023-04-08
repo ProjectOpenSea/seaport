@@ -17,7 +17,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
 
-import { OrderStatus as OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
 /**
  *  @dev Make amendments to state based on the fuzz test context.

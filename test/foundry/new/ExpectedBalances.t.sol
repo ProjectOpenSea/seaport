@@ -3,17 +3,15 @@ pragma solidity ^0.8.17;
 
 import { stdError, Test } from "forge-std/Test.sol";
 
+import { Execution, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
+
 import {
     BalanceErrorMessages,
     ERC721TokenDump,
     ExpectedBalances
 } from "./helpers/ExpectedBalances.sol";
-
-import {
-    Execution,
-    ItemType,
-    ReceivedItem
-} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 

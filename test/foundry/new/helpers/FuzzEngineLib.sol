@@ -12,15 +12,13 @@ import {
 import {
     AdvancedOrder,
     ConsiderationItem,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
-    OrderParameters,
-    OrderType
+    OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     _locateCurrentAmount,

@@ -7,7 +7,7 @@ import { DifferentialTest } from "./DifferentialTest.sol";
 
 import {
     ConduitControllerInterface
-} from "../../../../contracts/interfaces/ConduitControllerInterface.sol";
+} from "seaport-sol/ConduitControllerInterface.sol";
 
 import {
     ConduitController
