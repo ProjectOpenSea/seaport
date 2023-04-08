@@ -536,27 +536,58 @@ library AdvancedOrderLib {
             );
         }
 
-        uint256 duration = endTime - startTime;
+        bool ensureNotHuge = originalStartAmount != originalEndAmount;
 
-        // determine if duration or numerator is more likely to overflow when multiplied by value
-        uint256 overflowBottleneck = (numerator > duration)
-            ? numerator
-            : duration;
+        newStartAmount = minimalChange(
+            originalStartAmount,
+            numerator,
+            denominator,
+            ensureNotHuge
+        );
 
-        uint256 absoluteMax = type(uint256).max / overflowBottleneck;
-        uint256 fractionCompatibleMax = (absoluteMax / denominator) *
-            denominator;
-
-        newStartAmount = originalStartAmount % fractionCompatibleMax;
-        newStartAmount = (newStartAmount / denominator) * denominator;
-        newStartAmount = (newStartAmount == 0) ? denominator : newStartAmount;
-
-        newEndAmount = originalEndAmount % fractionCompatibleMax;
-        newEndAmount = (newEndAmount / denominator) * denominator;
-        newEndAmount = (newEndAmount == 0) ? denominator : newEndAmount;
+        newEndAmount = minimalChange(
+            originalEndAmount,
+            numerator,
+            denominator,
+            ensureNotHuge
+        );
 
         if (newStartAmount == 0 && newEndAmount == 0) {
             revert("AdvancedOrderLib: derived amount will always be zero");
+        }
+    }
+
+    // Function to find the minimal change in the value so that it results in a
+    // new value with no remainder when the numerator and the denominator are
+    // applied.
+    function minimalChange(
+        uint256 value,
+        uint256 numerator,
+        uint256 denominator,
+        bool ensureNotHuge
+    ) public pure returns (uint256 newValue) {
+        require(denominator != 0, "AdvancedOrderLib: no denominator supplied.");
+
+        if (ensureNotHuge) {
+            value %= type(uint208).max;
+        }
+
+        uint256 remainder = (value * numerator) % denominator;
+
+        uint256 diffToNextMultiple = denominator - remainder;
+        uint256 diffToPrevMultiple = remainder;
+
+        newValue = 0;
+        if (diffToNextMultiple > diffToPrevMultiple) {
+            newValue = value - (diffToPrevMultiple / numerator);
+        }
+
+        if (newValue == 0) {
+            newValue = value + (diffToNextMultiple / numerator);
+        }
+
+        if ((newValue * numerator) % denominator != 0) {
+            revert("AdvancedOrderLib: minimal change failed");
         }
     }
 }
