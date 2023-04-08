@@ -163,9 +163,9 @@ library TestStateGenerator {
                     context,
                     false
                 ),
-                orderType: BroadOrderType(context.randEnum(0, 2)),
-                // TODO: Restricted range to 1 and 2 to avoid unavailable.
-                //       Range should be 0-4.
+                // TODO: support contract orders (0-2)
+                orderType: BroadOrderType(context.randEnum(0, 1)),
+                // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
@@ -173,7 +173,6 @@ library TestStateGenerator {
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
-                // TODO: Add more unavailable order reasons (1-5).
                 unavailableReason: reason
             });
         }
@@ -275,7 +274,8 @@ library TestStateGenerator {
                     itemType: context.basicOfferSpace.itemType,
                     tokenIndex: context.basicOfferSpace.tokenIndex,
                     criteria: Criteria(0),
-                    // TODO: sum(amounts) must be less than offer amount
+                    // TODO: sum(amounts) must be less than offer amount, right
+                    // now this is enforced in a hacky way
                     amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
@@ -299,6 +299,7 @@ library AdvancedOrdersSpaceGenerator {
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
+    using BroadOrderTypeGenerator for AdvancedOrder;
     using FulfillmentRecipientGenerator for FulfillmentRecipient;
     using ConduitGenerator for ConduitChoice;
 
@@ -331,6 +332,11 @@ library AdvancedOrdersSpaceGenerator {
             }
             _ensureDirectSupport(orders, space, context);
             _syncStatuses(orders, space, context);
+        }
+
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
         }
 
         // Sign orders and add the hashes to the context.
@@ -436,7 +442,8 @@ library AdvancedOrdersSpaceGenerator {
                     numerator: 1,
                     denominator: 1,
                     extraData: bytes("")
-                });
+                })
+                .withBroadOrderType(space.orders[i].orderType, context);
         }
     }
 
@@ -497,8 +504,14 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
+        }
+
         MatchComponent[] memory remainders;
         CriteriaResolver[] memory resolvers;
+
         {
             resolvers = context
                 .testHelpers
@@ -566,6 +579,23 @@ library AdvancedOrdersSpaceGenerator {
                 orders.length - 1
             );
 
+            OfferItem memory newItem;
+            {
+                uint256 amountGivenPartial = _applyInverseAndRoundUp(
+                    amount,
+                    uint256(orders[orderInsertionIndex].numerator),
+                    uint256(orders[orderInsertionIndex].denominator)
+                );
+
+                newItem = OfferItem({
+                    itemType: resolvedItemType,
+                    token: item.token,
+                    identifierOrCriteria: resolvedIdentifier,
+                    startAmount: amountGivenPartial,
+                    endAmount: amountGivenPartial
+                });
+            }
+
             // Create a new offer array with room for the remainder.
             OfferItem[] memory newOffer = new OfferItem[](
                 orders[orderInsertionIndex].parameters.offer.length + 1
@@ -574,13 +604,7 @@ library AdvancedOrdersSpaceGenerator {
             // If the targeted order has no offer, just add the remainder to the
             // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
-                newOffer[0] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[0] = newItem;
             } else {
                 // If the targeted order has an offer, pick a random index to
                 // insert the remainder into.
@@ -600,13 +624,7 @@ library AdvancedOrdersSpaceGenerator {
 
                 // Insert the remainder into the new offer array at the
                 // insertion index.
-                newOffer[itemInsertionIndex] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[itemInsertionIndex] = newItem;
 
                 // Copy the offer items after the insertion index into the new
                 // offer array.
@@ -661,8 +679,37 @@ library AdvancedOrdersSpaceGenerator {
             );
 
             if (remainders.length > 0) {
+                // NOTE: this may be caused by inserting offer items into orders
+                // with partial fill fractions. The amount on the item that is
+                // inserted should be increased based on fraction in that case.
                 revert("FuzzGenerators: could not satisfy remainders");
             }
+        }
+    }
+
+    function _applyInverseAndRoundUp(
+        uint256 amount,
+        uint256 numerator,
+        uint256 denominator
+    ) internal pure returns (uint256 newAmount) {
+        if (numerator == denominator) {
+            return amount;
+        }
+
+        uint256 newAmountSansRounding = (amount * denominator) / numerator;
+
+        newAmount =
+            newAmountSansRounding +
+            ((denominator -
+                ((newAmountSansRounding * numerator) % denominator)) /
+                numerator);
+
+        if ((newAmount * numerator) % denominator != 0) {
+            revert("AdvancedOrdersSpaceGenerator: inverse change failed");
+        }
+
+        if ((newAmount * numerator) / denominator < amount) {
+            revert("AdvancedOrdersSpaceGenerator: inverse not rounded up");
         }
     }
 
@@ -935,7 +982,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         if (failure) {
-            revert("ZoneParametersLib: bad fraction");
+            revert("AdvancedOrdersSpaceGenerator: bad fraction");
         }
 
         // Multiply the numerator by the value and ensure no overflow occurs.
@@ -1408,6 +1455,50 @@ library ConduitGenerator {
     }
 }
 
+library BroadOrderTypeGenerator {
+    using PRNGHelpers for FuzzGeneratorContext;
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
+
+    function withBroadOrderType(
+        AdvancedOrder memory order,
+        BroadOrderType broadOrderType,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder memory) {
+        OrderParameters memory orderParams = order.parameters;
+        // NOTE: this assumes that the order type has been set to either
+        // FULL_OPEN (by .empty()) or FULL_RESTRICTED (by ZoneGenerator).
+        if (broadOrderType == BroadOrderType.PARTIAL) {
+            // Adjust the order type based on whether it is restricted
+            if (orderParams.orderType == OrderType.FULL_RESTRICTED) {
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_RESTRICTED
+                );
+            } else if (orderParams.orderType == OrderType.FULL_OPEN) {
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_OPEN
+                );
+            }
+
+            // TODO: get more sophisticated about this down the line
+            uint120 numerator = uint120(context.randRange(1, 10));
+            uint120 denominator = uint120(numerator * context.randRange(2, 10));
+
+            return
+                order
+                    .withNumerator(numerator)
+                    .withDenominator(denominator)
+                    .withCoercedAmountsForPartialFulfillment();
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            revert(
+                "BroadOrderTypeGenerator: contract orders not yet supported"
+            );
+        }
+
+        return order;
+    }
+}
+
 library ZoneGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using OrderParametersLib for OrderParameters;
@@ -1688,7 +1779,6 @@ library TokenIndexGenerator {
 
         uint256 i = uint8(tokenIndex);
 
-        // TODO: missing native tokens
         if (itemType == ItemType.ERC20) {
             return address(context.erc20s[i]);
         } else if (
@@ -1871,7 +1961,6 @@ library CriteriaGenerator {
 
     using LibPRNG for LibPRNG.PRNG;
 
-    // TODO: bubble up OfferItems and ConsiderationItems along with CriteriaResolvers
     function withGeneratedIdentifierOrCriteria(
         ConsiderationItem memory item,
         ItemType itemType,

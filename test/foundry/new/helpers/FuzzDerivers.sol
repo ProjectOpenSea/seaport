@@ -36,9 +36,9 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import {
-    CriteriaResolverHelper
-} from "./CriteriaResolverHelper.sol";
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -60,6 +60,7 @@ abstract contract FuzzDerivers is
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using FuzzHelpers for AdvancedOrder;
     using MatchComponentType for MatchComponent[];
 
     function deriveAvailableOrders(FuzzTestContext memory context) public view {
@@ -72,6 +73,43 @@ abstract contract FuzzDerivers is
         for (uint256 i; i < context.orders.length; ++i) {
             OrderParameters memory order = context.orders[i].parameters;
             OrderStatusEnum status = context.preExecOrderStatuses[i];
+
+            // SANITY CHECKS; these should be removed once confidence
+            // has been established in the soundness of the inputs or
+            // if statuses are being modified downstream
+            if (
+                status == OrderStatusEnum.FULFILLED ||
+                status == OrderStatusEnum.CANCELLED_EXPLICIT
+            ) {
+                bytes32 orderHash = context
+                    .orders[i]
+                    .getTipNeutralizedOrderHash(context.seaport);
+
+                (
+                    ,
+                    bool isCancelled,
+                    uint256 totalFilled,
+                    uint256 totalSize
+                ) = context.seaport.getOrderStatus(orderHash);
+
+                if (status == OrderStatusEnum.FULFILLED) {
+                    // TEMP (TODO: fix how these are set)
+                    vm.assume(totalFilled != 0 && totalFilled == totalSize);
+
+                    require(
+                        totalFilled != 0 && totalFilled == totalSize,
+                        "FuzzDerivers: OrderStatus FULFILLED does not match order state"
+                    );
+                } else if (status == OrderStatusEnum.CANCELLED_EXPLICIT) {
+                    // TEMP (TODO: fix how these are set)
+                    vm.assume(isCancelled);
+
+                    require(
+                        isCancelled,
+                        "FuzzDerivers: OrderStatus CANCELLED_EXPLICIT does not match order state"
+                    );
+                }
+            }
 
             // TEMP (TODO: handle upstream)
             vm.assume(!(order.startTime == 0 && order.endTime == 0));
