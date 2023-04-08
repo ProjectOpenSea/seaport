@@ -165,7 +165,7 @@ library TestStateGenerator {
                     false
                 ),
                 // TODO: support contract orders (0-2)
-                orderType: BroadOrderType(context.randEnum(0, 1)),
+                orderType: BroadOrderType(context.randEnum(0, 2)),
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
@@ -1512,11 +1512,9 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
-        } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            revert(
-                "BroadOrderTypeGenerator: contract orders not yet supported"
-            );
         }
+
+        // NOTE: contract order types should already be all set up.
 
         return order;
     }
