@@ -5,7 +5,22 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import { ItemType, MatchComponent } from "seaport-sol/SeaportSol.sol";
+
+import {
+    Amount,
+    BasicOrderCategory,
+    Criteria,
+    TokenIndex
+} from "seaport-sol/SpaceEnums.sol";
+
+import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
 
 import { Account } from "../BaseOrderTest.sol";
 
@@ -17,20 +32,11 @@ import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 
+import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
+
 import {
     HashValidationZoneOfferer
 } from "../../../../contracts/test/HashValidationZoneOfferer.sol";
-
-import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
-
-import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
-
-import {
-    Amount,
-    BasicOrderCategory,
-    Criteria,
-    TokenIndex
-} from "seaport-sol/SpaceEnums.sol";
 
 struct TestConduit {
     address addr;

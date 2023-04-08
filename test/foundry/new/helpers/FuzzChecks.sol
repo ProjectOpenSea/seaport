@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-
 import { Test } from "forge-std/Test.sol";
-
-import {
-    OrderParametersLib
-} from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
+import { OrderParametersLib } from "seaport-sol/SeaportSol.sol";
+
 import {
-    OrderStatus as OrderStatusEnum
-} from "../../../../contracts/helpers/sol/SpaceEnums.sol";
+    AdvancedOrder,
+    Execution,
+    OrderParameters,
+    OrderType
+} from "seaport-sol/SeaportStructs.sol";
+
+import { OrderStatus as OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
@@ -52,7 +53,11 @@ abstract contract FuzzChecks is Test {
      * @param context A Fuzz test context.
      */
     function check_orderFulfilled(FuzzTestContext memory context) public {
-        assertEq(context.returnValues.fulfilled, true);
+        assertEq(
+            context.returnValues.fulfilled,
+            true,
+            "check_orderFulfilled: not all orders were fulfilled"
+        );
     }
 
     /**
@@ -61,7 +66,11 @@ abstract contract FuzzChecks is Test {
      * @param context A Fuzz test context.
      */
     function check_orderValidated(FuzzTestContext memory context) public {
-        assertEq(context.returnValues.validated, true);
+        assertEq(
+            context.returnValues.validated,
+            true,
+            "check_orderValidated: not all orders were validated"
+        );
     }
 
     /**
@@ -70,7 +79,11 @@ abstract contract FuzzChecks is Test {
      * @param context A Fuzz test context.
      */
     function check_orderCancelled(FuzzTestContext memory context) public {
-        assertEq(context.returnValues.cancelled, true);
+        assertEq(
+            context.returnValues.cancelled,
+            true,
+            "check_orderCancelled: not all orders were cancelled"
+        );
     }
 
     /**
@@ -82,17 +95,20 @@ abstract contract FuzzChecks is Test {
     function check_allOrdersFilled(FuzzTestContext memory context) public {
         assertEq(
             context.returnValues.availableOrders.length,
-            context.orders.length
+            context.orders.length,
+            "check_allOrdersFilled: returnValues.availableOrders.length != orders.length"
         );
         assertEq(
             context.returnValues.availableOrders.length,
-            context.expectedAvailableOrders.length
+            context.expectedAvailableOrders.length,
+            "check_allOrdersFilled: returnValues.availableOrders.length != expectedAvailableOrders.length"
         );
 
         for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
             assertEq(
                 context.returnValues.availableOrders[i],
-                context.expectedAvailableOrders[i]
+                context.expectedAvailableOrders[i],
+                "check_allOrdersFilled: returnValues.availableOrders[i] != expectedAvailableOrders[i]"
             );
         }
     }
@@ -130,7 +146,11 @@ abstract contract FuzzChecks is Test {
 
                 // Check that the expected calldata hash matches the actual
                 // calldata hash.
-                assertEq(actualCalldataHash, expectedCalldataHash);
+                assertEq(
+                    actualCalldataHash,
+                    expectedCalldataHash,
+                    "check_validateOrderExpectedDataHash: actualCalldataHash != expectedCalldataHash"
+                );
             }
         }
     }
@@ -165,9 +185,9 @@ abstract contract FuzzChecks is Test {
                 // Decrease contractOffererNonce in the orderHash by 1 since it
                 // has increased by 1 post-execution.
                 bytes32 generateOrderOrderHash;
-                bytes32 mask = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0;
 
                 assembly {
+                    let mask := sub(0, 2) // 0xffff...fff0
                     generateOrderOrderHash := and(orderHash, mask)
                 }
 
@@ -185,11 +205,13 @@ abstract contract FuzzChecks is Test {
 
             assertEq(
                 expectedGenerateOrderCalldataHash,
-                actualGenerateOrderCalldataHash
+                actualGenerateOrderCalldataHash,
+                "check_contractOrderExpectedDataHashes: actualGenerateOrderCalldataHash != expectedGenerateOrderCalldataHash"
             );
             assertEq(
                 expectedRatifyOrderCalldataHash,
-                actualRatifyOrderCalldataHash
+                actualRatifyOrderCalldataHash,
+                "check_contractOrderExpectedDataHashes: actualRatifyOrderCalldataHash != expectedRatifyOrderCalldataHash"
             );
         }
     }
@@ -200,12 +222,14 @@ abstract contract FuzzChecks is Test {
      * @param context A Fuzz test context.
      */
     function check_executionsPresent(FuzzTestContext memory context) public {
-        assertTrue(context.returnValues.executions.length > 0);
+        assertTrue(
+            context.returnValues.executions.length > 0,
+            "check_executionsPresent: returnValues.executions.length == 0"
+        );
     }
 
     function check_executions(FuzzTestContext memory context) public {
         // TODO: fulfillAvailable cases return an extra expected execution
-        //bytes4 action = context.action();
 
         assertEq(
             context.returnValues.executions.length,
@@ -291,15 +315,26 @@ abstract contract FuzzChecks is Test {
                 .getOrderStatus(orderHash);
 
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.FULFILLED) {
-                assertEq(totalFilled, 1);
-                assertEq(totalSize, 1);
+                assertEq(
+                    totalFilled,
+                    1,
+                    "check_orderStatusFullyFilled: totalFilled != 1"
+                );
+                assertEq(
+                    totalSize,
+                    1,
+                    "check_orderStatusFullyFilled: totalSize != 1"
+                );
             } else if (context.expectedAvailableOrders[i]) {
                 assertEq(totalFilled, order.numerator, "FuzzChecks: totalFilled != numerator");
                 assertEq(totalSize, order.denominator, "FuzzChecks: totalSize != denominator");
                 assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
                 assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
             } else {
-                assertTrue(totalFilled == 0);
+                assertTrue(
+                    totalFilled == 0,
+                    "check_orderStatusFullyFilled: totalFilled != 0"
+                );
             }
         }
     }
@@ -318,7 +353,7 @@ abstract contract FuzzChecks is Test {
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
                 );
-                assertTrue(isValid);
+                assertTrue(isValid, "check_ordersValidated: !isValid");
             }
         }
     }

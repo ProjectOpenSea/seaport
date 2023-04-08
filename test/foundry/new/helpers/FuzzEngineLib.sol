@@ -1,13 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    MatchComponent,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import {
+    AdvancedOrder,
+    ConsiderationItem,
+    ItemType,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    OrderType
+} from "seaport-sol/SeaportStructs.sol";
+
+import { Side } from "seaport-sol/SeaportEnums.sol";
+
+import {
+    _locateCurrentAmount,
     Family,
     FuzzHelpers,
-    Structure,
-    _locateCurrentAmount
+    Structure
 } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";

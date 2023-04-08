@@ -1,7 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    FulfillmentComponentLib,
+    FulfillmentLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    Fulfillment,
+    FulfillmentComponent,
+    ItemType,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
 
 import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
 

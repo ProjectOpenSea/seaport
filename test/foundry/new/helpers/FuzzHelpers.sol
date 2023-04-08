@@ -1,7 +1,48 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    MatchComponent,
+    MatchComponentType,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib,
+    SeaportArrays,
+    ZoneParametersLib
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem,
+    ZoneParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import {
+    BasicOrderRouteType,
+    BasicOrderType,
+    ItemType,
+    OrderType,
+    Side
+} from "seaport-sol/SeaportEnums.sol";
+
+import {
+    ContractOffererInterface
+} from "seaport-sol/ContractOffererInterface.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import { ZoneInterface } from "seaport-sol/ZoneInterface.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
@@ -652,7 +693,7 @@ library FuzzHelpers {
      */
     function getTipNeutralizedOrderHash(
         AdvancedOrder memory order,
-        ConsiderationInterface seaport
+        SeaportInterface seaport
     ) internal view returns (bytes32 orderHash) {
         // Get the counter of the order offerer.
         uint256 counter = seaport.getCounter(order.parameters.offerer);
@@ -742,7 +783,7 @@ library FuzzHelpers {
 
     function cancelTipNeutralizedOrder(
         AdvancedOrder memory order,
-        ConsiderationInterface seaport
+        SeaportInterface seaport
     ) internal view returns (bytes32 orderHash) {
         // Get the orderHash using the tweaked OrderComponents.
         orderHash = getTipNeutralizedOrderHash(order, seaport);
