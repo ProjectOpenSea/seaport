@@ -15,8 +15,14 @@ import {
     OfferItem,
     Order,
     OrderComponents,
-    OrderParameters
+    OrderParameters,
+    SpentItem,
+    ReceivedItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import { OrderDetailsHelper } from "./FuzzGenerators.sol";
 
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
@@ -41,6 +47,7 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using OrderDetailsHelper for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -361,47 +368,33 @@ library FuzzEngineLib {
     ) internal view returns (uint256) {
         uint256 value = 0;
 
-        for (uint256 i = 0; i < context.orders.length; ++i) {
+        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
+            context.criteriaResolvers
+        );
+
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
             OrderParameters memory orderParams = context.orders[i].parameters;
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
 
                 if (
                     item.itemType == ItemType.NATIVE &&
                     orderParams.isAvailable()
                 ) {
-                    if (item.startAmount != item.endAmount) {
-                        value += _locateCurrentAmount(
-                            item.startAmount,
-                            item.endAmount,
-                            orderParams.startTime,
-                            orderParams.endTime,
-                            false
-                        );
-                    } else {
-                        value += item.startAmount;
-                    }
+                    value += item.amount;
                 }
             }
 
-            for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
-                ConsiderationItem memory item = orderParams.consideration[j];
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ReceivedItem memory item = order.consideration[j];
 
                 if (
                     item.itemType == ItemType.NATIVE &&
                     orderParams.isAvailable()
                 ) {
-                    if (item.startAmount != item.endAmount) {
-                        value += _locateCurrentAmount(
-                            item.startAmount,
-                            item.endAmount,
-                            orderParams.startTime,
-                            orderParams.endTime,
-                            true
-                        );
-                    } else {
-                        value += item.startAmount;
-                    }
+                    value += item.amount;
                 }
             }
         }
