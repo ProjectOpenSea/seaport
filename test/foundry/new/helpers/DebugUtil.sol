@@ -13,6 +13,8 @@ import { console2 } from "forge-std/console2.sol";
 
 import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
 
+import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+
 import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./event-utils/TransferEventsLib.sol";
@@ -53,6 +55,7 @@ struct ContextOutputSelection {
     bool erc20ExpectedBalances;
     bool erc721ExpectedBalances;
     bool erc1155ExpectedBalances;
+    bool preExecOrderStatuses;
 }
 
 using ForgeEventsLib for Vm.Log;
@@ -191,6 +194,13 @@ function dumpContext(
     // if (outputSelection.checks) {
     //     jsonOut = Searializer.tojsonDynArrayBytes4("root", "checks", context.checks);
     // }
+    if (outputSelection.preExecOrderStatuses) {
+        jsonOut = Searializer.tojsonDynArrayUint256(
+            "root",
+            "preExecOrderStatuses",
+            cast(context.preExecOrderStatuses)
+        );
+    }
     // if (outputSelection.expectedZoneCalldataHash) {
     //     jsonOut = Searializer.tojsonDynArrayBytes32(
     //         "root",
@@ -329,6 +339,12 @@ function pureDumpContext()
     }
 }
 
+function cast(OrderStatusEnum[] memory a) pure returns (uint256[] memory b) {
+    assembly {
+        b := a
+    }
+}
+
 function dumpTransfers(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.allExpectedExecutions = true;
@@ -354,6 +370,7 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.expectedImplicitExecutions = true;
     selection.executionsFilter = ItemType.ERC1155_WITH_CRITERIA; // no filter
     selection.orders = true;
+    selection.preExecOrderStatuses = true;
     pureDumpContext()(context, selection);
     console2.log("Dumped executions and balances to ./fuzz_debug.json");
 }
