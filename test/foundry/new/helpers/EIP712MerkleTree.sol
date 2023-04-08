@@ -10,8 +10,8 @@ import {
 import { Test } from "forge-std/Test.sol";
 
 import {
-    ConsiderationInterface
-} from "../../../../contracts/interfaces/ConsiderationInterface.sol";
+    SeaportInterface
+} from "../../../../contracts/interfaces/SeaportInterface.sol";
 
 import {
     OrderComponents
@@ -54,7 +54,7 @@ contract EIP712MerkleTree is Test {
      * into the tree to make the length a power of 2.
      */
     function signBulkOrder(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         OrderComponents[] memory orderComponents,
         uint24 orderIndex,
@@ -115,7 +115,7 @@ contract EIP712MerkleTree is Test {
      * tree until the specified height is reached.
      */
     function signSparseBulkOrder(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         OrderComponents memory orderComponents,
         uint256 height,
@@ -206,7 +206,7 @@ contract EIP712MerkleTree is Test {
     }
 
     function _getSignature(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         bytes32 bulkOrderTypehash,
         bytes32 root,

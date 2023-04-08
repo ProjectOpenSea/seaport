@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-
 import { FuzzEngine } from "./helpers/FuzzEngine.sol";
 
 import { FuzzParams } from "./helpers/FuzzTestContextLib.sol";

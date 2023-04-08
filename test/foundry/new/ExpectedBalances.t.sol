@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../../../contracts/lib/ConsiderationStructs.sol";
+import { stdError, Test } from "forge-std/Test.sol";
+
 import {
-    ExpectedBalances,
     BalanceErrorMessages,
-    ERC721TokenDump
+    ERC721TokenDump,
+    ExpectedBalances
 } from "./helpers/ExpectedBalances.sol";
-import "forge-std/Test.sol";
+
+import {
+    Execution,
+    ItemType,
+    ReceivedItem
+} from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
@@ -590,7 +597,7 @@ contract ExpectedBalancesTest is Test {
     }
 
     /**
-     * @dev deploy test token contracts
+     * @dev Deploy test token contracts.
      */
     function _deployTestTokenContracts() internal {
         createErc20Token();

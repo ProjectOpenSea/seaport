@@ -3,16 +3,14 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
-
-import { BaseOrderTest } from "./BaseOrderTest.sol";
-
 import {
     AdvancedOrdersSpace,
     ConsiderationItemSpace,
     OfferItemSpace,
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
+
+import { AdvancedOrder, ItemType } from "seaport-sol/SeaportStructs.sol";
 
 import {
     Amount,
@@ -32,6 +30,8 @@ import {
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
+
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 import {
     AdvancedOrdersSpaceGenerator,

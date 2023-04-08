@@ -1,46 +1,67 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-
-import { setLabel, BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
-import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
-
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
-
-import { CriteriaResolverHelper } from "./helpers/CriteriaResolverHelper.sol";
-
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import {
+    FulfillAvailableHelper
+} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
 import {
-    AdditionalRecipient,
+    MatchFulfillmentHelper
+} from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
+
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    FulfillmentComponentLib,
+    FulfillmentLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib,
+    SeaportArrays
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
     Fulfillment,
     FulfillmentComponent,
+    ItemType,
+    OfferItem,
     Order,
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import { setLabel, BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
 
 import { ArithmeticUtil } from "./helpers/ArithmeticUtil.sol";
 
+import { CriteriaResolverHelper } from "./helpers/CriteriaResolverHelper.sol";
+
+import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
+
+import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
+
+import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
+
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
+
+import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+
+import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-
-import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
-
-import { ERC1155Recipient } from "./helpers/ERC1155Recipient.sol";
-
-import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
 
 /**
  * @dev used to store address and key outputs from makeAddrAndKey(name)
@@ -50,7 +71,11 @@ struct Account {
     uint256 key;
 }
 
-/// @dev base test class for cases that depend on pre-deployed token contracts
+/**
+ * @dev This is a base test class for cases that depend on pre-deployed token
+ *      contracts. Note that it is different from the BaseOrderTest in the
+ *      legacy test suite.
+ */
 contract BaseOrderTest is
     BaseSeaportTest,
     AmountDeriver,
@@ -60,20 +85,20 @@ contract BaseOrderTest is
     using Strings for uint256;
     using ArithmeticUtil for *;
 
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
-    using ConsiderationItemLib for ConsiderationItem;
-    using ConsiderationItemLib for ConsiderationItem[];
-    using OrderLib for Order;
-    using OrderLib for Order[];
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
-    using OrderParametersLib for OrderParameters;
-    using OrderComponentsLib for OrderComponents;
-    using FulfillmentLib for Fulfillment;
-    using FulfillmentLib for Fulfillment[];
+    using ConsiderationItemLib for ConsiderationItem;
+    using ConsiderationItemLib for ConsiderationItem[];
     using FulfillmentComponentLib for FulfillmentComponent;
     using FulfillmentComponentLib for FulfillmentComponent[];
+    using FulfillmentLib for Fulfillment;
+    using FulfillmentLib for Fulfillment[];
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderLib for Order[];
+    using OrderParametersLib for OrderParameters;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event TransferSingle(
@@ -86,47 +111,6 @@ contract BaseOrderTest is
 
     struct Context {
         SeaportInterface seaport;
-    }
-
-    modifier onlyPayable(address _addr) {
-        {
-            bool success;
-            assembly {
-                // Transfer the native token and store if it succeeded or not.
-                success := call(gas(), _addr, 1, 0, 0, 0, 0)
-            }
-            vm.assume(success);
-            vm.deal(address(this), type(uint128).max);
-        }
-        _;
-    }
-
-    modifier only1155Receiver(address recipient) {
-        vm.assume(
-            recipient != address(0) &&
-                recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
-                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
-        );
-
-        if (recipient.code.length > 0) {
-            (bool success, bytes memory returnData) = recipient.call(
-                abi.encodeWithSelector(
-                    ERC1155Recipient.onERC1155Received.selector,
-                    address(1),
-                    address(1),
-                    1,
-                    1,
-                    ""
-                )
-            );
-            vm.assume(success);
-            try this.decodeBytes4(returnData) returns (bytes4 response) {
-                vm.assume(response == onERC1155Received.selector);
-            } catch (bytes memory reason) {
-                vm.assume(false);
-            }
-        }
-        _;
     }
 
     FulfillAvailableHelper fulfill;
@@ -194,6 +178,10 @@ contract BaseOrderTest is
         matcher = new MatchFulfillmentHelper();
     }
 
+    /**
+     * @dev Creates a set of globally available default structs for use in
+     *      tests.
+     */
     function _configureStructDefaults() internal {
         OfferItemLib
             .empty()
@@ -309,8 +297,8 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev convenience wrapper for makeAddrAndKey that also allocates tokens,
-     *      ether, and approvals
+     * @dev Convenience wrapper for makeAddrAndKey that also allocates tokens,
+     *      ether, and approvals.
      */
     function makeAndAllocateAccount(
         string memory name
@@ -320,6 +308,9 @@ contract BaseOrderTest is
         return account;
     }
 
+    /**
+     * @dev Sets up a new address and sets up token approvals for it.
+     */
     function makeAddrWithAllocationsAndApprovals(
         string memory label
     ) internal returns (address) {
@@ -329,7 +320,7 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev deploy test token contracts
+     * @dev Deploy test token contracts.
      */
     function _deployTestTokenContracts() internal {
         for (uint256 i; i < 3; i++) {
@@ -340,6 +331,10 @@ contract BaseOrderTest is
         preapproved721 = new PreapprovedERC721(preapprovals);
     }
 
+    /**
+     * @dev Creates a new ERC20 token contract and stores it in the erc20s
+     *      array.
+     */
     function createErc20Token() internal returns (uint256 i) {
         i = erc20s.length;
         TestERC20 token = new TestERC20();
@@ -347,6 +342,10 @@ contract BaseOrderTest is
         setLabel(address(token), string.concat("ERC20", LibString.toString(i)));
     }
 
+    /**
+     * @dev Creates a new ERC721 token contract and stores it in the erc721s
+     *      array.
+     */
     function createErc721Token() internal returns (uint256 i) {
         i = erc721s.length;
         TestERC721 token = new TestERC721();
@@ -357,6 +356,10 @@ contract BaseOrderTest is
         );
     }
 
+    /**
+     * @dev Creates a new ERC1155 token contract and stores it in the erc1155s
+     *      array.
+     */
     function createErc1155Token() internal returns (uint256 i) {
         i = erc1155s.length;
         TestERC1155 token = new TestERC1155();
@@ -368,7 +371,8 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev allocate amount of ether and each erc20 token; set approvals for all tokens
+     * @dev Allocate amount of ether and each erc20 token; set approvals for all
+     *      tokens.
      */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
@@ -378,6 +382,11 @@ contract BaseOrderTest is
         _setApprovals(_to);
     }
 
+    /**
+     * @dev Set approvals for all tokens.
+     *
+     * @param _owner The address to set approvals for.
+     */
     function _setApprovals(address _owner) internal virtual {
         vm.startPrank(_owner);
         for (uint256 i = 0; i < erc20s.length; ++i) {
@@ -400,31 +409,6 @@ contract BaseOrderTest is
         }
 
         vm.stopPrank();
-    }
-
-    /**
-     * @dev allow signing for this contract since it needs to be recipient of
-     *       basic order to reenter on receive
-     */
-    function isValidSignature(
-        bytes32,
-        bytes memory
-    ) external pure virtual returns (bytes4) {
-        return 0x1626ba7e;
-    }
-
-    function toHashedLeaves(
-        uint256[] memory identifiers
-    ) internal pure returns (bytes32[] memory) {
-        bytes32[] memory hashedLeaves = new bytes32[](identifiers.length);
-        for (uint256 i; i < identifiers.length; ++i) {
-            hashedLeaves[i] = keccak256(abi.encode(identifiers[i]));
-        }
-        return hashedLeaves;
-    }
-
-    function decodeBytes4(bytes memory data) external pure returns (bytes4) {
-        return abi.decode(data, (bytes4));
     }
 
     receive() external payable virtual {}
