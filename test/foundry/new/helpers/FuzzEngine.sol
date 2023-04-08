@@ -103,6 +103,12 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
  *         test. Logic for handling unavailable orders and balance checking
  *         will also live here.
  *
+ *          The `runCheckRegistration` function should hold everything that
+ *          registers checks but does not belong naturally elsewhere.  Checks
+ *          can be registered throughout the lifecycle, but unless there's a
+ *          natural reason to place them inline elsewhere in the lifecycle, they
+ *          should go in a helper in `runCheckRegistration`.
+ *
  *         The `exec` function is lean and only 1) sets up a prank if the caller
  *         is not the test contract, 2) logs the action, 3) calls the Seaport
  *         function, and adds the values returned by the function call to the
@@ -282,7 +288,6 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runSetup(FuzzTestContext memory context) internal {
-        // TODO: Scan all orders, look for unavailable orders
         // 1. order has been cancelled
         // 2. order has expired
         // 3. order has not yet started
@@ -293,7 +298,6 @@ contract FuzzEngine is
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-        // TODO: resolve criteria during setup
     }
 
     /**

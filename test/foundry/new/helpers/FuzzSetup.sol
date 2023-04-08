@@ -9,16 +9,14 @@ import {
     AdvancedOrder,
     ConsiderationItem,
     Execution,
-    ItemType,
     OrderParameters,
-    OrderType,
     ReceivedItem,
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AmountDeriverHelper

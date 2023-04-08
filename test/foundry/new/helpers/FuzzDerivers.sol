@@ -22,7 +22,7 @@ import {
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderStatus as OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
 import {
     AmountDeriverHelper

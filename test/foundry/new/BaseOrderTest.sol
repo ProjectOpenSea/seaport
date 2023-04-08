@@ -30,12 +30,13 @@ import {
     ConsiderationItem,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
@@ -52,8 +53,6 @@ import { ERC721Recipient } from "./helpers/ERC721Recipient.sol";
 import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
 
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
-
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
@@ -82,8 +81,8 @@ contract BaseOrderTest is
     ERC721Recipient,
     ERC1155Recipient
 {
-    using Strings for uint256;
     using ArithmeticUtil for *;
+    using Strings for uint256;
 
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];

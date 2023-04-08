@@ -14,8 +14,7 @@ import { Test } from "forge-std/Test.sol";
 // } from "seaport-sol/SeaportSol.sol";
 
 import {
-    CriteriaResolverHelper,
-    CriteriaMetadata
+    CriteriaResolverHelper
 } from "./CriteriaResolverHelper.sol";
 
 contract CriteriaResolverHelperTest is Test {

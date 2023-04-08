@@ -18,15 +18,15 @@ import {
     ConsiderationItem,
     CriteriaResolver,
     Fulfillment,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
     OrderParameters,
-    OrderType,
     ReceivedItem,
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
@@ -48,8 +48,6 @@ import {
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
-
-import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
@@ -255,7 +253,6 @@ library TestStateGenerator {
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
-                    // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
@@ -269,7 +266,6 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                // TODO: Fixed amounts only, should be 0-2
                 amount: Amount(context.randEnum(0, 2)),
                 recipient: Recipient(0) // Always offerer
             });
@@ -279,7 +275,6 @@ library TestStateGenerator {
                     itemType: context.basicOfferSpace.itemType,
                     tokenIndex: context.basicOfferSpace.tokenIndex,
                     criteria: Criteria(0),
-                    // TODO: Fixed amounts only, should be 0-2
                     // TODO: sum(amounts) must be less than offer amount
                     amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))

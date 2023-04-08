@@ -17,12 +17,13 @@ import {
     ConsiderationItem,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     OfferItem,
     Order,
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
 

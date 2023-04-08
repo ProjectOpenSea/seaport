@@ -3,21 +3,17 @@ pragma solidity ^0.8.17;
 
 import { MurkyBase } from "murky/common/MurkyBase.sol";
 
-import {
-    TypehashDirectory
-} from "../../../../contracts/test/TypehashDirectory.sol";
+import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import { Test } from "forge-std/Test.sol";
 
-import {
-    SeaportInterface
-} from "../../../../contracts/interfaces/SeaportInterface.sol";
+import { OrderComponents } from "seaport-sol/SeaportStructs.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import {
-    OrderComponents
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
-
-import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+    TypehashDirectory
+} from "../../../../contracts/test/TypehashDirectory.sol";
 
 /**
  * @dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky

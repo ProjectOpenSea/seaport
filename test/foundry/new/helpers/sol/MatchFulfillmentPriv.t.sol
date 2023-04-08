@@ -31,7 +31,7 @@ import {
     FulfillmentComponent,
     OfferItem,
     OrderParameters
-} from "../../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 contract MatchFulfillmentLibTest is Test {
     using ConsiderationItemLib for ConsiderationItem;

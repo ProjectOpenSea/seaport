@@ -10,7 +10,7 @@ import {
 
 import {
     Execution
-} from "../../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 

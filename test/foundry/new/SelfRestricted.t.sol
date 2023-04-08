@@ -6,13 +6,13 @@ import {
     ConsiderationItem,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     OfferItem,
     Order,
-    OrderType,
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,

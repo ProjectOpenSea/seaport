@@ -5,7 +5,9 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { ItemType, MatchComponent } from "seaport-sol/SeaportSol.sol";
+import { MatchComponent } from "seaport-sol/SeaportSol.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     Amount,

@@ -14,11 +14,11 @@ import {
     AdvancedOrder,
     ConsiderationItem,
     CriteriaResolver,
-    ItemType,
     OfferItem,
-    OrderComponents,
-    OrderType
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+    OrderComponents
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -117,7 +117,11 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         assertEq(rawContractOffererNonceValue, bytes32(0));
 
-        FuzzInscribers.inscribeContractOffererNonce(address(this), 1, context.seaport);
+        FuzzInscribers.inscribeContractOffererNonce(
+            address(this),
+            1,
+            context.seaport
+        );
 
         bytes32 newContractOffererNonceValue = vm.load(
             address(context.seaport),
