@@ -2,6 +2,20 @@
 pragma solidity ^0.8.17;
 
 import {
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdditionalRecipient,
+    Fulfillment,
+    FulfillmentComponent,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 
@@ -12,21 +26,11 @@ import {
     TwoWords
 } from "../../../contracts/lib/ConsiderationConstants.sol";
 
-import {
-    AdditionalRecipient,
-    Fulfillment,
-    FulfillmentComponent,
-    Order,
-    OrderComponents,
-    OrderParameters
-} from "../../../contracts/lib/ConsiderationStructs.sol";
-
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
 import { OrderBuilder } from "./OrderBuilder.sol";
 
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
-import "seaport-sol/SeaportSol.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OrderBuilder, AmountDeriver {

@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
-import { Merkle } from "murky/Merkle.sol";
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import { LibSort } from "solady/src/utils/LibSort.sol";
+
+import { Merkle } from "murky/Merkle.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    OfferItem
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;
@@ -226,7 +236,9 @@ contract CriteriaResolverHelper {
         );
 
         if (id.set) {
-            revert("CriteriaResolverHelper: wildcard already set for this item");
+            revert(
+                "CriteriaResolverHelper: wildcard already set for this item"
+            );
         }
 
         id.set = true;

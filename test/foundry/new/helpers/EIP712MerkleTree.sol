@@ -3,21 +3,17 @@ pragma solidity ^0.8.17;
 
 import { MurkyBase } from "murky/common/MurkyBase.sol";
 
-import {
-    TypehashDirectory
-} from "../../../../contracts/test/TypehashDirectory.sol";
+import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import { Test } from "forge-std/Test.sol";
 
-import {
-    ConsiderationInterface
-} from "../../../../contracts/interfaces/ConsiderationInterface.sol";
+import { OrderComponents } from "seaport-sol/SeaportStructs.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import {
-    OrderComponents
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
-
-import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+    TypehashDirectory
+} from "../../../../contracts/test/TypehashDirectory.sol";
 
 /**
  * @dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky
@@ -54,7 +50,7 @@ contract EIP712MerkleTree is Test {
      * into the tree to make the length a power of 2.
      */
     function signBulkOrder(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         OrderComponents[] memory orderComponents,
         uint24 orderIndex,
@@ -115,7 +111,7 @@ contract EIP712MerkleTree is Test {
      * tree until the specified height is reached.
      */
     function signSparseBulkOrder(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         OrderComponents memory orderComponents,
         uint256 height,
@@ -206,7 +202,7 @@ contract EIP712MerkleTree is Test {
     }
 
     function _getSignature(
-        ConsiderationInterface consideration,
+        SeaportInterface consideration,
         uint256 privateKey,
         bytes32 bulkOrderTypehash,
         bytes32 root,

@@ -3,7 +3,22 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    ConsiderationItemLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    OfferItem,
+    OrderComponents
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -15,13 +30,6 @@ import {
     FuzzTestContext,
     FuzzTestContextLib
 } from "./helpers/FuzzTestContextLib.sol";
-
-import {
-    ConsiderationItemLib,
-    OfferItemLib,
-    OrderComponentsLib,
-    OrderLib
-} from "../../../contracts/helpers/sol/lib/SeaportStructLib.sol";
 
 contract FuzzHelpersTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
@@ -109,7 +117,11 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         assertEq(rawContractOffererNonceValue, bytes32(0));
 
-        FuzzInscribers.inscribeContractOffererNonce(address(this), 1, context.seaport);
+        FuzzInscribers.inscribeContractOffererNonce(
+            address(this),
+            1,
+            context.seaport
+        );
 
         bytes32 newContractOffererNonceValue = vm.load(
             address(context.seaport),

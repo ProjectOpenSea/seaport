@@ -19,7 +19,7 @@ enum Method {
     NAME
 }
 
-enum OrderStatus {
+enum OrderStatusEnum {
     AVAILABLE, // not validated or fulfilled; implicitly validated via signature except when match is called
     VALIDATED, // validated on-chain
     PARTIAL, // partially fulfilled
@@ -92,6 +92,14 @@ enum AmountDegree {
     MEDIUM,
     LARGE,
     WUMBO
+}
+
+enum FulfillmentRecipient {
+    ZERO,
+    OFFERER,
+    ALICE,
+    BOB,
+    EVE
 }
 
 // ConsiderationItem.* / ReceivedItem.* / Method.*ADVANCED <- Recipient
@@ -348,6 +356,11 @@ enum UnavailableReason {
     CANCELLED,
     ALREADY_FULFILLED,
     GENERATE_ORDER_FAILURE
+}
+
+enum ExtraData {
+    NONE,
+    RANDOM
 }
 
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?

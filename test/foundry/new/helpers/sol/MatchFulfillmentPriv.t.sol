@@ -1,54 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 import { Test } from "forge-std/Test.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import { LibSort } from "solady/src/utils/LibSort.sol";
+
+import {
+    ConsiderationItemLib,
+    OfferItemLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     MatchFulfillmentLib,
     ProcessComponentParams
 } from "seaport-sol/fulfillments/match/MatchFulfillmentLib.sol";
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
-
 import {
     MatchComponent,
     MatchComponentType
 } from "seaport-sol/lib/types/MatchComponentType.sol";
 
-import { LibSort } from "solady/src/utils/LibSort.sol";
-
 import { MatchArrays } from "seaport-sol/fulfillments/lib/MatchArrays.sol";
 
+import {
+    ConsiderationItem,
+    Fulfillment,
+    FulfillmentComponent,
+    OfferItem,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
 contract MatchFulfillmentLibTest is Test {
-    using Strings for uint256;
-    using OrderParametersLib for OrderParameters;
-    using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
     using MatchComponentType for MatchComponent;
-
-    address A;
-    address B;
-    address C;
-    address D;
-    address E;
-    address F;
-    address G;
-
-    function setUp() public virtual {
-        A = makeAddr("A");
-        B = makeAddr("B");
-        C = makeAddr("C");
-        D = makeAddr("D");
-        E = makeAddr("E");
-        F = makeAddr("F");
-        G = makeAddr("G");
-    }
+    using OfferItemLib for OfferItem;
+    using OrderParametersLib for OrderParameters;
+    using Strings for uint256;
 
     MatchComponent[] _components;
+    MatchComponent[] consideration;
+    MatchComponent[] offer;
 
     using MatchComponentType for MatchComponent[];
+
 
     function testConsolidateComponents(uint240[10] memory amounts) public {
         // copy to dynamic array
@@ -74,9 +71,6 @@ contract MatchFulfillmentLibTest is Test {
             assertGt(_components[i].getAmount(), 0, "consolidateComponents");
         }
     }
-
-    MatchComponent[] offer;
-    MatchComponent[] consideration;
 
     function testProcessOfferComponent() public {
         FulfillmentComponent[] memory offerFulfillmentComponents = MatchArrays

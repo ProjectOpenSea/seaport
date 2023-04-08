@@ -1,7 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    Fulfillment,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    CriteriaResolver,
+    FulfillmentLib,
+    OfferItemLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib,
+    SeaportArrays
+} from "seaport-sol/SeaportSol.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -13,14 +37,14 @@ import {
 } from "seaport-core/interfaces/AbridgedTokenInterfaces.sol";
 
 contract SelfRestrictedContractOffererTest is BaseOrderTest {
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
-    using OrderLib for Order;
+    using OfferItemLib for OfferItem;
+    using OfferItemLib for OfferItem[];
     using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
-    using AdvancedOrderLib for AdvancedOrder;
 
     ValidationOffererZone offerer;
 

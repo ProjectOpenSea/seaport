@@ -1,9 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/console.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdvancedOrder,
+    BasicOrderParameters,
+    Execution,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
@@ -32,11 +56,9 @@ import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
 
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
-
-import { dumpExecutions } from "./DebugUtil.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -80,6 +102,12 @@ import { dumpExecutions } from "./DebugUtil.sol";
  *         for setting up the expectations for the post-execution state of the
  *         test. Logic for handling unavailable orders and balance checking
  *         will also live here.
+ *
+ *          The `runCheckRegistration` function should hold everything that
+ *          registers checks but does not belong naturally elsewhere.  Checks
+ *          can be registered throughout the lifecycle, but unless there's a
+ *          natural reason to place them inline elsewhere in the lifecycle, they
+ *          should go in a helper in `runCheckRegistration`.
  *
  *         The `exec` function is lean and only 1) sets up a prank if the caller
  *         is not the test contract, 2) logs the action, 3) calls the Seaport
@@ -158,7 +186,7 @@ contract FuzzEngine is
         vm.warp(JAN_1_2023_UTC);
         // Set either the optimized version or the reference version of Seaport,
         // depending on the active profile.
-        ConsiderationInterface seaport_ = getSeaport();
+        SeaportInterface seaport_ = getSeaport();
         // Get the conduit controller, which allows dpeloying and managing
         // conduits.  Conduits are used to transfer tokens between accounts.
         ConduitControllerInterface conduitController_ = getConduitController();
@@ -196,17 +224,35 @@ contract FuzzEngine is
             generatorContext
         );
 
-        return
-            FuzzTestContextLib
-                .from({
-                    orders: orders,
-                    seaport: seaport_,
-                    caller: address(this)
-                })
-                .withConduitController(conduitController_)
-                .withFuzzParams(fuzzParams)
-                .withMaximumFulfilled(space.maximumFulfilled)
-                .withPreExecOrderStatuses(space);
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({ orders: orders, seaport: seaport_, caller: address(this) })
+            .withConduitController(conduitController_)
+            .withFuzzParams(fuzzParams)
+            .withMaximumFulfilled(space.maximumFulfilled)
+            .withPreExecOrderStatuses(space);
+
+        // Generate and add a top-level fulfiller conduit key to the context.
+        // This is on a separate line to avoid stack too deep.
+        context = context.withFulfillerConduitKey(
+            AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
+                space,
+                generatorContext
+            )
+        );
+
+        // If it's an advanced order, generate and add a top-level recipient.
+        if (
+            orders.getStructure(address(context.seaport)) == Structure.ADVANCED
+        ) {
+            context = context.withRecipient(
+                AdvancedOrdersSpaceGenerator.generateRecipient(
+                    space,
+                    generatorContext
+                )
+            );
+        }
+
+        return context;
     }
 
     /**
@@ -242,7 +288,6 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runSetup(FuzzTestContext memory context) internal {
-        // TODO: Scan all orders, look for unavailable orders
         // 1. order has been cancelled
         // 2. order has expired
         // 3. order has not yet started
@@ -253,7 +298,6 @@ contract FuzzEngine is
         setUpZoneParameters(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
-        // TODO: resolve criteria during setup
     }
 
     /**
@@ -440,7 +484,8 @@ contract FuzzEngine is
      * @dev Perform a "check," i.e. a post-execution assertion we want to
      *      validate. Checks should be public functions that accept a
      *      FuzzTestContext as their only argument. Checks have access to the
-     *      post-execution FuzzTestContext and can use it to make test assertions.
+     *      post-execution FuzzTestContext and can use it to make test
+     *      assertions.
      *
      *      Since we delegatecall ourself, checks must be public functions on
      *      this contract. It's a good idea to prefix them with "check_" as a

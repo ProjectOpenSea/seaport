@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../../../../../contracts/helpers/ArrayHelpers.sol";
+import {
+    MemoryPointer
+} from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     Execution,
     ItemType,
     ReceivedItem
-} from "../../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 

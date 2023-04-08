@@ -1,14 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
-import "../../../../contracts/lib/ConsiderationStructs.sol";
-import "openzeppelin-contracts/contracts/interfaces/IERC721.sol";
-import "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import "openzeppelin-contracts/contracts/interfaces/IERC1155.sol";
+import {
+    EnumerableSet
+} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import {
+    EnumerableMap
+} from "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
+
+import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+
+import {
+    IERC721
+} from "openzeppelin-contracts/contracts/interfaces/IERC721.sol";
+
+import {
+    IERC1155
+} from "openzeppelin-contracts/contracts/interfaces/IERC1155.sol";
+
 import { LibString } from "solady/src/utils/LibString.sol";
+
 import { withLabel } from "./Labeler.sol";
+
+import { Execution, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 struct NativeAccountDump {
     address account;

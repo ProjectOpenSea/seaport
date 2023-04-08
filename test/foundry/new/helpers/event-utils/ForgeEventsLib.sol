@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
-
-import "../../../../../contracts/helpers/PointerLibraries.sol";
+import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
 import { console2 } from "forge-std/console2.sol";
+
+import {
+    MemoryPointer
+} from "../../../../../contracts/helpers/PointerLibraries.sol";
 
 import { getEventHash, getTopicsHash } from "./EventHashes.sol";
 

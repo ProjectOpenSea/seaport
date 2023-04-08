@@ -9,6 +9,8 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -59,10 +61,13 @@ struct OrderComponentsSpace {
     ConduitChoice conduit;
     Tips tips;
     UnavailableReason unavailableReason; // ignored unless unavailable
+    ExtraData extraData;
 }
 
 struct AdvancedOrdersSpace {
     OrderComponentsSpace[] orders;
     bool isMatchable;
     uint256 maximumFulfilled;
+    FulfillmentRecipient recipient;
+    ConduitChoice conduit;
 }

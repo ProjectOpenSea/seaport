@@ -3,16 +3,30 @@ pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    ConsiderationItemLib,
+    OfferItemLib,
+    OrderParametersLib,
+    SeaportArrays
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    ConsiderationItem,
+    OfferItem,
+    FulfillmentComponent,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     FulfillAvailableHelper
 } from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
 contract FulfillAvailableHelperTest is Test {
-    using OrderParametersLib for OrderParameters;
-    using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
+    using OfferItemLib for OfferItem;
+    using OrderParametersLib for OrderParameters;
 
     FulfillAvailableHelper test;
 

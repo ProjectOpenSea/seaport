@@ -3,11 +3,14 @@ pragma solidity ^0.8.13;
 
 import { Vm } from "forge-std/Vm.sol";
 
-import "../../../../../contracts/helpers/ArrayHelpers.sol";
+import {
+    ArrayHelpers,
+    MemoryPointer
+} from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     Execution
-} from "../../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
@@ -16,6 +19,7 @@ import { FuzzEngineLib } from "../FuzzEngineLib.sol";
 import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
+
 import { dumpTransfers } from "../DebugUtil.sol";
 
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
@@ -32,17 +36,17 @@ struct ReduceInput {
  */
 library ExpectedEventsUtil {
     using ArrayHelpers for MemoryPointer;
-    using FuzzEngineLib for FuzzTestContext;
+    using Casts for *;
     using ForgeEventsLib for Vm.Log;
     using ForgeEventsLib for Vm.Log[];
-    using Casts for *;
+    using FuzzEngineLib for FuzzTestContext;
 
     /**
      * @dev Set up the Vm.
      */
-    address private constant VM_ADDRESS =
-        address(uint160(uint256(keccak256("hevm cheat code"))));
-    Vm private constant vm = Vm(VM_ADDRESS);
+
+    Vm private constant vm =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     /**
      * @dev Sets up the expected event hashes.

@@ -3,16 +3,14 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
-
-import { BaseOrderTest } from "./BaseOrderTest.sol";
-
 import {
     AdvancedOrdersSpace,
     ConsiderationItemSpace,
     OfferItemSpace,
     OrderComponentsSpace
 } from "seaport-sol/StructSpace.sol";
+
+import { AdvancedOrder, ItemType } from "seaport-sol/SeaportStructs.sol";
 
 import {
     Amount,
@@ -21,6 +19,8 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -31,6 +31,8 @@ import {
     Zone,
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
+
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 import {
     AdvancedOrdersSpaceGenerator,
@@ -107,7 +109,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: new OrderComponentsSpace[](0),
             isMatchable: false,
-            maximumFulfilled: 0
+            maximumFulfilled: 0,
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -134,7 +138,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.AVAILABLE
+            unavailableReason: UnavailableReason.AVAILABLE,
+            extraData: ExtraData.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -145,7 +150,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -181,7 +188,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.AVAILABLE
+            unavailableReason: UnavailableReason.AVAILABLE,
+            extraData: ExtraData.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -192,7 +200,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -239,7 +249,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             eoaSignatureType: EOASignature.STANDARD,
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
-            unavailableReason: UnavailableReason.AVAILABLE
+            unavailableReason: UnavailableReason.AVAILABLE,
+            extraData: ExtraData.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -250,7 +261,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         AdvancedOrdersSpace memory space = AdvancedOrdersSpace({
             orders: components,
             isMatchable: false,
-            maximumFulfilled: 1
+            maximumFulfilled: 1,
+            recipient: FulfillmentRecipient.ZERO,
+            conduit: ConduitChoice.NONE
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
+
+import { DifferentialTest } from "./DifferentialTest.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
 import {
     ConduitController
 } from "../../../../contracts/conduit/ConduitController.sol";
@@ -10,25 +18,8 @@ import {
 } from "../../../../reference/conduit/ReferenceConduitController.sol";
 
 import {
-    ConduitControllerInterface
-} from "../../../../contracts/interfaces/ConduitControllerInterface.sol";
-
-import {
     ConsiderationInterface
 } from "../../../../contracts/interfaces/ConsiderationInterface.sol";
-
-import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
-
-import {
-    OfferItem,
-    ConsiderationItem
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
-
-import { DifferentialTest } from "./DifferentialTest.sol";
-
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
-
-import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
 
 import { Consideration } from "../../../../contracts/lib/Consideration.sol";
 
@@ -36,20 +27,23 @@ import {
     ReferenceConsideration
 } from "../../../../reference/ReferenceConsideration.sol";
 
+import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
+
 import { setLabel } from "./Labeler.sol";
 
-/// @dev Base test case that deploys Consideration and its dependencies
+/// @dev Base test case that deploys Consideration and its dependencies.
 contract BaseSeaportTest is DifferentialTest {
     using stdStorage for StdStorage;
 
-    ConsiderationInterface seaport;
-    ConsiderationInterface referenceSeaport;
+    bool coverage_or_debug;
     bytes32 conduitKey;
+
+    Conduit conduit;
+    Conduit referenceConduit;
     ConduitControllerInterface conduitController;
     ConduitControllerInterface referenceConduitController;
-    Conduit referenceConduit;
-    Conduit conduit;
-    bool coverage_or_debug;
+    ConsiderationInterface referenceSeaport;
+    ConsiderationInterface seaport;
 
     function stringEq(
         string memory a,
@@ -68,10 +62,10 @@ contract BaseSeaportTest is DifferentialTest {
     }
 
     function setUp() public virtual {
-        // conditionally deploy contracts normally or from precompiled source
+        // Conditionally deploy contracts normally or from precompiled source
         // deploys normally when SEAPORT_COVERAGE is true for coverage analysis
         // or when FOUNDRY_PROFILE is "debug" for debugging with source maps
-        // deploys from precompiled source when both are false
+        // deploys from precompiled source when both are false.
         coverage_or_debug = debugEnabled();
 
         conduitKey = bytes32(uint256(uint160(address(this))) << 96);
@@ -195,26 +189,6 @@ contract BaseSeaportTest is DifferentialTest {
             _orderHash
         );
         return abi.encodePacked(r, s, v);
-    }
-
-    function signOrder2098(
-        ConsiderationInterface _consideration,
-        uint256 _pkOfSigner,
-        bytes32 _orderHash
-    ) internal view returns (bytes memory) {
-        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
-            _consideration,
-            _pkOfSigner,
-            _orderHash
-        );
-        uint256 yParity;
-        if (v == 27) {
-            yParity = 0;
-        } else {
-            yParity = 1;
-        }
-        uint256 yParityAndS = (yParity << 255) | uint256(s);
-        return abi.encodePacked(r, yParityAndS);
     }
 
     function getSignatureComponents(

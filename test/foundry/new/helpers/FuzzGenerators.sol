@@ -3,20 +3,32 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import "seaport-sol/SeaportSol.sol";
-
-import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
-
-import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
+import {
+    AdvancedOrderLib,
+    ConsiderationItemLib,
+    MatchComponent,
+    MatchComponentType,
+    OfferItemLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import {
-    AdvancedOrdersSpace,
-    ConsiderationItemSpace,
-    OfferItemSpace,
-    OrderComponentsSpace
-} from "seaport-sol/StructSpace.sol";
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
+    Fulfillment,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
+} from "seaport-sol/SeaportStructs.sol";
 
-import { CriteriaMetadata } from "./CriteriaResolverHelper.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     Amount,
@@ -25,6 +37,8 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
+    FulfillmentRecipient,
     Offerer,
     Recipient,
     SignatureMethod,
@@ -36,12 +50,31 @@ import {
     ZoneHash
 } from "seaport-sol/SpaceEnums.sol";
 
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/ConduitControllerInterface.sol";
+
+import {
+    AdvancedOrdersSpace,
+    ConsiderationItemSpace,
+    OfferItemSpace,
+    OrderComponentsSpace
+} from "seaport-sol/StructSpace.sol";
+
+import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
+
 import {
     FuzzGeneratorContext,
     TestConduit
 } from "./FuzzGeneratorContextLib.sol";
 
-import { FuzzHelpers, _locateCurrentAmount } from "./FuzzHelpers.sol";
+import {
+    _locateCurrentAmount,
+    FuzzHelpers,
+    Structure
+} from "./FuzzHelpers.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
@@ -131,9 +164,9 @@ library TestStateGenerator {
                     context,
                     false
                 ),
-                orderType: BroadOrderType(context.randEnum(0, 2)),
-                // TODO: Restricted range to 1 and 2 to avoid unavailable.
-                //       Range should be 0-4.
+                // TODO: support contract orders (0-2)
+                orderType: BroadOrderType(context.randEnum(0, 1)),
+                // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
@@ -141,8 +174,8 @@ library TestStateGenerator {
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
-                // TODO: Add more unavailable order reasons (1-5).
-                unavailableReason: reason
+                unavailableReason: reason,
+                extraData: ExtraData(context.randEnum(0, 1))
             });
 
             // Set up order components specific to contract order
@@ -161,7 +194,9 @@ library TestStateGenerator {
             AdvancedOrdersSpace({
                 orders: components,
                 isMatchable: isMatchable,
-                maximumFulfilled: maximumFulfilled
+                maximumFulfilled: maximumFulfilled,
+                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                conduit: ConduitChoice(context.randEnum(0, 2))
             });
     }
 
@@ -225,7 +260,6 @@ library TestStateGenerator {
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
-                    // TODO: Fixed amounts only, should be 0-2
                     amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
@@ -239,7 +273,6 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                // TODO: Fixed amounts only, should be 0-2
                 amount: Amount(context.randEnum(0, 2)),
                 recipient: Recipient(0) // Always offerer
             });
@@ -249,8 +282,8 @@ library TestStateGenerator {
                     itemType: context.basicOfferSpace.itemType,
                     tokenIndex: context.basicOfferSpace.tokenIndex,
                     criteria: Criteria(0),
-                    // TODO: Fixed amounts only, should be 0-2
-                    // TODO: sum(amounts) must be less than offer amount
+                    // TODO: sum(amounts) must be less than offer amount, right
+                    // now this is enforced in a hacky way
                     amount: Amount(context.randEnum(0, 2)),
                     recipient: Recipient(context.randEnum(0, 4))
                 });
@@ -262,10 +295,14 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
+    using OrderDetailsHelper for AdvancedOrder[];
+    using OrderDetailsHelper for ItemType;
 
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
+    using ExtraDataGenerator for AdvancedOrder;
     using FuzzInscribers for AdvancedOrder;
     using MatchComponentType for MatchComponent;
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
@@ -273,6 +310,9 @@ library AdvancedOrdersSpaceGenerator {
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
     using OfferItemSpaceGenerator for OfferItemSpace;
+    using BroadOrderTypeGenerator for AdvancedOrder;
+    using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using ConduitGenerator for ConduitChoice;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -305,10 +345,29 @@ library AdvancedOrdersSpaceGenerator {
             _syncStatuses(orders, space, context);
         }
 
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
+        }
+
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
 
         return orders;
+    }
+
+    function generateRecipient(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        return space.recipient.generate(context);
+    }
+
+    function generateFulfillerConduitKey(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes32) {
+        return space.conduit.generate(context).key;
     }
 
     function _syncStatuses(
@@ -394,7 +453,9 @@ library AdvancedOrdersSpaceGenerator {
                     numerator: 1,
                     denominator: 1,
                     extraData: bytes("")
-                });
+                })
+                .withBroadOrderType(space.orders[i].orderType, context)
+                .withGeneratedExtraData(space.orders[i].extraData, context);
         }
     }
 
@@ -455,14 +516,20 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
+        }
+
         MatchComponent[] memory remainders;
         CriteriaResolver[] memory resolvers;
+
         {
             resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
-            OrderDetails[] memory details = _getOrderDetails(orders, resolvers);
+            OrderDetails[] memory details = orders.getOrderDetails(resolvers);
             // Get the remainders.
             (, , remainders) = context.testHelpers.getMatchedFulfillments(
                 details
@@ -493,7 +560,7 @@ library AdvancedOrdersSpaceGenerator {
                     item.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     item.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    resolvedItemType = convertCriteriaItemType(item.itemType);
+                    resolvedItemType = item.itemType.convertCriteriaItemType();
                     if (item.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
                             abi.encodePacked(
@@ -524,6 +591,23 @@ library AdvancedOrdersSpaceGenerator {
                 orders.length - 1
             );
 
+            OfferItem memory newItem;
+            {
+                uint256 amountGivenPartial = _applyInverseAndRoundUp(
+                    amount,
+                    uint256(orders[orderInsertionIndex].numerator),
+                    uint256(orders[orderInsertionIndex].denominator)
+                );
+
+                newItem = OfferItem({
+                    itemType: resolvedItemType,
+                    token: item.token,
+                    identifierOrCriteria: resolvedIdentifier,
+                    startAmount: amountGivenPartial,
+                    endAmount: amountGivenPartial
+                });
+            }
+
             // Create a new offer array with room for the remainder.
             OfferItem[] memory newOffer = new OfferItem[](
                 orders[orderInsertionIndex].parameters.offer.length + 1
@@ -532,13 +616,7 @@ library AdvancedOrdersSpaceGenerator {
             // If the targeted order has no offer, just add the remainder to the
             // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
-                newOffer[0] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[0] = newItem;
             } else {
                 // If the targeted order has an offer, pick a random index to
                 // insert the remainder into.
@@ -558,13 +636,7 @@ library AdvancedOrdersSpaceGenerator {
 
                 // Insert the remainder into the new offer array at the
                 // insertion index.
-                newOffer[itemInsertionIndex] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[itemInsertionIndex] = newItem;
 
                 // Copy the offer items after the insertion index into the new
                 // offer array.
@@ -612,297 +684,44 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
-            OrderDetails[] memory details = _getOrderDetails(orders, resolvers);
+            OrderDetails[] memory details = orders.getOrderDetails(resolvers);
             // Get the remainders.
             (, , remainders) = context.testHelpers.getMatchedFulfillments(
                 details
             );
 
             if (remainders.length > 0) {
+                // NOTE: this may be caused by inserting offer items into orders
+                // with partial fill fractions. The amount on the item that is
+                // inserted should be increased based on fraction in that case.
                 revert("FuzzGenerators: could not satisfy remainders");
             }
         }
     }
 
-    function _getOrderDetails(
-        AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers
-    ) internal view returns (OrderDetails[] memory) {
-        OrderDetails[] memory orderDetails = new OrderDetails[](
-            advancedOrders.length
-        );
-        for (uint256 i = 0; i < advancedOrders.length; i++) {
-            orderDetails[i] = toOrderDetails(
-                advancedOrders[i],
-                i,
-                criteriaResolvers
-            );
-        }
-        return orderDetails;
-    }
-
-    function toOrderDetails(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        CriteriaResolver[] memory resolvers
-    ) internal view returns (OrderDetails memory) {
-        (
-            SpentItem[] memory offer,
-            ReceivedItem[] memory consideration
-        ) = getSpentAndReceivedItems(
-                order.parameters,
-                order.numerator,
-                order.denominator,
-                orderIndex,
-                resolvers
-            );
-        return
-            OrderDetails({
-                offerer: order.parameters.offerer,
-                conduitKey: order.parameters.conduitKey,
-                offer: offer,
-                consideration: consideration
-            });
-    }
-
-    function getSpentAndReceivedItems(
-        OrderParameters memory parameters,
-        uint256 numerator,
-        uint256 denominator,
-        uint256 orderIndex,
-        CriteriaResolver[] memory criteriaResolvers
-    )
-        private
-        view
-        returns (SpentItem[] memory spent, ReceivedItem[] memory received)
-    {
-        if (parameters.isAvailable()) {
-            spent = getSpentItems(parameters, numerator, denominator);
-            received = getReceivedItems(parameters, numerator, denominator);
-
-            applyCriteriaResolvers(
-                spent,
-                received,
-                orderIndex,
-                criteriaResolvers
-            );
-        }
-    }
-
-    function applyCriteriaResolvers(
-        SpentItem[] memory spentItems,
-        ReceivedItem[] memory receivedItems,
-        uint256 orderIndex,
-        CriteriaResolver[] memory criteriaResolvers
-    ) private pure {
-        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
-            CriteriaResolver memory resolver = criteriaResolvers[i];
-            if (resolver.orderIndex != orderIndex) {
-                continue;
-            }
-            if (resolver.side == Side.OFFER) {
-                SpentItem memory item = spentItems[resolver.index];
-                item.itemType = convertCriteriaItemType(item.itemType);
-                item.identifier = resolver.identifier;
-            } else {
-                ReceivedItem memory item = receivedItems[resolver.index];
-                item.itemType = convertCriteriaItemType(item.itemType);
-                item.identifier = resolver.identifier;
-            }
-        }
-    }
-
-    function convertCriteriaItemType(
-        ItemType itemType
-    ) internal pure returns (ItemType) {
-        if (itemType == ItemType.ERC721_WITH_CRITERIA) {
-            return ItemType.ERC721;
-        } else if (itemType == ItemType.ERC1155_WITH_CRITERIA) {
-            return ItemType.ERC1155;
-        } else {
-            revert(
-                "FuzzGenerators: amount deriver helper resolving non criteria item type"
-            );
-        }
-    }
-
-    function getSpentItems(
-        OrderParameters memory parameters,
+    function _applyInverseAndRoundUp(
+        uint256 amount,
         uint256 numerator,
         uint256 denominator
-    ) private view returns (SpentItem[] memory) {
-        return
-            getSpentItems(
-                parameters.offer,
-                parameters.startTime,
-                parameters.endTime,
-                numerator,
-                denominator
-            );
-    }
-
-    function getReceivedItems(
-        OrderParameters memory parameters,
-        uint256 numerator,
-        uint256 denominator
-    ) private view returns (ReceivedItem[] memory) {
-        return
-            getReceivedItems(
-                parameters.consideration,
-                parameters.startTime,
-                parameters.endTime,
-                numerator,
-                denominator
-            );
-    }
-
-    function getSpentItems(
-        OfferItem[] memory items,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 numerator,
-        uint256 denominator
-    ) private view returns (SpentItem[] memory) {
-        SpentItem[] memory spentItems = new SpentItem[](items.length);
-        for (uint256 i = 0; i < items.length; i++) {
-            spentItems[i] = getSpentItem(
-                items[i],
-                startTime,
-                endTime,
-                numerator,
-                denominator
-            );
-        }
-        return spentItems;
-    }
-
-    function getReceivedItems(
-        ConsiderationItem[] memory considerationItems,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 numerator,
-        uint256 denominator
-    ) private view returns (ReceivedItem[] memory) {
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            considerationItems.length
-        );
-        for (uint256 i = 0; i < considerationItems.length; i++) {
-            receivedItems[i] = getReceivedItem(
-                considerationItems[i],
-                startTime,
-                endTime,
-                numerator,
-                denominator
-            );
-        }
-        return receivedItems;
-    }
-
-    function getSpentItem(
-        OfferItem memory item,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 numerator,
-        uint256 denominator
-    ) private view returns (SpentItem memory spent) {
-        spent = SpentItem({
-            itemType: item.itemType,
-            token: item.token,
-            identifier: item.identifierOrCriteria,
-            amount: _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                startAmount: item.startAmount,
-                endAmount: item.endAmount,
-                startTime: startTime,
-                endTime: endTime,
-                roundUp: false
-            })
-        });
-    }
-
-    function getReceivedItem(
-        ConsiderationItem memory considerationItem,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 numerator,
-        uint256 denominator
-    ) private view returns (ReceivedItem memory received) {
-        received = ReceivedItem({
-            itemType: considerationItem.itemType,
-            token: considerationItem.token,
-            identifier: considerationItem.identifierOrCriteria,
-            amount: _applyFraction({
-                numerator: numerator,
-                denominator: denominator,
-                startAmount: considerationItem.startAmount,
-                endAmount: considerationItem.endAmount,
-                startTime: startTime,
-                endTime: endTime,
-                roundUp: true
-            }),
-            recipient: considerationItem.recipient
-        });
-    }
-
-    function _applyFraction(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 numerator,
-        uint256 denominator,
-        uint256 startTime,
-        uint256 endTime,
-        bool roundUp
-    ) internal view returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (startAmount == endAmount) {
-            // Apply fraction to end amount.
-            amount = _getFraction(numerator, denominator, endAmount);
-        } else {
-            // Otherwise, apply fraction to both and interpolated final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(numerator, denominator, startAmount),
-                _getFraction(numerator, denominator, endAmount),
-                startTime,
-                endTime,
-                roundUp
-            );
-        }
-    }
-
-    function _getFraction(
-        uint256 numerator,
-        uint256 denominator,
-        uint256 value
-    ) internal pure returns (uint256 newValue) {
-        // Return value early in cases where the fraction resolves to 1.
+    ) internal pure returns (uint256 newAmount) {
         if (numerator == denominator) {
-            return value;
+            return amount;
         }
 
-        bool failure = false;
+        uint256 newAmountSansRounding = (amount * denominator) / numerator;
 
-        // Ensure fraction can be applied to the value with no remainder. Note
-        // that the denominator cannot be zero.
-        assembly {
-            // Ensure new value contains no remainder via mulmod operator.
-            // Credit to @hrkrshnn + @axic for proposing this optimal solution.
-            if mulmod(value, numerator, denominator) {
-                failure := true
-            }
+        newAmount =
+            newAmountSansRounding +
+            ((denominator -
+                ((newAmountSansRounding * numerator) % denominator)) /
+                numerator);
+
+        if ((newAmount * numerator) % denominator != 0) {
+            revert("AdvancedOrdersSpaceGenerator: inverse change failed");
         }
 
-        if (failure) {
-            revert("ZoneParametersLib: bad fraction");
-        }
-
-        // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * numerator;
-
-        // Divide and check for remainder. Note that denominator cannot be zero.
-        assembly {
-            // Perform division without zero check.
-            newValue := div(valueTimesNumerator, denominator)
+        if ((newAmount * numerator) / denominator < amount) {
+            revert("AdvancedOrdersSpaceGenerator: inverse not rounded up");
         }
     }
 
@@ -1296,6 +1115,292 @@ library AdvancedOrdersSpaceGenerator {
     }
 }
 
+library OrderDetailsHelper {
+    using OrderParametersLib for OrderParameters;
+
+    function getOrderDetails(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal view returns (OrderDetails[] memory) {
+        OrderDetails[] memory orderDetails = new OrderDetails[](
+            advancedOrders.length
+        );
+        for (uint256 i = 0; i < advancedOrders.length; i++) {
+            orderDetails[i] = toOrderDetails(
+                advancedOrders[i],
+                i,
+                criteriaResolvers
+            );
+        }
+        return orderDetails;
+    }
+
+    function toOrderDetails(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        CriteriaResolver[] memory resolvers
+    ) internal view returns (OrderDetails memory) {
+        (
+            SpentItem[] memory offer,
+            ReceivedItem[] memory consideration
+        ) = getSpentAndReceivedItems(
+                order.parameters,
+                order.numerator,
+                order.denominator,
+                orderIndex,
+                resolvers
+            );
+        return
+            OrderDetails({
+                offerer: order.parameters.offerer,
+                conduitKey: order.parameters.conduitKey,
+                offer: offer,
+                consideration: consideration
+            });
+    }
+
+    function getSpentAndReceivedItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
+    )
+        private
+        view
+        returns (SpentItem[] memory spent, ReceivedItem[] memory received)
+    {
+        if (parameters.isAvailable()) {
+            spent = getSpentItems(parameters, numerator, denominator);
+            received = getReceivedItems(parameters, numerator, denominator);
+
+            applyCriteriaResolvers(
+                spent,
+                received,
+                orderIndex,
+                criteriaResolvers
+            );
+        }
+    }
+
+    function applyCriteriaResolvers(
+        SpentItem[] memory spentItems,
+        ReceivedItem[] memory receivedItems,
+        uint256 orderIndex,
+        CriteriaResolver[] memory criteriaResolvers
+    ) private pure {
+        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
+            CriteriaResolver memory resolver = criteriaResolvers[i];
+            if (resolver.orderIndex != orderIndex) {
+                continue;
+            }
+            if (resolver.side == Side.OFFER) {
+                SpentItem memory item = spentItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
+            } else {
+                ReceivedItem memory item = receivedItems[resolver.index];
+                item.itemType = convertCriteriaItemType(item.itemType);
+                item.identifier = resolver.identifier;
+            }
+        }
+    }
+
+    function convertCriteriaItemType(
+        ItemType itemType
+    ) internal pure returns (ItemType) {
+        if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+            return ItemType.ERC721;
+        } else if (itemType == ItemType.ERC1155_WITH_CRITERIA) {
+            return ItemType.ERC1155;
+        } else {
+            revert(
+                "OrderDetailsHelper: amount deriver helper resolving non criteria item type"
+            );
+        }
+    }
+
+    function getSpentItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem[] memory) {
+        return
+            getSpentItems(
+                parameters.offer,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
+    }
+
+    function getReceivedItems(
+        OrderParameters memory parameters,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem[] memory) {
+        return
+            getReceivedItems(
+                parameters.consideration,
+                parameters.startTime,
+                parameters.endTime,
+                numerator,
+                denominator
+            );
+    }
+
+    function getSpentItems(
+        OfferItem[] memory items,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = getSpentItem(
+                items[i],
+                startTime,
+                endTime,
+                numerator,
+                denominator
+            );
+        }
+        return spentItems;
+    }
+
+    function getReceivedItems(
+        ConsiderationItem[] memory considerationItems,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem[] memory) {
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            considerationItems.length
+        );
+        for (uint256 i = 0; i < considerationItems.length; i++) {
+            receivedItems[i] = getReceivedItem(
+                considerationItems[i],
+                startTime,
+                endTime,
+                numerator,
+                denominator
+            );
+        }
+        return receivedItems;
+    }
+
+    function getSpentItem(
+        OfferItem memory item,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (SpentItem memory spent) {
+        spent = SpentItem({
+            itemType: item.itemType,
+            token: item.token,
+            identifier: item.identifierOrCriteria,
+            amount: _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: false
+            })
+        });
+    }
+
+    function getReceivedItem(
+        ConsiderationItem memory considerationItem,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 numerator,
+        uint256 denominator
+    ) private view returns (ReceivedItem memory received) {
+        received = ReceivedItem({
+            itemType: considerationItem.itemType,
+            token: considerationItem.token,
+            identifier: considerationItem.identifierOrCriteria,
+            amount: _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: considerationItem.startAmount,
+                endAmount: considerationItem.endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: true
+            }),
+            recipient: considerationItem.recipient
+        });
+    }
+
+    function _applyFraction(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 startTime,
+        uint256 endTime,
+        bool roundUp
+    ) internal view returns (uint256 amount) {
+        // If start amount equals end amount, apply fraction to end amount.
+        if (startAmount == endAmount) {
+            // Apply fraction to end amount.
+            amount = _getFraction(numerator, denominator, endAmount);
+        } else {
+            // Otherwise, apply fraction to both and interpolated final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(numerator, denominator, startAmount),
+                _getFraction(numerator, denominator, endAmount),
+                startTime,
+                endTime,
+                roundUp
+            );
+        }
+    }
+
+    function _getFraction(
+        uint256 numerator,
+        uint256 denominator,
+        uint256 value
+    ) internal pure returns (uint256 newValue) {
+        // Return value early in cases where the fraction resolves to 1.
+        if (numerator == denominator) {
+            return value;
+        }
+
+        bool failure = false;
+
+        // Ensure fraction can be applied to the value with no remainder. Note
+        // that the denominator cannot be zero.
+        assembly {
+            // Ensure new value contains no remainder via mulmod operator.
+            // Credit to @hrkrshnn + @axic for proposing this optimal solution.
+            if mulmod(value, numerator, denominator) {
+                failure := true
+            }
+        }
+
+        if (failure) {
+            revert("OrderDetailsHelper: bad fraction");
+        }
+
+        // Multiply the numerator by the value and ensure no overflow occurs.
+        uint256 valueTimesNumerator = value * numerator;
+
+        // Divide and check for remainder. Note that denominator cannot be zero.
+        assembly {
+            // Perform division without zero check.
+            newValue := div(valueTimesNumerator, denominator)
+        }
+    }
+}
+
 library OrderComponentsSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
@@ -1368,6 +1473,102 @@ library ConduitGenerator {
         } else {
             revert("ConduitGenerator: invalid Conduit index");
         }
+    }
+}
+
+library BroadOrderTypeGenerator {
+    using PRNGHelpers for FuzzGeneratorContext;
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
+
+    function withBroadOrderType(
+        AdvancedOrder memory order,
+        BroadOrderType broadOrderType,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder memory) {
+        OrderParameters memory orderParams = order.parameters;
+        // NOTE: this assumes that the order type has been set to either
+        // FULL_OPEN (by .empty()) or FULL_RESTRICTED (by ZoneGenerator).
+        if (broadOrderType == BroadOrderType.PARTIAL) {
+            // Adjust the order type based on whether it is restricted
+            if (orderParams.orderType == OrderType.FULL_RESTRICTED) {
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_RESTRICTED
+                );
+            } else if (orderParams.orderType == OrderType.FULL_OPEN) {
+                order.parameters = orderParams.withOrderType(
+                    OrderType.PARTIAL_OPEN
+                );
+            }
+
+            // TODO: get more sophisticated about this down the line
+            uint120 numerator = uint120(context.randRange(1, type(uint80).max));
+            uint120 denominator = uint120(
+                numerator * context.randRange(1, type(uint40).max)
+            );
+
+            return
+                order
+                    .withNumerator(numerator)
+                    .withDenominator(denominator)
+                    .withCoercedAmountsForPartialFulfillment();
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            revert(
+                "BroadOrderTypeGenerator: contract orders not yet supported"
+            );
+        }
+
+        return order;
+    }
+}
+
+library ExtraDataGenerator {
+    using PRNGHelpers for FuzzGeneratorContext;
+    using AdvancedOrderLib for AdvancedOrder;
+
+    function withGeneratedExtraData(
+        AdvancedOrder memory order,
+        ExtraData extraData,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder memory) {
+        if (extraData == ExtraData.NONE) {
+            return order.withExtraData("");
+        } else if (extraData == ExtraData.RANDOM) {
+            return
+                order.withExtraData(
+                    _generateRandomBytesArray(1, 4096, context)
+                );
+        } else {
+            revert("ExtraDataGenerator: unsupported ExtraData value");
+        }
+    }
+
+    function _generateRandomBytesArray(
+        uint256 minSize,
+        uint256 maxSize,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes memory) {
+        uint256 length = context.randRange(minSize, maxSize);
+
+        // Allocate & round the size up to a whole word.
+        bytes memory arr = new bytes(((length + 31) / 32) * 32);
+
+        // Insert each random word in.
+        for (uint256 i = 0; i < length; i += 32) {
+            uint256 randomWord = context.rand();
+
+            assembly {
+                mstore(add(add(arr, 32), i), randomWord)
+            }
+        }
+
+        // Resize the array to the actual length.
+        assembly {
+            mstore(arr, length)
+        }
+
+        // Return the array.
+        return arr;
     }
 }
 
@@ -1655,7 +1856,6 @@ library TokenIndexGenerator {
 
         uint256 i = uint8(tokenIndex);
 
-        // TODO: missing native tokens
         if (itemType == ItemType.ERC20) {
             return address(context.erc20s[i]);
         } else if (
@@ -1992,6 +2192,27 @@ library OffererGenerator {
     }
 }
 
+library FulfillmentRecipientGenerator {
+    function generate(
+        FulfillmentRecipient recipient,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (address) {
+        if (recipient == FulfillmentRecipient.ZERO) {
+            return address(0);
+        } else if (recipient == FulfillmentRecipient.OFFERER) {
+            return context.offerer.addr;
+        } else if (recipient == FulfillmentRecipient.ALICE) {
+            return context.alice.addr;
+        } else if (recipient == FulfillmentRecipient.BOB) {
+            return context.bob.addr;
+        } else if (recipient == FulfillmentRecipient.EVE) {
+            return context.eve.addr;
+        } else {
+            revert("Invalid fulfillment recipient");
+        }
+    }
+}
+
 library PRNGHelpers {
     using LibPRNG for LibPRNG.PRNG;
 
@@ -2009,6 +2230,12 @@ library PRNGHelpers {
         uint256 max
     ) internal pure returns (uint256) {
         return bound(context.prng.next(), min, max);
+    }
+
+    function rand(
+        FuzzGeneratorContext memory context
+    ) internal pure returns (uint256) {
+        return context.prng.next();
     }
 }
 

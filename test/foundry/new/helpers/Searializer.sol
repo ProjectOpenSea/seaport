@@ -1,21 +1,45 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
-import "../../../../contracts/lib/ConsiderationStructs.sol";
+
+import {
+    AdditionalRecipient,
+    AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
+    CriteriaResolver,
+    Execution,
+    Fulfillment,
+    FulfillmentComponent,
+    OfferItem,
+    OrderParameters,
+    ReceivedItem
+} from "seaport-sol/SeaportStructs.sol";
+
+import {
+    BasicOrderType,
+    ItemType,
+    OrderType,
+    Side
+} from "seaport-sol/SeaportEnums.sol";
+
 import {
     FuzzParams,
-    ReturnValues,
+    FuzzTestContext,
     Result,
-    FuzzTestContext
+    ReturnValues
 } from "./FuzzTestContextLib.sol";
+
 import {
-    NativeAccountDump,
-    ERC20TokenDump,
-    ERC721TokenDump,
     ERC1155AccountDump,
     ERC1155TokenDump,
-    ExpectedBalancesDump
+    ERC20TokenDump,
+    ERC721TokenDump,
+    ExpectedBalancesDump,
+    NativeAccountDump
 } from "./ExpectedBalances.sol";
+
 import { withLabel } from "./Labeler.sol";
 
 address constant VM_ADDRESS = address(

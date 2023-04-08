@@ -1,13 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrderLib,
+    MatchComponent,
+    OrderComponentsLib,
+    OrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import {
+    AdvancedOrder,
+    ConsiderationItem,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    SpentItem,
+    ReceivedItem
+} from "seaport-sol/SeaportStructs.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import { OrderDetailsHelper } from "./FuzzGenerators.sol";
+
+import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
+
+import {
+    _locateCurrentAmount,
     Family,
     FuzzHelpers,
-    Structure,
-    _locateCurrentAmount
+    Structure
 } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
@@ -24,6 +47,7 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using OrderDetailsHelper for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -70,9 +94,7 @@ library FuzzEngineLib {
     ) internal returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
-        bool invalidNativeOfferItemsLocated = (
-            hasInvalidNativeOfferItems(context)
-        );
+        bool invalidOfferItemsLocated = mustUseMatch(context);
 
         Structure structure = context.orders.getStructure(
             address(context.seaport)
@@ -87,7 +109,7 @@ library FuzzEngineLib {
         }
 
         if (hasUnavailable) {
-            if (invalidNativeOfferItemsLocated) {
+            if (invalidOfferItemsLocated) {
                 revert(
                     "FuzzEngineLib: invalid native token + unavailable combination"
                 );
@@ -111,7 +133,7 @@ library FuzzEngineLib {
             }
         }
 
-        if (family == Family.SINGLE && !invalidNativeOfferItemsLocated) {
+        if (family == Family.SINGLE && !invalidOfferItemsLocated) {
             if (structure == Structure.BASIC) {
                 bytes4[] memory selectors = new bytes4[](6);
                 selectors[0] = context.seaport.fulfillOrder.selector;
@@ -158,7 +180,7 @@ library FuzzEngineLib {
 
         bool cannotMatch = (remainders.length != 0 || hasUnavailable);
 
-        if (cannotMatch && invalidNativeOfferItemsLocated) {
+        if (cannotMatch && invalidOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
 
@@ -181,7 +203,7 @@ library FuzzEngineLib {
                 //selectors[3] = context.seaport.validate.selector;
                 return selectors;
             }
-        } else if (invalidNativeOfferItemsLocated) {
+        } else if (invalidOfferItemsLocated) {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.matchAdvancedOrders.selector;
@@ -217,9 +239,9 @@ library FuzzEngineLib {
         }
     }
 
-    function hasInvalidNativeOfferItems(
+    function mustUseMatch(
         FuzzTestContext memory context
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         for (uint256 i = 0; i < context.orders.length; ++i) {
             OrderParameters memory orderParams = context.orders[i].parameters;
             if (orderParams.orderType == OrderType.CONTRACT) {
@@ -235,6 +257,109 @@ library FuzzEngineLib {
             }
         }
 
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            OrderParameters memory orderParams = context.orders[i].parameters;
+            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                OfferItem memory item = orderParams.offer[j];
+
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    uint256 resolvedIdentifier = item.identifierOrCriteria;
+
+                    if (item.itemType == ItemType.ERC721_WITH_CRITERIA) {
+                        if (item.identifierOrCriteria == 0) {
+                            bytes32 itemHash = keccak256(
+                                abi.encodePacked(
+                                    uint256(i),
+                                    uint256(j),
+                                    Side.OFFER
+                                )
+                            );
+                            resolvedIdentifier = context
+                                .testHelpers
+                                .criteriaResolverHelper()
+                                .wildcardIdentifierForGivenItemHash(itemHash);
+                        } else {
+                            resolvedIdentifier = context
+                                .testHelpers
+                                .criteriaResolverHelper()
+                                .resolvableIdentifierForGivenCriteria(
+                                    item.identifierOrCriteria
+                                )
+                                .resolvedIdentifier;
+                        }
+                    }
+
+                    for (uint256 k = 0; k < context.orders.length; ++k) {
+                        OrderParameters memory comparisonOrderParams = context
+                            .orders[k]
+                            .parameters;
+                        for (
+                            uint256 l = 0;
+                            l < comparisonOrderParams.consideration.length;
+                            ++l
+                        ) {
+                            ConsiderationItem
+                                memory considerationItem = comparisonOrderParams
+                                    .consideration[l];
+
+                            if (
+                                considerationItem.itemType == ItemType.ERC721 ||
+                                considerationItem.itemType ==
+                                ItemType.ERC721_WITH_CRITERIA
+                            ) {
+                                uint256 considerationResolvedIdentifier = considerationItem
+                                        .identifierOrCriteria;
+
+                                if (
+                                    considerationItem.itemType ==
+                                    ItemType.ERC721_WITH_CRITERIA
+                                ) {
+                                    if (
+                                        considerationItem
+                                            .identifierOrCriteria == 0
+                                    ) {
+                                        bytes32 itemHash = keccak256(
+                                            abi.encodePacked(
+                                                uint256(k),
+                                                uint256(l),
+                                                Side.CONSIDERATION
+                                            )
+                                        );
+                                        considerationResolvedIdentifier = context
+                                            .testHelpers
+                                            .criteriaResolverHelper()
+                                            .wildcardIdentifierForGivenItemHash(
+                                                itemHash
+                                            );
+                                    } else {
+                                        considerationResolvedIdentifier = context
+                                            .testHelpers
+                                            .criteriaResolverHelper()
+                                            .resolvableIdentifierForGivenCriteria(
+                                                considerationItem
+                                                    .identifierOrCriteria
+                                            )
+                                            .resolvedIdentifier;
+                                    }
+                                }
+
+                                if (
+                                    resolvedIdentifier ==
+                                    considerationResolvedIdentifier &&
+                                    item.token == considerationItem.token
+                                ) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return false;
     }
 
@@ -243,47 +368,33 @@ library FuzzEngineLib {
     ) internal view returns (uint256) {
         uint256 value = 0;
 
-        for (uint256 i = 0; i < context.orders.length; ++i) {
+        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
+            context.criteriaResolvers
+        );
+
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
             OrderParameters memory orderParams = context.orders[i].parameters;
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
 
                 if (
                     item.itemType == ItemType.NATIVE &&
                     orderParams.isAvailable()
                 ) {
-                    if (item.startAmount != item.endAmount) {
-                        value += _locateCurrentAmount(
-                            item.startAmount,
-                            item.endAmount,
-                            orderParams.startTime,
-                            orderParams.endTime,
-                            false
-                        );
-                    } else {
-                        value += item.startAmount;
-                    }
+                    value += item.amount;
                 }
             }
 
-            for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
-                ConsiderationItem memory item = orderParams.consideration[j];
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ReceivedItem memory item = order.consideration[j];
 
                 if (
                     item.itemType == ItemType.NATIVE &&
                     orderParams.isAvailable()
                 ) {
-                    if (item.startAmount != item.endAmount) {
-                        value += _locateCurrentAmount(
-                            item.startAmount,
-                            item.endAmount,
-                            orderParams.startTime,
-                            orderParams.endTime,
-                            true
-                        );
-                    } else {
-                        value += item.startAmount;
-                    }
+                    value += item.amount;
                 }
             }
         }

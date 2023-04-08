@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "seaport-sol/../ArrayHelpers.sol";
-import {
-    Execution
-} from "../../../../../contracts/lib/ConsiderationStructs.sol";
+import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
+
+import { Execution } from "seaport-sol/SeaportStructs.sol";
+
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 library ExecutionsFlattener {

@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import "seaport-sol/SeaportSol.sol";
+import { ExecutionLib, ZoneParametersLib } from "seaport-sol/SeaportSol.sol";
 
-import { FuzzChecks } from "./FuzzChecks.sol";
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    Execution,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
+} from "seaport-sol/SeaportStructs.sol";
 
-import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
@@ -17,7 +24,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
 import {
     AmountDeriverHelper
-} from "../../../../contracts/helpers/sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
     HashCalldataContractOfferer
@@ -30,6 +37,14 @@ import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
 import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { dumpExecutions } from "./DebugUtil.sol";
+
+import { FuzzChecks } from "./FuzzChecks.sol";
+
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 interface TestERC20 {
     function mint(address to, uint256 amount) external;

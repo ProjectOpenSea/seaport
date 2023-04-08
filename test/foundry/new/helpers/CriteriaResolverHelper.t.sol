@@ -1,35 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+// import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import { Test } from "forge-std/Test.sol";
-import "seaport-sol/SeaportSol.sol";
+
+// import {
+//     AdvancedOrderLib,
+//     ConsiderationItemLib,
+//     OfferItemLib,
+//     OrderParametersLib,
+//     SeaportArrays
+// } from "seaport-sol/SeaportSol.sol";
+
 import {
-    ConsiderationItemLib
-} from "../../../../contracts/helpers/sol/lib/ConsiderationItemLib.sol";
-import {
-    OfferItemLib
-} from "../../../../contracts/helpers/sol/lib/OfferItemLib.sol";
-import {
-    OrderParametersLib
-} from "../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
-import {
-    AdvancedOrderLib
-} from "../../../../contracts/helpers/sol/lib/AdvancedOrderLib.sol";
-import {
-    CriteriaResolverHelper,
-    CriteriaMetadata
+    CriteriaResolverHelper
 } from "./CriteriaResolverHelper.sol";
-import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 contract CriteriaResolverHelperTest is Test {
-    using LibPRNG for LibPRNG.PRNG;
-    using OfferItemLib for OfferItem;
-    using OfferItemLib for OfferItem[];
-    using ConsiderationItemLib for ConsiderationItem;
-    using ConsiderationItemLib for ConsiderationItem[];
-    using OrderParametersLib for OrderParameters;
-    using AdvancedOrderLib for AdvancedOrder;
-    using AdvancedOrderLib for AdvancedOrder[];
+    // using LibPRNG for LibPRNG.PRNG;
+    // using OfferItemLib for OfferItem;
+    // using OfferItemLib for OfferItem[];
+    // using ConsiderationItemLib for ConsiderationItem;
+    // using ConsiderationItemLib for ConsiderationItem[];
+    // using OrderParametersLib for OrderParameters;
+    // using AdvancedOrderLib for AdvancedOrder;
+    // using AdvancedOrderLib for AdvancedOrder[];
 
     CriteriaResolverHelper test;
 
