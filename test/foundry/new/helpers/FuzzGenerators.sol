@@ -165,7 +165,7 @@ library TestStateGenerator {
                     false
                 ),
                 // TODO: support contract orders (0-2)
-                orderType: BroadOrderType(context.randEnum(0, 1)),
+                orderType: BroadOrderType(context.randEnum(0, 2)),
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
@@ -177,6 +177,12 @@ library TestStateGenerator {
                 unavailableReason: reason,
                 extraData: ExtraData(context.randEnum(0, 1))
             });
+
+            // Set up order components specific to contract order
+            if (components[i].orderType == BroadOrderType.CONTRACT) {
+                components[i].offerer == Offerer.CONTRACT_OFFERER;
+                components[i].signatureMethod == SignatureMethod.CONTRACT;
+            }
         }
 
         if (!someAvailable) {
@@ -1030,6 +1036,11 @@ library AdvancedOrdersSpaceGenerator {
             AdvancedOrder memory order = orders[i];
             bytes32 orderHash;
 
+            // Skip contract orders since they do not have signatures
+            if (order.parameters.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
             {
                 // Get the counter for the offerer.
                 uint256 counter = context.seaport.getCounter(
@@ -1501,11 +1512,9 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
-        } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            revert(
-                "BroadOrderTypeGenerator: contract orders not yet supported"
-            );
         }
+
+        // NOTE: contract order types should already be all set up.
 
         return order;
     }
@@ -1721,6 +1730,10 @@ library SignatureGenerator {
         bytes32 orderHash,
         FuzzGeneratorContext memory context
     ) internal returns (AdvancedOrder memory) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return order;
+        }
+
         if (method == SignatureMethod.EOA) {
             bytes32 digest;
             uint8 v;
@@ -1763,12 +1776,12 @@ library SignatureGenerator {
             } else {
                 revert("SignatureGenerator: Invalid EOA signature type");
             }
+        } else if (method == SignatureMethod.CONTRACT) {
+            return order.withSignature("0x");
         } else if (method == SignatureMethod.VALIDATE) {
             revert("Validate not implemented");
         } else if (method == SignatureMethod.EIP1271) {
             revert("EIP1271 not implemented");
-        } else if (method == SignatureMethod.CONTRACT) {
-            revert("Contract not implemented");
         } else if (method == SignatureMethod.SELF_AD_HOC) {
             revert("Self ad hoc not implemented");
         } else {
@@ -2141,18 +2154,6 @@ library CriteriaGenerator {
     }
 }
 
-// execution lib generates fulfillments on the fly
-// generation phase geared around buidling orders
-// if some additional context needed,
-// building up crit resolver array in generation phase is more akin to fulfillments array
-// would rather we derive criteria resolvers rather than dictating what fuzz engine needs to do
-// need one more helper function to take generator context and add withCriteriaResolvers
-
-// right now, we're inserting item + order indexes whicih could get shuffled around in generation stage
-// ideally we would have mapping of merkle root => criteria resolver
-// when execution hits item w merkle root, look up root to get proof and identifier
-// add storage mapping to CriteriaResolverHelper
-
 library OffererGenerator {
     function generate(
         Offerer offerer,
@@ -2164,6 +2165,8 @@ library OffererGenerator {
             return context.alice.addr;
         } else if (offerer == Offerer.BOB) {
             return context.bob.addr;
+        } else if (offerer == Offerer.CONTRACT_OFFERER) {
+            return address(context.contractOfferer);
         } else {
             revert("Invalid offerer");
         }
@@ -2179,6 +2182,8 @@ library OffererGenerator {
             return context.alice.key;
         } else if (offerer == Offerer.BOB) {
             return context.bob.key;
+        } else if (offerer == Offerer.CONTRACT_OFFERER) {
+            revert("getKey -- contract offerer");
         } else {
             revert("Invalid offerer");
         }

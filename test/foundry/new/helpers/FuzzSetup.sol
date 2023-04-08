@@ -18,9 +18,17 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
+import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+
+import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+
 import {
     AmountDeriverHelper
 } from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
+
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
@@ -143,6 +151,53 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         if (registerChecks) {
             context.registerCheck(
                 FuzzChecks.check_validateOrderExpectedDataHash.selector
+            );
+        }
+    }
+
+    function setUpContractOfferers(FuzzTestContext memory context) public {
+        bytes32[2][] memory contractOrderCalldataHashes = context
+            .orders
+            .getExpectedContractOffererCalldataHashes(
+                address(context.seaport),
+                context.caller
+            );
+
+        bytes32[2][]
+            memory expectedContractOrderCalldataHashes = new bytes32[2][](
+                context.orders.length
+            );
+
+        bool registerChecks;
+
+        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
+                address(context.seaport)
+            );
+
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            OrderParameters memory order = context.orders[i].parameters;
+            if (
+                context.expectedAvailableOrders[i] &&
+                order.orderType == OrderType.CONTRACT
+            ) {
+                registerChecks = true;
+                expectedContractOrderCalldataHashes[i][
+                    0
+                ] = contractOrderCalldataHashes[i][0];
+                expectedContractOrderCalldataHashes[i][
+                    1
+                ] = contractOrderCalldataHashes[i][1];
+
+                order.offerer = address(contractOfferer);
+            }
+        }
+
+        context
+            .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
+
+        if (registerChecks) {
+            context.registerCheck(
+                FuzzChecks.check_contractOrderExpectedDataHashes.selector
             );
         }
     }
