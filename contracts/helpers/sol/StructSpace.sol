@@ -9,6 +9,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
     FulfillmentRecipient,
     Offerer,
     Recipient,
@@ -60,6 +61,7 @@ struct OrderComponentsSpace {
     ConduitChoice conduit;
     Tips tips;
     UnavailableReason unavailableReason; // ignored unless unavailable
+    ExtraData extraData;
 }
 
 struct AdvancedOrdersSpace {

@@ -37,6 +37,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
     FulfillmentRecipient,
     Offerer,
     Recipient,
@@ -173,7 +174,8 @@ library TestStateGenerator {
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
-                unavailableReason: reason
+                unavailableReason: reason,
+                extraData: ExtraData(context.randEnum(0, 1))
             });
         }
 
