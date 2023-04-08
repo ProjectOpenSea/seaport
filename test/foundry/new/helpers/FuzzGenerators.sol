@@ -37,6 +37,7 @@ import {
     ConduitChoice,
     Criteria,
     EOASignature,
+    ExtraData,
     FulfillmentRecipient,
     Offerer,
     Recipient,
@@ -173,7 +174,8 @@ library TestStateGenerator {
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
-                unavailableReason: reason
+                unavailableReason: reason,
+                extraData: ExtraData(context.randEnum(0, 1))
             });
         }
 
@@ -292,6 +294,7 @@ library AdvancedOrdersSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
+    using ExtraDataGenerator for AdvancedOrder;
     using FuzzInscribers for AdvancedOrder;
     using MatchComponentType for MatchComponent;
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
@@ -443,7 +446,8 @@ library AdvancedOrdersSpaceGenerator {
                     denominator: 1,
                     extraData: bytes("")
                 })
-                .withBroadOrderType(space.orders[i].orderType, context);
+                .withBroadOrderType(space.orders[i].orderType, context)
+                .withGeneratedExtraData(space.orders[i].extraData, context);
         }
     }
 
@@ -1499,6 +1503,56 @@ library BroadOrderTypeGenerator {
     }
 }
 
+library ExtraDataGenerator {
+    using PRNGHelpers for FuzzGeneratorContext;
+    using AdvancedOrderLib for AdvancedOrder;
+
+    function withGeneratedExtraData(
+        AdvancedOrder memory order,
+        ExtraData extraData,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (AdvancedOrder memory) {
+        if (extraData == ExtraData.NONE) {
+            return order.withExtraData("");
+        } else if (extraData == ExtraData.RANDOM) {
+            return
+                order.withExtraData(
+                    _generateRandomBytesArray(1, 4096, context)
+                );
+        } else {
+            revert("ExtraDataGenerator: unsupported ExtraData value");
+        }
+    }
+
+    function _generateRandomBytesArray(
+        uint256 minSize,
+        uint256 maxSize,
+        FuzzGeneratorContext memory context
+    ) internal pure returns (bytes memory) {
+        uint256 length = context.randRange(minSize, maxSize);
+
+        // Allocate & round the size up to a whole word.
+        bytes memory arr = new bytes(((length + 31) / 32) * 32);
+
+        // Insert each random word in.
+        for (uint256 i = 0; i < length; i += 32) {
+            uint256 randomWord = context.rand();
+
+            assembly {
+                mstore(add(add(arr, 32), i), randomWord)
+            }
+        }
+
+        // Resize the array to the actual length.
+        assembly {
+            mstore(arr, length)
+        }
+
+        // Return the array.
+        return arr;
+    }
+}
+
 library ZoneGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using OrderParametersLib for OrderParameters;
@@ -2161,6 +2215,12 @@ library PRNGHelpers {
         uint256 max
     ) internal pure returns (uint256) {
         return bound(context.prng.next(), min, max);
+    }
+
+    function rand(
+        FuzzGeneratorContext memory context
+    ) internal pure returns (uint256) {
+        return context.prng.next();
     }
 }
 

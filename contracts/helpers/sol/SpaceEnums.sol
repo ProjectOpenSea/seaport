@@ -358,6 +358,11 @@ enum UnavailableReason {
     GENERATE_ORDER_FAILURE
 }
 
+enum ExtraData {
+    NONE,
+    RANDOM
+}
+
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?
 
 // // Zone.PASS/FAIL <- ZoneParams
