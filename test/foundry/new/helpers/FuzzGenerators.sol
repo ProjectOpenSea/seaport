@@ -575,6 +575,23 @@ library AdvancedOrdersSpaceGenerator {
                 orders.length - 1
             );
 
+            OfferItem memory newItem;
+            {
+                uint256 amountGivenPartial = _applyInverseAndRoundUp(
+                    amount,
+                    uint256(orders[orderInsertionIndex].numerator),
+                    uint256(orders[orderInsertionIndex].denominator)
+                );
+
+                newItem = OfferItem({
+                    itemType: resolvedItemType,
+                    token: item.token,
+                    identifierOrCriteria: resolvedIdentifier,
+                    startAmount: amountGivenPartial,
+                    endAmount: amountGivenPartial
+                });
+            }
+
             // Create a new offer array with room for the remainder.
             OfferItem[] memory newOffer = new OfferItem[](
                 orders[orderInsertionIndex].parameters.offer.length + 1
@@ -583,13 +600,7 @@ library AdvancedOrdersSpaceGenerator {
             // If the targeted order has no offer, just add the remainder to the
             // new offer.
             if (orders[orderInsertionIndex].parameters.offer.length == 0) {
-                newOffer[0] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[0] = newItem;
             } else {
                 // If the targeted order has an offer, pick a random index to
                 // insert the remainder into.
@@ -609,13 +620,7 @@ library AdvancedOrdersSpaceGenerator {
 
                 // Insert the remainder into the new offer array at the
                 // insertion index.
-                newOffer[itemInsertionIndex] = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
-                    startAmount: uint256(amount),
-                    endAmount: uint256(amount)
-                });
+                newOffer[itemInsertionIndex] = newItem;
 
                 // Copy the offer items after the insertion index into the new
                 // offer array.
@@ -675,6 +680,32 @@ library AdvancedOrdersSpaceGenerator {
                 // inserted should be increased based on fraction in that case.
                 revert("FuzzGenerators: could not satisfy remainders");
             }
+        }
+    }
+
+    function _applyInverseAndRoundUp(
+        uint256 amount,
+        uint256 numerator,
+        uint256 denominator
+    ) internal pure returns (uint256 newAmount) {
+        if (numerator == denominator) {
+            return amount;
+        }
+
+        uint256 newAmountSansRounding = (amount * denominator) / numerator;
+
+        newAmount =
+            newAmountSansRounding +
+            ((denominator -
+                ((newAmountSansRounding * numerator) % denominator)) /
+                numerator);
+
+        if ((newAmount * numerator) % denominator != 0) {
+            revert("AdvancedOrdersSpaceGenerator: inverse change failed");
+        }
+
+        if ((newAmount * numerator) / denominator < amount) {
+            revert("AdvancedOrdersSpaceGenerator: inverse not rounded up");
         }
     }
 
@@ -1449,10 +1480,11 @@ library BroadOrderTypeGenerator {
             uint120 numerator = uint120(context.randRange(1, 10));
             uint120 denominator = uint120(numerator * context.randRange(2, 10));
 
-            return order
-                .withNumerator(numerator)
-                .withDenominator(denominator)
-                .withCoercedAmountsForPartialFulfillment();
+            return
+                order
+                    .withNumerator(numerator)
+                    .withDenominator(denominator)
+                    .withCoercedAmountsForPartialFulfillment();
         } else if (broadOrderType == BroadOrderType.CONTRACT) {
             revert(
                 "BroadOrderTypeGenerator: contract orders not yet supported"
