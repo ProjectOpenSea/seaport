@@ -1512,9 +1512,12 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            // NOTE: a number of contract order params are already set up.
+            order.parameters = orderParams.withOrderType(
+                OrderType.CONTRACT
+            );
         }
-
-        // NOTE: contract order types should already be all set up.
 
         return order;
     }
