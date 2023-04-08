@@ -7,34 +7,37 @@ import {
     AdditionalRecipient,
     AdvancedOrder,
     BasicOrderParameters,
-    BasicOrderType,
     ConsiderationItem,
     CriteriaResolver,
     Execution,
     Fulfillment,
     FulfillmentComponent,
-    ItemType,
     OfferItem,
     OrderParameters,
-    OrderType,
-    ReceivedItem,
-    Side
+    ReceivedItem
 } from "seaport-sol/SeaportStructs.sol";
 
 import {
+    BasicOrderType,
+    ItemType,
+    OrderType,
+    Side
+} from "seaport-sol/SeaportEnums.sol";
+
+import {
     FuzzParams,
-    ReturnValues,
+    FuzzTestContext,
     Result,
-    FuzzTestContext
+    ReturnValues
 } from "./FuzzTestContextLib.sol";
 
 import {
-    NativeAccountDump,
-    ERC20TokenDump,
-    ERC721TokenDump,
     ERC1155AccountDump,
     ERC1155TokenDump,
-    ExpectedBalancesDump
+    ERC20TokenDump,
+    ERC721TokenDump,
+    ExpectedBalancesDump,
+    NativeAccountDump
 } from "./ExpectedBalances.sol";
 
 import { withLabel } from "./Labeler.sol";

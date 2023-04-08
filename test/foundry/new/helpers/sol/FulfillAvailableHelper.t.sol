@@ -14,9 +14,10 @@ import {
     ConsiderationItem,
     OfferItem,
     FulfillmentComponent,
-    ItemType,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     FulfillAvailableHelper

@@ -22,13 +22,9 @@ import { LibString } from "solady/src/utils/LibString.sol";
 
 import { withLabel } from "./Labeler.sol";
 
-import {
-    Execution,
-    ItemType,
-    ReceivedItem
-} from "seaport-sol/SeaportStructs.sol";
+import { Execution, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
 
-
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 struct NativeAccountDump {
     address account;
