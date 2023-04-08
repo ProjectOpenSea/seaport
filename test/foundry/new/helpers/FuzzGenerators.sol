@@ -506,8 +506,14 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
+        for (uint256 i = 0; i < orders.length; ++i) {
+            AdvancedOrder memory order = orders[i];
+            orders[i] = order.withCoercedAmountsForPartialFulfillment();
+        }
+
         MatchComponent[] memory remainders;
         CriteriaResolver[] memory resolvers;
+
         {
             resolvers = context
                 .testHelpers
