@@ -198,6 +198,9 @@ library TestStateGenerator {
                 // Contract orders must have fixed amounts.
                 for (uint256 j = 0; j < components[i].offer.length; ++j) {
                     components[i].offer[j].amount = Amount.FIXED;
+                    // TODO: support wildcard resolution (note that the
+                    // contract offerer needs to resolve these itself)
+                    components[i].offer[j].criteria = Criteria.MERKLE;
                 }
 
                 for (
@@ -209,6 +212,9 @@ library TestStateGenerator {
                     // TODO: support offerer returning other recipients.
                     components[i].consideration[j].recipient = Recipient
                         .OFFERER;
+                    // TODO: support wildcard resolution (note that the
+                    // contract offerer needs to resolve these itself)
+                    components[i].consideration[j].criteria = Criteria.MERKLE;
                 }
             }
         }
