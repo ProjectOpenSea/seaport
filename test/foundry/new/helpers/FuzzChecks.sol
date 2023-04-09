@@ -179,6 +179,9 @@ abstract contract FuzzChecks is Test {
             bytes32 actualGenerateOrderCalldataHash;
             bytes32 actualRatifyOrderCalldataHash;
 
+            // TODO: this logic is incorrect as it does not account for cases
+            // where there may be multiple contract orders from the same
+            // offerer as part of a single fulfillment.
             if (order.parameters.orderType == OrderType.CONTRACT) {
                 contractOfferer = payable(order.parameters.offerer);
 
@@ -326,10 +329,24 @@ abstract contract FuzzChecks is Test {
                     "check_orderStatusFullyFilled: totalSize != 1"
                 );
             } else if (context.expectedAvailableOrders[i]) {
-                assertEq(totalFilled, order.numerator, "FuzzChecks: totalFilled != numerator");
-                assertEq(totalSize, order.denominator, "FuzzChecks: totalSize != denominator");
-                assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
-                assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
+                if (order.parameters.orderType == OrderType.CONTRACT) {
+                    // TODO: determine the number of orders fulfilled from
+                    // the given contract offerer and ensure the nonce has
+                    // been incremented appropriately
+                } else {
+                    assertEq(
+                        totalFilled,
+                        order.numerator,
+                        "FuzzChecks: totalFilled != numerator"
+                    );
+                    assertEq(
+                        totalSize,
+                        order.denominator,
+                        "FuzzChecks: totalSize != denominator"
+                    );
+                    assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
+                    assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
+                }
             } else {
                 assertTrue(
                     totalFilled == 0,
