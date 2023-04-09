@@ -1067,7 +1067,7 @@ library AdvancedOrdersSpaceGenerator {
         orderParams.consideration[itemIndex].recipient = payable(
             orderParams.orderType != OrderType.CONTRACT
                 ? context.dillon.addr
-                : address(0)
+                : address(context.contractOfferer)
         );
     }
 
