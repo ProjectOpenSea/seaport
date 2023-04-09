@@ -123,8 +123,11 @@ abstract contract FuzzChecks is Test {
     ) public {
         // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
-            // If the order has a zone, check the calldata.
-            if (context.orders[i].parameters.zone != address(0)) {
+            // If the order is restricted, check the calldata.
+            if (
+                context.orders[i].parameters.orderType == OrderType.FULL_RESTRICTED ||
+                context.orders[i].parameters.orderType == OrderType.PARTIAL_RESTRICTED
+            ) {
                 testZone = payable(context.orders[i].parameters.zone);
 
                 AdvancedOrder memory order = context.orders[i];
@@ -139,8 +142,9 @@ abstract contract FuzzChecks is Test {
                     context.seaport
                 );
 
-                // Use the order hash to get the expected calldata hash from the
-                // zone.
+                // Use order hash to get the expected calldata hash from zone.
+                // TODO: fix this in cases where contract orders are part of
+                // orderHashes (the hash calculation is most likely incorrect).
                 bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
                     .orderHashToValidateOrderDataHash(orderHash);
 
