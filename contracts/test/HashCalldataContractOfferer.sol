@@ -207,7 +207,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
     function _getOfferedNativeTokens(
         SpentItem[] calldata offer
-    ) internal view returns (uint256 amount) {
+    ) internal pure returns (uint256 amount) {
         for (uint256 i = 0; i < offer.length; ++i) {
             SpentItem memory item = offer[i];
             if (item.itemType == ItemType.NATIVE) {
@@ -226,10 +226,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         uint256,
         bytes calldata
     ) external pure returns (bytes4) {
-        assembly {
-            mstore(0, 0xf23a6e61)
-            return(0x1c, 0x04)
-        }
+        return this.onERC1155Received.selector;
     }
 
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
