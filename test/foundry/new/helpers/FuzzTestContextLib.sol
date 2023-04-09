@@ -20,10 +20,9 @@ import {
     FulfillmentComponent
 } from "seaport-sol/SeaportStructs.sol";
 
-import {
-    OrderStatusEnum,
-    UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
+import { OrderType } from "seaport-sol/SeaportEnums.sol";
+
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
 
@@ -638,7 +637,16 @@ library FuzzTestContextLib {
             } else {
                 // TODO: support partial as well (0-2)
                 context.preExecOrderStatuses[i] = OrderStatusEnum(
-                    uint8(bound(prng.next(), 0, 1))
+                    uint8(
+                        bound(
+                            prng.next(),
+                            0,
+                            context.orders[i].parameters.orderType !=
+                                OrderType.CONTRACT
+                                ? 1
+                                : 0
+                        )
+                    )
                 );
             }
         }
