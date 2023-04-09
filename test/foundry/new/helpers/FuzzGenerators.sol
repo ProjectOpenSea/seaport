@@ -382,6 +382,11 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
+            if (space.orders[i].tips == Tips.NONE) {
+                orders[i].parameters.totalOriginalConsiderationItems = (
+                    orders[i].parameters.consideration.length
+                );
+            }
         }
 
         // Sign orders and add the hashes to the context.
