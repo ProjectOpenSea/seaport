@@ -1551,8 +1551,16 @@ library BroadOrderTypeGenerator {
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
         } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            // NOTE: a number of contract order params are already set up.
-            order.parameters = orderParams.withOrderType(OrderType.CONTRACT);
+            order.parameters = orderParams
+                .withOrderType(OrderType.CONTRACT)
+                .withOfferer(address(context.contractOfferer));
+
+            for (uint256 i = 0; i < orderParams.consideration.length; ++i) {
+                // TODO: support offerer returning other recipients.
+                order.parameters.consideration[i].recipient = payable(
+                    address(context.contractOfferer)
+                );
+            }
         }
 
         return order;
