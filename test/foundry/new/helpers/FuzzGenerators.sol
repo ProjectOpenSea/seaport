@@ -1823,7 +1823,6 @@ library SignatureGenerator {
             return order.withSignature(sig);
         } else if (method == SignatureMethod.SELF_AD_HOC) {
             return order;
-            // revert("Self ad hoc not implemented");
         } else {
             revert("SignatureGenerator: Invalid signature method");
         }
