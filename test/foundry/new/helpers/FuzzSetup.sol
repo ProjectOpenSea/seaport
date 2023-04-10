@@ -314,6 +314,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .parameters
                 .consideration[0];
 
+            address approveTo = _getApproveTo(context);
+
             if (item.itemType == ItemType.ERC721) {
                 TestERC721(item.token).mint(
                     context.caller,
@@ -321,7 +323,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 );
                 vm.prank(context.caller);
                 TestERC721(item.token).setApprovalForAll(
-                    _getApproveTo(context),
+                    approveTo,
                     true
                 );
             } else {
@@ -332,7 +334,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 );
                 vm.prank(context.caller);
                 TestERC1155(item.token).setApprovalForAll(
-                    _getApproveTo(context),
+                    approveTo,
                     true
                 );
             }
