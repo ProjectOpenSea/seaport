@@ -18,7 +18,9 @@ contract AdditionalRecipientLibTest is BaseTest {
         address payable recipient
     ) public {
         AdditionalRecipient memory additionalRecipient = AdditionalRecipient({
-            amount: amount,
+            // Makre the the amount is not 0, otherwise it will be considered
+            // empty and trigger the revert.
+            amount: amount == 0 ? 1 : amount,
             recipient: recipient
         });
         AdditionalRecipientLib.saveDefault(additionalRecipient, "default");
