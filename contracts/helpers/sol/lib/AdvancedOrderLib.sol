@@ -10,6 +10,7 @@ import {
     ConsiderationItem,
     OfferItem,
     Order,
+    OrderComponents,
     OrderParameters,
     OrderType
 } from "../../../lib/ConsiderationStructs.sol";
@@ -19,6 +20,14 @@ import { BasicOrderType } from "../../../lib/ConsiderationEnums.sol";
 import { OrderParametersLib } from "./OrderParametersLib.sol";
 
 import { StructCopier } from "./StructCopier.sol";
+
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+
+struct ContractNonceDetails {
+    bool set;
+    address offerer;
+    uint256 currentNonce;
+}
 
 /**
  * @title AdvancedOrderLib
@@ -588,6 +597,131 @@ library AdvancedOrderLib {
 
         if ((newValue * numerator) % denominator != 0) {
             revert("AdvancedOrderLib: minimal change failed");
+        }
+    }
+
+    /**
+     * @dev Get the orderHashes of an array of orders.
+     */
+    function getOrderHashes(
+        AdvancedOrder[] memory orders,
+        address seaport
+    ) internal view returns (bytes32[] memory) {
+        SeaportInterface seaportInterface = SeaportInterface(seaport);
+
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+
+        // Array of (contract offerer, currentNonce)
+        ContractNonceDetails[] memory detailsArray = new ContractNonceDetails[](
+            orders.length
+        );
+
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+            bytes32 orderHash;
+            if (order.orderType == OrderType.CONTRACT) {
+                bool noneYetLocated = false;
+                uint256 j = 0;
+                uint256 currentNonce;
+                for (; j < detailsArray.length; ++j) {
+                    ContractNonceDetails memory details = detailsArray[j];
+                    if (!details.set) {
+                        noneYetLocated = true;
+                        break;
+                    } else if (details.offerer == order.offerer) {
+                        currentNonce = ++(details.currentNonce);
+                        break;
+                    }
+                }
+
+                if (noneYetLocated) {
+                    currentNonce = seaportInterface.getContractOffererNonce(
+                        order.offerer
+                    );
+
+                    detailsArray[j] = ContractNonceDetails({
+                        set: true,
+                        offerer: order.offerer,
+                        currentNonce: currentNonce
+                    });
+                }
+
+                uint256 shiftedOfferer = uint256(uint160(order.offerer)) << 96;
+
+                orderHash = bytes32(shiftedOfferer ^ currentNonce);
+            } else {
+                orderHash = getTipNeutralizedOrderHash(
+                    orders[i],
+                    seaportInterface
+                );
+            }
+
+            orderHashes[i] = orderHash;
+        }
+
+        return orderHashes;
+    }
+
+    /**
+     * @dev Get the orderHash for an AdvancedOrders and return the orderHash.
+     *      This function can be treated as a wrapper around Seaport's
+     *      getOrderHash function. It is used to get the orderHash of an
+     *      AdvancedOrder that has a tip added onto it.  Calling it on an
+     *      AdvancedOrder that does not have a tip will return the same
+     *      orderHash as calling Seaport's getOrderHash function directly.
+     *      Seaport handles tips gracefully inside of the top level fulfill and
+     *      match functions, but since we're adding tips early in the fuzz test
+     *      lifecycle, it's necessary to flip them back and forth when we need
+     *      to pass order components into getOrderHash. Note: they're two
+     *      different orders, so e.g. cancelling or validating order with a tip
+     *      on it is not the same as cancelling the order without a tip on it.
+     */
+    function getTipNeutralizedOrderHash(
+        AdvancedOrder memory order,
+        SeaportInterface seaport
+    ) internal view returns (bytes32 orderHash) {
+        // Get the counter of the order offerer.
+        uint256 counter = seaport.getCounter(order.parameters.offerer);
+
+        return getTipNeutralizedOrderHash(order, seaport, counter);
+    }
+
+    function getTipNeutralizedOrderHash(
+        AdvancedOrder memory order,
+        SeaportInterface seaport,
+        uint256 counter
+    ) internal view returns (bytes32 orderHash) {
+        // Get the OrderComponents from the OrderParameters.
+        OrderComponents memory components = (
+            order.parameters.toOrderComponents(counter)
+        );
+
+        // Get the length of the consideration array (which might have
+        // additional consideration items set as tips).
+        uint256 lengthWithTips = components.consideration.length;
+
+        // Get the length of the consideration array without tips, which is
+        // stored in the totalOriginalConsiderationItems field.
+        uint256 lengthSansTips = (
+            order.parameters.totalOriginalConsiderationItems
+        );
+
+        // Get a reference to the consideration array.
+        ConsiderationItem[] memory considerationSansTips = (
+            components.consideration
+        );
+
+        // Set proper length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthSansTips)
+        }
+
+        // Get the orderHash using the tweaked OrderComponents.
+        orderHash = seaport.getOrderHash(components);
+
+        // Restore the length of the considerationSansTips array.
+        assembly {
+            mstore(considerationSansTips, lengthWithTips)
         }
     }
 }

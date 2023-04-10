@@ -7,13 +7,13 @@ import { AdvancedOrder, OrderStatus } from "seaport-sol/SeaportStructs.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 /**
  * @notice Helpers for inscribing order status, contract nonce, and counter.
  */
 library FuzzInscribers {
-    using FuzzHelpers for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder;
 
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));

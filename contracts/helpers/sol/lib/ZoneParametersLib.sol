@@ -17,7 +17,7 @@ import {
     CriteriaResolver
 } from "../../../lib/ConsiderationStructs.sol";
 
-import { SeaportInterface } from "../../../interfaces/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { GettersAndDerivers } from "../../../lib/GettersAndDerivers.sol";
 
@@ -38,6 +38,7 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 library ZoneParametersLib {
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using OfferItemLib for OfferItem;
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem;
@@ -72,8 +73,7 @@ library ZoneParametersLib {
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
         // Get orderHash
-        bytes32 orderHash = getTipNeutralizedOrderHash(
-            advancedOrder,
+        bytes32 orderHash = advancedOrder.getTipNeutralizedOrderHash(
             seaportInterface,
             counter
         );
@@ -190,16 +190,14 @@ library ZoneParametersLib {
         ZoneDetails memory details,
         address seaport
     ) internal view {
+        bytes32[] memory orderHashes = details.advancedOrders.getOrderHashes(
+            seaport
+        );
+
         uint256 totalFulfilled = 0;
         // Iterate over advanced orders to calculate orderHashes
         for (uint256 i = 0; i < details.advancedOrders.length; i++) {
-            bytes32 orderHash = getTipNeutralizedOrderHash(
-                details.advancedOrders[i],
-                SeaportInterface(seaport),
-                SeaportInterface(seaport).getCounter(
-                    details.advancedOrders[i].parameters.offerer
-                )
-            );
+            bytes32 orderHash = orderHashes[i];
 
             if (
                 totalFulfilled >= details.maximumFulfilled ||
@@ -626,54 +624,5 @@ library ZoneParametersLib {
                 endTime: advancedOrder.parameters.endTime,
                 zoneHash: advancedOrder.parameters.zoneHash
             });
-    }
-
-    function getTipNeutralizedOrderHash(
-        AdvancedOrder memory order,
-        SeaportInterface seaport,
-        uint256 counter
-    ) internal view returns (bytes32 orderHash) {
-        // Get orderComponents from orderParameters.
-        OrderComponents memory components = OrderComponents({
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            offer: order.parameters.offer,
-            consideration: order.parameters.consideration,
-            orderType: order.parameters.orderType,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            zoneHash: order.parameters.zoneHash,
-            salt: order.parameters.salt,
-            conduitKey: order.parameters.conduitKey,
-            counter: counter
-        });
-
-        // Get the length of the consideration array (which might have
-        // additional consideration items set as tips).
-        uint256 lengthWithTips = components.consideration.length;
-
-        // Get the length of the consideration array without tips, which is
-        // stored in the totalOriginalConsiderationItems field.
-        uint256 lengthSansTips = (
-            order.parameters.totalOriginalConsiderationItems
-        );
-
-        // Get a reference to the consideration array.
-        ConsiderationItem[] memory considerationSansTips = (
-            components.consideration
-        );
-
-        // Set proper length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthSansTips)
-        }
-
-        // Get the orderHash using the tweaked OrderComponents.
-        orderHash = seaport.getOrderHash(components);
-
-        // Restore the length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthWithTips)
-        }
     }
 }

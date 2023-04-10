@@ -41,7 +41,7 @@ import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { Account } from "../BaseOrderTest.sol";
 
-import { FuzzHelpers, Result } from "./FuzzHelpers.sol";
+import { Result } from "./FuzzHelpers.sol";
 
 import { ExpectedBalances } from "./ExpectedBalances.sol";
 
@@ -253,7 +253,6 @@ library FuzzTestContextLib {
     using BasicOrderParametersLib for BasicOrderParameters;
     using FuzzTestContextLib for FuzzTestContext;
     using LibPRNG for LibPRNG.PRNG;
-    using FuzzHelpers for AdvancedOrder[];
 
     /**
      * @dev Create an empty FuzzTestContext.
