@@ -381,7 +381,8 @@ library FuzzEngineLib {
 
                 if (
                     item.itemType == ItemType.NATIVE &&
-                    orderParams.isAvailable()
+                    orderParams.isAvailable() &&
+                    orderParams.orderType != OrderType.CONTRACT
                 ) {
                     value += item.amount;
                 }
