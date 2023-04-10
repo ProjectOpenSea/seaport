@@ -225,7 +225,7 @@ contract FuzzEngine is
         );
 
         FuzzTestContext memory context = FuzzTestContextLib
-            .from({ orders: orders, seaport: seaport_, caller: address(this) })
+            .from({ orders: orders, seaport: seaport_ })
             .withConduitController(conduitController_)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
@@ -233,7 +233,7 @@ contract FuzzEngine is
 
         // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
-        context = context.withFulfillerConduitKey(
+        context = context.withFuzzedCaller().withFulfillerConduitKey(
             AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
                 space,
                 generatorContext
@@ -296,6 +296,7 @@ contract FuzzEngine is
         // 6. maximumFullfilled is less than total orders provided and
         //    enough other orders are available
         setUpZoneParameters(context);
+        setUpCallerApprovals(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
     }

@@ -373,7 +373,7 @@ contract BaseOrderTest is
      * @dev Allocate amount of ether and each erc20 token; set approvals for all
      *      tokens.
      */
-    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
+    function allocateTokensAndApprovals(address _to, uint128 _amount) public {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);

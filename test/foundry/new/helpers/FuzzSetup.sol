@@ -108,6 +108,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
     using ExecutionLib for Execution;
 
+    function setUpCallerApprovals(FuzzTestContext memory context) public {
+        context.testHelpers.allocateTokensAndApprovals(
+            context.caller,
+            type(uint128).max
+        );
+    }
+
     /**
      *  @dev Set up the zone params on a test context.
      *
@@ -315,9 +322,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.criteriaResolvers
         );
 
-        // Naive implementation for now
-        // TODO: - If recipient is not caller, we need to mint everything
-        //       - For matchOrders, we don't need to do any setup
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
