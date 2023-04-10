@@ -17,7 +17,8 @@ import {
     CriteriaResolver,
     Execution,
     Fulfillment,
-    FulfillmentComponent
+    FulfillmentComponent,
+    OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
@@ -35,6 +36,8 @@ import {
 import {
     ConduitControllerInterface
 } from "seaport-sol/ConduitControllerInterface.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
@@ -59,6 +62,12 @@ struct ReturnValues {
     bool validated;
     bool[] availableOrders;
     Execution[] executions;
+}
+
+struct ContractNonceDetails {
+    bool set;
+    address offerer;
+    uint256 currentNonce;
 }
 
 interface TestHelpers {
@@ -136,6 +145,7 @@ struct FuzzTestContext {
      * @dev An array of AdvancedOrders
      */
     AdvancedOrder[] orders;
+    bytes32[] orderHashes;
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
@@ -251,6 +261,7 @@ library FuzzTestContextLib {
     using BasicOrderParametersLib for BasicOrderParameters;
     using FuzzTestContextLib for FuzzTestContext;
     using LibPRNG for LibPRNG.PRNG;
+    using FuzzHelpers for AdvancedOrder;
 
     /**
      * @dev Create an empty FuzzTestContext.
@@ -275,6 +286,7 @@ library FuzzTestContextLib {
             FuzzTestContext({
                 _action: bytes4(0),
                 orders: orders,
+                orderHashes: new bytes32[](0),
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
@@ -334,6 +346,7 @@ library FuzzTestContextLib {
             empty()
                 .withOrders(orders)
                 .withSeaport(seaport)
+                .withOrderHashes()
                 .withCaller(caller)
                 .withInitialOrders(orders.copy());
     }
@@ -359,6 +372,63 @@ library FuzzTestContextLib {
                 context.expectedAvailableOrders[i] = true;
             }
         }
+
+        return context;
+    }
+
+    // NOTE: expects context.orders and context.seaport to already be set
+    function withOrderHashes(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
+        bytes32[] memory orderHashes = new bytes32[](context.orders.length);
+
+        // Array of (contract offerer, currentNonce)
+        ContractNonceDetails[] memory detailsArray = new ContractNonceDetails[](
+            context.orders.length
+        );
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            OrderParameters memory order = context.orders[i].parameters;
+            bytes32 orderHash;
+            if (order.orderType == OrderType.CONTRACT) {
+                bool noneYetLocated = false;
+                uint256 j = 0;
+                uint256 currentNonce;
+                for (; j < detailsArray.length; ++j) {
+                    ContractNonceDetails memory details = detailsArray[j];
+                    if (!details.set) {
+                        noneYetLocated = true;
+                        break;
+                    } else if (details.offerer == order.offerer) {
+                        currentNonce = ++(details.currentNonce);
+                        break;
+                    }
+                }
+
+                if (noneYetLocated) {
+                    currentNonce = context.seaport.getContractOffererNonce(
+                        order.offerer
+                    );
+
+                    detailsArray[j] = ContractNonceDetails({
+                        set: true,
+                        offerer: order.offerer,
+                        currentNonce: currentNonce
+                    });
+                }
+
+                uint256 shiftedOfferer = uint256(uint160(order.offerer)) << 96;
+
+                orderHash = bytes32(shiftedOfferer ^ currentNonce);
+            } else {
+                orderHash = context.orders[i].getTipNeutralizedOrderHash(
+                    context.seaport
+                );
+            }
+
+            orderHashes[i] = orderHash;
+        }
+
+        context.orderHashes = orderHashes;
 
         return context;
     }
