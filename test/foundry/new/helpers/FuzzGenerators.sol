@@ -227,7 +227,7 @@ library TestStateGenerator {
                 orders: components,
                 isMatchable: isMatchable,
                 maximumFulfilled: maximumFulfilled,
-                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                recipient: FulfillmentRecipient(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 caller: Caller(context.randEnum(0, 6))
             });
@@ -2021,8 +2021,6 @@ library FulfillmentRecipientGenerator {
     ) internal pure returns (address) {
         if (recipient == FulfillmentRecipient.ZERO) {
             return address(0);
-        } else if (recipient == FulfillmentRecipient.OFFERER) {
-            return context.offerer.addr;
         } else if (recipient == FulfillmentRecipient.ALICE) {
             return context.alice.addr;
         } else if (recipient == FulfillmentRecipient.BOB) {
@@ -2042,12 +2040,12 @@ library CallerGenerator {
     ) internal view returns (address) {
         if (caller == Caller.TEST_CONTRACT) {
             return address(this);
-        } else if (caller == Caller.OFFERER) {
-            return context.offerer.addr;
         } else if (caller == Caller.ALICE) {
             return context.alice.addr;
         } else if (caller == Caller.BOB) {
             return context.bob.addr;
+        } else if (caller == Caller.CAROL) {
+            return context.carol.addr;
         } else if (caller == Caller.DILLON) {
             return context.dillon.addr;
         } else if (caller == Caller.EVE) {
