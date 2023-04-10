@@ -224,6 +224,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             for (uint256 j = 0; j < items.length; j++) {
                 SpentItem memory item = items[j];
 
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    context.orders[i].parameters.orderType == OrderType.CONTRACT
+                ) {
+                    vm.deal(offerer, offerer.balance + item.amount);
+                }
+
                 if (item.itemType == ItemType.ERC20) {
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
