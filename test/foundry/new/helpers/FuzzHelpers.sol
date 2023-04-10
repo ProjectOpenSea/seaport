@@ -115,6 +115,12 @@ enum Result {
     CANCEL
 }
 
+struct ContractNonceDetails {
+    bool set;
+    address offerer;
+    uint256 currentNonce;
+}
+
 /**
  * @notice Stateless helpers for Fuzz tests.
  */
@@ -584,31 +590,52 @@ library FuzzHelpers {
 
         bytes32[] memory orderHashes = new bytes32[](orders.length);
 
-        // Iterate over all orders to derive orderHashes
-        for (uint256 i; i < orders.length; ++i) {
-            AdvancedOrder memory order = orders[i];
+        // Array of (contract offerer, currentNonce)
+        ContractNonceDetails[] memory detailsArray = new ContractNonceDetails[](
+            orders.length
+        );
 
-            if (getType(order) == Type.CONTRACT) {
-                // Get contract nonce of the offerer
-                uint256 contractNonce = seaportInterface
-                    .getContractOffererNonce(order.parameters.offerer);
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+            bytes32 orderHash;
+            if (order.orderType == OrderType.CONTRACT) {
+                bool noneYetLocated = false;
+                uint256 j = 0;
+                uint256 currentNonce;
+                for (; j < detailsArray.length; ++j) {
+                    ContractNonceDetails memory details = detailsArray[j];
+                    if (!details.set) {
+                        noneYetLocated = true;
+                        break;
+                    } else if (details.offerer == order.offerer) {
+                        currentNonce = ++(details.currentNonce);
+                        break;
+                    }
+                }
 
-                // Get the contract order's orderHash
-                orderHashes[i] = bytes32(
-                    contractNonce ^
-                        (uint256(uint160(order.parameters.offerer)) << 96)
-                );
-            } else {
-                // Get OrderComponents from OrderParameters
-                OrderComponents memory orderComponents = order
-                    .parameters
-                    .toOrderComponents(
-                        seaportInterface.getCounter(order.parameters.offerer)
+                if (noneYetLocated) {
+                    currentNonce = seaportInterface.getContractOffererNonce(
+                        order.offerer
                     );
 
-                // Derive the orderHash from OrderComponents
-                orderHashes[i] = seaportInterface.getOrderHash(orderComponents);
+                    detailsArray[j] = ContractNonceDetails({
+                        set: true,
+                        offerer: order.offerer,
+                        currentNonce: currentNonce
+                    });
+                }
+
+                uint256 shiftedOfferer = uint256(uint160(order.offerer)) << 96;
+
+                orderHash = bytes32(shiftedOfferer ^ currentNonce);
+            } else {
+                orderHash = getTipNeutralizedOrderHash(
+                    orders[i],
+                    seaportInterface
+                );
             }
+
+            orderHashes[i] = orderHash;
         }
 
         return orderHashes;

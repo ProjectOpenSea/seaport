@@ -46,7 +46,6 @@ contract MatchFulfillmentLibTest is Test {
 
     using MatchComponentType for MatchComponent[];
 
-
     function testConsolidateComponents(uint240[10] memory amounts) public {
         // copy to dynamic array
         MatchComponent[] memory toBeSorted = new MatchComponent[](10);

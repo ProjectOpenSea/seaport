@@ -8,9 +8,7 @@ import {
     MemoryPointer
 } from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
-import {
-    Execution
-} from "seaport-sol/SeaportStructs.sol";
+import { Execution } from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
