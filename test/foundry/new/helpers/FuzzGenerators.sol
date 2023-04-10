@@ -29,7 +29,7 @@ import {
 import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
-
+import { Solarray } from "solarray/Solarray.sol";
 import {
     Amount,
     BasicOrderCategory,
@@ -75,6 +75,7 @@ import {
     FuzzHelpers,
     Structure
 } from "./FuzzHelpers.sol";
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -153,7 +154,7 @@ library TestStateGenerator {
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
-                offerer: Offerer(context.randEnum(1, 2)),
+                offerer: Offerer(context.choice(Solarray.uints(1, 2, 4))),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
@@ -214,6 +215,8 @@ library TestStateGenerator {
                     // contract offerer needs to resolve these itself)
                     components[i].consideration[j].criteria = Criteria.MERKLE;
                 }
+            } else if (components[i].offerer == Offerer.EIP1271) {
+                components[i].signatureMethod = SignatureMethod.EIP1271;
             }
         }
 
@@ -1095,6 +1098,7 @@ library AdvancedOrdersSpaceGenerator {
                 space.orders[i].signatureMethod,
                 space.orders[i].eoaSignatureType,
                 space.orders[i].offerer,
+                order.parameters.offerer,
                 orderHash,
                 context
             );
@@ -1744,6 +1748,7 @@ library SignatureGenerator {
         SignatureMethod method,
         EOASignature eoaSignatureType,
         Offerer offerer,
+        address offererAddress,
         bytes32 orderHash,
         FuzzGeneratorContext memory context
     ) internal returns (AdvancedOrder memory) {
@@ -1798,7 +1803,17 @@ library SignatureGenerator {
         } else if (method == SignatureMethod.VALIDATE) {
             revert("Validate not implemented");
         } else if (method == SignatureMethod.EIP1271) {
-            revert("EIP1271 not implemented");
+            bytes32 digest = _getDigest(orderHash, context);
+            bytes memory sig = ExtraDataGenerator._generateRandomBytesArray(
+                1,
+                4096,
+                context
+            );
+            EIP1271Offerer(payable(offererAddress)).registerSignature(
+                digest,
+                sig
+            );
+            return order.withSignature(sig);
         } else if (method == SignatureMethod.SELF_AD_HOC) {
             revert("Self ad hoc not implemented");
         } else {
@@ -1851,7 +1866,7 @@ library SignatureGenerator {
         bytes32 s,
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
         address recovered = ecrecover(digest, v, r, s);
         if (recovered != offerer.generate(context) || recovered == address(0)) {
             revert("SignatureGenerator: Invalid signature");
@@ -2175,7 +2190,7 @@ library OffererGenerator {
     function generate(
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal pure returns (address) {
+    ) internal returns (address) {
         if (offerer == Offerer.TEST_CONTRACT) {
             return context.self;
         } else if (offerer == Offerer.ALICE) {
@@ -2185,7 +2200,7 @@ library OffererGenerator {
         } else if (offerer == Offerer.CONTRACT_OFFERER) {
             return address(context.contractOfferer);
         } else {
-            revert("Invalid offerer");
+            return address(new EIP1271Offerer());
         }
     }
 
@@ -2251,6 +2266,13 @@ library PRNGHelpers {
         FuzzGeneratorContext memory context
     ) internal pure returns (uint256) {
         return context.prng.next();
+    }
+
+    function choice(
+        FuzzGeneratorContext memory context,
+        uint256[] memory arr
+    ) internal pure returns (uint256) {
+        return arr[context.prng.next() % arr.length];
     }
 }
 
