@@ -479,7 +479,7 @@ library AdvancedOrdersSpaceGenerator {
 
         // Sign the orders with a random counter.
         context.counter = context.randRange(0, type(uint128).max);
-        // Put this here just to make it easy to keep trac of.
+        // Put this here just to make it easy to keep track of.
         context.contractOffererNonce = context.randRange(0, type(uint128).max);
 
         // Sign orders and add the hashes to the context.
