@@ -123,16 +123,14 @@ abstract contract FuzzChecks is Test {
     ) public {
         // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
+            OrderParameters memory order = context.orders[i].parameters;
+
             // If the order is restricted, check the calldata.
             if (
-                context.orders[i].parameters.orderType ==
-                OrderType.FULL_RESTRICTED ||
-                context.orders[i].parameters.orderType ==
-                OrderType.PARTIAL_RESTRICTED
+                order.orderType == OrderType.FULL_RESTRICTED ||
+                order.orderType == OrderType.PARTIAL_RESTRICTED
             ) {
-                testZone = payable(context.orders[i].parameters.zone);
-
-                AdvancedOrder memory order = context.orders[i];
+                testZone = payable(order.zone);
 
                 // Each order has a calldata hash, indexed to orders, that is
                 // expected to be returned by the zone.
@@ -352,11 +350,10 @@ abstract contract FuzzChecks is Test {
     function check_ordersValidated(FuzzTestContext memory context) public {
         // Iterate over all orders and if the order was validated pre-execution,
         // check that calling `getOrderStatus` on the order hash returns `true`
-        // for `isValid`.
+        // for `isValid`. Note that contract orders cannot be validated.
         for (uint256 i; i < context.preExecOrderStatuses.length; i++) {
             // Only check orders that were validated pre-execution.
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
-                AdvancedOrder memory order = context.orders[i];
                 bytes32 orderHash = context.orderHashes[i];
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
