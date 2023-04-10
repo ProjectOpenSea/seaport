@@ -76,8 +76,6 @@ import {
     Structure
 } from "./FuzzHelpers.sol";
 
-import { FuzzInscribers } from "./FuzzInscribers.sol";
-
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -341,18 +339,17 @@ library AdvancedOrdersSpaceGenerator {
     using OrderDetailsHelper for AdvancedOrder[];
     using OrderDetailsHelper for ItemType;
 
+    using BroadOrderTypeGenerator for AdvancedOrder;
+    using ConduitGenerator for ConduitChoice;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using ExtraDataGenerator for AdvancedOrder;
-    using FuzzInscribers for AdvancedOrder;
+    using FulfillmentRecipientGenerator for FulfillmentRecipient;
     using MatchComponentType for MatchComponent;
+    using OfferItemSpaceGenerator for OfferItemSpace;
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
-    using OfferItemSpaceGenerator for OfferItemSpace;
-    using BroadOrderTypeGenerator for AdvancedOrder;
-    using FulfillmentRecipientGenerator for FulfillmentRecipient;
-    using ConduitGenerator for ConduitChoice;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -382,7 +379,6 @@ library AdvancedOrdersSpaceGenerator {
                 _ensureAllAvailable(space);
             }
             _ensureDirectSupport(orders, space, context);
-            _syncStatuses(orders, space, context);
         }
 
         for (uint256 i = 0; i < orders.length; ++i) {
@@ -413,38 +409,6 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (bytes32) {
         return space.conduit.generate(context).key;
-    }
-
-    function _syncStatuses(
-        AdvancedOrder[] memory orders,
-        AdvancedOrdersSpace memory space,
-        FuzzGeneratorContext memory context
-    ) internal {
-        for (uint256 i = 0; i < orders.length; i++) {
-            if (
-                space.orders[i].unavailableReason == UnavailableReason.CANCELLED
-            ) {
-                orders[i].inscribeOrderStatusCanceled(true, context.seaport);
-            } else if (
-                space.orders[i].unavailableReason ==
-                UnavailableReason.ALREADY_FULFILLED
-            ) {
-                orders[i].inscribeOrderStatusNumeratorAndDenominator(
-                    1,
-                    1,
-                    context.seaport
-                );
-            } else if (
-                space.orders[i].unavailableReason == UnavailableReason.AVAILABLE
-            ) {
-                orders[i].inscribeOrderStatusNumeratorAndDenominator(
-                    0,
-                    0,
-                    context.seaport
-                );
-                orders[i].inscribeOrderStatusCanceled(false, context.seaport);
-            }
-        }
     }
 
     function _ensureDirectSupport(
@@ -508,7 +472,7 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         AdvancedOrdersSpace memory space,
         FuzzGeneratorContext memory context
-    ) internal {
+    ) internal pure {
         for (uint256 i = 0; i < orders.length; ++i) {
             _adjustUnavailable(
                 orders[i],
@@ -522,9 +486,12 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder memory order,
         UnavailableReason reason,
         FuzzGeneratorContext memory context
-    ) internal {
+    ) internal pure {
         OrderParameters memory parameters = order.parameters;
         // UnavailableReason.AVAILABLE => take no action
+        // UnavailableReason.CANCELLED => state will be conformed in amend phase
+        // UnavailableReason.ALREADY_FULFILLED => state will be conformed in
+        //                                        amend phase
         if (reason == UnavailableReason.EXPIRED) {
             parameters = parameters.withGeneratedTime(
                 Time(context.randEnum(3, 4)),
@@ -534,14 +501,6 @@ library AdvancedOrdersSpaceGenerator {
             parameters = parameters.withGeneratedTime(
                 Time.STARTS_IN_FUTURE,
                 context
-            );
-        } else if (reason == UnavailableReason.CANCELLED) {
-            order.inscribeOrderStatusCanceled(true, context.seaport);
-        } else if (reason == UnavailableReason.ALREADY_FULFILLED) {
-            order.inscribeOrderStatusNumeratorAndDenominator(
-                1,
-                1,
-                context.seaport
             );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
             // TODO: update offerer + order type (point to bad contract offerer)

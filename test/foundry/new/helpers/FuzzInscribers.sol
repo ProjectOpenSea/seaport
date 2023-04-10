@@ -38,7 +38,7 @@ library FuzzInscribers {
         SeaportInterface seaport
     ) internal {
         inscribeOrderStatusValidated(order, orderStatus.isValidated, seaport);
-        inscribeOrderStatusCanceled(order, orderStatus.isCancelled, seaport);
+        inscribeOrderStatusCancelled(order, orderStatus.isCancelled, seaport);
         inscribeOrderStatusNumerator(order, orderStatus.numerator, seaport);
         inscribeOrderStatusDenominator(order, orderStatus.denominator, seaport);
     }
@@ -120,7 +120,7 @@ library FuzzInscribers {
      * @param seaport The Seaport instance.
      *
      */
-    function inscribeOrderStatusCanceled(
+    function inscribeOrderStatusCancelled(
         AdvancedOrder memory order,
         bool isCancelled,
         SeaportInterface seaport
@@ -163,11 +163,11 @@ library FuzzInscribers {
         ) = seaport.getOrderStatus(orderHash);
 
         if (isCancelled != isCancelledOrganicValue) {
-            revert("FuzzInscribers/inscribeOrderStatusCanceled: Mismatch");
+            revert("FuzzInscribers/inscribeOrderStatusCancelled: Mismatch");
         }
 
         if (isCancelledOrganicValue && isValidatedOrganicValue) {
-            revert("FuzzInscribers/inscribeOrderStatusCanceled: Invalid state");
+            revert("FuzzInscribers/inscribeOrderStatusCancelled: Invalid state");
         }
     }
 

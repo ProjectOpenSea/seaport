@@ -157,8 +157,8 @@ contract FuzzEngine is
      * @dev Run a `FuzzEngine` test with the provided FuzzTestContext. Calls the
      *      following test lifecycle functions in order:
      *
-     *      1. runDerivers: Run deriver functions for the test.
-     *      2. amendOrderState: Amend the order state.
+     *      1. amendOrderState: Amend the order state.
+     *      2. runDerivers: Run deriver functions for the test.
      *      3. runSetup: Run setup functions for the test.
      *      4. runCheckRegistration: Register checks for the test.
      *      5. exec: Select and call a Seaport function.
@@ -167,8 +167,8 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
-        runDerivers(context);
         amendOrderState(context);
+        runDerivers(context);
         runSetup(context);
         runCheckRegistration(context);
         exec(context);
@@ -306,7 +306,7 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function amendOrderState(FuzzTestContext memory context) internal {
-        validateOrdersAndRegisterCheck(context);
+        conformOnChainStatusToExpected(context);
     }
 
     /**

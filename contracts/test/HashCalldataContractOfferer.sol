@@ -124,7 +124,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
      * @custom:param minimumReceived The minimum items that the caller was
      *                               willing to receive.
      * @custom:param maximumSpent    The maximum items that the caller was
-     *                               willing tovspend.
+     *                               willing to spend.
      * @custom:param context         The context of the order.
      * @custom:param orderHashes     The order hashes, unused here.
      * @custom:param contractNonce   The contract nonce, unused here.

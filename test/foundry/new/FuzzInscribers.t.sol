@@ -83,7 +83,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         // Wipe the slot.
         advancedOrder.inscribeOrderStatusDenominator(0, context.seaport);
         advancedOrder.inscribeOrderStatusNumerator(0, context.seaport);
-        advancedOrder.inscribeOrderStatusCanceled(false, context.seaport);
+        advancedOrder.inscribeOrderStatusCancelled(false, context.seaport);
         advancedOrder.inscribeOrderStatusValidated(false, context.seaport);
 
         // Populate the raw synthetic storage values.  These are the storage
@@ -329,7 +329,7 @@ contract FuzzHelpersTest is BaseOrderTest {
             orderHashStorageSlot
         );
 
-        advancedOrder.inscribeOrderStatusCanceled(true, context.seaport);
+        advancedOrder.inscribeOrderStatusCancelled(true, context.seaport);
 
         rawStorageValues.rawSyntheticOrderStatusAfterCancellation = vm.load(
             address(context.seaport),

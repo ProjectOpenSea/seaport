@@ -94,16 +94,12 @@ abstract contract FuzzDerivers is
 
                 if (status == OrderStatusEnum.FULFILLED) {
                     // TEMP (TODO: fix how these are set)
-                    vm.assume(totalFilled != 0 && totalFilled == totalSize);
-
                     require(
                         totalFilled != 0 && totalFilled == totalSize,
                         "FuzzDerivers: OrderStatus FULFILLED does not match order state"
                     );
                 } else if (status == OrderStatusEnum.CANCELLED_EXPLICIT) {
                     // TEMP (TODO: fix how these are set)
-                    vm.assume(isCancelled);
-
                     require(
                         isCancelled,
                         "FuzzDerivers: OrderStatus CANCELLED_EXPLICIT does not match order state"
