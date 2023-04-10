@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 contract EIP1271Offerer {
-    error InvalidSignature(bytes32 digest, bytes signature);
+    error EIP1271OffererInvalidSignature(bytes32 digest, bytes signature);
     bytes4 private constant _EIP_1271_MAGIC_VALUE = 0x1626ba7e;
 
     mapping(bytes32 => bytes32) public digestToSignatureHash;
@@ -19,6 +19,6 @@ contract EIP1271Offerer {
         if (digestToSignatureHash[digest] == signatureHash) {
             return _EIP_1271_MAGIC_VALUE;
         }
-        revert InvalidSignature(digest, signature);
+        revert EIP1271OffererInvalidSignature(digest, signature);
     }
 }
