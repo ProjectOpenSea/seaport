@@ -6,8 +6,10 @@ import {
 } from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
+    AdvancedOrder,
     Execution,
     ItemType,
+    OrderParameters,
     SpentItem,
     ReceivedItem
 } from "seaport-sol/SeaportStructs.sol";
@@ -15,6 +17,8 @@ import {
 import {
     OrderDetails
 } from "../../../../../contracts/helpers/sol/fulfillments/lib/Structs.sol";
+
+import { OrderDetailsHelper } from "../FuzzGenerators.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
@@ -29,6 +33,7 @@ import {
 library OrderFulfilledEventsLib {
     using { toBytes32 } for address;
     using EventSerializer for *;
+    using OrderDetailsHelper for AdvancedOrder[];
 
     event OrderFulfilled(
         bytes32 orderHash,
@@ -43,45 +48,49 @@ library OrderFulfilledEventsLib {
     // look up actions, if match
     // create new lib for order fulfilled/match
     // DON"T TOUCH anything related to transfer events
-    function serializeOrderFulfilledLog(
-        string memory objectKey,
-        string memory valueKey,
-        FuzzTestContext memory context
-    ) internal returns (string memory) {
-        OrderDetails[] memory orderDetails = context.orderDetails;
+    // function serializeOrderFulfilledLog(
+    //     string memory objectKey,
+    //     string memory valueKey,
+    //     FuzzTestContext memory context
+    // ) internal returns (string memory) {
+    //     OrderDetails[] memory orderDetails = (
+    //         context.orders.getOrderDetails(context.criteriaResolvers)
+    //     );
 
-        for (uint256 i; i < orderDetails.length; i++) {
-            OrderDetails memory detail = orderDetails[i];
+    //     for (uint256 i; i < orderDetails.length; i++) {
+    //         OrderDetails memory detail = orderDetails[i];
 
-            OrderFulfilledEvent memory eventData = OrderFulfilledEvent({
-                orderHash: getOrderFulfilledEventHash(context),
-                offerer: detail.offerer,
-                zone: detail.zone,
-                recipient: detail.recipient,
-                offer: detail.offer,
-                consideration: detail.consideration
-            });
+    //         OrderFulfilledEvent memory eventData = OrderFulfilledEvent({
+    //             orderHash: getOrderFulfilledEventHash(context),
+    //             offerer: detail.offerer,
+    //             zone: detail.zone,
+    //             recipient: detail.recipient,
+    //             offer: detail.offer,
+    //             consideration: detail.consideration
+    //         });
 
-            return eventData.serializeOrderFulfilledEvent(objectKey, valueKey);
-        }
-    }
+    //         return eventData.serializeOrderFulfilledEvent(objectKey, valueKey);
+    //     }
+    // }
 
     function getOrderFulfilledEventHash(
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bytes32 eventHash) {
-        OrderDetails[] memory orderDetails = context.orderDetails;
+        OrderParameters memory orderParams = context.orders[orderIndex].parameters;
 
-        for (uint256 i; i < orderDetails.length; i++) {
-            OrderDetails memory detail = orderDetails[i];
+        OrderDetails memory details = (
+            context.orders.getOrderDetails(context.criteriaResolvers)
+        )[orderIndex];
 
-            return
-                getEventHashWithTopics(
-                    context.seaport,
-                    OrderFulfilled.selector, // topic0
-                    detail.offerer.toBytes32(), // topic1 - offerer
-                    detail.zone.toBytes32() // topic2 - zone
-                );
-        }
+        return
+            getEventHashWithTopics(
+                address(context.seaport), // emitter
+                OrderFulfilled.selector, // topic0
+                orderParams.offerer.toBytes32(), // topic1 - offerer
+                orderParams.zone.toBytes32(), // topic2 - zone
+                keccak256(abi.encode(context.orderHashes[orderIndex], context.recipient, details.offer, details.consideration)) // dataHash
+            );
     }
 }
 

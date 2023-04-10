@@ -18,6 +18,8 @@ import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
 
+import { OrderFulfilledEventsLib } from "./OrderFulfilledEventsLib.sol";
+
 import { dumpTransfers } from "../DebugUtil.sol";
 
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
@@ -51,7 +53,7 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function setExpectedEventHashes(FuzzTestContext memory context) internal {
+    function setExpectedTransferEventHashes(FuzzTestContext memory context) internal {
         Execution[] memory executions = context.allExpectedExecutions;
         require(
             executions.length ==
@@ -59,7 +61,7 @@ library ExpectedEventsUtil {
                     context.expectedImplicitExecutions.length
         );
 
-        context.expectedEventHashes = ArrayHelpers
+        context.expectedTransferEventHashes = ArrayHelpers
             .filterMapWithArg
             .asExecutionsFilterMap()(
                 executions,
@@ -69,8 +71,22 @@ library ExpectedEventsUtil {
 
         vm.serializeBytes32(
             "root",
-            "expectedEventHashes",
-            context.expectedEventHashes
+            "expectedTransferEventHashes",
+            context.expectedTransferEventHashes
+        );
+    }
+
+    function setExpectedSeaportEventHashes(FuzzTestContext memory context) internal {
+        context.expectedSeaportEventHashes = new bytes32[](context.orders.length);
+
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            context.expectedSeaportEventHashes[i] = OrderFulfilledEventsLib.getOrderFulfilledEventHash(i, context);
+        }
+
+        vm.serializeBytes32(
+            "root",
+            "expectedSeaportEventHashes",
+            context.expectedSeaportEventHashes
         );
     }
 
@@ -87,18 +103,18 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function checkExpectedEvents(FuzzTestContext memory context) internal {
+    function checkExpectedTransferEvents(FuzzTestContext memory context) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         context.actualEvents = logs;
         // uint256 logIndex;
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
-        bytes32[] memory expectedEventHashes = context.expectedEventHashes;
+        bytes32[] memory expectedTransferEventHashes = context.expectedTransferEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
         uint256 lastLogIndex = ArrayHelpers.reduceWithArg.asLogsReduce()(
-            expectedEventHashes,
+            expectedTransferEventHashes,
             checkNextEvent, // function called for each item in expectedEvents
             0, // initial value for the reduce call, index 0
             ReduceInput(logs, context) // 3rd argument given to checkNextEvent
@@ -112,7 +128,36 @@ library ExpectedEventsUtil {
         if (nextWatchedEventIndex != -1) {
             dumpTransfers(context);
             revert(
-                "ExpectedEvents: too many watched events - info written to fuzz_debug.json"
+                "ExpectedEvents: too many watched transfer events - info written to fuzz_debug.json"
+            );
+        }
+    }
+
+    function checkExpectedSeaportEvents(FuzzTestContext memory context) internal {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        context.actualEvents = logs;
+        // uint256 logIndex;
+
+        // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
+        bytes32[] memory expectedSeaportEventHashes = context.expectedSeaportEventHashes;
+
+        // For each expected event, verify that it matches the next log
+        // in `logs` that has a topic0 matching one of the watched events.
+        uint256 lastLogIndex = ArrayHelpers.reduceWithArg.asLogsReduce()(
+            expectedSeaportEventHashes,
+            checkNextEvent, // function called for each item in expectedEvents
+            0, // initial value for the reduce call, index 0
+            ReduceInput(logs, context) // 3rd argument given to checkNextEvent
+        );
+
+        // Verify that there are no other watched events in the array
+        int256 nextWatchedEventIndex = ArrayHelpers
+            .findIndexFrom
+            .asLogsFindIndex()(logs, isWatchedEvent, lastLogIndex);
+
+        if (nextWatchedEventIndex != -1) {
+            revert(
+                "ExpectedEvents: too many watched seaport events"
             );
         }
     }

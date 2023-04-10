@@ -232,7 +232,13 @@ struct FuzzTestContext {
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
      */
-    bytes32[] expectedEventHashes;
+    bytes32[] expectedTransferEventHashes;
+
+    /**
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
+     */
+    bytes32[] expectedSeaportEventHashes;
     /**
      * @dev Actual events emitted.
      */
@@ -270,7 +276,8 @@ library FuzzTestContextLib {
         bool[] memory available;
         Execution[] memory executions;
         bytes32[] memory hashes;
-        bytes32[] memory expectedEventHashes;
+        bytes32[] memory expectedTransferEventHashes;
+        bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
 
         return
@@ -314,7 +321,8 @@ library FuzzTestContextLib {
                 expectedExplicitExecutions: executions,
                 expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
-                expectedEventHashes: expectedEventHashes,
+                expectedTransferEventHashes: expectedTransferEventHashes,
+                expectedSeaportEventHashes: expectedSeaportEventHashes,
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))
             });
