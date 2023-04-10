@@ -356,9 +356,11 @@ library FuzzTestContextLib {
         SeaportInterface seaport
     ) internal view returns (FuzzTestContext memory) {
         return
-            empty().withOrders(orders).withSeaport(seaport).withInitialOrders(
-                orders.copy()
-            );
+            empty()
+                .withOrders(orders)
+                .withSeaport(seaport)
+                .withOrderHashes()
+                .withInitialOrders(orders.copy());
     }
 
     /**
