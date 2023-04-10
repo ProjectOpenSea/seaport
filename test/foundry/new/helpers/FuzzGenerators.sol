@@ -169,7 +169,9 @@ library TestStateGenerator {
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
-                signatureMethod: SignatureMethod(0),
+                signatureMethod: SignatureMethod(
+                    context.choice(Solarray.uints(0, 4))
+                ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
@@ -1432,7 +1434,12 @@ library OrderComponentsSpaceGenerator {
     ) internal returns (OrderParameters memory) {
         OrderParameters memory params;
         {
-            address offerer = space.offerer.generate(context);
+            address offerer;
+            if (space.signatureMethod == SignatureMethod.SELF_AD_HOC) {
+                offerer = context.caller;
+            } else {
+                offerer = space.offerer.generate(context);
+            }
 
             params = OrderParametersLib
                 .empty()
@@ -1815,7 +1822,8 @@ library SignatureGenerator {
             );
             return order.withSignature(sig);
         } else if (method == SignatureMethod.SELF_AD_HOC) {
-            revert("Self ad hoc not implemented");
+            return order;
+            // revert("Self ad hoc not implemented");
         } else {
             revert("SignatureGenerator: Invalid signature method");
         }
