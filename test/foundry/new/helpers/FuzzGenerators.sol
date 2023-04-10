@@ -379,7 +379,7 @@ library AdvancedOrdersSpaceGenerator {
             if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
-                orders[i].inscribeOrderStatusCanceled(true, context.seaport);
+                orders[i].inscribeOrderStatusCancelled(true, context.seaport);
             } else if (
                 space.orders[i].unavailableReason ==
                 UnavailableReason.ALREADY_FULFILLED
@@ -397,7 +397,7 @@ library AdvancedOrdersSpaceGenerator {
                     0,
                     context.seaport
                 );
-                orders[i].inscribeOrderStatusCanceled(false, context.seaport);
+                orders[i].inscribeOrderStatusCancelled(false, context.seaport);
             }
         }
     }
@@ -491,7 +491,7 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         } else if (reason == UnavailableReason.CANCELLED) {
-            order.inscribeOrderStatusCanceled(true, context.seaport);
+            order.inscribeOrderStatusCancelled(true, context.seaport);
         } else if (reason == UnavailableReason.ALREADY_FULFILLED) {
             order.inscribeOrderStatusNumeratorAndDenominator(
                 1,
