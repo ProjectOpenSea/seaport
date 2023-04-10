@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { SpentItem, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+
 Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
 struct ERC20TransferEvent {
@@ -37,6 +39,15 @@ struct ERC1155TransferEvent {
     // bytes32 eventHash;
 }
 
+struct OrderFulfilledEvent {
+    bytes32 orderHash;
+    address offerer;
+    address zone;
+    address recipient;
+    SpentItem[] offer;
+    ReceivedItem[] consideration;
+}
+
 library EventSerializer {
     function serializeString(
         string memory objectKey,
@@ -68,6 +79,61 @@ library EventSerializer {
         uint256 value
     ) internal returns (string memory) {
         return vm.serializeUint(objectKey, valueKey, value);
+    }
+
+    function serializeSpentItem(
+        SpentItem memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        serializeUint256(obj, "itemType", uint256(value.ItemType));
+        serializeAddress(obj, "token", value.token);
+        serializeUint256(obj, "identifier", value.identifier);
+        string memory finalJson = serializeUint256(obj, "amount", value.amount);
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function serializeReceivedItem(
+        ReceivedItem memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        serializeUint256(obj, "itemType", uint256(value.ItemType));
+        serializeAddress(obj, "token", value.token);
+        serializeUint256(obj, "identifier", value.identifier);
+        serializeUint256(obj, "amount", value.amount);
+        string memory finalJson = serializeAddress(
+            obj,
+            "recipient",
+            value.recipient
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function serializeSpentItemArray(
+        SpentItem[] memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        for (uint256 i = 0; i < value.length; i++) {
+            serializeSpentItem(value[i], obj, string.concat("item", i));
+        }
+        return vm.serializeString(objectKey, valueKey, obj);
+    }
+
+    function serializeReceivedItemArray(
+        ReceivedItem[] memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        for (uint256 i = 0; i < value.length; i++) {
+            serializeReceivedItem(value[i], obj, string.concat("item", i));
+        }
+        return vm.serializeString(objectKey, valueKey, obj);
     }
 
     function serializeERC20TransferEvent(
@@ -131,6 +197,25 @@ library EventSerializer {
         //     "eventHash",
         //     value.eventHash
         // );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function serializeOrderFulfilledEvent(
+        OrderFulfilledEvent memory value,
+        string memory objectKey,
+        string memory valueKey
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        serializeBytes32(obj, "orderHash", value.orderHash);
+        serializeAddress(obj, "offerer", value.offerer);
+        serializeAddress(obj, "zone", value.zone);
+        serializeAddress(obj, "recipient", value.recipient);
+        serializeSpentItemArray(obj, "offer", value.offer);
+        string memory finalJson = serializeReceivedItemArray(
+            obj,
+            "consideration",
+            value.consideration
+        );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 }
