@@ -365,7 +365,11 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal view returns (uint256) {
+    ) internal returns (uint256) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
+
         uint256 value = 0;
 
         OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
@@ -376,25 +380,24 @@ library FuzzEngineLib {
             OrderDetails memory order = orderDetails[i];
             OrderParameters memory orderParams = context.orders[i].parameters;
 
-            for (uint256 j = 0; j < order.offer.length; ++j) {
-                SpentItem memory item = order.offer[j];
+            if (isMatch) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
 
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    orderParams.isAvailable()
-                ) {
-                    value += item.amount;
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
+                    ) {
+                        value += item.amount;
+                    }
                 }
-            }
+            } else {
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ReceivedItem memory item = order.consideration[j];
 
-            for (uint256 j = 0; j < order.consideration.length; ++j) {
-                ReceivedItem memory item = order.consideration[j];
-
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    orderParams.isAvailable()
-                ) {
-                    value += item.amount;
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
                 }
             }
         }

@@ -101,6 +101,8 @@ interface TestHelpers {
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
     ) external returns (OrderDetails[] memory);
+
+    function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
 struct FuzzTestContext {
@@ -343,6 +345,25 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
+                .withInitialOrders(orders.copy());
+    }
+
+    /**
+     * @dev Create a FuzzTestContext from the given partial arguments.
+     *
+     * @param orders the AdvancedOrder[] to set
+     * @param seaport the SeaportInterface to set
+     * @custom:return _context the FuzzTestContext
+     */
+    function from(
+        AdvancedOrder[] memory orders,
+        SeaportInterface seaport
+    ) internal view returns (FuzzTestContext memory) {
+        return
+            empty()
+                .withOrders(orders)
+                .withSeaport(seaport)
+                .withOrderHashes()
                 .withInitialOrders(orders.copy());
     }
 

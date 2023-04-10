@@ -296,7 +296,7 @@ abstract contract FuzzDerivers is
 
     function getStandardExecutions(
         FuzzTestContext memory context
-    ) public view returns (Execution[] memory implicitExecutions) {
+    ) public returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -317,7 +317,7 @@ abstract contract FuzzDerivers is
 
     function getBasicExecutions(
         FuzzTestContext memory context
-    ) public view returns (Execution[] memory implicitExecutions) {
+    ) public returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -336,7 +336,6 @@ abstract contract FuzzDerivers is
         FuzzTestContext memory context
     )
         public
-        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
@@ -356,7 +355,6 @@ abstract contract FuzzDerivers is
         FuzzTestContext memory context
     )
         internal
-        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions

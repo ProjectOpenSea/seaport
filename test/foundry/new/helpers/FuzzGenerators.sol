@@ -34,6 +34,7 @@ import {
     Amount,
     BasicOrderCategory,
     BroadOrderType,
+    Caller,
     ConduitChoice,
     Criteria,
     EOASignature,
@@ -164,8 +165,7 @@ library TestStateGenerator {
                     context,
                     false
                 ),
-                // TODO: support contract orders (0-2)
-                orderType: BroadOrderType(context.randEnum(0, 1)),
+                orderType: BroadOrderType(context.randEnum(0, 2)),
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
@@ -230,7 +230,8 @@ library TestStateGenerator {
                 isMatchable: isMatchable,
                 maximumFulfilled: maximumFulfilled,
                 recipient: FulfillmentRecipient(context.randEnum(0, 4)),
-                conduit: ConduitChoice(context.randEnum(0, 2))
+                conduit: ConduitChoice(context.randEnum(0, 2)),
+                caller: Caller(context.randEnum(0, 6))
             });
     }
 
@@ -352,6 +353,7 @@ library AdvancedOrdersSpaceGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
+    using CallerGenerator for Caller;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -386,10 +388,92 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
-            if (space.orders[i].tips == Tips.NONE) {
+
+            OrderParameters memory orderParams = order.parameters;
+
+            if (
+                space.orders[i].tips == Tips.NONE ||
+                orderParams.orderType == OrderType.CONTRACT
+            ) {
                 orders[i].parameters.totalOriginalConsiderationItems = (
                     orders[i].parameters.consideration.length
                 );
+            }
+
+            if (orderParams.orderType == OrderType.CONTRACT) {
+                order.parameters = orderParams
+                    .withOrderType(OrderType.CONTRACT)
+                    .withOfferer(address(context.contractOfferer));
+
+                for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                    OfferItem memory item = orderParams.offer[j];
+
+                    if (item.startAmount != 0) {
+                        order.parameters.offer[j].endAmount = item.startAmount;
+                    } else {
+                        order.parameters.offer[j].startAmount = item.endAmount;
+                    }
+
+                    if (
+                        uint256(item.itemType) > 3 &&
+                        item.identifierOrCriteria == 0
+                    ) {
+                        order.parameters.offer[j].itemType = ItemType(
+                            uint256(item.itemType) - 2
+                        );
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(uint256(i), uint256(j), Side.OFFER)
+                        );
+                        order.parameters.offer[j].identifierOrCriteria = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .wildcardIdentifierForGivenItemHash(itemHash);
+                    }
+                }
+
+                for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                    ConsiderationItem memory item = (
+                        orderParams.consideration[j]
+                    );
+
+                    if (item.startAmount != 0) {
+                        order.parameters.consideration[j].endAmount = (
+                            item.startAmount
+                        );
+                    } else {
+                        order.parameters.consideration[j].startAmount = (
+                            item.endAmount
+                        );
+                    }
+
+                    if (
+                        uint256(item.itemType) > 3 &&
+                        item.identifierOrCriteria == 0
+                    ) {
+                        order.parameters.consideration[j].itemType = ItemType(
+                            uint256(item.itemType) - 2
+                        );
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(
+                                uint256(i),
+                                uint256(j),
+                                Side.CONSIDERATION
+                            )
+                        );
+                        order
+                            .parameters
+                            .consideration[j]
+                            .identifierOrCriteria = context
+                            .testHelpers
+                            .criteriaResolverHelper()
+                            .wildcardIdentifierForGivenItemHash(itemHash);
+                    }
+
+                    // TODO: support offerer returning other recipients.
+                    order.parameters.consideration[j].recipient = payable(
+                        address(context.contractOfferer)
+                    );
+                }
             }
         }
 
@@ -409,6 +493,13 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         return space.recipient.generate(context);
+    }
+
+    function generateCaller(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal view returns (address) {
+        return space.caller.generate(context);
     }
 
     function generateFulfillerConduitKey(
@@ -1537,17 +1628,6 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
-        } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            order.parameters = orderParams
-                .withOrderType(OrderType.CONTRACT)
-                .withOfferer(address(context.contractOfferer));
-
-            for (uint256 i = 0; i < orderParams.consideration.length; ++i) {
-                // TODO: support offerer returning other recipients.
-                order.parameters.consideration[i].recipient = payable(
-                    address(context.contractOfferer)
-                );
-            }
         }
 
         return order;
@@ -2241,6 +2321,31 @@ library FulfillmentRecipientGenerator {
             return context.eve.addr;
         } else {
             revert("Invalid fulfillment recipient");
+        }
+    }
+}
+
+library CallerGenerator {
+    function generate(
+        Caller caller,
+        FuzzGeneratorContext memory context
+    ) internal view returns (address) {
+        if (caller == Caller.TEST_CONTRACT) {
+            return address(this);
+        } else if (caller == Caller.OFFERER) {
+            return context.offerer.addr;
+        } else if (caller == Caller.ALICE) {
+            return context.alice.addr;
+        } else if (caller == Caller.BOB) {
+            return context.bob.addr;
+        } else if (caller == Caller.DILLON) {
+            return context.dillon.addr;
+        } else if (caller == Caller.EVE) {
+            return context.eve.addr;
+        } else if (caller == Caller.FRANK) {
+            return context.frank.addr;
+        } else {
+            revert("Invalid caller");
         }
     }
 }

@@ -6,6 +6,7 @@ import { ItemType } from "./SeaportEnums.sol";
 import {
     Amount,
     BroadOrderType,
+    Caller,
     ConduitChoice,
     Criteria,
     EOASignature,
@@ -70,4 +71,5 @@ struct AdvancedOrdersSpace {
     uint256 maximumFulfilled;
     FulfillmentRecipient recipient;
     ConduitChoice conduit;
+    Caller caller;
 }
