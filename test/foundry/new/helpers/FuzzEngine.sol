@@ -280,11 +280,13 @@ contract FuzzEngine is
     function runDerivers(FuzzTestContext memory context) internal {
         deriveAvailableOrders(context);
         deriveCriteriaResolvers(context);
-        // Set them up here.
+        // Derive them up here just to provision the arrray.
         deriveOrderDetails(context);
         deriveFulfillments(context);
         deriveExecutions(context);
-        // Set them again for now.
+        // TODO: figure out how to handle order details so that they can be set
+        //       once.
+        // Derive them down here for use in the rest of the lifecycle.
         deriveOrderDetails(context);
     }
 

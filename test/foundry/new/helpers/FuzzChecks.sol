@@ -310,15 +310,16 @@ abstract contract FuzzChecks is Test {
                 );
             } else if (context.expectedAvailableOrders[i]) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
-                    // TODO: read from initial contract nonce state. For
-                    // now this assumes that the contract nonce started
-                    // at zero and just checks it hash been incremented
-                    // at least once.
+                    // TODO: This just checks the nonce has been incremented
+                    // at least once. It should be incremented once for each
+                    // call to `generateOrder`.  So, this check should sum the
+                    // expected number of calls to `generateOrder` and check
+                    // that the nonce has been incremented that many times.
                     uint256 currentNonce = context
                         .seaport
                         .getContractOffererNonce(order.parameters.offerer);
                     assertTrue(
-                        currentNonce > 0,
+                        currentNonce - context.contractOffererNonce > 0,
                         "FuzzChecks: contract offerer nonce not incremented"
                     );
                 } else {

@@ -208,10 +208,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpOfferItems(FuzzTestContext memory context) public {
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
         bool isMatchable = context.action() ==
             context.seaport.matchAdvancedOrders.selector ||
             context.action() == context.seaport.matchOrders.selector;
