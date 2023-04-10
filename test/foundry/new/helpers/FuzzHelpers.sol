@@ -620,10 +620,12 @@ library FuzzHelpers {
                 )
             );
 
+            uint256 shiftedOfferer = uint256(
+                uint160(order.parameters.offerer)
+            ) << 96;
+
             // Get counter of the order offerer
-            uint256 counter = seaportInterface.getCounter(
-                order.parameters.offerer
-            );
+            uint256 counter = shiftedOfferer ^ uint256(orderHashes[i]);
 
             // Derive the expected calldata hash for the call to ratifyOrder
             calldataHashes[i][1] = keccak256(
