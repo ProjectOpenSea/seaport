@@ -281,6 +281,26 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.action() == context.seaport.matchOrders.selector
         ) return;
 
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
+        // In all cases, deal balance to caller if consideration item is native
+        for (uint256 i; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
+            ReceivedItem[] memory items = order.consideration;
+
+            for (uint256 j = 0; j < items.length; j++) {
+                if (items[j].itemType == ItemType.NATIVE) {
+                    vm.deal(
+                        context.caller,
+                        context.caller.balance + items[j].amount
+                    );
+                }
+            }
+        }
+
         // Special handling for basic orders that are bids; only first item
         // needs to be approved
         if (
@@ -319,11 +339,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
             return;
         }
-
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
