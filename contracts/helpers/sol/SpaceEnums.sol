@@ -118,6 +118,16 @@ enum RecipientDirty {
     DIRTY
 }
 
+enum Caller {
+    TEST_CONTRACT,
+    OFFERER,
+    ALICE,
+    BOB,
+    DILLON,
+    EVE,
+    FRANK
+}
+
 // disregarded in the self_ad_hoc case
 enum Offerer {
     TEST_CONTRACT,

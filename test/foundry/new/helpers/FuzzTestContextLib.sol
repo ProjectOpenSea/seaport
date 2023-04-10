@@ -687,15 +687,6 @@ library FuzzTestContextLib {
         return context;
     }
 
-    function withFuzzedCaller(
-        FuzzTestContext memory context
-    ) internal pure returns (FuzzTestContext memory) {
-        context.caller = address(
-            uint160(uint256(keccak256(abi.encode(context.fuzzParams.seed))))
-        );
-        return context;
-    }
-
     function _copyBytes4(
         bytes4[] memory selectors
     ) private pure returns (bytes4[] memory) {

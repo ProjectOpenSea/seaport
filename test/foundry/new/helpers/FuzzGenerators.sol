@@ -34,6 +34,7 @@ import {
     Amount,
     BasicOrderCategory,
     BroadOrderType,
+    Caller,
     ConduitChoice,
     Criteria,
     EOASignature,
@@ -227,7 +228,8 @@ library TestStateGenerator {
                 isMatchable: isMatchable,
                 maximumFulfilled: maximumFulfilled,
                 recipient: FulfillmentRecipient(context.randEnum(0, 4)),
-                conduit: ConduitChoice(context.randEnum(0, 2))
+                conduit: ConduitChoice(context.randEnum(0, 2)),
+                caller: Caller(context.randEnum(0, 6))
             });
     }
 
@@ -349,6 +351,7 @@ library AdvancedOrdersSpaceGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
+    using CallerGenerator for Caller;
 
     function generate(
         AdvancedOrdersSpace memory space,
@@ -483,6 +486,13 @@ library AdvancedOrdersSpaceGenerator {
         FuzzGeneratorContext memory context
     ) internal pure returns (address) {
         return space.recipient.generate(context);
+    }
+
+    function generateCaller(
+        AdvancedOrdersSpace memory space,
+        FuzzGeneratorContext memory context
+    ) internal view returns (address) {
+        return space.caller.generate(context);
     }
 
     function generateFulfillerConduitKey(
@@ -2294,6 +2304,31 @@ library FulfillmentRecipientGenerator {
             return context.eve.addr;
         } else {
             revert("Invalid fulfillment recipient");
+        }
+    }
+}
+
+library CallerGenerator {
+    function generate(
+        Caller caller,
+        FuzzGeneratorContext memory context
+    ) internal view returns (address) {
+        if (caller == Caller.TEST_CONTRACT) {
+            return address(this);
+        } else if (caller == Caller.OFFERER) {
+            return context.offerer.addr;
+        } else if (caller == Caller.ALICE) {
+            return context.alice.addr;
+        } else if (caller == Caller.BOB) {
+            return context.bob.addr;
+        } else if (caller == Caller.DILLON) {
+            return context.dillon.addr;
+        } else if (caller == Caller.EVE) {
+            return context.eve.addr;
+        } else if (caller == Caller.FRANK) {
+            return context.frank.addr;
+        } else {
+            revert("Invalid caller");
         }
     }
 }

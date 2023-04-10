@@ -16,6 +16,7 @@ import {
     Amount,
     BasicOrderCategory,
     BroadOrderType,
+    Caller,
     ConduitChoice,
     Criteria,
     EOASignature,
@@ -111,7 +112,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 0,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -152,7 +154,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -202,7 +205,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -263,7 +267,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
