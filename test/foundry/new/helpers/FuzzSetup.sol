@@ -108,13 +108,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
     using ExecutionLib for Execution;
 
-    function setUpCallerApprovals(FuzzTestContext memory context) public {
-        context.testHelpers.allocateTokensAndApprovals(
-            context.caller,
-            type(uint128).max
-        );
-    }
-
     /**
      *  @dev Set up the zone params on a test context.
      *
@@ -219,6 +212,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.orders,
             context.criteriaResolvers
         );
+        bool isMatchable = context.action() ==
+            context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector;
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
@@ -231,11 +227,18 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             for (uint256 j = 0; j < items.length; j++) {
                 SpentItem memory item = items[j];
 
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    context.orders[i].parameters.orderType == OrderType.CONTRACT
-                ) {
-                    vm.deal(offerer, offerer.balance + item.amount);
+                if (item.itemType == ItemType.NATIVE) {
+                    if (
+                        context.orders[i].parameters.orderType ==
+                        OrderType.CONTRACT
+                    ) {
+                        vm.deal(offerer, offerer.balance + item.amount);
+                    } else if (isMatchable) {
+                        vm.deal(
+                            context.caller,
+                            context.caller.balance + item.amount
+                        );
+                    }
                 }
 
                 if (item.itemType == ItemType.ERC20) {
