@@ -123,11 +123,14 @@ abstract contract FuzzChecks is Test {
     ) public {
         // Iterate over the orders.
         for (uint256 i; i < context.orders.length; i++) {
-            // If the order has a zone, check the calldata.
-            if (context.orders[i].parameters.zone != address(0)) {
-                testZone = payable(context.orders[i].parameters.zone);
+            OrderParameters memory order = context.orders[i].parameters;
 
-                AdvancedOrder memory order = context.orders[i];
+            // If the order is restricted, check the calldata.
+            if (
+                order.orderType == OrderType.FULL_RESTRICTED ||
+                order.orderType == OrderType.PARTIAL_RESTRICTED
+            ) {
+                testZone = payable(order.zone);
 
                 // Each order has a calldata hash, indexed to orders, that is
                 // expected to be returned by the zone.
@@ -135,12 +138,11 @@ abstract contract FuzzChecks is Test {
                     i
                 ];
 
-                bytes32 orderHash = order.getTipNeutralizedOrderHash(
-                    context.seaport
-                );
+                bytes32 orderHash = context.orderHashes[i];
 
-                // Use the order hash to get the expected calldata hash from the
-                // zone.
+                // Use order hash to get the expected calldata hash from zone.
+                // TODO: fix this in cases where contract orders are part of
+                // orderHashes (the hash calculation is most likely incorrect).
                 bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
                     .orderHashToValidateOrderDataHash(orderHash);
 
@@ -158,61 +160,44 @@ abstract contract FuzzChecks is Test {
     function check_contractOrderExpectedDataHashes(
         FuzzTestContext memory context
     ) public {
-        bytes32[] memory orderHashes = context.orders.getOrderHashes(
-            address(context.seaport)
-        );
         bytes32[2][] memory expectedCalldataHashes = context
             .expectedContractOrderCalldataHashes;
+
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
 
-            bytes32 orderHash = orderHashes[i];
-
-            bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
-                i
-            ][0];
-
-            bytes32 expectedRatifyOrderCalldataHash = expectedCalldataHashes[i][
-                1
-            ];
-
-            bytes32 actualGenerateOrderCalldataHash;
-            bytes32 actualRatifyOrderCalldataHash;
-
             if (order.parameters.orderType == OrderType.CONTRACT) {
+                bytes32 orderHash = context.orderHashes[i];
+
+                bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
+                        i
+                    ][0];
+
+                bytes32 expectedRatifyOrderCalldataHash = expectedCalldataHashes[
+                        i
+                    ][1];
+
                 contractOfferer = payable(order.parameters.offerer);
 
-                // Decrease contractOffererNonce in the orderHash by 1 since it
-                // has increased by 1 post-execution.
-                bytes32 generateOrderOrderHash;
+                bytes32 actualGenerateOrderCalldataHash = TestCalldataHashContractOfferer(
+                        contractOfferer
+                    ).orderHashToGenerateOrderDataHash(orderHash);
 
-                assembly {
-                    let mask := sub(0, 2) // 0xffff...fff0
-                    generateOrderOrderHash := and(orderHash, mask)
-                }
+                bytes32 actualRatifyOrderCalldataHash = TestCalldataHashContractOfferer(
+                        contractOfferer
+                    ).orderHashToRatifyOrderDataHash(orderHash);
 
-                actualGenerateOrderCalldataHash = TestCalldataHashContractOfferer(
-                    contractOfferer
-                ).orderHashToGenerateOrderDataHash(generateOrderOrderHash);
-
-                actualRatifyOrderCalldataHash = TestCalldataHashContractOfferer(
-                    contractOfferer
-                ).orderHashToRatifyOrderDataHash(orderHash);
-            } else {
-                actualGenerateOrderCalldataHash = bytes32(0);
-                actualRatifyOrderCalldataHash = bytes32(0);
+                assertEq(
+                    expectedGenerateOrderCalldataHash,
+                    actualGenerateOrderCalldataHash,
+                    "check_contractOrderExpectedDataHashes: actualGenerateOrderCalldataHash != expectedGenerateOrderCalldataHash"
+                );
+                assertEq(
+                    expectedRatifyOrderCalldataHash,
+                    actualRatifyOrderCalldataHash,
+                    "check_contractOrderExpectedDataHashes: actualRatifyOrderCalldataHash != expectedRatifyOrderCalldataHash"
+                );
             }
-
-            assertEq(
-                expectedGenerateOrderCalldataHash,
-                actualGenerateOrderCalldataHash,
-                "check_contractOrderExpectedDataHashes: actualGenerateOrderCalldataHash != expectedGenerateOrderCalldataHash"
-            );
-            assertEq(
-                expectedRatifyOrderCalldataHash,
-                actualRatifyOrderCalldataHash,
-                "check_contractOrderExpectedDataHashes: actualRatifyOrderCalldataHash != expectedRatifyOrderCalldataHash"
-            );
         }
     }
 
@@ -306,9 +291,7 @@ abstract contract FuzzChecks is Test {
         for (uint256 i; i < context.orders.length; i++) {
             AdvancedOrder memory order = context.orders[i];
 
-            bytes32 orderHash = order.getTipNeutralizedOrderHash(
-                context.seaport
-            );
+            bytes32 orderHash = context.orderHashes[i];
 
             (, , uint256 totalFilled, uint256 totalSize) = context
                 .seaport
@@ -326,10 +309,35 @@ abstract contract FuzzChecks is Test {
                     "check_orderStatusFullyFilled: totalSize != 1"
                 );
             } else if (context.expectedAvailableOrders[i]) {
-                assertEq(totalFilled, order.numerator, "FuzzChecks: totalFilled != numerator");
-                assertEq(totalSize, order.denominator, "FuzzChecks: totalSize != denominator");
-                assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
-                assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
+                if (order.parameters.orderType == OrderType.CONTRACT) {
+                    // TODO: read from initial contract nonce state. For
+                    // now this assumes that the contract nonce started
+                    // at zero and just checks it hash been incremented
+                    // at least once.
+                    uint256 currentNonce = context
+                        .seaport
+                        .getContractOffererNonce(order.parameters.offerer);
+                    assertTrue(
+                        currentNonce > 0,
+                        "FuzzChecks: contract offerer nonce not incremented"
+                    );
+                } else {
+                    assertEq(
+                        totalFilled,
+                        order.numerator,
+                        "FuzzChecks: totalFilled != numerator"
+                    );
+                    assertEq(
+                        totalSize,
+                        order.denominator,
+                        "FuzzChecks: totalSize != denominator"
+                    );
+                    assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
+                    assertTrue(
+                        totalFilled != 0,
+                        "FuzzChecks: totalFilled != 0"
+                    );
+                }
             } else {
                 assertTrue(
                     totalFilled == 0,
@@ -342,14 +350,11 @@ abstract contract FuzzChecks is Test {
     function check_ordersValidated(FuzzTestContext memory context) public {
         // Iterate over all orders and if the order was validated pre-execution,
         // check that calling `getOrderStatus` on the order hash returns `true`
-        // for `isValid`.
+        // for `isValid`. Note that contract orders cannot be validated.
         for (uint256 i; i < context.preExecOrderStatuses.length; i++) {
             // Only check orders that were validated pre-execution.
             if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
-                AdvancedOrder memory order = context.orders[i];
-                bytes32 orderHash = order.getTipNeutralizedOrderHash(
-                    context.seaport
-                );
+                bytes32 orderHash = context.orderHashes[i];
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
                 );
