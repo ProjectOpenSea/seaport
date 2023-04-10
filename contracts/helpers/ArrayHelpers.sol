@@ -32,6 +32,29 @@ library ArrayHelpers {
         }
     }
 
+    // Has to be out of place to silence a linter warning
+    function reduceWithArg(
+        MemoryPointer array,
+        /* function (uint256 currentResult, uint256 element, uint256 arg) */
+        /* returns (uint256 newResult) */
+        function(uint256, uint256, MemoryPointer) internal returns (uint256) fn,
+        uint256 initialValue,
+        MemoryPointer arg
+    ) internal returns (uint256 result) {
+        unchecked {
+            uint256 length = array.readUint256();
+
+            MemoryPointer srcPosition = array.next();
+            MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
+
+            result = initialValue;
+            while (srcPosition.lt(srcEnd)) {
+                result = fn(result, srcPosition.readUint256(), arg);
+                srcPosition = srcPosition.next();
+            }
+        }
+    }
+
     // =====================================================================//
     //            map with (element) => (newElement) callback               //
     // =====================================================================//
@@ -387,27 +410,8 @@ library ArrayHelpers {
         }
     }
 
-    function reduceWithArg(
-        MemoryPointer array,
-        /* function (uint256 currentResult, uint256 element, uint256 arg) */
-        /* returns (uint256 newResult) */
-        function(uint256, uint256, MemoryPointer) internal returns (uint256) fn,
-        uint256 initialValue,
-        MemoryPointer arg
-    ) internal returns (uint256 result) {
-        unchecked {
-            uint256 length = array.readUint256();
-
-            MemoryPointer srcPosition = array.next();
-            MemoryPointer srcEnd = srcPosition.offset(length * 0x20);
-
-            result = initialValue;
-            while (srcPosition.lt(srcEnd)) {
-                result = fn(result, srcPosition.readUint256(), arg);
-                srcPosition = srcPosition.next();
-            }
-        }
-    }
+    // This was the previous home of `reduceWithArg`. It can now be found near
+    // the top of this file.
 
     function forEach(
         MemoryPointer array,
