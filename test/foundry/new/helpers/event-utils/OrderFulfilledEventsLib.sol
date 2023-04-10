@@ -21,9 +21,7 @@ import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
 
 import {
-    ERC20TransferEvent,
-    ERC721TransferEvent,
-    ERC1155TransferEvent,
+    OrderFulfilledEvent,
     EventSerializer,
     vm
 } from "./EventSerializer.sol";
@@ -41,13 +39,31 @@ library OrderFulfilledEventsLib {
         ReceivedItem[] consideration
     );
 
+    // check if order is available - expected available orders
+    // look up actions, if match
+    // create new lib for order fulfilled/match
+    // DON"T TOUCH anything related to transfer events
     function serializeOrderFulfilledLog(
         string memory objectKey,
         string memory valueKey,
         FuzzTestContext memory context
     ) internal returns (string memory) {
-        string memory obj = string.concat(objectKey, valueKey);
-        serialize
+        OrderDetails[] memory orderDetails = context.orderDetails;
+
+        for (uint256 i; i < orderDetails.length; i++) {
+            OrderDetails memory detail = orderDetails[i];
+
+            OrderFulfilledEvent memory eventData = OrderFulfilledEvent({
+                orderHash: getOrderFulfilledEventHash(context),
+                offerer: detail.offerer,
+                zone: detail.zone,
+                recipient: detail.recipient,
+                offer: detail.offer,
+                consideration: detail.consideration
+            });
+
+            return eventData.serializeOrderFulfilledEvent(objectKey, valueKey);
+        }
     }
 
     function getOrderFulfilledEventHash(
