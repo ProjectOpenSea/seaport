@@ -583,8 +583,6 @@ library FuzzHelpers {
         address seaport,
         address fulfiller
     ) internal view returns (bytes32[2][] memory) {
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
-
         bytes32[] memory orderHashes = orders.getOrderHashes(seaport);
         bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
 

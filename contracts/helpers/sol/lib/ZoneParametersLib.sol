@@ -17,7 +17,7 @@ import {
     CriteriaResolver
 } from "../../../lib/ConsiderationStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "../SeaportInterface.sol";
 
 import { GettersAndDerivers } from "../../../lib/GettersAndDerivers.sol";
 

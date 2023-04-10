@@ -21,7 +21,7 @@ import { OrderParametersLib } from "./OrderParametersLib.sol";
 
 import { StructCopier } from "./StructCopier.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "../SeaportInterface.sol";
 
 struct ContractNonceDetails {
     bool set;
