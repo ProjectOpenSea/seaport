@@ -17,13 +17,13 @@ import {
     CriteriaResolver,
     Execution,
     Fulfillment,
-    FulfillmentComponent
+    FulfillmentComponent,
+    OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import {
-    OrderStatusEnum,
-    UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
+import { OrderType } from "seaport-sol/SeaportEnums.sol";
+
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
 
@@ -137,6 +137,7 @@ struct FuzzTestContext {
      * @dev An array of AdvancedOrders
      */
     AdvancedOrder[] orders;
+    bytes32[] orderHashes;
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
@@ -276,6 +277,7 @@ library FuzzTestContextLib {
             FuzzTestContext({
                 _action: bytes4(0),
                 orders: orders,
+                orderHashes: new bytes32[](0),
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
@@ -335,6 +337,7 @@ library FuzzTestContextLib {
             empty()
                 .withOrders(orders)
                 .withSeaport(seaport)
+                .withOrderHashes()
                 .withCaller(caller)
                 .withInitialOrders(orders.copy());
     }
@@ -361,6 +364,16 @@ library FuzzTestContextLib {
             }
         }
 
+        return context;
+    }
+
+    // NOTE: expects context.orders and context.seaport to already be set
+    function withOrderHashes(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
+        context.orderHashes = context.orders.getOrderHashes(
+            address(context.seaport)
+        );
         return context;
     }
 
@@ -638,7 +651,16 @@ library FuzzTestContextLib {
             } else {
                 // TODO: support partial as well (0-2)
                 context.preExecOrderStatuses[i] = OrderStatusEnum(
-                    uint8(bound(prng.next(), 0, 1))
+                    uint8(
+                        bound(
+                            prng.next(),
+                            0,
+                            context.orders[i].parameters.orderType !=
+                                OrderType.CONTRACT
+                                ? 1
+                                : 0
+                        )
+                    )
                 );
             }
         }

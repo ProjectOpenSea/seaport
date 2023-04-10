@@ -125,6 +125,7 @@ library FuzzHelpers {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder[];
 
@@ -574,47 +575,6 @@ library FuzzHelpers {
     }
 
     /**
-     * @dev Get the orderHashes of an array of orders.
-     */
-    function getOrderHashes(
-        AdvancedOrder[] memory orders,
-        address seaport
-    ) internal view returns (bytes32[] memory) {
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
-
-        bytes32[] memory orderHashes = new bytes32[](orders.length);
-
-        // Iterate over all orders to derive orderHashes
-        for (uint256 i; i < orders.length; ++i) {
-            AdvancedOrder memory order = orders[i];
-
-            if (getType(order) == Type.CONTRACT) {
-                // Get contract nonce of the offerer
-                uint256 contractNonce = seaportInterface
-                    .getContractOffererNonce(order.parameters.offerer);
-
-                // Get the contract order's orderHash
-                orderHashes[i] = bytes32(
-                    contractNonce ^
-                        (uint256(uint160(order.parameters.offerer)) << 96)
-                );
-            } else {
-                // Get OrderComponents from OrderParameters
-                OrderComponents memory orderComponents = order
-                    .parameters
-                    .toOrderComponents(
-                        seaportInterface.getCounter(order.parameters.offerer)
-                    );
-
-                // Derive the orderHash from OrderComponents
-                orderHashes[i] = seaportInterface.getOrderHash(orderComponents);
-            }
-        }
-
-        return orderHashes;
-    }
-
-    /**
      * @dev Get the orderHashes of an array of AdvancedOrders and return
      *      the expected calldata hashes for calls to validateOrder.
      */
@@ -623,9 +583,7 @@ library FuzzHelpers {
         address seaport,
         address fulfiller
     ) internal view returns (bytes32[2][] memory) {
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
-
-        bytes32[] memory orderHashes = getOrderHashes(orders, seaport);
+        bytes32[] memory orderHashes = orders.getOrderHashes(seaport);
         bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
 
         // Iterate over contract orders to derive calldataHashes
@@ -660,10 +618,12 @@ library FuzzHelpers {
                 )
             );
 
+            uint256 shiftedOfferer = uint256(
+                uint160(order.parameters.offerer)
+            ) << 96;
+
             // Get counter of the order offerer
-            uint256 counter = seaportInterface.getCounter(
-                order.parameters.offerer
-            );
+            uint256 counter = shiftedOfferer ^ uint256(orderHashes[i]);
 
             // Derive the expected calldata hash for the call to ratifyOrder
             calldataHashes[i][1] = keccak256(
@@ -675,61 +635,6 @@ library FuzzHelpers {
         }
 
         return calldataHashes;
-    }
-
-    /**
-     * @dev Get the orderHash for an AdvancedOrders and return the orderHash.
-     *      This function can be treated as a wrapper around Seaport's
-     *      getOrderHash function. It is used to get the orderHash of an
-     *      AdvancedOrder that has a tip added onto it.  Calling it on an
-     *      AdvancedOrder that does not have a tip will return the same
-     *      orderHash as calling Seaport's getOrderHash function directly.
-     *      Seaport handles tips gracefully inside of the top level fulfill and
-     *      match functions, but since we're adding tips early in the fuzz test
-     *      lifecycle, it's necessary to flip them back and forth when we need
-     *      to pass order components into getOrderHash. Note: they're two
-     *      different orders, so e.g. cancelling or validating order with a tip
-     *      on it is not the same as cancelling the order without a tip on it.
-     */
-    function getTipNeutralizedOrderHash(
-        AdvancedOrder memory order,
-        SeaportInterface seaport
-    ) internal view returns (bytes32 orderHash) {
-        // Get the counter of the order offerer.
-        uint256 counter = seaport.getCounter(order.parameters.offerer);
-
-        // Get the OrderComponents from the OrderParameters.
-        OrderComponents memory components = (
-            order.parameters.toOrderComponents(counter)
-        );
-
-        // Get the length of the consideration array (which might have
-        // additional consideration items set as tips).
-        uint256 lengthWithTips = components.consideration.length;
-
-        // Get the length of the consideration array without tips, which is
-        // stored in the totalOriginalConsiderationItems field.
-        uint256 lengthSansTips = (
-            order.parameters.totalOriginalConsiderationItems
-        );
-
-        // Get a reference to the consideration array.
-        ConsiderationItem[] memory considerationSansTips = (
-            components.consideration
-        );
-
-        // Set proper length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthSansTips)
-        }
-
-        // Get the orderHash using the tweaked OrderComponents.
-        orderHash = seaport.getOrderHash(components);
-
-        // Restore the length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthWithTips)
-        }
     }
 
     /**
@@ -786,7 +691,7 @@ library FuzzHelpers {
         SeaportInterface seaport
     ) internal view returns (bytes32 orderHash) {
         // Get the orderHash using the tweaked OrderComponents.
-        orderHash = getTipNeutralizedOrderHash(order, seaport);
+        orderHash = order.getTipNeutralizedOrderHash(seaport);
     }
 
     /**

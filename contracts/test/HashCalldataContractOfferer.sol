@@ -7,6 +7,8 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
+import { ItemType } from "../lib/ConsiderationEnums.sol";
+
 import {
     ReceivedItem,
     Schema,
@@ -25,36 +27,6 @@ import {
 } from "../interfaces/ContractOffererInterface.sol";
 
 contract HashCalldataContractOfferer is ContractOffererInterface {
-    error InvalidNativeTokenBalance(
-        uint256 expectedBalance,
-        uint256 actualBalance,
-        address checkedAddress
-    );
-    error InvalidERC20Balance(
-        uint256 expectedBalance,
-        uint256 actualBalance,
-        address checkedAddress,
-        address checkedToken
-    );
-    error InvalidERC1155Balance(
-        uint256 expectedBalance,
-        uint256 actualBalance,
-        address checkedAddress,
-        address checkedToken
-    );
-    // 0x38fb386a
-    error InvalidOwner(
-        address expectedOwner,
-        address actualOwner,
-        address checkedToken,
-        uint256 checkedTokenId
-    );
-    error IncorrectSeaportBalance(
-        uint256 expectedBalance,
-        uint256 actualBalance
-    );
-    error InvalidDataHash(bytes32 expectedDataHash, bytes32 actualDataHash);
-    error InvalidEthBalance(uint256 expectedBalance, uint256 actualBalance);
     error NativeTokenTransferFailed();
 
     event GenerateOrderDataHash(bytes32 orderHash, bytes32 dataHash);
@@ -77,7 +49,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
      *      items. Validates data hash set in activate.
      */
     function generateOrder(
-        address,
+        address fulfiller,
         SpentItem[] calldata a,
         SpentItem[] calldata b,
         bytes calldata c
@@ -89,25 +61,19 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     {
         {
             (bool success, ) = payable(_SEAPORT).call{
-                value: address(this).balance
+                value: _getOfferedNativeTokens(a)
             }("");
 
             if (!success) {
                 revert NativeTokenTransferFailed();
             }
 
-            // Get the length of msg.data
-            uint256 dataLength = msg.data.length;
-
             // Create a variable to store msg.data in memory
-            bytes memory data;
+            bytes memory data = new bytes(msg.data.length);
 
             // Copy msg.data to memory
             assembly {
-                let ptr := mload(0x40)
-                calldatacopy(add(ptr, 0x20), 0, dataLength)
-                mstore(ptr, dataLength)
-                data := ptr
+                calldatacopy(add(data, 0x20), 0, calldatasize())
             }
 
             bytes32 calldataHash = keccak256(data);
@@ -125,7 +91,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             emit GenerateOrderDataHash(orderHash, calldataHash);
         }
 
-        return previewOrder(address(this), address(this), a, b, c);
+        return previewOrder(msg.sender, fulfiller, a, b, c);
     }
 
     /**
@@ -134,7 +100,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
      *      (supplied as extraData).
      */
     function previewOrder(
-        address,
+        address caller,
         address,
         SpentItem[] calldata a,
         SpentItem[] calldata b,
@@ -145,6 +111,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
+        require(
+            caller == _SEAPORT,
+            "HashCalldataContractOfferer: caller not seaport"
+        );
         return (a, _convertSpentToReceived(b));
     }
 
@@ -166,31 +136,27 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         ReceivedItem[] calldata /* maximumSpent */,
         bytes calldata /* context */,
         bytes32[] calldata /* orderHashes */,
-        uint256 /* contractNonce */
+        uint256 contractNonce
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+        require(
+            msg.sender == _SEAPORT,
+            "HashCalldataContractOfferer: ratify caller not seaport"
+        );
+
         // Ratify the order.
         {
-            // Get the length of msg.data
-            uint256 dataLength = msg.data.length;
-
             // Create a variable to store msg.data in memory
-            bytes memory data;
+            bytes memory data = new bytes(msg.data.length);
 
             // Copy msg.data to memory
             assembly {
-                let ptr := mload(0x40)
-                calldatacopy(add(ptr, 0x20), 0, dataLength)
-                mstore(ptr, dataLength)
-                data := ptr
+                calldatacopy(add(data, 0x20), 0, calldatasize())
             }
 
             bytes32 calldataHash = keccak256(data);
 
-            uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
-                .getContractOffererNonce(address(this));
-
             bytes32 orderHash = bytes32(
-                contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
+                contractNonce ^ (uint256(uint160(address(this))) << 96)
             );
 
             // Store the hash of msg.data
@@ -247,6 +213,30 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
                 amount: spentItem.amount,
                 recipient: payable(address(this))
             });
+    }
+
+    function _getOfferedNativeTokens(
+        SpentItem[] calldata offer
+    ) internal pure returns (uint256 amount) {
+        for (uint256 i = 0; i < offer.length; ++i) {
+            SpentItem memory item = offer[i];
+            if (item.itemType == ItemType.NATIVE) {
+                amount += item.amount;
+            }
+        }
+    }
+
+    /**
+     * @dev Enable accepting ERC1155 tokens via safeTransfer.
+     */
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return this.onERC1155Received.selector;
     }
 
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {

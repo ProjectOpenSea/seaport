@@ -165,7 +165,7 @@ library TestStateGenerator {
                     false
                 ),
                 // TODO: support contract orders (0-2)
-                orderType: BroadOrderType(context.randEnum(0, 2)),
+                orderType: BroadOrderType(context.randEnum(0, 1)),
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
@@ -182,6 +182,40 @@ library TestStateGenerator {
             if (components[i].orderType == BroadOrderType.CONTRACT) {
                 components[i].offerer == Offerer.CONTRACT_OFFERER;
                 components[i].signatureMethod == SignatureMethod.CONTRACT;
+                components[i].tips = Tips.NONE;
+                if (
+                    components[i].unavailableReason ==
+                    UnavailableReason.ALREADY_FULFILLED ||
+                    components[i].unavailableReason ==
+                    UnavailableReason.CANCELLED
+                ) {
+                    // TODO: also support 5 (GENERATE_ORDER_FAILURE)
+                    components[i].unavailableReason = UnavailableReason(
+                        context.randEnum(1, 2)
+                    );
+                }
+
+                // Contract orders must have fixed amounts.
+                for (uint256 j = 0; j < components[i].offer.length; ++j) {
+                    components[i].offer[j].amount = Amount.FIXED;
+                    // TODO: support wildcard resolution (note that the
+                    // contract offerer needs to resolve these itself)
+                    components[i].offer[j].criteria = Criteria.MERKLE;
+                }
+
+                for (
+                    uint256 j = 0;
+                    j < components[i].consideration.length;
+                    ++j
+                ) {
+                    components[i].consideration[j].amount = Amount.FIXED;
+                    // TODO: support offerer returning other recipients.
+                    components[i].consideration[j].recipient = Recipient
+                        .OFFERER;
+                    // TODO: support wildcard resolution (note that the
+                    // contract offerer needs to resolve these itself)
+                    components[i].consideration[j].criteria = Criteria.MERKLE;
+                }
             }
         }
 
@@ -260,8 +294,12 @@ library TestStateGenerator {
                     itemType: ItemType(context.randEnum(0, 5)),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
-                    amount: Amount(context.randEnum(0, 2)),
-                    recipient: Recipient(context.randEnum(0, 4))
+                    amount: atLeastOne
+                        ? Amount.FIXED
+                        : Amount(context.randEnum(0, 2)),
+                    recipient: atLeastOne
+                        ? Recipient.OFFERER
+                        : Recipient(context.randEnum(0, 4))
                 });
             }
         } else {
@@ -273,8 +311,8 @@ library TestStateGenerator {
                 ),
                 tokenIndex: TokenIndex(context.randEnum(0, 2)),
                 criteria: Criteria(0),
-                amount: Amount(context.randEnum(0, 2)),
-                recipient: Recipient(0) // Always offerer
+                amount: Amount.FIXED, // Always fixed
+                recipient: Recipient.OFFERER // Always offerer
             });
 
             for (uint256 i = 1; i < len; ++i) {
@@ -284,8 +322,10 @@ library TestStateGenerator {
                     criteria: Criteria(0),
                     // TODO: sum(amounts) must be less than offer amount, right
                     // now this is enforced in a hacky way
-                    amount: Amount(context.randEnum(0, 2)),
-                    recipient: Recipient(context.randEnum(0, 4))
+                    amount: Amount.FIXED, // Always fixed
+                    recipient: atLeastOne
+                        ? Recipient.OFFERER
+                        : Recipient(context.randEnum(0, 4))
                 });
             }
         }
@@ -348,6 +388,11 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
+            if (space.orders[i].tips == Tips.NONE) {
+                orders[i].parameters.totalOriginalConsiderationItems = (
+                    orders[i].parameters.consideration.length
+                );
+            }
         }
 
         // Sign orders and add the hashes to the context.
@@ -929,14 +974,16 @@ library AdvancedOrdersSpaceGenerator {
 
             // Make the recipient an address other than the caller so that
             // it produces a non-filterable transfer.
-            if (caller != context.alice.addr) {
-                orderParams.consideration[itemIndex].recipient = payable(
-                    context.alice.addr
-                );
-            } else {
-                orderParams.consideration[itemIndex].recipient = payable(
-                    context.bob.addr
-                );
+            if (orderParams.orderType != OrderType.CONTRACT) {
+                if (caller != context.alice.addr) {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.alice.addr
+                    );
+                } else {
+                    orderParams.consideration[itemIndex].recipient = payable(
+                        context.bob.addr
+                    );
+                }
             }
         }
     }
@@ -1018,7 +1065,9 @@ library AdvancedOrdersSpaceGenerator {
         // Make the recipient an address other than any offerer so that
         // it produces a non-filterable transfer.
         orderParams.consideration[itemIndex].recipient = payable(
-            context.dillon.addr
+            orderParams.orderType != OrderType.CONTRACT
+                ? context.dillon.addr
+                : address(context.contractOfferer)
         );
     }
 
@@ -1512,9 +1561,18 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
-        }
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            order.parameters = orderParams
+                .withOrderType(OrderType.CONTRACT)
+                .withOfferer(address(context.contractOfferer));
 
-        // NOTE: contract order types should already be all set up.
+            for (uint256 i = 0; i < orderParams.consideration.length; ++i) {
+                // TODO: support offerer returning other recipients.
+                order.parameters.consideration[i].recipient = payable(
+                    address(context.contractOfferer)
+                );
+            }
+        }
 
         return order;
     }
