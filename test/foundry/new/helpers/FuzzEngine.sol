@@ -167,8 +167,8 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function run(FuzzTestContext memory context) internal {
-        runDerivers(context);
         amendOrderState(context);
+        runDerivers(context);
         runSetup(context);
         runCheckRegistration(context);
         exec(context);

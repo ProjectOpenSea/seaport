@@ -102,7 +102,7 @@ abstract contract FuzzDerivers is
                     );
                 } else if (status == OrderStatusEnum.CANCELLED_EXPLICIT) {
                     // TEMP (TODO: fix how these are set)
-                    vm.assume(isCancelled);
+                    // vm.assume(isCancelled);
 
                     require(
                         isCancelled,
