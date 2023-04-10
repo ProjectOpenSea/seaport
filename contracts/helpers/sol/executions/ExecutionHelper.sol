@@ -5,6 +5,8 @@ import {
     AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
+import { ReceivedItemLib, SpentItemLib } from "../SeaportSol.sol";
+
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -27,6 +29,9 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
 contract ExecutionHelper is AmountDeriverHelper {
+    using ReceivedItemLib for ReceivedItem[];
+    using SpentItemLib for SpentItem[];
+
     error InsufficientNativeTokensSupplied();
 
     /**
@@ -205,7 +210,9 @@ contract ExecutionHelper is AmountDeriverHelper {
             }
         }
 
-        bool[] memory availableOrders = new bool[](fulfillmentDetails.orders.length);
+        bool[] memory availableOrders = new bool[](
+            fulfillmentDetails.orders.length
+        );
         for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
             availableOrders[i] = true;
         }
@@ -243,6 +250,19 @@ contract ExecutionHelper is AmountDeriverHelper {
         }
     }
 
+    function _copyOrderDetails(
+        OrderDetails memory orderDetails
+    ) internal pure returns (OrderDetails memory) {
+        OrderDetails memory newOrderDetails = OrderDetails({
+            offerer: orderDetails.offerer,
+            conduitKey: orderDetails.conduitKey,
+            offer: orderDetails.offer.copy(),
+            consideration: orderDetails.consideration.copy()
+        });
+
+        return newOrderDetails;
+    }
+
     /**
      * @dev Return executions for fulfilOrder and fulfillAdvancedOrder.
      */
@@ -254,6 +274,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 nativeTokensSupplied,
         address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
+        // OrderDetails memory orderDetails = _copyOrderDetails(_orderDetails);
+
         uint256 excessNativeTokens = nativeTokensSupplied;
 
         implicitExecutions = new Execution[](
@@ -320,6 +342,8 @@ contract ExecutionHelper is AmountDeriverHelper {
         uint256 nativeTokensSupplied,
         address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
+        // OrderDetails memory orderDetails = _copyOrderDetails(_orderDetails);
+
         if (orderDetails.offer.length != 1) {
             revert("not a basic order");
         }
@@ -544,6 +568,10 @@ contract ExecutionHelper is AmountDeriverHelper {
                     continue;
                 }
 
+                // OrderDetails memory offerOrderDetails = _copyOrderDetails(
+                //     fulfillmentDetails.orders[component.orderIndex]
+                // );
+
                 OrderDetails memory offerOrderDetails = fulfillmentDetails
                     .orders[component.orderIndex];
 
@@ -605,10 +633,19 @@ contract ExecutionHelper is AmountDeriverHelper {
                     continue;
                 }
 
-                OrderDetails memory considerationOrderDetails = fulfillmentDetails
-                    .orders[component.orderIndex];
+                // OrderDetails
+                //     memory considerationOrderDetails = _copyOrderDetails(
+                //         fulfillmentDetails.orders[component.orderIndex]
+                //     );
 
-                if (component.itemIndex < considerationOrderDetails.consideration.length) {
+                OrderDetails
+                    memory considerationOrderDetails = fulfillmentDetails
+                        .orders[component.orderIndex];
+
+                if (
+                    component.itemIndex <
+                    considerationOrderDetails.consideration.length
+                ) {
                     ReceivedItem memory item = considerationOrderDetails
                         .consideration[component.itemIndex];
 
@@ -807,9 +844,8 @@ contract ExecutionHelper is AmountDeriverHelper {
             ];
 
             if (component.itemIndex < details.consideration.length) {
-                ReceivedItem memory considerationSpentItem = details.consideration[
-                    component.itemIndex
-                ];
+                ReceivedItem memory considerationSpentItem = details
+                    .consideration[component.itemIndex];
 
                 aggregatedConsiderationAmount += considerationSpentItem.amount;
 

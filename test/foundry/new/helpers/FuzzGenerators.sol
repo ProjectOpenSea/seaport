@@ -76,6 +76,8 @@ import {
     Structure
 } from "./FuzzHelpers.sol";
 
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -333,20 +335,20 @@ library TestStateGenerator {
 
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
-    using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
-    using OrderDetailsHelper for AdvancedOrder[];
-    using OrderDetailsHelper for ItemType;
 
     using BroadOrderTypeGenerator for AdvancedOrder;
     using ConduitGenerator for ConduitChoice;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using ExtraDataGenerator for AdvancedOrder;
     using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using FuzzHelpers for AdvancedOrder[];
     using MatchComponentType for MatchComponent;
     using OfferItemSpaceGenerator for OfferItemSpace;
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
+    using OrderDetailsHelper for AdvancedOrder[];
+    using OrderDetailsHelper for ItemType;
     using PRNGHelpers for FuzzGeneratorContext;
     using SignatureGenerator for AdvancedOrder;
     using TimeGenerator for OrderParameters;
@@ -390,6 +392,11 @@ library AdvancedOrdersSpaceGenerator {
                 );
             }
         }
+
+        // Sign the orders with a random counter.
+        context.counter = context.randRange(0, type(uint128).max);
+        // Put this here just to make it easy to keep trac of.
+        context.contractOffererNonce = context.randRange(0, type(uint128).max);
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
@@ -1046,13 +1053,23 @@ library AdvancedOrdersSpaceGenerator {
 
             // Skip contract orders since they do not have signatures
             if (order.parameters.orderType == OrderType.CONTRACT) {
+                // Just for convenience of having them both in one place.
+                FuzzInscribers.inscribeContractOffererNonce(
+                    order.parameters.offerer,
+                    context.contractOffererNonce,
+                    context.seaport
+                );
                 continue;
             }
 
             {
                 // Get the counter for the offerer.
-                uint256 counter = context.seaport.getCounter(
-                    order.parameters.offerer
+                uint256 counter = context.counter;
+
+                FuzzInscribers.inscribeCounter(
+                    order.parameters.offerer,
+                    counter,
+                    context.seaport
                 );
 
                 // Convert the order parameters to order components.

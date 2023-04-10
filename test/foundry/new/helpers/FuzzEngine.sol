@@ -140,8 +140,6 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
 
-    uint256 constant JAN_1_2023_UTC = 1672531200;
-
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
      *      a `FuzzEngine` test.
@@ -183,10 +181,9 @@ contract FuzzEngine is
     function generate(
         FuzzParams memory fuzzParams
     ) internal returns (FuzzTestContext memory) {
-        vm.warp(JAN_1_2023_UTC);
-        // Set either the optimized version or the reference version of Seaport,
-        // depending on the active profile.
-        SeaportInterface seaport_ = getSeaport();
+        // JAN_1_2023_UTC
+        vm.warp(1672531200);
+
         // Get the conduit controller, which allows dpeloying and managing
         // conduits.  Conduits are used to transfer tokens between accounts.
         ConduitControllerInterface conduitController_ = getConduitController();
@@ -197,7 +194,7 @@ contract FuzzEngine is
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
                 vm: vm,
-                seaport: seaport_,
+                seaport: getSeaport(),
                 conduitController: conduitController_,
                 erc20s: erc20s,
                 erc721s: erc721s,
@@ -225,11 +222,17 @@ contract FuzzEngine is
         );
 
         FuzzTestContext memory context = FuzzTestContextLib
-            .from({ orders: orders, seaport: seaport_, caller: address(this) })
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
             .withConduitController(conduitController_)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
-            .withPreExecOrderStatuses(space);
+            .withPreExecOrderStatuses(space)
+            .withCounter(generatorContext.counter)
+            .withContractOffererNonce(generatorContext.contractOffererNonce);
 
         // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
@@ -264,7 +267,9 @@ contract FuzzEngine is
      *         them to the test context.
      *      3. deriveFulfillments: calculate fulfillments and add them to the
      *         test context.
-     *      4. deriveExecutions: calculate expected implicit/explicit executions
+     *      4. deriveOrderDetails: calculate order details and add them to the
+     *         test context.
+     *      5. deriveExecutions: calculate expected implicit/explicit executions
      *         and add them to the test context.
      *
      * @param context A Fuzz test context.
@@ -272,8 +277,12 @@ contract FuzzEngine is
     function runDerivers(FuzzTestContext memory context) internal {
         deriveAvailableOrders(context);
         deriveCriteriaResolvers(context);
+        // Set them up here.
+        deriveOrderDetails(context);
         deriveFulfillments(context);
         deriveExecutions(context);
+        // Set them again for now.
+        deriveOrderDetails(context);
     }
 
     /**
@@ -307,6 +316,7 @@ contract FuzzEngine is
      */
     function amendOrderState(FuzzTestContext memory context) internal {
         conformOnChainStatusToExpected(context);
+        setCounter(context);
     }
 
     /**

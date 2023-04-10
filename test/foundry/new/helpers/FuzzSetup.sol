@@ -208,16 +208,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpOfferItems(FuzzTestContext memory context) public {
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < orderDetails.length; ++i) {
+        for (uint256 i; i < context.orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = orderDetails[i];
+            OrderDetails memory order = context.orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = _getApproveTo(context, order);
@@ -303,19 +298,14 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             return;
         }
 
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
         // Naive implementation for now
         // TODO: - If recipient is not caller, we need to mint everything
         //       - For matchOrders, we don't need to do any setup
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < orderDetails.length; ++i) {
+        for (uint256 i; i < context.orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = orderDetails[i];
+            OrderDetails memory order = context.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
             address owner = context.caller;
@@ -339,10 +329,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         context.caller == context.recipient ||
                         context.recipient == address(0)
                     ) {
-                        for (uint256 k; k < orderDetails.length; ++k) {
+                        for (uint256 k; k < context.orderDetails.length; ++k) {
                             if (!context.expectedAvailableOrders[k]) continue;
 
-                            SpentItem[] memory spentItems = orderDetails[k]
+                            SpentItem[] memory spentItems = context.orderDetails[k]
                                 .offer;
                             for (uint256 l; l < spentItems.length; ++l) {
                                 if (

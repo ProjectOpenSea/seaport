@@ -139,6 +139,15 @@ abstract contract FuzzDerivers is
         context.criteriaResolvers = criteriaResolvers;
     }
 
+    function deriveOrderDetails(FuzzTestContext memory context) public view {
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
+        context.orderDetails = orderDetails;
+    }
+
     /**
      * @dev Derive the `offerFulfillments` and `considerationFulfillments`
      *      arrays or the `fulfillments` array from the `orders` array.
@@ -166,7 +175,7 @@ abstract contract FuzzDerivers is
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
             ) = getNaiveFulfillmentComponents(
-                    toOrderDetails(context.orders, context.criteriaResolvers)
+                    context.orderDetails
                 );
 
             context.offerFulfillments = offerFulfillments;
@@ -275,14 +284,9 @@ abstract contract FuzzDerivers is
             ? caller
             : context.recipient;
 
-        OrderDetails[] memory details = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
         return
             FulfillmentDetails({
-                orders: details,
+                orders: context.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
                 fulfillerConduitKey: context.fulfillerConduitKey,

@@ -294,7 +294,7 @@ library FuzzInscribers {
         SeaportInterface seaport
     ) internal {
         // Get the storage slot for the counter.
-        bytes32 contractOffererNonceStorageSlot = _getStorageSlotForContractNonce(
+        bytes32 counterStorageSlot = _getStorageSlotForCounter(
                 offerer,
                 seaport
             );
@@ -302,7 +302,7 @@ library FuzzInscribers {
         // Store the new counter.
         vm.store(
             address(seaport),
-            contractOffererNonceStorageSlot,
+            counterStorageSlot,
             bytes32(counter)
         );
     }

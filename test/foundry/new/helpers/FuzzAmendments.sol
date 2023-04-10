@@ -7,6 +7,8 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
+import { OrderType } from "seaport-sol/SeaportEnums.sol";
+
 import { FuzzChecks } from "./FuzzChecks.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
@@ -89,6 +91,32 @@ abstract contract FuzzAmendments is Test {
                     context.seaport
                 );
             }
+        }
+    }
+
+    function setCounter(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            if (context.orders[i].parameters.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+            FuzzInscribers.inscribeCounter(
+                context.orders[i].parameters.offerer,
+                context.counter,
+                context.seaport
+            );
+        }
+    }
+
+    function setContractOffererNonce(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.orders.length; ++i) {
+            if (context.orders[i].parameters.orderType != OrderType.CONTRACT) {
+                continue;
+            }
+            FuzzInscribers.inscribeContractOffererNonce(
+                context.orders[i].parameters.offerer,
+                context.contractOffererNonce,
+                context.seaport
+            );
         }
     }
 }

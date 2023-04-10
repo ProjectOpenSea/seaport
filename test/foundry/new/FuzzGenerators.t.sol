@@ -99,7 +99,9 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                     TokenIndex.ONE,
                     Criteria.MERKLE,
                     Amount.FIXED
-                )
+                ),
+                counter: 0,
+                contractOffererNonce: 0
             });
     }
 
