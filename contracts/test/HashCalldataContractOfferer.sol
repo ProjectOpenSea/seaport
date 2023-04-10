@@ -120,10 +120,20 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
     /**
      * @dev Ratifies that the parties have received the correct items.
+     *
+     * @custom:param minimumReceived The minimum items that the caller was
+     *                               willing to receive.
+     * @custom:param maximumSpent    The maximum items that the caller was
+     *                               willing tovspend.
+     * @custom:param context         The context of the order.
+     * @custom:param orderHashes     The order hashes, unused here.
+     * @custom:param contractNonce   The contract nonce, unused here.
+     *
+     * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
+        SpentItem[] calldata /* minimumReceived */,
+        ReceivedItem[] calldata /* maximumSpent */,
         bytes calldata /* context */,
         bytes32[] calldata /* orderHashes */,
         uint256 contractNonce
