@@ -11,6 +11,8 @@ import { FuzzChecks } from "./FuzzChecks.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
@@ -28,6 +30,7 @@ abstract contract FuzzAmendments is Test {
 
     using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzInscribers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder;
 
     /**
@@ -49,5 +52,43 @@ abstract contract FuzzAmendments is Test {
         }
 
         context.registerCheck(FuzzChecks.check_ordersValidated.selector);
+    }
+
+    function conformOnChainStatusToExpected(
+        FuzzTestContext memory context
+    ) public {
+        for (uint256 i = 0; i < context.preExecOrderStatuses.length; ++i) {
+            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
+                validateOrdersAndRegisterCheck(context);
+            } else if (
+                context.preExecOrderStatuses[i] ==
+                OrderStatusEnum.CANCELLED_EXPLICIT
+            ) {
+                context.orders[i].inscribeOrderStatusCancelled(
+                    true,
+                    context.seaport
+                );
+            } else if (
+                context.preExecOrderStatuses[i] == OrderStatusEnum.FULFILLED
+            ) {
+                context.orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    1,
+                    1,
+                    context.seaport
+                );
+            } else if (
+                context.preExecOrderStatuses[i] == OrderStatusEnum.AVAILABLE
+            ) {
+                context.orders[i].inscribeOrderStatusNumeratorAndDenominator(
+                    0,
+                    0,
+                    context.seaport
+                );
+                context.orders[i].inscribeOrderStatusCancelled(
+                    false,
+                    context.seaport
+                );
+            }
+        }
     }
 }

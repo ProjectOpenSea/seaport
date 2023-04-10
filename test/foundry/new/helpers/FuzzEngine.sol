@@ -306,7 +306,7 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function amendOrderState(FuzzTestContext memory context) internal {
-        validateOrdersAndRegisterCheck(context);
+        conformOnChainStatusToExpected(context);
     }
 
     /**
