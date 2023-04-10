@@ -421,7 +421,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
         context.registerCheck(FuzzChecks.check_executions.selector);
         ExpectedEventsUtil.setExpectedTransferEventHashes(context);
-        context.registerCheck(FuzzChecks.check_expectedTransferEventsEmitted.selector);
+        context.registerCheck(
+            FuzzChecks.check_expectedTransferEventsEmitted.selector
+        );
         ExpectedEventsUtil.startRecordingLogs();
     }
 
@@ -430,9 +432,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      *
      * @param context The test context.
      */
-    function registerCommonChecks(FuzzTestContext memory context) public view {
+    function registerCommonChecks(FuzzTestContext memory context) public {
         ExpectedEventsUtil.setExpectedSeaportEventHashes(context);
-        context.registerCheck(FuzzChecks.check_expectedSeaportEventsEmitted.selector);
+        context.registerCheck(
+            FuzzChecks.check_expectedSeaportEventsEmitted.selector
+        );
         context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
     }
 
