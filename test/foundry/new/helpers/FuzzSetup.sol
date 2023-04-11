@@ -481,7 +481,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      */
     function registerFunctionSpecificChecks(
         FuzzTestContext memory context
-    ) public {
+    ) public view {
         bytes4 _action = context.action();
         if (_action == context.seaport.fulfillOrder.selector) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);

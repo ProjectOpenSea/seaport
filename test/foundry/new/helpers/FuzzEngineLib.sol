@@ -79,6 +79,16 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
+    function detectRemainders(
+        FuzzTestContext memory context
+    ) internal {
+        (, , MatchComponent[] memory remainders) = context
+            .testHelpers
+            .getMatchedFulfillments(context.orders, context.criteriaResolvers);
+
+        context.hasRemainders = remainders.length != 0;
+    }
+
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
      *      functions can we call," based on the orders in a given FuzzTestContext.
@@ -362,7 +372,7 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         bool isMatch = action(context) ==
             context.seaport.matchAdvancedOrders.selector ||
             action(context) == context.seaport.matchOrders.selector;

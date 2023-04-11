@@ -297,6 +297,7 @@ contract FuzzEngine is
     function runDerivers(FuzzTestContext memory context) internal {
         deriveAvailableOrders(context);
         deriveCriteriaResolvers(context);
+        context.detectRemainders();
         deriveFulfillments(context);
         deriveExecutions(context);
     }

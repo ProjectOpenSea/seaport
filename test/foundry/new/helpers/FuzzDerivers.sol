@@ -166,7 +166,7 @@ abstract contract FuzzDerivers is
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
             ) = getNaiveFulfillmentComponents(
-                    toOrderDetails(context.orders, context.criteriaResolvers)
+                    context.orders.getOrderDetails(context.criteriaResolvers)
                 );
 
             context.offerFulfillments = offerFulfillments;
@@ -198,7 +198,7 @@ abstract contract FuzzDerivers is
      *
      * @param context A Fuzz test context.
      */
-    function deriveExecutions(FuzzTestContext memory context) public {
+    function deriveExecutions(FuzzTestContext memory context) public view {
         // Get the action.
         bytes4 action = context.action();
 
@@ -275,8 +275,7 @@ abstract contract FuzzDerivers is
             ? caller
             : context.recipient;
 
-        OrderDetails[] memory details = toOrderDetails(
-            context.orders,
+        OrderDetails[] memory details = context.orders.getOrderDetails(
             context.criteriaResolvers
         );
 
@@ -292,7 +291,7 @@ abstract contract FuzzDerivers is
 
     function getStandardExecutions(
         FuzzTestContext memory context
-    ) public returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -302,7 +301,7 @@ abstract contract FuzzDerivers is
 
         return
             getStandardExecutions(
-                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+                context.orders[0].toOrderDetails(0, context.criteriaResolvers),
                 caller,
                 context.fulfillerConduitKey,
                 recipient,
@@ -313,14 +312,14 @@ abstract contract FuzzDerivers is
 
     function getBasicExecutions(
         FuzzTestContext memory context
-    ) public returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
 
         return
             getBasicExecutions(
-                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
+                context.orders[0].toOrderDetails(0, context.criteriaResolvers),
                 caller,
                 context.fulfillerConduitKey,
                 context.getNativeTokensToSupply(),
@@ -332,6 +331,7 @@ abstract contract FuzzDerivers is
         FuzzTestContext memory context
     )
         public
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
@@ -351,6 +351,7 @@ abstract contract FuzzDerivers is
         FuzzTestContext memory context
     )
         internal
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
