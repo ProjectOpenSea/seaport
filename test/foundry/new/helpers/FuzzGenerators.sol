@@ -338,8 +338,6 @@ library AdvancedOrdersSpaceGenerator {
     using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
-    using OrderDetailsHelper for AdvancedOrder[];
-    using OrderDetailsHelper for ItemType;
 
     using BroadOrderTypeGenerator for AdvancedOrder;
     using ConduitGenerator for ConduitChoice;
