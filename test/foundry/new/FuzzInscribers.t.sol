@@ -132,9 +132,8 @@ contract FuzzHelpersTest is BaseOrderTest {
     }
 
     function test_inscribeCounter() public {
-        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](0);
         FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: advancedOrders,
+            orders: new AdvancedOrder[](0),
             seaport: seaport,
             caller: address(this)
         });
@@ -424,7 +423,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         FuzzTestContext memory context
     ) private returns (bytes32) {
         vm.record();
-        context.seaport.getContractOffererNonce(offerer);
+        context.seaport.getCounter(offerer);
         (bytes32[] memory readAccesses, ) = vm.accesses(
             address(context.seaport)
         );

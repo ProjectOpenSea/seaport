@@ -33,9 +33,13 @@ import {
     FuzzTestContextLib
 } from "./helpers/FuzzTestContextLib.sol";
 
+import { FuzzEngineLib } from "./helpers/FuzzEngineLib.sol";
+
 import { FuzzSetup } from "./helpers/FuzzSetup.sol";
 
-contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
+import { FuzzDerivers } from "./helpers/FuzzDerivers.sol";
+
+contract FuzzSetupTest is BaseOrderTest, FuzzDerivers, FuzzSetup {
     using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
@@ -49,6 +53,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using OrderParametersLib for OrderParameters;
 
     using FuzzTestContextLib for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
 
     Account charlie = makeAccount("charlie");
 
@@ -90,6 +95,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             caller: address(this)
         });
 
+        deriveOrderDetails(context);
+
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 200);
@@ -128,6 +135,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: address(this)
         });
+
+        deriveOrderDetails(context);
 
         vm.warp(block.timestamp + 500);
         setUpOfferItems(context);
@@ -168,6 +177,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: address(this)
         });
+
+        deriveOrderDetails(context);
 
         vm.warp(block.timestamp + 500);
         setUpOfferItems(context);
@@ -216,6 +227,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: address(this)
         });
+
+        deriveOrderDetails(context);
 
         setUpOfferItems(context);
 
@@ -266,6 +279,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             caller: address(this)
         });
 
+        deriveOrderDetails(context);
+
         setUpOfferItems(context);
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 200);
@@ -309,6 +324,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: address(this)
         });
+
+        deriveOrderDetails(context);
 
         vm.warp(block.timestamp + 500);
         setUpOfferItems(context);
@@ -358,6 +375,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: charlie.addr
         });
+
+        deriveOrderDetails(context);
 
         setUpConsiderationItems(context);
 
@@ -409,6 +428,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: charlie.addr
         });
+
+        deriveOrderDetails(context);
 
         setUpConsiderationItems(context);
 
@@ -462,6 +483,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             seaport: getSeaport(),
             caller: charlie.addr
         });
+
+        deriveOrderDetails(context);
 
         setUpConsiderationItems(context);
 

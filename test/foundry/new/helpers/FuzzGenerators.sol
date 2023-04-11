@@ -476,9 +476,9 @@ library AdvancedOrdersSpaceGenerator {
             }
         }
 
-        // Sign the orders with a random counter.
+        // Set up a random base counter and nonce, which will be used to set the
+        // counter and nonce for each offerer in the `_signOrders` function.
         context.counter = context.randRange(0, type(uint128).max);
-        // Put this here just to make it easy to keep track of.
         context.contractOffererNonce = context.randRange(0, type(uint128).max);
 
         // Sign orders and add the hashes to the context.
@@ -1157,10 +1157,13 @@ library AdvancedOrdersSpaceGenerator {
 
             // Skip contract orders since they do not have signatures
             if (order.parameters.orderType == OrderType.CONTRACT) {
+                uint256 contractOffererSpecificContractNonce =
+                    context.contractOffererNonce +
+                    uint256(uint160(order.parameters.offerer));
                 // Just for convenience of having them both in one place.
                 FuzzInscribers.inscribeContractOffererNonce(
                     order.parameters.offerer,
-                    context.contractOffererNonce,
+                    contractOffererSpecificContractNonce,
                     context.seaport
                 );
                 continue;
@@ -1168,17 +1171,18 @@ library AdvancedOrdersSpaceGenerator {
 
             {
                 // Get the counter for the offerer.
-                uint256 counter = context.counter;
+                uint256 offererSpecificCounter = context.counter +
+                    uint256(uint160(order.parameters.offerer));
 
                 FuzzInscribers.inscribeCounter(
                     order.parameters.offerer,
-                    counter,
+                    offererSpecificCounter,
                     context.seaport
                 );
 
                 // Convert the order parameters to order components.
                 OrderComponents memory components = (
-                    order.parameters.toOrderComponents(counter)
+                    order.parameters.toOrderComponents(offererSpecificCounter)
                 );
 
                 // Get the length of the consideration array.

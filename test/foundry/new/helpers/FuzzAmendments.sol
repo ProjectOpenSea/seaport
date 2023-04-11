@@ -99,9 +99,13 @@ abstract contract FuzzAmendments is Test {
             if (context.orders[i].parameters.orderType == OrderType.CONTRACT) {
                 continue;
             }
+
+            uint256 offererSpecificCounter = context.counter +
+                uint256(uint160(context.orders[i].parameters.offerer));
+
             FuzzInscribers.inscribeCounter(
                 context.orders[i].parameters.offerer,
-                context.counter,
+                offererSpecificCounter,
                 context.seaport
             );
         }
@@ -112,9 +116,14 @@ abstract contract FuzzAmendments is Test {
             if (context.orders[i].parameters.orderType != OrderType.CONTRACT) {
                 continue;
             }
+
+            uint256 contractOffererSpecificContractNonce = context
+                .contractOffererNonce +
+                uint256(uint160(context.orders[i].parameters.offerer));
+
             FuzzInscribers.inscribeContractOffererNonce(
                 context.orders[i].parameters.offerer,
-                context.contractOffererNonce,
+                contractOffererSpecificContractNonce,
                 context.seaport
             );
         }

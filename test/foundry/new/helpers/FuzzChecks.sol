@@ -324,8 +324,13 @@ abstract contract FuzzChecks is Test {
                     uint256 currentNonce = context
                         .seaport
                         .getContractOffererNonce(order.parameters.offerer);
+
+                    uint256 contractOffererSpecificContractNonce = context
+                        .contractOffererNonce +
+                        uint256(uint160(order.parameters.offerer));
+
                     assertTrue(
-                        currentNonce - context.contractOffererNonce > 0,
+                        currentNonce - contractOffererSpecificContractNonce > 0,
                         "FuzzChecks: contract offerer nonce not incremented"
                     );
                 } else {

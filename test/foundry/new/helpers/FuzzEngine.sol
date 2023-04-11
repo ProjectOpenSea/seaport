@@ -125,10 +125,10 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
  */
 contract FuzzEngine is
     BaseOrderTest,
+    FuzzSetup,
     FuzzAmendments,
     FuzzChecks,
     FuzzDerivers,
-    FuzzSetup,
     FulfillAvailableHelper,
     MatchFulfillmentHelper
 {
@@ -344,7 +344,10 @@ contract FuzzEngine is
      */
     function amendOrderState(FuzzTestContext memory context) internal {
         conformOnChainStatusToExpected(context);
+        // Redundant for now, because the counter and nonce are set in the
+        // generation phase.
         setCounter(context);
+        setContractOffererNonce(context);
     }
 
     /**
