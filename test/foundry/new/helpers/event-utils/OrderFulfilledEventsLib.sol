@@ -25,6 +25,10 @@ import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
 
 import {
+    OrderParametersLib
+} from "../../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
+
+import {
     OrderFulfilledEvent,
     EventSerializer,
     vm
@@ -34,6 +38,7 @@ library OrderFulfilledEventsLib {
     using { toBytes32 } for address;
     using EventSerializer for *;
     using OrderDetailsHelper for AdvancedOrder[];
+    using OrderParametersLib for OrderParameters;
 
     event OrderFulfilled(
         bytes32 orderHash,
@@ -77,20 +82,31 @@ library OrderFulfilledEventsLib {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bytes32 eventHash) {
-        OrderParameters memory orderParams = context.orders[orderIndex].parameters;
+        OrderParameters memory orderParams = context
+            .orders[orderIndex]
+            .parameters;
 
         OrderDetails memory details = (
             context.orders.getOrderDetails(context.criteriaResolvers)
         )[orderIndex];
 
-        return
-            getEventHashWithTopics(
-                address(context.seaport), // emitter
-                OrderFulfilled.selector, // topic0
-                orderParams.offerer.toBytes32(), // topic1 - offerer
-                orderParams.zone.toBytes32(), // topic2 - zone
-                keccak256(abi.encode(context.orderHashes[orderIndex], context.recipient, details.offer, details.consideration)) // dataHash
-            );
+        if (orderParams.isAvailable()) {
+            return
+                getEventHashWithTopics(
+                    address(context.seaport), // emitter
+                    OrderFulfilled.selector, // topic0
+                    orderParams.offerer.toBytes32(), // topic1 - offerer
+                    orderParams.zone.toBytes32(), // topic2 - zone
+                    keccak256(
+                        abi.encode(
+                            context.orderHashes[orderIndex],
+                            context.recipient,
+                            details.offer,
+                            details.consideration
+                        )
+                    ) // dataHash
+                );
+        }
     }
 }
 

@@ -32,11 +32,11 @@ struct ReduceInput {
     FuzzTestContext context;
 }
 
-    struct Log {
-        bytes32[] topics;
-        bytes data;
-        address emitter;
-    }
+struct Log {
+    bytes32[] topics;
+    bytes data;
+    address emitter;
+}
 
 /**
  * @dev This library is used to check that the events emitted by tests match the
@@ -94,7 +94,9 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function setExpectedTransferEventHashes(FuzzTestContext memory context) internal {
+    function setExpectedTransferEventHashes(
+        FuzzTestContext memory context
+    ) internal {
         Execution[] memory executions = context.allExpectedExecutions;
         require(
             executions.length ==
@@ -117,11 +119,16 @@ library ExpectedEventsUtil {
         );
     }
 
-    function setExpectedSeaportEventHashes(FuzzTestContext memory context) internal {
-        context.expectedSeaportEventHashes = new bytes32[](context.orders.length);
+    function setExpectedSeaportEventHashes(
+        FuzzTestContext memory context
+    ) internal {
+        context.expectedSeaportEventHashes = new bytes32[](
+            context.orders.length
+        );
 
         for (uint256 i = 0; i < context.orders.length; ++i) {
-            context.expectedSeaportEventHashes[i] = OrderFulfilledEventsLib.getOrderFulfilledEventHash(i, context);
+            context.expectedSeaportEventHashes[i] = OrderFulfilledEventsLib
+                .getOrderFulfilledEventHash(i, context);
         }
 
         vm.serializeBytes32(
@@ -144,13 +151,16 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function checkExpectedTransferEvents(FuzzTestContext memory context) internal {
+    function checkExpectedTransferEvents(
+        FuzzTestContext memory context
+    ) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
         address(this).call(callData);
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
-        bytes32[] memory expectedTransferEventHashes = context.expectedTransferEventHashes;
+        bytes32[] memory expectedTransferEventHashes = context
+            .expectedTransferEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -174,7 +184,9 @@ library ExpectedEventsUtil {
         }
     }
 
-    function checkExpectedSeaportEvents(FuzzTestContext memory context) internal {
+    function checkExpectedSeaportEvents(
+        FuzzTestContext memory context
+    ) internal {
         // TODO: set these upstream (this expects checkExpectedTransferEvents to run first)
         bytes memory callData = abi.encodeCall(FuzzEngine.getLogs, ());
         (, bytes memory returnData) = address(this).call(callData);
@@ -191,9 +203,9 @@ library ExpectedEventsUtil {
             log.emitter = rawLog.emitter;
         }
 
-
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
-        bytes32[] memory expectedSeaportEventHashes = context.expectedSeaportEventHashes;
+        bytes32[] memory expectedSeaportEventHashes = context
+            .expectedSeaportEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -210,9 +222,7 @@ library ExpectedEventsUtil {
             .asLogsFindIndex()(logs, isWatchedSeaportEvent, lastLogIndex);
 
         if (nextWatchedEventIndex != -1) {
-            revert(
-                "ExpectedEvents: too many watched seaport events"
-            );
+            revert("ExpectedEvents: too many watched seaport events");
         }
     }
 
@@ -226,14 +236,18 @@ library ExpectedEventsUtil {
      *
      * @return True if the log is a watched event, false otherwise
      */
-    function isWatchedTransferEvent(Vm.Log memory log) internal pure returns (bool) {
+    function isWatchedTransferEvent(
+        Vm.Log memory log
+    ) internal pure returns (bool) {
         bytes32 topic0 = log.getTopic0();
         return
             topic0 == Topic0_ERC20_ERC721_Transfer ||
             topic0 == Topic0_ERC1155_TransferSingle;
     }
 
-    function isWatchedSeaportEvent(Vm.Log memory log) internal pure returns (bool) {
+    function isWatchedSeaportEvent(
+        Vm.Log memory log
+    ) internal pure returns (bool) {
         bytes32 topic0 = log.getTopic0();
         return topic0 == OrderFulfilled.selector;
     }
@@ -255,7 +269,11 @@ library ExpectedEventsUtil {
         // Get the index of the next watched event in the logs array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(input.logsArray, isWatchedTransferEvent, lastLogIndex);
+            .asLogsFindIndex()(
+                input.logsArray,
+                isWatchedTransferEvent,
+                lastLogIndex
+            );
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
@@ -271,7 +289,10 @@ library ExpectedEventsUtil {
             );
         }
 
-        require(nextWatchedEventIndex != -1, "ExpectedEvents: transfer event not found");
+        require(
+            nextWatchedEventIndex != -1,
+            "ExpectedEvents: transfer event not found"
+        );
 
         // Verify that the transfer event matches the expected event
         uint256 i = uint256(nextWatchedEventIndex);
@@ -302,7 +323,11 @@ library ExpectedEventsUtil {
         // Get the index of the next watched event in the logs array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(input.logsArray, isWatchedSeaportEvent, lastLogIndex);
+            .asLogsFindIndex()(
+                input.logsArray,
+                isWatchedSeaportEvent,
+                lastLogIndex
+            );
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
@@ -317,7 +342,10 @@ library ExpectedEventsUtil {
             );
         }
 
-        require(nextWatchedEventIndex != -1, "ExpectedEvents: seaport event not found");
+        require(
+            nextWatchedEventIndex != -1,
+            "ExpectedEvents: seaport event not found"
+        );
 
         // Verify that the transfer event matches the expected event
         uint256 i = uint256(nextWatchedEventIndex);
