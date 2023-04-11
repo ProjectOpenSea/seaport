@@ -76,6 +76,15 @@ interface TestHelpers {
         string memory name
     ) external view returns (Account memory);
 
+    function getNaiveFulfillmentComponents(
+        OrderDetails[] memory orderDetails
+    )
+        external
+        returns (
+            FulfillmentComponent[][] memory offer,
+            FulfillmentComponent[][] memory consideration
+        );
+
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
@@ -231,12 +240,21 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+
+    bool hasRemainders;
+
     bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
      */
-    bytes32[] expectedEventHashes;
+    bytes32[] expectedTransferEventHashes;
+
+    /**
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
+     */
+    bytes32[] expectedSeaportEventHashes;
     /**
      * @dev Actual events emitted.
      */
@@ -274,7 +292,8 @@ library FuzzTestContextLib {
         bool[] memory available;
         Execution[] memory executions;
         bytes32[] memory hashes;
-        bytes32[] memory expectedEventHashes;
+        bytes32[] memory expectedTransferEventHashes;
+        bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
 
         return
@@ -318,9 +337,11 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                hasRemainders: false,
                 expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
-                expectedEventHashes: expectedEventHashes,
+                expectedTransferEventHashes: expectedTransferEventHashes,
+                expectedSeaportEventHashes: expectedSeaportEventHashes,
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))
             });

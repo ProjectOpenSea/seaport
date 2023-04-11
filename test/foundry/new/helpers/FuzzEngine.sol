@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Vm } from "forge-std/Vm.sol";
+
 import { dumpExecutions } from "./DebugUtil.sol";
 
 import {
     AdvancedOrderLib,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper,
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
@@ -124,7 +128,9 @@ contract FuzzEngine is
     FuzzAmendments,
     FuzzChecks,
     FuzzDerivers,
-    FuzzSetup
+    FuzzSetup,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
 {
     // Use the various builder libraries.  These allow for creating structs in a
     // more readable way.
@@ -139,6 +145,22 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
+
+    Vm.Log[] internal _logs;
+
+    function setLogs(Vm.Log[] memory logs) external {
+        delete _logs;
+        for (uint256 i = 0; i < logs.length; ++i) {
+            _logs.push(logs[i]);
+        }
+    }
+
+    function getLogs() external view returns (Vm.Log[] memory logs) {
+        logs = new Vm.Log[](_logs.length);
+        for (uint256 i = 0; i < _logs.length; ++i) {
+            logs[i] = _logs[i];
+        }
+    }
 
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
@@ -282,6 +304,7 @@ contract FuzzEngine is
         deriveCriteriaResolvers(context);
         // Derive them up here just to provision the array.
         deriveOrderDetails(context);
+        context.detectRemainders();
         deriveFulfillments(context);
         deriveExecutions(context);
         // TODO: figure out how to handle order details so that they can be set
