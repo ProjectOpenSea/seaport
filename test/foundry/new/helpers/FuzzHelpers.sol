@@ -428,9 +428,9 @@ library FuzzHelpers {
             consideration[0].itemType == ItemType.ERC1155
         ) {
             if (consideration.length >= 2) {
-                ItemType expectedItemType = consideration[1].itemType;
-                address expectedToken = consideration[1].token;
-                for (i = 2; i < consideration.length; ++i) {
+                ItemType expectedItemType = offer[0].itemType;
+                address expectedToken = offer[0].token;
+                for (i = 1; i < consideration.length; ++i) {
                     if (consideration[i].itemType != expectedItemType) {
                         return false;
                     }
