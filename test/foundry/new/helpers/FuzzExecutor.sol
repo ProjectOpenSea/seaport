@@ -61,6 +61,7 @@ abstract contract FuzzExecutor is Test {
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
         bytes4 _action = context.action();
+        uint256 value = context.getNativeTokensToSupply();
 
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
@@ -69,17 +70,16 @@ abstract contract FuzzExecutor is Test {
 
             if (context.caller != address(0)) vm.prank(context.caller);
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
-                value: context.getNativeTokensToSupply()
+                value: value
             }(order.toOrder(), context.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder", logCalls);
             AdvancedOrder memory order = context.orders[0];
 
+            if (context.caller != address(0)) vm.prank(context.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillAdvancedOrder{
-                value: context.getNativeTokensToSupply()
-            }(
+                .fulfillAdvancedOrder{ value: value }(
                 order,
                 context.criteriaResolvers,
                 context.fulfillerConduitKey,
@@ -97,7 +97,7 @@ abstract contract FuzzExecutor is Test {
 
             if (context.caller != address(0)) vm.prank(context.caller);
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
-                value: context.getNativeTokensToSupply()
+                value: value
             }(basicOrderParameters);
         } else if (
             _action ==
@@ -115,18 +115,16 @@ abstract contract FuzzExecutor is Test {
             if (context.caller != address(0)) vm.prank(context.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc{
-                value: context.getNativeTokensToSupply()
-            }(basicOrderParameters);
+                .fulfillBasicOrder_efficient_6GL6yc{ value: value }(
+                basicOrderParameters
+            );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders", logCalls);
             if (context.caller != address(0)) vm.prank(context.caller);
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders{
-                    value: context.getNativeTokensToSupply()
-                }(
+            ) = context.seaport.fulfillAvailableOrders{ value: value }(
                     context.orders.toOrders(),
                     context.offerFulfillments,
                     context.considerationFulfillments,
@@ -144,9 +142,7 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders{
-                    value: context.getNativeTokensToSupply()
-                }(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: value }(
                     context.orders,
                     context.criteriaResolvers,
                     context.offerFulfillments,
@@ -162,7 +158,7 @@ abstract contract FuzzExecutor is Test {
             logCall("matchOrders", logCalls);
             if (context.caller != address(0)) vm.prank(context.caller);
             Execution[] memory executions = context.seaport.matchOrders{
-                value: context.getNativeTokensToSupply()
+                value: value
             }(context.orders.toOrders(), context.fulfillments);
 
             context.returnValues.executions = executions;
@@ -170,7 +166,7 @@ abstract contract FuzzExecutor is Test {
             logCall("matchAdvancedOrders", logCalls);
             if (context.caller != address(0)) vm.prank(context.caller);
             Execution[] memory executions = context.seaport.matchAdvancedOrders{
-                value: context.getNativeTokensToSupply()
+                value: value
             }(
                 context.orders,
                 context.criteriaResolvers,
