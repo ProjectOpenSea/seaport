@@ -27,6 +27,7 @@ struct ContextOutputSelection {
     bool recipient;
     bool fuzzParams;
     bool orders;
+    bool orderHashes;
     bool initialOrders;
     bool counter;
     bool fulfillerConduitKey;
@@ -116,6 +117,13 @@ function dumpContext(
             "root",
             "orders",
             context.orders
+        );
+    }
+    if (outputSelection.orderHashes) {
+        jsonOut = Searializer.tojsonDynArrayBytes32(
+            "root",
+            "orderHashes",
+            context.orderHashes
         );
     }
     // if (outputSelection.initialOrders) {
@@ -357,6 +365,7 @@ function dumpTransfers(FuzzTestContext memory context) view {
 function dumpExecutions(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.orders = true;
+    selection.orderHashes = true;
     selection.allExpectedExecutions = true;
     selection.nativeExpectedBalances = true;
     selection.expectedAvailableOrders = true;
