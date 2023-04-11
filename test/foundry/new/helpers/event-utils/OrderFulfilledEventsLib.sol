@@ -79,8 +79,8 @@ library OrderFulfilledEventsLib {
     // }
 
     function getOrderFulfilledEventHash(
-        uint256 orderIndex,
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        uint256 orderIndex
     ) internal view returns (bytes32 eventHash) {
         OrderParameters memory orderParams = context
             .orders[orderIndex]
@@ -90,23 +90,22 @@ library OrderFulfilledEventsLib {
             context.orders.getOrderDetails(context.criteriaResolvers)
         )[orderIndex];
 
-        if (orderParams.isAvailable()) {
-            return
-                getEventHashWithTopics(
-                    address(context.seaport), // emitter
-                    OrderFulfilled.selector, // topic0
-                    orderParams.offerer.toBytes32(), // topic1 - offerer
-                    orderParams.zone.toBytes32(), // topic2 - zone
-                    keccak256(
-                        abi.encode(
-                            context.orderHashes[orderIndex],
-                            context.recipient,
-                            details.offer,
-                            details.consideration
-                        )
-                    ) // dataHash
-                );
-        }
+        return
+            getEventHashWithTopics(
+                address(context.seaport), // emitter
+                OrderFulfilled.selector, // topic0
+                orderParams.offerer.toBytes32(), // topic1 - offerer
+                orderParams.zone.toBytes32(), // topic2 - zone
+                keccak256(
+                    abi.encode(
+                        context.orderHashes[orderIndex],
+                        context.recipient == address(0) ? context.caller : context.recipient,
+                        details.offer,
+                        details.consideration
+                    )
+                ) // dataHash
+            );
+
     }
 }
 

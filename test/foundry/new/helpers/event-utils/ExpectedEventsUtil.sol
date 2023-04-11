@@ -48,6 +48,7 @@ library ExpectedEventsUtil {
     using ForgeEventsLib for Vm.Log;
     using ForgeEventsLib for Vm.Log[];
     using FuzzEngineLib for FuzzTestContext;
+    using OrderFulfilledEventsLib for FuzzTestContext;
 
     /**
      * @dev Set up the Vm.
@@ -122,13 +123,27 @@ library ExpectedEventsUtil {
     function setExpectedSeaportEventHashes(
         FuzzTestContext memory context
     ) internal {
+        if (context.expectedAvailableOrders.length != context.orders.length) {
+            revert("ExpectedEventsUtil: available array length != orders");
+        }
+
+        uint256 totalExpectedEventHashes = 0;
+        for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
+            if (context.expectedAvailableOrders[i]) {
+                ++totalExpectedEventHashes;
+            }
+        }
+
         context.expectedSeaportEventHashes = new bytes32[](
-            context.orders.length
+            totalExpectedEventHashes
         );
 
+        totalExpectedEventHashes = 0;
         for (uint256 i = 0; i < context.orders.length; ++i) {
-            context.expectedSeaportEventHashes[i] = OrderFulfilledEventsLib
-                .getOrderFulfilledEventHash(i, context);
+            if (context.expectedAvailableOrders[i]) {
+                context.expectedSeaportEventHashes[totalExpectedEventHashes++] = context
+                    .getOrderFulfilledEventHash(i);
+            }
         }
 
         vm.serializeBytes32(
@@ -156,7 +171,10 @@ library ExpectedEventsUtil {
     ) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
-        address(this).call(callData);
+        (bool ok, ) = address(this).call(callData);
+        if (!ok) {
+            revert("ExpectedEventsUtil: log registration failed");
+        }
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedTransferEventHashes = context

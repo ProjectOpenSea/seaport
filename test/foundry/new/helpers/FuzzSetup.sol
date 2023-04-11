@@ -108,6 +108,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
     using ExecutionLib for Execution;
 
+    using ExpectedEventsUtil for FuzzTestContext;
+
     /**
      *  @dev Set up the zone params on a test context.
      *
@@ -420,7 +422,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             }
         }
         context.registerCheck(FuzzChecks.check_executions.selector);
-        ExpectedEventsUtil.setExpectedTransferEventHashes(context);
+        context.setExpectedTransferEventHashes();
         context.registerCheck(
             FuzzChecks.check_expectedTransferEventsEmitted.selector
         );
@@ -428,12 +430,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     }
 
     /**
-     *  @dev Set up the checks that will always be run.
+     * @dev Set up the checks that will always be run. Note that this must be
+     *      run after registerExpectedEventsAndBalances at the moment.
      *
      * @param context The test context.
      */
     function registerCommonChecks(FuzzTestContext memory context) public {
-        ExpectedEventsUtil.setExpectedSeaportEventHashes(context);
+        context.setExpectedSeaportEventHashes();
         context.registerCheck(
             FuzzChecks.check_expectedSeaportEventsEmitted.selector
         );
