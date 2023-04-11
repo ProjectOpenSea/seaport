@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Vm } from "forge-std/Vm.sol";
+
 import { dumpExecutions } from "./DebugUtil.sol";
 
 import {
@@ -141,6 +143,22 @@ contract FuzzEngine is
     using FuzzTestContextLib for FuzzTestContext;
 
     uint256 constant JAN_1_2023_UTC = 1672531200;
+
+    Vm.Log[] internal _logs;
+
+    function setLogs(Vm.Log[] memory logs) external {
+        delete _logs;
+        for (uint256 i = 0; i < logs.length; ++i) {
+            _logs.push(logs[i]);
+        }
+    }
+
+    function getLogs() external view returns (Vm.Log[] memory logs) {
+        logs = new Vm.Log[](_logs.length);
+        for (uint256 i = 0; i < _logs.length; ++i) {
+            logs[i] = _logs[i];
+        }
+    }
 
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run

@@ -14,6 +14,8 @@ import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { FuzzEngineLib } from "../FuzzEngineLib.sol";
 
+import { FuzzEngine } from "../FuzzEngine.sol";
+
 import { ForgeEventsLib } from "./ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./TransferEventsLib.sol";
@@ -29,6 +31,12 @@ struct ReduceInput {
     Vm.Log[] logsArray;
     FuzzTestContext context;
 }
+
+    struct Log {
+        bytes32[] topics;
+        bytes data;
+        address emitter;
+    }
 
 /**
  * @dev This library is used to check that the events emitted by tests match the
@@ -47,6 +55,39 @@ library ExpectedEventsUtil {
 
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
+    event OrderFulfilled(
+        bytes32 orderHash,
+        address indexed offerer,
+        address indexed zone,
+        address recipient,
+        SpentItem[] offer,
+        ReceivedItem[] consideration
+    );
+
+    enum ItemType {
+        NATIVE,
+        ERC20,
+        ERC721,
+        ERC1155,
+        ERC721_WITH_CRITERIA,
+        ERC1155_WITH_CRITERIA
+    }
+
+    struct SpentItem {
+        ItemType itemType;
+        address token;
+        uint256 identifier;
+        uint256 amount;
+    }
+
+    struct ReceivedItem {
+        ItemType itemType;
+        address token;
+        uint256 identifier;
+        uint256 amount;
+        address payable recipient;
+    }
 
     /**
      * @dev Sets up the expected event hashes.
@@ -105,8 +146,8 @@ library ExpectedEventsUtil {
      */
     function checkExpectedTransferEvents(FuzzTestContext memory context) internal {
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        context.actualEvents = logs;
-        // uint256 logIndex;
+        bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
+        address(this).call(callData);
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedTransferEventHashes = context.expectedTransferEventHashes;
@@ -115,15 +156,15 @@ library ExpectedEventsUtil {
         // in `logs` that has a topic0 matching one of the watched events.
         uint256 lastLogIndex = ArrayHelpers.reduceWithArg.asLogsReduce()(
             expectedTransferEventHashes,
-            checkNextEvent, // function called for each item in expectedEvents
+            checkNextTransferEvent, // function called for each item in expectedEvents
             0, // initial value for the reduce call, index 0
-            ReduceInput(logs, context) // 3rd argument given to checkNextEvent
+            ReduceInput(logs, context) // 3rd argument given to checkNextTransferEvent
         );
 
         // Verify that there are no other watched events in the array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(logs, isWatchedEvent, lastLogIndex);
+            .asLogsFindIndex()(logs, isWatchedTransferEvent, lastLogIndex);
 
         if (nextWatchedEventIndex != -1) {
             dumpTransfers(context);
@@ -134,9 +175,22 @@ library ExpectedEventsUtil {
     }
 
     function checkExpectedSeaportEvents(FuzzTestContext memory context) internal {
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        context.actualEvents = logs;
-        // uint256 logIndex;
+        // TODO: set these upstream (this expects checkExpectedTransferEvents to run first)
+        bytes memory callData = abi.encodeCall(FuzzEngine.getLogs, ());
+        (, bytes memory returnData) = address(this).call(callData);
+        Log[] memory rawLogs = abi.decode(returnData, (Log[]));
+
+        Vm.Log[] memory logs = new Vm.Log[](rawLogs.length);
+
+        for (uint256 i = 0; i < logs.length; ++i) {
+            Vm.Log memory log = logs[i];
+            Log memory rawLog = rawLogs[i];
+
+            log.topics = rawLog.topics;
+            log.data = rawLog.data;
+            log.emitter = rawLog.emitter;
+        }
+
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedSeaportEventHashes = context.expectedSeaportEventHashes;
@@ -145,15 +199,15 @@ library ExpectedEventsUtil {
         // in `logs` that has a topic0 matching one of the watched events.
         uint256 lastLogIndex = ArrayHelpers.reduceWithArg.asLogsReduce()(
             expectedSeaportEventHashes,
-            checkNextEvent, // function called for each item in expectedEvents
+            checkNextSeaportEvent, // function called for each item in expectedEvents
             0, // initial value for the reduce call, index 0
-            ReduceInput(logs, context) // 3rd argument given to checkNextEvent
+            ReduceInput(logs, context) // 3rd argument given to checkNextSeaportEvent
         );
 
         // Verify that there are no other watched events in the array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(logs, isWatchedEvent, lastLogIndex);
+            .asLogsFindIndex()(logs, isWatchedSeaportEvent, lastLogIndex);
 
         if (nextWatchedEventIndex != -1) {
             revert(
@@ -172,15 +226,20 @@ library ExpectedEventsUtil {
      *
      * @return True if the log is a watched event, false otherwise
      */
-    function isWatchedEvent(Vm.Log memory log) internal pure returns (bool) {
+    function isWatchedTransferEvent(Vm.Log memory log) internal pure returns (bool) {
         bytes32 topic0 = log.getTopic0();
         return
             topic0 == Topic0_ERC20_ERC721_Transfer ||
             topic0 == Topic0_ERC1155_TransferSingle;
     }
 
+    function isWatchedSeaportEvent(Vm.Log memory log) internal pure returns (bool) {
+        bytes32 topic0 = log.getTopic0();
+        return topic0 == OrderFulfilled.selector;
+    }
+
     /**
-     * @dev Checks that the next log matches the next expected event.
+     * @dev Checks that the next log matches the next expected transfer event.
      *
      * @param lastLogIndex The index of the last log that was checked
      * @param expectedEventHash The expected event hash
@@ -188,7 +247,7 @@ library ExpectedEventsUtil {
      *
      * @return nextLogIndex The index of the next log to check
      */
-    function checkNextEvent(
+    function checkNextTransferEvent(
         uint256 lastLogIndex,
         uint256 expectedEventHash,
         ReduceInput memory input
@@ -196,7 +255,7 @@ library ExpectedEventsUtil {
         // Get the index of the next watched event in the logs array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(input.logsArray, isWatchedEvent, lastLogIndex);
+            .asLogsFindIndex()(input.logsArray, isWatchedTransferEvent, lastLogIndex);
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
@@ -208,7 +267,54 @@ library ExpectedEventsUtil {
             );
             dumpTransfers(input.context);
             revert(
-                "ExpectedEvents: event not found - info written to fuzz_debug.json"
+                "ExpectedEvents: transfer event not found - info written to fuzz_debug.json"
+            );
+        }
+
+        require(nextWatchedEventIndex != -1, "ExpectedEvents: event not found");
+
+        // Verify that the transfer event matches the expected event
+        uint256 i = uint256(nextWatchedEventIndex);
+        Vm.Log memory log = input.logsArray[i];
+        require(
+            log.getForgeEventHash() == bytes32(expectedEventHash),
+            "ExpectedEvents: event hash does not match"
+        );
+
+        // Increment the log index for the next iteration
+        return i + 1;
+    }
+
+    /**
+     * @dev Checks that the next log matches the next expected event.
+     *
+     * @param lastLogIndex The index of the last log that was checked
+     * @param expectedEventHash The expected event hash
+     * @param input The input to the reduce function
+     *
+     * @return nextLogIndex The index of the next log to check
+     */
+    function checkNextSeaportEvent(
+        uint256 lastLogIndex,
+        uint256 expectedEventHash,
+        ReduceInput memory input
+    ) internal returns (uint256 nextLogIndex) {
+        // Get the index of the next watched event in the logs array
+        int256 nextWatchedEventIndex = ArrayHelpers
+            .findIndexFrom
+            .asLogsFindIndex()(input.logsArray, isWatchedSeaportEvent, lastLogIndex);
+
+        // Dump the events data and revert if there are no remaining transfer events
+        if (nextWatchedEventIndex == -1) {
+            vm.serializeUint("root", "failingIndex", lastLogIndex - 1);
+            vm.serializeBytes32(
+                "root",
+                "expectedEventHash",
+                bytes32(expectedEventHash)
+            );
+            dumpTransfers(input.context);
+            revert(
+                "ExpectedEvents: transfer event not found - info written to fuzz_debug.json"
             );
         }
 
