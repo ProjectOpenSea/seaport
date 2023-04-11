@@ -96,7 +96,6 @@ enum AmountDegree {
 
 enum FulfillmentRecipient {
     ZERO,
-    OFFERER,
     ALICE,
     BOB,
     EVE
@@ -120,9 +119,9 @@ enum RecipientDirty {
 
 enum Caller {
     TEST_CONTRACT,
-    OFFERER,
     ALICE,
     BOB,
+    CAROL,
     DILLON,
     EVE,
     FRANK
