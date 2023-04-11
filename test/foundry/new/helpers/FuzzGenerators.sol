@@ -78,8 +78,6 @@ import {
 } from "./FuzzHelpers.sol";
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
-import { FuzzInscribers } from "./FuzzInscribers.sol";
-
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -156,7 +154,6 @@ library TestStateGenerator {
 
             components[i] = OrderComponentsSpace({
                 offerer: Offerer(context.choice(Solarray.uint256s(1, 2, 4))),
-                // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
@@ -1528,8 +1525,6 @@ library SignatureGenerator {
 
     using ExtraDataGenerator for FuzzGeneratorContext;
 
-    using FuzzInscribers for AdvancedOrder;
-
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
@@ -1592,10 +1587,7 @@ library SignatureGenerator {
                 signature = context.generateRandomBytesArray(1, 4096);
             }
 
-            if (method == SignatureMethod.VALIDATE) {
-                // NOTE: this should probably be inscribed downstream
-                order.inscribeOrderStatusValidated(true, context.seaport);
-            } else if (method == SignatureMethod.EIP1271) {
+            if (method == SignatureMethod.EIP1271) {
                 bytes32 digest = _getDigest(orderHash, context);
                 EIP1271Offerer(payable(offererAddress)).registerSignature(
                     digest,
@@ -1603,7 +1595,8 @@ library SignatureGenerator {
                 );
             } else if (
                 method != SignatureMethod.SELF_AD_HOC &&
-                method != SignatureMethod.CONTRACT
+                method != SignatureMethod.CONTRACT &&
+                method != SignatureMethod.VALIDATE
             ) {
                 revert("SignatureGenerator: Invalid signature method");
             }
