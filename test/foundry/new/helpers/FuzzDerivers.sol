@@ -7,10 +7,8 @@ import { Vm } from "forge-std/Vm.sol";
 
 import {
     AdvancedOrderLib,
-    FulfillAvailableHelper,
     MatchComponent,
-    MatchComponentType,
-    MatchFulfillmentHelper
+    MatchComponentType
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -30,7 +28,10 @@ import {
 
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import {
+    FulfillmentDetails,
+    OrderDetails
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -49,11 +50,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
  *       steps. Derivers should not modify the order state itself, only the
  *       `FuzzTestContext`.
  */
-abstract contract FuzzDerivers is
-    FulfillAvailableHelper,
-    MatchFulfillmentHelper,
-    ExecutionHelper
-{
+abstract contract FuzzDerivers {
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
@@ -62,6 +59,9 @@ abstract contract FuzzDerivers is
     using AdvancedOrderLib for AdvancedOrder[];
     using FuzzHelpers for AdvancedOrder;
     using MatchComponentType for MatchComponent[];
+    using ExecutionHelper for FulfillmentDetails;
+    using ExecutionHelper for OrderDetails;
+    using FulfillmentDetailsHelper for FuzzTestContext;
 
     function deriveAvailableOrders(FuzzTestContext memory context) public view {
         // TODO: handle skipped orders due to generateOrder reverts
@@ -165,8 +165,8 @@ abstract contract FuzzDerivers is
             (
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
-            ) = getNaiveFulfillmentComponents(
-                    toOrderDetails(context.orders, context.criteriaResolvers)
+            ) = context.testHelpers.getNaiveFulfillmentComponents(
+                    context.orders.getOrderDetails(context.criteriaResolvers)
                 );
 
             context.offerFulfillments = offerFulfillments;
@@ -198,7 +198,7 @@ abstract contract FuzzDerivers is
      *
      * @param context A Fuzz test context.
      */
-    function deriveExecutions(FuzzTestContext memory context) public {
+    function deriveExecutions(FuzzTestContext memory context) public view {
         // Get the action.
         bytes4 action = context.action();
 
@@ -265,34 +265,9 @@ abstract contract FuzzDerivers is
         context.expectedExplicitExecutions = explicitExecutions;
     }
 
-    function toFulfillmentDetails(
-        FuzzTestContext memory context
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        address caller = context.caller == address(0)
-            ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
-            ? caller
-            : context.recipient;
-
-        OrderDetails[] memory details = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(caller),
-                fulfillerConduitKey: context.fulfillerConduitKey,
-                seaport: address(context.seaport)
-            });
-    }
-
     function getStandardExecutions(
         FuzzTestContext memory context
-    ) public returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -301,45 +276,49 @@ abstract contract FuzzDerivers is
             : context.recipient;
 
         return
-            getStandardExecutions(
-                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
-                caller,
-                context.fulfillerConduitKey,
-                recipient,
-                context.getNativeTokensToSupply(),
-                address(context.seaport)
-            );
+            context
+                .orders[0]
+                .toOrderDetails(0, context.criteriaResolvers)
+                .getStandardExecutions(
+                    caller,
+                    context.fulfillerConduitKey,
+                    recipient,
+                    context.getNativeTokensToSupply(),
+                    address(context.seaport)
+                );
     }
 
     function getBasicExecutions(
         FuzzTestContext memory context
-    ) public returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
 
         return
-            getBasicExecutions(
-                toOrderDetails(context.orders[0], 0, context.criteriaResolvers),
-                caller,
-                context.fulfillerConduitKey,
-                context.getNativeTokensToSupply(),
-                address(context.seaport)
-            );
+            context
+                .orders[0]
+                .toOrderDetails(0, context.criteriaResolvers)
+                .getBasicExecutions(
+                    caller,
+                    context.fulfillerConduitKey,
+                    context.getNativeTokensToSupply(),
+                    address(context.seaport)
+                );
     }
 
     function getFulfillAvailableExecutions(
         FuzzTestContext memory context
     )
         public
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
         )
     {
         return
-            getFulfillAvailableExecutions(
-                toFulfillmentDetails(context),
+            context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.offerFulfillments,
                 context.considerationFulfillments,
                 context.getNativeTokensToSupply(),
@@ -351,16 +330,44 @@ abstract contract FuzzDerivers is
         FuzzTestContext memory context
     )
         internal
+        view
         returns (
             Execution[] memory explicitExecutions,
             Execution[] memory implicitExecutions
         )
     {
         return
-            getMatchExecutions(
-                toFulfillmentDetails(context),
+            context.toFulfillmentDetails().getMatchExecutions(
                 context.fulfillments,
                 context.getNativeTokensToSupply()
             );
+    }
+}
+
+library FulfillmentDetailsHelper {
+    using AdvancedOrderLib for AdvancedOrder[];
+
+    function toFulfillmentDetails(
+        FuzzTestContext memory context
+    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
+        address caller = context.caller == address(0)
+            ? address(this)
+            : context.caller;
+        address recipient = context.recipient == address(0)
+            ? caller
+            : context.recipient;
+
+        OrderDetails[] memory details = context.orders.getOrderDetails(
+            context.criteriaResolvers
+        );
+
+        return
+            FulfillmentDetails({
+                orders: details,
+                recipient: payable(recipient),
+                fulfiller: payable(caller),
+                fulfillerConduitKey: context.fulfillerConduitKey,
+                seaport: address(context.seaport)
+            });
     }
 }

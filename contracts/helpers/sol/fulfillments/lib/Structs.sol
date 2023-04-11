@@ -74,3 +74,25 @@ struct OrderDetails {
     SpentItem[] offer;
     ReceivedItem[] consideration;
 }
+
+/**
+ * @dev Represents the details of a single fulfill/match call to Seaport.
+ *
+ * @param orders              processed details of individual orders
+ * @param recipient           the explicit recipient of all offer items in
+ *                            the fulfillAvailable case; implicit recipient
+ *                            of excess offer items in the match case
+ * @param fulfiller           the explicit recipient of all unspent native
+ *                            tokens; provides all consideration items in
+ *                            the fulfillAvailable case
+ * @param fulfillerConduitKey used to transfer tokens from the fulfiller
+ *                            providing all consideration items in the
+ *                            fulfillAvailable case
+ */
+struct FulfillmentDetails {
+    OrderDetails[] orders;
+    address payable recipient;
+    address payable fulfiller;
+    bytes32 fulfillerConduitKey;
+    address seaport;
+}

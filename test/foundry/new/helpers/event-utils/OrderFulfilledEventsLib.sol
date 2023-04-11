@@ -18,11 +18,13 @@ import {
     OrderDetails
 } from "../../../../../contracts/helpers/sol/fulfillments/lib/Structs.sol";
 
-import { OrderDetailsHelper } from "../FuzzGenerators.sol";
-
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
+
+import {
+    AdvancedOrderLib
+} from "../../../../../contracts/helpers/sol/lib/AdvancedOrderLib.sol";
 
 import {
     OrderParametersLib
@@ -37,7 +39,7 @@ import {
 library OrderFulfilledEventsLib {
     using { toBytes32 } for address;
     using EventSerializer for *;
-    using OrderDetailsHelper for AdvancedOrder[];
+    using AdvancedOrderLib for AdvancedOrder[];
     using OrderParametersLib for OrderParameters;
 
     event OrderFulfilled(

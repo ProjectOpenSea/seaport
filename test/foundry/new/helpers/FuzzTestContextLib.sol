@@ -76,6 +76,15 @@ interface TestHelpers {
         string memory name
     ) external view returns (Account memory);
 
+    function getNaiveFulfillmentComponents(
+        OrderDetails[] memory orderDetails
+    )
+        external
+        returns (
+            FulfillmentComponent[][] memory offer,
+            FulfillmentComponent[][] memory consideration
+        );
+
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
@@ -229,6 +238,9 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+
+    bool hasRemainders;
+
     bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
@@ -321,6 +333,7 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                hasRemainders: false,
                 expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
                 expectedTransferEventHashes: expectedTransferEventHashes,
