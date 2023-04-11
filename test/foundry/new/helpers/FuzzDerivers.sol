@@ -50,7 +50,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
  *       steps. Derivers should not modify the order state itself, only the
  *       `FuzzTestContext`.
  */
-abstract contract FuzzDerivers {
+library FuzzDerivers {
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
@@ -63,7 +63,7 @@ abstract contract FuzzDerivers {
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
 
-    function deriveAvailableOrders(FuzzTestContext memory context) public view {
+    function withDerivedAvailableOrders(FuzzTestContext memory context) public view returns (FuzzTestContext memory) {
         // TODO: handle skipped orders due to generateOrder reverts
         bool[] memory expectedAvailableOrders = new bool[](
             context.orders.length
@@ -124,11 +124,13 @@ abstract contract FuzzDerivers {
         }
 
         context.expectedAvailableOrders = expectedAvailableOrders;
+
+        return context;
     }
 
-    function deriveCriteriaResolvers(
+    function withDerivedCriteriaResolvers(
         FuzzTestContext memory context
-    ) public view {
+    ) public view returns (FuzzTestContext memory) {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
@@ -137,6 +139,8 @@ abstract contract FuzzDerivers {
             .deriveCriteriaResolvers(context.orders);
 
         context.criteriaResolvers = criteriaResolvers;
+
+        return context;
     }
 
     /**
@@ -145,7 +149,7 @@ abstract contract FuzzDerivers {
      *
      * @param context A Fuzz test context.
      */
-    function deriveFulfillments(FuzzTestContext memory context) public {
+    function withDerivedFulfillments(FuzzTestContext memory context) public returns (FuzzTestContext memory) {
         // Determine the action.
         bytes4 action = context.action();
 
@@ -190,6 +194,8 @@ abstract contract FuzzDerivers {
             context.remainingOfferComponents = remainingOfferComponents
                 .toFulfillmentComponents();
         }
+
+        return context;
     }
 
     /**
@@ -198,7 +204,7 @@ abstract contract FuzzDerivers {
      *
      * @param context A Fuzz test context.
      */
-    function deriveExecutions(FuzzTestContext memory context) public view {
+    function withDerivedExecutions(FuzzTestContext memory context) public view returns (FuzzTestContext memory) {
         // Get the action.
         bytes4 action = context.action();
 
@@ -263,6 +269,8 @@ abstract contract FuzzDerivers {
         }
         context.expectedImplicitExecutions = implicitExecutions;
         context.expectedExplicitExecutions = explicitExecutions;
+
+        return context;
     }
 
     function getStandardExecutions(
