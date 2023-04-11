@@ -127,7 +127,6 @@ contract FuzzEngine is
     BaseOrderTest,
     FuzzAmendments,
     FuzzChecks,
-    FuzzDerivers,
     FuzzSetup,
     FulfillAvailableHelper,
     MatchFulfillmentHelper
@@ -145,6 +144,8 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
+
+    using FuzzDerivers for FuzzTestContext;
 
     uint256 constant JAN_1_2023_UTC = 1672531200;
 
@@ -299,11 +300,12 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
-        deriveAvailableOrders(context);
-        deriveCriteriaResolvers(context);
-        context.detectRemainders();
-        deriveFulfillments(context);
-        deriveExecutions(context);
+        context = context
+            .withDerivedAvailableOrders()
+            .withDerivedCriteriaResolvers()
+            .withDetectedRemainders()
+            .withDerivedFulfillments()
+            .withDerivedExecutions();
     }
 
     /**
