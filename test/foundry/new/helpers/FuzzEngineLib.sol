@@ -22,8 +22,6 @@ import {
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
-import { OrderDetailsHelper } from "./FuzzGenerators.sol";
-
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
@@ -47,7 +45,6 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
-    using OrderDetailsHelper for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
