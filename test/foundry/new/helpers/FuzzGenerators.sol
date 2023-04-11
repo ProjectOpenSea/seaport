@@ -78,6 +78,8 @@ import {
 } from "./FuzzHelpers.sol";
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -153,8 +155,6 @@ library TestStateGenerator {
             }
 
             components[i] = OrderComponentsSpace({
-                // TODO: Restricted range to 1 and 2 to avoid test contract.
-                //       Range should be 0-2.
                 offerer: Offerer(context.choice(Solarray.uint256s(1, 2, 4))),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
@@ -168,9 +168,8 @@ library TestStateGenerator {
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
-                // TODO: Add more signature methods (restricted to EOA for now)
                 signatureMethod: SignatureMethod(
-                    context.choice(Solarray.uint256s(0, 4))
+                    context.choice(Solarray.uint256s(0, 1, 4))
                 ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
@@ -1529,6 +1528,8 @@ library SignatureGenerator {
 
     using ExtraDataGenerator for FuzzGeneratorContext;
 
+    using FuzzInscribers for AdvancedOrder;
+
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
@@ -1542,12 +1543,13 @@ library SignatureGenerator {
             return order;
         }
 
+        bytes memory signature;
+
         if (method == SignatureMethod.EOA) {
             bytes32 digest;
             uint8 v;
             bytes32 r;
             bytes32 s;
-            bytes memory signature;
 
             uint256 offererKey = offerer.getKey(context);
 
@@ -1584,22 +1586,29 @@ library SignatureGenerator {
             } else {
                 revert("SignatureGenerator: Invalid EOA signature type");
             }
-        } else if (method == SignatureMethod.VALIDATE) {
-            revert("Validate not implemented");
-        } else if (method == SignatureMethod.EIP1271) {
-            bytes32 digest = _getDigest(orderHash, context);
-            bytes memory sig = context.generateRandomBytesArray(1, 4096);
-            EIP1271Offerer(payable(offererAddress)).registerSignature(
-                digest,
-                sig
-            );
-            return order.withSignature(sig);
-        } else if (method == SignatureMethod.SELF_AD_HOC) {
-            return order;
-        } else if (method == SignatureMethod.CONTRACT) {
-            return order.withSignature("0x");
         } else {
-            revert("SignatureGenerator: Invalid signature method");
+            // For all others, generate a random signature half the time
+            if (context.prng.next() % 2 == 0) {
+                signature = context.generateRandomBytesArray(1, 4096);
+            }
+
+            if (method == SignatureMethod.VALIDATE) {
+                // NOTE: this should probably be inscribed downstream
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (method == SignatureMethod.EIP1271) {
+                bytes32 digest = _getDigest(orderHash, context);
+                EIP1271Offerer(payable(offererAddress)).registerSignature(
+                    digest,
+                    signature
+                );
+            } else if (
+                method != SignatureMethod.SELF_AD_HOC &&
+                method != SignatureMethod.CONTRACT
+            ) {
+                revert("SignatureGenerator: Invalid signature method");
+            }
+
+            return order.withSignature(signature);
         }
     }
 
