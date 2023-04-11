@@ -76,6 +76,15 @@ interface TestHelpers {
         string memory name
     ) external view returns (Account memory);
 
+    function getNaiveFulfillmentComponents(
+        OrderDetails[] memory orderDetails
+    )
+        external
+        returns (
+            FulfillmentComponent[][] memory offer,
+            FulfillmentComponent[][] memory consideration
+        );
+
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
@@ -101,6 +110,8 @@ interface TestHelpers {
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
     ) external returns (OrderDetails[] memory);
+
+    function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
 struct FuzzTestContext {
@@ -227,12 +238,21 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+
+    bool hasRemainders;
+
     bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
      */
-    bytes32[] expectedEventHashes;
+    bytes32[] expectedTransferEventHashes;
+
+    /**
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
+     */
+    bytes32[] expectedSeaportEventHashes;
     /**
      * @dev Actual events emitted.
      */
@@ -270,7 +290,8 @@ library FuzzTestContextLib {
         bool[] memory available;
         Execution[] memory executions;
         bytes32[] memory hashes;
-        bytes32[] memory expectedEventHashes;
+        bytes32[] memory expectedTransferEventHashes;
+        bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
 
         return
@@ -312,9 +333,11 @@ library FuzzTestContextLib {
                 expectedContractOrderCalldataHashes: new bytes32[2][](0),
                 expectedImplicitExecutions: executions,
                 expectedExplicitExecutions: executions,
+                hasRemainders: false,
                 expectedAvailableOrders: new bool[](0),
                 allExpectedExecutions: executions,
-                expectedEventHashes: expectedEventHashes,
+                expectedTransferEventHashes: expectedTransferEventHashes,
+                expectedSeaportEventHashes: expectedSeaportEventHashes,
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this))
             });
@@ -339,6 +362,25 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
+                .withInitialOrders(orders.copy());
+    }
+
+    /**
+     * @dev Create a FuzzTestContext from the given partial arguments.
+     *
+     * @param orders the AdvancedOrder[] to set
+     * @param seaport the SeaportInterface to set
+     * @custom:return _context the FuzzTestContext
+     */
+    function from(
+        AdvancedOrder[] memory orders,
+        SeaportInterface seaport
+    ) internal view returns (FuzzTestContext memory) {
+        return
+            empty()
+                .withOrders(orders)
+                .withSeaport(seaport)
+                .withOrderHashes()
                 .withInitialOrders(orders.copy());
     }
 

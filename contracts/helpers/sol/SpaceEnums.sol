@@ -96,7 +96,6 @@ enum AmountDegree {
 
 enum FulfillmentRecipient {
     ZERO,
-    OFFERER,
     ALICE,
     BOB,
     EVE
@@ -116,6 +115,16 @@ enum Recipient {
 enum RecipientDirty {
     CLEAN,
     DIRTY
+}
+
+enum Caller {
+    TEST_CONTRACT,
+    ALICE,
+    BOB,
+    CAROL,
+    DILLON,
+    EVE,
+    FRANK
 }
 
 // disregarded in the self_ad_hoc case

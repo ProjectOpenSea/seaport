@@ -16,6 +16,7 @@ import {
     Amount,
     BasicOrderCategory,
     BroadOrderType,
+    Caller,
     ConduitChoice,
     Criteria,
     EOASignature,
@@ -80,8 +81,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc721s: erc721s,
                 erc1155s: erc1155s,
                 self: address(this),
-                caller: address(this), // TODO: read recipient from FuzzTestContext
-                offerer: makeAccount("offerer"),
+                caller: address(this),
                 alice: makeAccount("alice"),
                 bob: makeAccount("bob"),
                 carol: makeAccount("carol"),
@@ -111,7 +111,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 0,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -152,7 +153,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -202,7 +204,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -263,7 +266,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             isMatchable: false,
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
-            conduit: ConduitChoice.NONE
+            conduit: ConduitChoice.NONE,
+            caller: Caller.TEST_CONTRACT
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

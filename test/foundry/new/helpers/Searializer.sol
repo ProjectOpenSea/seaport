@@ -748,8 +748,13 @@ library Searializer {
         );
         tojsonDynArrayBytes32(
             obj,
-            "expectedEventHashes",
-            value.expectedEventHashes
+            "expectedTransferEventHashes",
+            value.expectedTransferEventHashes
+        );
+        tojsonDynArrayBytes32(
+            obj,
+            "expectedSeaportEventHashes",
+            value.expectedSeaportEventHashes
         );
         tojsonDynArrayLog(obj, "actualEvents", value.actualEvents);
         string memory finalJson = tojsonReturnValues(

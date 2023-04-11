@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Vm } from "forge-std/Vm.sol";
+
 import { dumpExecutions } from "./DebugUtil.sol";
 
 import {
     AdvancedOrderLib,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper,
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
@@ -124,7 +128,9 @@ contract FuzzEngine is
     FuzzAmendments,
     FuzzChecks,
     FuzzDerivers,
-    FuzzSetup
+    FuzzSetup,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
 {
     // Use the various builder libraries.  These allow for creating structs in a
     // more readable way.
@@ -141,6 +147,22 @@ contract FuzzEngine is
     using FuzzTestContextLib for FuzzTestContext;
 
     uint256 constant JAN_1_2023_UTC = 1672531200;
+
+    Vm.Log[] internal _logs;
+
+    function setLogs(Vm.Log[] memory logs) external {
+        delete _logs;
+        for (uint256 i = 0; i < logs.length; ++i) {
+            _logs.push(logs[i]);
+        }
+    }
+
+    function getLogs() external view returns (Vm.Log[] memory logs) {
+        logs = new Vm.Log[](_logs.length);
+        for (uint256 i = 0; i < _logs.length; ++i) {
+            logs[i] = _logs[i];
+        }
+    }
 
     /**
      * @dev Generate a randomized `FuzzTestContext` from fuzz parameters and run
@@ -225,7 +247,7 @@ contract FuzzEngine is
         );
 
         FuzzTestContext memory context = FuzzTestContextLib
-            .from({ orders: orders, seaport: seaport_, caller: address(this) })
+            .from({ orders: orders, seaport: seaport_ })
             .withConduitController(conduitController_)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
@@ -233,12 +255,19 @@ contract FuzzEngine is
 
         // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
-        context = context.withFulfillerConduitKey(
-            AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
-                space,
-                generatorContext
+        context = context
+            .withCaller(
+                AdvancedOrdersSpaceGenerator.generateCaller(
+                    space,
+                    generatorContext
+                )
             )
-        );
+            .withFulfillerConduitKey(
+                AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
+                    space,
+                    generatorContext
+                )
+            );
 
         // If it's an advanced order, generate and add a top-level recipient.
         if (
@@ -272,6 +301,7 @@ contract FuzzEngine is
     function runDerivers(FuzzTestContext memory context) internal {
         deriveAvailableOrders(context);
         deriveCriteriaResolvers(context);
+        context.detectRemainders();
         deriveFulfillments(context);
         deriveExecutions(context);
     }

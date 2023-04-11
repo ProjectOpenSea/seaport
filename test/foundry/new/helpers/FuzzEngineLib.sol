@@ -22,8 +22,6 @@ import {
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
-import { OrderDetailsHelper } from "./FuzzGenerators.sol";
-
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
@@ -47,7 +45,6 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
-    using OrderDetailsHelper for AdvancedOrder[];
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -58,7 +55,9 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(FuzzTestContext memory context) internal returns (bytes4) {
+    function action(
+        FuzzTestContext memory context
+    ) internal view returns (bytes4) {
         if (context._action != bytes4(0)) return context._action;
         bytes4[] memory _actions = actions(context);
         return (context._action = _actions[
@@ -68,7 +67,7 @@ library FuzzEngineLib {
 
     function actionName(
         FuzzTestContext memory context
-    ) internal returns (string memory) {
+    ) internal view returns (string memory) {
         bytes4 selector = action(context);
         if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
         if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
@@ -82,6 +81,14 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
+    function detectRemainders(FuzzTestContext memory context) internal {
+        (, , MatchComponent[] memory remainders) = context
+            .testHelpers
+            .getMatchedFulfillments(context.orders, context.criteriaResolvers);
+
+        context.hasRemainders = remainders.length != 0;
+    }
+
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
      *      functions can we call," based on the orders in a given FuzzTestContext.
@@ -91,7 +98,7 @@ library FuzzEngineLib {
      */
     function actions(
         FuzzTestContext memory context
-    ) internal returns (bytes4[] memory) {
+    ) internal view returns (bytes4[] memory) {
         Family family = context.orders.getFamily();
 
         bool invalidOfferItemsLocated = mustUseMatch(context);
@@ -174,11 +181,7 @@ library FuzzEngineLib {
             }
         }
 
-        (, , MatchComponent[] memory remainders) = context
-            .testHelpers
-            .getMatchedFulfillments(context.orders, context.criteriaResolvers);
-
-        bool cannotMatch = (remainders.length != 0 || hasUnavailable);
+        bool cannotMatch = (context.hasRemainders || hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
@@ -366,6 +369,10 @@ library FuzzEngineLib {
     function getNativeTokensToSupply(
         FuzzTestContext memory context
     ) internal view returns (uint256) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
+
         uint256 value = 0;
 
         OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
@@ -376,25 +383,24 @@ library FuzzEngineLib {
             OrderDetails memory order = orderDetails[i];
             OrderParameters memory orderParams = context.orders[i].parameters;
 
-            for (uint256 j = 0; j < order.offer.length; ++j) {
-                SpentItem memory item = order.offer[j];
+            if (isMatch) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
 
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    orderParams.isAvailable()
-                ) {
-                    value += item.amount;
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
+                    ) {
+                        value += item.amount;
+                    }
                 }
-            }
+            } else {
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ReceivedItem memory item = order.consideration[j];
 
-            for (uint256 j = 0; j < order.consideration.length; ++j) {
-                ReceivedItem memory item = order.consideration[j];
-
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    orderParams.isAvailable()
-                ) {
-                    value += item.amount;
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
                 }
             }
         }

@@ -8,11 +8,14 @@ import {
     AdvancedOrder,
     BasicOrderParameters,
     ConsiderationItem,
+    CriteriaResolver,
     OfferItem,
     Order,
     OrderComponents,
     OrderParameters,
-    OrderType
+    OrderType,
+    ReceivedItem,
+    SpentItem
 } from "../../../lib/ConsiderationStructs.sol";
 
 import { BasicOrderType } from "../../../lib/ConsiderationEnums.sol";
@@ -22,6 +25,8 @@ import { OrderParametersLib } from "./OrderParametersLib.sol";
 import { StructCopier } from "./StructCopier.sol";
 
 import { SeaportInterface } from "../SeaportInterface.sol";
+
+import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 struct ContractNonceDetails {
     bool set;
@@ -723,5 +728,48 @@ library AdvancedOrderLib {
         assembly {
             mstore(considerationSansTips, lengthWithTips)
         }
+    }
+
+    function getOrderDetails(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal view returns (OrderDetails[] memory) {
+        OrderDetails[] memory orderDetails = new OrderDetails[](
+            advancedOrders.length
+        );
+
+        for (uint256 i = 0; i < advancedOrders.length; i++) {
+            orderDetails[i] = toOrderDetails(
+                advancedOrders[i],
+                i,
+                criteriaResolvers
+            );
+        }
+
+        return orderDetails;
+    }
+
+    function toOrderDetails(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        CriteriaResolver[] memory resolvers
+    ) internal view returns (OrderDetails memory) {
+        (
+            SpentItem[] memory offer,
+            ReceivedItem[] memory consideration
+        ) = order.parameters.getSpentAndReceivedItems(
+                order.numerator,
+                order.denominator,
+                orderIndex,
+                resolvers
+            );
+
+        return
+            OrderDetails({
+                offerer: order.parameters.offerer,
+                conduitKey: order.parameters.conduitKey,
+                offer: offer,
+                consideration: consideration
+            });
     }
 }

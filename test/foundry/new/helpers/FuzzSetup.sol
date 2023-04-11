@@ -108,6 +108,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
     using ExecutionLib for Execution;
 
+    using ExpectedEventsUtil for FuzzTestContext;
+
     /**
      *  @dev Set up the zone params on a test context.
      *
@@ -212,6 +214,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.orders,
             context.criteriaResolvers
         );
+        bool isMatchable = context.action() ==
+            context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector;
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
@@ -223,6 +228,20 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             address approveTo = _getApproveTo(context, order);
             for (uint256 j = 0; j < items.length; j++) {
                 SpentItem memory item = items[j];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    if (
+                        context.orders[i].parameters.orderType ==
+                        OrderType.CONTRACT
+                    ) {
+                        vm.deal(offerer, offerer.balance + item.amount);
+                    } else if (isMatchable) {
+                        vm.deal(
+                            context.caller,
+                            context.caller.balance + item.amount
+                        );
+                    }
+                }
 
                 if (item.itemType == ItemType.ERC20) {
                     TestERC20(item.token).mint(offerer, item.amount);
@@ -264,6 +283,26 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.action() == context.seaport.matchOrders.selector
         ) return;
 
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            context.orders,
+            context.criteriaResolvers
+        );
+
+        // In all cases, deal balance to caller if consideration item is native
+        for (uint256 i; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
+            ReceivedItem[] memory items = order.consideration;
+
+            for (uint256 j = 0; j < items.length; j++) {
+                if (items[j].itemType == ItemType.NATIVE) {
+                    vm.deal(
+                        context.caller,
+                        context.caller.balance + items[j].amount
+                    );
+                }
+            }
+        }
+
         // Special handling for basic orders that are bids; only first item
         // needs to be approved
         if (
@@ -277,6 +316,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .parameters
                 .consideration[0];
 
+            address approveTo = _getApproveTo(context);
+
             if (item.itemType == ItemType.ERC721) {
                 TestERC721(item.token).mint(
                     context.caller,
@@ -284,7 +325,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 );
                 vm.prank(context.caller);
                 TestERC721(item.token).setApprovalForAll(
-                    _getApproveTo(context),
+                    approveTo,
                     true
                 );
             } else {
@@ -295,7 +336,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 );
                 vm.prank(context.caller);
                 TestERC1155(item.token).setApprovalForAll(
-                    _getApproveTo(context),
+                    approveTo,
                     true
                 );
             }
@@ -303,14 +344,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             return;
         }
 
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
-        // Naive implementation for now
-        // TODO: - If recipient is not caller, we need to mint everything
-        //       - For matchOrders, we don't need to do any setup
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
@@ -420,17 +453,24 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             }
         }
         context.registerCheck(FuzzChecks.check_executions.selector);
-        ExpectedEventsUtil.setExpectedEventHashes(context);
-        context.registerCheck(FuzzChecks.check_expectedEventsEmitted.selector);
+        context.setExpectedTransferEventHashes();
+        context.registerCheck(
+            FuzzChecks.check_expectedTransferEventsEmitted.selector
+        );
         ExpectedEventsUtil.startRecordingLogs();
     }
 
     /**
-     *  @dev Set up the checks that will always be run.
+     * @dev Set up the checks that will always be run. Note that this must be
+     *      run after registerExpectedEventsAndBalances at the moment.
      *
      * @param context The test context.
      */
-    function registerCommonChecks(FuzzTestContext memory context) public pure {
+    function registerCommonChecks(FuzzTestContext memory context) public {
+        context.setExpectedSeaportEventHashes();
+        context.registerCheck(
+            FuzzChecks.check_expectedSeaportEventsEmitted.selector
+        );
         context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
     }
 
@@ -441,7 +481,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      */
     function registerFunctionSpecificChecks(
         FuzzTestContext memory context
-    ) public {
+    ) public view {
         bytes4 _action = context.action();
         if (_action == context.seaport.fulfillOrder.selector) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);

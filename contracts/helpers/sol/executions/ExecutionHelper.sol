@@ -5,6 +5,8 @@ import {
     AmountDeriverHelper
 } from "../lib/fulfillment/AmountDeriverHelper.sol";
 
+import { AdvancedOrderLib } from "../lib/AdvancedOrderLib.sol";
+
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -18,7 +20,10 @@ import {
 
 import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
 
-import { OrderDetails } from "../fulfillments/lib/Structs.sol";
+import {
+    FulfillmentDetails,
+    OrderDetails
+} from "../fulfillments/lib/Structs.sol";
 
 /**
  * @dev Helper contract for deriving explicit and executions from orders and
@@ -26,83 +31,10 @@ import { OrderDetails } from "../fulfillments/lib/Structs.sol";
  *
  * @dev TODO: move to the tests folder? not really useful for normal scripting
  */
-contract ExecutionHelper is AmountDeriverHelper {
+library ExecutionHelper {
+    using AdvancedOrderLib for AdvancedOrder[];
+
     error InsufficientNativeTokensSupplied();
-
-    /**
-     * @dev Represents the details of a single fulfill/match call to Seaport.
-     *      TODO: move this and OrderDetails struct into a diff helper?
-     *
-     * @param orders              processed details of individual orders
-     * @param recipient           the explicit recipient of all offer items in
-     *                            the fulfillAvailable case; implicit recipient
-     *                            of excess offer items in the match case
-     * @param fulfiller           the explicit recipient of all unspent native
-     *                            tokens; provides all consideration items in
-     *                            the fulfillAvailable case
-     * @param fulfillerConduitKey used to transfer tokens from the fulfiller
-     *                            providing all consideration items in the
-     *                            fulfillAvailable case
-     */
-    struct FulfillmentDetails {
-        OrderDetails[] orders;
-        address payable recipient;
-        address payable fulfiller;
-        bytes32 fulfillerConduitKey;
-        address seaport;
-    }
-
-    /**
-     * @dev convert an array of Orders and an explicit recipient to a
-     *      FulfillmentDetails struct.
-     *
-     * @param orders              array of Orders to process
-     * @param recipient           explicit recipient if one is set
-     * @param fulfiller           the order fulfiller
-     * @param fulfillerConduitKey the conduit key
-     *
-     * @return fulfillmentDetails the fulfillment details
-     */
-    function toFulfillmentDetails(
-        Order[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        address seaport
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders);
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
-            });
-    }
-
-    /**
-     * @dev convert an array of AdvancedOrders, an explicit recipient, and
-     *      CriteriaResolvers to a FulfillmentDetails struct
-     */
-    function toFulfillmentDetails(
-        AdvancedOrder[] memory orders,
-        address recipient,
-        address fulfiller,
-        bytes32 fulfillerConduitKey,
-        CriteriaResolver[] memory resolvers,
-        address seaport
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
-        OrderDetails[] memory details = toOrderDetails(orders, resolvers);
-        return
-            FulfillmentDetails({
-                orders: details,
-                recipient: payable(recipient),
-                fulfiller: payable(fulfiller),
-                fulfillerConduitKey: fulfillerConduitKey,
-                seaport: seaport
-            });
-    }
 
     /**
      * @dev get explicit and implicit executions for a fulfillAvailable call
@@ -205,7 +137,9 @@ contract ExecutionHelper is AmountDeriverHelper {
             }
         }
 
-        bool[] memory availableOrders = new bool[](fulfillmentDetails.orders.length);
+        bool[] memory availableOrders = new bool[](
+            fulfillmentDetails.orders.length
+        );
         for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
             availableOrders[i] = true;
         }
@@ -605,10 +539,14 @@ contract ExecutionHelper is AmountDeriverHelper {
                     continue;
                 }
 
-                OrderDetails memory considerationOrderDetails = fulfillmentDetails
-                    .orders[component.orderIndex];
+                OrderDetails
+                    memory considerationOrderDetails = fulfillmentDetails
+                        .orders[component.orderIndex];
 
-                if (component.itemIndex < considerationOrderDetails.consideration.length) {
+                if (
+                    component.itemIndex <
+                    considerationOrderDetails.consideration.length
+                ) {
                     ReceivedItem memory item = considerationOrderDetails
                         .consideration[component.itemIndex];
 
@@ -807,9 +745,8 @@ contract ExecutionHelper is AmountDeriverHelper {
             ];
 
             if (component.itemIndex < details.consideration.length) {
-                ReceivedItem memory considerationSpentItem = details.consideration[
-                    component.itemIndex
-                ];
+                ReceivedItem memory considerationSpentItem = details
+                    .consideration[component.itemIndex];
 
                 aggregatedConsiderationAmount += considerationSpentItem.amount;
 

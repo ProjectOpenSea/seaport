@@ -268,10 +268,16 @@ abstract contract FuzzChecks is Test {
         }
     }
 
-    function check_expectedEventsEmitted(
+    function check_expectedTransferEventsEmitted(
         FuzzTestContext memory context
     ) public {
-        ExpectedEventsUtil.checkExpectedEvents(context);
+        ExpectedEventsUtil.checkExpectedTransferEvents(context);
+    }
+
+    function check_expectedSeaportEventsEmitted(
+        FuzzTestContext memory context
+    ) public {
+        ExpectedEventsUtil.checkExpectedSeaportEvents(context);
     }
 
     function check_expectedBalances(
