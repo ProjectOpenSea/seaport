@@ -1215,6 +1215,13 @@ library OrderComponentsSpaceGenerator {
         bool ensureDirectSupport,
         uint256 orderIndex
     ) internal returns (OrderParameters memory) {
+        if (
+            space.offerer == Offerer.EIP1271 &&
+            space.signatureMethod == SignatureMethod.EOA
+        ) {
+            space.signatureMethod = SignatureMethod.EIP1271;
+        }
+
         OrderParameters memory params;
         {
             address offerer;
