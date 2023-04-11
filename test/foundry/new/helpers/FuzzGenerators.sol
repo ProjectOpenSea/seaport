@@ -1526,9 +1526,7 @@ library ExtraDataGenerator {
             return order.withExtraData("");
         } else if (extraData == ExtraData.RANDOM) {
             return
-                order.withExtraData(
-                    generateRandomBytesArray(context, 1, 4096)
-                );
+                order.withExtraData(generateRandomBytesArray(context, 1, 4096));
         } else {
             revert("ExtraDataGenerator: unsupported ExtraData value");
         }
@@ -1772,8 +1770,6 @@ library SignatureGenerator {
             } else {
                 revert("SignatureGenerator: Invalid EOA signature type");
             }
-        } else if (method == SignatureMethod.CONTRACT) {
-            return order.withSignature("0x");
         } else if (method == SignatureMethod.VALIDATE) {
             revert("Validate not implemented");
         } else if (method == SignatureMethod.EIP1271) {
@@ -1786,6 +1782,8 @@ library SignatureGenerator {
             return order.withSignature(sig);
         } else if (method == SignatureMethod.SELF_AD_HOC) {
             return order;
+        } else if (method == SignatureMethod.CONTRACT) {
+            return order.withSignature("0x");
         } else {
             revert("SignatureGenerator: Invalid signature method");
         }
