@@ -1047,53 +1047,18 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             // Set up variables.
             AdvancedOrder memory order = orders[i];
-            bytes32 orderHash;
 
             // Skip contract orders since they do not have signatures
             if (order.parameters.orderType == OrderType.CONTRACT) {
                 continue;
             }
 
-            {
-                // Get the counter for the offerer.
-                uint256 counter = context.seaport.getCounter(
-                    order.parameters.offerer
-                );
+            bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                context.seaport
+            );
 
-                // Convert the order parameters to order components.
-                OrderComponents memory components = (
-                    order.parameters.toOrderComponents(counter)
-                );
-
-                // Get the length of the consideration array.
-                uint256 lengthWithTips = components.consideration.length;
-
-                // Get a reference to the consideration array.
-                ConsiderationItem[] memory considerationSansTips = (
-                    components.consideration
-                );
-
-                // Get the length of the consideration array without tips.
-                uint256 lengthSansTips = (
-                    order.parameters.totalOriginalConsiderationItems
-                );
-
-                // Set proper length of the considerationSansTips array.
-                assembly {
-                    mstore(considerationSansTips, lengthSansTips)
-                }
-
-                // Get the order hash using the tweaked components.
-                orderHash = context.seaport.getOrderHash(components);
-
-                // Restore length of the considerationSansTips array.
-                assembly {
-                    mstore(considerationSansTips, lengthWithTips)
-                }
-
-                // Set the order hash in the context.
-                context.orderHashes[i] = orderHash;
-            }
+            // Set the order hash in the context.
+            context.orderHashes[i] = orderHash;
 
             // Replace the unsigned order with a signed order.
             orders[i] = order.withGeneratedSignature(
@@ -1562,17 +1527,17 @@ library ExtraDataGenerator {
         } else if (extraData == ExtraData.RANDOM) {
             return
                 order.withExtraData(
-                    _generateRandomBytesArray(1, 4096, context)
+                    generateRandomBytesArray(context, 1, 4096)
                 );
         } else {
             revert("ExtraDataGenerator: unsupported ExtraData value");
         }
     }
 
-    function _generateRandomBytesArray(
+    function generateRandomBytesArray(
+        FuzzGeneratorContext memory context,
         uint256 minSize,
-        uint256 maxSize,
-        FuzzGeneratorContext memory context
+        uint256 maxSize
     ) internal pure returns (bytes memory) {
         uint256 length = context.randRange(minSize, maxSize);
 
@@ -1750,6 +1715,8 @@ library SignatureGenerator {
     using FuzzHelpers for AdvancedOrder;
     using OffererGenerator for Offerer;
 
+    using ExtraDataGenerator for FuzzGeneratorContext;
+
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
@@ -1811,11 +1778,7 @@ library SignatureGenerator {
             revert("Validate not implemented");
         } else if (method == SignatureMethod.EIP1271) {
             bytes32 digest = _getDigest(orderHash, context);
-            bytes memory sig = ExtraDataGenerator._generateRandomBytesArray(
-                1,
-                4096,
-                context
-            );
+            bytes memory sig = context.generateRandomBytesArray(1, 4096);
             EIP1271Offerer(payable(offererAddress)).registerSignature(
                 digest,
                 sig
@@ -2207,6 +2170,7 @@ library OffererGenerator {
         } else if (offerer == Offerer.CONTRACT_OFFERER) {
             return address(context.contractOfferer);
         } else {
+            // TODO: deploy in test helper and reuse
             return address(new EIP1271Offerer());
         }
     }
