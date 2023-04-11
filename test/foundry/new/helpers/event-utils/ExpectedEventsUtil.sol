@@ -22,6 +22,8 @@ import { TransferEventsLib } from "./TransferEventsLib.sol";
 
 import { OrderFulfilledEventsLib } from "./OrderFulfilledEventsLib.sol";
 
+import { OrdersMatchedEventsLib } from "./OrdersMatchedEventsLib.sol";
+
 import { dumpTransfers } from "../DebugUtil.sol";
 
 bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
@@ -49,6 +51,7 @@ library ExpectedEventsUtil {
     using ForgeEventsLib for Vm.Log[];
     using FuzzEngineLib for FuzzTestContext;
     using OrderFulfilledEventsLib for FuzzTestContext;
+    using OrdersMatchedEventsLib for FuzzTestContext;
 
     /**
      * @dev Set up the Vm.
@@ -65,6 +68,8 @@ library ExpectedEventsUtil {
         SpentItem[] offer,
         ReceivedItem[] consideration
     );
+
+    event OrdersMatched(bytes32[] orderHashes);
 
     enum ItemType {
         NATIVE,
@@ -127,7 +132,11 @@ library ExpectedEventsUtil {
             revert("ExpectedEventsUtil: available array length != orders");
         }
 
-        uint256 totalExpectedEventHashes = 0;
+        bool isMatch = context.action() ==
+            context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector;
+
+        uint256 totalExpectedEventHashes = isMatch ? 1 : 0;
         for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
             if (context.expectedAvailableOrders[i]) {
                 ++totalExpectedEventHashes;
@@ -144,6 +153,11 @@ library ExpectedEventsUtil {
                 context.expectedSeaportEventHashes[totalExpectedEventHashes++] = context
                     .getOrderFulfilledEventHash(i);
             }
+        }
+
+        if (isMatch) {
+            context.expectedSeaportEventHashes[totalExpectedEventHashes] = context
+                .getOrdersMatchedEventHash();
         }
 
         vm.serializeBytes32(
@@ -267,7 +281,9 @@ library ExpectedEventsUtil {
         Vm.Log memory log
     ) internal pure returns (bool) {
         bytes32 topic0 = log.getTopic0();
-        return topic0 == OrderFulfilled.selector;
+        return
+            topic0 == OrderFulfilled.selector ||
+            topic0 == OrdersMatched.selector;
     }
 
     /**
