@@ -271,14 +271,14 @@ library ExpectedEventsUtil {
             );
         }
 
-        require(nextWatchedEventIndex != -1, "ExpectedEvents: event not found");
+        require(nextWatchedEventIndex != -1, "ExpectedEvents: transfer event not found");
 
         // Verify that the transfer event matches the expected event
         uint256 i = uint256(nextWatchedEventIndex);
         Vm.Log memory log = input.logsArray[i];
         require(
             log.getForgeEventHash() == bytes32(expectedEventHash),
-            "ExpectedEvents: event hash does not match"
+            "ExpectedEvents: transfer event hash does not match"
         );
 
         // Increment the log index for the next iteration
@@ -317,14 +317,14 @@ library ExpectedEventsUtil {
             );
         }
 
-        require(nextWatchedEventIndex != -1, "ExpectedEvents: event not found");
+        require(nextWatchedEventIndex != -1, "ExpectedEvents: seaport event not found");
 
         // Verify that the transfer event matches the expected event
         uint256 i = uint256(nextWatchedEventIndex);
         Vm.Log memory log = input.logsArray[i];
         require(
             log.getForgeEventHash() == bytes32(expectedEventHash),
-            "ExpectedEvents: event hash does not match"
+            "ExpectedEvents: seaport event hash does not match"
         );
 
         // Increment the log index for the next iteration
