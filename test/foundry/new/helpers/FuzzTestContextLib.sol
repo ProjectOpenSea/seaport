@@ -76,6 +76,15 @@ interface TestHelpers {
         string memory name
     ) external view returns (Account memory);
 
+    function getNaiveFulfillmentComponents(
+        OrderDetails[] memory orderDetails
+    )
+        external
+        returns (
+            FulfillmentComponent[][] memory offer,
+            FulfillmentComponent[][] memory consideration
+        );
+
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers
