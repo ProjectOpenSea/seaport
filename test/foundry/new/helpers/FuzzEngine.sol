@@ -7,6 +7,8 @@ import { dumpExecutions } from "./DebugUtil.sol";
 
 import {
     AdvancedOrderLib,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper,
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
@@ -126,7 +128,9 @@ contract FuzzEngine is
     FuzzAmendments,
     FuzzChecks,
     FuzzDerivers,
-    FuzzSetup
+    FuzzSetup,
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
 {
     // Use the various builder libraries.  These allow for creating structs in a
     // more readable way.

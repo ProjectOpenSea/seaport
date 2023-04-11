@@ -7,10 +7,8 @@ import { Vm } from "forge-std/Vm.sol";
 
 import {
     AdvancedOrderLib,
-    FulfillAvailableHelper,
     MatchComponent,
-    MatchComponentType,
-    MatchFulfillmentHelper
+    MatchComponentType
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -52,10 +50,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
  *       steps. Derivers should not modify the order state itself, only the
  *       `FuzzTestContext`.
  */
-abstract contract FuzzDerivers is
-    FulfillAvailableHelper,
-    MatchFulfillmentHelper
-{
+abstract contract FuzzDerivers {
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
