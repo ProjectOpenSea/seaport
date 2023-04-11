@@ -154,7 +154,7 @@ library TestStateGenerator {
             components[i] = OrderComponentsSpace({
                 // TODO: Restricted range to 1 and 2 to avoid test contract.
                 //       Range should be 0-2.
-                offerer: Offerer(context.choice(Solarray.uints(1, 2, 4))),
+                offerer: Offerer(context.choice(Solarray.uint256s(1, 2, 4))),
                 // TODO: Ignoring fail for now. Should be 0-2.
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
@@ -170,7 +170,7 @@ library TestStateGenerator {
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 // TODO: Add more signature methods (restricted to EOA for now)
                 signatureMethod: SignatureMethod(
-                    context.choice(Solarray.uints(0, 4))
+                    context.choice(Solarray.uint256s(0, 4))
                 ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
