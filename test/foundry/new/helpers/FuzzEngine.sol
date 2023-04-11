@@ -68,6 +68,8 @@ import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
 
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
+import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
 import {
     SignatureVerificationErrors
 } from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
@@ -210,8 +212,13 @@ contract FuzzEngine is
         runSetup(context);
         runCheckRegistration(context);
         execFailure(context);
-        exec(context, true);
+        execSuccess(context);
         checkAll(context);
+    }
+
+    function execSuccess(FuzzTestContext memory context) internal {
+        ExpectedEventsUtil.startRecordingLogs();
+        exec(context, true);
     }
 
     /**
