@@ -63,7 +63,9 @@ library FuzzDerivers {
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
 
-    function withDerivedAvailableOrders(FuzzTestContext memory context) public view returns (FuzzTestContext memory) {
+    function withDerivedAvailableOrders(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
         // TODO: handle skipped orders due to generateOrder reverts
         bool[] memory expectedAvailableOrders = new bool[](
             context.orders.length
@@ -130,7 +132,7 @@ library FuzzDerivers {
 
     function withDerivedCriteriaResolvers(
         FuzzTestContext memory context
-    ) public view returns (FuzzTestContext memory) {
+    ) internal view returns (FuzzTestContext memory) {
         CriteriaResolverHelper criteriaResolverHelper = context
             .testHelpers
             .criteriaResolverHelper();
@@ -149,7 +151,9 @@ library FuzzDerivers {
      *
      * @param context A Fuzz test context.
      */
-    function withDerivedFulfillments(FuzzTestContext memory context) public returns (FuzzTestContext memory) {
+    function withDerivedFulfillments(
+        FuzzTestContext memory context
+    ) internal returns (FuzzTestContext memory) {
         // Determine the action.
         bytes4 action = context.action();
 
@@ -204,7 +208,9 @@ library FuzzDerivers {
      *
      * @param context A Fuzz test context.
      */
-    function withDerivedExecutions(FuzzTestContext memory context) public view returns (FuzzTestContext memory) {
+    function withDerivedExecutions(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
         // Get the action.
         bytes4 action = context.action();
 
@@ -275,7 +281,7 @@ library FuzzDerivers {
 
     function getStandardExecutions(
         FuzzTestContext memory context
-    ) public view returns (Execution[] memory implicitExecutions) {
+    ) internal view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -298,7 +304,7 @@ library FuzzDerivers {
 
     function getBasicExecutions(
         FuzzTestContext memory context
-    ) public view returns (Execution[] memory implicitExecutions) {
+    ) internal view returns (Execution[] memory implicitExecutions) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
@@ -318,7 +324,7 @@ library FuzzDerivers {
     function getFulfillAvailableExecutions(
         FuzzTestContext memory context
     )
-        public
+        internal
         view
         returns (
             Execution[] memory explicitExecutions,
@@ -357,7 +363,7 @@ library FulfillmentDetailsHelper {
 
     function toFulfillmentDetails(
         FuzzTestContext memory context
-    ) public view returns (FulfillmentDetails memory fulfillmentDetails) {
+    ) internal view returns (FulfillmentDetails memory fulfillmentDetails) {
         address caller = context.caller == address(0)
             ? address(this)
             : context.caller;
