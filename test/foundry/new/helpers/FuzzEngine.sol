@@ -239,6 +239,11 @@ contract FuzzEngine is
             generatorContext
         );
 
+        generatorContext.caller = AdvancedOrdersSpaceGenerator.generateCaller(
+            space,
+            generatorContext
+        );
+
         // Generate orders from the space. These are the actual orders that will
         // be used in the test.
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
@@ -256,12 +261,7 @@ contract FuzzEngine is
         // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
         context = context
-            .withCaller(
-                AdvancedOrdersSpaceGenerator.generateCaller(
-                    space,
-                    generatorContext
-                )
-            )
+            .withCaller(generatorContext.caller)
             .withFulfillerConduitKey(
                 AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
                     space,

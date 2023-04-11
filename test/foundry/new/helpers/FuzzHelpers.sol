@@ -46,6 +46,8 @@ import { ZoneInterface } from "seaport-sol/ZoneInterface.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+
 /**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
@@ -128,6 +130,7 @@ library FuzzHelpers {
     using AdvancedOrderLib for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder;
     using ZoneParametersLib for AdvancedOrder[];
+    using FuzzInscribers for AdvancedOrder;
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
@@ -654,36 +657,8 @@ library FuzzHelpers {
         AdvancedOrder memory order,
         FuzzTestContext memory context
     ) internal returns (bool validated) {
-        // Get the length of the consideration array.
-        uint256 lengthWithTips = order.parameters.consideration.length;
-
-        // Get the length of the consideration array without tips.
-        uint256 lengthSansTips = order
-            .parameters
-            .totalOriginalConsiderationItems;
-
-        // Get a reference to the consideration array.
-        ConsiderationItem[] memory considerationSansTips = (
-            order.parameters.consideration
-        );
-
-        // Set proper length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthSansTips)
-        }
-
-        // Validate the order using the tweaked consideration array.
-        validated = context.seaport.validate(
-            SeaportArrays.Orders(order.toOrder())
-        );
-
-        // Ensure that validation is successful.
-        require(validated, "Failed to validate orders.");
-
-        // Restore length of the considerationSansTips array.
-        assembly {
-            mstore(considerationSansTips, lengthWithTips)
-        }
+        order.inscribeOrderStatusValidated(true, context.seaport);
+        return true;
     }
 
     function cancelTipNeutralizedOrder(
