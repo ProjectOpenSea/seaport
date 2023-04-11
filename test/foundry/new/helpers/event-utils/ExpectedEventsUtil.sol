@@ -312,9 +312,8 @@ library ExpectedEventsUtil {
                 "expectedEventHash",
                 bytes32(expectedEventHash)
             );
-            dumpTransfers(input.context);
             revert(
-                "ExpectedEvents: transfer event not found - info written to fuzz_debug.json"
+                "ExpectedEvents: seaport event not found - info written to fuzz_debug.json"
             );
         }
 
