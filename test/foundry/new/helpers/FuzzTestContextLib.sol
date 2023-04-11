@@ -23,7 +23,11 @@ import {
 
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import {
+    OrderStatusEnum,
+    SignatureMethod,
+    UnavailableReason
+} from "seaport-sol/SpaceEnums.sol";
 
 import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
 
@@ -238,16 +242,13 @@ struct FuzzTestContext {
     Execution[] expectedImplicitExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
-
     bool hasRemainders;
-
     bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
      */
     bytes32[] expectedTransferEventHashes;
-
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
@@ -690,6 +691,10 @@ library FuzzTestContextLib {
                 UnavailableReason.ALREADY_FULFILLED
             ) {
                 context.preExecOrderStatuses[i] = OrderStatusEnum.FULFILLED;
+            } else if (
+                space.orders[i].signatureMethod == SignatureMethod.VALIDATE
+            ) {
+                context.preExecOrderStatuses[i] = OrderStatusEnum.VALIDATED;
             } else {
                 // TODO: support partial as well (0-2)
                 context.preExecOrderStatuses[i] = OrderStatusEnum(
