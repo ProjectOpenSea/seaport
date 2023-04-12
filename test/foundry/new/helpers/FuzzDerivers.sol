@@ -64,6 +64,13 @@ library FuzzDerivers {
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
 
+    function withDerivedCallValue(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
+        context.value = context.getNativeTokensToSupply();
+        return context;
+    }
+
     function withDerivedAvailableOrders(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
@@ -310,7 +317,7 @@ library FuzzDerivers {
                     caller,
                     context.fulfillerConduitKey,
                     recipient,
-                    context.getNativeTokensToSupply(),
+                    context.value,
                     address(context.seaport)
                 );
     }
@@ -329,7 +336,7 @@ library FuzzDerivers {
                 .getBasicExecutions(
                     caller,
                     context.fulfillerConduitKey,
-                    context.getNativeTokensToSupply(),
+                    context.value,
                     address(context.seaport)
                 );
     }
@@ -348,7 +355,7 @@ library FuzzDerivers {
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.offerFulfillments,
                 context.considerationFulfillments,
-                context.getNativeTokensToSupply(),
+                context.value,
                 context.expectedAvailableOrders
             );
     }
@@ -366,7 +373,7 @@ library FuzzDerivers {
         return
             context.toFulfillmentDetails().getMatchExecutions(
                 context.fulfillments,
-                context.getNativeTokensToSupply()
+                context.value
             );
     }
 }

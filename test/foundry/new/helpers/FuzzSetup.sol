@@ -240,7 +240,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 }
 
                 if (item.itemType == ItemType.ERC20) {
-
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
                     TestERC20(item.token).increaseAllowance(
@@ -408,18 +407,18 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // supplied when orders are unavailable; however, this is generally
         // not known at the time of submission. Consider adding a fuzz param
         // for supplying the minimum possible native token value.
-        uint256 callValue = context.getNativeTokensToSupply();
+        context.value = context.getNativeTokensToSupply();
 
         Execution[] memory _executions = context.allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        if (callValue > 0) {
+        if (context.value > 0) {
             address caller = context.caller;
             if (caller == address(0)) caller = address(this);
             address seaport = address(context.seaport);
             executions = new Execution[](_executions.length + 1);
             executions[0] = ExecutionLib.empty().withOfferer(caller);
-            executions[0].item.amount = callValue;
+            executions[0].item.amount = context.value;
             executions[0].item.recipient = payable(seaport);
             for (uint256 i; i < _executions.length; i++) {
                 Execution memory execution = _executions[i].copy();

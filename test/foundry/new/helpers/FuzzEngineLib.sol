@@ -81,7 +81,9 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
-    function withDetectedRemainders(FuzzTestContext memory context) internal returns (FuzzTestContext memory) {
+    function withDetectedRemainders(
+        FuzzTestContext memory context
+    ) internal returns (FuzzTestContext memory) {
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
             .getMatchedFulfillments(context.orders, context.criteriaResolvers);
@@ -377,12 +379,8 @@ library FuzzEngineLib {
 
         uint256 value = 0;
 
-        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
-            context.criteriaResolvers
-        );
-
-        for (uint256 i = 0; i < orderDetails.length; ++i) {
-            OrderDetails memory order = orderDetails[i];
+        for (uint256 i = 0; i < context.orderDetails.length; ++i) {
+            OrderDetails memory order = context.orderDetails[i];
             OrderParameters memory orderParams = context.orders[i].parameters;
 
             if (isMatch) {
