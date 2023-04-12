@@ -369,7 +369,8 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -388,7 +389,8 @@ library FuzzTestContextLib {
                 .withOrders(orders)
                 .withSeaport(seaport)
                 .withOrderHashes()
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -431,6 +433,13 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.initialOrders = orders.copy();
+        return context;
+    }
+
+    function withProvisionedIneligbleOrdersArray(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        context.ineligibleOrders = new bool[](context.orders.length);
         return context;
     }
 

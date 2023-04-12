@@ -13,6 +13,7 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
+
 contract MutationFilters {
     using AdvancedOrderLib for AdvancedOrder;
 
@@ -24,19 +25,19 @@ contract MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         if (!context.expectedAvailableOrders[orderIndex]) {
-            return false;
+            return true;
         }
 
         if (order.parameters.orderType == OrderType.CONTRACT) {
-            return false;
+            return true;
         }
 
         if (order.parameters.offerer == context.caller) {
-            return false;
+            return true;
         }
 
         if (order.parameters.offerer.code.length != 0) {
-            return false;
+            return true;
         }
 
         (bool isValidated, , , ) = context.seaport.getOrderStatus(
@@ -44,10 +45,10 @@ contract MutationFilters {
         );
 
         if (isValidated) {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 }
 
@@ -88,7 +89,7 @@ library OrderEligibilityLib {
     function setIneligibleOrder(
         FuzzTestContext memory context,
         uint256 ineligibleOrderIndex
-    ) internal pure {
+    ) internal view {
         // Set the respective boolean for the ineligible order.
         context.ineligibleOrders[ineligibleOrderIndex] = true;
     }
