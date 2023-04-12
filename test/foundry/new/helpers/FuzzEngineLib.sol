@@ -81,12 +81,14 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
-    function detectRemainders(FuzzTestContext memory context) internal {
+    function withDetectedRemainders(FuzzTestContext memory context) internal returns (FuzzTestContext memory) {
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
             .getMatchedFulfillments(context.orders, context.criteriaResolvers);
 
         context.hasRemainders = remainders.length != 0;
+
+        return context;
     }
 
     /**

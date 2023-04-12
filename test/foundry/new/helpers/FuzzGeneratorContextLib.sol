@@ -67,7 +67,6 @@ struct FuzzGeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address caller;
-    Account offerer;
     Account alice;
     Account bob;
     Account carol;
@@ -115,7 +114,6 @@ library FuzzGeneratorContextLib {
                 contractOfferer: new HashCalldataContractOfferer(address(0)),
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
-                offerer: testHelpers.makeAccount("offerer"),
                 alice: testHelpers.makeAccount("alice"),
                 bob: testHelpers.makeAccount("bob"),
                 carol: testHelpers.makeAccount("carol"),
@@ -185,7 +183,6 @@ library FuzzGeneratorContextLib {
                 ),
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
-                offerer: testHelpers.makeAccount("offerer"),
                 alice: testHelpers.makeAccount("alice"),
                 bob: testHelpers.makeAccount("bob"),
                 carol: testHelpers.makeAccount("carol"),

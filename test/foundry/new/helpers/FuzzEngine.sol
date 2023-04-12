@@ -125,10 +125,9 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
  */
 contract FuzzEngine is
     BaseOrderTest,
-    FuzzSetup,
     FuzzAmendments,
     FuzzChecks,
-    FuzzDerivers,
+    FuzzSetup,
     FulfillAvailableHelper,
     MatchFulfillmentHelper
 {
@@ -145,6 +144,8 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
+
+    using FuzzDerivers for FuzzTestContext;
 
     Vm.Log[] internal _logs;
 
@@ -236,6 +237,11 @@ contract FuzzEngine is
             generatorContext
         );
 
+        generatorContext.caller = AdvancedOrdersSpaceGenerator.generateCaller(
+            space,
+            generatorContext
+        );
+
         // Generate orders from the space. These are the actual orders that will
         // be used in the test.
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
@@ -255,12 +261,7 @@ contract FuzzEngine is
         // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
         context = context
-            .withCaller(
-                AdvancedOrdersSpaceGenerator.generateCaller(
-                    space,
-                    generatorContext
-                )
-            )
+            .withCaller(generatorContext.caller)
             .withFulfillerConduitKey(
                 AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
                     space,
@@ -300,17 +301,14 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
-        deriveAvailableOrders(context);
-        deriveCriteriaResolvers(context);
-        // Derive them up here just to provision the array.
-        deriveOrderDetails(context);
-        context.detectRemainders();
-        deriveFulfillments(context);
-        deriveExecutions(context);
-        // TODO: figure out how to handle order details so that they can be set
-        //       once.
-        // Derive them down here for use in the rest of the lifecycle.
-        deriveOrderDetails(context);
+        context = context
+            .withDerivedAvailableOrders()
+            .withDerivedCriteriaResolvers()
+            .withDetectedRemainders()
+            .withDerivedOrderDetails()
+            .withDerivedFulfillments()
+            .withDerivedExecutions()
+            .withDerivedOrderDetails();
     }
 
     /**

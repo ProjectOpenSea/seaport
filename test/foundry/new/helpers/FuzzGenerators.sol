@@ -29,7 +29,7 @@ import {
 import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
-
+import { Solarray } from "solarray/Solarray.sol";
 import {
     Amount,
     BasicOrderCategory,
@@ -76,6 +76,7 @@ import {
     FuzzHelpers,
     Structure
 } from "./FuzzHelpers.sol";
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
@@ -154,10 +155,7 @@ library TestStateGenerator {
             }
 
             components[i] = OrderComponentsSpace({
-                // TODO: Restricted range to 1 and 2 to avoid test contract.
-                //       Range should be 0-2.
-                offerer: Offerer(context.randEnum(1, 2)),
-                // TODO: Ignoring fail for now. Should be 0-2.
+                offerer: Offerer(context.choice(Solarray.uint256s(1, 2, 4))),
                 zone: Zone(context.randEnum(0, 1)),
                 offer: generateOffer(maxOfferItemsPerOrder, context),
                 consideration: generateConsideration(
@@ -169,8 +167,9 @@ library TestStateGenerator {
                 // NOTE: unavailable times are inserted downstream.
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
-                // TODO: Add more signature methods (restricted to EOA for now)
-                signatureMethod: SignatureMethod(0),
+                signatureMethod: SignatureMethod(
+                    context.choice(Solarray.uint256s(0, 1, 4))
+                ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
@@ -216,6 +215,8 @@ library TestStateGenerator {
                     // contract offerer needs to resolve these itself)
                     components[i].consideration[j].criteria = Criteria.MERKLE;
                 }
+            } else if (components[i].offerer == Offerer.EIP1271) {
+                components[i].signatureMethod = SignatureMethod.EIP1271;
             }
         }
 
@@ -229,7 +230,7 @@ library TestStateGenerator {
                 orders: components,
                 isMatchable: isMatchable,
                 maximumFulfilled: maximumFulfilled,
-                recipient: FulfillmentRecipient(context.randEnum(0, 4)),
+                recipient: FulfillmentRecipient(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 caller: Caller(context.randEnum(0, 6))
             });
@@ -1153,12 +1154,11 @@ library AdvancedOrdersSpaceGenerator {
         for (uint256 i = 0; i < orders.length; ++i) {
             // Set up variables.
             AdvancedOrder memory order = orders[i];
-            bytes32 orderHash;
 
             // Skip contract orders since they do not have signatures
             if (order.parameters.orderType == OrderType.CONTRACT) {
-                uint256 contractOffererSpecificContractNonce =
-                    context.contractOffererNonce +
+                uint256 contractOffererSpecificContractNonce = context
+                    .contractOffererNonce +
                     uint256(uint160(order.parameters.offerer));
                 // Just for convenience of having them both in one place.
                 FuzzInscribers.inscribeContractOffererNonce(
@@ -1169,57 +1169,29 @@ library AdvancedOrdersSpaceGenerator {
                 continue;
             }
 
-            {
-                // Get the counter for the offerer.
-                uint256 offererSpecificCounter = context.counter +
-                    uint256(uint160(order.parameters.offerer));
+            // Get the counter for the offerer.
+            uint256 offererSpecificCounter = context.counter +
+                uint256(uint160(order.parameters.offerer));
 
-                FuzzInscribers.inscribeCounter(
-                    order.parameters.offerer,
-                    offererSpecificCounter,
-                    context.seaport
-                );
+            FuzzInscribers.inscribeCounter(
+                order.parameters.offerer,
+                offererSpecificCounter,
+                context.seaport
+            );
 
-                // Convert the order parameters to order components.
-                OrderComponents memory components = (
-                    order.parameters.toOrderComponents(offererSpecificCounter)
-                );
+            bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                context.seaport, offererSpecificCounter
+            );
 
-                // Get the length of the consideration array.
-                uint256 lengthWithTips = components.consideration.length;
-
-                // Get a reference to the consideration array.
-                ConsiderationItem[] memory considerationSansTips = (
-                    components.consideration
-                );
-
-                // Get the length of the consideration array without tips.
-                uint256 lengthSansTips = (
-                    order.parameters.totalOriginalConsiderationItems
-                );
-
-                // Set proper length of the considerationSansTips array.
-                assembly {
-                    mstore(considerationSansTips, lengthSansTips)
-                }
-
-                // Get the order hash using the tweaked components.
-                orderHash = context.seaport.getOrderHash(components);
-
-                // Restore length of the considerationSansTips array.
-                assembly {
-                    mstore(considerationSansTips, lengthWithTips)
-                }
-
-                // Set the order hash in the context.
-                context.orderHashes[i] = orderHash;
-            }
+            // Set the order hash in the context.
+            context.orderHashes[i] = orderHash;
 
             // Replace the unsigned order with a signed order.
             orders[i] = order.withGeneratedSignature(
                 space.orders[i].signatureMethod,
                 space.orders[i].eoaSignatureType,
                 space.orders[i].offerer,
+                order.parameters.offerer,
                 orderHash,
                 context
             );
@@ -1265,9 +1237,21 @@ library OrderComponentsSpaceGenerator {
         bool ensureDirectSupport,
         uint256 orderIndex
     ) internal returns (OrderParameters memory) {
+        if (
+            space.offerer == Offerer.EIP1271 &&
+            space.signatureMethod == SignatureMethod.EOA
+        ) {
+            space.signatureMethod = SignatureMethod.EIP1271;
+        }
+
         OrderParameters memory params;
         {
-            address offerer = space.offerer.generate(context);
+            address offerer;
+            if (space.signatureMethod == SignatureMethod.SELF_AD_HOC) {
+                offerer = context.caller;
+            } else {
+                offerer = space.offerer.generate(context);
+            }
 
             params = OrderParametersLib
                 .empty()
@@ -1378,18 +1362,16 @@ library ExtraDataGenerator {
             return order.withExtraData("");
         } else if (extraData == ExtraData.RANDOM) {
             return
-                order.withExtraData(
-                    _generateRandomBytesArray(1, 4096, context)
-                );
+                order.withExtraData(generateRandomBytesArray(context, 1, 4096));
         } else {
             revert("ExtraDataGenerator: unsupported ExtraData value");
         }
     }
 
-    function _generateRandomBytesArray(
+    function generateRandomBytesArray(
+        FuzzGeneratorContext memory context,
         uint256 minSize,
-        uint256 maxSize,
-        FuzzGeneratorContext memory context
+        uint256 maxSize
     ) internal pure returns (bytes memory) {
         uint256 length = context.randRange(minSize, maxSize);
 
@@ -1567,11 +1549,14 @@ library SignatureGenerator {
     using FuzzHelpers for AdvancedOrder;
     using OffererGenerator for Offerer;
 
+    using ExtraDataGenerator for FuzzGeneratorContext;
+
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
         EOASignature eoaSignatureType,
         Offerer offerer,
+        address offererAddress,
         bytes32 orderHash,
         FuzzGeneratorContext memory context
     ) internal returns (AdvancedOrder memory) {
@@ -1579,12 +1564,13 @@ library SignatureGenerator {
             return order;
         }
 
+        bytes memory signature;
+
         if (method == SignatureMethod.EOA) {
             bytes32 digest;
             uint8 v;
             bytes32 r;
             bytes32 s;
-            bytes memory signature;
 
             uint256 offererKey = offerer.getKey(context);
 
@@ -1621,16 +1607,27 @@ library SignatureGenerator {
             } else {
                 revert("SignatureGenerator: Invalid EOA signature type");
             }
-        } else if (method == SignatureMethod.CONTRACT) {
-            return order.withSignature("0x");
-        } else if (method == SignatureMethod.VALIDATE) {
-            revert("Validate not implemented");
-        } else if (method == SignatureMethod.EIP1271) {
-            revert("EIP1271 not implemented");
-        } else if (method == SignatureMethod.SELF_AD_HOC) {
-            revert("Self ad hoc not implemented");
         } else {
-            revert("SignatureGenerator: Invalid signature method");
+            // For all others, generate a random signature half the time
+            if (context.prng.next() % 2 == 0) {
+                signature = context.generateRandomBytesArray(1, 4096);
+            }
+
+            if (method == SignatureMethod.EIP1271) {
+                bytes32 digest = _getDigest(orderHash, context);
+                EIP1271Offerer(payable(offererAddress)).registerSignature(
+                    digest,
+                    signature
+                );
+            } else if (
+                method != SignatureMethod.SELF_AD_HOC &&
+                method != SignatureMethod.CONTRACT &&
+                method != SignatureMethod.VALIDATE
+            ) {
+                revert("SignatureGenerator: Invalid signature method");
+            }
+
+            return order.withSignature(signature);
         }
     }
 
@@ -1679,7 +1676,7 @@ library SignatureGenerator {
         bytes32 s,
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal pure {
+    ) internal {
         address recovered = ecrecover(digest, v, r, s);
         if (recovered != offerer.generate(context) || recovered == address(0)) {
             revert("SignatureGenerator: Invalid signature");
@@ -2003,7 +2000,7 @@ library OffererGenerator {
     function generate(
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal pure returns (address) {
+    ) internal returns (address) {
         if (offerer == Offerer.TEST_CONTRACT) {
             return context.self;
         } else if (offerer == Offerer.ALICE) {
@@ -2013,7 +2010,8 @@ library OffererGenerator {
         } else if (offerer == Offerer.CONTRACT_OFFERER) {
             return address(context.contractOfferer);
         } else {
-            revert("Invalid offerer");
+            // TODO: deploy in test helper and reuse
+            return address(new EIP1271Offerer());
         }
     }
 
@@ -2042,8 +2040,6 @@ library FulfillmentRecipientGenerator {
     ) internal pure returns (address) {
         if (recipient == FulfillmentRecipient.ZERO) {
             return address(0);
-        } else if (recipient == FulfillmentRecipient.OFFERER) {
-            return context.offerer.addr;
         } else if (recipient == FulfillmentRecipient.ALICE) {
             return context.alice.addr;
         } else if (recipient == FulfillmentRecipient.BOB) {
@@ -2063,12 +2059,12 @@ library CallerGenerator {
     ) internal view returns (address) {
         if (caller == Caller.TEST_CONTRACT) {
             return address(this);
-        } else if (caller == Caller.OFFERER) {
-            return context.offerer.addr;
         } else if (caller == Caller.ALICE) {
             return context.alice.addr;
         } else if (caller == Caller.BOB) {
             return context.bob.addr;
+        } else if (caller == Caller.CAROL) {
+            return context.carol.addr;
         } else if (caller == Caller.DILLON) {
             return context.dillon.addr;
         } else if (caller == Caller.EVE) {
@@ -2104,6 +2100,13 @@ library PRNGHelpers {
         FuzzGeneratorContext memory context
     ) internal pure returns (uint256) {
         return context.prng.next();
+    }
+
+    function choice(
+        FuzzGeneratorContext memory context,
+        uint256[] memory arr
+    ) internal pure returns (uint256) {
+        return arr[context.prng.next() % arr.length];
     }
 }
 

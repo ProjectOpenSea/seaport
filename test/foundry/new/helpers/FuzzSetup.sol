@@ -214,18 +214,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.seaport.matchAdvancedOrders.selector ||
             context.action() == context.seaport.matchOrders.selector;
 
-        // TODO: Figure out why using the orderDetails from context causes the
-        //       directs tests to break.
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < orderDetails.length; ++i) {
+        for (uint256 i; i < context.orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = orderDetails[i];
+            OrderDetails memory order = context.orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = _getApproveTo(context, order);
@@ -247,6 +240,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 }
 
                 if (item.itemType == ItemType.ERC20) {
+
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
                     TestERC20(item.token).increaseAllowance(

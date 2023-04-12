@@ -96,7 +96,6 @@ enum AmountDegree {
 
 enum FulfillmentRecipient {
     ZERO,
-    OFFERER,
     ALICE,
     BOB,
     EVE
@@ -120,9 +119,9 @@ enum RecipientDirty {
 
 enum Caller {
     TEST_CONTRACT,
-    OFFERER,
     ALICE,
     BOB,
+    CAROL,
     DILLON,
     EVE,
     FRANK
@@ -133,8 +132,8 @@ enum Offerer {
     TEST_CONTRACT,
     ALICE, // consider EOA space enum
     BOB,
-    CONTRACT_OFFERER
-    // EIP1271,
+    CONTRACT_OFFERER,
+    EIP1271
 }
 
 // debatable if needed but we do need to test zonehash permutations
