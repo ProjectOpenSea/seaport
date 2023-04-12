@@ -60,7 +60,7 @@ import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 
-import { FuzzMutations } from "./FuzzMutations.sol";
+import { FuzzMutations, OrderEligibilityLib } from "./FuzzMutations.sol";
 
 import { FuzzMutationSelectorLib } from "./FuzzMutationSelectorLib.sol";
 
@@ -382,11 +382,27 @@ contract FuzzEngine is
 
         bytes memory callData = abi.encodeWithSelector(selector, context);
         (bool success, bytes memory data) = address(mutations).call(callData);
+
         assertFalse(
             success,
             string.concat("Mutation ", name, " did not revert")
         );
-        // TODO: Validate returndata
+
+        if (
+            data.length == 4 &&
+            abi.decode(abi.encodePacked(data, uint224(0)), (bytes4)) ==
+            OrderEligibilityLib.NoEligibleOrderFound.selector
+        ) {
+            assertTrue(
+                false,
+                string.concat(
+                    "No eligible order found to apply failure '",
+                    name,
+                    "'"
+                )
+            );
+        }
+
         assertEq(
             data,
             expectedRevertReason,
@@ -396,6 +412,10 @@ contract FuzzEngine is
                 " did not revert with the expected reason"
             )
         );
+
+        if (keccak256(data) != keccak256(expectedRevertReason)) {
+            revert("TEMP EXPECTED REVERT BREAKPOINT");
+        }
     }
 
     /**

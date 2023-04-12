@@ -13,8 +13,7 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-
-contract MutationFilters {
+library MutationFilters {
     using AdvancedOrderLib for AdvancedOrder;
 
     // Determine if an order is unavailable, has been validated, has an offerer
@@ -52,13 +51,15 @@ contract MutationFilters {
     }
 }
 
-contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
+contract FuzzMutations is Test, FuzzExecutor {
     using OrderEligibilityLib for FuzzTestContext;
 
     function mutation_invalidSignature(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(ineligibleForInvalidSignature);
+        context.setIneligibleOrders(
+            MutationFilters.ineligibleForInvalidSignature
+        );
 
         AdvancedOrder memory order = context.selectEligibleOrder();
 
@@ -71,6 +72,8 @@ contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
 
 library OrderEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
+
+    error NoEligibleOrderFound();
 
     function setIneligibleOrders(
         FuzzTestContext memory context,
@@ -123,7 +126,7 @@ library OrderEligibilityLib {
         AdvancedOrder[] memory eligibleOrders = getEligibleOrders(context);
 
         if (eligibleOrders.length == 0) {
-            revert("OrderEligibilityLib: no eligible order found");
+            revert NoEligibleOrderFound();
         }
 
         return eligibleOrders[prng.next() % eligibleOrders.length];
