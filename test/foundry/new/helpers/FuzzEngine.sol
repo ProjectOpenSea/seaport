@@ -62,10 +62,9 @@ import { FuzzExecutor } from "./FuzzExecutor.sol";
 
 import { FuzzMutations } from "./FuzzMutations.sol";
 
-import {
-    FuzzMutationSelectorLib,
-    OrderEligibilityLib
-} from "./FuzzMutationSelectorLib.sol";
+import { FuzzMutationSelectorLib } from "./FuzzMutationSelectorLib.sol";
+
+import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 

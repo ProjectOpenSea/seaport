@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
-import { OrderEligibilityLib } from "./FuzzMutationSelectorLib.sol";
+import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
