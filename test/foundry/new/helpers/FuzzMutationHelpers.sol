@@ -152,3 +152,215 @@ library OrderEligibilityLib {
         return eligibleOrders[prng.next() % eligibleOrders.length];
     }
 }
+
+library Failarray {
+    function and(
+        Failure a,
+        Failure b
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](2);
+        arr[0] = a;
+        arr[1] = b;
+        return arr;
+    }
+
+    function and(
+        Failure a,
+        Failure b,
+        Failure c
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](3);
+        arr[0] = a;
+        arr[1] = b;
+        arr[2] = c;
+        return arr;
+    }
+
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](4);
+        arr[0] = a;
+        arr[1] = b;
+        arr[2] = c;
+        arr[3] = d;
+        return arr;
+    }
+
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](5);
+        arr[0] = a;
+        arr[1] = b;
+        arr[2] = c;
+        arr[3] = d;
+        arr[4] = e;
+        return arr;
+    }
+
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e,
+        Failure f
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](6);
+        arr[0] = a;
+        arr[1] = b;
+        arr[2] = c;
+        arr[3] = d;
+        arr[4] = e;
+        arr[5] = f;
+        return arr;
+    }
+
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e,
+        Failure f,
+        Failure g
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](7);
+        arr[0] = a;
+        arr[1] = b;
+        arr[2] = c;
+        arr[3] = d;
+        arr[4] = e;
+        arr[5] = f;
+        arr[6] = g;
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 1);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 2);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+        arr[originalArr.length + 1] = b;
+
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b,
+        Failure c
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 3);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+        arr[originalArr.length + 1] = b;
+        arr[originalArr.length + 2] = c;
+
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 4);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+        arr[originalArr.length + 1] = b;
+        arr[originalArr.length + 2] = c;
+        arr[originalArr.length + 3] = d;
+
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 5);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+        arr[originalArr.length + 1] = b;
+        arr[originalArr.length + 2] = c;
+        arr[originalArr.length + 3] = d;
+        arr[originalArr.length + 4] = e;
+
+        return arr;
+    }
+
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e,
+        Failure f
+    ) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](originalArr.length + 6);
+
+        for (uint256 i = 0; i < originalArr.length; ++i) {
+            arr[i] = originalArr[i];
+        }
+
+        arr[originalArr.length] = a;
+        arr[originalArr.length + 1] = b;
+        arr[originalArr.length + 2] = c;
+        arr[originalArr.length + 3] = d;
+        arr[originalArr.length + 4] = e;
+        arr[originalArr.length + 5] = f;
+
+        return arr;
+    }
+}
