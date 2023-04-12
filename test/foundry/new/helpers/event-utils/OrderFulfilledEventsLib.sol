@@ -104,9 +104,9 @@ library OrderFulfilledEventsLib {
                 keccak256(
                     abi.encode(
                         context.executionState.orderHashes[orderIndex],
-                        context.recipient == address(0)
-                            ? context.caller
-                            : context.recipient,
+                        context.executionState.recipient == address(0)
+                            ? context.executionState.caller
+                            : context.executionState.recipient,
                         details.offer,
                         details.consideration
                     )

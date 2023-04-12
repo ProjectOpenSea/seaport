@@ -684,8 +684,8 @@ library Searializer {
             "conduitController",
             address(value.conduitController)
         );
-        tojsonAddress(obj, "caller", value.caller);
-        tojsonAddress(obj, "recipient", value.recipient);
+        tojsonAddress(obj, "caller", value.executionState.caller);
+        tojsonAddress(obj, "recipient", value.executionState.recipient);
         tojsonFuzzParams(obj, "fuzzParams", value.fuzzParams);
         tojsonDynArrayAdvancedOrder(obj, "orders", value.executionState.orders);
         tojsonDynArrayAdvancedOrder(
@@ -693,8 +693,12 @@ library Searializer {
             "initialOrders",
             value.executionState.initialOrders
         );
-        tojsonUint256(obj, "counter", value.counter);
-        tojsonBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
+        tojsonUint256(obj, "counter", value.executionState.counter);
+        tojsonBytes32(
+            obj,
+            "fulfillerConduitKey",
+            value.executionState.fulfillerConduitKey
+        );
         tojsonDynArrayCriteriaResolver(
             obj,
             "criteriaResolvers",
@@ -728,7 +732,7 @@ library Searializer {
         tojsonBasicOrderParameters(
             obj,
             "basicOrderParameters",
-            value.basicOrderParameters
+            value.executionState.basicOrderParameters
         );
         tojsonAddress(obj, "testHelpers", address(value.testHelpers));
         tojsonDynArrayBytes4(obj, "checks", value.checks);

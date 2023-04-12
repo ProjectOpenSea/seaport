@@ -91,7 +91,7 @@ library FuzzEngineLib {
                 context.executionState.criteriaResolvers
             );
 
-        context.hasRemainders = remainders.length != 0;
+        context.executionState.hasRemainders = remainders.length != 0;
 
         return context;
     }
@@ -193,7 +193,8 @@ library FuzzEngineLib {
             }
         }
 
-        bool cannotMatch = (context.hasRemainders || hasUnavailable);
+        bool cannotMatch = (context.executionState.hasRemainders ||
+            hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");

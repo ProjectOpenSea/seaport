@@ -377,7 +377,8 @@ contract FuzzEngine is
      */
     function exec(FuzzTestContext memory context) internal {
         // If the caller is not the zero address, prank the address.
-        if (context.caller != address(0)) vm.startPrank(context.caller);
+        if (context.executionState.caller != address(0))
+            vm.startPrank(context.executionState.caller);
 
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
@@ -391,7 +392,7 @@ contract FuzzEngine is
 
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
                 value: context.getNativeTokensToSupply()
-            }(order.toOrder(), context.fulfillerConduitKey);
+            }(order.toOrder(), context.executionState.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder");
             AdvancedOrder memory order = context.executionState.orders[0];
@@ -403,17 +404,21 @@ contract FuzzEngine is
             }(
                 order,
                 context.executionState.criteriaResolvers,
-                context.fulfillerConduitKey,
-                context.recipient
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient
             );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder");
 
-            BasicOrderParameters memory basicOrderParameters = context.executionState
+            BasicOrderParameters memory basicOrderParameters = context
+                .executionState
                 .orders[0]
-                .toBasicOrderParameters(context.executionState.orders[0].getBasicOrderType());
+                .toBasicOrderParameters(
+                    context.executionState.orders[0].getBasicOrderType()
+                );
 
             basicOrderParameters.fulfillerConduitKey = context
+                .executionState
                 .fulfillerConduitKey;
 
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
@@ -425,11 +430,15 @@ contract FuzzEngine is
         ) {
             logCall("fulfillBasicOrder_efficient");
 
-            BasicOrderParameters memory basicOrderParameters = context.executionState
+            BasicOrderParameters memory basicOrderParameters = context
+                .executionState
                 .orders[0]
-                .toBasicOrderParameters(context.executionState.orders[0].getBasicOrderType());
+                .toBasicOrderParameters(
+                    context.executionState.orders[0].getBasicOrderType()
+                );
 
             basicOrderParameters.fulfillerConduitKey = context
+                .executionState
                 .fulfillerConduitKey;
 
             context.returnValues.fulfilled = context
@@ -448,7 +457,7 @@ contract FuzzEngine is
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
-                    context.fulfillerConduitKey,
+                    context.executionState.fulfillerConduitKey,
                     context.executionState.maximumFulfilled
                 );
 
@@ -468,8 +477,8 @@ contract FuzzEngine is
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
-                    context.fulfillerConduitKey,
-                    context.recipient,
+                    context.executionState.fulfillerConduitKey,
+                    context.executionState.recipient,
                     context.executionState.maximumFulfilled
                 );
 
@@ -479,7 +488,10 @@ contract FuzzEngine is
             logCall("matchOrders");
             Execution[] memory executions = context.seaport.matchOrders{
                 value: context.getNativeTokensToSupply()
-            }(context.executionState.orders.toOrders(), context.executionState.fulfillments);
+            }(
+                context.executionState.orders.toOrders(),
+                context.executionState.fulfillments
+            );
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
@@ -490,7 +502,7 @@ contract FuzzEngine is
                 context.executionState.orders,
                 context.executionState.criteriaResolvers,
                 context.executionState.fulfillments,
-                context.recipient
+                context.executionState.recipient
             );
 
             context.returnValues.executions = executions;
@@ -506,7 +518,7 @@ contract FuzzEngine is
                 orderComponents[i] = order
                     .toOrder()
                     .parameters
-                    .toOrderComponents(context.counter);
+                    .toOrderComponents(context.executionState.counter);
             }
 
             context.returnValues.cancelled = context.seaport.cancel(
@@ -521,7 +533,7 @@ contract FuzzEngine is
             revert("FuzzEngine: Action not implemented");
         }
 
-        if (context.caller != address(0)) vm.stopPrank();
+        if (context.executionState.caller != address(0)) vm.stopPrank();
     }
 
     /**

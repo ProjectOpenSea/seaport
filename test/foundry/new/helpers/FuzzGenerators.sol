@@ -1192,7 +1192,8 @@ library AdvancedOrdersSpaceGenerator {
             );
 
             bytes32 orderHash = order.getTipNeutralizedOrderHash(
-                context.seaport, offererSpecificCounter
+                context.seaport,
+                offererSpecificCounter
             );
 
             // Set the order hash in the context.
