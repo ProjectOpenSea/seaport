@@ -330,6 +330,7 @@ contract FuzzEngine is
             .withDetectedRemainders()
             .withDerivedOrderDetails()
             .withDerivedFulfillments()
+            .withDerivedCallValue()
             .withDerivedExecutions()
             .withDerivedOrderDetails();
     }

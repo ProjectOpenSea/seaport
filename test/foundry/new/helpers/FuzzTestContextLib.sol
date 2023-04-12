@@ -135,6 +135,7 @@ struct FuzzTestContext {
      *      address before calling exec.
      */
     address caller;
+    uint256 value;
     /**
      * @dev A recipient address to be passed into fulfillAdvancedOrder,
      *      fulfillAvailableAdvancedOrders, or matchAdvancedOrders. Speciying a
@@ -310,6 +311,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
+                value: 0,
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,

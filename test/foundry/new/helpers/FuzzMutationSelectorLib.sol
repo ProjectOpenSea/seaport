@@ -18,20 +18,24 @@ import {
     SignatureVerificationErrors
 } from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
 
+import {
+    ConsiderationEventsAndErrors
+} from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 enum Failure {
     InvalidSignature, // EOA signature is incorrect length
     // InvalidSigner_BadSignature, // EOA signature has been tampered with
     // InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
-    // BadSignatureV, // EOA signature has bad v value
+    BadSignatureV, // EOA signature has bad v value
     // BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
     // BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
     // BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
-    // BadFraction_NoFill, // Order where numerator = 0
-    // BadFraction_Overfill, // Order where numerator > denominator
+    BadFraction_NoFill, // Order where numerator = 0
+    BadFraction_Overfill, // Order where numerator > denominator
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -61,6 +65,23 @@ library FuzzMutationSelectorLib {
             context.setIneligibleFailure(Failure.InvalidSignature);
         }
 
+        if (
+            context.hasNoEligibleOrders(
+                MutationFilters.ineligibleForBadSignatureV
+            )
+        ) {
+            context.setIneligibleFailure(Failure.BadSignatureV);
+        }
+
+        if (
+            context.hasNoEligibleOrders(
+                MutationFilters.ineligibleForBadFraction
+            )
+        ) {
+            context.setIneligibleFailure(Failure.BadFraction_NoFill);
+            context.setIneligibleFailure(Failure.BadFraction_Overfill);
+        }
+
         // Choose one of the remaining eligible failures.
         return context.failureDetails(context.selectEligibleFailure());
     }
@@ -83,6 +104,20 @@ library FailureDetailsLib {
         if (failure == Failure.InvalidSignature) {
             return details_InvalidSignature();
         }
+
+        if (failure == Failure.BadSignatureV) {
+            return details_BadSignatureV();
+        }
+
+        if (failure == Failure.BadFraction_NoFill) {
+            return details_BadFraction_NoFill();
+        }
+
+        if (failure == Failure.BadFraction_Overfill) {
+            return details_BadFraction_Overfill();
+        }
+
+        revert("FailureDetailsLib: invalid failure");
     }
 
     function details_InvalidSignature()
@@ -98,6 +133,55 @@ library FailureDetailsLib {
         selector = FuzzMutations.mutation_invalidSignature.selector;
         expectedRevertReason = abi.encodePacked(
             SignatureVerificationErrors.InvalidSignature.selector
+        );
+    }
+
+    function details_BadSignatureV()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "BadSignatureV";
+        selector = FuzzMutations.mutation_badSignatureV.selector;
+        expectedRevertReason = abi.encodeWithSelector(
+            SignatureVerificationErrors.BadSignatureV.selector,
+            0xff
+        );
+    }
+
+    function details_BadFraction_NoFill()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "BadFraction_NoFill";
+        selector = FuzzMutations.mutation_badFraction_NoFill.selector;
+        expectedRevertReason = abi.encodePacked(
+            ConsiderationEventsAndErrors.BadFraction.selector
+        );
+    }
+
+    function details_BadFraction_Overfill()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "BadFraction_Overfill";
+        selector = FuzzMutations.mutation_badFraction_Overfill.selector;
+        expectedRevertReason = abi.encodePacked(
+            ConsiderationEventsAndErrors.BadFraction.selector
         );
     }
 }
