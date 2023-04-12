@@ -62,6 +62,8 @@ import { FuzzExecutor } from "./FuzzExecutor.sol";
 
 import { FuzzMutations } from "./FuzzMutations.sol";
 
+import { FuzzMutationSelectorLib } from "./FuzzMutationSelectorLib.sol";
+
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
@@ -69,10 +71,6 @@ import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
-
-import {
-    SignatureVerificationErrors
-} from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -155,8 +153,8 @@ contract FuzzEngine is
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
-
     using FuzzDerivers for FuzzTestContext;
+    using FuzzMutationSelectorLib for FuzzTestContext;
 
     uint256 constant JAN_1_2023_UTC = 1672531200;
 
@@ -376,31 +374,28 @@ contract FuzzEngine is
     }
 
     function execFailure(FuzzTestContext memory context) internal {
-        // Select a mutation (take context, return the selector of the mutation and bytes that match returndata)
-        // Call the mutation
-        string memory signature = "mutation_setNullOfferer";
-        bytes memory expectedReturnData = abi.encodePacked(
-            SignatureVerificationErrors.InvalidSignature.selector
-        );
-        bytes memory callData = abi.encodeWithSelector(
-            mutations.mutation_setNullOfferer.selector,
-            context
-        );
+        (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        ) = context.selectMutation();
+
+        bytes memory callData = abi.encodeWithSelector(selector, context);
         (bool success, bytes memory data) = address(mutations).call(callData);
         assertFalse(
             success,
-            string.concat("Mutation ", signature, " did not revert")
+            string.concat("Mutation ", name, " did not revert")
         );
         // TODO: Validate returndata
-        //assertEq(
-        //    returndata,
-        //    expectedReturnData,
-        //    string.concat(
-        //        "Mutation ",
-        //        signature,
-        //        " did not revert with the expected reason"
-        //    )
-        //);
+        assertEq(
+            data,
+            expectedRevertReason,
+            string.concat(
+                "Mutation ",
+                name,
+                " did not revert with the expected reason"
+            )
+        );
     }
 
     /**

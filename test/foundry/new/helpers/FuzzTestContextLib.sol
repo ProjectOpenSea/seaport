@@ -263,6 +263,8 @@ struct FuzzTestContext {
      *      from all Seaport functions.
      */
     ReturnValues returnValues;
+    bool[] ineligibleOrders;
+    bool[3] ineligibleFailures;
 }
 
 /**
@@ -294,6 +296,7 @@ library FuzzTestContextLib {
         bytes32[] memory expectedTransferEventHashes;
         bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
+        bool[3] memory ineligibleFailures;
 
         return
             FuzzTestContext({
@@ -340,7 +343,9 @@ library FuzzTestContextLib {
                 expectedTransferEventHashes: expectedTransferEventHashes,
                 expectedSeaportEventHashes: expectedSeaportEventHashes,
                 actualEvents: actualEvents,
-                testHelpers: TestHelpers(address(this))
+                testHelpers: TestHelpers(address(this)),
+                ineligibleOrders: new bool[](orders.length),
+                ineligibleFailures: ineligibleFailures
             });
     }
 

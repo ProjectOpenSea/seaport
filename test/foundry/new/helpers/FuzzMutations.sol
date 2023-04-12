@@ -6,10 +6,14 @@ import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 contract FuzzMutations is Test, FuzzExecutor {
-    function mutation_setNullOfferer(FuzzTestContext memory context) public {
-        // Set null offerer on all orders
+    function mutation_invalidSignature(
+        FuzzTestContext memory context
+    ) external {
+        // Find the first available order that also has a non-validated order status
+        // and the offerer is not a contract.
         for (uint256 i; i < context.orders.length; i++) {
             context.orders[i].parameters.offerer = address(0);
+            context.orders[i].signature = bytes("");
         }
 
         exec(context);
