@@ -51,6 +51,8 @@ import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
+import { Failure } from "./FuzzMutationSelectorLib.sol";
+
 struct FuzzParams {
     uint256 seed;
     uint256 totalOrders;
@@ -264,7 +266,7 @@ struct FuzzTestContext {
      */
     ReturnValues returnValues;
     bool[] ineligibleOrders;
-    bool[3] ineligibleFailures;
+    bool[] ineligibleFailures;
 }
 
 /**
@@ -296,7 +298,6 @@ library FuzzTestContextLib {
         bytes32[] memory expectedTransferEventHashes;
         bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
-        bool[3] memory ineligibleFailures;
 
         return
             FuzzTestContext({
@@ -345,7 +346,7 @@ library FuzzTestContextLib {
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),
                 ineligibleOrders: new bool[](orders.length),
-                ineligibleFailures: ineligibleFailures
+                ineligibleFailures: new bool[](uint256(Failure.length))
             });
     }
 
