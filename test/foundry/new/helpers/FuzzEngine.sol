@@ -249,6 +249,9 @@ contract FuzzEngine is
             generatorContext
         );
 
+        // TODO: insert both the generator context and the space into the
+        // context.
+
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
@@ -267,7 +270,9 @@ contract FuzzEngine is
                     space,
                     generatorContext
                 )
-            );
+            )
+            .withGeneratorContext(generatorContext)
+            .withSpace(space);
 
         // If it's an advanced order, generate and add a top-level recipient.
         if (
@@ -382,14 +387,14 @@ contract FuzzEngine is
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
             logCall("fulfillOrder");
-            AdvancedOrder memory order = context.orders[0];
+            AdvancedOrder memory order = context.executionState.orders[0];
 
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
                 value: context.getNativeTokensToSupply()
             }(order.toOrder(), context.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder");
-            AdvancedOrder memory order = context.orders[0];
+            AdvancedOrder memory order = context.executionState.orders[0];
 
             context.returnValues.fulfilled = context
                 .seaport
@@ -397,16 +402,16 @@ contract FuzzEngine is
                 value: context.getNativeTokensToSupply()
             }(
                 order,
-                context.criteriaResolvers,
+                context.executionState.criteriaResolvers,
                 context.fulfillerConduitKey,
                 context.recipient
             );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder");
 
-            BasicOrderParameters memory basicOrderParameters = context
+            BasicOrderParameters memory basicOrderParameters = context.executionState
                 .orders[0]
-                .toBasicOrderParameters(context.orders[0].getBasicOrderType());
+                .toBasicOrderParameters(context.executionState.orders[0].getBasicOrderType());
 
             basicOrderParameters.fulfillerConduitKey = context
                 .fulfillerConduitKey;
@@ -420,9 +425,9 @@ contract FuzzEngine is
         ) {
             logCall("fulfillBasicOrder_efficient");
 
-            BasicOrderParameters memory basicOrderParameters = context
+            BasicOrderParameters memory basicOrderParameters = context.executionState
                 .orders[0]
-                .toBasicOrderParameters(context.orders[0].getBasicOrderType());
+                .toBasicOrderParameters(context.executionState.orders[0].getBasicOrderType());
 
             basicOrderParameters.fulfillerConduitKey = context
                 .fulfillerConduitKey;
@@ -440,11 +445,11 @@ contract FuzzEngine is
             ) = context.seaport.fulfillAvailableOrders{
                     value: context.getNativeTokensToSupply()
                 }(
-                    context.orders.toOrders(),
-                    context.offerFulfillments,
-                    context.considerationFulfillments,
+                    context.executionState.orders.toOrders(),
+                    context.executionState.offerFulfillments,
+                    context.executionState.considerationFulfillments,
                     context.fulfillerConduitKey,
-                    context.maximumFulfilled
+                    context.executionState.maximumFulfilled
                 );
 
             context.returnValues.availableOrders = availableOrders;
@@ -459,13 +464,13 @@ contract FuzzEngine is
             ) = context.seaport.fulfillAvailableAdvancedOrders{
                     value: context.getNativeTokensToSupply()
                 }(
-                    context.orders,
-                    context.criteriaResolvers,
-                    context.offerFulfillments,
-                    context.considerationFulfillments,
+                    context.executionState.orders,
+                    context.executionState.criteriaResolvers,
+                    context.executionState.offerFulfillments,
+                    context.executionState.considerationFulfillments,
                     context.fulfillerConduitKey,
                     context.recipient,
-                    context.maximumFulfilled
+                    context.executionState.maximumFulfilled
                 );
 
             context.returnValues.availableOrders = availableOrders;
@@ -474,7 +479,7 @@ contract FuzzEngine is
             logCall("matchOrders");
             Execution[] memory executions = context.seaport.matchOrders{
                 value: context.getNativeTokensToSupply()
-            }(context.orders.toOrders(), context.fulfillments);
+            }(context.executionState.orders.toOrders(), context.executionState.fulfillments);
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
@@ -482,16 +487,16 @@ contract FuzzEngine is
             Execution[] memory executions = context.seaport.matchAdvancedOrders{
                 value: context.getNativeTokensToSupply()
             }(
-                context.orders,
-                context.criteriaResolvers,
-                context.fulfillments,
+                context.executionState.orders,
+                context.executionState.criteriaResolvers,
+                context.executionState.fulfillments,
                 context.recipient
             );
 
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.cancel.selector) {
             logCall("cancel");
-            AdvancedOrder[] memory orders = context.orders;
+            AdvancedOrder[] memory orders = context.executionState.orders;
             OrderComponents[] memory orderComponents = new OrderComponents[](
                 orders.length
             );
@@ -510,7 +515,7 @@ contract FuzzEngine is
         } else if (_action == context.seaport.validate.selector) {
             logCall("validate");
             context.returnValues.validated = context.seaport.validate(
-                context.orders.toOrders()
+                context.executionState.orders.toOrders()
             );
         } else {
             revert("FuzzEngine: Action not implemented");

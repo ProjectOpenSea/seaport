@@ -103,14 +103,14 @@ library ExpectedEventsUtil {
     function setExpectedTransferEventHashes(
         FuzzTestContext memory context
     ) internal {
-        Execution[] memory executions = context.allExpectedExecutions;
+        Execution[] memory executions = context.expectations.allExpectedExecutions;
         require(
             executions.length ==
-                context.expectedExplicitExecutions.length +
-                    context.expectedImplicitExecutions.length
+                context.expectations.expectedExplicitExecutions.length +
+                    context.expectations.expectedImplicitExecutions.length
         );
 
-        context.expectedTransferEventHashes = ArrayHelpers
+        context.expectations.expectedTransferEventHashes = ArrayHelpers
             .filterMapWithArg
             .asExecutionsFilterMap()(
                 executions,
@@ -121,14 +121,14 @@ library ExpectedEventsUtil {
         vm.serializeBytes32(
             "root",
             "expectedTransferEventHashes",
-            context.expectedTransferEventHashes
+            context.expectations.expectedTransferEventHashes
         );
     }
 
     function setExpectedSeaportEventHashes(
         FuzzTestContext memory context
     ) internal {
-        if (context.expectedAvailableOrders.length != context.orders.length) {
+        if (context.expectations.expectedAvailableOrders.length != context.executionState.orders.length) {
             revert("ExpectedEventsUtil: available array length != orders");
         }
 
@@ -137,33 +137,33 @@ library ExpectedEventsUtil {
             context.action() == context.seaport.matchOrders.selector;
 
         uint256 totalExpectedEventHashes = isMatch ? 1 : 0;
-        for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
-            if (context.expectedAvailableOrders[i]) {
+        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
                 ++totalExpectedEventHashes;
             }
         }
 
-        context.expectedSeaportEventHashes = new bytes32[](
+        context.expectations.expectedSeaportEventHashes = new bytes32[](
             totalExpectedEventHashes
         );
 
         totalExpectedEventHashes = 0;
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            if (context.expectedAvailableOrders[i]) {
-                context.expectedSeaportEventHashes[totalExpectedEventHashes++] = context
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
+                context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes++] = context
                     .getOrderFulfilledEventHash(i);
             }
         }
 
         if (isMatch) {
-            context.expectedSeaportEventHashes[totalExpectedEventHashes] = context
+            context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes] = context
                 .getOrdersMatchedEventHash();
         }
 
         vm.serializeBytes32(
             "root",
             "expectedSeaportEventHashes",
-            context.expectedSeaportEventHashes
+            context.expectations.expectedSeaportEventHashes
         );
     }
 
@@ -192,7 +192,7 @@ library ExpectedEventsUtil {
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedTransferEventHashes = context
-            .expectedTransferEventHashes;
+            .expectations.expectedTransferEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -237,7 +237,7 @@ library ExpectedEventsUtil {
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedSeaportEventHashes = context
-            .expectedSeaportEventHashes;
+            .expectations.expectedSeaportEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.

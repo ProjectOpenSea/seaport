@@ -106,7 +106,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonUint256(
             "root",
             "maximumFulfilled",
-            context.maximumFulfilled
+            context.executionState.maximumFulfilled
         );
     }
     // if (outputSelection.fuzzParams) {
@@ -116,21 +116,21 @@ function dumpContext(
         jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
             "root",
             "orders",
-            context.orders
+            context.executionState.orders
         );
     }
     if (outputSelection.orderHashes) {
         jsonOut = Searializer.tojsonDynArrayBytes32(
             "root",
             "orderHashes",
-            context.orderHashes
+            context.executionState.orderHashes
         );
     }
     // if (outputSelection.initialOrders) {
     //     jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
     //         "root",
     //         "initialOrders",
-    //         context.initialOrders
+    //         context.executionState.initialOrders
     //     );
     // }
     // if (outputSelection.counter) {
@@ -147,42 +147,42 @@ function dumpContext(
     //     jsonOut = Searializer.tojsonDynArrayCriteriaResolver(
     //         "root",
     //         "criteriaResolvers",
-    //         context.criteriaResolvers
+    //         context.executionState.criteriaResolvers
     //     );
     // }
     // if (outputSelection.fulfillments) {
     //     jsonOut = Searializer.tojsonDynArrayFulfillment(
     //         "root",
     //         "fulfillments",
-    //         context.fulfillments
+    //         context.executionState.fulfillments
     //     );
     // }
     // if (outputSelection.remainingOfferComponents) {
     //     jsonOut = Searializer.tojsonDynArrayFulfillmentComponent(
     //         "root",
     //         "remainingOfferComponents",
-    //         context.remainingOfferComponents
+    //         context.executionState.remainingOfferComponents
     //     );
     // }
     // if (outputSelection.offerFulfillments) {
     //     jsonOut = Searializer.tojsonDynArrayDynArrayFulfillmentComponent(
     //         "root",
     //         "offerFulfillments",
-    //         context.offerFulfillments
+    //         context.executionState.offerFulfillments
     //     );
     // }
     // if (outputSelection.considerationFulfillments) {
     //     jsonOut = Searializer.tojsonDynArrayDynArrayFulfillmentComponent(
     //         "root",
     //         "considerationFulfillments",
-    //         context.considerationFulfillments
+    //         context.executionState.considerationFulfillments
     //     );
     // }
     // if (outputSelection.maximumFulfilled) {
     //     jsonOut = Searializer.tojsonUint256(
     //         "root",
     //         "maximumFulfilled",
-    //         context.maximumFulfilled
+    //         context.executionState.maximumFulfilled
     //     );
     // }
     // if (outputSelection.basicOrderParameters) {
@@ -213,14 +213,14 @@ function dumpContext(
     //     jsonOut = Searializer.tojsonDynArrayBytes32(
     //         "root",
     //         "expectedZoneCalldataHash",
-    //         context.expectedZoneCalldataHash
+    //         context.expectations.expectedZoneCalldataHash
     //     );
     // }
     // if (outputSelection.expectedContractOrderCalldataHashes) {
     //     jsonOut = Searializer.tojsonDynArrayArray2Bytes32(
     //         "root",
     //         "expectedContractOrderCalldataHashes",
-    //         context.expectedContractOrderCalldataHashes
+    //         context.expectations.expectedContractOrderCalldataHashes
     //     );
     // }
     // if (outputSelection.expectedResults) {
@@ -239,7 +239,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonDynArrayExecution(
             "root",
             "expectedImplicitExecutions",
-            context.expectedImplicitExecutions.filter(
+            context.expectations.expectedImplicitExecutions.filter(
                 outputSelection.executionsFilter
             )
         );
@@ -248,7 +248,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonDynArrayExecution(
             "root",
             "expectedExplicitExecutions",
-            context.expectedExplicitExecutions.filter(
+            context.expectations.expectedExplicitExecutions.filter(
                 outputSelection.executionsFilter
             )
         );
@@ -257,7 +257,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonDynArrayExecution(
             "root",
             "allExpectedExecutions",
-            context.allExpectedExecutions.filter(
+            context.expectations.allExpectedExecutions.filter(
                 outputSelection.executionsFilter
             )
         );
@@ -266,7 +266,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonDynArrayBool(
             "root",
             "expectedAvailableOrders",
-            context.expectedAvailableOrders
+            context.expectations.expectedAvailableOrders
         );
     }
     // =====================================================================//
@@ -286,7 +286,7 @@ function dumpContext(
         );
     }
     if (outputSelection.expectedEvents) {
-        jsonOut = context.allExpectedExecutions.serializeTransferLogs(
+        jsonOut = context.expectations.allExpectedExecutions.serializeTransferLogs(
             "root",
             "expectedEvents",
             context

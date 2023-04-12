@@ -118,17 +118,18 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     function setUpZoneParameters(FuzzTestContext memory context) public view {
         // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
+            .executionState
             .orders
             .getExpectedZoneCalldataHash(
                 address(context.seaport),
                 context.caller,
-                context.criteriaResolvers,
-                context.maximumFulfilled
+                context.executionState.criteriaResolvers,
+                context.executionState.maximumFulfilled
             );
 
         // Provision the expected zone calldata hash array.
         bytes32[] memory expectedZoneCalldataHash = new bytes32[](
-            context.orders.length
+            context.executionState.orders.length
         );
 
         bool registerChecks;
@@ -136,10 +137,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // Iterate over the orders and for each restricted order, set up the
         // expected zone calldata hash. If any of the orders is restricted,
         // flip the flag to register the hash validation check.
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            OrderParameters memory order = context.orders[i].parameters;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
             if (
-                context.expectedAvailableOrders[i] &&
+                context.expectations.expectedAvailableOrders[i] &&
                 (order.orderType == OrderType.FULL_RESTRICTED ||
                     order.orderType == OrderType.PARTIAL_RESTRICTED)
             ) {
@@ -148,7 +152,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             }
         }
 
-        context.expectedZoneCalldataHash = expectedZoneCalldataHash;
+        context
+            .expectations
+            .expectedZoneCalldataHash = expectedZoneCalldataHash;
 
         if (registerChecks) {
             context.registerCheck(
@@ -159,6 +165,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
     function setUpContractOfferers(FuzzTestContext memory context) public {
         bytes32[2][] memory contractOrderCalldataHashes = context
+            .executionState
             .orders
             .getExpectedContractOffererCalldataHashes(
                 address(context.seaport),
@@ -167,7 +174,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         bytes32[2][]
             memory expectedContractOrderCalldataHashes = new bytes32[2][](
-                context.orders.length
+                context.executionState.orders.length
             );
 
         bool registerChecks;
@@ -176,10 +183,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 address(context.seaport)
             );
 
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            OrderParameters memory order = context.orders[i].parameters;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
             if (
-                context.expectedAvailableOrders[i] &&
+                context.expectations.expectedAvailableOrders[i] &&
                 order.orderType == OrderType.CONTRACT
             ) {
                 registerChecks = true;
@@ -195,6 +205,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
 
         context
+            .expectations
             .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
 
         if (registerChecks) {
@@ -215,10 +226,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.action() == context.seaport.matchOrders.selector;
 
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < context.orderDetails.length; ++i) {
-            if (!context.expectedAvailableOrders[i]) continue;
+        for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = context.orderDetails[i];
+            OrderDetails memory order = context.executionState.orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = _getApproveTo(context, order);
@@ -227,7 +238,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
                 if (item.itemType == ItemType.NATIVE) {
                     if (
-                        context.orders[i].parameters.orderType ==
+                        context.executionState.orders[i].parameters.orderType ==
                         OrderType.CONTRACT
                     ) {
                         vm.deal(offerer, offerer.balance + item.amount);
@@ -240,7 +251,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 }
 
                 if (item.itemType == ItemType.ERC20) {
-
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
                     TestERC20(item.token).increaseAllowance(
@@ -281,8 +291,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         ) return;
 
         // In all cases, deal balance to caller if consideration item is native
-        for (uint256 i; i < context.orderDetails.length; ++i) {
-            OrderDetails memory order = context.orderDetails[i];
+        for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
+            OrderDetails memory order = context.executionState.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
             for (uint256 j = 0; j < items.length; j++) {
@@ -301,9 +311,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             (context.action() == context.seaport.fulfillBasicOrder.selector ||
                 context.action() ==
                 context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector) &&
-            context.orders[0].parameters.offer[0].itemType == ItemType.ERC20
+            context.executionState.orders[0].parameters.offer[0].itemType ==
+            ItemType.ERC20
         ) {
             ConsiderationItem memory item = context
+                .executionState
                 .orders[0]
                 .parameters
                 .consideration[0];
@@ -331,10 +343,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
 
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < context.orderDetails.length; ++i) {
-            if (!context.expectedAvailableOrders[i]) continue;
+        for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = context.orderDetails[i];
+            OrderDetails memory order = context.executionState.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
             address owner = context.caller;
@@ -358,10 +370,17 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         context.caller == context.recipient ||
                         context.recipient == address(0)
                     ) {
-                        for (uint256 k; k < context.orderDetails.length; ++k) {
-                            if (!context.expectedAvailableOrders[k]) continue;
+                        for (
+                            uint256 k;
+                            k < context.executionState.orderDetails.length;
+                            ++k
+                        ) {
+                            if (
+                                !context.expectations.expectedAvailableOrders[k]
+                            ) continue;
 
                             SpentItem[] memory spentItems = context
+                                .executionState
                                 .orderDetails[k]
                                 .offer;
                             for (uint256 l; l < spentItems.length; ++l) {
@@ -410,7 +429,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // for supplying the minimum possible native token value.
         uint256 callValue = context.getNativeTokensToSupply();
 
-        Execution[] memory _executions = context.allExpectedExecutions;
+        Execution[] memory _executions = context
+            .expectations
+            .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
         if (callValue > 0) {
@@ -433,7 +454,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         try balanceChecker.addTransfers(executions) {} catch (
             bytes memory reason
         ) {
-            context.allExpectedExecutions = executions;
+            context.expectations.allExpectedExecutions = executions;
             dumpExecutions(context);
             assembly {
                 revert(add(reason, 32), mload(reason))

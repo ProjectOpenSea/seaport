@@ -51,6 +51,13 @@ import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
+import {
+    FuzzGeneratorContext,
+    FuzzGeneratorContextLib
+} from "./FuzzGeneratorContextLib.sol";
+
+import { TestStateGenerator } from "./FuzzGenerators.sol";
+
 struct FuzzParams {
     uint256 seed;
     uint256 totalOrders;
@@ -118,6 +125,84 @@ interface TestHelpers {
     function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
+struct Expectations {
+    /**
+     * @dev Expected zone calldata hashes.
+     */
+    bytes32[] expectedZoneCalldataHash;
+    /**
+     * @dev Expected contract order calldata hashes. Index 0 of the outer array
+     *      corresponds to the generateOrder hash, while index 1 corresponds to
+     *      the ratifyOrder hash.
+     */
+    bytes32[2][] expectedContractOrderCalldataHashes;
+    /**
+     * @dev Expected Result state for each order. Indexes correspond to the
+     *      indexes of the orders in the orders array.
+     */
+    Result[] expectedResults;
+    /**
+     * @dev Expected executions.  Implicit means it doesn't correspond directly
+     *      with a fulfillment that was passed in.
+     */
+    Execution[] expectedImplicitExecutions;
+    Execution[] expectedExplicitExecutions;
+    Execution[] allExpectedExecutions;
+    bool[] expectedAvailableOrders;
+    /**
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
+     */
+    bytes32[] expectedTransferEventHashes;
+    /**
+     * @dev Expected event hashes. Encompasses all events that match watched
+     *      topic0s.
+     */
+    bytes32[] expectedSeaportEventHashes;
+}
+
+struct ExecutionState {
+    /**
+     * @dev An array of AdvancedOrders
+     */
+    AdvancedOrder[] orders;
+    bytes32[] orderHashes;
+    OrderDetails[] orderDetails;
+    /**
+     * @dev A copy of the original orders array. Use this to make assertions
+     *      about the final state of the orders after calling exec. This is
+     *      automatically copied if you use the FuzzTestContextLib.from()
+     *      function.
+     */
+    AdvancedOrder[] initialOrders;
+    /**
+     * @dev An array of CriteriaResolvers. These allow specification of an
+     *      order, offer or consideration, an identifier, and a proof.  They
+     *      enable trait offer and collection offers, etc.
+     */
+    CriteriaResolver[] criteriaResolvers;
+    /**
+     * @dev An array of Fulfillments. These are used in the match functions to
+     *      point offers and considerations to one another.
+     */
+    Fulfillment[] fulfillments;
+    /**
+     * @dev offer components not explicitly supplied in match fulfillments.
+     */
+    FulfillmentComponent[] remainingOfferComponents;
+    /**
+     * @dev An array of FulfillmentComponents. These are used in the
+     *      fulfillAvailable functions to set up aggregations.
+     */
+    FulfillmentComponent[][] offerFulfillments;
+    FulfillmentComponent[][] considerationFulfillments;
+    /**
+     * @dev The maximum number of fulfillments to attempt in the
+     *      fulfillAvailable functions.
+     */
+    uint256 maximumFulfilled;
+}
+
 struct FuzzTestContext {
     bytes4 _action;
     /**
@@ -149,19 +234,6 @@ struct FuzzTestContext {
      */
     FuzzParams fuzzParams;
     /**
-     * @dev An array of AdvancedOrders
-     */
-    AdvancedOrder[] orders;
-    bytes32[] orderHashes;
-    OrderDetails[] orderDetails;
-    /**
-     * @dev A copy of the original orders array. Use this to make assertions
-     *      about the final state of the orders after calling exec. This is
-     *      automatically copied if you use the FuzzTestContextLib.from()
-     *      function.
-     */
-    AdvancedOrder[] initialOrders;
-    /**
      * @dev Additional data we might need to fulfill an order. This is basically
      *      the superset of all the non-order args to SeaportInterface
      *      functions, like conduit key, criteria resolvers, and fulfillments.
@@ -180,32 +252,6 @@ struct FuzzTestContext {
      */
     bytes32 fulfillerConduitKey;
     /**
-     * @dev An array of CriteriaResolvers. These allow specification of an
-     *      order, offer or consideration, an identifier, and a proof.  They
-     *      enable trait offer and collection offers, etc.
-     */
-    CriteriaResolver[] criteriaResolvers;
-    /**
-     * @dev An array of Fulfillments. These are used in the match functions to
-     *      point offers and considerations to one another.
-     */
-    Fulfillment[] fulfillments;
-    /**
-     * @dev offer components not explicitly supplied in match fulfillments.
-     */
-    FulfillmentComponent[] remainingOfferComponents;
-    /**
-     * @dev An array of FulfillmentComponents. These are used in the
-     *      fulfillAvailable functions to set up aggregations.
-     */
-    FulfillmentComponent[][] offerFulfillments;
-    FulfillmentComponent[][] considerationFulfillments;
-    /**
-     * @dev The maximum number of fulfillments to attempt in the
-     *      fulfillAvailable functions.
-     */
-    uint256 maximumFulfilled;
-    /**
      * @dev A struct containing basic order parameters that are used in the
      *      fulfillBasic functions.
      */
@@ -222,40 +268,7 @@ struct FuzzTestContext {
      *      the resulting test state.
      */
     bytes4[] checks;
-    /**
-     * @dev Expected zone calldata hashes.
-     */
-    bytes32[] expectedZoneCalldataHash;
-    /**
-     * @dev Expected contract order calldata hashes. Index 0 of the outer array
-     *      corresponds to the generateOrder hash, while index 1 corresponds to
-     *      the ratifyOrder hash.
-     */
-    bytes32[2][] expectedContractOrderCalldataHashes;
-    /**
-     * @dev Expected Result state for each order. Indexes correspond to the
-     *      indexes of the orders in the orders array.
-     */
-    Result[] expectedResults;
-    /**
-     * @dev Expected executions.  Implicit means it doesn't correspond directly
-     *      with a fulfillment that was passed in.
-     */
-    Execution[] expectedImplicitExecutions;
-    Execution[] expectedExplicitExecutions;
-    Execution[] allExpectedExecutions;
     bool hasRemainders;
-    bool[] expectedAvailableOrders;
-    /**
-     * @dev Expected event hashes. Encompasses all events that match watched
-     *      topic0s.
-     */
-    bytes32[] expectedTransferEventHashes;
-    /**
-     * @dev Expected event hashes. Encompasses all events that match watched
-     *      topic0s.
-     */
-    bytes32[] expectedSeaportEventHashes;
     /**
      * @dev Actual events emitted.
      */
@@ -265,6 +278,22 @@ struct FuzzTestContext {
      *      from all Seaport functions.
      */
     ReturnValues returnValues;
+    /**
+     * @dev A struct containing expectations for the test. These are used to
+     *      make assertions about the resulting test state.
+     */
+    Expectations expectations;
+    /**
+     * @dev A struct containing the state for the execution phase.
+     */
+    ExecutionState executionState;
+    /**
+     * @dev A struct containing the context for the FuzzGenerator. This is used
+     *      upstream to generate the order state and is included here for use
+     *      and reference throughout the rest of the lifecycle.
+     */
+    FuzzGeneratorContext generatorContext;
+    AdvancedOrdersSpace advancedOrdersSpace;
 }
 
 /**
@@ -276,19 +305,19 @@ library FuzzTestContextLib {
     using BasicOrderParametersLib for BasicOrderParameters;
     using FuzzTestContextLib for FuzzTestContext;
     using LibPRNG for LibPRNG.PRNG;
+    using FuzzGeneratorContextLib for FuzzGeneratorContext;
 
     /**
      * @dev Create an empty FuzzTestContext.
      *
      * @custom:return emptyContext the empty FuzzTestContext
      */
-    function empty() internal view returns (FuzzTestContext memory) {
+    function empty() internal returns (FuzzTestContext memory) {
         AdvancedOrder[] memory orders;
         CriteriaResolver[] memory resolvers;
         Fulfillment[] memory fulfillments;
         FulfillmentComponent[] memory components;
         FulfillmentComponent[][] memory componentsArray;
-        bytes4[] memory checks;
         Result[] memory results;
         bool[] memory available;
         Execution[] memory executions;
@@ -300,9 +329,6 @@ library FuzzTestContextLib {
         return
             FuzzTestContext({
                 _action: bytes4(0),
-                orders: orders,
-                orderHashes: new bytes32[](0),
-                orderDetails: new OrderDetails[](0),
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
@@ -312,21 +338,13 @@ library FuzzTestContextLib {
                     maxOfferItems: 0,
                     maxConsiderationItems: 0
                 }),
-                checks: checks,
+                checks: new bytes4[](0),
                 counter: 0,
                 contractOffererNonce: 0,
                 fulfillerConduitKey: bytes32(0),
-                criteriaResolvers: resolvers,
                 recipient: address(0),
-                fulfillments: fulfillments,
-                remainingOfferComponents: components,
-                offerFulfillments: componentsArray,
-                considerationFulfillments: componentsArray,
-                maximumFulfilled: 0,
                 preExecOrderStatuses: new OrderStatusEnum[](0),
                 basicOrderParameters: BasicOrderParametersLib.empty(),
-                initialOrders: orders,
-                expectedResults: results,
                 returnValues: ReturnValues({
                     fulfilled: false,
                     cancelled: false,
@@ -334,17 +352,34 @@ library FuzzTestContextLib {
                     availableOrders: available,
                     executions: executions
                 }),
-                expectedZoneCalldataHash: hashes,
-                expectedContractOrderCalldataHashes: new bytes32[2][](0),
-                expectedImplicitExecutions: executions,
-                expectedExplicitExecutions: executions,
                 hasRemainders: false,
-                expectedAvailableOrders: new bool[](0),
-                allExpectedExecutions: executions,
-                expectedTransferEventHashes: expectedTransferEventHashes,
-                expectedSeaportEventHashes: expectedSeaportEventHashes,
+                expectations: Expectations({
+                    expectedZoneCalldataHash: hashes,
+                    expectedContractOrderCalldataHashes: new bytes32[2][](0),
+                    expectedImplicitExecutions: executions,
+                    expectedExplicitExecutions: executions,
+                    allExpectedExecutions: executions,
+                    expectedResults: results,
+                    expectedAvailableOrders: new bool[](0),
+                    expectedTransferEventHashes: expectedTransferEventHashes,
+                    expectedSeaportEventHashes: expectedSeaportEventHashes
+                }),
+                executionState: ExecutionState({
+                    initialOrders: orders,
+                    orders: orders,
+                    orderHashes: new bytes32[](0),
+                    orderDetails: new OrderDetails[](0),
+                    criteriaResolvers: resolvers,
+                    fulfillments: fulfillments,
+                    remainingOfferComponents: components,
+                    offerFulfillments: componentsArray,
+                    considerationFulfillments: componentsArray,
+                    maximumFulfilled: 0
+                }),
                 actualEvents: actualEvents,
-                testHelpers: TestHelpers(address(this))
+                testHelpers: TestHelpers(address(this)),
+                generatorContext: FuzzGeneratorContextLib.empty(),
+                advancedOrdersSpace: TestStateGenerator.empty()
             });
     }
 
@@ -360,7 +395,7 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders,
         SeaportInterface seaport,
         address caller
-    ) internal view returns (FuzzTestContext memory) {
+    ) internal returns (FuzzTestContext memory) {
         return
             empty()
                 .withOrders(orders)
@@ -380,7 +415,7 @@ library FuzzTestContextLib {
     function from(
         AdvancedOrder[] memory orders,
         SeaportInterface seaport
-    ) internal view returns (FuzzTestContext memory) {
+    ) internal returns (FuzzTestContext memory) {
         return
             empty()
                 .withOrders(orders)
@@ -401,26 +436,29 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
-        context.orders = orders.copy();
+        context.executionState.orders = orders.copy();
 
         // Bootstrap with all available to ease direct testing.
-        if (context.expectedAvailableOrders.length == 0) {
-            context.expectedAvailableOrders = new bool[](orders.length);
+        if (context.expectations.expectedAvailableOrders.length == 0) {
+            context.expectations.expectedAvailableOrders = new bool[](
+                orders.length
+            );
             for (uint256 i = 0; i < orders.length; ++i) {
-                context.expectedAvailableOrders[i] = true;
+                context.expectations.expectedAvailableOrders[i] = true;
             }
         }
 
         return context;
     }
 
-    // NOTE: expects context.orders and context.seaport to already be set
+    // NOTE: expects context.executionState.orders and context.seaport to already be set
     function withOrderHashes(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        context.orderHashes = context.orders.getOrderHashes(
-            address(context.seaport)
-        );
+        context.executionState.orderHashes = context
+            .executionState
+            .orders
+            .getOrderHashes(address(context.seaport));
         return context;
     }
 
@@ -428,7 +466,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
-        context.initialOrders = orders.copy();
+        context.executionState.initialOrders = orders.copy();
         return context;
     }
 
@@ -546,6 +584,22 @@ library FuzzTestContextLib {
         return context;
     }
 
+    function withGeneratorContext(
+        FuzzTestContext memory context,
+        FuzzGeneratorContext memory generatorContext
+    ) internal pure returns (FuzzTestContext memory) {
+        context.generatorContext = generatorContext;
+        return context;
+    }
+
+    function withSpace(
+        FuzzTestContext memory context,
+        AdvancedOrdersSpace memory space
+    ) internal pure returns (FuzzTestContext memory) {
+        context.advancedOrdersSpace = space;
+        return context;
+    }
+
     /**
      * @dev Sets the fulfillerConduitKey on a FuzzTestContext
      *
@@ -574,7 +628,9 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure returns (FuzzTestContext memory) {
-        context.criteriaResolvers = _copyCriteriaResolvers(criteriaResolvers);
+        context.executionState.criteriaResolvers = _copyCriteriaResolvers(
+            criteriaResolvers
+        );
         return context;
     }
 
@@ -606,7 +662,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         Fulfillment[] memory fulfillments
     ) internal pure returns (FuzzTestContext memory) {
-        context.fulfillments = fulfillments;
+        context.executionState.fulfillments = fulfillments;
         return context;
     }
 
@@ -622,7 +678,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         FulfillmentComponent[][] memory offerFulfillments
     ) internal pure returns (FuzzTestContext memory) {
-        context.offerFulfillments = _copyFulfillmentComponents(
+        context.executionState.offerFulfillments = _copyFulfillmentComponents(
             offerFulfillments
         );
         return context;
@@ -643,7 +699,9 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         FulfillmentComponent[][] memory considerationFulfillments
     ) internal pure returns (FuzzTestContext memory) {
-        context.considerationFulfillments = _copyFulfillmentComponents(
+        context
+            .executionState
+            .considerationFulfillments = _copyFulfillmentComponents(
             considerationFulfillments
         );
         return context;
@@ -661,7 +719,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         uint256 maximumFulfilled
     ) internal pure returns (FuzzTestContext memory) {
-        context.maximumFulfilled = maximumFulfilled;
+        context.executionState.maximumFulfilled = maximumFulfilled;
         return context;
     }
 
@@ -697,10 +755,10 @@ library FuzzTestContextLib {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
 
         context.preExecOrderStatuses = new OrderStatusEnum[](
-            context.orders.length
+            context.executionState.orders.length
         );
 
-        for (uint256 i = 0; i < context.orders.length; i++) {
+        for (uint256 i = 0; i < context.executionState.orders.length; i++) {
             if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
@@ -722,8 +780,11 @@ library FuzzTestContextLib {
                         bound(
                             prng.next(),
                             0,
-                            context.orders[i].parameters.orderType !=
-                                OrderType.CONTRACT
+                            context
+                                .executionState
+                                .orders[i]
+                                .parameters
+                                .orderType != OrderType.CONTRACT
                                 ? 1
                                 : 0
                         )

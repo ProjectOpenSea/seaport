@@ -81,10 +81,15 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
-    function withDetectedRemainders(FuzzTestContext memory context) internal returns (FuzzTestContext memory) {
+    function withDetectedRemainders(
+        FuzzTestContext memory context
+    ) internal returns (FuzzTestContext memory) {
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
-            .getMatchedFulfillments(context.orders, context.criteriaResolvers);
+            .getMatchedFulfillments(
+                context.executionState.orders,
+                context.executionState.criteriaResolvers
+            );
 
         context.hasRemainders = remainders.length != 0;
 
@@ -101,17 +106,22 @@ library FuzzEngineLib {
     function actions(
         FuzzTestContext memory context
     ) internal view returns (bytes4[] memory) {
-        Family family = context.orders.getFamily();
+        Family family = context.executionState.orders.getFamily();
 
         bool invalidOfferItemsLocated = mustUseMatch(context);
 
-        Structure structure = context.orders.getStructure(
+        Structure structure = context.executionState.orders.getStructure(
             address(context.seaport)
         );
 
-        bool hasUnavailable = context.maximumFulfilled < context.orders.length;
-        for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
-            if (!context.expectedAvailableOrders[i]) {
+        bool hasUnavailable = context.executionState.maximumFulfilled <
+            context.executionState.orders.length;
+        for (
+            uint256 i = 0;
+            i < context.expectations.expectedAvailableOrders.length;
+            ++i
+        ) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
                 hasUnavailable = true;
                 break;
             }
@@ -247,8 +257,11 @@ library FuzzEngineLib {
     function mustUseMatch(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            OrderParameters memory orderParams = context.orders[i].parameters;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
             if (orderParams.orderType == OrderType.CONTRACT) {
                 continue;
             }
@@ -262,8 +275,11 @@ library FuzzEngineLib {
             }
         }
 
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            OrderParameters memory orderParams = context.orders[i].parameters;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
             for (uint256 j = 0; j < orderParams.offer.length; ++j) {
                 OfferItem memory item = orderParams.offer[j];
 
@@ -297,8 +313,13 @@ library FuzzEngineLib {
                         }
                     }
 
-                    for (uint256 k = 0; k < context.orders.length; ++k) {
+                    for (
+                        uint256 k = 0;
+                        k < context.executionState.orders.length;
+                        ++k
+                    ) {
                         OrderParameters memory comparisonOrderParams = context
+                            .executionState
                             .orders[k]
                             .parameters;
                         for (
@@ -377,13 +398,17 @@ library FuzzEngineLib {
 
         uint256 value = 0;
 
-        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
-            context.criteriaResolvers
-        );
+        OrderDetails[] memory orderDetails = context
+            .executionState
+            .orders
+            .getOrderDetails(context.executionState.criteriaResolvers);
 
         for (uint256 i = 0; i < orderDetails.length; ++i) {
             OrderDetails memory order = orderDetails[i];
-            OrderParameters memory orderParams = context.orders[i].parameters;
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {

@@ -1436,7 +1436,7 @@ contract FuzzEngineTest is FuzzEngine {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ExampleErrorWithContextData.selector,
-                context.orders[0].signature
+                context.executionState.orders[0].signature
             )
         );
         checkAll(context);
@@ -1558,7 +1558,7 @@ contract FuzzEngineTest is FuzzEngine {
             .withChecks(checks)
             .withMaximumFulfilled(2);
 
-        context.expectedZoneCalldataHash = advancedOrders
+        context.expectations.expectedZoneCalldataHash = advancedOrders
             .getExpectedZoneCalldataHash(
                 address(getSeaport()),
                 address(this),
@@ -1753,7 +1753,7 @@ contract FuzzEngineTest is FuzzEngine {
                     address(this)
                 );
             context
-                .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
+                .expectations.expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
 
             run(context);
         }
@@ -1821,7 +1821,7 @@ contract FuzzEngineTest is FuzzEngine {
     function check_revertWithContextData(
         FuzzTestContext memory context
     ) public pure {
-        revert ExampleErrorWithContextData(context.orders[0].signature);
+        revert ExampleErrorWithContextData(context.executionState.orders[0].signature);
     }
 
     function assertEq(bytes4[] memory a, bytes4[] memory b) internal {

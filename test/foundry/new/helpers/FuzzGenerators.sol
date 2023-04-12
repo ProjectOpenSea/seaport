@@ -333,6 +333,18 @@ library TestStateGenerator {
         }
         return consideration;
     }
+
+    function empty() internal pure returns (AdvancedOrdersSpace memory) {
+        return
+            AdvancedOrdersSpace({
+                orders: new OrderComponentsSpace[](0),
+                isMatchable: false,
+                maximumFulfilled: 0,
+                recipient: FulfillmentRecipient.ZERO,
+                conduit: ConduitChoice.NONE,
+                caller: Caller.TEST_CONTRACT
+            });
+    }
 }
 
 library AdvancedOrdersSpaceGenerator {
