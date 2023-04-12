@@ -9,7 +9,8 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
     FailureEligibilityLib,
-    OrderEligibilityLib
+    OrderEligibilityLib,
+    Failarray
 } from "./FuzzMutationHelpers.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -40,6 +41,7 @@ enum Failure {
 }
 
 library FuzzMutationSelectorLib {
+    using Failarray for Failure;
     using FuzzEngineLib for FuzzTestContext;
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
@@ -78,8 +80,9 @@ library FuzzMutationSelectorLib {
                 MutationFilters.ineligibleForBadFraction
             )
         ) {
-            context.setIneligibleFailure(Failure.BadFraction_NoFill);
-            context.setIneligibleFailure(Failure.BadFraction_Overfill);
+            context.setIneligibleFailures(
+                Failure.BadFraction_NoFill.and(Failure.BadFraction_Overfill)
+            );
         }
 
         // Choose one of the remaining eligible failures.
