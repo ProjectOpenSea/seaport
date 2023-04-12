@@ -5,6 +5,8 @@ import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { OrderEligibilityLib } from "./FuzzMutationSelectorLib.sol";
+
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
@@ -67,68 +69,5 @@ contract FuzzMutations is Test, FuzzExecutor {
         order.signature = "";
 
         exec(context);
-    }
-}
-
-library OrderEligibilityLib {
-    using LibPRNG for LibPRNG.PRNG;
-
-    error NoEligibleOrderFound();
-
-    function setIneligibleOrders(
-        FuzzTestContext memory context,
-        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
-            internal
-            view
-            returns (bool) condition
-    ) internal view {
-        for (uint256 i; i < context.orders.length; i++) {
-            if (condition(context.orders[i], i, context)) {
-                setIneligibleOrder(context, i);
-            }
-        }
-    }
-
-    function setIneligibleOrder(
-        FuzzTestContext memory context,
-        uint256 ineligibleOrderIndex
-    ) internal view {
-        // Set the respective boolean for the ineligible order.
-        context.ineligibleOrders[ineligibleOrderIndex] = true;
-    }
-
-    function getEligibleOrders(
-        FuzzTestContext memory context
-    ) internal pure returns (AdvancedOrder[] memory eligibleOrders) {
-        eligibleOrders = new AdvancedOrder[](context.orders.length);
-
-        uint256 totalEligibleOrders = 0;
-        for (uint256 i = 0; i < context.ineligibleOrders.length; ++i) {
-            // If the boolean is not set, the order is still eligible.
-            if (!context.ineligibleOrders[i]) {
-                eligibleOrders[totalEligibleOrders++] = context.orders[i];
-            }
-        }
-
-        // Update the eligibleOrders array with the actual length.
-        assembly {
-            mstore(eligibleOrders, totalEligibleOrders)
-        }
-    }
-
-    // TODO: may also want to return the order index for backing out to e.g.
-    // orderIndex in fulfillments or criteria resolvers
-    function selectEligibleOrder(
-        FuzzTestContext memory context
-    ) internal pure returns (AdvancedOrder memory eligibleOrder) {
-        LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
-
-        AdvancedOrder[] memory eligibleOrders = getEligibleOrders(context);
-
-        if (eligibleOrders.length == 0) {
-            revert NoEligibleOrderFound();
-        }
-
-        return eligibleOrders[prng.next() % eligibleOrders.length];
     }
 }
