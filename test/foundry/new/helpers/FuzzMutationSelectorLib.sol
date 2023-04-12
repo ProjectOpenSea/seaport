@@ -34,6 +34,7 @@ library FuzzMutationSelectorLib {
     using FuzzEngineLib for FuzzTestContext;
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
+    using OrderEligibilityLib for FuzzTestContext;
 
     function selectMutation(
         FuzzTestContext memory context
@@ -46,10 +47,16 @@ library FuzzMutationSelectorLib {
             bytes memory expectedRevertReason
         )
     {
-        // TODO: logic to set ineligible failures will go here
-        bytes4 action = context.action();
-        action;
+        // Mark InvalidSignature as ineligible if no order supports it.
+        if (
+            context.hasNoEligibleOrders(
+                MutationFilters.ineligibleForInvalidSignature
+            )
+        ) {
+            context.setIneligibleFailure(Failure.InvalidSignature);
+        }
 
+        // Choose one of the remaining eligible failures.
         return context.failureDetails(context.selectEligibleFailure());
     }
 }
@@ -156,6 +163,23 @@ library OrderEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
 
     error NoEligibleOrderFound();
+
+    function hasNoEligibleOrders(
+        FuzzTestContext memory context,
+        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) ineligibleCondition
+    ) internal view returns (bool) {
+        for (uint256 i; i < context.orders.length; i++) {
+            // Once an eligible order is found, return false.
+            if (!ineligibleCondition(context.orders[i], i, context)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     function setIneligibleOrders(
         FuzzTestContext memory context,
