@@ -153,6 +153,7 @@ struct FuzzTestContext {
      */
     AdvancedOrder[] orders;
     bytes32[] orderHashes;
+    OrderDetails[] orderDetails;
     /**
      * @dev A copy of the original orders array. Use this to make assertions
      *      about the final state of the orders after calling exec. This is
@@ -172,6 +173,7 @@ struct FuzzTestContext {
      *      the same counter value.
      */
     uint256 counter;
+    uint256 contractOffererNonce;
     /**
      * @dev Indicates what conduit, if any, to check for token approvals. A zero
      *      value means no conduit, look to seaport itself.
@@ -300,6 +302,7 @@ library FuzzTestContextLib {
                 _action: bytes4(0),
                 orders: orders,
                 orderHashes: new bytes32[](0),
+                orderDetails: new OrderDetails[](0),
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
@@ -311,6 +314,7 @@ library FuzzTestContextLib {
                 }),
                 checks: checks,
                 counter: 0,
+                contractOffererNonce: 0,
                 fulfillerConduitKey: bytes32(0),
                 criteriaResolvers: resolvers,
                 recipient: address(0),
@@ -523,6 +527,22 @@ library FuzzTestContextLib {
         uint256 counter
     ) internal pure returns (FuzzTestContext memory) {
         context.counter = counter;
+        return context;
+    }
+
+    /**
+     * @dev Sets the counter on a FuzzTestContext
+     *
+     * @param context              the FuzzTestContext to set the counter of
+     * @param contractOffererNonce the cocontractOffererNonceunter value to set
+     *
+     * @return _context the FuzzTestContext with the counter set
+     */
+    function withContractOffererNonce(
+        FuzzTestContext memory context,
+        uint256 contractOffererNonce
+    ) internal pure returns (FuzzTestContext memory) {
+        context.contractOffererNonce = contractOffererNonce;
         return context;
     }
 

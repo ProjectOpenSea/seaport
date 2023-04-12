@@ -80,6 +80,8 @@ struct FuzzGeneratorContext {
     bytes32[] orderHashes;
     BasicOrderCategory basicOrderCategory;
     OfferItemSpace basicOfferSpace;
+    uint256 counter;
+    uint256 contractOffererNonce;
 }
 
 library FuzzGeneratorContextLib {
@@ -129,7 +131,9 @@ library FuzzGeneratorContextLib {
                     TokenIndex.ONE,
                     Criteria.MERKLE,
                     Amount.FIXED
-                )
+                ),
+                counter: 0,
+                contractOffererNonce: 0
             });
     }
 
@@ -196,7 +200,9 @@ library FuzzGeneratorContextLib {
                     TokenIndex.ONE,
                     Criteria.MERKLE,
                     Amount.FIXED
-                )
+                ),
+                counter: 0,
+                contractOffererNonce: 0
             });
     }
 

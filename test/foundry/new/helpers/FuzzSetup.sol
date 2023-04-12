@@ -210,19 +210,15 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpOfferItems(FuzzTestContext memory context) public {
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
         bool isMatchable = context.action() ==
             context.seaport.matchAdvancedOrders.selector ||
             context.action() == context.seaport.matchOrders.selector;
 
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < orderDetails.length; ++i) {
+        for (uint256 i; i < context.orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = orderDetails[i];
+            OrderDetails memory order = context.orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = _getApproveTo(context, order);
@@ -244,6 +240,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 }
 
                 if (item.itemType == ItemType.ERC20) {
+
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
                     TestERC20(item.token).increaseAllowance(
@@ -283,14 +280,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.action() == context.seaport.matchOrders.selector
         ) return;
 
-        OrderDetails[] memory orderDetails = toOrderDetails(
-            context.orders,
-            context.criteriaResolvers
-        );
-
         // In all cases, deal balance to caller if consideration item is native
-        for (uint256 i; i < orderDetails.length; ++i) {
-            OrderDetails memory order = orderDetails[i];
+        for (uint256 i; i < context.orderDetails.length; ++i) {
+            OrderDetails memory order = context.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
             for (uint256 j = 0; j < items.length; j++) {
@@ -324,10 +316,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     item.identifierOrCriteria
                 );
                 vm.prank(context.caller);
-                TestERC721(item.token).setApprovalForAll(
-                    approveTo,
-                    true
-                );
+                TestERC721(item.token).setApprovalForAll(approveTo, true);
             } else {
                 TestERC1155(item.token).mint(
                     context.caller,
@@ -335,20 +324,17 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     item.startAmount
                 );
                 vm.prank(context.caller);
-                TestERC1155(item.token).setApprovalForAll(
-                    approveTo,
-                    true
-                );
+                TestERC1155(item.token).setApprovalForAll(approveTo, true);
             }
 
             return;
         }
 
         // Iterate over orders and mint/approve as necessary.
-        for (uint256 i; i < orderDetails.length; ++i) {
+        for (uint256 i; i < context.orderDetails.length; ++i) {
             if (!context.expectedAvailableOrders[i]) continue;
 
-            OrderDetails memory order = orderDetails[i];
+            OrderDetails memory order = context.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
             address owner = context.caller;
@@ -372,10 +358,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         context.caller == context.recipient ||
                         context.recipient == address(0)
                     ) {
-                        for (uint256 k; k < orderDetails.length; ++k) {
+                        for (uint256 k; k < context.orderDetails.length; ++k) {
                             if (!context.expectedAvailableOrders[k]) continue;
 
-                            SpentItem[] memory spentItems = orderDetails[k]
+                            SpentItem[] memory spentItems = context
+                                .orderDetails[k]
                                 .offer;
                             for (uint256 l; l < spentItems.length; ++l) {
                                 if (

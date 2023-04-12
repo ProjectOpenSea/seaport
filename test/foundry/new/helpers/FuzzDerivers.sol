@@ -7,6 +7,7 @@ import { Vm } from "forge-std/Vm.sol";
 
 import {
     AdvancedOrderLib,
+    FulfillAvailableHelper,
     MatchComponent,
     MatchComponentType
 } from "seaport-sol/SeaportSol.sol";
@@ -145,6 +146,18 @@ library FuzzDerivers {
         return context;
     }
 
+    function withDerivedOrderDetails(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
+        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
+            context.criteriaResolvers
+        );
+
+        context.orderDetails = orderDetails;
+
+        return context;
+    }
+
     /**
      * @dev Derive the `offerFulfillments` and `considerationFulfillments`
      *      arrays or the `fulfillments` array from the `orders` array.
@@ -174,7 +187,7 @@ library FuzzDerivers {
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
             ) = context.testHelpers.getNaiveFulfillmentComponents(
-                    context.orders.getOrderDetails(context.criteriaResolvers)
+                    context.orderDetails
                 );
 
             context.offerFulfillments = offerFulfillments;
@@ -371,13 +384,9 @@ library FulfillmentDetailsHelper {
             ? caller
             : context.recipient;
 
-        OrderDetails[] memory details = context.orders.getOrderDetails(
-            context.criteriaResolvers
-        );
-
         return
             FulfillmentDetails({
-                orders: details,
+                orders: context.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
                 fulfillerConduitKey: context.fulfillerConduitKey,

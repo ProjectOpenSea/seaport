@@ -78,6 +78,8 @@ import {
 } from "./FuzzHelpers.sol";
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
+import { FuzzInscribers } from "./FuzzInscribers.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -336,7 +338,6 @@ library TestStateGenerator {
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
-    using FuzzHelpers for AdvancedOrder[];
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
@@ -345,6 +346,7 @@ library AdvancedOrdersSpaceGenerator {
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
     using ExtraDataGenerator for AdvancedOrder;
     using FulfillmentRecipientGenerator for FulfillmentRecipient;
+    using FuzzHelpers for AdvancedOrder[];
     using MatchComponentType for MatchComponent;
     using OfferItemSpaceGenerator for OfferItemSpace;
     using OrderComponentsSpaceGenerator for OrderComponentsSpace;
@@ -474,6 +476,11 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
         }
+
+        // Set up a random base counter and nonce, which will be used to set the
+        // counter and nonce for each offerer in the `_signOrders` function.
+        context.counter = context.randRange(0, type(uint128).max);
+        context.contractOffererNonce = context.randRange(0, type(uint128).max);
 
         // Sign orders and add the hashes to the context.
         _signOrders(space, orders, context);
@@ -1150,11 +1157,30 @@ library AdvancedOrdersSpaceGenerator {
 
             // Skip contract orders since they do not have signatures
             if (order.parameters.orderType == OrderType.CONTRACT) {
+                uint256 contractOffererSpecificContractNonce = context
+                    .contractOffererNonce +
+                    uint256(uint160(order.parameters.offerer));
+                // Just for convenience of having them both in one place.
+                FuzzInscribers.inscribeContractOffererNonce(
+                    order.parameters.offerer,
+                    contractOffererSpecificContractNonce,
+                    context.seaport
+                );
                 continue;
             }
 
-            bytes32 orderHash = order.getTipNeutralizedOrderHash(
+            // Get the counter for the offerer.
+            uint256 offererSpecificCounter = context.counter +
+                uint256(uint160(order.parameters.offerer));
+
+            FuzzInscribers.inscribeCounter(
+                order.parameters.offerer,
+                offererSpecificCounter,
                 context.seaport
+            );
+
+            bytes32 orderHash = order.getTipNeutralizedOrderHash(
+                context.seaport, offererSpecificCounter
             );
 
             // Set the order hash in the context.

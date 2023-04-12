@@ -33,7 +33,11 @@ import {
     FuzzTestContextLib
 } from "./helpers/FuzzTestContextLib.sol";
 
+import { FuzzEngineLib } from "./helpers/FuzzEngineLib.sol";
+
 import { FuzzSetup } from "./helpers/FuzzSetup.sol";
+
+import { FuzzDerivers } from "./helpers/FuzzDerivers.sol";
 
 contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using AdvancedOrderLib for AdvancedOrder;
@@ -49,6 +53,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using OrderParametersLib for OrderParameters;
 
     using FuzzTestContextLib for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
+    using FuzzDerivers for FuzzTestContext;
 
     Account charlie = makeAccount("charlie");
 
@@ -84,11 +90,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
 
         setUpOfferItems(context);
 
@@ -123,13 +131,16 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
-
         vm.warp(block.timestamp + 500);
+
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
+
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 750);
@@ -163,13 +174,16 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
-
         vm.warp(block.timestamp + 500);
+
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
+
         setUpOfferItems(context);
 
         assertEq(erc20s[0].balanceOf(charlie.addr), 750);
@@ -211,11 +225,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
 
         setUpOfferItems(context);
 
@@ -260,11 +276,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
 
         setUpOfferItems(context);
 
@@ -304,13 +322,16 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this)
-        });
-
         vm.warp(block.timestamp + 500);
+
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: address(this)
+            })
+            .withDerivedOrderDetails();
+
         setUpOfferItems(context);
 
         assertEq(erc1155s[0].balanceOf(charlie.addr, 1), 500);
@@ -353,11 +374,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: charlie.addr
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: charlie.addr
+            })
+            .withDerivedOrderDetails();
 
         setUpConsiderationItems(context);
 
@@ -404,11 +427,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: charlie.addr
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: charlie.addr
+            })
+            .withDerivedOrderDetails();
 
         setUpConsiderationItems(context);
 
@@ -457,11 +482,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: charlie.addr
-        });
+        FuzzTestContext memory context = FuzzTestContextLib
+            .from({
+                orders: orders,
+                seaport: getSeaport(),
+                caller: charlie.addr
+            })
+            .withDerivedOrderDetails();
 
         setUpConsiderationItems(context);
 
