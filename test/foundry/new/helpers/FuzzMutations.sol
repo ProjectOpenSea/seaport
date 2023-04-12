@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
@@ -13,8 +14,10 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
+import { dumpExecutions } from "./DebugUtil.sol";
 
 contract MutationFilters {
+    using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
 
     // Determine if an order is unavailable, has been validated, has an offerer
@@ -50,6 +53,26 @@ contract MutationFilters {
 
         return false;
     }
+
+    function ineligibleForBadFraction_NoFill(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (!context.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.denominator == 0) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
@@ -64,6 +87,19 @@ contract FuzzMutations is Test, FuzzExecutor, MutationFilters {
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
+
+        exec(context);
+    }
+
+    function mutation_badFraction_NoFill(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(ineligibleForBadFraction_NoFill);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.numerator = 0;
+        dumpExecutions(context);
 
         exec(context);
     }

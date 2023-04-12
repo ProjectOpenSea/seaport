@@ -11,10 +11,14 @@ import {
     SignatureVerificationErrors
 } from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
 
+import {
+    ConsiderationEventsAndErrors
+} from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 enum Failure {
-    InvalidSignature, // EOA signature is incorrect length
+    // InvalidSignature, // EOA signature is incorrect length
     // InvalidSigner_BadSignature, // EOA signature has been tampered with
     // InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
     // BadSignatureV, // EOA signature has bad v value
@@ -23,7 +27,7 @@ enum Failure {
     // BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
-    // BadFraction_NoFill, // Order where numerator = 0
+    BadFraction_NoFill, // Order where numerator = 0
     // BadFraction_Overfill, // Order where numerator > denominator
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
@@ -46,7 +50,17 @@ library FuzzMutationSelectorLib {
     {
         // TODO: logic to set ineligible failures will go here
         bytes4 action = context.action();
-        action;
+        if (action == context.seaport.fulfillOrder.selector) {
+            context.setIneligibleFailure(Failure.BadFraction_NoFill);
+        }
+
+        if (action == context.seaport.fulfillAvailableOrders.selector) {
+            context.setIneligibleFailure(Failure.BadFraction_NoFill);
+        }
+
+        if (action == context.seaport.fulfillBasicOrder.selector) {
+            context.setIneligibleFailure(Failure.BadFraction_NoFill);
+        }
 
         return context.failureDetails(context.selectEligibleFailure());
     }
@@ -66,8 +80,12 @@ library FailureDetailsLib {
         )
     {
         // TODO: more failures will go here
-        if (failure == Failure.InvalidSignature) {
-            return details_InvalidSignature();
+        //if (failure == Failure.InvalidSignature) {
+        //    return details_InvalidSignature();
+        //}
+
+        if (failure == Failure.BadFraction_NoFill) {
+            return details_BadFraction_NoFill();
         }
     }
 
@@ -84,6 +102,22 @@ library FailureDetailsLib {
         selector = FuzzMutations.mutation_invalidSignature.selector;
         expectedRevertReason = abi.encodePacked(
             SignatureVerificationErrors.InvalidSignature.selector
+        );
+    }
+
+    function details_BadFraction_NoFill()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "BadFraction_NoFill";
+        selector = FuzzMutations.mutation_badFraction_NoFill.selector;
+        expectedRevertReason = abi.encodePacked(
+            ConsiderationEventsAndErrors.BadFraction.selector
         );
     }
 }
