@@ -51,6 +51,8 @@ import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
+import { Failure } from "./FuzzMutationSelectorLib.sol";
+
 struct FuzzParams {
     uint256 seed;
     uint256 totalOrders;
@@ -265,6 +267,8 @@ struct FuzzTestContext {
      *      from all Seaport functions.
      */
     ReturnValues returnValues;
+    bool[] ineligibleOrders;
+    bool[] ineligibleFailures;
 }
 
 /**
@@ -344,7 +348,9 @@ library FuzzTestContextLib {
                 expectedTransferEventHashes: expectedTransferEventHashes,
                 expectedSeaportEventHashes: expectedSeaportEventHashes,
                 actualEvents: actualEvents,
-                testHelpers: TestHelpers(address(this))
+                testHelpers: TestHelpers(address(this)),
+                ineligibleOrders: new bool[](orders.length),
+                ineligibleFailures: new bool[](uint256(Failure.length))
             });
     }
 
@@ -367,7 +373,8 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -386,7 +393,8 @@ library FuzzTestContextLib {
                 .withOrders(orders)
                 .withSeaport(seaport)
                 .withOrderHashes()
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -429,6 +437,13 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.initialOrders = orders.copy();
+        return context;
+    }
+
+    function withProvisionedIneligbleOrdersArray(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        context.ineligibleOrders = new bool[](context.orders.length);
         return context;
     }
 
