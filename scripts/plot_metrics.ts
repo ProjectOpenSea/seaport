@@ -2,9 +2,10 @@ import barChart from "cli-barchart";
 import fs from "fs";
 
 function plotMetrics() {
+  const file = process.argv.length > 2 ? process.argv[2] : "call-metrics.txt";
   const counter = new Map<string, number>();
 
-  const metricsData = fs.readFileSync("metrics.txt", "utf-8");
+  const metricsData = fs.readFileSync(file, "utf-8");
   const lines = metricsData.split("\n");
 
   for (const line of lines) {

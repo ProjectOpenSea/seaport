@@ -22,9 +22,7 @@ library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
 
-    // Determine if an order is unavailable, has been validated, has an offerer
-    // with code, has an offerer equal to the caller, or is a contract order.
-    function ineligibleForInvalidSignature(
+    function ineligibleForEOASignature(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
@@ -56,32 +54,49 @@ library MutationFilters {
         return false;
     }
 
+    // Determine if an order is unavailable, has been validated, has an offerer
+    // with code, has an offerer equal to the caller, or is a contract order.
+    function ineligibleForInvalidSignature(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForEOASignature(order, orderIndex, context)) {
+            return true;
+        }
+
+        if (order.signature.length != 64 && order.signature.length != 65) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInvalidSigner(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForEOASignature(order, orderIndex, context)) {
+            return true;
+        }
+
+        bool validLength = order.signature.length < 837 &&
+            order.signature.length > 63 &&
+            ((order.signature.length - 35) % 32) < 2;
+        if (!validLength) {
+            return true;
+        }
+
+        return false;
+    }
+
     function ineligibleForBadSignatureV(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (!context.expectedAvailableOrders[orderIndex]) {
-            return true;
-        }
-
-        if (order.parameters.orderType == OrderType.CONTRACT) {
-            return true;
-        }
-
-        if (order.parameters.offerer == context.caller) {
-            return true;
-        }
-
-        if (order.parameters.offerer.code.length != 0) {
-            return true;
-        }
-
-        (bool isValidated, , , ) = context.seaport.getOrderStatus(
-            context.orderHashes[orderIndex]
-        );
-
-        if (isValidated) {
+        if (ineligibleForEOASignature(order, orderIndex, context)) {
             return true;
         }
 
@@ -145,6 +160,30 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
+
+        exec(context);
+    }
+
+    function mutation_invalidSigner_BadSignature(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
+
+        exec(context);
+    }
+
+    function mutation_invalidSigner_ModifiedOrder(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.parameters.salt ^= 0x01;
 
         exec(context);
     }

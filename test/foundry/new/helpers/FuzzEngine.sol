@@ -389,6 +389,7 @@ contract FuzzEngine is
             bytes4 selector,
             bytes memory expectedRevertReason
         ) = context.selectMutation();
+        logMutation(name);
 
         bytes memory callData = abi.encodeWithSelector(selector, context);
         (bool success, bytes memory data) = address(mutations).call(callData);
@@ -471,6 +472,13 @@ contract FuzzEngine is
         for (uint256 i; i < context.checks.length; ++i) {
             bytes4 selector = context.checks[i];
             check(context, selector);
+        }
+    }
+
+    function logMutation(string memory mutationName) internal {
+        if (vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
+            string memory metric = string.concat(mutationName, ":1|c");
+            vm.writeLine("mutation-metrics.txt", metric);
         }
     }
 }
