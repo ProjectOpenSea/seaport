@@ -72,12 +72,9 @@ library FuzzMutationSelectorLib {
         pure
         returns (IneligibilityFilter[] memory failuresAndFilters)
     {
-        /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
-        uint256 TOTAL_FILTERS = 5;
-        ////////////////////////////////////////////////////////////////////////
-
         // Set failure conditions as ineligible when no orders support them.
-        failuresAndFilters = new IneligibilityFilter[](TOTAL_FILTERS);
+        // Create abundantly long array to avoid potentially cryptic OOR errors.
+        failuresAndFilters = new IneligibilityFilter[](256);
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
@@ -105,10 +102,9 @@ library FuzzMutationSelectorLib {
             .with(MutationFilters.ineligibleForBadFraction);
         ////////////////////////////////////////////////////////////////////////
 
-        if (i != TOTAL_FILTERS) {
-            revert(
-                "FuzzMutationSelectorLib: incorrect total filters specified"
-            );
+        // Set the actual length of the array.
+        assembly {
+            mstore(failuresAndFilters, i)
         }
     }
 
@@ -146,7 +142,10 @@ library FailureDetailsLib {
         pure
         returns (FailureDetails[] memory failureDetailsArray)
     {
-        failureDetailsArray = new FailureDetails[](uint256(Failure.length));
+        // Set details, including error selector, name, mutation selector, and
+        // an optional function for deriving revert reasons, for each failure.
+        // Create a longer array to avoid potentially cryptic OOR errors.
+        failureDetailsArray = new FailureDetails[](uint256(Failure.length) + 9);
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
@@ -220,6 +219,11 @@ library FailureDetailsLib {
 
         if (i != uint256(Failure.length)) {
             revert("FuzzMutationSelectorLib: incorrect # failures specified");
+        }
+
+        // Set the actual length of the array.
+        assembly {
+            mstore(failureDetailsArray, i)
         }
     }
 
