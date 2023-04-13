@@ -127,7 +127,14 @@ library FuzzInscribers {
     ) internal {
         // Get the order hash.
         bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
+        inscribeOrderStatusCancelled(orderHash, isCancelled, seaport);
+    }
 
+    function inscribeOrderStatusCancelled(
+        bytes32 orderHash,
+        bool isCancelled,
+        SeaportInterface seaport
+    ) internal {
         bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
             orderHash,
             seaport
@@ -167,7 +174,9 @@ library FuzzInscribers {
         }
 
         if (isCancelledOrganicValue && isValidatedOrganicValue) {
-            revert("FuzzInscribers/inscribeOrderStatusCancelled: Invalid state");
+            revert(
+                "FuzzInscribers/inscribeOrderStatusCancelled: Invalid state"
+            );
         }
     }
 
@@ -295,16 +304,12 @@ library FuzzInscribers {
     ) internal {
         // Get the storage slot for the counter.
         bytes32 counterStorageSlot = _getStorageSlotForCounter(
-                offerer,
-                seaport
-            );
+            offerer,
+            seaport
+        );
 
         // Store the new counter.
-        vm.store(
-            address(seaport),
-            counterStorageSlot,
-            bytes32(counter)
-        );
+        vm.store(address(seaport), counterStorageSlot, bytes32(counter));
     }
 
     function _getStorageSlotForOrderHash(

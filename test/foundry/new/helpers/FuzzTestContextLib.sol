@@ -240,6 +240,11 @@ struct ExecutionState {
     uint256 value;
 }
 
+struct MutationState {
+    AdvancedOrder selectedOrder;
+    uint256 selectedOrderIndex;
+}
+
 struct FuzzTestContext {
     bytes4 _action;
     /**
@@ -277,6 +282,10 @@ struct FuzzTestContext {
      *      make assertions about the resulting test state.
      */
     Expectations expectations;
+    /**
+     * @dev A struct containing the state for the mutation phase.
+     */
+    MutationState mutationState;
     /**
      * @dev An array of function selectors for "checks". The FuzzEngine will
      *      call these functions after calling exec to make assertions about
@@ -374,6 +383,10 @@ library FuzzTestContextLib {
                     considerationFulfillments: componentsArray,
                     maximumFulfilled: 0,
                     value: 0
+                }),
+                mutationState: MutationState({
+                    selectedOrder: AdvancedOrderLib.empty(),
+                    selectedOrderIndex: 0
                 }),
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),

@@ -24,7 +24,7 @@ import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { Tips } from "seaport-sol/SpaceEnums.sol";
+import { FuzzInscribers } from "./FuzzInscribers.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 
 library MutationFilters {
@@ -302,16 +302,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         context.setIneligibleOrders(
             MutationFilters.ineligibleForOrderIsCancelled
         );
-        AdvancedOrder memory order = context.selectEligibleOrder();
+        (AdvancedOrder memory order, uint256 orderIndex) = context
+            .selectEligibleOrder();
 
-        OrderComponents[] memory orderComponents = new OrderComponents[](1);
-        orderComponents[0] = order.toOrder().parameters.toOrderComponents(
-            context.executionState.counter +
-                uint256(uint160(address(order.parameters.offerer)))
+        bytes32 orderHash = context.executionState.orderHashes[orderIndex];
+        FuzzInscribers.inscribeOrderStatusCancelled(
+            orderHash,
+            true,
+            context.seaport
         );
-
-        vm.prank(order.parameters.offerer);
-        context.seaport.cancel(orderComponents);
 
         exec(context);
     }
