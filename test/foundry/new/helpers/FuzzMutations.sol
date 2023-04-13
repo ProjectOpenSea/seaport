@@ -108,8 +108,8 @@ library MutationFilters {
     }
 
     function ineligibleForInvalidTime(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -117,12 +117,6 @@ library MutationFilters {
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
-            return true;
-        }
-
-        // TODO: Similar to the availability note in ineligibleForBadFraction,
-        // this check is over-excluding potentially eligible orders.
-        if (!context.expectedAvailableOrders[orderIndex]) {
             return true;
         }
 
