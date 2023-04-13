@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -103,13 +103,16 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForBadSignatureV
         );
 
-        failuresAndFilters[i++] = Failure
-            .BadFraction_NoFill
-            .and(Failure.BadFraction_Overfill)
-            .with(MutationFilters.ineligibleForBadFraction);
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
+            MutationFilters.ineligibleForBadFraction
+        );
+
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
+            MutationFilters.ineligibleForBadFraction_noFill
+        );
 
         failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
-           MutationFilters.ineligibleForOrderIsCancelled
+            MutationFilters.ineligibleForOrderIsCancelled
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -127,7 +130,8 @@ library FuzzMutationSelectorLib {
         returns (
             string memory name,
             bytes4 mutationSelector,
-            bytes memory expectedRevertReason
+            bytes memory expectedRevertReason,
+            MutationState memory mutationState
         )
     {
         // Mark each failure conditions as ineligible if no orders support them.
@@ -139,9 +143,8 @@ library FuzzMutationSelectorLib {
         // Evaluate each filter and assign respective ineligible failures.
         context.setAllIneligibleFailures(failuresAndFilters);
 
-        // Choose one of the remaining eligible failures.
-        return
-            context.failureDetails(
+        (name, mutationSelector, expectedRevertReason, mutationState) = context
+            .failureDetails(
                 context.selectEligibleFailure(),
                 failuresAndFilters
             );
@@ -265,6 +268,7 @@ library FailureDetailsLib {
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
@@ -272,6 +276,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_NotStarted(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -283,6 +288,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_Expired(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -294,13 +300,12 @@ library FailureDetailsLib {
 
     function details_OrderIsCancelled(
         FuzzTestContext memory context,
+        MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderHashes[
-                context.mutationState.selectedOrderIndex
-            ]
+            context.executionState.orderHashes[mutationState.selectedOrderIndex]
         );
     }
 
@@ -316,14 +321,15 @@ library FailureDetailsLib {
         returns (
             string memory name,
             bytes4 mutationSelector,
-            bytes memory revertReason
+            bytes memory revertReason,
+            MutationState memory
         )
     {
         FailureDetails memory details = (
             declareFailureDetails()[uint256(failure)]
         );
 
-        context.deriveMutationContext(
+        MutationState memory mutationState = context.deriveMutationContext(
             details.derivationMethod,
             failuresAndFilters.extractFirstFilterForFailure(failure)
         );
@@ -332,9 +338,11 @@ library FailureDetailsLib {
             details.name,
             details.mutationSelector,
             context.deriveRevertReason(
+                mutationState,
                 details.errorSelector,
                 details.revertReasonDeriver
-            )
+            ),
+            mutationState
         );
     }
 }

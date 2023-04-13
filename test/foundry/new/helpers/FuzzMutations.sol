@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/console.sol";
-
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
@@ -162,11 +160,21 @@ library MutationFilters {
             return true;
         }
 
-        if (order.denominator == 0) {
+        return false;
+    }
+
+    function ineligibleForBadFraction_noFill(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (action == context.seaport.fulfillAvailableAdvancedOrders.selector) {
             return true;
         }
 
-        return false;
+        return ineligibleForBadFraction(order, orderIndex, context);
     }
 
     function ineligibleForOrderIsCancelled(
@@ -197,9 +205,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     using OrderParametersLib for OrderParameters;
 
     function mutation_invalidSignature(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
@@ -208,9 +218,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_invalidSigner_BadSignature(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
@@ -218,17 +230,23 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_invalidSigner_ModifiedOrder(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.salt ^= 0x01;
 
         exec(context);
     }
 
-    function mutation_badSignatureV(FuzzTestContext memory context) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+    function mutation_badSignatureV(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.signature[64] = 0xff;
 
@@ -236,9 +254,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_invalidTime_NotStarted(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
@@ -247,9 +267,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_invalidTime_Expired(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
@@ -258,9 +280,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badFraction_NoFill(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 0;
 
@@ -268,9 +292,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badFraction_Overfill(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        AdvancedOrder memory order = context.mutationState.selectedOrder;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 2;
         order.denominator = 1;
@@ -279,9 +305,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_orderIsCancelled(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        uint256 orderIndex = context.mutationState.selectedOrderIndex;
+        uint256 orderIndex = mutationState.selectedOrderIndex;
 
         bytes32 orderHash = context.executionState.orderHashes[orderIndex];
         FuzzInscribers.inscribeOrderStatusCancelled(

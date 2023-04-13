@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -326,8 +326,6 @@ library OrderEligibilityLib {
 
         orderIndex = prng.next() % eligibleOrders.length;
         eligibleOrder = eligibleOrders[orderIndex];
-        context.mutationState.selectedOrder = eligibleOrder;
-        context.mutationState.selectedOrderIndex = orderIndex;
     }
 
     function fn(
@@ -366,7 +364,7 @@ library MutationContextDeriverLib {
         FuzzTestContext memory context,
         MutationContextDerivation derivationMethod,
         bytes32 ineligibilityFilter // use a function pointer
-    ) internal view {
+    ) internal view returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
             context.setIneligibleOrders(
                 OrderEligibilityLib.asIneligibleMutationFilter(
@@ -376,8 +374,8 @@ library MutationContextDeriverLib {
             (AdvancedOrder memory order, uint256 orderIndex) = context
                 .selectEligibleOrder();
 
-            context.mutationState.selectedOrder = order;
-            context.mutationState.selectedOrderIndex = orderIndex;
+            mutationState.selectedOrder = order;
+            mutationState.selectedOrderIndex = orderIndex;
         } else {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }
@@ -406,7 +404,7 @@ library FailureDetailsHelperLib {
         string memory name,
         MutationContextDerivation derivation,
         bytes4 mutationSelector,
-        function(FuzzTestContext memory, bytes4)
+        function(FuzzTestContext memory, MutationState memory, bytes4)
             internal
             view
             returns (bytes memory) revertReasonDeriver
@@ -422,7 +420,7 @@ library FailureDetailsHelperLib {
     }
 
     function fn(
-        function(FuzzTestContext memory, bytes4)
+        function(FuzzTestContext memory, MutationState memory, bytes4)
             internal
             view
             returns (bytes memory) revertReasonGenerator
@@ -434,12 +432,14 @@ library FailureDetailsHelperLib {
 
     function deriveRevertReason(
         FuzzTestContext memory context,
+        MutationState memory mutationState,
         bytes4 errorSelector,
         bytes32 revertReasonDeriver
     ) internal view returns (bytes memory) {
         return
             asRevertReasonGenerator(revertReasonDeriver)(
                 context,
+                mutationState,
                 errorSelector
             );
     }
@@ -450,7 +450,7 @@ library FailureDetailsHelperLib {
         private
         pure
         returns (
-            function(FuzzTestContext memory, bytes4)
+            function(FuzzTestContext memory, MutationState memory, bytes4)
                 internal
                 view
                 returns (bytes memory) revertReasonGenerator
@@ -463,6 +463,7 @@ library FailureDetailsHelperLib {
 
     function defaultReason(
         FuzzTestContext memory /* context */,
+        MutationState memory,
         bytes4 errorSelector
     ) internal pure returns (bytes memory) {
         return abi.encodePacked(errorSelector);

@@ -55,8 +55,6 @@ abstract contract FuzzExecutor is Test {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context, bool logCalls) public {
-        // If the caller is not the zero address, prank the address.
-
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
@@ -126,9 +124,9 @@ abstract contract FuzzExecutor is Test {
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc{ value: context.executionState.value }(
-                basicOrderParameters
-            );
+                .fulfillBasicOrder_efficient_6GL6yc{
+                value: context.executionState.value
+            }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders", logCalls);
             if (context.executionState.caller != address(0))
@@ -136,7 +134,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
@@ -155,7 +155,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders,
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
