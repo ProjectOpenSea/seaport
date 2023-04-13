@@ -12,7 +12,8 @@ import { Vm } from "forge-std/Vm.sol";
 import {
     Failure,
     FailureDetails,
-    IneligibilityFilter
+    IneligibilityFilter,
+    MutationContextDerivation
 } from "./FuzzMutationSelectorLib.sol";
 
 library FailureEligibilityLib {
@@ -20,6 +21,76 @@ library FailureEligibilityLib {
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     using LibPRNG for LibPRNG.PRNG;
+
+    function ensureFilterSetForEachFailure(
+        IneligibilityFilter[] memory failuresAndFilters
+    ) internal pure {
+        for (uint256 i = 0; i < uint256(Failure.length); ++i) {
+            Failure failure = Failure(i);
+
+            bool foundFailure = false;
+
+            for (uint256 j = 0; j < failuresAndFilters.length; ++j) {
+                Failure[] memory failures = failuresAndFilters[j].failures;
+
+                for (uint256 k = 0; k < failures.length; ++k) {
+                    foundFailure = (failure == failures[k]);
+
+                    if (foundFailure) {
+                        break;
+                    }
+                }
+
+                if (foundFailure) {
+                    break;
+                }
+            }
+
+            if (!foundFailure) {
+                revert(
+                    string.concat(
+                        "FailureEligibilityLib: no filter located for failure #",
+                        _toString(i)
+                    )
+                );
+            }
+        }
+    }
+
+    function extractFirstFilterForFailure(
+        IneligibilityFilter[] memory failuresAndFilters,
+        Failure failure
+    ) internal pure returns (bytes32 filter) {
+        bool foundFailure = false;
+        uint256 i;
+
+        for (i = 0; i < failuresAndFilters.length; ++i) {
+            Failure[] memory failures = failuresAndFilters[i].failures;
+
+            for (uint256 j = 0; j < failures.length; ++j) {
+                foundFailure = (failure == failures[j]);
+
+                if (foundFailure) {
+                    break;
+                }
+            }
+
+            if (foundFailure) {
+                break;
+            }
+        }
+
+        if (!foundFailure) {
+            revert(
+                string.concat(
+                    "FailureEligibilityLib: no filter extractable for failure #",
+                    _toString(uint256(failure))
+                )
+            );
+        }
+
+        return failuresAndFilters[i].ineligibleMutationFilter;
+    }
 
     function setIneligibleFailure(
         FuzzTestContext memory context,
@@ -83,6 +154,28 @@ library FailureEligibilityLib {
 
         return eligibleFailures[prng.next() % eligibleFailures.length];
     }
+
+    function _toString(uint256 value) private pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+
+        uint256 tempValue = value;
+        uint256 length;
+
+        while (tempValue != 0) {
+            length++;
+            tempValue /= 10;
+        }
+
+        bytes memory strBytes = new bytes(length);
+        while (value != 0) {
+            strBytes[--length] = bytes1(uint8(48) + uint8(value % 10));
+            value /= 10;
+        }
+
+        return string(strBytes);
+    }
 }
 
 library OrderEligibilityLib {
@@ -112,41 +205,6 @@ library OrderEligibilityLib {
         return IneligibilityFilter(failures, fn(ineligibilityFilter));
     }
 
-    function ensureFilterSetForEachFailure(
-        IneligibilityFilter[] memory failuresAndFilters
-    ) internal pure {
-        for (uint256 i = 0; i < uint256(Failure.length); ++i) {
-            Failure failure = Failure(i);
-
-            bool foundFailure = false;
-
-            for (uint256 j = 0; j < failuresAndFilters.length; ++j) {
-                Failure[] memory failures = failuresAndFilters[j].failures;
-
-                for (uint256 k = 0; k < failures.length; ++k) {
-                    foundFailure = (failure == failures[k]);
-
-                    if (foundFailure) {
-                        break;
-                    }
-                }
-
-                if (foundFailure) {
-                    break;
-                }
-            }
-
-            if (!foundFailure) {
-                revert(
-                    string.concat(
-                        "OrderEligibilityLib: no filter located for failure #",
-                        _toString(i)
-                    )
-                );
-            }
-        }
-    }
-
     function setAllIneligibleFailures(
         FuzzTestContext memory context,
         IneligibilityFilter[] memory failuresAndFilters
@@ -158,7 +216,7 @@ library OrderEligibilityLib {
 
             setIneligibleFailures(
                 context,
-                _asIneligibleMutationFilter(
+                asIneligibleMutationFilter(
                     failuresAndFilter.ineligibleMutationFilter
                 ),
                 failuresAndFilter.failures
@@ -283,10 +341,10 @@ library OrderEligibilityLib {
         }
     }
 
-    function _asIneligibleMutationFilter(
+    function asIneligibleMutationFilter(
         bytes32 ptr
     )
-        private
+        internal
         pure
         returns (
             function(AdvancedOrder memory, uint256, FuzzTestContext memory)
@@ -299,27 +357,30 @@ library OrderEligibilityLib {
             ineligibleMutationFilter := ptr
         }
     }
+}
 
-    function _toString(uint256 value) private pure returns (string memory) {
-        if (value == 0) {
-            return "0";
+library MutationContextDeriverLib {
+    using OrderEligibilityLib for FuzzTestContext;
+
+    function deriveMutationContext(
+        FuzzTestContext memory context,
+        MutationContextDerivation derivationMethod,
+        bytes32 ineligibilityFilter // use a function pointer
+    ) internal view {
+        if (derivationMethod == MutationContextDerivation.ORDER) {
+            context.setIneligibleOrders(
+                OrderEligibilityLib.asIneligibleMutationFilter(
+                    ineligibilityFilter
+                )
+            );
+            (AdvancedOrder memory order, uint256 orderIndex) = context
+                .selectEligibleOrder();
+
+            context.mutationState.selectedOrder = order;
+            context.mutationState.selectedOrderIndex = orderIndex;
+        } else {
+            revert("MutationContextDeriverLib: unsupported derivation method");
         }
-
-        uint256 tempValue = value;
-        uint256 length;
-
-        while (tempValue != 0) {
-            length++;
-            tempValue /= 10;
-        }
-
-        bytes memory strBytes = new bytes(length);
-        while (value != 0) {
-            strBytes[--length] = bytes1(uint8(48) + uint8(value % 10));
-            value /= 10;
-        }
-
-        return string(strBytes);
     }
 }
 
@@ -327,6 +388,7 @@ library FailureDetailsHelperLib {
     function with(
         bytes4 errorSelector,
         string memory name,
+        MutationContextDerivation derivation,
         bytes4 mutationSelector
     ) internal pure returns (FailureDetails memory details) {
         return
@@ -334,6 +396,7 @@ library FailureDetailsHelperLib {
                 name,
                 mutationSelector,
                 errorSelector,
+                derivation,
                 fn(defaultReason)
             );
     }
@@ -341,6 +404,7 @@ library FailureDetailsHelperLib {
     function with(
         bytes4 errorSelector,
         string memory name,
+        MutationContextDerivation derivation,
         bytes4 mutationSelector,
         function(FuzzTestContext memory, bytes4)
             internal
@@ -352,6 +416,7 @@ library FailureDetailsHelperLib {
                 name,
                 mutationSelector,
                 errorSelector,
+                derivation,
                 fn(revertReasonDeriver)
             );
     }

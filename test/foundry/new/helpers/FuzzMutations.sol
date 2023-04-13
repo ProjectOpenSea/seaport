@@ -199,11 +199,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSignature(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForInvalidSignature
-        );
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
@@ -214,9 +210,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSigner_BadSignature(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
@@ -226,9 +220,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidSigner_ModifiedOrder(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidSigner);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.salt ^= 0x01;
 
@@ -236,9 +228,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badSignatureV(FuzzTestContext memory context) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadSignatureV);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.signature[64] = 0xff;
 
@@ -248,9 +238,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidTime_NotStarted(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
@@ -261,9 +249,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidTime_Expired(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
@@ -274,9 +260,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_badFraction_NoFill(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadFraction);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.numerator = 0;
 
@@ -286,9 +270,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_badFraction_Overfill(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(MutationFilters.ineligibleForBadFraction);
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        AdvancedOrder memory order = context.mutationState.selectedOrder;
 
         order.numerator = 2;
         order.denominator = 1;
@@ -299,11 +281,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_orderIsCancelled(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForOrderIsCancelled
-        );
-        (AdvancedOrder memory order, uint256 orderIndex) = context
-            .selectEligibleOrder();
+        uint256 orderIndex = context.mutationState.selectedOrderIndex;
 
         bytes32 orderHash = context.executionState.orderHashes[orderIndex];
         FuzzInscribers.inscribeOrderStatusCancelled(
