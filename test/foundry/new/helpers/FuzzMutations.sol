@@ -107,6 +107,28 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForInvalidTime(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        // TODO: Similar to the availability note in ineligibleForBadFraction,
+        // this check is over-excluding potentially eligible orders.
+        if (!context.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        return false;
+    }
+
     function ineligibleForBadFraction(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -194,6 +216,32 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.selectEligibleOrder();
 
         order.signature[64] = 0xff;
+
+        exec(context);
+    }
+
+    function mutation_invalidTime_NotStarted(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.parameters.startTime = block.timestamp + 1;
+        order.parameters.endTime = block.timestamp + 2;
+
+        exec(context);
+    }
+
+    function mutation_invalidTime_Expired(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(MutationFilters.ineligibleForInvalidTime);
+
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        order.parameters.startTime = block.timestamp - 1;
+        order.parameters.endTime = block.timestamp;
 
         exec(context);
     }

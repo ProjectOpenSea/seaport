@@ -34,6 +34,8 @@ enum Failure {
     // BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
     // BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
+    InvalidTime_NotStarted, // Order with start time in the future
+    InvalidTime_Expired, // Order with end time in the past
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
@@ -81,6 +83,16 @@ library FuzzMutationSelectorLib {
 
         if (
             context.hasNoEligibleOrders(
+                MutationFilters.ineligibleForInvalidTime
+            )
+        ) {
+            context.setIneligibleFailures(
+                Failure.InvalidTime_NotStarted.and(Failure.InvalidTime_Expired)
+            );
+        }
+
+        if (
+            context.hasNoEligibleOrders(
                 MutationFilters.ineligibleForBadSignatureV
             )
         ) {
@@ -108,7 +120,7 @@ library FailureDetailsLib {
         Failure failure
     )
         internal
-        pure
+        view
         returns (
             string memory name,
             bytes4 selector,
@@ -130,6 +142,14 @@ library FailureDetailsLib {
 
         if (failure == Failure.BadSignatureV) {
             return details_BadSignatureV();
+        }
+
+        if (failure == Failure.InvalidTime_NotStarted) {
+            return details_InvalidTime_NotStarted();
+        }
+
+        if (failure == Failure.InvalidTime_Expired) {
+            return details_InvalidTime_Expired();
         }
 
         if (failure == Failure.BadFraction_NoFill) {
@@ -205,6 +225,42 @@ library FailureDetailsLib {
         expectedRevertReason = abi.encodeWithSelector(
             SignatureVerificationErrors.BadSignatureV.selector,
             0xff
+        );
+    }
+
+    function details_InvalidTime_NotStarted()
+        internal
+        view
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "InvalidTime_NotStarted";
+        selector = FuzzMutations.mutation_invalidTime_NotStarted.selector;
+        expectedRevertReason = abi.encodeWithSelector(
+            ConsiderationEventsAndErrors.InvalidTime.selector,
+            block.timestamp + 1,
+            block.timestamp + 2
+        );
+    }
+
+    function details_InvalidTime_Expired()
+        internal
+        view
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "InvalidTime_Expired";
+        selector = FuzzMutations.mutation_invalidTime_Expired.selector;
+        expectedRevertReason = abi.encodeWithSelector(
+            ConsiderationEventsAndErrors.InvalidTime.selector,
+            block.timestamp - 1,
+            block.timestamp
         );
     }
 
