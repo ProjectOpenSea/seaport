@@ -13,6 +13,7 @@ import {
     OrderParameters,
     OrderComponents
 } from "seaport-sol/SeaportStructs.sol";
+
 import {
     AdvancedOrderLib,
     OrderParametersLib
@@ -115,10 +116,11 @@ library MutationFilters {
 
     function ineligibleForInvalidTime(
         AdvancedOrder memory /* order */,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
+
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
@@ -135,6 +137,7 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
+
         if (
             action == context.seaport.fulfillOrder.selector ||
             action == context.seaport.fulfillAvailableOrders.selector ||
@@ -178,10 +181,11 @@ library MutationFilters {
 
     function ineligibleForOrderIsCancelled(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
+
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector

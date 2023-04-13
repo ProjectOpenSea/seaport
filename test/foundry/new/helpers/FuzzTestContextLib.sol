@@ -282,7 +282,6 @@ struct FuzzTestContext {
      *      make assertions about the resulting test state.
      */
     Expectations expectations;
-
     /**
      * @dev An array of function selectors for "checks". The FuzzEngine will
      *      call these functions after calling exec to make assertions about
