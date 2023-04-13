@@ -108,9 +108,9 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadFraction_Overfill)
             .with(MutationFilters.ineligibleForBadFraction);
 
-        //failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
-        //    MutationFilters.ineligibleForOrderIsCancelled
-        //);
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+           MutationFilters.ineligibleForOrderIsCancelled
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
