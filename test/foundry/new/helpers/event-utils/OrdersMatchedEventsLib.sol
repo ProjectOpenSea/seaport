@@ -19,20 +19,28 @@ library OrdersMatchedEventsLib {
         }
 
         uint256 totalAvailableOrders = 0;
-        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.expectations.expectedAvailableOrders.length;
+            ++i
+        ) {
             if (context.expectations.expectedAvailableOrders[i]) {
                 ++totalAvailableOrders;
             }
         }
 
-        bytes32[] memory orderHashes = new bytes32[](
-            totalAvailableOrders
-        );
+        bytes32[] memory orderHashes = new bytes32[](totalAvailableOrders);
 
         totalAvailableOrders = 0;
-        for (uint256 i = 0; i < context.executionState.orderHashes.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderHashes.length;
+            ++i
+        ) {
             if (context.expectations.expectedAvailableOrders[i]) {
-                orderHashes[totalAvailableOrders++] = context.executionState.orderHashes[i];
+                orderHashes[totalAvailableOrders++] = context
+                    .executionState
+                    .orderHashes[i];
             }
         }
 

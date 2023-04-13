@@ -103,7 +103,9 @@ library ExpectedEventsUtil {
     function setExpectedTransferEventHashes(
         FuzzTestContext memory context
     ) internal {
-        Execution[] memory executions = context.expectations.allExpectedExecutions;
+        Execution[] memory executions = context
+            .expectations
+            .allExpectedExecutions;
         require(
             executions.length ==
                 context.expectations.expectedExplicitExecutions.length +
@@ -128,7 +130,10 @@ library ExpectedEventsUtil {
     function setExpectedSeaportEventHashes(
         FuzzTestContext memory context
     ) internal {
-        if (context.expectations.expectedAvailableOrders.length != context.executionState.orders.length) {
+        if (
+            context.expectations.expectedAvailableOrders.length !=
+            context.executionState.orders.length
+        ) {
             revert("ExpectedEventsUtil: available array length != orders");
         }
 
@@ -137,7 +142,11 @@ library ExpectedEventsUtil {
             context.action() == context.seaport.matchOrders.selector;
 
         uint256 totalExpectedEventHashes = isMatch ? 1 : 0;
-        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.expectations.expectedAvailableOrders.length;
+            ++i
+        ) {
             if (context.expectations.expectedAvailableOrders[i]) {
                 ++totalExpectedEventHashes;
             }
@@ -150,14 +159,16 @@ library ExpectedEventsUtil {
         totalExpectedEventHashes = 0;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             if (context.expectations.expectedAvailableOrders[i]) {
-                context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes++] = context
-                    .getOrderFulfilledEventHash(i);
+                context.expectations.expectedSeaportEventHashes[
+                    totalExpectedEventHashes++
+                ] = context.getOrderFulfilledEventHash(i);
             }
         }
 
         if (isMatch) {
-            context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes] = context
-                .getOrdersMatchedEventHash();
+            context.expectations.expectedSeaportEventHashes[
+                totalExpectedEventHashes
+            ] = context.getOrdersMatchedEventHash();
         }
 
         vm.serializeBytes32(
@@ -192,7 +203,8 @@ library ExpectedEventsUtil {
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedTransferEventHashes = context
-            .expectations.expectedTransferEventHashes;
+            .expectations
+            .expectedTransferEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -237,7 +249,8 @@ library ExpectedEventsUtil {
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedSeaportEventHashes = context
-            .expectations.expectedSeaportEventHashes;
+            .expectations
+            .expectedSeaportEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.

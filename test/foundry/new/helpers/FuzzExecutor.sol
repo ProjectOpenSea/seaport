@@ -31,6 +31,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
+import { dumpExecutions } from "./DebugUtil.sol";
+
 abstract contract FuzzExecutor is Test {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -55,7 +57,8 @@ abstract contract FuzzExecutor is Test {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context, bool logCalls) public {
-        // If the caller is not the zero address, prank the address.
+        // // Activate this to help with debugging
+        // dumpExecutions(context);
 
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
@@ -126,9 +129,9 @@ abstract contract FuzzExecutor is Test {
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc{ value: context.executionState.value }(
-                basicOrderParameters
-            );
+                .fulfillBasicOrder_efficient_6GL6yc{
+                value: context.executionState.value
+            }(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders", logCalls);
             if (context.executionState.caller != address(0))
@@ -136,7 +139,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
@@ -155,7 +160,9 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: context.executionState.value }(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{
+                    value: context.executionState.value
+                }(
                     context.executionState.orders,
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
@@ -232,7 +239,7 @@ abstract contract FuzzExecutor is Test {
     function logCall(string memory callName, bool enabled) internal {
         if (enabled && vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
             string memory metric = string.concat(callName, ":1|c");
-            vm.writeLine("metrics.txt", metric);
+            vm.writeLine("call-metrics.txt", metric);
         }
     }
 }

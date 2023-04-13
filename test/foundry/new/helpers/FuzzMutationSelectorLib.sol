@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -11,7 +11,8 @@ import {
     FailureEligibilityLib,
     OrderEligibilityLib,
     Failarray,
-    FailureDetailsHelperLib
+    FailureDetailsHelperLib,
+    MutationContextDeriverLib
 } from "./FuzzMutationHelpers.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -41,9 +42,14 @@ enum Failure {
     BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
+    OrderIsCancelled, // Order is cancelled
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
+
+enum MutationContextDerivation {
+    ORDER // Selecting an order
+}
 
 struct IneligibilityFilter {
     Failure[] failures;
@@ -54,6 +60,7 @@ struct FailureDetails {
     string name;
     bytes4 mutationSelector;
     bytes4 errorSelector;
+    MutationContextDerivation derivationMethod;
     bytes32 revertReasonDeriver; // stores a function pointer
 }
 
@@ -65,7 +72,7 @@ library FuzzMutationSelectorLib {
     using OrderEligibilityLib for FuzzTestContext;
     using OrderEligibilityLib for Failure;
     using OrderEligibilityLib for Failure[];
-    using OrderEligibilityLib for IneligibilityFilter[];
+    using FailureEligibilityLib for IneligibilityFilter[];
 
     function declareFilters()
         internal
@@ -100,10 +107,17 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForBadFractionPartialContractOrder
         );
 
-        failuresAndFilters[i++] = Failure
-            .BadFraction_NoFill
-            .and(Failure.BadFraction_Overfill)
-            .with(MutationFilters.ineligibleForBadFraction);
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
+            MutationFilters.ineligibleForBadFraction
+        );
+
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
+            MutationFilters.ineligibleForBadFraction_noFill
+        );
+
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+            MutationFilters.ineligibleForOrderIsCancelled
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -119,8 +133,9 @@ library FuzzMutationSelectorLib {
         view
         returns (
             string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
+            bytes4 mutationSelector,
+            bytes memory expectedRevertReason,
+            MutationState memory mutationState
         )
     {
         // Mark each failure conditions as ineligible if no orders support them.
@@ -132,14 +147,19 @@ library FuzzMutationSelectorLib {
         // Evaluate each filter and assign respective ineligible failures.
         context.setAllIneligibleFailures(failuresAndFilters);
 
-        // Choose one of the remaining eligible failures.
-        return context.failureDetails(context.selectEligibleFailure());
+        (name, mutationSelector, expectedRevertReason, mutationState) = context
+            .failureDetails(
+                context.selectEligibleFailure(),
+                failuresAndFilters
+            );
     }
 }
 
 library FailureDetailsLib {
     using FailureDetailsHelperLib for bytes4;
     using FailureDetailsHelperLib for FuzzTestContext;
+    using MutationContextDeriverLib for FuzzTestContext;
+    using FailureEligibilityLib for IneligibilityFilter[];
 
     function declareFailureDetails()
         internal
@@ -158,6 +178,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "InvalidSignature",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSignature.selector
             );
 
@@ -166,6 +187,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "InvalidSigner_BadSignature",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_BadSignature.selector
             );
 
@@ -174,6 +196,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "InvalidSigner_ModifiedOrder",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
             );
 
@@ -182,6 +205,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "BadSignatureV",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badSignatureV.selector,
                 details_BadSignatureV
             );
@@ -191,6 +215,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "InvalidTime_NotStarted",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_NotStarted.selector,
                 details_InvalidTime_NotStarted
             );
@@ -200,6 +225,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "InvalidTime_Expired",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_Expired.selector,
                 details_InvalidTime_Expired
             );
@@ -209,6 +235,7 @@ library FailureDetailsLib {
             .selector
             .with(
                 "BadFraction_NoFill",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_NoFill.selector
             );
 
@@ -217,7 +244,18 @@ library FailureDetailsLib {
             .selector
             .with(
                 "BadFraction_Overfill",
+                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_Overfill.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .OrderIsCancelled
+            .selector
+            .with(
+                "OrderIsCancelled",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_orderIsCancelled.selector,
+                details_OrderIsCancelled
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -234,6 +272,7 @@ library FailureDetailsLib {
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
@@ -241,6 +280,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_NotStarted(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -252,6 +292,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_Expired(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -261,31 +302,50 @@ library FailureDetailsLib {
         );
     }
 
+    function details_OrderIsCancelled(
+        FuzzTestContext memory context,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            context.executionState.orderHashes[mutationState.selectedOrderIndex]
+        );
+    }
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(
         FuzzTestContext memory context,
-        Failure failure
+        Failure failure,
+        IneligibilityFilter[] memory failuresAndFilters
     )
         internal
         view
         returns (
             string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
+            bytes4 mutationSelector,
+            bytes memory revertReason,
+            MutationState memory
         )
     {
         FailureDetails memory details = (
             declareFailureDetails()[uint256(failure)]
         );
 
+        MutationState memory mutationState = context.deriveMutationContext(
+            details.derivationMethod,
+            failuresAndFilters.extractFirstFilterForFailure(failure)
+        );
+
         return (
             details.name,
             details.mutationSelector,
             context.deriveRevertReason(
+                mutationState,
                 details.errorSelector,
                 details.revertReasonDeriver
-            )
+            ),
+            mutationState
         );
     }
 }

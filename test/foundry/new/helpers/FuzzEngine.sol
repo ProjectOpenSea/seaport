@@ -43,7 +43,8 @@ import {
 import {
     FuzzTestContext,
     FuzzTestContextLib,
-    FuzzParams
+    FuzzParams,
+    MutationState
 } from "./FuzzTestContextLib.sol";
 
 import {
@@ -388,12 +389,18 @@ contract FuzzEngine is
     function execFailure(FuzzTestContext memory context) internal {
         (
             string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
+            bytes4 mutationSelector,
+            bytes memory expectedRevertReason,
+            MutationState memory mutationState
         ) = context.selectMutation();
+
         logMutation(name);
 
-        bytes memory callData = abi.encodeWithSelector(selector, context);
+        bytes memory callData = abi.encodeWithSelector(
+            mutationSelector,
+            context,
+            mutationState
+        );
         (bool success, bytes memory data) = address(mutations).call(callData);
 
         assertFalse(
