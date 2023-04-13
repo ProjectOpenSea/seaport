@@ -282,11 +282,11 @@ library OrderEligibilityLib {
         context.expectations.ineligibleOrders[ineligibleOrderIndex] = true;
     }
 
-    function getEligibleOrders(
+    function getEligibleOrderIndexes(
         FuzzTestContext memory context
-    ) internal pure returns (AdvancedOrder[] memory eligibleOrders) {
-        eligibleOrders = new AdvancedOrder[](
-            context.executionState.orders.length
+    ) internal pure returns (uint256[] memory eligibleOrderIndexes) {
+        eligibleOrderIndexes = new uint256[](
+            context.expectations.ineligibleOrders.length
         );
 
         uint256 totalEligibleOrders = 0;
@@ -297,15 +297,13 @@ library OrderEligibilityLib {
         ) {
             // If the boolean is not set, the order is still eligible.
             if (!context.expectations.ineligibleOrders[i]) {
-                eligibleOrders[totalEligibleOrders++] = context
-                    .executionState
-                    .orders[i];
+                eligibleOrderIndexes[totalEligibleOrders++] = i;
             }
         }
 
-        // Update the eligibleOrders array with the actual length.
+        // Update the eligibleOrderIndexes array with the actual length.
         assembly {
-            mstore(eligibleOrders, totalEligibleOrders)
+            mstore(eligibleOrderIndexes, totalEligibleOrders)
         }
     }
 
@@ -318,14 +316,18 @@ library OrderEligibilityLib {
     {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
-        AdvancedOrder[] memory eligibleOrders = getEligibleOrders(context);
+        uint256[] memory eligibleOrderIndexes = getEligibleOrderIndexes(
+            context
+        );
 
-        if (eligibleOrders.length == 0) {
+        if (eligibleOrderIndexes.length == 0) {
             revert NoEligibleOrderFound();
         }
 
-        orderIndex = prng.next() % eligibleOrders.length;
-        eligibleOrder = eligibleOrders[orderIndex];
+        orderIndex = eligibleOrderIndexes[
+            prng.next() % eligibleOrderIndexes.length
+        ];
+        eligibleOrder = context.executionState.orders[orderIndex];
     }
 
     function fn(
