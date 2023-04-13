@@ -57,7 +57,8 @@ abstract contract FuzzExecutor is Test {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context, bool logCalls) public {
-        dumpExecutions(context);
+        // // Activate this to help with debugging
+        // dumpExecutions(context);
 
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
