@@ -122,7 +122,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .orders
             .getExpectedZoneCalldataHash(
                 address(context.seaport),
-                context.caller,
+                context.executionState.caller,
                 context.executionState.criteriaResolvers,
                 context.executionState.maximumFulfilled
             );
@@ -169,7 +169,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .orders
             .getExpectedContractOffererCalldataHashes(
                 address(context.seaport),
-                context.caller
+                context.executionState.caller
             );
 
         bytes32[2][]
@@ -244,8 +244,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         vm.deal(offerer, offerer.balance + item.amount);
                     } else if (isMatchable) {
                         vm.deal(
-                            context.caller,
-                            context.caller.balance + item.amount
+                            context.executionState.caller,
+                            context.executionState.caller.balance + item.amount
                         );
                     }
                 }
@@ -298,8 +298,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             for (uint256 j = 0; j < items.length; j++) {
                 if (items[j].itemType == ItemType.NATIVE) {
                     vm.deal(
-                        context.caller,
-                        context.caller.balance + items[j].amount
+                        context.executionState.caller,
+                        context.executionState.caller.balance + items[j].amount
                     );
                 }
             }
@@ -324,18 +324,18 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
             if (item.itemType == ItemType.ERC721) {
                 TestERC721(item.token).mint(
-                    context.caller,
+                    context.executionState.caller,
                     item.identifierOrCriteria
                 );
-                vm.prank(context.caller);
+                vm.prank(context.executionState.caller);
                 TestERC721(item.token).setApprovalForAll(approveTo, true);
             } else {
                 TestERC1155(item.token).mint(
-                    context.caller,
+                    context.executionState.caller,
                     item.identifierOrCriteria,
                     item.startAmount
                 );
-                vm.prank(context.caller);
+                vm.prank(context.executionState.caller);
                 TestERC1155(item.token).setApprovalForAll(approveTo, true);
             }
 
@@ -349,7 +349,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             OrderDetails memory order = context.executionState.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
 
-            address owner = context.caller;
+            address owner = context.executionState.caller;
             address approveTo = _getApproveTo(context);
 
             for (uint256 j = 0; j < items.length; j++) {
@@ -367,8 +367,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 if (item.itemType == ItemType.ERC721) {
                     bool shouldMint = true;
                     if (
-                        context.caller == context.recipient ||
-                        context.recipient == address(0)
+                        context.executionState.caller ==
+                        context.executionState.recipient ||
+                        context.executionState.recipient == address(0)
                     ) {
                         for (
                             uint256 k;
@@ -427,20 +428,20 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // supplied when orders are unavailable; however, this is generally
         // not known at the time of submission. Consider adding a fuzz param
         // for supplying the minimum possible native token value.
-        context.value = context.getNativeTokensToSupply();
+        context.executionState.value = context.getNativeTokensToSupply();
 
         Execution[] memory _executions = context
             .expectations
             .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        if (context.value > 0) {
-            address caller = context.caller;
+        if (context.executionState.value > 0) {
+            address caller = context.executionState.caller;
             if (caller == address(0)) caller = address(this);
             address seaport = address(context.seaport);
             executions = new Execution[](_executions.length + 1);
             executions[0] = ExecutionLib.empty().withOfferer(caller);
-            executions[0].item.amount = context.value;
+            executions[0].item.amount = context.executionState.value;
             executions[0].item.recipient = payable(seaport);
             for (uint256 i; i < _executions.length; i++) {
                 Execution memory execution = _executions[i].copy();
@@ -529,12 +530,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     function _getApproveTo(
         FuzzTestContext memory context
     ) internal view returns (address) {
-        if (context.fulfillerConduitKey == bytes32(0)) {
+        if (context.executionState.fulfillerConduitKey == bytes32(0)) {
             return address(context.seaport);
         } else {
             (address conduit, bool exists) = context
                 .conduitController
-                .getConduit(context.fulfillerConduitKey);
+                .getConduit(context.executionState.fulfillerConduitKey);
             if (exists) {
                 return conduit;
             } else {

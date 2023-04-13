@@ -68,22 +68,24 @@ abstract contract FuzzExecutor is Test {
             logCall("fulfillOrder", logCalls);
             AdvancedOrder memory order = context.executionState.orders[0];
 
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
                 value: value
-            }(order.toOrder(), context.fulfillerConduitKey);
+            }(order.toOrder(), context.executionState.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder", logCalls);
             AdvancedOrder memory order = context.executionState.orders[0];
 
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillAdvancedOrder{ value: value }(
                 order,
                 context.executionState.criteriaResolvers,
-                context.fulfillerConduitKey,
-                context.recipient
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient
             );
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             logCall("fulfillBasicOrder", logCalls);
@@ -96,9 +98,11 @@ abstract contract FuzzExecutor is Test {
                 );
 
             basicOrderParameters.fulfillerConduitKey = context
+                .executionState
                 .fulfillerConduitKey;
 
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
                 value: value
             }(basicOrderParameters);
@@ -116,9 +120,11 @@ abstract contract FuzzExecutor is Test {
                 );
 
             basicOrderParameters.fulfillerConduitKey = context
+                .executionState
                 .fulfillerConduitKey;
 
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
                 .fulfillBasicOrder_efficient_6GL6yc{ value: value }(
@@ -126,7 +132,8 @@ abstract contract FuzzExecutor is Test {
             );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
             logCall("fulfillAvailableOrders", logCalls);
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
@@ -134,7 +141,7 @@ abstract contract FuzzExecutor is Test {
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
-                    context.fulfillerConduitKey,
+                    context.executionState.fulfillerConduitKey,
                     context.executionState.maximumFulfilled
                 );
 
@@ -144,7 +151,8 @@ abstract contract FuzzExecutor is Test {
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
             logCall("fulfillAvailableAdvancedOrders", logCalls);
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
@@ -153,8 +161,8 @@ abstract contract FuzzExecutor is Test {
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
-                    context.fulfillerConduitKey,
-                    context.recipient,
+                    context.executionState.fulfillerConduitKey,
+                    context.executionState.recipient,
                     context.executionState.maximumFulfilled
                 );
 
@@ -162,7 +170,8 @@ abstract contract FuzzExecutor is Test {
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchOrders.selector) {
             logCall("matchOrders", logCalls);
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             Execution[] memory executions = context.seaport.matchOrders{
                 value: value
             }(
@@ -173,14 +182,15 @@ abstract contract FuzzExecutor is Test {
             context.returnValues.executions = executions;
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
             logCall("matchAdvancedOrders", logCalls);
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             Execution[] memory executions = context.seaport.matchAdvancedOrders{
                 value: value
             }(
                 context.executionState.orders,
                 context.executionState.criteriaResolvers,
                 context.executionState.fulfillments,
-                context.recipient
+                context.executionState.recipient
             );
 
             context.returnValues.executions = executions;
@@ -196,16 +206,18 @@ abstract contract FuzzExecutor is Test {
                 orderComponents[i] = order
                     .toOrder()
                     .parameters
-                    .toOrderComponents(context.counter);
+                    .toOrderComponents(context.executionState.counter);
             }
 
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.cancelled = context.seaport.cancel(
                 orderComponents
             );
         } else if (_action == context.seaport.validate.selector) {
             logCall("validate", logCalls);
-            if (context.caller != address(0)) vm.prank(context.caller);
+            if (context.executionState.caller != address(0))
+                vm.prank(context.executionState.caller);
             context.returnValues.validated = context.seaport.validate(
                 context.executionState.orders.toOrders()
             );

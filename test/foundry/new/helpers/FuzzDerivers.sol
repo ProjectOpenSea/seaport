@@ -67,7 +67,7 @@ library FuzzDerivers {
     function withDerivedCallValue(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        context.value = context.getNativeTokensToSupply();
+        context.executionState.value = context.getNativeTokensToSupply();
         return context;
     }
 
@@ -85,7 +85,9 @@ library FuzzDerivers {
                 .executionState
                 .orders[i]
                 .parameters;
-            OrderStatusEnum status = context.preExecOrderStatuses[i];
+            OrderStatusEnum status = context
+                .executionState
+                .preExecOrderStatuses[i];
 
             // SANITY CHECKS; these should be removed once confidence
             // has been established in the soundness of the inputs or
@@ -311,12 +313,12 @@ library FuzzDerivers {
     function getStandardExecutions(
         FuzzTestContext memory context
     ) internal view returns (Execution[] memory implicitExecutions) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
+            : context.executionState.caller;
+        address recipient = context.executionState.recipient == address(0)
             ? caller
-            : context.recipient;
+            : context.executionState.recipient;
 
         return
             context
@@ -325,9 +327,9 @@ library FuzzDerivers {
                 .toOrderDetails(0, context.executionState.criteriaResolvers)
                 .getStandardExecutions(
                     caller,
-                    context.fulfillerConduitKey,
+                    context.executionState.fulfillerConduitKey,
                     recipient,
-                    context.value,
+                    context.executionState.value,
                     address(context.seaport)
                 );
     }
@@ -335,18 +337,19 @@ library FuzzDerivers {
     function getBasicExecutions(
         FuzzTestContext memory context
     ) internal view returns (Execution[] memory implicitExecutions) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
+            : context.executionState.caller;
 
         return
-            context.executionState
+            context
+                .executionState
                 .orders[0]
                 .toOrderDetails(0, context.executionState.criteriaResolvers)
                 .getBasicExecutions(
                     caller,
-                    context.fulfillerConduitKey,
-                    context.value,
+                    context.executionState.fulfillerConduitKey,
+                    context.executionState.value,
                     address(context.seaport)
                 );
     }
@@ -365,7 +368,7 @@ library FuzzDerivers {
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                context.value,
+                context.executionState.value,
                 context.expectations.expectedAvailableOrders
             );
     }
@@ -383,7 +386,7 @@ library FuzzDerivers {
         return
             context.toFulfillmentDetails().getMatchExecutions(
                 context.executionState.fulfillments,
-                context.value
+                context.executionState.value
             );
     }
 }
@@ -394,19 +397,19 @@ library FulfillmentDetailsHelper {
     function toFulfillmentDetails(
         FuzzTestContext memory context
     ) internal view returns (FulfillmentDetails memory fulfillmentDetails) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
+            : context.executionState.caller;
+        address recipient = context.executionState.recipient == address(0)
             ? caller
-            : context.recipient;
+            : context.executionState.recipient;
 
         return
             FulfillmentDetails({
                 orders: context.executionState.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
-                fulfillerConduitKey: context.fulfillerConduitKey,
+                fulfillerConduitKey: context.executionState.fulfillerConduitKey,
                 seaport: address(context.seaport)
             });
     }
