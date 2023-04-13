@@ -10,13 +10,22 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrder,
+    OrderParameters,
+    OrderComponents
+} from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrderLib,
+    OrderParametersLib
+} from "seaport-sol/SeaportSol.sol";
 
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
-
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
+import { Tips } from "seaport-sol/SpaceEnums.sol";
+import { dumpExecutions } from "./DebugUtil.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
@@ -159,11 +168,33 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForOrderIsCancelled(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
     using OrderEligibilityLib for FuzzTestContext;
+    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
 
     function mutation_invalidSignature(
         FuzzTestContext memory context
@@ -262,7 +293,25 @@ contract FuzzMutations is Test, FuzzExecutor {
         order.numerator = 2;
         order.denominator = 1;
 
-        console.log(context.actionName());
+        exec(context);
+    }
+
+    function mutation_orderIsCancelled(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(
+            MutationFilters.ineligibleForOrderIsCancelled
+        );
+        AdvancedOrder memory order = context.selectEligibleOrder();
+
+        OrderComponents[] memory orderComponents = new OrderComponents[](1);
+        orderComponents[0] = order.toOrder().parameters.toOrderComponents(
+            context.executionState.counter +
+                uint256(uint160(address(order.parameters.offerer)))
+        );
+
+        vm.prank(order.parameters.offerer);
+        context.seaport.cancel(orderComponents);
 
         exec(context);
     }

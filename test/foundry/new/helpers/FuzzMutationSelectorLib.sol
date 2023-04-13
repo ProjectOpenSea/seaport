@@ -41,6 +41,7 @@ enum Failure {
     // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
+    OrderIsCancelled, // Order is cancelled
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +101,10 @@ library FuzzMutationSelectorLib {
             .BadFraction_NoFill
             .and(Failure.BadFraction_Overfill)
             .with(MutationFilters.ineligibleForBadFraction);
+
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+            MutationFilters.ineligibleForOrderIsCancelled
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -215,6 +220,15 @@ library FailureDetailsLib {
                 "BadFraction_Overfill",
                 FuzzMutations.mutation_badFraction_Overfill.selector
             );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .OrderIsCancelled
+            .selector
+            .with(
+                "OrderIsCancelled",
+                FuzzMutations.mutation_orderIsCancelled.selector,
+                details_OrderIsCancelled
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -256,6 +270,17 @@ library FailureDetailsLib {
             block.timestamp
         );
     }
+
+    function details_OrderIsCancelled(
+        FuzzTestContext memory context,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            context.executionState.orderHashes[0]
+        );
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(
