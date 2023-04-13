@@ -290,7 +290,9 @@ contract FuzzEngine is
                     space,
                     generatorContext
                 )
-            );
+            )
+            .withGeneratorContext(generatorContext)
+            .withSpace(space);
 
         // If it's an advanced order, generate and add a top-level recipient.
         if (

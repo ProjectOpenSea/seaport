@@ -684,77 +684,97 @@ library Searializer {
             "conduitController",
             address(value.conduitController)
         );
-        tojsonAddress(obj, "caller", value.caller);
-        tojsonAddress(obj, "recipient", value.recipient);
+        tojsonAddress(obj, "caller", value.executionState.caller);
+        tojsonAddress(obj, "recipient", value.executionState.recipient);
         tojsonFuzzParams(obj, "fuzzParams", value.fuzzParams);
-        tojsonDynArrayAdvancedOrder(obj, "orders", value.orders);
-        tojsonDynArrayAdvancedOrder(obj, "initialOrders", value.initialOrders);
-        tojsonUint256(obj, "counter", value.counter);
-        tojsonBytes32(obj, "fulfillerConduitKey", value.fulfillerConduitKey);
+        tojsonDynArrayAdvancedOrder(obj, "orders", value.executionState.orders);
+        tojsonDynArrayAdvancedOrder(
+            obj,
+            "initialOrders",
+            value.executionState.initialOrders
+        );
+        tojsonUint256(obj, "counter", value.executionState.counter);
+        tojsonBytes32(
+            obj,
+            "fulfillerConduitKey",
+            value.executionState.fulfillerConduitKey
+        );
         tojsonDynArrayCriteriaResolver(
             obj,
             "criteriaResolvers",
-            value.criteriaResolvers
+            value.executionState.criteriaResolvers
         );
-        tojsonDynArrayFulfillment(obj, "fulfillments", value.fulfillments);
+        tojsonDynArrayFulfillment(
+            obj,
+            "fulfillments",
+            value.executionState.fulfillments
+        );
         tojsonDynArrayFulfillmentComponent(
             obj,
             "remainingOfferComponents",
-            value.remainingOfferComponents
+            value.executionState.remainingOfferComponents
         );
         tojsonDynArrayDynArrayFulfillmentComponent(
             obj,
             "offerFulfillments",
-            value.offerFulfillments
+            value.executionState.offerFulfillments
         );
         tojsonDynArrayDynArrayFulfillmentComponent(
             obj,
             "considerationFulfillments",
-            value.considerationFulfillments
+            value.executionState.considerationFulfillments
         );
-        tojsonUint256(obj, "maximumFulfilled", value.maximumFulfilled);
+        tojsonUint256(
+            obj,
+            "maximumFulfilled",
+            value.executionState.maximumFulfilled
+        );
         tojsonBasicOrderParameters(
             obj,
             "basicOrderParameters",
-            value.basicOrderParameters
+            value.executionState.basicOrderParameters
         );
         tojsonAddress(obj, "testHelpers", address(value.testHelpers));
         tojsonDynArrayBytes4(obj, "checks", value.checks);
         tojsonDynArrayBytes32(
             obj,
             "expectedZoneCalldataHash",
-            value.expectedZoneCalldataHash
+            value.expectations.expectedZoneCalldataHash
         );
         tojsonDynArrayArray2Bytes32(
             obj,
             "expectedContractOrderCalldataHashes",
-            value.expectedContractOrderCalldataHashes
+            value.expectations.expectedContractOrderCalldataHashes
         );
-        tojsonDynArrayResult(obj, "expectedResults", value.expectedResults);
+        tojsonDynArrayResult(
+            obj,
+            "expectedResults",
+            value.expectations.expectedResults
+        );
         tojsonDynArrayExecution(
             obj,
             "expectedImplicitExecutions",
-            value.expectedImplicitExecutions
+            value.expectations.expectedImplicitExecutions
         );
         tojsonDynArrayExecution(
             obj,
             "expectedExplicitExecutions",
-            value.expectedExplicitExecutions
+            value.expectations.expectedExplicitExecutions
         );
         tojsonDynArrayExecution(
             obj,
             "allExpectedExecutions",
-            value.allExpectedExecutions
+            value.expectations.allExpectedExecutions
         );
         tojsonDynArrayBytes32(
             obj,
             "expectedTransferEventHashes",
-            value.expectedTransferEventHashes
+            value.expectations.expectedTransferEventHashes
         );
         tojsonDynArrayBytes32(
             obj,
             "expectedSeaportEventHashes",
-            value.expectedSeaportEventHashes
+            value.expectations.expectedSeaportEventHashes
         );
         tojsonDynArrayLog(obj, "actualEvents", value.actualEvents);
         string memory finalJson = tojsonReturnValues(

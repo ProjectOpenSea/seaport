@@ -27,7 +27,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (!context.expectedAvailableOrders[orderIndex]) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }
 
@@ -35,7 +35,7 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.offerer == context.caller) {
+        if (order.parameters.offerer == context.executionState.caller) {
             return true;
         }
 
@@ -44,7 +44,7 @@ library MutationFilters {
         }
 
         (bool isValidated, , , ) = context.seaport.getOrderStatus(
-            context.orderHashes[orderIndex]
+            context.executionState.orderHashes[orderIndex]
         );
 
         if (isValidated) {
@@ -145,7 +145,7 @@ library MutationFilters {
         // fraction error. We want to exclude cases where the time is wrong or
         // maximum fulfilled has already been met. (So this check is
         // over-excluding potentially eligible orders).
-        if (!context.expectedAvailableOrders[orderIndex]) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }
 

@@ -67,7 +67,7 @@ library FuzzDerivers {
     function withDerivedCallValue(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        context.value = context.getNativeTokensToSupply();
+        context.executionState.value = context.getNativeTokensToSupply();
         return context;
     }
 
@@ -76,13 +76,18 @@ library FuzzDerivers {
     ) internal view returns (FuzzTestContext memory) {
         // TODO: handle skipped orders due to generateOrder reverts
         bool[] memory expectedAvailableOrders = new bool[](
-            context.orders.length
+            context.executionState.orders.length
         );
 
         uint256 totalAvailable = 0;
-        for (uint256 i; i < context.orders.length; ++i) {
-            OrderParameters memory order = context.orders[i].parameters;
-            OrderStatusEnum status = context.preExecOrderStatuses[i];
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
+            OrderStatusEnum status = context
+                .executionState
+                .preExecOrderStatuses[i];
 
             // SANITY CHECKS; these should be removed once confidence
             // has been established in the soundness of the inputs or
@@ -92,6 +97,7 @@ library FuzzDerivers {
                 status == OrderStatusEnum.CANCELLED_EXPLICIT
             ) {
                 bytes32 orderHash = context
+                    .executionState
                     .orders[i]
                     .getTipNeutralizedOrderHash(context.seaport);
 
@@ -124,7 +130,7 @@ library FuzzDerivers {
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
                 status != OrderStatusEnum.FULFILLED && // not fully filled
-                totalAvailable < context.maximumFulfilled);
+                totalAvailable < context.executionState.maximumFulfilled);
 
             if (isAvailable) {
                 ++totalAvailable;
@@ -133,7 +139,7 @@ library FuzzDerivers {
             expectedAvailableOrders[i] = isAvailable;
         }
 
-        context.expectedAvailableOrders = expectedAvailableOrders;
+        context.expectations.expectedAvailableOrders = expectedAvailableOrders;
 
         return context;
     }
@@ -146,9 +152,9 @@ library FuzzDerivers {
             .criteriaResolverHelper();
 
         CriteriaResolver[] memory criteriaResolvers = criteriaResolverHelper
-            .deriveCriteriaResolvers(context.orders);
+            .deriveCriteriaResolvers(context.executionState.orders);
 
-        context.criteriaResolvers = criteriaResolvers;
+        context.executionState.criteriaResolvers = criteriaResolvers;
 
         return context;
     }
@@ -156,11 +162,12 @@ library FuzzDerivers {
     function withDerivedOrderDetails(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        OrderDetails[] memory orderDetails = context.orders.getOrderDetails(
-            context.criteriaResolvers
-        );
+        OrderDetails[] memory orderDetails = context
+            .executionState
+            .orders
+            .getOrderDetails(context.executionState.criteriaResolvers);
 
-        context.orderDetails = orderDetails;
+        context.executionState.orderDetails = orderDetails;
 
         return context;
     }
@@ -194,11 +201,13 @@ library FuzzDerivers {
                 FulfillmentComponent[][] memory offerFulfillments,
                 FulfillmentComponent[][] memory considerationFulfillments
             ) = context.testHelpers.getNaiveFulfillmentComponents(
-                    context.orderDetails
+                    context.executionState.orderDetails
                 );
 
-            context.offerFulfillments = offerFulfillments;
-            context.considerationFulfillments = considerationFulfillments;
+            context.executionState.offerFulfillments = offerFulfillments;
+            context
+                .executionState
+                .considerationFulfillments = considerationFulfillments;
         }
 
         // For the match functions, derive the fulfillments array.
@@ -211,11 +220,13 @@ library FuzzDerivers {
                 MatchComponent[] memory remainingOfferComponents,
 
             ) = context.testHelpers.getMatchedFulfillments(
-                    context.orders,
-                    context.criteriaResolvers
+                    context.executionState.orders,
+                    context.executionState.criteriaResolvers
                 );
-            context.fulfillments = fulfillments;
-            context.remainingOfferComponents = remainingOfferComponents
+            context.executionState.fulfillments = fulfillments;
+            context
+                .executionState
+                .remainingOfferComponents = remainingOfferComponents
                 .toFulfillmentComponents();
         }
 
@@ -293,8 +304,8 @@ library FuzzDerivers {
                 revert("FuzzDerivers: no explicit executions derived - match");
             }
         }
-        context.expectedImplicitExecutions = implicitExecutions;
-        context.expectedExplicitExecutions = explicitExecutions;
+        context.expectations.expectedImplicitExecutions = implicitExecutions;
+        context.expectations.expectedExplicitExecutions = explicitExecutions;
 
         return context;
     }
@@ -302,22 +313,23 @@ library FuzzDerivers {
     function getStandardExecutions(
         FuzzTestContext memory context
     ) internal view returns (Execution[] memory implicitExecutions) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
+            : context.executionState.caller;
+        address recipient = context.executionState.recipient == address(0)
             ? caller
-            : context.recipient;
+            : context.executionState.recipient;
 
         return
             context
+                .executionState
                 .orders[0]
-                .toOrderDetails(0, context.criteriaResolvers)
+                .toOrderDetails(0, context.executionState.criteriaResolvers)
                 .getStandardExecutions(
                     caller,
-                    context.fulfillerConduitKey,
+                    context.executionState.fulfillerConduitKey,
                     recipient,
-                    context.value,
+                    context.executionState.value,
                     address(context.seaport)
                 );
     }
@@ -325,18 +337,19 @@ library FuzzDerivers {
     function getBasicExecutions(
         FuzzTestContext memory context
     ) internal view returns (Execution[] memory implicitExecutions) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
+            : context.executionState.caller;
 
         return
             context
+                .executionState
                 .orders[0]
-                .toOrderDetails(0, context.criteriaResolvers)
+                .toOrderDetails(0, context.executionState.criteriaResolvers)
                 .getBasicExecutions(
                     caller,
-                    context.fulfillerConduitKey,
-                    context.value,
+                    context.executionState.fulfillerConduitKey,
+                    context.executionState.value,
                     address(context.seaport)
                 );
     }
@@ -353,10 +366,10 @@ library FuzzDerivers {
     {
         return
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
-                context.offerFulfillments,
-                context.considerationFulfillments,
-                context.value,
-                context.expectedAvailableOrders
+                context.executionState.offerFulfillments,
+                context.executionState.considerationFulfillments,
+                context.executionState.value,
+                context.expectations.expectedAvailableOrders
             );
     }
 
@@ -372,8 +385,8 @@ library FuzzDerivers {
     {
         return
             context.toFulfillmentDetails().getMatchExecutions(
-                context.fulfillments,
-                context.value
+                context.executionState.fulfillments,
+                context.executionState.value
             );
     }
 }
@@ -384,19 +397,19 @@ library FulfillmentDetailsHelper {
     function toFulfillmentDetails(
         FuzzTestContext memory context
     ) internal view returns (FulfillmentDetails memory fulfillmentDetails) {
-        address caller = context.caller == address(0)
+        address caller = context.executionState.caller == address(0)
             ? address(this)
-            : context.caller;
-        address recipient = context.recipient == address(0)
+            : context.executionState.caller;
+        address recipient = context.executionState.recipient == address(0)
             ? caller
-            : context.recipient;
+            : context.executionState.recipient;
 
         return
             FulfillmentDetails({
-                orders: context.orderDetails,
+                orders: context.executionState.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
-                fulfillerConduitKey: context.fulfillerConduitKey,
+                fulfillerConduitKey: context.executionState.fulfillerConduitKey,
                 seaport: address(context.seaport)
             });
     }

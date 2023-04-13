@@ -61,7 +61,7 @@ library OrderFulfilledEventsLib {
     //     FuzzTestContext memory context
     // ) internal returns (string memory) {
     //     OrderDetails[] memory orderDetails = (
-    //         context.orders.getOrderDetails(context.criteriaResolvers)
+    //         context.executionState.orders.getOrderDetails(context.executionState.criteriaResolvers)
     //     );
 
     //     for (uint256 i; i < orderDetails.length; i++) {
@@ -85,11 +85,14 @@ library OrderFulfilledEventsLib {
         uint256 orderIndex
     ) internal view returns (bytes32 eventHash) {
         OrderParameters memory orderParams = context
+            .executionState
             .orders[orderIndex]
             .parameters;
 
         OrderDetails memory details = (
-            context.orders.getOrderDetails(context.criteriaResolvers)
+            context.executionState.orders.getOrderDetails(
+                context.executionState.criteriaResolvers
+            )
         )[orderIndex];
 
         return
@@ -100,14 +103,15 @@ library OrderFulfilledEventsLib {
                 orderParams.zone.toBytes32(), // topic2 - zone
                 keccak256(
                     abi.encode(
-                        context.orderHashes[orderIndex],
-                        context.recipient == address(0) ? context.caller : context.recipient,
+                        context.executionState.orderHashes[orderIndex],
+                        context.executionState.recipient == address(0)
+                            ? context.executionState.caller
+                            : context.executionState.recipient,
                         details.offer,
                         details.consideration
                     )
                 ) // dataHash
             );
-
     }
 }
 

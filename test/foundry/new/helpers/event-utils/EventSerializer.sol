@@ -109,7 +109,7 @@ library EventSerializer {
     //     string memory finalJson = serializeAddress(
     //         obj,
     //         "recipient",
-    //         value.recipient
+    //         value.executionState.recipient
     //     );
     //     return vm.serializeString(objectKey, valueKey, finalJson);
     // }
@@ -211,7 +211,7 @@ library EventSerializer {
     //     serializeBytes32(obj, "orderHash", value.orderHash);
     //     serializeAddress(obj, "offerer", value.offerer);
     //     serializeAddress(obj, "zone", value.zone);
-    //     serializeAddress(obj, "recipient", value.recipient);
+    //     serializeAddress(obj, "recipient", value.executionState.recipient);
     //     serializeSpentItemArray(obj, "offer", value.offer);
     //     string memory finalJson = serializeReceivedItemArray(
     //         obj,

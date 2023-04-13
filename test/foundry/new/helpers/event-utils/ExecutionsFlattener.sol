@@ -12,11 +12,11 @@ library ExecutionsFlattener {
     using ExecutionsFlattener for *;
 
     function flattenExecutions(FuzzTestContext memory context) internal pure {
-        context.allExpectedExecutions = ArrayHelpers
+        context.expectations.allExpectedExecutions = ArrayHelpers
             .flatten
             .asExecutionsFlatten()(
-                context.expectedExplicitExecutions,
-                context.expectedImplicitExecutions
+                context.expectations.expectedExplicitExecutions,
+                context.expectations.expectedImplicitExecutions
             );
     }
 

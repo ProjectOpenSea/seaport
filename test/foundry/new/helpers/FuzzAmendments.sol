@@ -43,11 +43,19 @@ abstract contract FuzzAmendments is Test {
     function validateOrdersAndRegisterCheck(
         FuzzTestContext memory context
     ) public {
-        for (uint256 i = 0; i < context.preExecOrderStatuses.length; ++i) {
-            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
-                bool validated = context.orders[i].validateTipNeutralizedOrder(
-                    context
-                );
+        for (
+            uint256 i = 0;
+            i < context.executionState.preExecOrderStatuses.length;
+            ++i
+        ) {
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.VALIDATED
+            ) {
+                bool validated = context
+                    .executionState
+                    .orders[i]
+                    .validateTipNeutralizedOrder(context);
 
                 require(validated, "Failed to validate orders.");
             }
@@ -59,34 +67,49 @@ abstract contract FuzzAmendments is Test {
     function conformOnChainStatusToExpected(
         FuzzTestContext memory context
     ) public {
-        for (uint256 i = 0; i < context.preExecOrderStatuses.length; ++i) {
-            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
+        for (
+            uint256 i = 0;
+            i < context.executionState.preExecOrderStatuses.length;
+            ++i
+        ) {
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.VALIDATED
+            ) {
                 validateOrdersAndRegisterCheck(context);
             } else if (
-                context.preExecOrderStatuses[i] ==
+                context.executionState.preExecOrderStatuses[i] ==
                 OrderStatusEnum.CANCELLED_EXPLICIT
             ) {
-                context.orders[i].inscribeOrderStatusCancelled(
+                context.executionState.orders[i].inscribeOrderStatusCancelled(
                     true,
                     context.seaport
                 );
             } else if (
-                context.preExecOrderStatuses[i] == OrderStatusEnum.FULFILLED
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.FULFILLED
             ) {
-                context.orders[i].inscribeOrderStatusNumeratorAndDenominator(
-                    1,
-                    1,
-                    context.seaport
-                );
+                context
+                    .executionState
+                    .orders[i]
+                    .inscribeOrderStatusNumeratorAndDenominator(
+                        1,
+                        1,
+                        context.seaport
+                    );
             } else if (
-                context.preExecOrderStatuses[i] == OrderStatusEnum.AVAILABLE
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.AVAILABLE
             ) {
-                context.orders[i].inscribeOrderStatusNumeratorAndDenominator(
-                    0,
-                    0,
-                    context.seaport
-                );
-                context.orders[i].inscribeOrderStatusCancelled(
+                context
+                    .executionState
+                    .orders[i]
+                    .inscribeOrderStatusNumeratorAndDenominator(
+                        0,
+                        0,
+                        context.seaport
+                    );
+                context.executionState.orders[i].inscribeOrderStatusCancelled(
                     false,
                     context.seaport
                 );
@@ -95,16 +118,21 @@ abstract contract FuzzAmendments is Test {
     }
 
     function setCounter(FuzzTestContext memory context) public {
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            if (context.orders[i].parameters.orderType == OrderType.CONTRACT) {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (
+                context.executionState.orders[i].parameters.orderType ==
+                OrderType.CONTRACT
+            ) {
                 continue;
             }
 
-            uint256 offererSpecificCounter = context.counter +
-                uint256(uint160(context.orders[i].parameters.offerer));
+            uint256 offererSpecificCounter = context.executionState.counter +
+                uint256(
+                    uint160(context.executionState.orders[i].parameters.offerer)
+                );
 
             FuzzInscribers.inscribeCounter(
-                context.orders[i].parameters.offerer,
+                context.executionState.orders[i].parameters.offerer,
                 offererSpecificCounter,
                 context.seaport
             );
@@ -112,17 +140,23 @@ abstract contract FuzzAmendments is Test {
     }
 
     function setContractOffererNonce(FuzzTestContext memory context) public {
-        for (uint256 i = 0; i < context.orders.length; ++i) {
-            if (context.orders[i].parameters.orderType != OrderType.CONTRACT) {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (
+                context.executionState.orders[i].parameters.orderType !=
+                OrderType.CONTRACT
+            ) {
                 continue;
             }
 
             uint256 contractOffererSpecificContractNonce = context
+                .executionState
                 .contractOffererNonce +
-                uint256(uint160(context.orders[i].parameters.offerer));
+                uint256(
+                    uint160(context.executionState.orders[i].parameters.offerer)
+                );
 
             FuzzInscribers.inscribeContractOffererNonce(
-                context.orders[i].parameters.offerer,
+                context.executionState.orders[i].parameters.offerer,
                 contractOffererSpecificContractNonce,
                 context.seaport
             );

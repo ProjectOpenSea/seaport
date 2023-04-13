@@ -95,19 +95,19 @@ abstract contract FuzzChecks is Test {
     function check_allOrdersFilled(FuzzTestContext memory context) public {
         assertEq(
             context.returnValues.availableOrders.length,
-            context.orders.length,
+            context.executionState.orders.length,
             "check_allOrdersFilled: returnValues.availableOrders.length != orders.length"
         );
         assertEq(
             context.returnValues.availableOrders.length,
-            context.expectedAvailableOrders.length,
+            context.expectations.expectedAvailableOrders.length,
             "check_allOrdersFilled: returnValues.availableOrders.length != expectedAvailableOrders.length"
         );
 
         for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
             assertEq(
                 context.returnValues.availableOrders[i],
-                context.expectedAvailableOrders[i],
+                context.expectations.expectedAvailableOrders[i],
                 "check_allOrdersFilled: returnValues.availableOrders[i] != expectedAvailableOrders[i]"
             );
         }
@@ -122,8 +122,11 @@ abstract contract FuzzChecks is Test {
         FuzzTestContext memory context
     ) public {
         // Iterate over the orders.
-        for (uint256 i; i < context.orders.length; i++) {
-            OrderParameters memory order = context.orders[i].parameters;
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
 
             // If the order is restricted, check the calldata.
             if (
@@ -134,11 +137,11 @@ abstract contract FuzzChecks is Test {
 
                 // Each order has a calldata hash, indexed to orders, that is
                 // expected to be returned by the zone.
-                bytes32 expectedCalldataHash = context.expectedZoneCalldataHash[
-                    i
-                ];
+                bytes32 expectedCalldataHash = context
+                    .expectations
+                    .expectedZoneCalldataHash[i];
 
-                bytes32 orderHash = context.orderHashes[i];
+                bytes32 orderHash = context.executionState.orderHashes[i];
 
                 // Use order hash to get the expected calldata hash from zone.
                 // TODO: fix this in cases where contract orders are part of
@@ -161,13 +164,14 @@ abstract contract FuzzChecks is Test {
         FuzzTestContext memory context
     ) public {
         bytes32[2][] memory expectedCalldataHashes = context
+            .expectations
             .expectedContractOrderCalldataHashes;
 
-        for (uint256 i; i < context.orders.length; i++) {
-            AdvancedOrder memory order = context.orders[i];
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            AdvancedOrder memory order = context.executionState.orders[i];
 
             if (order.parameters.orderType == OrderType.CONTRACT) {
-                bytes32 orderHash = context.orderHashes[i];
+                bytes32 orderHash = context.executionState.orderHashes[i];
 
                 bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
                         i
@@ -218,18 +222,20 @@ abstract contract FuzzChecks is Test {
 
         assertEq(
             context.returnValues.executions.length,
-            context.expectedExplicitExecutions.length,
+            context.expectations.expectedExplicitExecutions.length,
             "check_executions: expectedExplicitExecutions.length != returnValues.executions.length"
         );
 
         for (
             uint256 i;
-            (i < context.expectedExplicitExecutions.length &&
+            (i < context.expectations.expectedExplicitExecutions.length &&
                 i < context.returnValues.executions.length);
             i++
         ) {
             Execution memory actual = context.returnValues.executions[i];
-            Execution memory expected = context.expectedExplicitExecutions[i];
+            Execution memory expected = context
+                .expectations
+                .expectedExplicitExecutions[i];
             assertEq(
                 uint256(actual.item.itemType),
                 uint256(expected.item.itemType),
@@ -294,16 +300,19 @@ abstract contract FuzzChecks is Test {
     function check_orderStatusFullyFilled(
         FuzzTestContext memory context
     ) public {
-        for (uint256 i; i < context.orders.length; i++) {
-            AdvancedOrder memory order = context.orders[i];
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            AdvancedOrder memory order = context.executionState.orders[i];
 
-            bytes32 orderHash = context.orderHashes[i];
+            bytes32 orderHash = context.executionState.orderHashes[i];
 
             (, , uint256 totalFilled, uint256 totalSize) = context
                 .seaport
                 .getOrderStatus(orderHash);
 
-            if (context.preExecOrderStatuses[i] == OrderStatusEnum.FULFILLED) {
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.FULFILLED
+            ) {
                 assertEq(
                     totalFilled,
                     1,
@@ -314,7 +323,7 @@ abstract contract FuzzChecks is Test {
                     1,
                     "check_orderStatusFullyFilled: totalSize != 1"
                 );
-            } else if (context.expectedAvailableOrders[i]) {
+            } else if (context.expectations.expectedAvailableOrders[i]) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
                     // TODO: This just checks the nonce has been incremented
                     // at least once. It should be incremented once for each
@@ -326,6 +335,7 @@ abstract contract FuzzChecks is Test {
                         .getContractOffererNonce(order.parameters.offerer);
 
                     uint256 contractOffererSpecificContractNonce = context
+                        .executionState
                         .contractOffererNonce +
                         uint256(uint160(order.parameters.offerer));
 
@@ -363,10 +373,17 @@ abstract contract FuzzChecks is Test {
         // Iterate over all orders and if the order was validated pre-execution,
         // check that calling `getOrderStatus` on the order hash returns `true`
         // for `isValid`. Note that contract orders cannot be validated.
-        for (uint256 i; i < context.preExecOrderStatuses.length; i++) {
+        for (
+            uint256 i;
+            i < context.executionState.preExecOrderStatuses.length;
+            i++
+        ) {
             // Only check orders that were validated pre-execution.
-            if (context.preExecOrderStatuses[i] == OrderStatusEnum.VALIDATED) {
-                bytes32 orderHash = context.orderHashes[i];
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.VALIDATED
+            ) {
+                bytes32 orderHash = context.executionState.orderHashes[i];
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
                 );

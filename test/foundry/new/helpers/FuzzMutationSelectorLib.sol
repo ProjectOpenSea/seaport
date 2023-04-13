@@ -231,7 +231,7 @@ library FailureDetailsLib {
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
         bytes4 errorSelector
-    ) internal view returns (bytes memory expectedRevertReason) {
+    ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
     }
 

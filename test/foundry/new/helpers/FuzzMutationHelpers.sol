@@ -26,7 +26,7 @@ library FailureEligibilityLib {
         Failure ineligibleFailure
     ) internal pure {
         // Set the respective boolean for the ineligible failure.
-        context.ineligibleFailures[uint256(ineligibleFailure)] = true;
+        context.expectations.ineligibleFailures[uint256(ineligibleFailure)] = true;
     }
 
     function setIneligibleFailures(
@@ -35,7 +35,7 @@ library FailureEligibilityLib {
     ) internal pure {
         for (uint256 i = 0; i < ineligibleFailures.length; ++i) {
             // Set the respective boolean for each ineligible failure.
-            context.ineligibleFailures[uint256(ineligibleFailures[i])] = true;
+            context.expectations.ineligibleFailures[uint256(ineligibleFailures[i])] = true;
         }
     }
 
@@ -45,9 +45,9 @@ library FailureEligibilityLib {
         eligibleFailures = new Failure[](uint256(Failure.length));
 
         uint256 totalEligibleFailures = 0;
-        for (uint256 i = 0; i < context.ineligibleFailures.length; ++i) {
+        for (uint256 i = 0; i < context.expectations.ineligibleFailures.length; ++i) {
             // If the boolean is not set, the failure is still eligible.
-            if (!context.ineligibleFailures[i]) {
+            if (!context.expectations.ineligibleFailures[i]) {
                 eligibleFailures[totalEligibleFailures++] = Failure(i);
             }
         }
@@ -178,9 +178,15 @@ library OrderEligibilityLib {
             view
             returns (bool) ineligibleCondition
     ) internal view returns (bool) {
-        for (uint256 i; i < context.orders.length; i++) {
+        for (uint256 i; i < context.executionState.orders.length; i++) {
             // Once an eligible order is found, return false.
-            if (!ineligibleCondition(context.orders[i], i, context)) {
+            if (
+                !ineligibleCondition(
+                    context.executionState.orders[i],
+                    i,
+                    context
+                )
+            ) {
                 return false;
             }
         }
@@ -195,8 +201,8 @@ library OrderEligibilityLib {
             view
             returns (bool) condition
     ) internal view {
-        for (uint256 i; i < context.orders.length; i++) {
-            if (condition(context.orders[i], i, context)) {
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            if (condition(context.executionState.orders[i], i, context)) {
                 setIneligibleOrder(context, i);
             }
         }
@@ -207,19 +213,19 @@ library OrderEligibilityLib {
         uint256 ineligibleOrderIndex
     ) internal pure {
         // Set the respective boolean for the ineligible order.
-        context.ineligibleOrders[ineligibleOrderIndex] = true;
+        context.expectations.ineligibleOrders[ineligibleOrderIndex] = true;
     }
 
     function getEligibleOrders(
         FuzzTestContext memory context
     ) internal pure returns (AdvancedOrder[] memory eligibleOrders) {
-        eligibleOrders = new AdvancedOrder[](context.orders.length);
+        eligibleOrders = new AdvancedOrder[](context.executionState.orders.length);
 
         uint256 totalEligibleOrders = 0;
-        for (uint256 i = 0; i < context.ineligibleOrders.length; ++i) {
+        for (uint256 i = 0; i < context.expectations.ineligibleOrders.length; ++i) {
             // If the boolean is not set, the order is still eligible.
-            if (!context.ineligibleOrders[i]) {
-                eligibleOrders[totalEligibleOrders++] = context.orders[i];
+            if (!context.expectations.ineligibleOrders[i]) {
+                eligibleOrders[totalEligibleOrders++] = context.executionState.orders[i];
             }
         }
 
@@ -372,7 +378,7 @@ library FailureDetailsHelperLib {
     function defaultReason(
         FuzzTestContext memory /* context */,
         bytes4 errorSelector
-    ) internal view returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         return abi.encodePacked(errorSelector);
     }
 }

@@ -12,15 +12,15 @@ library OrdersMatchedEventsLib {
         FuzzTestContext memory context
     ) internal pure returns (bytes32 eventHash) {
         if (
-            context.expectedAvailableOrders.length !=
-            context.orderHashes.length
+            context.expectations.expectedAvailableOrders.length !=
+            context.executionState.orderHashes.length
         ) {
             revert("OrdersMatchedEventsLib: available array length != hashes");
         }
 
         uint256 totalAvailableOrders = 0;
-        for (uint256 i = 0; i < context.expectedAvailableOrders.length; ++i) {
-            if (context.expectedAvailableOrders[i]) {
+        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
                 ++totalAvailableOrders;
             }
         }
@@ -30,9 +30,9 @@ library OrdersMatchedEventsLib {
         );
 
         totalAvailableOrders = 0;
-        for (uint256 i = 0; i < context.orderHashes.length; ++i) {
-            if (context.expectedAvailableOrders[i]) {
-                orderHashes[totalAvailableOrders++] = context.orderHashes[i];
+        for (uint256 i = 0; i < context.executionState.orderHashes.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
+                orderHashes[totalAvailableOrders++] = context.executionState.orderHashes[i];
             }
         }
 
