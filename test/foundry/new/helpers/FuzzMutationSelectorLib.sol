@@ -38,7 +38,7 @@ enum Failure {
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
-    // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
+    BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -94,6 +94,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.BadSignatureV.with(
             MutationFilters.ineligibleForBadSignatureV
+        );
+
+        failuresAndFilters[i++] = Failure.BadFraction_PartialContractOrder.with(
+            MutationFilters.ineligibleForBadFractionPartialContractOrder
         );
 
         failuresAndFilters[i++] = Failure
@@ -256,6 +260,7 @@ library FailureDetailsLib {
             block.timestamp
         );
     }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(
