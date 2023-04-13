@@ -232,7 +232,7 @@ abstract contract FuzzExecutor is Test {
     function logCall(string memory callName, bool enabled) internal {
         if (enabled && vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
             string memory metric = string.concat(callName, ":1|c");
-            vm.writeLine("metrics.txt", metric);
+            vm.writeLine("call-metrics.txt", metric);
         }
     }
 }
