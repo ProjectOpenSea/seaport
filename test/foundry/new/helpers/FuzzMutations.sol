@@ -23,7 +23,6 @@ import { OrderType } from "seaport-sol/SeaportEnums.sol";
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
-import { dumpExecutions } from "./DebugUtil.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
