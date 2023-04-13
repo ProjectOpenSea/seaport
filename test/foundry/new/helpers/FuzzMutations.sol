@@ -309,6 +309,6 @@ contract FuzzMutations is Test, FuzzExecutor {
         order.numerator = 6;
         order.denominator = 9;
 
-        exect(context);
+        exec(context);
     }
 }
