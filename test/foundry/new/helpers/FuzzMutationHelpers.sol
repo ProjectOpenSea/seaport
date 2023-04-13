@@ -326,8 +326,6 @@ library OrderEligibilityLib {
 
         orderIndex = prng.next() % eligibleOrders.length;
         eligibleOrder = eligibleOrders[orderIndex];
-        context.mutationState.selectedOrder = eligibleOrder;
-        context.mutationState.selectedOrderIndex = orderIndex;
     }
 
     function fn(
