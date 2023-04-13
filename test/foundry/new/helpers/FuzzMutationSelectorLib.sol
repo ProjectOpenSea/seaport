@@ -60,54 +60,33 @@ library FuzzMutationSelectorLib {
             bytes memory expectedRevertReason
         )
     {
-        // Mark InvalidSignature as ineligible if no order supports it.
-        if (
-            context.hasNoEligibleOrders(
-                MutationFilters.ineligibleForInvalidSignature
-            )
-        ) {
-            context.setIneligibleFailure(Failure.InvalidSignature);
-        }
+        // Mark various failure conditions as ineligible if no orders support them.
+        context.setIneligibleFailures(
+            MutationFilters.ineligibleForInvalidSignature,
+            Failure.InvalidSignature.one()
+        );
 
-        if (
-            context.hasNoEligibleOrders(
-                MutationFilters.ineligibleForInvalidSigner
+        context.setIneligibleFailures(
+            MutationFilters.ineligibleForInvalidSigner,
+            Failure.InvalidSigner_BadSignature.and(
+                Failure.InvalidSigner_ModifiedOrder
             )
-        ) {
-            context.setIneligibleFailures(
-                Failure.InvalidSigner_BadSignature.and(
-                    Failure.InvalidSigner_ModifiedOrder
-                )
-            );
-        }
+        );
 
-        if (
-            context.hasNoEligibleOrders(
-                MutationFilters.ineligibleForInvalidTime
-            )
-        ) {
-            context.setIneligibleFailures(
-                Failure.InvalidTime_NotStarted.and(Failure.InvalidTime_Expired)
-            );
-        }
+        context.setIneligibleFailures(
+            MutationFilters.ineligibleForInvalidTime,
+            Failure.InvalidTime_NotStarted.and(Failure.InvalidTime_Expired)
+        );
 
-        if (
-            context.hasNoEligibleOrders(
-                MutationFilters.ineligibleForBadSignatureV
-            )
-        ) {
-            context.setIneligibleFailure(Failure.BadSignatureV);
-        }
+        context.setIneligibleFailures(
+            MutationFilters.ineligibleForBadSignatureV,
+            Failure.BadSignatureV.one()
+        );
 
-        if (
-            context.hasNoEligibleOrders(
-                MutationFilters.ineligibleForBadFraction
-            )
-        ) {
-            context.setIneligibleFailures(
-                Failure.BadFraction_NoFill.and(Failure.BadFraction_Overfill)
-            );
-        }
+        context.setIneligibleFailures(
+            MutationFilters.ineligibleForBadFraction,
+            Failure.BadFraction_NoFill.and(Failure.BadFraction_Overfill)
+        );
 
         // Choose one of the remaining eligible failures.
         return context.failureDetails(context.selectEligibleFailure());

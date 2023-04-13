@@ -75,8 +75,22 @@ library FailureEligibilityLib {
 
 library OrderEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
+    using FailureEligibilityLib for FuzzTestContext;
 
     error NoEligibleOrderFound();
+
+    function setIneligibleFailures(
+        FuzzTestContext memory context,
+        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) ineligibleMutationFilter,
+        Failure[] memory ineligibleFailures
+    ) internal view {
+        if (hasNoEligibleOrders(context, ineligibleMutationFilter)) {
+            context.setIneligibleFailures(ineligibleFailures);
+        }
+    }
 
     function hasNoEligibleOrders(
         FuzzTestContext memory context,
@@ -154,6 +168,12 @@ library OrderEligibilityLib {
 }
 
 library Failarray {
+    function one(Failure a) internal pure returns (Failure[] memory) {
+        Failure[] memory arr = new Failure[](1);
+        arr[0] = a;
+        return arr;
+    }
+
     function and(
         Failure a,
         Failure b
