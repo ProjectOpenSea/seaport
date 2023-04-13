@@ -240,6 +240,11 @@ struct ExecutionState {
     uint256 value;
 }
 
+struct MutationState {
+    AdvancedOrder selectedOrder;
+    uint256 selectedOrderIndex;
+}
+
 struct FuzzTestContext {
     bytes4 _action;
     /**
