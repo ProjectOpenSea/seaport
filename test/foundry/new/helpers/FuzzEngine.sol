@@ -43,7 +43,8 @@ import {
 import {
     FuzzTestContext,
     FuzzTestContextLib,
-    FuzzParams
+    FuzzParams,
+    MutationState
 } from "./FuzzTestContextLib.sol";
 
 import {
@@ -73,6 +74,8 @@ import { FuzzHelpers, Structure } from "./FuzzHelpers.sol";
 import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
+
+import "forge-std/console.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -388,12 +391,24 @@ contract FuzzEngine is
     function execFailure(FuzzTestContext memory context) internal {
         (
             string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
+            bytes4 mutationSelector,
+            bytes memory expectedRevertReason,
+            MutationState memory mutationState
         ) = context.selectMutation();
+
+        context.mutationState = mutationState;
+
+        console.log("topmost orderIndex", context.mutationState.selectedOrderIndex);
+        console.logBytes(abi.encodePacked(mutationSelector));
+
         logMutation(name);
 
-        bytes memory callData = abi.encodeWithSelector(selector, context);
+        // TODO: here for debugging
+        if (address(mutations).code.length == 0) {
+            revert("WTF");
+        }
+
+        bytes memory callData = abi.encodeWithSelector(mutationSelector, context);
         (bool success, bytes memory data) = address(mutations).call(callData);
 
         assertFalse(

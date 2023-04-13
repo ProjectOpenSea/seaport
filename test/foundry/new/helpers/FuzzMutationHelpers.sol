@@ -16,6 +16,8 @@ import {
     MutationContextDerivation
 } from "./FuzzMutationSelectorLib.sol";
 
+import "forge-std/console.sol";
+
 library FailureEligibilityLib {
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
@@ -378,6 +380,8 @@ library MutationContextDeriverLib {
 
             context.mutationState.selectedOrder = order;
             context.mutationState.selectedOrderIndex = orderIndex;
+
+            console.log("innermost:", context.mutationState.selectedOrderIndex);
         } else {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }

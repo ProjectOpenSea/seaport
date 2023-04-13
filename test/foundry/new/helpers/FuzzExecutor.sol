@@ -31,6 +31,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
+import "forge-std/console.sol";
+
 abstract contract FuzzExecutor is Test {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -55,12 +57,14 @@ abstract contract FuzzExecutor is Test {
      * @param context A Fuzz test context.
      */
     function exec(FuzzTestContext memory context, bool logCalls) public {
-        // If the caller is not the zero address, prank the address.
+        console.log("before exec", context.mutationState.selectedOrderIndex);
 
         // Get the action to execute.  The action is derived from the fuzz seed,
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
         bytes4 _action = context.action();
+
+        console.logBytes(abi.encodePacked(_action));
 
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
