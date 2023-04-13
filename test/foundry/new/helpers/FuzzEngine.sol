@@ -75,8 +75,6 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -396,19 +394,13 @@ contract FuzzEngine is
             MutationState memory mutationState
         ) = context.selectMutation();
 
-        context.mutationState = mutationState;
-
-        console.log("topmost orderIndex", context.mutationState.selectedOrderIndex);
-        console.logBytes(abi.encodePacked(mutationSelector));
-
         logMutation(name);
 
-        // TODO: here for debugging
-        if (address(mutations).code.length == 0) {
-            revert("WTF");
-        }
-
-        bytes memory callData = abi.encodeWithSelector(mutationSelector, context);
+        bytes memory callData = abi.encodeWithSelector(
+            mutationSelector,
+            context,
+            mutationState
+        );
         (bool success, bytes memory data) = address(mutations).call(callData);
 
         assertFalse(

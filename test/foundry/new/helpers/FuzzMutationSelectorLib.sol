@@ -27,8 +27,6 @@ import {
 
 import { Vm } from "forge-std/Vm.sol";
 
-import "forge-std/console.sol";
-
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
     InvalidSignature, // EOA signature is incorrect length
@@ -105,13 +103,16 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForBadSignatureV
         );
 
-        failuresAndFilters[i++] = Failure
-            .BadFraction_NoFill
-            .and(Failure.BadFraction_Overfill)
-            .with(MutationFilters.ineligibleForBadFraction);
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
+            MutationFilters.ineligibleForBadFraction
+        );
+
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
+            MutationFilters.ineligibleForBadFraction_noFill
+        );
 
         failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
-           MutationFilters.ineligibleForOrderIsCancelled
+            MutationFilters.ineligibleForOrderIsCancelled
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -142,17 +143,11 @@ library FuzzMutationSelectorLib {
         // Evaluate each filter and assign respective ineligible failures.
         context.setAllIneligibleFailures(failuresAndFilters);
 
-        (
-            name,
-            mutationSelector,
-            expectedRevertReason,
-            mutationState
-        ) = context.failureDetails(
+        (name, mutationSelector, expectedRevertReason, mutationState) = context
+            .failureDetails(
                 context.selectEligibleFailure(),
                 failuresAndFilters
             );
-
-        console.log("orderIndex", mutationState.selectedOrderIndex);
     }
 }
 
@@ -273,6 +268,7 @@ library FailureDetailsLib {
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
@@ -280,6 +276,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_NotStarted(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -291,6 +288,7 @@ library FailureDetailsLib {
 
     function details_InvalidTime_Expired(
         FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
@@ -302,13 +300,12 @@ library FailureDetailsLib {
 
     function details_OrderIsCancelled(
         FuzzTestContext memory context,
+        MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderHashes[
-                context.mutationState.selectedOrderIndex
-            ]
+            context.executionState.orderHashes[mutationState.selectedOrderIndex]
         );
     }
 
@@ -332,21 +329,20 @@ library FailureDetailsLib {
             declareFailureDetails()[uint256(failure)]
         );
 
-        context.deriveMutationContext(
+        MutationState memory mutationState = context.deriveMutationContext(
             details.derivationMethod,
             failuresAndFilters.extractFirstFilterForFailure(failure)
         );
-
-        console.log("inner context:", context.mutationState.selectedOrderIndex);
 
         return (
             details.name,
             details.mutationSelector,
             context.deriveRevertReason(
+                mutationState,
                 details.errorSelector,
                 details.revertReasonDeriver
             ),
-            context.mutationState
+            mutationState
         );
     }
 }

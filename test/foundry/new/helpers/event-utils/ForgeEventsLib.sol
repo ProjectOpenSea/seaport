@@ -5,8 +5,6 @@ import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
-import { console2 } from "forge-std/console2.sol";
-
 import {
     MemoryPointer
 } from "../../../../../contracts/helpers/PointerLibraries.sol";
@@ -103,7 +101,6 @@ library ForgeEventsLib {
                 log0(data, mload(data))
             }
         }
-        console2.log("Emitter: ", log.emitter);
     }
 
     /**
