@@ -272,9 +272,6 @@ contract FuzzEngine is
             generatorContext
         );
 
-        // TODO: insert both the generator context and the space into the
-        // context.
-
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)

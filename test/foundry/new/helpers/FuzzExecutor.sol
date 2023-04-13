@@ -61,7 +61,6 @@ abstract contract FuzzExecutor is Test {
         // so it will be the same for each run of the test throughout the entire
         // lifecycle of the test.
         bytes4 _action = context.action();
-        uint256 value = context.getNativeTokensToSupply();
 
         // Execute the action.
         if (_action == context.seaport.fulfillOrder.selector) {
@@ -71,7 +70,7 @@ abstract contract FuzzExecutor is Test {
             if (context.executionState.caller != address(0))
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context.seaport.fulfillOrder{
-                value: value
+                value: context.executionState.value
             }(order.toOrder(), context.executionState.fulfillerConduitKey);
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             logCall("fulfillAdvancedOrder", logCalls);
@@ -81,7 +80,7 @@ abstract contract FuzzExecutor is Test {
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillAdvancedOrder{ value: value }(
+                .fulfillAdvancedOrder{ value: context.executionState.value }(
                 order,
                 context.executionState.criteriaResolvers,
                 context.executionState.fulfillerConduitKey,
@@ -104,7 +103,7 @@ abstract contract FuzzExecutor is Test {
             if (context.executionState.caller != address(0))
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context.seaport.fulfillBasicOrder{
-                value: value
+                value: context.executionState.value
             }(basicOrderParameters);
         } else if (
             _action ==
@@ -127,7 +126,7 @@ abstract contract FuzzExecutor is Test {
                 vm.prank(context.executionState.caller);
             context.returnValues.fulfilled = context
                 .seaport
-                .fulfillBasicOrder_efficient_6GL6yc{ value: value }(
+                .fulfillBasicOrder_efficient_6GL6yc{ value: context.executionState.value }(
                 basicOrderParameters
             );
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
@@ -137,7 +136,7 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableOrders{ value: value }(
+            ) = context.seaport.fulfillAvailableOrders{ value: context.executionState.value }(
                     context.executionState.orders.toOrders(),
                     context.executionState.offerFulfillments,
                     context.executionState.considerationFulfillments,
@@ -156,7 +155,7 @@ abstract contract FuzzExecutor is Test {
             (
                 bool[] memory availableOrders,
                 Execution[] memory executions
-            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: value }(
+            ) = context.seaport.fulfillAvailableAdvancedOrders{ value: context.executionState.value }(
                     context.executionState.orders,
                     context.executionState.criteriaResolvers,
                     context.executionState.offerFulfillments,
@@ -173,7 +172,7 @@ abstract contract FuzzExecutor is Test {
             if (context.executionState.caller != address(0))
                 vm.prank(context.executionState.caller);
             Execution[] memory executions = context.seaport.matchOrders{
-                value: value
+                value: context.executionState.value
             }(
                 context.executionState.orders.toOrders(),
                 context.executionState.fulfillments
@@ -185,7 +184,7 @@ abstract contract FuzzExecutor is Test {
             if (context.executionState.caller != address(0))
                 vm.prank(context.executionState.caller);
             Execution[] memory executions = context.seaport.matchAdvancedOrders{
-                value: value
+                value: context.executionState.value
             }(
                 context.executionState.orders,
                 context.executionState.criteriaResolvers,
