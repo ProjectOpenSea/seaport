@@ -26,7 +26,9 @@ library FailureEligibilityLib {
         Failure ineligibleFailure
     ) internal pure {
         // Set the respective boolean for the ineligible failure.
-        context.expectations.ineligibleFailures[uint256(ineligibleFailure)] = true;
+        context.expectations.ineligibleFailures[
+            uint256(ineligibleFailure)
+        ] = true;
     }
 
     function setIneligibleFailures(
@@ -35,7 +37,9 @@ library FailureEligibilityLib {
     ) internal pure {
         for (uint256 i = 0; i < ineligibleFailures.length; ++i) {
             // Set the respective boolean for each ineligible failure.
-            context.expectations.ineligibleFailures[uint256(ineligibleFailures[i])] = true;
+            context.expectations.ineligibleFailures[
+                uint256(ineligibleFailures[i])
+            ] = true;
         }
     }
 
@@ -45,7 +49,11 @@ library FailureEligibilityLib {
         eligibleFailures = new Failure[](uint256(Failure.length));
 
         uint256 totalEligibleFailures = 0;
-        for (uint256 i = 0; i < context.expectations.ineligibleFailures.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.expectations.ineligibleFailures.length;
+            ++i
+        ) {
             // If the boolean is not set, the failure is still eligible.
             if (!context.expectations.ineligibleFailures[i]) {
                 eligibleFailures[totalEligibleFailures++] = Failure(i);
@@ -219,13 +227,21 @@ library OrderEligibilityLib {
     function getEligibleOrders(
         FuzzTestContext memory context
     ) internal pure returns (AdvancedOrder[] memory eligibleOrders) {
-        eligibleOrders = new AdvancedOrder[](context.executionState.orders.length);
+        eligibleOrders = new AdvancedOrder[](
+            context.executionState.orders.length
+        );
 
         uint256 totalEligibleOrders = 0;
-        for (uint256 i = 0; i < context.expectations.ineligibleOrders.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.expectations.ineligibleOrders.length;
+            ++i
+        ) {
             // If the boolean is not set, the order is still eligible.
             if (!context.expectations.ineligibleOrders[i]) {
-                eligibleOrders[totalEligibleOrders++] = context.executionState.orders[i];
+                eligibleOrders[totalEligibleOrders++] = context
+                    .executionState
+                    .orders[i];
             }
         }
 
@@ -235,11 +251,13 @@ library OrderEligibilityLib {
         }
     }
 
-    // TODO: may also want to return the order index for backing out to e.g.
-    // orderIndex in fulfillments or criteria resolvers
     function selectEligibleOrder(
         FuzzTestContext memory context
-    ) internal pure returns (AdvancedOrder memory eligibleOrder) {
+    )
+        internal
+        pure
+        returns (AdvancedOrder memory eligibleOrder, uint256 orderIndex)
+    {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         AdvancedOrder[] memory eligibleOrders = getEligibleOrders(context);
@@ -248,7 +266,8 @@ library OrderEligibilityLib {
             revert NoEligibleOrderFound();
         }
 
-        return eligibleOrders[prng.next() % eligibleOrders.length];
+        orderIndex = prng.next() % eligibleOrders.length;
+        eligibleOrder = eligibleOrders[orderIndex];
     }
 
     function fn(
