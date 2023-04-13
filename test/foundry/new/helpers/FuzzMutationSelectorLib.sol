@@ -27,8 +27,8 @@ import { Vm } from "forge-std/Vm.sol";
 
 enum Failure {
     InvalidSignature, // EOA signature is incorrect length
-    // InvalidSigner_BadSignature, // EOA signature has been tampered with
-    // InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
+    InvalidSigner_BadSignature, // EOA signature has been tampered with
+    InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
     BadSignatureV, // EOA signature has bad v value
     // BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
     // BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
@@ -65,6 +65,18 @@ library FuzzMutationSelectorLib {
             )
         ) {
             context.setIneligibleFailure(Failure.InvalidSignature);
+        }
+
+        if (
+            context.hasNoEligibleOrders(
+                MutationFilters.ineligibleForInvalidSigner
+            )
+        ) {
+            context.setIneligibleFailures(
+                Failure.InvalidSigner_BadSignature.and(
+                    Failure.InvalidSigner_ModifiedOrder
+                )
+            );
         }
 
         if (
@@ -108,6 +120,14 @@ library FailureDetailsLib {
             return details_InvalidSignature();
         }
 
+        if (failure == Failure.InvalidSigner_BadSignature) {
+            return details_InvalidSigner_BadSignature();
+        }
+
+        if (failure == Failure.InvalidSigner_ModifiedOrder) {
+            return details_InvalidSigner_ModifiedOrder();
+        }
+
         if (failure == Failure.BadSignatureV) {
             return details_BadSignatureV();
         }
@@ -136,6 +156,38 @@ library FailureDetailsLib {
         selector = FuzzMutations.mutation_invalidSignature.selector;
         expectedRevertReason = abi.encodePacked(
             SignatureVerificationErrors.InvalidSignature.selector
+        );
+    }
+
+    function details_InvalidSigner_BadSignature()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "InvalidSigner_BadSignature";
+        selector = FuzzMutations.mutation_invalidSigner_BadSignature.selector;
+        expectedRevertReason = abi.encodePacked(
+            SignatureVerificationErrors.InvalidSigner.selector
+        );
+    }
+
+    function details_InvalidSigner_ModifiedOrder()
+        internal
+        pure
+        returns (
+            string memory name,
+            bytes4 selector,
+            bytes memory expectedRevertReason
+        )
+    {
+        name = "InvalidSigner_ModifiedOrder";
+        selector = FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector;
+        expectedRevertReason = abi.encodePacked(
+            SignatureVerificationErrors.InvalidSigner.selector
         );
     }
 
