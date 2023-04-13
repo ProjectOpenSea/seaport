@@ -58,20 +58,7 @@ import {
 
 import { TestStateGenerator } from "./FuzzGenerators.sol";
 
-struct FuzzParams {
-    uint256 seed;
-    uint256 totalOrders;
-    uint256 maxOfferItems;
-    uint256 maxConsiderationItems;
-}
-
-struct ReturnValues {
-    bool fulfilled;
-    bool cancelled;
-    bool validated;
-    bool[] availableOrders;
-    Execution[] executions;
-}
+import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -125,6 +112,21 @@ interface TestHelpers {
     function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
+struct FuzzParams {
+    uint256 seed;
+    uint256 totalOrders;
+    uint256 maxOfferItems;
+    uint256 maxConsiderationItems;
+}
+
+struct ReturnValues {
+    bool fulfilled;
+    bool cancelled;
+    bool validated;
+    bool[] availableOrders;
+    Execution[] executions;
+}
+
 struct Expectations {
     /**
      * @dev Expected zone calldata hashes.
@@ -159,6 +161,8 @@ struct Expectations {
      *      topic0s.
      */
     bytes32[] expectedSeaportEventHashes;
+    bool[] ineligibleOrders;
+    bool[] ineligibleFailures;
 }
 
 struct ExecutionState {
@@ -218,6 +222,7 @@ struct FuzzTestContext {
      *      address before calling exec.
      */
     address caller;
+    uint256 value;
     /**
      * @dev A recipient address to be passed into fulfillAdvancedOrder,
      *      fulfillAvailableAdvancedOrders, or matchAdvancedOrders. Speciying a
@@ -332,6 +337,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 caller: address(0),
+                value: 0,
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -362,7 +368,9 @@ library FuzzTestContextLib {
                     expectedResults: results,
                     expectedAvailableOrders: new bool[](0),
                     expectedTransferEventHashes: expectedTransferEventHashes,
-                    expectedSeaportEventHashes: expectedSeaportEventHashes
+                    expectedSeaportEventHashes: expectedSeaportEventHashes,
+                    ineligibleOrders: new bool[](orders.length),
+                    ineligibleFailures: new bool[](uint256(Failure.length))
                 }),
                 executionState: ExecutionState({
                     initialOrders: orders,
@@ -402,7 +410,8 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -421,7 +430,8 @@ library FuzzTestContextLib {
                 .withOrders(orders)
                 .withSeaport(seaport)
                 .withOrderHashes()
-                .withInitialOrders(orders.copy());
+                .withInitialOrders(orders.copy())
+                .withProvisionedIneligbleOrdersArray();
     }
 
     /**
@@ -467,6 +477,15 @@ library FuzzTestContextLib {
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
         context.executionState.initialOrders = orders.copy();
+        return context;
+    }
+
+    function withProvisionedIneligbleOrdersArray(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        context.expectations.ineligibleOrders = new bool[](
+            context.executionState.orders.length
+        );
         return context;
     }
 

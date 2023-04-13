@@ -398,17 +398,9 @@ library FuzzEngineLib {
 
         uint256 value = 0;
 
-        OrderDetails[] memory orderDetails = context
-            .executionState
-            .orders
-            .getOrderDetails(context.executionState.criteriaResolvers);
-
-        for (uint256 i = 0; i < orderDetails.length; ++i) {
-            OrderDetails memory order = orderDetails[i];
-            OrderParameters memory orderParams = context
-                .executionState
-                .orders[i]
-                .parameters;
+        for (uint256 i = 0; i < context.executionState.orderDetails.length; ++i) {
+            OrderDetails memory order = context.executionState.orderDetails[i];
+            OrderParameters memory orderParams = context.executionState.orders[i].parameters;
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
