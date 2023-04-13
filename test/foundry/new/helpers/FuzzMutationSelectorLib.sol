@@ -10,7 +10,8 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import {
     FailureEligibilityLib,
     OrderEligibilityLib,
-    Failarray
+    Failarray,
+    FailureDetailsHelperLib
 } from "./FuzzMutationHelpers.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -25,6 +26,7 @@ import {
 
 import { Vm } from "forge-std/Vm.sol";
 
+/////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
     InvalidSignature, // EOA signature is incorrect length
     InvalidSigner_BadSignature, // EOA signature has been tampered with
@@ -41,6 +43,19 @@ enum Failure {
     BadFraction_Overfill, // Order where numerator > denominator
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
+////////////////////////////////////////////////////////////////////////////////
+
+struct IneligibilityFilter {
+    Failure[] failures;
+    bytes32 ineligibleMutationFilter; // stores a function pointer
+}
+
+struct FailureDetails {
+    string name;
+    bytes4 mutationSelector;
+    bytes4 errorSelector;
+    bytes32 revertReasonDeriver; // stores a function pointer
+}
 
 library FuzzMutationSelectorLib {
     using Failarray for Failure;
@@ -48,6 +63,50 @@ library FuzzMutationSelectorLib {
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
     using OrderEligibilityLib for FuzzTestContext;
+    using OrderEligibilityLib for Failure;
+    using OrderEligibilityLib for Failure[];
+    using OrderEligibilityLib for IneligibilityFilter[];
+
+    function declareFilters()
+        internal
+        pure
+        returns (IneligibilityFilter[] memory failuresAndFilters)
+    {
+        // Set failure conditions as ineligible when no orders support them.
+        // Create abundantly long array to avoid potentially cryptic OOR errors.
+        failuresAndFilters = new IneligibilityFilter[](256);
+        uint256 i = 0;
+
+        /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
+        failuresAndFilters[i++] = Failure.InvalidSignature.with(
+            MutationFilters.ineligibleForInvalidSignature
+        );
+
+        failuresAndFilters[i++] = Failure
+            .InvalidSigner_BadSignature
+            .and(Failure.InvalidSigner_ModifiedOrder)
+            .with(MutationFilters.ineligibleForInvalidSigner);
+
+        failuresAndFilters[i++] = Failure
+            .InvalidTime_NotStarted
+            .and(Failure.InvalidTime_Expired)
+            .with(MutationFilters.ineligibleForInvalidTime);
+
+        failuresAndFilters[i++] = Failure.BadSignatureV.with(
+            MutationFilters.ineligibleForBadSignatureV
+        );
+
+        failuresAndFilters[i++] = Failure
+            .BadFraction_NoFill
+            .and(Failure.BadFraction_Overfill)
+            .with(MutationFilters.ineligibleForBadFraction);
+        ////////////////////////////////////////////////////////////////////////
+
+        // Set the actual length of the array.
+        assembly {
+            mstore(failuresAndFilters, i)
+        }
+    }
 
     function selectMutation(
         FuzzTestContext memory context
@@ -60,33 +119,14 @@ library FuzzMutationSelectorLib {
             bytes memory expectedRevertReason
         )
     {
-        // Mark various failure conditions as ineligible if no orders support them.
-        context.setIneligibleFailures(
-            MutationFilters.ineligibleForInvalidSignature,
-            Failure.InvalidSignature.one()
-        );
+        // Mark each failure conditions as ineligible if no orders support them.
+        IneligibilityFilter[] memory failuresAndFilters = declareFilters();
 
-        context.setIneligibleFailures(
-            MutationFilters.ineligibleForInvalidSigner,
-            Failure.InvalidSigner_BadSignature.and(
-                Failure.InvalidSigner_ModifiedOrder
-            )
-        );
+        // Ensure all failures have at least one associated filter.
+        failuresAndFilters.ensureFilterSetForEachFailure();
 
-        context.setIneligibleFailures(
-            MutationFilters.ineligibleForInvalidTime,
-            Failure.InvalidTime_NotStarted.and(Failure.InvalidTime_Expired)
-        );
-
-        context.setIneligibleFailures(
-            MutationFilters.ineligibleForBadSignatureV,
-            Failure.BadSignatureV.one()
-        );
-
-        context.setIneligibleFailures(
-            MutationFilters.ineligibleForBadFraction,
-            Failure.BadFraction_NoFill.and(Failure.BadFraction_Overfill)
-        );
+        // Evaluate each filter and assign respective ineligible failures.
+        context.setAllIneligibleFailures(failuresAndFilters);
 
         // Choose one of the remaining eligible failures.
         return context.failureDetails(context.selectEligibleFailure());
@@ -94,8 +134,132 @@ library FuzzMutationSelectorLib {
 }
 
 library FailureDetailsLib {
-    function failureDetails(
+    using FailureDetailsHelperLib for bytes4;
+    using FailureDetailsHelperLib for FuzzTestContext;
+
+    function declareFailureDetails()
+        internal
+        pure
+        returns (FailureDetails[] memory failureDetailsArray)
+    {
+        // Set details, including error selector, name, mutation selector, and
+        // an optional function for deriving revert reasons, for each failure.
+        // Create a longer array to avoid potentially cryptic OOR errors.
+        failureDetailsArray = new FailureDetails[](uint256(Failure.length) + 9);
+        uint256 i = 0;
+
+        /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .InvalidSignature
+            .selector
+            .with(
+                "InvalidSignature",
+                FuzzMutations.mutation_invalidSignature.selector
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .InvalidSigner
+            .selector
+            .with(
+                "InvalidSigner_BadSignature",
+                FuzzMutations.mutation_invalidSigner_BadSignature.selector
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .InvalidSigner
+            .selector
+            .with(
+                "InvalidSigner_ModifiedOrder",
+                FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .BadSignatureV
+            .selector
+            .with(
+                "BadSignatureV",
+                FuzzMutations.mutation_badSignatureV.selector,
+                details_BadSignatureV
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InvalidTime
+            .selector
+            .with(
+                "InvalidTime_NotStarted",
+                FuzzMutations.mutation_invalidTime_NotStarted.selector,
+                details_InvalidTime_NotStarted
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InvalidTime
+            .selector
+            .with(
+                "InvalidTime_Expired",
+                FuzzMutations.mutation_invalidTime_Expired.selector,
+                details_InvalidTime_Expired
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .BadFraction
+            .selector
+            .with(
+                "BadFraction_NoFill",
+                FuzzMutations.mutation_badFraction_NoFill.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .BadFraction
+            .selector
+            .with(
+                "BadFraction_Overfill",
+                FuzzMutations.mutation_badFraction_Overfill.selector
+            );
+        ////////////////////////////////////////////////////////////////////////
+
+        if (i != uint256(Failure.length)) {
+            revert("FuzzMutationSelectorLib: incorrect # failures specified");
+        }
+
+        // Set the actual length of the array.
+        assembly {
+            mstore(failureDetailsArray, i)
+        }
+    }
+
+    //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
+    function details_BadSignatureV(
         FuzzTestContext memory /* context */,
+        bytes4 errorSelector
+    ) internal view returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
+    }
+
+    function details_InvalidTime_NotStarted(
+        FuzzTestContext memory /* context */,
+        bytes4 errorSelector
+    ) internal view returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            block.timestamp + 1,
+            block.timestamp + 2
+        );
+    }
+
+    function details_InvalidTime_Expired(
+        FuzzTestContext memory /* context */,
+        bytes4 errorSelector
+    ) internal view returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            block.timestamp - 1,
+            block.timestamp
+        );
+    }
+    ////////////////////////////////////////////////////////////////////////////
+
+    function failureDetails(
+        FuzzTestContext memory context,
         Failure failure
     )
         internal
@@ -106,172 +270,17 @@ library FailureDetailsLib {
             bytes memory expectedRevertReason
         )
     {
-        // TODO: more failures will go here
-        if (failure == Failure.InvalidSignature) {
-            return details_InvalidSignature();
-        }
-
-        if (failure == Failure.InvalidSigner_BadSignature) {
-            return details_InvalidSigner_BadSignature();
-        }
-
-        if (failure == Failure.InvalidSigner_ModifiedOrder) {
-            return details_InvalidSigner_ModifiedOrder();
-        }
-
-        if (failure == Failure.BadSignatureV) {
-            return details_BadSignatureV();
-        }
-
-        if (failure == Failure.InvalidTime_NotStarted) {
-            return details_InvalidTime_NotStarted();
-        }
-
-        if (failure == Failure.InvalidTime_Expired) {
-            return details_InvalidTime_Expired();
-        }
-
-        if (failure == Failure.BadFraction_NoFill) {
-            return details_BadFraction_NoFill();
-        }
-
-        if (failure == Failure.BadFraction_Overfill) {
-            return details_BadFraction_Overfill();
-        }
-
-        revert("FailureDetailsLib: invalid failure");
-    }
-
-    function details_InvalidSignature()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "InvalidSignature";
-        selector = FuzzMutations.mutation_invalidSignature.selector;
-        expectedRevertReason = abi.encodePacked(
-            SignatureVerificationErrors.InvalidSignature.selector
+        FailureDetails memory details = (
+            declareFailureDetails()[uint256(failure)]
         );
-    }
 
-    function details_InvalidSigner_BadSignature()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "InvalidSigner_BadSignature";
-        selector = FuzzMutations.mutation_invalidSigner_BadSignature.selector;
-        expectedRevertReason = abi.encodePacked(
-            SignatureVerificationErrors.InvalidSigner.selector
-        );
-    }
-
-    function details_InvalidSigner_ModifiedOrder()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "InvalidSigner_ModifiedOrder";
-        selector = FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector;
-        expectedRevertReason = abi.encodePacked(
-            SignatureVerificationErrors.InvalidSigner.selector
-        );
-    }
-
-    function details_BadSignatureV()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "BadSignatureV";
-        selector = FuzzMutations.mutation_badSignatureV.selector;
-        expectedRevertReason = abi.encodeWithSelector(
-            SignatureVerificationErrors.BadSignatureV.selector,
-            0xff
-        );
-    }
-
-    function details_InvalidTime_NotStarted()
-        internal
-        view
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "InvalidTime_NotStarted";
-        selector = FuzzMutations.mutation_invalidTime_NotStarted.selector;
-        expectedRevertReason = abi.encodeWithSelector(
-            ConsiderationEventsAndErrors.InvalidTime.selector,
-            block.timestamp + 1,
-            block.timestamp + 2
-        );
-    }
-
-    function details_InvalidTime_Expired()
-        internal
-        view
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "InvalidTime_Expired";
-        selector = FuzzMutations.mutation_invalidTime_Expired.selector;
-        expectedRevertReason = abi.encodeWithSelector(
-            ConsiderationEventsAndErrors.InvalidTime.selector,
-            block.timestamp - 1,
-            block.timestamp
-        );
-    }
-
-    function details_BadFraction_NoFill()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "BadFraction_NoFill";
-        selector = FuzzMutations.mutation_badFraction_NoFill.selector;
-        expectedRevertReason = abi.encodePacked(
-            ConsiderationEventsAndErrors.BadFraction.selector
-        );
-    }
-
-    function details_BadFraction_Overfill()
-        internal
-        pure
-        returns (
-            string memory name,
-            bytes4 selector,
-            bytes memory expectedRevertReason
-        )
-    {
-        name = "BadFraction_Overfill";
-        selector = FuzzMutations.mutation_badFraction_Overfill.selector;
-        expectedRevertReason = abi.encodePacked(
-            ConsiderationEventsAndErrors.BadFraction.selector
+        return (
+            details.name,
+            details.mutationSelector,
+            context.deriveRevertReason(
+                details.errorSelector,
+                details.revertReasonDeriver
+            )
         );
     }
 }

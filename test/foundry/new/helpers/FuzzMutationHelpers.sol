@@ -9,7 +9,11 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
-import { Failure } from "./FuzzMutationSelectorLib.sol";
+import {
+    Failure,
+    FailureDetails,
+    IneligibilityFilter
+} from "./FuzzMutationSelectorLib.sol";
 
 library FailureEligibilityLib {
     Vm private constant vm =
@@ -74,10 +78,85 @@ library FailureEligibilityLib {
 }
 
 library OrderEligibilityLib {
+    using Failarray for Failure;
     using LibPRNG for LibPRNG.PRNG;
     using FailureEligibilityLib for FuzzTestContext;
 
     error NoEligibleOrderFound();
+
+    function with(
+        Failure failure,
+        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return IneligibilityFilter(failure.one(), fn(ineligibilityFilter));
+    }
+
+    function with(
+        Failure[] memory failures,
+        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return IneligibilityFilter(failures, fn(ineligibilityFilter));
+    }
+
+    function ensureFilterSetForEachFailure(
+        IneligibilityFilter[] memory failuresAndFilters
+    ) internal pure {
+        for (uint256 i = 0; i < uint256(Failure.length); ++i) {
+            Failure failure = Failure(i);
+
+            bool foundFailure = false;
+
+            for (uint256 j = 0; j < failuresAndFilters.length; ++j) {
+                Failure[] memory failures = failuresAndFilters[j].failures;
+
+                for (uint256 k = 0; k < failures.length; ++k) {
+                    foundFailure = (failure == failures[k]);
+
+                    if (foundFailure) {
+                        break;
+                    }
+                }
+
+                if (foundFailure) {
+                    break;
+                }
+            }
+
+            if (!foundFailure) {
+                revert(
+                    string.concat(
+                        "OrderEligibilityLib: no filter located for failure #",
+                        _toString(i)
+                    )
+                );
+            }
+        }
+    }
+
+    function setAllIneligibleFailures(
+        FuzzTestContext memory context,
+        IneligibilityFilter[] memory failuresAndFilters
+    ) internal view {
+        for (uint256 i = 0; i < failuresAndFilters.length; ++i) {
+            IneligibilityFilter memory failuresAndFilter = (
+                failuresAndFilters[i]
+            );
+
+            setIneligibleFailures(
+                context,
+                _asIneligibleMutationFilter(
+                    failuresAndFilter.ineligibleMutationFilter
+                ),
+                failuresAndFilter.failures
+            );
+        }
+    }
 
     function setIneligibleFailures(
         FuzzTestContext memory context,
@@ -164,6 +243,137 @@ library OrderEligibilityLib {
         }
 
         return eligibleOrders[prng.next() % eligibleOrders.length];
+    }
+
+    function fn(
+        function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) ineligibleMutationFilter
+    ) internal pure returns (bytes32 ptr) {
+        assembly {
+            ptr := ineligibleMutationFilter
+        }
+    }
+
+    function _asIneligibleMutationFilter(
+        bytes32 ptr
+    )
+        private
+        pure
+        returns (
+            function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+                internal
+                view
+                returns (bool) ineligibleMutationFilter
+        )
+    {
+        assembly {
+            ineligibleMutationFilter := ptr
+        }
+    }
+
+    function _toString(uint256 value) private pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+
+        uint256 tempValue = value;
+        uint256 length;
+
+        while (tempValue != 0) {
+            length++;
+            tempValue /= 10;
+        }
+
+        bytes memory strBytes = new bytes(length);
+        while (value != 0) {
+            strBytes[--length] = bytes1(uint8(48) + uint8(value % 10));
+            value /= 10;
+        }
+
+        return string(strBytes);
+    }
+}
+
+library FailureDetailsHelperLib {
+    function with(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                fn(defaultReason)
+            );
+    }
+
+    function with(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector,
+        function(FuzzTestContext memory, bytes4)
+            internal
+            view
+            returns (bytes memory) revertReasonDeriver
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                fn(revertReasonDeriver)
+            );
+    }
+
+    function fn(
+        function(FuzzTestContext memory, bytes4)
+            internal
+            view
+            returns (bytes memory) revertReasonGenerator
+    ) internal pure returns (bytes32 ptr) {
+        assembly {
+            ptr := revertReasonGenerator
+        }
+    }
+
+    function deriveRevertReason(
+        FuzzTestContext memory context,
+        bytes4 errorSelector,
+        bytes32 revertReasonDeriver
+    ) internal view returns (bytes memory) {
+        return
+            asRevertReasonGenerator(revertReasonDeriver)(
+                context,
+                errorSelector
+            );
+    }
+
+    function asRevertReasonGenerator(
+        bytes32 ptr
+    )
+        private
+        pure
+        returns (
+            function(FuzzTestContext memory, bytes4)
+                internal
+                view
+                returns (bytes memory) revertReasonGenerator
+        )
+    {
+        assembly {
+            revertReasonGenerator := ptr
+        }
+    }
+
+    function defaultReason(
+        FuzzTestContext memory /* context */,
+        bytes4 errorSelector
+    ) internal view returns (bytes memory) {
+        return abi.encodePacked(errorSelector);
     }
 }
 
