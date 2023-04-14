@@ -16,6 +16,8 @@ import {
     MutationContextDerivation
 } from "./FuzzMutationSelectorLib.sol";
 
+import { OfferItem, Execution } from "seaport-sol/SeaportStructs.sol";
+
 library FailureEligibilityLib {
     Vm private constant vm =
         Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
@@ -469,6 +471,55 @@ library FailureDetailsHelperLib {
         bytes4 errorSelector
     ) internal pure returns (bytes memory) {
         return abi.encodePacked(errorSelector);
+    }
+}
+
+library MutationHelpersLib {
+    function isFiltered(
+        FuzzTestContext memory context,
+        OfferItem memory item,
+        address offerer,
+        bytes32 conduitKey
+    ) internal pure returns (bool) {
+        // First look in explicit executions.
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedExplicitExecutions[i];
+            if (
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitExecutions[i];
+            if (
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

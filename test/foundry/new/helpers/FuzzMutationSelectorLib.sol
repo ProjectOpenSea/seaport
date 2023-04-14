@@ -46,6 +46,9 @@ enum Failure {
     CannotCancelOrder, // Caller cannot cancel order
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
+    Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
+    //Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +143,10 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .with(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure.Error_OfferItemMissingApproval.with(
+            MutationFilters.ineligibleForOfferItemMissingApproval
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -349,6 +356,13 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderAlreadyFilled.selector,
                 details_OrderAlreadyFilled
+            );
+
+        failureDetailsArray[i++] = bytes4(0)
+            .with(
+                "Error_OfferItemMissingApproval",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_offerItemMissingApproval.selector
             );
         ////////////////////////////////////////////////////////////////////////
 

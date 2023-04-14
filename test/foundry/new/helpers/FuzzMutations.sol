@@ -6,10 +6,16 @@ import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
+import {
+    OrderEligibilityLib,
+    MutationHelpersLib
+} from "./FuzzMutationHelpers.sol";
 
 import {
     AdvancedOrder,
+    ConsiderationItem,
+    Execution,
+    OfferItem,
     OrderParameters,
     OrderComponents,
     Execution
@@ -23,7 +29,7 @@ import {
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
-import { OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -32,11 +38,58 @@ import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+import { CheckHelpers } from "./FuzzSetup.sol";
+
+interface TestERC20 {
+    function approve(address spender, uint256 amount) external;
+}
+
+interface TestNFT {
+    function setApprovalForAll(address operator, bool approved) external;
+}
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using FuzzDerivers for FuzzTestContext;
+    using MutationHelpersLib for FuzzTestContext;
+
+    //Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
+    //Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
+
+    function ineligibleForOfferItemMissingApproval(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        bool locatedEligibleOfferItem;
+        for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (item.itemType != ItemType.NATIVE) {
+                if (
+                    !context.isFiltered(
+                        item,
+                        order.parameters.offerer,
+                        order.parameters.conduitKey
+                    )
+                ) {
+                    locatedEligibleOfferItem = true;
+                    break;
+                }
+            }
+        }
+
+        if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
 
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
@@ -383,6 +436,43 @@ contract FuzzMutations is Test, FuzzExecutor {
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
+    using CheckHelpers for FuzzTestContext;
+    using MutationHelpersLib for FuzzTestContext;
+
+    function mutation_offerItemMissingApproval(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // TODO: pick a random item (this always picks the first one)
+        OfferItem memory item;
+        for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+            item = order.parameters.offer[i];
+            if (item.itemType != ItemType.NATIVE) {
+                if (
+                    !context.isFiltered(
+                        item,
+                        order.parameters.offerer,
+                        order.parameters.conduitKey
+                    )
+                ) {
+                    break;
+                }
+            }
+        }
+
+        address approveTo = context.getApproveTo(order.parameters);
+        vm.prank(order.parameters.offerer);
+        if (item.itemType == ItemType.ERC20) {
+            TestERC20(item.token).approve(approveTo, 0);
+        } else {
+            TestNFT(item.token).setApprovalForAll(approveTo, false);
+        }
+
+        exec(context);
+    }
 
     function mutation_invalidSignature(
         FuzzTestContext memory context,
