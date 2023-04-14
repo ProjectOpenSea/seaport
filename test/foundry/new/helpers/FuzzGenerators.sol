@@ -76,9 +76,10 @@ import {
     FuzzHelpers,
     Structure
 } from "./FuzzHelpers.sol";
-import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
+
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -2022,9 +2023,10 @@ library OffererGenerator {
             return context.bob.addr;
         } else if (offerer == Offerer.CONTRACT_OFFERER) {
             return address(context.contractOfferer);
+        } else if (offerer == Offerer.EIP1271) {
+            return address(context.eip1271Offerer);
         } else {
-            // TODO: deploy in test helper and reuse
-            return address(new EIP1271Offerer());
+            revert("OffererGenerator: invalid offerer");
         }
     }
 

@@ -39,10 +39,13 @@ enum Failure {
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
+    InvalidConduit, // Order with invalid conduit
     BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
+    CannotCancelOrder, // Caller cannot cancel order
     OrderIsCancelled, // Order is cancelled
+    OrderAlreadyFilled, // Order is already filled
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +103,10 @@ library FuzzMutationSelectorLib {
             .and(Failure.InvalidTime_Expired)
             .with(MutationFilters.ineligibleForInvalidTime);
 
+        failuresAndFilters[i++] = Failure.InvalidConduit.with(
+            MutationFilters.ineligibleForInvalidConduit
+        );
+
         failuresAndFilters[i++] = Failure.BadSignatureV.with(
             MutationFilters.ineligibleForBadSignatureV
         );
@@ -116,8 +123,16 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForBadFraction_noFill
         );
 
+        failuresAndFilters[i++] = Failure.CannotCancelOrder.with(
+            MutationFilters.ineligibleForCannotCancelOrder
+        );
+
         failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
             MutationFilters.ineligibleForOrderIsCancelled
+        );
+
+        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.with(
+            MutationFilters.ineligibleForOrderAlreadyFilled
         );
 
         failuresAndFilters[i++] = Failure
@@ -223,7 +238,9 @@ library FailureDetailsLib {
             .with(
                 "BadContractSignature_BadSignature",
                 MutationContextDerivation.ORDER,
-                FuzzMutations.mutation_badContractSignature_BadSignature.selector
+                FuzzMutations
+                    .mutation_badContractSignature_BadSignature
+                    .selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
@@ -232,7 +249,9 @@ library FailureDetailsLib {
             .with(
                 "BadContractSignature_ModifiedOrder",
                 MutationContextDerivation.ORDER,
-                FuzzMutations.mutation_badContractSignature_ModifiedOrder.selector
+                FuzzMutations
+                    .mutation_badContractSignature_ModifiedOrder
+                    .selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
@@ -241,7 +260,9 @@ library FailureDetailsLib {
             .with(
                 "BadContractSignature_MissingMagic",
                 MutationContextDerivation.ORDER,
-                FuzzMutations.mutation_badContractSignature_MissingMagic.selector
+                FuzzMutations
+                    .mutation_badContractSignature_MissingMagic
+                    .selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
@@ -262,6 +283,16 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_Expired.selector,
                 details_InvalidTime_Expired
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InvalidConduit
+            .selector
+            .with(
+                "InvalidConduit",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_invalidConduit.selector,
+                details_InvalidConduit
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
@@ -292,6 +323,15 @@ library FailureDetailsLib {
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .CannotCancelOrder
+            .selector
+            .with(
+                "CannotCancelOrder",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_cannotCancelOrder.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .OrderIsCancelled
             .selector
             .with(
@@ -299,6 +339,16 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderIsCancelled.selector,
                 details_OrderIsCancelled
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .OrderAlreadyFilled
+            .selector
+            .with(
+                "OrderAlreadyFilled",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_orderAlreadyFilled.selector,
+                details_OrderAlreadyFilled
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -345,6 +395,23 @@ library FailureDetailsLib {
         );
     }
 
+    function details_InvalidConduit(
+        FuzzTestContext memory context,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal view returns (bytes memory expectedRevertReason) {
+        bytes32 conduitKey = keccak256("invalid conduit");
+        (address conduitAddr, ) = context.conduitController.getConduit(
+            conduitKey
+        );
+
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            conduitKey,
+            conduitAddr
+        );
+    }
+
     function details_OrderIsCancelled(
         FuzzTestContext memory context,
         MutationState memory mutationState,
@@ -355,6 +422,18 @@ library FailureDetailsLib {
             context.executionState.orderHashes[mutationState.selectedOrderIndex]
         );
     }
+
+    function details_OrderAlreadyFilled(
+        FuzzTestContext memory context,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            context.executionState.orderHashes[mutationState.selectedOrderIndex]
+        );
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

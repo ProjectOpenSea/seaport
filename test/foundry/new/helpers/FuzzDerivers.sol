@@ -233,21 +233,18 @@ library FuzzDerivers {
         return context;
     }
 
-    /**
-     * @dev Derive the `expectedImplicitExecutions` and
-     *      `expectedExplicitExecutions` arrays from the `orders` array.
-     *
-     * @param context A Fuzz test context.
-     */
-    function withDerivedExecutions(
+    function getDerivedExecutions(
         FuzzTestContext memory context
-    ) internal view returns (FuzzTestContext memory) {
+    )
+        internal
+        view
+        returns (
+            Execution[] memory implicitExecutions,
+            Execution[] memory explicitExecutions
+        )
+    {
         // Get the action.
         bytes4 action = context.action();
-
-        // Set up the expected executions arrays.
-        Execution[] memory implicitExecutions;
-        Execution[] memory explicitExecutions;
 
         if (
             action == context.seaport.fulfillOrder.selector ||
@@ -304,6 +301,21 @@ library FuzzDerivers {
                 revert("FuzzDerivers: no explicit executions derived - match");
             }
         }
+    }
+
+    /**
+     * @dev Derive the `expectedImplicitExecutions` and
+     *      `expectedExplicitExecutions` arrays from the `orders` array.
+     *
+     * @param context A Fuzz test context.
+     */
+    function withDerivedExecutions(
+        FuzzTestContext memory context
+    ) internal view returns (FuzzTestContext memory) {
+        (
+            Execution[] memory implicitExecutions,
+            Execution[] memory explicitExecutions
+        ) = getDerivedExecutions(context);
         context.expectations.expectedImplicitExecutions = implicitExecutions;
         context.expectations.expectedExplicitExecutions = explicitExecutions;
 

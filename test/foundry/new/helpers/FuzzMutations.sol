@@ -11,25 +11,32 @@ import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 import {
     AdvancedOrder,
     OrderParameters,
-    OrderComponents
+    OrderComponents,
+    Execution
 } from "seaport-sol/SeaportStructs.sol";
 
 import {
     AdvancedOrderLib,
-    OrderParametersLib
+    OrderParametersLib,
+    ItemType
 } from "seaport-sol/SeaportSol.sol";
+
+import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
+import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzDerivers for FuzzTestContext;
 
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
@@ -89,7 +96,9 @@ library MutationFilters {
         }
 
         // TODO: this is overly restrictive but gets us to missing magic
-        try EIP1271Offerer(payable(order.parameters.offerer)).is1271() returns (bool ok) {
+        try EIP1271Offerer(payable(order.parameters.offerer)).is1271() returns (
+            bool ok
+        ) {
             if (!ok) {
                 return true;
             }
@@ -170,6 +179,67 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForInvalidConduit(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        if (order.parameters.conduitKey == bytes32(0)) {
+            return true;
+        }
+
+        // Note: We're speculatively applying the mutation here and slightly
+        // breaking the rules. Make sure to undo this mutation.
+        bytes32 oldConduitKey = order.parameters.conduitKey;
+        order.parameters.conduitKey = keccak256("invalid conduit");
+        (
+            Execution[] memory implicitExecutions,
+            Execution[] memory explicitExecutions
+        ) = context.getDerivedExecutions();
+
+        // Look for invalid executions in explicit executions
+        bool locatedInvalidConduitExecution;
+        for (uint256 i; i < explicitExecutions.length; ++i) {
+            if (
+                explicitExecutions[i].conduitKey ==
+                keccak256("invalid conduit") &&
+                explicitExecutions[i].item.itemType != ItemType.NATIVE
+            ) {
+                locatedInvalidConduitExecution = true;
+                break;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        if (!locatedInvalidConduitExecution) {
+            for (uint256 i = 0; i < implicitExecutions.length; ++i) {
+                if (
+                    implicitExecutions[i].conduitKey ==
+                    keccak256("invalid conduit") &&
+                    implicitExecutions[i].item.itemType != ItemType.NATIVE
+                ) {
+                    locatedInvalidConduitExecution = true;
+                    break;
+                }
+            }
+        }
+        order.parameters.conduitKey = oldConduitKey;
+
+        if (!locatedInvalidConduitExecution) {
+            return true;
+        }
+
+        return false;
+    }
+
     function ineligibleForBadFraction(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -218,6 +288,20 @@ library MutationFilters {
         return ineligibleForBadFraction(order, orderIndex, context);
     }
 
+    function ineligibleForCannotCancelOrder(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (action != context.seaport.cancel.selector) {
+            return true;
+        }
+
+        return false;
+    }
+
     function ineligibleForOrderIsCancelled(
         AdvancedOrder memory order,
         uint256 /* orderIndex */,
@@ -233,6 +317,28 @@ library MutationFilters {
         }
 
         if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForOrderAlreadyFilled(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
             return true;
         }
 
@@ -275,6 +381,8 @@ contract FuzzMutations is Test, FuzzExecutor {
     using OrderEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
+    using FuzzDerivers for FuzzTestContext;
+    using FuzzInscribers for AdvancedOrder;
 
     function mutation_invalidSignature(
         FuzzTestContext memory context,
@@ -391,6 +499,46 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidConduit(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Note: We should also adjust approvals for any items approved on the
+        // old conduit, but the error here will be thrown before transfers
+        // begin to occur.
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.parameters.conduitKey = keccak256("invalid conduit");
+        // TODO: Remove this if we can, since this modifies bulk signatures.
+        if (order.parameters.offerer.code.length == 0) {
+            context
+                .advancedOrdersSpace
+                .orders[orderIndex]
+                .signatureMethod = SignatureMethod.EOA;
+            context
+                .advancedOrdersSpace
+                .orders[orderIndex]
+                .eoaSignatureType = EOASignature.STANDARD;
+        }
+        if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+        context = context.withDerivedFulfillments();
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        }
+
+        exec(context);
+    }
+
     function mutation_badFraction_NoFill(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -427,6 +575,32 @@ contract FuzzMutations is Test, FuzzExecutor {
             orderHash,
             true,
             context.seaport
+        );
+
+        exec(context);
+    }
+
+    function mutation_orderAlreadyFilled(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.inscribeOrderStatusNumeratorAndDenominator(1, 1, context.seaport);
+
+        exec(context);
+    }
+
+    function mutation_cannotCancelOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        context.executionState.caller = address(
+            uint160(order.parameters.offerer) - 1
         );
 
         exec(context);
