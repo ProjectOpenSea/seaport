@@ -152,7 +152,6 @@ library FuzzMutationSelectorLib {
         FuzzTestContext memory context
     )
         public
-        view
         returns (
             string memory name,
             bytes4 mutationSelector,
@@ -397,7 +396,7 @@ library FailureDetailsLib {
 
     function details_InvalidConduit(
         FuzzTestContext memory context,
-        MutationState memory mutationState,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         bytes32 conduitKey = keccak256("invalid conduit");
@@ -442,7 +441,6 @@ library FailureDetailsLib {
         IneligibilityFilter[] memory failuresAndFilters
     )
         internal
-        view
         returns (
             string memory name,
             bytes4 mutationSelector,

@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import { Test } from "forge-std/Test.sol";
 
 import { Vm } from "forge-std/Vm.sol";
+import { assume } from "./VmUtils.sol";
 
 import {
     AdvancedOrderLib,
@@ -73,7 +74,7 @@ library FuzzDerivers {
 
     function withDerivedAvailableOrders(
         FuzzTestContext memory context
-    ) internal view returns (FuzzTestContext memory) {
+    ) internal returns (FuzzTestContext memory) {
         // TODO: handle skipped orders due to generateOrder reverts
         bool[] memory expectedAvailableOrders = new bool[](
             context.executionState.orders.length
@@ -124,7 +125,10 @@ library FuzzDerivers {
             }
 
             // TEMP (TODO: handle upstream)
-            vm.assume(!(order.startTime == 0 && order.endTime == 0));
+            assume(
+                !(order.startTime == 0 && order.endTime == 0),
+                "zero_start_end_time"
+            );
 
             bool isAvailable = (block.timestamp < order.endTime && // not expired
                 block.timestamp >= order.startTime && // started
@@ -237,7 +241,6 @@ library FuzzDerivers {
         FuzzTestContext memory context
     )
         internal
-        view
         returns (
             Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions
@@ -277,7 +280,10 @@ library FuzzDerivers {
             ) = getFulfillAvailableExecutions(context);
 
             // TEMP (TODO: handle upstream)
-            vm.assume(explicitExecutions.length > 0);
+            assume(
+                explicitExecutions.length > 0,
+                "no_explicit_executions_fulfillAvailable"
+            );
 
             if (explicitExecutions.length == 0) {
                 revert(
@@ -295,7 +301,10 @@ library FuzzDerivers {
             );
 
             // TEMP (TODO: handle upstream)
-            vm.assume(explicitExecutions.length > 0);
+            assume(
+                explicitExecutions.length > 0,
+                "no_explicit_executions_match"
+            );
 
             if (explicitExecutions.length == 0) {
                 revert("FuzzDerivers: no explicit executions derived - match");
@@ -311,7 +320,7 @@ library FuzzDerivers {
      */
     function withDerivedExecutions(
         FuzzTestContext memory context
-    ) internal view returns (FuzzTestContext memory) {
+    ) internal returns (FuzzTestContext memory) {
         (
             Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions

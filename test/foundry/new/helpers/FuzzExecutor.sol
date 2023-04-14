@@ -31,6 +31,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
+import { logCall } from "./Metrics.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 
 abstract contract FuzzExecutor is Test {
@@ -234,12 +235,5 @@ abstract contract FuzzExecutor is Test {
 
     function exec(FuzzTestContext memory context) public {
         exec(context, false);
-    }
-
-    function logCall(string memory callName, bool enabled) internal {
-        if (enabled && vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
-            string memory metric = string.concat(callName, ":1|c");
-            vm.writeLine("call-metrics.txt", metric);
-        }
     }
 }
