@@ -234,6 +234,15 @@ library FailureDetailsLib {
             .BadFraction
             .selector
             .with(
+                "BadFraction_PartialContractOrder",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_badFraction_partialContractOrder.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .BadFraction
+            .selector
+            .with(
                 "BadFraction_NoFill",
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_NoFill.selector
