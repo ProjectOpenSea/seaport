@@ -33,9 +33,9 @@ enum Failure {
     InvalidSigner_BadSignature, // EOA signature has been tampered with
     InvalidSigner_ModifiedOrder, // Order with no-code offerer has been tampered with
     BadSignatureV, // EOA signature has bad v value
-    // BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
-    // BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
-    // BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
+    BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
+    BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
+    BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
@@ -66,6 +66,7 @@ struct FailureDetails {
 
 library FuzzMutationSelectorLib {
     using Failarray for Failure;
+    using Failarray for Failure[];
     using FuzzEngineLib for FuzzTestContext;
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
@@ -114,6 +115,12 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
             MutationFilters.ineligibleForOrderIsCancelled
         );
+
+        failuresAndFilters[i++] = Failure
+            .BadContractSignature_BadSignature
+            .and(Failure.BadContractSignature_ModifiedOrder)
+            .and(Failure.BadContractSignature_MissingMagic)
+            .with(MutationFilters.ineligibleForBadContractSignature);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -204,6 +211,33 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badSignatureV.selector,
                 details_BadSignatureV
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .BadContractSignature
+            .selector
+            .with(
+                "BadContractSignature_BadSignature",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_badContractSignature_BadSignature.selector
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .BadContractSignature
+            .selector
+            .with(
+                "BadContractSignature_ModifiedOrder",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_badContractSignature_ModifiedOrder.selector
+            );
+
+        failureDetailsArray[i++] = SignatureVerificationErrors
+            .BadContractSignature
+            .selector
+            .with(
+                "BadContractSignature_MissingMagic",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_badContractSignature_MissingMagic.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors

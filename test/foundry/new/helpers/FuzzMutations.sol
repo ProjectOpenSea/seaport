@@ -25,11 +25,13 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
 
-    function ineligibleForEOASignature(
+    function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
@@ -46,15 +48,52 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.offerer.code.length != 0) {
-            return true;
-        }
-
         (bool isValidated, , , ) = context.seaport.getOrderStatus(
             context.executionState.orderHashes[orderIndex]
         );
 
         if (isValidated) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForEOASignature(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
+            return true;
+        }
+
+        if (order.parameters.offerer.code.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForBadContractSignature(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
+            return true;
+        }
+
+        if (order.parameters.offerer.code.length == 0) {
+            return true;
+        }
+
+        // TODO: this is overly restrictive but gets us to missing magic
+        try EIP1271Offerer(payable(order.parameters.offerer)).is1271() returns (bool ok) {
+            if (!ok) {
+                return true;
+            }
+        } catch {
             return true;
         }
 
@@ -116,7 +155,7 @@ library MutationFilters {
 
     function ineligibleForInvalidTime(
         AdvancedOrder memory /* order */,
-        uint256 orderIndex,
+        uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -181,7 +220,7 @@ library MutationFilters {
 
     function ineligibleForOrderIsCancelled(
         AdvancedOrder memory order,
-        uint256 orderIndex,
+        uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -252,6 +291,46 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.signature[64] = 0xff;
+
+        exec(context);
+    }
+
+    function mutation_badContractSignature_BadSignature(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        if (order.signature.length == 0) {
+            order.signature = new bytes(1);
+        }
+
+        order.signature[0] ^= 0x01;
+
+        exec(context);
+    }
+
+    function mutation_badContractSignature_ModifiedOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.parameters.salt ^= 0x01;
+
+        exec(context);
+    }
+
+    function mutation_badContractSignature_MissingMagic(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        EIP1271Offerer(payable(order.parameters.offerer)).returnEmpty();
 
         exec(context);
     }
