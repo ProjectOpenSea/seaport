@@ -3,8 +3,7 @@ pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 
-import { Vm } from "forge-std/Vm.sol";
-import { assume } from "./VmUtils.sol";
+import { vm, assume } from "./VmUtils.sol";
 
 import {
     AdvancedOrderLib,
@@ -53,9 +52,6 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
  *       `FuzzTestContext`.
  */
 library FuzzDerivers {
-    Vm private constant vm =
-        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
-
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];

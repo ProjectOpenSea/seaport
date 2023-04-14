@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Vm } from "forge-std/Vm.sol";
+import { vm } from "../VmUtils.sol";
 
 import { SpentItem, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
-
-Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
 struct ERC20TransferEvent {
     string kind;

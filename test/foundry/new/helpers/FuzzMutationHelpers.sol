@@ -7,7 +7,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { Vm } from "forge-std/Vm.sol";
+import { vm } from "./VmUtils.sol";
 
 import {
     Failure,
@@ -19,9 +19,6 @@ import {
 import { assume } from "./VmUtils.sol";
 
 library FailureEligibilityLib {
-    Vm private constant vm =
-        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
-
     using LibPRNG for LibPRNG.PRNG;
 
     function ensureFilterSetForEachFailure(

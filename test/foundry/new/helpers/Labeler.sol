@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Vm } from "forge-std/Vm.sol";
+import { vm } from "./VmUtils.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
-
-address constant VM_ADDRESS = address(
-    uint160(uint256(keccak256("hevm cheat code")))
-);
-Vm constant vm = Vm(VM_ADDRESS);
 
 address constant LABELER_ADDRESS = address(
     uint160(uint256(keccak256(".labeler")))
