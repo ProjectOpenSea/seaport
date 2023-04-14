@@ -247,8 +247,12 @@ library TestStateGenerator {
             OfferItemSpace[] memory offer = new OfferItemSpace[](len);
             for (uint256 i; i < len; ++i) {
                 offer[i] = OfferItemSpace({
-                    itemType: ItemType(context.randEnum(0, 5)),
-                    tokenIndex: TokenIndex(context.randEnum(0, 1)),
+                    itemType: ItemType(
+                        context.randRange(0, 10) != 0
+                            ? context.randEnum(0, 3)
+                            : context.randEnum(4, 5)
+                    ),
+                    tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
                     amount: Amount(context.randEnum(0, 2))
                 });
@@ -294,7 +298,11 @@ library TestStateGenerator {
         if (!isBasic) {
             for (uint256 i; i < len; ++i) {
                 consideration[i] = ConsiderationItemSpace({
-                    itemType: ItemType(context.randEnum(0, 5)),
+                    itemType: ItemType(
+                        context.randRange(0, 10) != 0
+                            ? context.randEnum(0, 3)
+                            : context.randEnum(4, 5)
+                    ),
                     tokenIndex: TokenIndex(context.randEnum(0, 2)),
                     criteria: Criteria(context.randEnum(0, 1)),
                     amount: atLeastOne
