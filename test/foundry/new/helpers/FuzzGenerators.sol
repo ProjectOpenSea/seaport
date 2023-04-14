@@ -1698,7 +1698,7 @@ library SignatureGenerator {
         bytes32 s,
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal {
+    ) internal pure {
         address recovered = ecrecover(digest, v, r, s);
         if (recovered != offerer.generate(context) || recovered == address(0)) {
             revert("SignatureGenerator: Invalid signature");
@@ -2022,7 +2022,7 @@ library OffererGenerator {
     function generate(
         Offerer offerer,
         FuzzGeneratorContext memory context
-    ) internal returns (address) {
+    ) internal pure returns (address) {
         if (offerer == Offerer.TEST_CONTRACT) {
             return context.self;
         } else if (offerer == Offerer.ALICE) {

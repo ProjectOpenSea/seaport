@@ -183,7 +183,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
@@ -289,7 +289,7 @@ library MutationFilters {
     }
 
     function ineligibleForCannotCancelOrder(
-        AdvancedOrder memory order,
+        AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
@@ -324,7 +324,7 @@ library MutationFilters {
     }
 
     function ineligibleForOrderAlreadyFilled(
-        AdvancedOrder memory order,
+        AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
@@ -373,6 +373,8 @@ library MutationFilters {
         if (order.numerator == 1 && order.denominator == 1) {
             return true;
         }
+
+        return false;
     }
 }
 
