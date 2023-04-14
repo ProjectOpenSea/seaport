@@ -39,7 +39,7 @@ enum Failure {
     // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
-    // BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
+    BadFraction_PartialContractOrder, // Contract order w/ numerator & denominator != 1
     BadFraction_NoFill, // Order where numerator = 0
     BadFraction_Overfill, // Order where numerator > denominator
     OrderIsCancelled, // Order is cancelled
@@ -102,6 +102,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.BadSignatureV.with(
             MutationFilters.ineligibleForBadSignatureV
+        );
+
+        failuresAndFilters[i++] = Failure.BadFraction_PartialContractOrder.with(
+            MutationFilters.ineligibleForBadFractionPartialContractOrder
         );
 
         failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
@@ -264,6 +268,15 @@ library FailureDetailsLib {
             .BadFraction
             .selector
             .with(
+                "BadFraction_PartialContractOrder",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_badFraction_partialContractOrder.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .BadFraction
+            .selector
+            .with(
                 "BadFraction_NoFill",
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_NoFill.selector
@@ -342,7 +355,6 @@ library FailureDetailsLib {
             context.executionState.orderHashes[mutationState.selectedOrderIndex]
         );
     }
-
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

@@ -238,6 +238,36 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForBadFractionPartialContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (order.parameters.orderType != OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ||
+            action == context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.numerator == 1 && order.denominator == 1) {
+            return true;
+        }
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -398,6 +428,21 @@ contract FuzzMutations is Test, FuzzExecutor {
             true,
             context.seaport
         );
+
+        exec(context);
+    }
+
+    function mutation_badFraction_partialContractOrder(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(
+            MutationFilters.ineligibleForBadFractionPartialContractOrder
+        );
+
+        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+
+        order.numerator = 6;
+        order.denominator = 9;
 
         exec(context);
     }
