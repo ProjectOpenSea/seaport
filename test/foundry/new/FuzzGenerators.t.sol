@@ -44,6 +44,8 @@ import {
 
 import { TestHelpers } from "./helpers/FuzzTestContextLib.sol";
 
+import { EIP1271Offerer } from "../new/helpers/EIP1271Offerer.sol";
+
 import {
     HashValidationZoneOfferer
 } from "../../../contracts/test/HashValidationZoneOfferer.sol";
@@ -77,6 +79,7 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 conduitController: getConduitController(),
                 validatorZone: new HashValidationZoneOfferer(address(0)),
                 contractOfferer: new HashCalldataContractOfferer(address(0)),
+                eip1271Offerer: new EIP1271Offerer(),
                 erc20s: erc20s,
                 erc721s: erc721s,
                 erc1155s: erc1155s,

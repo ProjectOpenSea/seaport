@@ -20,6 +20,8 @@ import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+
 import {
     ConduitControllerInterface
 } from "seaport-sol/ConduitControllerInterface.sol";
@@ -48,6 +50,8 @@ import {
     HashValidationZoneOfferer
 } from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
+import { setLabel } from "./Labeler.sol";
+
 struct TestConduit {
     address addr;
     bytes32 key;
@@ -62,6 +66,7 @@ struct FuzzGeneratorContext {
     ConduitControllerInterface conduitController;
     HashValidationZoneOfferer validatorZone;
     HashCalldataContractOfferer contractOfferer;
+    EIP1271Offerer eip1271Offerer;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
@@ -112,6 +117,7 @@ library FuzzGeneratorContextLib {
                 timestamp: block.timestamp,
                 validatorZone: new HashValidationZoneOfferer(address(0)),
                 contractOfferer: new HashCalldataContractOfferer(address(0)),
+                eip1271Offerer: new EIP1271Offerer(),
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
                 alice: testHelpers.makeAccount("alice"),
@@ -166,6 +172,18 @@ library FuzzGeneratorContextLib {
         conduits[0] = _createConduit(conduitController, seaport, uint96(1));
         conduits[1] = _createConduit(conduitController, seaport, uint96(2));
 
+        HashValidationZoneOfferer validatorZone = new HashValidationZoneOfferer(
+            address(0)
+        );
+        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
+                address(seaport)
+            );
+        EIP1271Offerer eip1271Offerer = new EIP1271Offerer();
+
+        setLabel(address(validatorZone), "validatorZone");
+        setLabel(address(contractOfferer), "contractOfferer");
+        setLabel(address(eip1271Offerer), "eip1271Offerer");
+
         return
             FuzzGeneratorContext({
                 vm: vm,
@@ -177,10 +195,9 @@ library FuzzGeneratorContextLib {
                 prng: prng,
                 testHelpers: testHelpers,
                 timestamp: block.timestamp,
-                validatorZone: new HashValidationZoneOfferer(address(0)),
-                contractOfferer: new HashCalldataContractOfferer(
-                    address(seaport)
-                ),
+                validatorZone: validatorZone,
+                contractOfferer: contractOfferer,
+                eip1271Offerer: eip1271Offerer,
                 self: address(this),
                 caller: address(this), // TODO: read recipient from FuzzTestContext
                 alice: testHelpers.makeAccount("alice"),
