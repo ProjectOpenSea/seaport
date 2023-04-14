@@ -81,6 +81,15 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
+    ContractOrder_generateReverts, // Offerer generateOrder reverts
+    ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
+    ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
+    ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
+    ContractOfferer_ExcessMaximumSpent, // too many maximum spent items
+    ContractOfferer_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
+    ContractOfferer_InvalidMagicValue, // Offerer did not return correct magic value
+    Zone_reverts, // Zone validateOrder call reverts
+    Zone_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -767,7 +776,10 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
-                item = context.expectations.expectedImplicitPostExecutions[i].item;
+                item = context
+                    .expectations
+                    .expectedImplicitPostExecutions[i]
+                    .item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;

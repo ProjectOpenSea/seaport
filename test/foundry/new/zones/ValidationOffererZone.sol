@@ -20,6 +20,22 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
 
     uint256 expectedMaxSpentAmount;
+    FailureReason failureReason;
+    SpentItem[] returnedOffer;
+    ReceivedItem[] returnedConsideration;
+
+    enum FailureReason {
+        None,
+        ContractOfferer_generateReverts, // Offerer generateOrder reverts
+        ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
+        ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
+        ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
+        ContractOfferer_ExcessMaximumSpent, // too many maximum spent items
+        ContractOfferer_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
+        ContractOfferer_InvalidMagicValue, // Offerer did not return correct magic value
+        Zone_reverts, // Zone validateOrder call reverts
+        Zone_InvalidMagicValue // Zone validateOrder call returns invalid magic value
+    }
 
     constructor(uint256 expectedMax) {
         expectedMaxSpentAmount = expectedMax;
@@ -39,6 +55,11 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         ZoneParameters calldata zoneParameters
     ) external view override returns (bytes4 validOrderMagicValue) {
         validate(zoneParameters.fulfiller, zoneParameters.offer);
+        if (failureReason == FailureReason.Zone_reverts) {
+            revert("Zone reverts");
+        } else if (failureReason == FailureReason.Zone_InvalidMagicValue) {
+            return bytes4(0x12345678);
+        }
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
@@ -58,7 +79,53 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        return previewOrder(address(this), address(this), a, b, c);
+        (offer, consideration) = previewOrder(
+            address(this),
+            address(this),
+            a,
+            b,
+            c
+        );
+        FailureReason reason = failureReason;
+        if (reason == FailureReason.ContractOfferer_generateReverts) {
+            revert("generateOrder reverts");
+        } else if (
+            reason == FailureReason.ContractOfferer_InsufficientMinimumReceived
+        ) {
+            require(
+                offer.length > 0,
+                "Insufficient minimum received items to truncate for failure case"
+            );
+            assembly {
+                // truncate offer length by 1
+                mstore(offer, sub(mload(offer), 1))
+            }
+            return (offer, consideration);
+        } else if (
+            reason == FailureReason.ContractOfferer_IncorrectMinimumReceived
+        ) {
+            return (returnedOffer, consideration);
+        } else if (reason == FailureReason.ContractOfferer_ExcessMaximumSpent) {
+            ReceivedItem[] memory newConsideration = new ReceivedItem[](
+                consideration.length + 1
+            );
+            for (uint256 i = 0; i < consideration.length; i++) {
+                newConsideration[i] = consideration[i];
+            }
+            newConsideration[consideration.length] = ReceivedItem({
+                token: address(0),
+                amount: 1,
+                itemType: ItemType.ERC20,
+                identifier: 0,
+                recipient: payable(address(this))
+            });
+            return (offer, newConsideration);
+        } else if (
+            reason == FailureReason.ContractOfferer_IncorrectMaximumSpent
+        ) {
+            return (offer, returnedConsideration);
+        }
+        return (offer, consideration);
     }
 
     /**
@@ -114,6 +181,13 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         uint256 /* contractNonce */
     ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
         validate(address(0), spentItems);
+        if (failureReason == FailureReason.ContractOfferer_ratifyReverts) {
+            revert("ContractOfferer ratifyOrder reverts");
+        } else if (
+            failureReason == FailureReason.ContractOfferer_InvalidMagicValue
+        ) {
+            return bytes4(0x12345678);
+        }
         return ValidationOffererZone.ratifyOrder.selector;
     }
 
@@ -141,5 +215,19 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         schemas = new Schema[](1);
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);
+    }
+
+    function setReturnedOffer(SpentItem[] calldata offer) external {
+        returnedOffer = offer;
+    }
+
+    function setReturnedConsideration(
+        ReceivedItem[] calldata consideration
+    ) external {
+        returnedConsideration = consideration;
+    }
+
+    function setFailureReason(FailureReason reason) external {
+        failureReason = reason;
     }
 }
