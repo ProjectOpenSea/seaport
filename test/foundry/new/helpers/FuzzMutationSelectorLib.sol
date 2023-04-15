@@ -189,6 +189,9 @@ library FailureDetailsLib {
     using MutationContextDeriverLib for FuzzTestContext;
     using FailureEligibilityLib for IneligibilityFilter[];
 
+    bytes4 constant PANIC = bytes4(0x4e487b71);
+    bytes4 constant ERROR_STRING = bytes4(0x08c379a0);
+
     function declareFailureDetails()
         internal
         pure
@@ -357,12 +360,12 @@ library FailureDetailsLib {
                 details_OrderAlreadyFilled
             );
 
-        failureDetailsArray[i++] = bytes4(0)
-            .with(
-                "Error_OfferItemMissingApproval",
-                MutationContextDerivation.ORDER,
-                FuzzMutations.mutation_offerItemMissingApproval.selector
-            );
+        failureDetailsArray[i++] = ERROR_STRING.with(
+            "Error_OfferItemMissingApproval",
+            MutationContextDerivation.ORDER,
+            FuzzMutations.mutation_offerItemMissingApproval.selector,
+            errorString("NOT_AUTHORIZED")
+        );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -376,6 +379,25 @@ library FailureDetailsLib {
     }
 
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
+    function details_NotAuthorized(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            "NOT_AUTHORIZED"
+        );
+    }
+
+    function details_PanicUnderflow(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, 0x11);
+    }
+
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
         MutationState memory /* mutationState */,
@@ -447,6 +469,27 @@ library FailureDetailsLib {
         );
     }
 
+    function errorString(
+        string memory errorMessage
+    )
+        internal
+        pure
+        returns (
+            function(FuzzTestContext memory, MutationState memory, bytes4)
+                internal
+                pure
+                returns (bytes memory)
+        )
+    {
+        if (
+            keccak256(abi.encodePacked(errorMessage)) ==
+            keccak256(abi.encodePacked("NOT_AUTHORIZED"))
+        ) {
+            return details_NotAuthorized;
+        }
+
+        revert("FailureDetailsLib: unsupported error string");
+    }
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

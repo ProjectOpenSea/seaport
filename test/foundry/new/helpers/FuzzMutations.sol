@@ -62,7 +62,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }

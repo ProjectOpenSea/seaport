@@ -55,10 +55,6 @@ interface TestERC20 {
 interface TestERC721 {
     function mint(address to, uint256 tokenId) external;
 
-    function approve(address to, uint256 tokenId) external;
-
-    function getApproved(uint256 tokenId) external view returns (address);
-
     function setApprovalForAll(address operator, bool approved) external;
 }
 
@@ -332,7 +328,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 if (item.itemType == ItemType.ERC721) {
                     TestERC721(item.token).mint(offerer, item.identifier);
                     vm.prank(offerer);
-                    TestERC721(item.token).approve(approveTo, item.identifier);
+                    TestERC721(item.token).setApprovalForAll(approveTo, true);
                 }
 
                 if (item.itemType == ItemType.ERC1155) {
