@@ -11,7 +11,9 @@ import {
     FailureEligibilityLib,
     OrderEligibilityLib,
     Failarray,
+    FailureDetails,
     FailureDetailsHelperLib,
+    IneligibilityFilter,
     MutationContextDeriverLib
 } from "./FuzzMutationHelpers.sol";
 
@@ -51,26 +53,8 @@ enum Failure {
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
+
 ////////////////////////////////////////////////////////////////////////////////
-
-enum MutationContextDerivation {
-    GENERIC, // No specific selection
-    ORDER // Selecting an order
-}
-
-struct IneligibilityFilter {
-    Failure[] failures;
-    MutationContextDerivation derivationMethod;
-    bytes32 ineligibleMutationFilter; // stores a function pointer
-}
-
-struct FailureDetails {
-    string name;
-    bytes4 mutationSelector;
-    bytes4 errorSelector;
-    MutationContextDerivation derivationMethod;
-    bytes32 revertReasonDeriver; // stores a function pointer
-}
 
 library FuzzMutationSelectorLib {
     using Failarray for Failure;
@@ -94,64 +78,51 @@ library FuzzMutationSelectorLib {
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
-        failuresAndFilters[i++] = Failure.InvalidSignature.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.InvalidSignature.withOrder(
             MutationFilters.ineligibleForInvalidSignature
         );
 
         failuresAndFilters[i++] = Failure
             .InvalidSigner_BadSignature
             .and(Failure.InvalidSigner_ModifiedOrder)
-            .with(
-                MutationContextDerivation.ORDER,
-                MutationFilters.ineligibleForInvalidSigner
-            );
+            .withOrder(MutationFilters.ineligibleForInvalidSigner);
 
         failuresAndFilters[i++] = Failure
             .InvalidTime_NotStarted
             .and(Failure.InvalidTime_Expired)
-            .with(
-                MutationContextDerivation.ORDER,
-                MutationFilters.ineligibleForInvalidTime
-            );
+            .withOrder(MutationFilters.ineligibleForInvalidTime);
 
-        failuresAndFilters[i++] = Failure.InvalidConduit.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.InvalidConduit.withOrder(
             MutationFilters.ineligibleForInvalidConduit
         );
 
-        failuresAndFilters[i++] = Failure.BadSignatureV.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.BadSignatureV.withOrder(
             MutationFilters.ineligibleForBadSignatureV
         );
 
-        failuresAndFilters[i++] = Failure.BadFraction_PartialContractOrder.with(
-            MutationContextDerivation.ORDER,
-            MutationFilters.ineligibleForBadFractionPartialContractOrder
-        );
+        failuresAndFilters[i++] = Failure
+            .BadFraction_PartialContractOrder
+            .withOrder(
+                MutationFilters.ineligibleForBadFractionPartialContractOrder
+            );
 
-        failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill.withOrder(
             MutationFilters.ineligibleForBadFraction
         );
 
-        failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill.withOrder(
             MutationFilters.ineligibleForBadFraction_noFill
         );
 
-        failuresAndFilters[i++] = Failure.CannotCancelOrder.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.CannotCancelOrder.withOrder(
             MutationFilters.ineligibleForCannotCancelOrder
         );
 
-        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.withOrder(
             MutationFilters.ineligibleForOrderIsCancelled
         );
 
-        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.withOrder(
             MutationFilters.ineligibleForOrderAlreadyFilled
         );
 
@@ -159,25 +130,19 @@ library FuzzMutationSelectorLib {
             .BadContractSignature_BadSignature
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
-            .with(
-                MutationContextDerivation.ORDER,
-                MutationFilters.ineligibleForBadContractSignature
-            );
+            .withOrder(MutationFilters.ineligibleForBadContractSignature);
 
-        failuresAndFilters[i++] = Failure.Error_OfferItemMissingApproval.with(
-            MutationContextDerivation.ORDER,
-            MutationFilters.ineligibleForOfferItemMissingApproval
-        );
+        failuresAndFilters[i++] = Failure
+            .Error_OfferItemMissingApproval
+            .withOrder(MutationFilters.ineligibleForOfferItemMissingApproval);
 
-        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.with(
-            MutationContextDerivation.ORDER,
+        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.withOrder(
             MutationFilters.ineligibleForCallerMissingApproval
         );
 
-        failuresAndFilters[i++] = Failure.InsufficientNativeTokensSupplied.with(
-            MutationContextDerivation.GENERIC,
-            MutationFilters.ineligibleForInsufficientNativeTokens
-        );
+        failuresAndFilters[i++] = Failure
+            .InsufficientNativeTokensSupplied
+            .withGeneric(MutationFilters.ineligibleForInsufficientNativeTokens);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -238,36 +203,32 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSignature
             .selector
-            .with(
+            .withOrder(
                 "InvalidSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSignature.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSigner
             .selector
-            .with(
+            .withOrder(
                 "InvalidSigner_BadSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_BadSignature.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSigner
             .selector
-            .with(
+            .withOrder(
                 "InvalidSigner_ModifiedOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadSignatureV
             .selector
-            .with(
+            .withOrder(
                 "BadSignatureV",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badSignatureV.selector,
                 details_BadSignatureV
             );
@@ -275,9 +236,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_BadSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_BadSignature
                     .selector
@@ -286,9 +246,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_ModifiedOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_ModifiedOrder
                     .selector
@@ -297,9 +256,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_MissingMagic",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_MissingMagic
                     .selector
@@ -308,9 +266,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidTime
             .selector
-            .with(
+            .withOrder(
                 "InvalidTime_NotStarted",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_NotStarted.selector,
                 details_InvalidTime_NotStarted
             );
@@ -318,9 +275,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidTime
             .selector
-            .with(
+            .withOrder(
                 "InvalidTime_Expired",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_Expired.selector,
                 details_InvalidTime_Expired
             );
@@ -328,9 +284,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidConduit
             .selector
-            .with(
+            .withOrder(
                 "InvalidConduit",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidConduit.selector,
                 details_InvalidConduit
             );
@@ -338,45 +293,40 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_PartialContractOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_partialContractOrder.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_NoFill",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_NoFill.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_Overfill",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_Overfill.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .CannotCancelOrder
             .selector
-            .with(
+            .withOrder(
                 "CannotCancelOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_cannotCancelOrder.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .OrderIsCancelled
             .selector
-            .with(
+            .withOrder(
                 "OrderIsCancelled",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderIsCancelled.selector,
                 details_OrderIsCancelled
             );
@@ -384,23 +334,20 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .OrderAlreadyFilled
             .selector
-            .with(
+            .withOrder(
                 "OrderAlreadyFilled",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderAlreadyFilled.selector,
                 details_OrderAlreadyFilled
             );
 
-        failureDetailsArray[i++] = ERROR_STRING.with(
+        failureDetailsArray[i++] = ERROR_STRING.withOrder(
             "Error_OfferItemMissingApproval",
-            MutationContextDerivation.ORDER,
             FuzzMutations.mutation_offerItemMissingApproval.selector,
             errorString("NOT_AUTHORIZED")
         );
 
-        failureDetailsArray[i++] = ERROR_STRING.with(
+        failureDetailsArray[i++] = ERROR_STRING.withOrder(
             "Error_CallerMissingApproval",
-            MutationContextDerivation.ORDER,
             FuzzMutations.mutation_callerMissingApproval.selector,
             errorString("NOT_AUTHORIZED")
         );
@@ -408,9 +355,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InsufficientNativeTokensSupplied
             .selector
-            .with(
+            .withGeneric(
                 "InsufficientNativeTokensSupplied",
-                MutationContextDerivation.GENERIC,
                 FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
             );
         ////////////////////////////////////////////////////////////////////////
@@ -537,6 +483,7 @@ library FailureDetailsLib {
 
         revert("FailureDetailsLib: unsupported error string");
     }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

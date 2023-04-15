@@ -212,7 +212,12 @@ library OrderEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failure.one(), MutationContextDerivation.ORDER, fn(ineligibilityFilter));
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.ORDER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withOrder(
@@ -221,7 +226,12 @@ library OrderEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failures, MutationContextDerivation.ORDER, fn(ineligibilityFilter));
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.ORDER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withGeneric(
@@ -230,7 +240,12 @@ library OrderEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failure.one(), MutationContextDerivation.GENERIC, fn(ineligibilityFilter));
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.GENERIC,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withGeneric(
@@ -239,7 +254,12 @@ library OrderEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failures, MutationContextDerivation.GENERIC, fn(ineligibilityFilter));
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.GENERIC,
+                fn(ineligibilityFilter)
+            );
     }
 
     function setAllIneligibleFailures(
@@ -251,7 +271,10 @@ library OrderEligibilityLib {
                 failuresAndFilters[i]
             );
 
-            if (failuresAndFilter.derivationMethod == MutationContextDerivation.GENERIC) {
+            if (
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.GENERIC
+            ) {
                 setIneligibleFailures(
                     context,
                     asIneligibleGenericMutationFilter(
@@ -259,7 +282,10 @@ library OrderEligibilityLib {
                     ),
                     failuresAndFilter.failures
                 );
-            } else if (failuresAndFilter.derivationMethod == MutationContextDerivation.ORDER) {
+            } else if (
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.ORDER
+            ) {
                 setIneligibleFailures(
                     context,
                     asIneligibleOrderBasedMutationFilter(
@@ -268,7 +294,9 @@ library OrderEligibilityLib {
                     failuresAndFilter.failures
                 );
             } else {
-                revert("OrderEligibilityLib: unknown derivation method when setting failures");
+                revert(
+                    "OrderEligibilityLib: unknown derivation method when setting failures"
+                );
             }
         }
     }

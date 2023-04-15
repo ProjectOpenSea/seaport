@@ -67,7 +67,7 @@ library MutationFilters {
         for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
             OfferItem memory item = order.parameters.offer[i];
             if (
-                !context.isFiltered(
+                !context.isFilteredOrNative(
                     item,
                     order.parameters.offerer,
                     order.parameters.conduitKey
@@ -119,7 +119,7 @@ library MutationFilters {
         bool locatedEligibleOfferItem;
         for (uint256 i = 0; i < eligibleItemTotal; ++i) {
             ConsiderationItem memory item = order.parameters.consideration[i];
-            if (!context.isFiltered(item)) {
+            if (!context.isFilteredOrNative(item)) {
                 locatedEligibleOfferItem = true;
                 break;
             }
@@ -506,7 +506,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
             item = order.parameters.offer[i];
             if (
-                !context.isFiltered(
+                !context.isFilteredOrNative(
                     item,
                     order.parameters.offerer,
                     order.parameters.conduitKey
@@ -538,7 +538,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         ConsiderationItem memory item;
         for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
             item = order.parameters.consideration[i];
-            if (!context.isFiltered(item)) {
+            if (!context.isFilteredOrNative(item)) {
                 break;
             }
         }
