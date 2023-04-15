@@ -7,7 +7,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { Vm } from "forge-std/Vm.sol";
+import { vm } from "./VmUtils.sol";
 
 import {
     Failure,
@@ -18,10 +18,9 @@ import {
 
 import { OfferItem, Execution } from "seaport-sol/SeaportStructs.sol";
 
-library FailureEligibilityLib {
-    Vm private constant vm =
-        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+import { assume } from "./VmUtils.sol";
 
+library FailureEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
 
     function ensureFilterSetForEachFailure(
@@ -141,14 +140,14 @@ library FailureEligibilityLib {
 
     function selectEligibleFailure(
         FuzzTestContext memory context
-    ) internal pure returns (Failure eligibleFailure) {
+    ) internal returns (Failure eligibleFailure) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
 
         // TODO: remove this vm.assume as soon as at least one case is found
         // for any permutation of orders.
-        vm.assume(eligibleFailures.length > 0);
+        assume(eligibleFailures.length > 0, "no_eligible_failures");
 
         if (eligibleFailures.length == 0) {
             revert("FailureEligibilityLib: no eligible failure found");
@@ -191,7 +190,6 @@ library OrderEligibilityLib {
         Failure failure,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
         return IneligibilityFilter(failure.one(), fn(ineligibilityFilter));
@@ -201,7 +199,6 @@ library OrderEligibilityLib {
         Failure[] memory failures,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
         return IneligibilityFilter(failures, fn(ineligibilityFilter));
@@ -210,7 +207,7 @@ library OrderEligibilityLib {
     function setAllIneligibleFailures(
         FuzzTestContext memory context,
         IneligibilityFilter[] memory failuresAndFilters
-    ) internal view {
+    ) internal {
         for (uint256 i = 0; i < failuresAndFilters.length; ++i) {
             IneligibilityFilter memory failuresAndFilter = (
                 failuresAndFilters[i]
@@ -230,10 +227,9 @@ library OrderEligibilityLib {
         FuzzTestContext memory context,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) ineligibleMutationFilter,
         Failure[] memory ineligibleFailures
-    ) internal view {
+    ) internal {
         if (hasNoEligibleOrders(context, ineligibleMutationFilter)) {
             context.setIneligibleFailures(ineligibleFailures);
         }
@@ -243,9 +239,8 @@ library OrderEligibilityLib {
         FuzzTestContext memory context,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) ineligibleCondition
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             // Once an eligible order is found, return false.
             if (
@@ -266,9 +261,8 @@ library OrderEligibilityLib {
         FuzzTestContext memory context,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) condition
-    ) internal view {
+    ) internal {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             if (condition(context.executionState.orders[i], i, context)) {
                 setIneligibleOrder(context, i);
@@ -335,7 +329,6 @@ library OrderEligibilityLib {
     function fn(
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
-            view
             returns (bool) ineligibleMutationFilter
     ) internal pure returns (bytes32 ptr) {
         assembly {
@@ -351,7 +344,6 @@ library OrderEligibilityLib {
         returns (
             function(AdvancedOrder memory, uint256, FuzzTestContext memory)
                 internal
-                view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -368,7 +360,7 @@ library MutationContextDeriverLib {
         FuzzTestContext memory context,
         MutationContextDerivation derivationMethod,
         bytes32 ineligibilityFilter // use a function pointer
-    ) internal view returns (MutationState memory mutationState) {
+    ) internal returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
             context.setIneligibleOrders(
                 OrderEligibilityLib.asIneligibleMutationFilter(

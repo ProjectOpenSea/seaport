@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Vm } from "forge-std/Vm.sol";
+import { vm } from "./VmUtils.sol";
 
 import { AdvancedOrder, OrderStatus } from "seaport-sol/SeaportStructs.sol";
 
@@ -14,9 +14,6 @@ import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
  */
 library FuzzInscribers {
     using AdvancedOrderLib for AdvancedOrder;
-
-    Vm private constant vm =
-        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     uint256 constant wipeDenominatorMask =
         0x000000000000000000000000000000ffffffffffffffffffffffffffffffffff;

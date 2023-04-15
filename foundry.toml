@@ -21,6 +21,7 @@ fs_permissions = [
     { access = "read", path = "./reference-out" },
     { access = "write", path = "./call-metrics.txt" },
     { access = "write", path = "./mutation-metrics.txt" },
+    { access = "write", path = "./assume-metrics.txt" },
     { access = "write", path = "./fuzz_debug.json" }
 ]
 

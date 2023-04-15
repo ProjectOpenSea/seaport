@@ -75,6 +75,8 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
+import { logMutation } from "./Metrics.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -481,13 +483,6 @@ contract FuzzEngine is
         for (uint256 i; i < context.checks.length; ++i) {
             bytes4 selector = context.checks[i];
             check(context, selector);
-        }
-    }
-
-    function logMutation(string memory mutationName) internal {
-        if (vm.envOr("SEAPORT_COLLECT_FUZZ_METRICS", false)) {
-            string memory metric = string.concat(mutationName, ":1|c");
-            vm.writeLine("mutation-metrics.txt", metric);
         }
     }
 }
