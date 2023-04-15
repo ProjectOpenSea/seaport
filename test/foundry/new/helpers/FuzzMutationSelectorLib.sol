@@ -48,17 +48,19 @@ enum Failure {
     OrderAlreadyFilled, // Order is already filled
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
-    //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
+    InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
 
 enum MutationContextDerivation {
+    GENERIC, // No specific selection
     ORDER // Selecting an order
 }
 
 struct IneligibilityFilter {
     Failure[] failures;
+    MutationContextDerivation derivationMethod;
     bytes32 ineligibleMutationFilter; // stores a function pointer
 }
 
@@ -93,48 +95,63 @@ library FuzzMutationSelectorLib {
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
         failuresAndFilters[i++] = Failure.InvalidSignature.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForInvalidSignature
         );
 
         failuresAndFilters[i++] = Failure
             .InvalidSigner_BadSignature
             .and(Failure.InvalidSigner_ModifiedOrder)
-            .with(MutationFilters.ineligibleForInvalidSigner);
+            .with(
+                MutationContextDerivation.ORDER,
+                MutationFilters.ineligibleForInvalidSigner
+            );
 
         failuresAndFilters[i++] = Failure
             .InvalidTime_NotStarted
             .and(Failure.InvalidTime_Expired)
-            .with(MutationFilters.ineligibleForInvalidTime);
+            .with(
+                MutationContextDerivation.ORDER,
+                MutationFilters.ineligibleForInvalidTime
+            );
 
         failuresAndFilters[i++] = Failure.InvalidConduit.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForInvalidConduit
         );
 
         failuresAndFilters[i++] = Failure.BadSignatureV.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForBadSignatureV
         );
 
         failuresAndFilters[i++] = Failure.BadFraction_PartialContractOrder.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForBadFractionPartialContractOrder
         );
 
         failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForBadFraction
         );
 
         failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForBadFraction_noFill
         );
 
         failuresAndFilters[i++] = Failure.CannotCancelOrder.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForCannotCancelOrder
         );
 
         failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForOrderIsCancelled
         );
 
         failuresAndFilters[i++] = Failure.OrderAlreadyFilled.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForOrderAlreadyFilled
         );
 
@@ -142,14 +159,24 @@ library FuzzMutationSelectorLib {
             .BadContractSignature_BadSignature
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
-            .with(MutationFilters.ineligibleForBadContractSignature);
+            .with(
+                MutationContextDerivation.ORDER,
+                MutationFilters.ineligibleForBadContractSignature
+            );
 
         failuresAndFilters[i++] = Failure.Error_OfferItemMissingApproval.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForOfferItemMissingApproval
         );
 
         failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.with(
+            MutationContextDerivation.ORDER,
             MutationFilters.ineligibleForCallerMissingApproval
+        );
+
+        failuresAndFilters[i++] = Failure.InsufficientNativeTokensSupplied.with(
+            MutationContextDerivation.GENERIC,
+            MutationFilters.ineligibleForInsufficientNativeTokens
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -377,6 +404,15 @@ library FailureDetailsLib {
             FuzzMutations.mutation_callerMissingApproval.selector,
             errorString("NOT_AUTHORIZED")
         );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InsufficientNativeTokensSupplied
+            .selector
+            .with(
+                "InsufficientNativeTokensSupplied",
+                MutationContextDerivation.GENERIC,
+                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {

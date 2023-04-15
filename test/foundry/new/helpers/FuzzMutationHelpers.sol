@@ -9,12 +9,7 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { vm } from "./VmUtils.sol";
 
-import {
-    Failure,
-    FailureDetails,
-    IneligibilityFilter,
-    MutationContextDerivation
-} from "./FuzzMutationSelectorLib.sol";
+import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import {
     ConsiderationItem,
@@ -25,6 +20,25 @@ import {
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { assume } from "./VmUtils.sol";
+
+enum MutationContextDerivation {
+    GENERIC, // No specific selection
+    ORDER // Selecting an order
+}
+
+struct IneligibilityFilter {
+    Failure[] failures;
+    MutationContextDerivation derivationMethod;
+    bytes32 ineligibleMutationFilter; // stores a function pointer
+}
+
+struct FailureDetails {
+    string name;
+    bytes4 mutationSelector;
+    bytes4 errorSelector;
+    MutationContextDerivation derivationMethod;
+    bytes32 revertReasonDeriver; // stores a function pointer
+}
 
 library FailureEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
@@ -192,22 +206,40 @@ library OrderEligibilityLib {
 
     error NoEligibleOrderFound();
 
-    function with(
+    function withOrder(
         Failure failure,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failure.one(), fn(ineligibilityFilter));
+        return IneligibilityFilter(failure.one(), MutationContextDerivation.ORDER, fn(ineligibilityFilter));
     }
 
-    function with(
+    function withOrder(
         Failure[] memory failures,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(failures, fn(ineligibilityFilter));
+        return IneligibilityFilter(failures, MutationContextDerivation.ORDER, fn(ineligibilityFilter));
+    }
+
+    function withGeneric(
+        Failure failure,
+        function(FuzzTestContext memory)
+            internal
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return IneligibilityFilter(failure.one(), MutationContextDerivation.GENERIC, fn(ineligibilityFilter));
+    }
+
+    function withGeneric(
+        Failure[] memory failures,
+        function(FuzzTestContext memory)
+            internal
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return IneligibilityFilter(failures, MutationContextDerivation.GENERIC, fn(ineligibilityFilter));
     }
 
     function setAllIneligibleFailures(
@@ -219,13 +251,25 @@ library OrderEligibilityLib {
                 failuresAndFilters[i]
             );
 
-            setIneligibleFailures(
-                context,
-                asIneligibleMutationFilter(
-                    failuresAndFilter.ineligibleMutationFilter
-                ),
-                failuresAndFilter.failures
-            );
+            if (failuresAndFilter.derivationMethod == MutationContextDerivation.GENERIC) {
+                setIneligibleFailures(
+                    context,
+                    asIneligibleGenericMutationFilter(
+                        failuresAndFilter.ineligibleMutationFilter
+                    ),
+                    failuresAndFilter.failures
+                );
+            } else if (failuresAndFilter.derivationMethod == MutationContextDerivation.ORDER) {
+                setIneligibleFailures(
+                    context,
+                    asIneligibleOrderBasedMutationFilter(
+                        failuresAndFilter.ineligibleMutationFilter
+                    ),
+                    failuresAndFilter.failures
+                );
+            } else {
+                revert("OrderEligibilityLib: unknown derivation method when setting failures");
+            }
         }
     }
 
@@ -237,6 +281,18 @@ library OrderEligibilityLib {
         Failure[] memory ineligibleFailures
     ) internal {
         if (hasNoEligibleOrders(context, ineligibleMutationFilter)) {
+            context.setIneligibleFailures(ineligibleFailures);
+        }
+    }
+
+    function setIneligibleFailures(
+        FuzzTestContext memory context,
+        function(FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleMutationFilter,
+        Failure[] memory ineligibleFailures
+    ) internal {
+        if (hasNoEligibleFailures(context, ineligibleMutationFilter)) {
             context.setIneligibleFailures(ineligibleFailures);
         }
     }
@@ -258,6 +314,20 @@ library OrderEligibilityLib {
             ) {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    function hasNoEligibleFailures(
+        FuzzTestContext memory context,
+        function(FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleCondition
+    ) internal returns (bool) {
+        // If the failure is not eligible for selection, return false.
+        if (!ineligibleCondition(context)) {
+            return false;
         }
 
         return true;
@@ -342,7 +412,33 @@ library OrderEligibilityLib {
         }
     }
 
-    function asIneligibleMutationFilter(
+    function fn(
+        function(FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleMutationFilter
+    ) internal pure returns (bytes32 ptr) {
+        assembly {
+            ptr := ineligibleMutationFilter
+        }
+    }
+
+    function asIneligibleGenericMutationFilter(
+        bytes32 ptr
+    )
+        internal
+        pure
+        returns (
+            function(FuzzTestContext memory)
+                internal
+                returns (bool) ineligibleMutationFilter
+        )
+    {
+        assembly {
+            ineligibleMutationFilter := ptr
+        }
+    }
+
+    function asIneligibleOrderBasedMutationFilter(
         bytes32 ptr
     )
         internal
@@ -369,7 +465,7 @@ library MutationContextDeriverLib {
     ) internal returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
             context.setIneligibleOrders(
-                OrderEligibilityLib.asIneligibleMutationFilter(
+                OrderEligibilityLib.asIneligibleOrderBasedMutationFilter(
                     ineligibilityFilter
                 )
             );
@@ -378,17 +474,16 @@ library MutationContextDeriverLib {
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
-        } else {
+        } else if ((derivationMethod != MutationContextDerivation.GENERIC)) {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }
     }
 }
 
 library FailureDetailsHelperLib {
-    function with(
+    function withOrder(
         bytes4 errorSelector,
         string memory name,
-        MutationContextDerivation derivation,
         bytes4 mutationSelector
     ) internal pure returns (FailureDetails memory details) {
         return
@@ -396,15 +491,14 @@ library FailureDetailsHelperLib {
                 name,
                 mutationSelector,
                 errorSelector,
-                derivation,
+                MutationContextDerivation.ORDER,
                 fn(defaultReason)
             );
     }
 
-    function with(
+    function withOrder(
         bytes4 errorSelector,
         string memory name,
-        MutationContextDerivation derivation,
         bytes4 mutationSelector,
         function(FuzzTestContext memory, MutationState memory, bytes4)
             internal
@@ -416,7 +510,41 @@ library FailureDetailsHelperLib {
                 name,
                 mutationSelector,
                 errorSelector,
-                derivation,
+                MutationContextDerivation.ORDER,
+                fn(revertReasonDeriver)
+            );
+    }
+
+    function withGeneric(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.GENERIC,
+                fn(defaultReason)
+            );
+    }
+
+    function withGeneric(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector,
+        function(FuzzTestContext memory, MutationState memory, bytes4)
+            internal
+            view
+            returns (bytes memory) revertReasonDeriver
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.GENERIC,
                 fn(revertReasonDeriver)
             );
     }
@@ -473,7 +601,7 @@ library FailureDetailsHelperLib {
 }
 
 library MutationHelpersLib {
-    function isFiltered(
+    function isFilteredOrNative(
         FuzzTestContext memory context,
         OfferItem memory item,
         address offerer,
@@ -481,7 +609,7 @@ library MutationHelpersLib {
     ) internal pure returns (bool) {
         // Native tokens are not filtered.
         if (item.itemType == ItemType.NATIVE) {
-            return false;
+            return true;
         }
 
         // First look in explicit executions.
@@ -525,13 +653,12 @@ library MutationHelpersLib {
         return true;
     }
 
-    function isFiltered(
+    function isFilteredOrNative(
         FuzzTestContext memory context,
         ConsiderationItem memory item
     ) internal pure returns (bool) {
-        // Native tokens are not filtered.
         if (item.itemType == ItemType.NATIVE) {
-            return false;
+            return true;
         }
 
         address caller = context.executionState.caller;

@@ -54,9 +54,6 @@ library MutationFilters {
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
 
-    //Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
-    //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
-
     function ineligibleForOfferItemMissingApproval(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -69,17 +66,15 @@ library MutationFilters {
         bool locatedEligibleOfferItem;
         for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
             OfferItem memory item = order.parameters.offer[i];
-            if (item.itemType != ItemType.NATIVE) {
-                if (
-                    !context.isFiltered(
-                        item,
-                        order.parameters.offerer,
-                        order.parameters.conduitKey
-                    )
-                ) {
-                    locatedEligibleOfferItem = true;
-                    break;
-                }
+            if (
+                !context.isFiltered(
+                    item,
+                    order.parameters.offerer,
+                    order.parameters.conduitKey
+                )
+            ) {
+                locatedEligibleOfferItem = true;
+                break;
             }
         }
 
@@ -131,6 +126,18 @@ library MutationFilters {
         }
 
         if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInsufficientNativeTokens(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        if (minimumRequired == 0) {
             return true;
         }
 
@@ -498,16 +505,14 @@ contract FuzzMutations is Test, FuzzExecutor {
         OfferItem memory item;
         for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
             item = order.parameters.offer[i];
-            if (item.itemType != ItemType.NATIVE) {
-                if (
-                    !context.isFiltered(
-                        item,
-                        order.parameters.offerer,
-                        order.parameters.conduitKey
-                    )
-                ) {
-                    break;
-                }
+            if (
+                !context.isFiltered(
+                    item,
+                    order.parameters.offerer,
+                    order.parameters.conduitKey
+                )
+            ) {
+                break;
             }
         }
 
@@ -545,6 +550,17 @@ contract FuzzMutations is Test, FuzzExecutor {
         } else {
             TestNFT(item.token).setApprovalForAll(approveTo, false);
         }
+
+        exec(context);
+    }
+
+    function mutation_insufficientNativeTokensSupplied(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        context.executionState.value = minimumRequired - 1;
 
         exec(context);
     }

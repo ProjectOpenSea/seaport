@@ -398,6 +398,7 @@ library FuzzEngineLib {
             action(context) == context.seaport.matchOrders.selector;
 
         uint256 value = 0;
+        uint256 valueToCreditBack = 0;
 
         for (
             uint256 i = 0;
@@ -409,6 +410,17 @@ library FuzzEngineLib {
                 .executionState
                 .orders[i]
                 .parameters;
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
+
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.orderType == OrderType.CONTRACT
+                ) {
+                    valueToCreditBack += item.amount;
+                }
+            }
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
@@ -430,6 +442,85 @@ library FuzzEngineLib {
                     }
                 }
             }
+        }
+
+        if (valueToCreditBack >= value) {
+            value = 0;
+        } else {
+            value = value - valueToCreditBack;
+        }
+
+        uint256 minimum = getMinimumNativeTokensToSupply(context);
+
+        if (minimum > value) {
+            return minimum;
+        } else {
+            return value;
+        }
+    }
+
+    function getMinimumNativeTokensToSupply(
+        FuzzTestContext memory context
+    ) internal view returns (uint256) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
+
+        uint256 value = 0;
+        uint256 valueToCreditBack = 0;
+
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            OrderDetails memory order = context.executionState.orderDetails[i];
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
+
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.orderType == OrderType.CONTRACT
+                ) {
+                    valueToCreditBack += item.amount;
+                }
+            }
+
+            if (isMatch) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
+                    ) {
+                        value += item.amount;
+                    }
+                }
+            } else {
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ReceivedItem memory item = order.consideration[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+            }
+        }
+
+        if (valueToCreditBack >= value) {
+            value = 0;
+        } else {
+            value = value - valueToCreditBack;
         }
 
         return value;
