@@ -47,7 +47,7 @@ enum Failure {
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
-    //Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
@@ -146,6 +146,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.Error_OfferItemMissingApproval.with(
             MutationFilters.ineligibleForOfferItemMissingApproval
+        );
+
+        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.with(
+            MutationFilters.ineligibleForCallerMissingApproval
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -364,6 +368,13 @@ library FailureDetailsLib {
             "Error_OfferItemMissingApproval",
             MutationContextDerivation.ORDER,
             FuzzMutations.mutation_offerItemMissingApproval.selector,
+            errorString("NOT_AUTHORIZED")
+        );
+
+        failureDetailsArray[i++] = ERROR_STRING.with(
+            "Error_CallerMissingApproval",
+            MutationContextDerivation.ORDER,
+            FuzzMutations.mutation_callerMissingApproval.selector,
             errorString("NOT_AUTHORIZED")
         );
         ////////////////////////////////////////////////////////////////////////

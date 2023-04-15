@@ -16,7 +16,13 @@ import {
     MutationContextDerivation
 } from "./FuzzMutationSelectorLib.sol";
 
-import { OfferItem, Execution } from "seaport-sol/SeaportStructs.sol";
+import {
+    ConsiderationItem,
+    Execution,
+    OfferItem
+} from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { assume } from "./VmUtils.sol";
 
@@ -473,6 +479,11 @@ library MutationHelpersLib {
         address offerer,
         bytes32 conduitKey
     ) internal pure returns (bool) {
+        // Native tokens are not filtered.
+        if (item.itemType == ItemType.NATIVE) {
+            return false;
+        }
+
         // First look in explicit executions.
         for (
             uint256 i;
@@ -503,6 +514,59 @@ library MutationHelpersLib {
                 .expectedImplicitExecutions[i];
             if (
                 execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function isFiltered(
+        FuzzTestContext memory context,
+        ConsiderationItem memory item
+    ) internal pure returns (bool) {
+        // Native tokens are not filtered.
+        if (item.itemType == ItemType.NATIVE) {
+            return false;
+        }
+
+        address caller = context.executionState.caller;
+        bytes32 conduitKey = context.executionState.fulfillerConduitKey;
+
+        // First look in explicit executions.
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedExplicitExecutions[i];
+            if (
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitExecutions[i];
+            if (
+                execution.offerer == caller &&
                 execution.conduitKey == conduitKey &&
                 execution.item.itemType == item.itemType &&
                 execution.item.token == item.token

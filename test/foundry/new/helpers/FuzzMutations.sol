@@ -54,7 +54,6 @@ library MutationFilters {
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
 
-    //Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     //Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     //Error_CallerInsufficientNativeTokens, // Caller does not supply sufficient native tokens
 
@@ -81,6 +80,53 @@ library MutationFilters {
                     locatedEligibleOfferItem = true;
                     break;
                 }
+            }
+        }
+
+        if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForCallerMissingApproval(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // The caller does not provide any items during match actions.
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // On basic orders, the caller does not need ERC20 approvals when
+        // accepting bids (as the offerer provides the ERC20 tokens).
+        uint256 eligibleItemTotal = order.parameters.consideration.length;
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            if (order.parameters.offer[0].itemType == ItemType.ERC20) {
+                eligibleItemTotal = 1;
+            }
+        }
+
+        bool locatedEligibleOfferItem;
+        for (uint256 i = 0; i < eligibleItemTotal; ++i) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (!context.isFiltered(item)) {
+                locatedEligibleOfferItem = true;
+                break;
             }
         }
 
@@ -467,6 +513,33 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         address approveTo = context.getApproveTo(order.parameters);
         vm.prank(order.parameters.offerer);
+        if (item.itemType == ItemType.ERC20) {
+            TestERC20(item.token).approve(approveTo, 0);
+        } else {
+            TestNFT(item.token).setApprovalForAll(approveTo, false);
+        }
+
+        exec(context);
+    }
+
+    function mutation_callerMissingApproval(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // TODO: pick a random item (this always picks the first one)
+        ConsiderationItem memory item;
+        for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+            item = order.parameters.consideration[i];
+            if (!context.isFiltered(item)) {
+                break;
+            }
+        }
+
+        address approveTo = context.getApproveTo();
+        vm.prank(context.executionState.caller);
         if (item.itemType == ItemType.ERC20) {
             TestERC20(item.token).approve(approveTo, 0);
         } else {
