@@ -40,6 +40,8 @@ import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 import { CheckHelpers } from "./FuzzSetup.sol";
 
+import "forge-std/console.sol";
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -136,6 +138,9 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        console.log("minimumRequired", minimumRequired);
+        console.log("standard required:", context.executionState.value);
 
         if (minimumRequired == 0) {
             return true;
@@ -308,7 +313,8 @@ library MutationFilters {
         order.parameters.conduitKey = keccak256("invalid conduit");
         (
             Execution[] memory implicitExecutions,
-            Execution[] memory explicitExecutions
+            Execution[] memory explicitExecutions,
+            
         ) = context.getDerivedExecutions();
 
         // Look for invalid executions in explicit executions
