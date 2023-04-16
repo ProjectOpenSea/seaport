@@ -40,8 +40,6 @@ import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 import { CheckHelpers } from "./FuzzSetup.sol";
 
-import "forge-std/console.sol";
-
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -143,9 +141,6 @@ library MutationFilters {
 
         uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
 
-        console.log("minimumRequired", minimumRequired);
-        console.log("standard required:", context.executionState.value);
-
         if (minimumRequired == 0) {
             return true;
         }
@@ -161,9 +156,6 @@ library MutationFilters {
         }
 
         uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
-
-        console.log("minimumRequired (unspent)", minimumRequired);
-        console.log("standard required (unspent):", context.executionState.value);
 
         if (minimumRequired == 0) {
             return true;

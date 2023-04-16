@@ -370,12 +370,13 @@ library FailureDetailsLib {
             .selector
             .withGeneric(
                 "NativeTokenTransferGenericFailure",
-                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
+                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector,
+                details_NativeTokenTransferGenericFailure
             );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
-            revert("FuzzMutationSelectorLib: incorrect # failures specified");
+            revert("FailureDetailsLib: incorrect # failures specified");
         }
 
         // Set the actual length of the array.
@@ -472,6 +473,53 @@ library FailureDetailsLib {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
             context.executionState.orderHashes[mutationState.selectedOrderIndex]
+        );
+    }
+
+    function details_NativeTokenTransferGenericFailure(
+        FuzzTestContext memory context,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        uint256 totalImplicitExecutions = (
+            context.expectations.expectedImplicitExecutions.length
+        );
+        ReceivedItem memory item;
+        if (context.expectations.expectedNativeTokensReturned == 0) {
+            if (totalImplicitExecutions == 0) {
+                revert("FailureDetailsLib: not enough implicit executions for unspent item return");
+            }
+
+            item = context.expectations.expectedImplicitExecutions[totalImplicitExecutions - 1].item;
+
+            if (item.itemType != ItemType.NATIVE) {
+                revert("FailureDetailsLib: incorrect item type for native token return item");
+            }
+        } else {
+            if (totalImplicitExecutions > 2) {
+                revert("FailureDetailsLib: not enough implicit executions for native token + unspent return");
+            }
+
+            bool foundNative;
+            for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
+                item = context.expectations.expectedImplicitExecutions[i - 1].item;
+                if (item.itemType == ItemType.NATIVE) {
+                    foundNative = true;
+                    break;
+                }
+            }
+
+            if (!foundNative) {
+                revert("FailureDetailsLib: no unspent native token item located");
+            }
+        }
+
+
+
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            context.executionState.recipient == address(0) ? context.executionState.caller : context.executionState.recipient,
+            item.amount
         );
     }
 

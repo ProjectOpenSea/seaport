@@ -529,11 +529,13 @@ library FuzzEngineLib {
             }
         }
 
+        // Any time more is received back than is paid out, no native tokens
+        // need to be supplied.
         if (valueToCreditBack >= value) {
-            value = 0;
-        } else {
-            value = value - valueToCreditBack;
+            return 0;
         }
+
+        value = value - valueToCreditBack;
 
         // NOTE: this check would not apply in cases where Seaport gets paid native
         // tokens by a contract offerer that doesn't actually return a native
