@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import { AdvancedOrder, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";
@@ -478,7 +480,7 @@ library FailureDetailsLib {
 
     function details_NativeTokenTransferGenericFailure(
         FuzzTestContext memory context,
-        MutationState memory mutationState,
+        MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         uint256 totalImplicitExecutions = (
@@ -490,10 +492,17 @@ library FailureDetailsLib {
                 revert("FailureDetailsLib: not enough implicit executions for unspent item return");
             }
 
-            item = context.expectations.expectedImplicitExecutions[totalImplicitExecutions - 1].item;
+            bool foundNative;
+            for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
+                item = context.expectations.expectedImplicitExecutions[i].item;
+                if (item.itemType == ItemType.NATIVE) {
+                    foundNative = true;
+                    break;
+                }
+            }
 
-            if (item.itemType != ItemType.NATIVE) {
-                revert("FailureDetailsLib: incorrect item type for native token return item");
+            if (!foundNative) {
+                revert("FailureDetailsLib: no unspent native token item located with no returned native tokens");
             }
         } else {
             if (totalImplicitExecutions > 2) {
