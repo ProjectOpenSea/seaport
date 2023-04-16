@@ -493,10 +493,14 @@ library FailureDetailsLib {
             }
 
             bool foundNative;
-            for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
+            for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
                 item = context.expectations.expectedImplicitExecutions[i].item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
+                    break;
+                }
+
+                if (i == 0) {
                     break;
                 }
             }
