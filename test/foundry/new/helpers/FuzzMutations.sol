@@ -137,10 +137,33 @@ library MutationFilters {
     function ineligibleForInsufficientNativeTokens(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        if (context.expectations.expectedImpliedNativeExecutions != 0) {
+            return true;
+        }
+
         uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
 
         console.log("minimumRequired", minimumRequired);
         console.log("standard required:", context.executionState.value);
+
+        if (minimumRequired == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForNativeTokenTransferGenericFailure(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (context.expectations.expectedImpliedNativeExecutions == 0) {
+            return true;
+        }
+
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        console.log("minimumRequired (unspent)", minimumRequired);
+        console.log("standard required (unspent):", context.executionState.value);
 
         if (minimumRequired == 0) {
             return true;
@@ -314,7 +337,7 @@ library MutationFilters {
         (
             Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions,
-            
+
         ) = context.getDerivedExecutions();
 
         // Look for invalid executions in explicit executions

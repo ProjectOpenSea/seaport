@@ -51,6 +51,7 @@ enum Failure {
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
+    NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -143,6 +144,10 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .InsufficientNativeTokensSupplied
             .withGeneric(MutationFilters.ineligibleForInsufficientNativeTokens);
+
+        failuresAndFilters[i++] = Failure
+            .NativeTokenTransferGenericFailure
+            .withGeneric(MutationFilters.ineligibleForNativeTokenTransferGenericFailure);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -357,6 +362,14 @@ library FailureDetailsLib {
             .selector
             .withGeneric(
                 "InsufficientNativeTokensSupplied",
+                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .NativeTokenTransferGenericFailure
+            .selector
+            .withGeneric(
+                "NativeTokenTransferGenericFailure",
                 FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
             );
         ////////////////////////////////////////////////////////////////////////

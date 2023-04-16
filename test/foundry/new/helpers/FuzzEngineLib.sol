@@ -472,22 +472,59 @@ library FuzzEngineLib {
 
     function getMinimumNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
+
         uint256 value = 0;
         uint256 valueToCreditBack = 0;
 
         for (
             uint256 i = 0;
-            i < context.expectations.allExpectedExecutions.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            Execution memory execution = context.expectations.allExpectedExecutions[i];
-            ReceivedItem memory item = execution.item;
-            if (item.itemType == ItemType.NATIVE) {
-                if (execution.offerer == address(context.seaport)) {
-                    value += item.amount;
-                } else if (execution.item.recipient == payable(address(context.seaport))) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            OrderDetails memory order = context.executionState.orderDetails[i];
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
+
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.orderType == OrderType.CONTRACT
+                ) {
                     valueToCreditBack += item.amount;
+                }
+            }
+
+
+            if (isMatch) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
+                    ) {
+                        value += item.amount;
+                    }
+                }
+            } else {
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ReceivedItem memory item = order.consideration[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
                 }
             }
         }
