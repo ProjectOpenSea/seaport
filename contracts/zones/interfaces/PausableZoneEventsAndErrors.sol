@@ -43,7 +43,7 @@ interface PausableZoneEventsAndErrors {
     /**
      * @dev Emit an event whenever a zone owner assigns a new pauser
      *
-     * @param newPauser The new pausear of the zone.
+     * @param newPauser The new pauser of the zone.
      */
     event PauserUpdated(address newPauser);
 

@@ -302,7 +302,7 @@ library MemoryPointerLib {
         }
     }
 
-    /// @dev Resolves a pointer pointer at `mPtr + headOffset` to a memory
+    /// @dev Resolves a pointer at `mPtr + headOffset` to a memory
     ///    pointer. `mPtr` must point to some parent object with a dynamic
     ///    type's pointer stored at `mPtr + headOffset`.
     function pptr(
@@ -312,7 +312,7 @@ library MemoryPointerLib {
         mPtrChild = mPtr.offset(headOffset).readMemoryPointer();
     }
 
-    /// @dev Resolves a pointer pointer stored at `mPtr` to a memory pointer.
+    /// @dev Resolves a pointer stored at `mPtr` to a memory pointer.
     ///    `mPtr` must point to some parent object with a dynamic type as its
     ///    first member, e.g. `struct { bytes data; }`
     function pptr(
