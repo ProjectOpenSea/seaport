@@ -54,6 +54,14 @@ enum Failure {
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
+    // CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
+    // InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
+    // InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
+    // OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
+    // OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
+    // ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
+    // UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
+    // UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
