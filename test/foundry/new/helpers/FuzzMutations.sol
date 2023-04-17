@@ -11,7 +11,9 @@ import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 import {
     AdvancedOrder,
     Execution,
+    Fulfillment,
     FulfillmentComponent,
+    OfferItem,
     OrderComponents,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
@@ -33,7 +35,12 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+
+import { ConduitChoice } from "seaport-sol/StructSpace.sol";
+
+import "forge-std/console.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
@@ -429,6 +436,41 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForOfferAndConsiderationRequiredOnFulfillment(
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
+        bytes4 action = context.action();
+
+        if (
+            action != context.seaport.matchOrders.selector &&
+            action != context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents(
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal returns (bool) {
+        bytes4 action = context.action();
+
+        if (action != context.seaport.matchAdvancedOrders.selector) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -679,10 +721,6 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidFulfillmentComponentData(
         FuzzTestContext memory context
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForInvalidFulfillmentComponentData
-        );
-
         if (context.executionState.fulfillments.length != 0) {
             context
                 .executionState
@@ -714,11 +752,6 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters
-                .ineligibleForMissingFulfillmentComponentOnAggregation
-        );
-
         if (mutationState.side == Side.OFFER) {
             if (context.executionState.offerFulfillments.length == 0) {
                 context
@@ -737,4 +770,72 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         exec(context);
     }
+
+    function mutation_offerAndConsiderationRequiredOnFulfillment(
+        FuzzTestContext memory context
+    ) external {
+        context.executionState.fulfillments[0] = Fulfillment({
+            offerComponents: new FulfillmentComponent[](0),
+            considerationComponents: new FulfillmentComponent[](0)
+        });
+
+        exec(context);
+    }
+
+    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        Fulfillment memory selectedFulfillment = context
+            .executionState
+            .fulfillments[mutationState.fulfillmentIndex];
+
+        uint256 orderIndex = selectedFulfillment.offerComponents[0].orderIndex;
+        uint256 itemIndex = selectedFulfillment.offerComponents[0].itemIndex;
+
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        OfferItem memory offerItem = order.parameters.offer[itemIndex];
+
+        offerItem.identifierOrCriteria = offerItem.identifierOrCriteria + 1;
+
+        // TODO: Remove this if we can, since this modifies bulk signatures.
+        if (order.parameters.offerer.code.length == 0) {
+            context
+                .advancedOrdersSpace
+                .orders[orderIndex]
+                .signatureMethod = SignatureMethod.EOA;
+            context
+                .advancedOrdersSpace
+                .orders[orderIndex]
+                .eoaSignatureType = EOASignature.STANDARD;
+        }
+        if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        }
+
+        exec(context);
+    }
+
+    // /**
+    //  * @dev Revert with an error when the initial offer item named by a
+    //  *      fulfillment component does not match the type, token, identifier,
+    //  *      or conduit preference of the initial consideration item.
+    //  *
+    //  * @param fulfillmentIndex The index of the fulfillment component that
+    //  *                         does not match the initial offer item.
+    //  */
+    // error MismatchedFulfillmentOfferAndConsiderationComponents(
+    //     uint256 fulfillmentIndex
+    // );
 }

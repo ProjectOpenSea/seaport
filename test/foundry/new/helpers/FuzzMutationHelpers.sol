@@ -378,6 +378,12 @@ library MutationContextDeriverLib {
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
+            mutationState.fulfillmentIndex = context.generatorContext.randRange(
+                0,
+                context.executionState.fulfillments.length > 0
+                    ? context.executionState.fulfillments.length - 1
+                    : 0
+            );
         } else {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }

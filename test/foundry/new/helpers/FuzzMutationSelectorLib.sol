@@ -52,6 +52,8 @@ enum Failure {
     OrderAlreadyFilled, // Order is already filled
     InvalidFulfillmentComponentData, // Fulfillment component data is invalid
     MissingFulfillmentComponentOnAggregation, // Missing component
+    OfferAndConsiderationRequiredOnFulfillment, // Fulfillment missing offer or consideration
+    MismatchedFulfillmentOfferAndConsiderationComponents, // Fulfillment has mismatched offer and consideration components
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,6 +158,20 @@ library FuzzMutationSelectorLib {
             .with(
                 MutationFilters
                     .ineligibleForMissingFulfillmentComponentOnAggregation
+            );
+
+        failuresAndFilters[i++] = Failure
+            .OfferAndConsiderationRequiredOnFulfillment
+            .with(
+                MutationFilters
+                    .ineligibleForOfferAndConsiderationRequiredOnFulfillment
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MismatchedFulfillmentOfferAndConsiderationComponents
+            .with(
+                MutationFilters
+                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -387,6 +403,29 @@ library FailureDetailsLib {
                     .selector,
                 details_MissingFulfillmentComponentOnAggregation
             );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .OfferAndConsiderationRequiredOnFulfillment
+            .selector
+            .with(
+                "OfferAndConsiderationRequiredOnFulfillment",
+                MutationContextDerivation.ORDER,
+                FuzzMutations
+                    .mutation_offerAndConsiderationRequiredOnFulfillment
+                    .selector
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+        .MismatchedFulfillmentOfferAndConsiderationComponents
+        .selector
+        .with(
+            "MismatchedFulfillmentOfferAndConsiderationComponents",
+            MutationContextDerivation.ORDER,
+            FuzzMutations
+                .mutation_mismatchedFulfillmentOfferAndConsiderationComponents
+                .selector,
+            details_MismatchedFulfillmentOfferAndConsiderationComponents
+        );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -476,8 +515,23 @@ library FailureDetailsLib {
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        expectedRevertReason = abi.encodeWithSelector(errorSelector, uint8(mutationState.side));
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            uint8(mutationState.side)
+        );
     }
+
+    function details_MismatchedFulfillmentOfferAndConsiderationComponents(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            mutationState.fulfillmentIndex
+        );
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(
