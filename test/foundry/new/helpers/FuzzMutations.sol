@@ -7,7 +7,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
-    OrderEligibilityLib,
+    MutationEligibilityLib,
     MutationHelpersLib
 } from "./FuzzMutationHelpers.sol";
 
@@ -507,7 +507,7 @@ library MutationFilters {
 
 contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
-    using OrderEligibilityLib for FuzzTestContext;
+    using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;

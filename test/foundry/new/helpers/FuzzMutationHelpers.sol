@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
-
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -12,7 +10,9 @@ import { vm } from "./VmUtils.sol";
 import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import {
+    AdvancedOrder,
     ConsiderationItem,
+    CriteriaResolver,
     Execution,
     OfferItem
 } from "seaport-sol/SeaportStructs.sol";
@@ -21,7 +21,8 @@ import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 enum MutationContextDerivation {
     GENERIC, // No specific selection
-    ORDER // Selecting an order
+    ORDER, // Selecting an order
+    CRITERIA_RESOLVER // Selecting a criteria resolver
 }
 
 struct IneligibilityFilter {
@@ -158,7 +159,7 @@ library FailureEligibilityLib {
 
     function selectEligibleFailure(
         FuzzTestContext memory context
-    ) internal returns (Failure eligibleFailure) {
+    ) internal pure returns (Failure eligibleFailure) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
@@ -193,7 +194,7 @@ library FailureEligibilityLib {
     }
 }
 
-library OrderEligibilityLib {
+library MutationEligibilityLib {
     using Failarray for Failure;
     using LibPRNG for LibPRNG.PRNG;
     using FailureEligibilityLib for FuzzTestContext;
@@ -224,6 +225,34 @@ library OrderEligibilityLib {
             IneligibilityFilter(
                 failures,
                 MutationContextDerivation.ORDER,
+                fn(ineligibilityFilter)
+            );
+    }
+
+    function withCriteria(
+        Failure failure,
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(ineligibilityFilter)
+            );
+    }
+
+    function withCriteria(
+        Failure[] memory failures,
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            returns (bool) ineligibilityFilter
+    ) internal pure returns (IneligibilityFilter memory) {
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.CRITERIA_RESOLVER,
                 fn(ineligibilityFilter)
             );
     }
@@ -289,7 +318,7 @@ library OrderEligibilityLib {
                 );
             } else {
                 revert(
-                    "OrderEligibilityLib: unknown derivation method when setting failures"
+                    "MutationEligibilityLib: unknown derivation method when setting failures"
                 );
             }
         }
@@ -435,6 +464,16 @@ library OrderEligibilityLib {
     }
 
     function fn(
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleMutationFilter
+    ) internal pure returns (bytes32 ptr) {
+        assembly {
+            ptr := ineligibleMutationFilter
+        }
+    }
+
+    function fn(
         function(FuzzTestContext memory)
             internal
             returns (bool) ineligibleMutationFilter
@@ -478,7 +517,7 @@ library OrderEligibilityLib {
 }
 
 library MutationContextDeriverLib {
-    using OrderEligibilityLib for FuzzTestContext;
+    using MutationEligibilityLib for FuzzTestContext;
 
     function deriveMutationContext(
         FuzzTestContext memory context,
@@ -487,7 +526,7 @@ library MutationContextDeriverLib {
     ) internal returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
             context.setIneligibleOrders(
-                OrderEligibilityLib.asIneligibleOrderBasedMutationFilter(
+                MutationEligibilityLib.asIneligibleOrderBasedMutationFilter(
                     ineligibilityFilter
                 )
             );
@@ -533,6 +572,40 @@ library FailureDetailsHelperLib {
                 mutationSelector,
                 errorSelector,
                 MutationContextDerivation.ORDER,
+                fn(revertReasonDeriver)
+            );
+    }
+
+    function withCriteria(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(defaultReason)
+            );
+    }
+
+    function withCriteria(
+        bytes4 errorSelector,
+        string memory name,
+        bytes4 mutationSelector,
+        function(FuzzTestContext memory, MutationState memory, bytes4)
+            internal
+            view
+            returns (bytes memory) revertReasonDeriver
+    ) internal pure returns (FailureDetails memory details) {
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.CRITERIA_RESOLVER,
                 fn(revertReasonDeriver)
             );
     }

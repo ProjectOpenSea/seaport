@@ -11,7 +11,7 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
     FailureEligibilityLib,
-    OrderEligibilityLib,
+    MutationEligibilityLib,
     Failarray,
     FailureDetails,
     FailureDetailsHelperLib,
@@ -65,9 +65,9 @@ library FuzzMutationSelectorLib {
     using FuzzEngineLib for FuzzTestContext;
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
-    using OrderEligibilityLib for FuzzTestContext;
-    using OrderEligibilityLib for Failure;
-    using OrderEligibilityLib for Failure[];
+    using MutationEligibilityLib for FuzzTestContext;
+    using MutationEligibilityLib for Failure;
+    using MutationEligibilityLib for Failure[];
     using FailureEligibilityLib for IneligibilityFilter[];
 
     function declareFilters()
