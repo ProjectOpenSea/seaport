@@ -29,7 +29,9 @@ import {
     ConsiderationEventsAndErrors
 } from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { Vm } from "forge-std/Vm.sol";
+import {
+    CriteriaResolutionErrors
+} from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
@@ -54,7 +56,7 @@ enum Failure {
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
-    // CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
+    CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
     // InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
     // InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
     // OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
@@ -158,6 +160,10 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .NativeTokenTransferGenericFailure
             .withGeneric(MutationFilters.ineligibleForNativeTokenTransferGenericFailure);
+
+        failuresAndFilters[i++] = Failure
+            .CriteriaNotEnabledForItem
+            .withGeneric(MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -382,6 +388,14 @@ library FailureDetailsLib {
                 "NativeTokenTransferGenericFailure",
                 FuzzMutations.mutation_insufficientNativeTokensSupplied.selector,
                 details_NativeTokenTransferGenericFailure
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .CriteriaNotEnabledForItem
+            .selector
+            .withGeneric(
+                "CriteriaNotEnabledForItem",
+                FuzzMutations.mutation_criteriaNotEnabledForItem.selector
             );
         ////////////////////////////////////////////////////////////////////////
 

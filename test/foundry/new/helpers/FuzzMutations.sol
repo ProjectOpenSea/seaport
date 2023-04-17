@@ -14,6 +14,7 @@ import {
 import {
     AdvancedOrder,
     ConsiderationItem,
+    CriteriaResolver,
     Execution,
     OfferItem,
     OrderParameters,
@@ -29,7 +30,7 @@ import {
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -161,6 +162,48 @@ library MutationFilters {
             return true;
         }
 
+        return false;
+    }
+
+    function ineligibleWhenNotAdvancedOrWithNoAvailableItems(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        bool locatedItem;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            AdvancedOrder memory order = context.executionState.orders[i];
+            uint256 items = order.parameters.offer.length + order.parameters.consideration.length;
+            if (items != 0) {
+                locatedItem = true;
+                break;
+            }
+        }
+
+        if (!locatedItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function neverIneligible(
+        FuzzTestContext memory /* context */
+    ) internal pure returns (bool) {
         return false;
     }
 
@@ -582,6 +625,47 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
 
         context.executionState.value = minimumRequired - 1;
+
+        exec(context);
+    }
+
+    function mutation_criteriaNotEnabledForItem(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length + 1);
+        for (uint256 i = 0; i < oldResolvers.length; ++i) {
+            newResolvers[i] = oldResolvers[i];
+        }
+
+        uint256 orderIndex;
+        Side side;
+
+        for (; orderIndex < context.executionState.orders.length; ++orderIndex) {
+            if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+                continue;
+            }
+
+            AdvancedOrder memory order = context.executionState.orders[orderIndex];
+            if (order.parameters.offer.length > 0) {
+                side = Side.OFFER;
+                break;
+            } else if (order.parameters.consideration.length > 0) {
+                side = Side.CONSIDERATION;
+                break;
+            }
+        }
+
+        newResolvers[oldResolvers.length] = CriteriaResolver({
+            orderIndex: orderIndex,
+            side: side,
+            index: 0,
+            identifier: 0,
+            criteriaProof: new bytes32[](0)
+        });
+
+        context.executionState.criteriaResolvers = newResolvers;
 
         exec(context);
     }
