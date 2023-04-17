@@ -19,8 +19,6 @@ import {
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { assume } from "./VmUtils.sol";
-
 enum MutationContextDerivation {
     GENERIC, // No specific selection
     ORDER // Selecting an order
@@ -164,10 +162,6 @@ library FailureEligibilityLib {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
-
-        // TODO: remove this vm.assume as soon as at least one case is found
-        // for any permutation of orders.
-        assume(eligibleFailures.length > 0, "no_eligible_failures");
 
         if (eligibleFailures.length == 0) {
             revert("FailureEligibilityLib: no eligible failure found");
