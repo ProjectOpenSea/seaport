@@ -21,7 +21,7 @@ import {
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderType } from "seaport-sol/SeaportEnums.sol";
+import { OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     OrderStatusEnum,
@@ -243,6 +243,7 @@ struct ExecutionState {
 struct MutationState {
     AdvancedOrder selectedOrder;
     uint256 selectedOrderIndex;
+    Side side;
 }
 
 struct FuzzTestContext {

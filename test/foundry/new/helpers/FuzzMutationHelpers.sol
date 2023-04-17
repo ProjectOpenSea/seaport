@@ -3,6 +3,12 @@ pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
+import { Side } from "seaport-sol/SeaportEnums.sol";
+
+import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
+
+import { PRNGHelpers } from "./FuzzGenerators.sol";
+
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -353,6 +359,7 @@ library OrderEligibilityLib {
 
 library MutationContextDeriverLib {
     using OrderEligibilityLib for FuzzTestContext;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function deriveMutationContext(
         FuzzTestContext memory context,
@@ -370,6 +377,7 @@ library MutationContextDeriverLib {
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
+            mutationState.side = Side(context.generatorContext.randEnum(0, 1));
         } else {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }

@@ -51,6 +51,7 @@ enum Failure {
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
     InvalidFulfillmentComponentData, // Fulfillment component data is invalid
+    MissingFulfillmentComponentOnAggregation, // Missing component
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +150,13 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.InvalidFulfillmentComponentData.with(
             MutationFilters.ineligibleForInvalidFulfillmentComponentData
         );
+
+        failuresAndFilters[i++] = Failure
+            .MissingFulfillmentComponentOnAggregation
+            .with(
+                MutationFilters
+                    .ineligibleForMissingFulfillmentComponentOnAggregation
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -367,6 +375,18 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidFulfillmentComponentData.selector
             );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .MissingFulfillmentComponentOnAggregation
+            .selector
+            .with(
+                "MissingFulfillmentComponentOnAggregation",
+                MutationContextDerivation.ORDER,
+                FuzzMutations
+                    .mutation_missingFulfillmentComponentOnAggregation
+                    .selector,
+                details_MissingFulfillmentComponentOnAggregation
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -451,6 +471,13 @@ library FailureDetailsLib {
         );
     }
 
+    function details_MissingFulfillmentComponentOnAggregation(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, uint8(mutationState.side));
+    }
     ////////////////////////////////////////////////////////////////////////////
 
     function failureDetails(

@@ -10,15 +10,17 @@ import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
 
 import {
     AdvancedOrder,
-    OrderParameters,
+    Execution,
+    FulfillmentComponent,
     OrderComponents,
-    Execution
+    OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,
-    OrderParametersLib,
-    ItemType
+    OrderParametersLib
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -76,6 +78,24 @@ library MutationFilters {
         }
 
         if (order.parameters.offerer.code.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForFulfillmentIngestingFunctions(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
             return true;
         }
 
@@ -382,14 +402,27 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingFulfillmentComponentOnAggregation(
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
         bytes4 action = context.action();
 
         if (
-            action == context.seaport.fulfillAdvancedOrder.selector ||
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
         ) {
             return true;
         }
@@ -672,6 +705,34 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .executionState
                 .orders
                 .length;
+        }
+
+        exec(context);
+    }
+
+    function mutation_missingFulfillmentComponentOnAggregation(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        context.setIneligibleOrders(
+            MutationFilters
+                .ineligibleForMissingFulfillmentComponentOnAggregation
+        );
+
+        if (mutationState.side == Side.OFFER) {
+            if (context.executionState.offerFulfillments.length == 0) {
+                context
+                    .executionState
+                    .offerFulfillments = new FulfillmentComponent[][](1);
+            } else {
+                context.executionState.offerFulfillments[
+                    0
+                ] = new FulfillmentComponent[](0);
+            }
+        } else if (mutationState.side == Side.CONSIDERATION) {
+            context.executionState.considerationFulfillments[
+                0
+            ] = new FulfillmentComponent[](0);
         }
 
         exec(context);
