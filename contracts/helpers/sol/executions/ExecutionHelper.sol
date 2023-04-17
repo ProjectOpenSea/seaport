@@ -60,7 +60,8 @@ library ExecutionHelper {
         pure
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
         )
     {
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
@@ -75,7 +76,7 @@ library ExecutionHelper {
             availableOrders
         );
 
-        _handleExcessNativeTokens(
+        nativeTokensReturned = _handleExcessNativeTokens(
             fulfillmentDetails,
             explicitExecutions,
             implicitExecutions,
@@ -103,7 +104,8 @@ library ExecutionHelper {
         pure
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
         )
     {
         explicitExecutions = new Execution[](fulfillments.length);
@@ -149,7 +151,7 @@ library ExecutionHelper {
             availableOrders
         );
 
-        _handleExcessNativeTokens(
+        nativeTokensReturned = _handleExcessNativeTokens(
             fulfillmentDetails,
             explicitExecutions,
             implicitExecutions,
@@ -809,8 +811,8 @@ library ExecutionHelper {
         Execution[] memory explicitExecutions,
         Execution[] memory implicitExecutions,
         uint256 nativeTokensSupplied
-    ) internal pure {
-        uint256 excessNativeTokens = processExcessNativeTokens(
+    ) internal pure returns (uint256 excessNativeTokens) {
+        excessNativeTokens = processExcessNativeTokens(
             explicitExecutions,
             implicitExecutions,
             nativeTokensSupplied

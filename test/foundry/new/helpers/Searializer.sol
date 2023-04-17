@@ -24,10 +24,11 @@ import {
     Side
 } from "seaport-sol/SeaportEnums.sol";
 
+import { Result } from "./FuzzHelpers.sol";
+
 import {
     FuzzParams,
     FuzzTestContext,
-    Result,
     ReturnValues
 } from "./FuzzTestContextLib.sol";
 

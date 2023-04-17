@@ -6,10 +6,16 @@ import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
+import {
+    OrderEligibilityLib,
+    MutationHelpersLib
+} from "./FuzzMutationHelpers.sol";
 
 import {
     AdvancedOrder,
+    ConsiderationItem,
+    Execution,
+    OfferItem,
     OrderParameters,
     OrderComponents,
     Execution
@@ -23,7 +29,7 @@ import {
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
-import { OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -32,11 +38,131 @@ import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+import { CheckHelpers } from "./FuzzSetup.sol";
+
+interface TestERC20 {
+    function approve(address spender, uint256 amount) external;
+}
+
+interface TestNFT {
+    function setApprovalForAll(address operator, bool approved) external;
+}
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using FuzzDerivers for FuzzTestContext;
+    using MutationHelpersLib for FuzzTestContext;
+
+    function ineligibleForOfferItemMissingApproval(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        bool locatedEligibleOfferItem;
+        for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                !context.isFilteredOrNative(
+                    item,
+                    order.parameters.offerer,
+                    order.parameters.conduitKey
+                )
+            ) {
+                locatedEligibleOfferItem = true;
+                break;
+            }
+        }
+
+        if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForCallerMissingApproval(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // The caller does not provide any items during match actions.
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // On basic orders, the caller does not need ERC20 approvals when
+        // accepting bids (as the offerer provides the ERC20 tokens).
+        uint256 eligibleItemTotal = order.parameters.consideration.length;
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            if (order.parameters.offer[0].itemType == ItemType.ERC20) {
+                eligibleItemTotal = 1;
+            }
+        }
+
+        bool locatedEligibleOfferItem;
+        for (uint256 i = 0; i < eligibleItemTotal; ++i) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (!context.isFilteredOrNative(item)) {
+                locatedEligibleOfferItem = true;
+                break;
+            }
+        }
+
+        if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInsufficientNativeTokens(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (context.expectations.expectedImpliedNativeExecutions != 0) {
+            return true;
+        }
+
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        if (minimumRequired == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForNativeTokenTransferGenericFailure(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (context.expectations.expectedImpliedNativeExecutions == 0) {
+            return true;
+        }
+
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        if (minimumRequired == 0) {
+            return true;
+        }
+
+        return false;
+    }
 
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
@@ -202,7 +328,8 @@ library MutationFilters {
         order.parameters.conduitKey = keccak256("invalid conduit");
         (
             Execution[] memory implicitExecutions,
-            Execution[] memory explicitExecutions
+            Execution[] memory explicitExecutions,
+
         ) = context.getDerivedExecutions();
 
         // Look for invalid executions in explicit executions
@@ -385,6 +512,79 @@ contract FuzzMutations is Test, FuzzExecutor {
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
+    using CheckHelpers for FuzzTestContext;
+    using MutationHelpersLib for FuzzTestContext;
+
+    function mutation_offerItemMissingApproval(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // TODO: pick a random item (this always picks the first one)
+        OfferItem memory item;
+        for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+            item = order.parameters.offer[i];
+            if (
+                !context.isFilteredOrNative(
+                    item,
+                    order.parameters.offerer,
+                    order.parameters.conduitKey
+                )
+            ) {
+                break;
+            }
+        }
+
+        address approveTo = context.getApproveTo(order.parameters);
+        vm.prank(order.parameters.offerer);
+        if (item.itemType == ItemType.ERC20) {
+            TestERC20(item.token).approve(approveTo, 0);
+        } else {
+            TestNFT(item.token).setApprovalForAll(approveTo, false);
+        }
+
+        exec(context);
+    }
+
+    function mutation_callerMissingApproval(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // TODO: pick a random item (this always picks the first one)
+        ConsiderationItem memory item;
+        for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+            item = order.parameters.consideration[i];
+            if (!context.isFilteredOrNative(item)) {
+                break;
+            }
+        }
+
+        address approveTo = context.getApproveTo();
+        vm.prank(context.executionState.caller);
+        if (item.itemType == ItemType.ERC20) {
+            TestERC20(item.token).approve(approveTo, 0);
+        } else {
+            TestNFT(item.token).setApprovalForAll(approveTo, false);
+        }
+
+        exec(context);
+    }
+
+    function mutation_insufficientNativeTokensSupplied(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+
+        context.executionState.value = minimumRequired - 1;
+
+        exec(context);
+    }
 
     function mutation_invalidSignature(
         FuzzTestContext memory context,

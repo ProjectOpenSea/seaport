@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import { AdvancedOrder, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";
@@ -11,7 +13,9 @@ import {
     FailureEligibilityLib,
     OrderEligibilityLib,
     Failarray,
+    FailureDetails,
     FailureDetailsHelperLib,
+    IneligibilityFilter,
     MutationContextDeriverLib
 } from "./FuzzMutationHelpers.sol";
 
@@ -46,26 +50,14 @@ enum Failure {
     CannotCancelOrder, // Caller cannot cancel order
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
+    Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
+    Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
+    NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
+
 ////////////////////////////////////////////////////////////////////////////////
-
-enum MutationContextDerivation {
-    ORDER // Selecting an order
-}
-
-struct IneligibilityFilter {
-    Failure[] failures;
-    bytes32 ineligibleMutationFilter; // stores a function pointer
-}
-
-struct FailureDetails {
-    string name;
-    bytes4 mutationSelector;
-    bytes4 errorSelector;
-    MutationContextDerivation derivationMethod;
-    bytes32 revertReasonDeriver; // stores a function pointer
-}
 
 library FuzzMutationSelectorLib {
     using Failarray for Failure;
@@ -89,49 +81,51 @@ library FuzzMutationSelectorLib {
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
-        failuresAndFilters[i++] = Failure.InvalidSignature.with(
+        failuresAndFilters[i++] = Failure.InvalidSignature.withOrder(
             MutationFilters.ineligibleForInvalidSignature
         );
 
         failuresAndFilters[i++] = Failure
             .InvalidSigner_BadSignature
             .and(Failure.InvalidSigner_ModifiedOrder)
-            .with(MutationFilters.ineligibleForInvalidSigner);
+            .withOrder(MutationFilters.ineligibleForInvalidSigner);
 
         failuresAndFilters[i++] = Failure
             .InvalidTime_NotStarted
             .and(Failure.InvalidTime_Expired)
-            .with(MutationFilters.ineligibleForInvalidTime);
+            .withOrder(MutationFilters.ineligibleForInvalidTime);
 
-        failuresAndFilters[i++] = Failure.InvalidConduit.with(
+        failuresAndFilters[i++] = Failure.InvalidConduit.withOrder(
             MutationFilters.ineligibleForInvalidConduit
         );
 
-        failuresAndFilters[i++] = Failure.BadSignatureV.with(
+        failuresAndFilters[i++] = Failure.BadSignatureV.withOrder(
             MutationFilters.ineligibleForBadSignatureV
         );
 
-        failuresAndFilters[i++] = Failure.BadFraction_PartialContractOrder.with(
-            MutationFilters.ineligibleForBadFractionPartialContractOrder
-        );
+        failuresAndFilters[i++] = Failure
+            .BadFraction_PartialContractOrder
+            .withOrder(
+                MutationFilters.ineligibleForBadFractionPartialContractOrder
+            );
 
-        failuresAndFilters[i++] = Failure.BadFraction_Overfill.with(
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill.withOrder(
             MutationFilters.ineligibleForBadFraction
         );
 
-        failuresAndFilters[i++] = Failure.BadFraction_NoFill.with(
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill.withOrder(
             MutationFilters.ineligibleForBadFraction_noFill
         );
 
-        failuresAndFilters[i++] = Failure.CannotCancelOrder.with(
+        failuresAndFilters[i++] = Failure.CannotCancelOrder.withOrder(
             MutationFilters.ineligibleForCannotCancelOrder
         );
 
-        failuresAndFilters[i++] = Failure.OrderIsCancelled.with(
+        failuresAndFilters[i++] = Failure.OrderIsCancelled.withOrder(
             MutationFilters.ineligibleForOrderIsCancelled
         );
 
-        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.with(
+        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.withOrder(
             MutationFilters.ineligibleForOrderAlreadyFilled
         );
 
@@ -139,7 +133,23 @@ library FuzzMutationSelectorLib {
             .BadContractSignature_BadSignature
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
-            .with(MutationFilters.ineligibleForBadContractSignature);
+            .withOrder(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure
+            .Error_OfferItemMissingApproval
+            .withOrder(MutationFilters.ineligibleForOfferItemMissingApproval);
+
+        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.withOrder(
+            MutationFilters.ineligibleForCallerMissingApproval
+        );
+
+        failuresAndFilters[i++] = Failure
+            .InsufficientNativeTokensSupplied
+            .withGeneric(MutationFilters.ineligibleForInsufficientNativeTokens);
+
+        failuresAndFilters[i++] = Failure
+            .NativeTokenTransferGenericFailure
+            .withGeneric(MutationFilters.ineligibleForNativeTokenTransferGenericFailure);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -182,6 +192,9 @@ library FailureDetailsLib {
     using MutationContextDeriverLib for FuzzTestContext;
     using FailureEligibilityLib for IneligibilityFilter[];
 
+    bytes4 constant PANIC = bytes4(0x4e487b71);
+    bytes4 constant ERROR_STRING = bytes4(0x08c379a0);
+
     function declareFailureDetails()
         internal
         pure
@@ -197,36 +210,32 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSignature
             .selector
-            .with(
+            .withOrder(
                 "InvalidSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSignature.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSigner
             .selector
-            .with(
+            .withOrder(
                 "InvalidSigner_BadSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_BadSignature.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .InvalidSigner
             .selector
-            .with(
+            .withOrder(
                 "InvalidSigner_ModifiedOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
             );
 
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadSignatureV
             .selector
-            .with(
+            .withOrder(
                 "BadSignatureV",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badSignatureV.selector,
                 details_BadSignatureV
             );
@@ -234,9 +243,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_BadSignature",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_BadSignature
                     .selector
@@ -245,9 +253,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_ModifiedOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_ModifiedOrder
                     .selector
@@ -256,9 +263,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = SignatureVerificationErrors
             .BadContractSignature
             .selector
-            .with(
+            .withOrder(
                 "BadContractSignature_MissingMagic",
-                MutationContextDerivation.ORDER,
                 FuzzMutations
                     .mutation_badContractSignature_MissingMagic
                     .selector
@@ -267,9 +273,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidTime
             .selector
-            .with(
+            .withOrder(
                 "InvalidTime_NotStarted",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_NotStarted.selector,
                 details_InvalidTime_NotStarted
             );
@@ -277,9 +282,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidTime
             .selector
-            .with(
+            .withOrder(
                 "InvalidTime_Expired",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidTime_Expired.selector,
                 details_InvalidTime_Expired
             );
@@ -287,9 +291,8 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidConduit
             .selector
-            .with(
+            .withOrder(
                 "InvalidConduit",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_invalidConduit.selector,
                 details_InvalidConduit
             );
@@ -297,45 +300,40 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_PartialContractOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_partialContractOrder.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_NoFill",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_NoFill.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .BadFraction
             .selector
-            .with(
+            .withOrder(
                 "BadFraction_Overfill",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_badFraction_Overfill.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .CannotCancelOrder
             .selector
-            .with(
+            .withOrder(
                 "CannotCancelOrder",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_cannotCancelOrder.selector
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .OrderIsCancelled
             .selector
-            .with(
+            .withOrder(
                 "OrderIsCancelled",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderIsCancelled.selector,
                 details_OrderIsCancelled
             );
@@ -343,16 +341,44 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .OrderAlreadyFilled
             .selector
-            .with(
+            .withOrder(
                 "OrderAlreadyFilled",
-                MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderAlreadyFilled.selector,
                 details_OrderAlreadyFilled
+            );
+
+        failureDetailsArray[i++] = ERROR_STRING.withOrder(
+            "Error_OfferItemMissingApproval",
+            FuzzMutations.mutation_offerItemMissingApproval.selector,
+            errorString("NOT_AUTHORIZED")
+        );
+
+        failureDetailsArray[i++] = ERROR_STRING.withOrder(
+            "Error_CallerMissingApproval",
+            FuzzMutations.mutation_callerMissingApproval.selector,
+            errorString("NOT_AUTHORIZED")
+        );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InsufficientNativeTokensSupplied
+            .selector
+            .withGeneric(
+                "InsufficientNativeTokensSupplied",
+                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .NativeTokenTransferGenericFailure
+            .selector
+            .withGeneric(
+                "NativeTokenTransferGenericFailure",
+                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector,
+                details_NativeTokenTransferGenericFailure
             );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
-            revert("FuzzMutationSelectorLib: incorrect # failures specified");
+            revert("FailureDetailsLib: incorrect # failures specified");
         }
 
         // Set the actual length of the array.
@@ -362,6 +388,25 @@ library FailureDetailsLib {
     }
 
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
+    function details_NotAuthorized(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            "NOT_AUTHORIZED"
+        );
+    }
+
+    function details_PanicUnderflow(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, 0x11);
+    }
+
     function details_BadSignatureV(
         FuzzTestContext memory /* context */,
         MutationState memory /* mutationState */,
@@ -431,6 +476,86 @@ library FailureDetailsLib {
             errorSelector,
             context.executionState.orderHashes[mutationState.selectedOrderIndex]
         );
+    }
+
+    function details_NativeTokenTransferGenericFailure(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        uint256 totalImplicitExecutions = (
+            context.expectations.expectedImplicitExecutions.length
+        );
+        ReceivedItem memory item;
+        if (context.expectations.expectedNativeTokensReturned == 0) {
+            if (totalImplicitExecutions == 0) {
+                revert("FailureDetailsLib: not enough implicit executions for unspent item return");
+            }
+
+            bool foundNative;
+            for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
+                item = context.expectations.expectedImplicitExecutions[i].item;
+                if (item.itemType == ItemType.NATIVE) {
+                    foundNative = true;
+                    break;
+                }
+
+                if (i == 0) {
+                    break;
+                }
+            }
+
+            if (!foundNative) {
+                revert("FailureDetailsLib: no unspent native token item located with no returned native tokens");
+            }
+        } else {
+            if (totalImplicitExecutions > 2) {
+                revert("FailureDetailsLib: not enough implicit executions for native token + unspent return");
+            }
+
+            bool foundNative;
+            for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
+                item = context.expectations.expectedImplicitExecutions[i - 1].item;
+                if (item.itemType == ItemType.NATIVE) {
+                    foundNative = true;
+                    break;
+                }
+            }
+
+            if (!foundNative) {
+                revert("FailureDetailsLib: no unspent native token item located");
+            }
+        }
+
+
+
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            context.executionState.recipient == address(0) ? context.executionState.caller : context.executionState.recipient,
+            item.amount
+        );
+    }
+
+    function errorString(
+        string memory errorMessage
+    )
+        internal
+        pure
+        returns (
+            function(FuzzTestContext memory, MutationState memory, bytes4)
+                internal
+                pure
+                returns (bytes memory)
+        )
+    {
+        if (
+            keccak256(abi.encodePacked(errorMessage)) ==
+            keccak256(abi.encodePacked("NOT_AUTHORIZED"))
+        ) {
+            return details_NotAuthorized;
+        }
+
+        revert("FailureDetailsLib: unsupported error string");
     }
 
     ////////////////////////////////////////////////////////////////////////////

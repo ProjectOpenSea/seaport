@@ -55,10 +55,6 @@ interface TestERC20 {
 interface TestERC721 {
     function mint(address to, uint256 tokenId) external;
 
-    function approve(address to, uint256 tokenId) external;
-
-    function getApproved(uint256 tokenId) external view returns (address);
-
     function setApprovalForAll(address operator, bool approved) external;
 }
 
@@ -89,6 +85,76 @@ library CheckHelpers {
         newChecks[checks.length] = check;
         context.checks = newChecks;
         return context;
+    }
+
+    /**
+     *  @dev Get the address to approve to for a given test context.
+     *
+     * @param context The test context.
+     */
+    function getApproveTo(
+        FuzzTestContext memory context
+    ) internal view returns (address) {
+        if (context.executionState.fulfillerConduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(context.executionState.fulfillerConduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("CheckHelpers: Conduit not found");
+            }
+        }
+    }
+
+    /**
+     *  @dev Get the address to approve to for a given test context and order.
+     *
+     * @param context The test context.
+     * @param orderParams The order parameters.
+     */
+    function getApproveTo(
+        FuzzTestContext memory context,
+        OrderParameters memory orderParams
+    ) internal view returns (address) {
+        if (orderParams.conduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderParams.conduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("CheckHelpers: Conduit not found");
+            }
+        }
+    }
+
+    /**
+     *  @dev Get the address to approve to for a given test context and order.
+     *
+     * @param context The test context.
+     * @param orderDetails The order details.
+     */
+    function getApproveTo(
+        FuzzTestContext memory context,
+        OrderDetails memory orderDetails
+    ) internal view returns (address) {
+        if (orderDetails.conduitKey == bytes32(0)) {
+            return address(context.seaport);
+        } else {
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderDetails.conduitKey);
+            if (exists) {
+                return conduit;
+            } else {
+                revert("CheckHelpers: Conduit not found");
+            }
+        }
     }
 }
 
@@ -232,7 +298,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             OrderDetails memory order = context.executionState.orderDetails[i];
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
-            address approveTo = _getApproveTo(context, order);
+            address approveTo = context.getApproveTo(order);
             for (uint256 j = 0; j < items.length; j++) {
                 SpentItem memory item = items[j];
 
@@ -262,7 +328,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 if (item.itemType == ItemType.ERC721) {
                     TestERC721(item.token).mint(offerer, item.identifier);
                     vm.prank(offerer);
-                    TestERC721(item.token).approve(approveTo, item.identifier);
+                    TestERC721(item.token).setApprovalForAll(approveTo, true);
                 }
 
                 if (item.itemType == ItemType.ERC1155) {
@@ -320,7 +386,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .parameters
                 .consideration[0];
 
-            address approveTo = _getApproveTo(context);
+            address approveTo = context.getApproveTo();
 
             if (item.itemType == ItemType.ERC721) {
                 TestERC721(item.token).mint(
@@ -350,7 +416,7 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             ReceivedItem[] memory items = order.consideration;
 
             address owner = context.executionState.caller;
-            address approveTo = _getApproveTo(context);
+            address approveTo = context.getApproveTo();
 
             for (uint256 j = 0; j < items.length; j++) {
                 ReceivedItem memory item = items[j];
@@ -423,12 +489,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         ExecutionsFlattener.flattenExecutions(context);
         context.registerCheck(FuzzChecks.check_expectedBalances.selector);
         ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
-
-        // Note: fewer (or occcasionally greater) native tokens need to be
-        // supplied when orders are unavailable; however, this is generally
-        // not known at the time of submission. Consider adding a fuzz param
-        // for supplying the minimum possible native token value.
-        context.executionState.value = context.getNativeTokensToSupply();
 
         Execution[] memory _executions = context
             .expectations
@@ -519,76 +579,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             context.registerCheck(FuzzChecks.check_orderValidated.selector);
         } else {
             revert("FuzzEngine: Action not implemented");
-        }
-    }
-
-    /**
-     *  @dev Get the address to approve to for a given test context.
-     *
-     * @param context The test context.
-     */
-    function _getApproveTo(
-        FuzzTestContext memory context
-    ) internal view returns (address) {
-        if (context.executionState.fulfillerConduitKey == bytes32(0)) {
-            return address(context.seaport);
-        } else {
-            (address conduit, bool exists) = context
-                .conduitController
-                .getConduit(context.executionState.fulfillerConduitKey);
-            if (exists) {
-                return conduit;
-            } else {
-                revert("FuzzSetup: Conduit not found");
-            }
-        }
-    }
-
-    /**
-     *  @dev Get the address to approve to for a given test context and order.
-     *
-     * @param context The test context.
-     * @param orderParams The order parameters.
-     */
-    function _getApproveTo(
-        FuzzTestContext memory context,
-        OrderParameters memory orderParams
-    ) internal view returns (address) {
-        if (orderParams.conduitKey == bytes32(0)) {
-            return address(context.seaport);
-        } else {
-            (address conduit, bool exists) = context
-                .conduitController
-                .getConduit(orderParams.conduitKey);
-            if (exists) {
-                return conduit;
-            } else {
-                revert("FuzzSetup: Conduit not found");
-            }
-        }
-    }
-
-    /**
-     *  @dev Get the address to approve to for a given test context and order.
-     *
-     * @param context The test context.
-     * @param orderDetails The order details.
-     */
-    function _getApproveTo(
-        FuzzTestContext memory context,
-        OrderDetails memory orderDetails
-    ) internal view returns (address) {
-        if (orderDetails.conduitKey == bytes32(0)) {
-            return address(context.seaport);
-        } else {
-            (address conduit, bool exists) = context
-                .conduitController
-                .getConduit(orderDetails.conduitKey);
-            if (exists) {
-                return conduit;
-            } else {
-                revert("FuzzSetup: Conduit not found");
-            }
         }
     }
 }
