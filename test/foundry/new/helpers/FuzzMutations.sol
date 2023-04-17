@@ -376,6 +376,26 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForInvalidFulfillmentComponentData(
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -619,6 +639,40 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.numerator = 6;
         order.denominator = 9;
+
+        exec(context);
+    }
+
+    function mutation_invalidFulfillmentComponentData(
+        FuzzTestContext memory context
+    ) external {
+        context.setIneligibleOrders(
+            MutationFilters.ineligibleForInvalidFulfillmentComponentData
+        );
+
+        if (context.executionState.fulfillments.length != 0) {
+            context
+                .executionState
+                .fulfillments[0]
+                .considerationComponents[0]
+                .orderIndex = context.executionState.orders.length;
+        }
+
+        if (context.executionState.offerFulfillments.length != 0) {
+            context.executionState.offerFulfillments[0][0].orderIndex = context
+                .executionState
+                .orders
+                .length;
+        }
+
+        if (context.executionState.considerationFulfillments.length != 0) {
+            context
+            .executionState
+            .considerationFulfillments[0][0].orderIndex = context
+                .executionState
+                .orders
+                .length;
+        }
 
         exec(context);
     }

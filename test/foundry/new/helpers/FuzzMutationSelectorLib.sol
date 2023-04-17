@@ -25,6 +25,10 @@ import {
     ConsiderationEventsAndErrors
 } from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
+import {
+    FulfillmentApplicationErrors
+} from "../../../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
@@ -46,6 +50,7 @@ enum Failure {
     CannotCancelOrder, // Caller cannot cancel order
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
+    InvalidFulfillmentComponentData, // Fulfillment component data is invalid
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +145,10 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .with(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure.InvalidFulfillmentComponentData.with(
+            MutationFilters.ineligibleForInvalidFulfillmentComponentData
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -348,6 +357,15 @@ library FailureDetailsLib {
                 MutationContextDerivation.ORDER,
                 FuzzMutations.mutation_orderAlreadyFilled.selector,
                 details_OrderAlreadyFilled
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .InvalidFulfillmentComponentData
+            .selector
+            .with(
+                "InvalidFulfillmentComponentData",
+                MutationContextDerivation.ORDER,
+                FuzzMutations.mutation_invalidFulfillmentComponentData.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
