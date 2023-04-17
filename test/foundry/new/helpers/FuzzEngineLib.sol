@@ -34,6 +34,8 @@ import {
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { FuzzDerivers } from "./FuzzDerivers.sol";
+
 /**
  * @notice Stateless helpers for FuzzEngine.
  */
@@ -46,6 +48,7 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using FuzzDerivers for FuzzTestContext;
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -537,14 +540,20 @@ library FuzzEngineLib {
 
         value = value - valueToCreditBack;
 
+        (
+            ,
+            ,
+            uint256 nativeTokensReturned
+        ) = context.getFulfillAvailableExecutions(value);
+
         // NOTE: this check would not apply in cases where Seaport gets paid native
         // tokens by a contract offerer that doesn't actually return a native
         // offer item (or gets paid mid-flight from some other source.) That's
         // not currently the case in the contract order tests.
-        if (context.expectations.expectedNativeTokensReturned > value) {
+        if (nativeTokensReturned > value) {
             revert("FuzzEngineLib: got higher expected tokens returned than value supplied");
         }
 
-        return value - context.expectations.expectedNativeTokensReturned;
+        return value - nativeTokensReturned;
     }
 }

@@ -490,12 +490,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         context.registerCheck(FuzzChecks.check_expectedBalances.selector);
         ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
 
-        // Note: fewer (or occcasionally greater) native tokens need to be
-        // supplied when orders are unavailable; however, this is generally
-        // not known at the time of submission. Consider adding a fuzz param
-        // for supplying the minimum possible native token value.
-        context.executionState.value = context.getNativeTokensToSupply();
-
         Execution[] memory _executions = context
             .expectations
             .allExpectedExecutions;

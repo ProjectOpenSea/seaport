@@ -293,7 +293,7 @@ library FuzzDerivers {
                 explicitExecutions,
                 implicitExecutions,
                 nativeTokensReturned
-            ) = getFulfillAvailableExecutions(context);
+            ) = getFulfillAvailableExecutions(context, context.executionState.value);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -394,7 +394,8 @@ library FuzzDerivers {
     }
 
     function getFulfillAvailableExecutions(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        uint256 nativeTokensSupplied
     )
         internal
         view
@@ -408,7 +409,7 @@ library FuzzDerivers {
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                context.executionState.value,
+                nativeTokensSupplied,
                 context.expectations.expectedAvailableOrders
             );
     }
