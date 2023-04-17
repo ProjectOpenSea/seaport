@@ -7,7 +7,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
-    OrderEligibilityLib,
+    MutationEligibilityLib,
     MutationHelpersLib
 } from "./FuzzMutationHelpers.sol";
 
@@ -507,7 +507,7 @@ library MutationFilters {
 
 contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
-    using OrderEligibilityLib for FuzzTestContext;
+    using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
@@ -809,13 +809,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badFraction_partialContractOrder(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForBadFractionPartialContractOrder
-        );
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 6;
         order.denominator = 9;

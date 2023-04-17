@@ -246,6 +246,8 @@ struct ExecutionState {
 struct MutationState {
     AdvancedOrder selectedOrder;
     uint256 selectedOrderIndex;
+    CriteriaResolver selectedCriteriaResolver;
+    uint256 selectedCriteriaResolverIndex;
 }
 
 struct FuzzTestContext {
