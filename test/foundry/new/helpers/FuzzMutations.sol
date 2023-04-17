@@ -201,6 +201,24 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleWhenNotAdvanced(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     function ineligibleForInvalidProof_Merkle(
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
@@ -959,6 +977,29 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         bytes32[] memory criteriaProof = new bytes32[](1);
         resolver.criteriaProof = criteriaProof;
+
+        exec(context);
+    }
+
+    function mutation_orderCriteriaResolverOutOfRange(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length + 1);
+        for (uint256 i = 0; i < oldResolvers.length; ++i) {
+            newResolvers[i] = oldResolvers[i];
+        }
+
+        newResolvers[oldResolvers.length] = CriteriaResolver({
+            orderIndex: context.executionState.orders.length,
+            side: Side.OFFER,
+            index: 0,
+            identifier: 0,
+            criteriaProof: new bytes32[](0)
+        });
+
+        context.executionState.criteriaResolvers = newResolvers;
 
         exec(context);
     }

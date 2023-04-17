@@ -59,7 +59,7 @@ enum Failure {
     CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
     InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
     InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
-    // OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
+    OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
     // OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
     // ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     // UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
@@ -172,6 +172,10 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .InvalidProof_Wildcard
             .withCriteria(MutationFilters.ineligibleForInvalidProof_Wildcard);
+
+        failuresAndFilters[i++] = Failure
+            .OrderCriteriaResolverOutOfRange
+            .withGeneric(MutationFilters.ineligibleWhenNotAdvanced);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -421,6 +425,15 @@ library FailureDetailsLib {
                 "InvalidProof_Wildcard",
                 FuzzMutations.mutation_invalidWildcardProof.selector
             );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .OrderCriteriaResolverOutOfRange
+            .selector
+            .withGeneric(
+                "OrderCriteriaResolverOutOfRange",
+                FuzzMutations.mutation_orderCriteriaResolverOutOfRange.selector,
+                details_withZero
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -521,6 +534,17 @@ library FailureDetailsLib {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
             context.executionState.orderHashes[mutationState.selectedOrderIndex]
+        );
+    }
+
+    function details_withZero(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            uint256(0)
         );
     }
 
