@@ -201,6 +201,38 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForInvalidProof_Merkle(
+        CriteriaResolver memory criteriaResolver,
+        uint256 /* criteriaResolverIndex */,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[criteriaResolver.orderIndex]) {
+            return true;
+        }
+
+        if (criteriaResolver.criteriaProof.length == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInvalidProof_Wildcard(
+        CriteriaResolver memory criteriaResolver,
+        uint256 /* criteriaResolverIndex */,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[criteriaResolver.orderIndex]) {
+            return true;
+        }
+
+        if (criteriaResolver.criteriaProof.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     function neverIneligible(
         FuzzTestContext memory /* context */
     ) internal pure returns (bool) {
@@ -901,6 +933,32 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.numerator = 6;
         order.denominator = 9;
+
+        exec(context);
+    }
+
+    function mutation_invalidMerkleProof(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+
+        bytes32 firstProofElement = resolver.criteriaProof[0];
+        resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidWildcardProof(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+
+        bytes32[] memory criteriaProof = new bytes32[](1);
+        resolver.criteriaProof = criteriaProof;
 
         exec(context);
     }

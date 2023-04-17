@@ -57,8 +57,8 @@ enum Failure {
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
     CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
-    // InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
-    // InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
+    InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
+    InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
     // OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
     // OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
     // ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
@@ -164,6 +164,14 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .CriteriaNotEnabledForItem
             .withGeneric(MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems);
+
+        failuresAndFilters[i++] = Failure
+            .InvalidProof_Merkle
+            .withCriteria(MutationFilters.ineligibleForInvalidProof_Merkle);
+
+        failuresAndFilters[i++] = Failure
+            .InvalidProof_Wildcard
+            .withCriteria(MutationFilters.ineligibleForInvalidProof_Wildcard);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -396,6 +404,22 @@ library FailureDetailsLib {
             .withGeneric(
                 "CriteriaNotEnabledForItem",
                 FuzzMutations.mutation_criteriaNotEnabledForItem.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .InvalidProof
+            .selector
+            .withGeneric(
+                "InvalidProof_Merkle",
+                FuzzMutations.mutation_invalidMerkleProof.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .InvalidProof
+            .selector
+            .withGeneric(
+                "InvalidProof_Wildcard",
+                FuzzMutations.mutation_invalidWildcardProof.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
