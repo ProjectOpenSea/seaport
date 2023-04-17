@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
+import { assume } from "./VmUtils.sol";
 
 import {
     AdvancedOrderLib,
@@ -55,11 +56,13 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(
-        FuzzTestContext memory context
-    ) internal view returns (bytes4) {
+    function action(FuzzTestContext memory context) internal returns (bytes4) {
         if (context._action != bytes4(0)) return context._action;
-        bytes4[] memory _actions = actions(context);
+        bytes4[] memory _actions = actions(
+            context,
+            context.fuzzParams.excludeSelectors
+        );
+        assume(_actions.length > 0, "no_valid_action");
         return (context._action = _actions[
             context.fuzzParams.seed % _actions.length
         ]);
@@ -67,7 +70,7 @@ library FuzzEngineLib {
 
     function actionName(
         FuzzTestContext memory context
-    ) internal view returns (string memory) {
+    ) internal returns (string memory) {
         bytes4 selector = action(context);
         if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
         if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
@@ -96,6 +99,12 @@ library FuzzEngineLib {
         return context;
     }
 
+    function actions(
+        FuzzTestContext memory context
+    ) internal view returns (bytes4[] memory) {
+        return actions(context, new bytes4[](0));
+    }
+
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
      *      functions can we call," based on the orders in a given FuzzTestContext.
@@ -104,7 +113,8 @@ library FuzzEngineLib {
      * @return bytes4[] of SeaportInterface function selectors.
      */
     function actions(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        bytes4[] memory excludeSelectors
     ) internal view returns (bytes4[] memory) {
         Family family = context.executionState.orders.getFamily();
 
@@ -140,7 +150,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             } else {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
@@ -148,7 +158,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
         }
 
@@ -167,7 +177,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
 
             if (structure == Structure.STANDARD) {
@@ -179,7 +189,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
 
             if (structure == Structure.ADVANCED) {
@@ -189,7 +199,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
         }
 
@@ -207,7 +217,7 @@ library FuzzEngineLib {
                     .seaport
                     .fulfillAvailableAdvancedOrders
                     .selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             } else {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
@@ -217,18 +227,18 @@ library FuzzEngineLib {
                     .selector;
                 //selectors[2] = context.seaport.cancel.selector;
                 //selectors[3] = context.seaport.validate.selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
         } else if (invalidOfferItemsLocated) {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.matchAdvancedOrders.selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             } else {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.matchOrders.selector;
                 selectors[1] = context.seaport.matchAdvancedOrders.selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
         } else {
             if (structure == Structure.ADVANCED) {
@@ -238,7 +248,7 @@ library FuzzEngineLib {
                     .fulfillAvailableAdvancedOrders
                     .selector;
                 selectors[1] = context.seaport.matchAdvancedOrders.selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             } else {
                 bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
@@ -250,9 +260,38 @@ library FuzzEngineLib {
                 selectors[3] = context.seaport.matchAdvancedOrders.selector;
                 //selectors[4] = context.seaport.cancel.selector;
                 //selectors[5] = context.seaport.validate.selector;
-                return selectors;
+                return _filterActions(selectors, excludeSelectors);
             }
         }
+    }
+
+    function _filterActions(
+        bytes4[] memory actions,
+        bytes4[] memory excludeSelectors
+    ) internal pure returns (bytes4[] memory) {
+        bytes4[] memory filteredActions = new bytes4[](actions.length);
+        uint256 filteredActionsLength = 0;
+        for (uint256 i = 0; i < actions.length; ++i) {
+            bool exclude = false;
+            for (uint256 j = 0; j < excludeSelectors.length; ++j) {
+                if (actions[i] == excludeSelectors[j]) {
+                    exclude = true;
+                    break;
+                }
+            }
+
+            if (!exclude) {
+                filteredActions[filteredActionsLength] = actions[i];
+                filteredActionsLength++;
+            }
+        }
+
+        bytes4[] memory result = new bytes4[](filteredActionsLength);
+        for (uint256 i = 0; i < filteredActionsLength; ++i) {
+            result[i] = filteredActions[i];
+        }
+
+        return result;
     }
 
     function mustUseMatch(
@@ -392,7 +431,7 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal view returns (uint256) {
+    ) internal returns (uint256) {
         bool isMatch = action(context) ==
             context.seaport.matchAdvancedOrders.selector ||
             action(context) == context.seaport.matchOrders.selector;

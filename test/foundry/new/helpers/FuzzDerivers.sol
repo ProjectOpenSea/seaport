@@ -63,7 +63,7 @@ library FuzzDerivers {
 
     function withDerivedCallValue(
         FuzzTestContext memory context
-    ) internal view returns (FuzzTestContext memory) {
+    ) internal returns (FuzzTestContext memory) {
         context.executionState.value = context.getNativeTokensToSupply();
         return context;
     }

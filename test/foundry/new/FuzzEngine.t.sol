@@ -109,7 +109,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -136,7 +137,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -153,7 +155,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 1,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -189,7 +192,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -216,7 +220,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -241,7 +246,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 2,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -258,7 +264,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 3,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(1);
@@ -295,7 +302,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -338,7 +346,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -370,7 +379,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(2);
@@ -390,7 +400,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 1,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(2);
@@ -410,7 +421,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 2,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(2);
@@ -427,7 +439,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 3,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(2);
@@ -489,7 +502,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -533,7 +547,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -618,7 +633,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 2,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -648,7 +664,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 3,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -764,7 +781,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(advancedOrders.length)
@@ -973,7 +991,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 1,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(advancedOrders.length);
@@ -1098,7 +1117,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 2,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1218,7 +1238,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 3,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(advancedOrders.length)
@@ -1273,7 +1294,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 5,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1327,7 +1349,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 4,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1375,7 +1398,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1425,7 +1449,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1735,7 +1760,8 @@ contract FuzzEngineTest is FuzzEngine {
                         seed: 0,
                         totalOrders: 0,
                         maxOfferItems: 0,
-                        maxConsiderationItems: 0
+                        maxConsiderationItems: 0,
+                        excludeSelectors: new bytes4[](0)
                     })
                 );
 
@@ -1804,7 +1830,8 @@ contract FuzzEngineTest is FuzzEngine {
                     seed: 4,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    excludeSelectors: new bytes4[](0)
                 })
             )
             .withMaximumFulfilled(orders.length)

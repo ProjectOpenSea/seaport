@@ -166,7 +166,7 @@ library MutationFilters {
         AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (
@@ -244,7 +244,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (
@@ -278,7 +278,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (action == context.seaport.fulfillAvailableAdvancedOrders.selector) {
@@ -292,7 +292,7 @@ library MutationFilters {
         AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (action != context.seaport.cancel.selector) {
@@ -306,7 +306,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (
@@ -327,7 +327,7 @@ library MutationFilters {
         AdvancedOrder memory /* order */,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
 
         if (
@@ -349,7 +349,7 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         bytes4 action = context.action();
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
