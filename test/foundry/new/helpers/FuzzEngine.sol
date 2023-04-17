@@ -413,12 +413,12 @@ contract FuzzEngine is
         if (
             data.length == 4 &&
             abi.decode(abi.encodePacked(data, uint224(0)), (bytes4)) ==
-            MutationEligibilityLib.NoEligibleOrderFound.selector
+            MutationEligibilityLib.NoEligibleIndexFound.selector
         ) {
             assertTrue(
                 false,
                 string.concat(
-                    "No eligible order found to apply failure '",
+                    "No eligible element index found to apply failure '",
                     name,
                     "'"
                 )

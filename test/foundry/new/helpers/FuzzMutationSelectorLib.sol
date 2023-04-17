@@ -574,6 +574,7 @@ library FailureDetailsLib {
         IneligibilityFilter[] memory failuresAndFilters
     )
         internal
+        view
         returns (
             string memory name,
             bytes4 mutationSelector,

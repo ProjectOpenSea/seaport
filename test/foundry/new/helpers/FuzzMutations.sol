@@ -809,13 +809,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_badFraction_partialContractOrder(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        MutationState memory mutationState
     ) external {
-        context.setIneligibleOrders(
-            MutationFilters.ineligibleForBadFractionPartialContractOrder
-        );
-
-        (AdvancedOrder memory order, ) = context.selectEligibleOrder();
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.numerator = 6;
         order.denominator = 9;

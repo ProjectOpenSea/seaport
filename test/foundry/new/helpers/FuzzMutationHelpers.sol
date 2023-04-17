@@ -199,7 +199,7 @@ library MutationEligibilityLib {
     using LibPRNG for LibPRNG.PRNG;
     using FailureEligibilityLib for FuzzTestContext;
 
-    error NoEligibleOrderFound();
+    error NoEligibleIndexFound();
 
     function withOrder(
         Failure failure,
@@ -316,6 +316,17 @@ library MutationEligibilityLib {
                     ),
                     failuresAndFilter.failures
                 );
+            } else if (
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.CRITERIA_RESOLVER
+            ) {
+                setIneligibleFailures(
+                    context,
+                    asIneligibleCriteriaBasedMutationFilter(
+                        failuresAndFilter.ineligibleMutationFilter
+                    ),
+                    failuresAndFilter.failures
+                );
             } else {
                 revert(
                     "MutationEligibilityLib: unknown derivation method when setting failures"
@@ -332,6 +343,18 @@ library MutationEligibilityLib {
         Failure[] memory ineligibleFailures
     ) internal {
         if (hasNoEligibleOrders(context, ineligibleMutationFilter)) {
+            context.setIneligibleFailures(ineligibleFailures);
+        }
+    }
+
+    function setIneligibleFailures(
+        FuzzTestContext memory context,
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleMutationFilter,
+        Failure[] memory ineligibleFailures
+    ) internal {
+        if (hasNoEligibleCriteriaResolvers(context, ineligibleMutationFilter)) {
             context.setIneligibleFailures(ineligibleFailures);
         }
     }
@@ -370,6 +393,28 @@ library MutationEligibilityLib {
         return true;
     }
 
+    function hasNoEligibleCriteriaResolvers(
+        FuzzTestContext memory context,
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            returns (bool) ineligibleCondition
+    ) internal returns (bool) {
+        for (uint256 i; i < context.executionState.criteriaResolvers.length; i++) {
+            // Once an eligible criteria resolver is found, return false.
+            if (
+                !ineligibleCondition(
+                    context.executionState.criteriaResolvers[i],
+                    i,
+                    context
+                )
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function hasNoEligibleFailures(
         FuzzTestContext memory context,
         function(FuzzTestContext memory)
@@ -384,73 +429,103 @@ library MutationEligibilityLib {
         return true;
     }
 
-    function setIneligibleOrders(
+    function getIneligibleOrders(
         FuzzTestContext memory context,
         function(AdvancedOrder memory, uint256, FuzzTestContext memory)
             internal
+            view
             returns (bool) condition
-    ) internal {
-        for (uint256 i; i < context.executionState.orders.length; i++) {
-            if (condition(context.executionState.orders[i], i, context)) {
-                setIneligibleOrder(context, i);
+    ) internal view returns (bool[] memory ineligibleOrders) {
+        AdvancedOrder[] memory orders = context.executionState.orders;
+        ineligibleOrders = new bool[](orders.length);
+        for (uint256 i; i < orders.length; i++) {
+            if (condition(orders[i], i, context)) {
+                // Set the respective boolean for the ineligible order.
+                ineligibleOrders[i] = true;
             }
         }
     }
 
-    function setIneligibleOrder(
+    function getIneligibleCriteriaResolvers(
         FuzzTestContext memory context,
-        uint256 ineligibleOrderIndex
-    ) internal pure {
-        // Set the respective boolean for the ineligible order.
-        context.expectations.ineligibleOrders[ineligibleOrderIndex] = true;
+        function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+            internal
+            view
+            returns (bool) condition
+    ) internal view returns (bool[] memory ineligibleCriteriaResolvers) {
+        CriteriaResolver[] memory resolvers = (
+            context.executionState.criteriaResolvers
+        );
+        ineligibleCriteriaResolvers = new bool[](resolvers.length);
+        for (uint256 i; i < resolvers.length; i++) {
+            if (condition(resolvers[i], i, context)) {
+                // Set respective boolean for the ineligible criteria resolver.
+                ineligibleCriteriaResolvers[i] = true;
+            }
+        }
     }
 
-    function getEligibleOrderIndexes(
-        FuzzTestContext memory context
-    ) internal pure returns (uint256[] memory eligibleOrderIndexes) {
-        eligibleOrderIndexes = new uint256[](
-            context.expectations.ineligibleOrders.length
+    function getEligibleIndex(
+        FuzzTestContext memory context,
+        bool[] memory eligibleElements
+    ) internal pure returns (uint256) {
+        LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
+
+        uint256[] memory eligibleIndexes = new uint256[](
+            eligibleElements.length
         );
 
-        uint256 totalEligibleOrders = 0;
-        for (
-            uint256 i = 0;
-            i < context.expectations.ineligibleOrders.length;
-            ++i
-        ) {
-            // If the boolean is not set, the order is still eligible.
-            if (!context.expectations.ineligibleOrders[i]) {
-                eligibleOrderIndexes[totalEligibleOrders++] = i;
+        uint256 totalEligible = 0;
+        for (uint256 i = 0; i < eligibleElements.length; ++i) {
+            // If the boolean is not set, the element is still eligible.
+            if (!eligibleElements[i]) {
+                eligibleIndexes[totalEligible++] = i;
             }
         }
 
-        // Update the eligibleOrderIndexes array with the actual length.
-        assembly {
-            mstore(eligibleOrderIndexes, totalEligibleOrders)
+        if (totalEligible == 0) {
+            revert NoEligibleIndexFound();
         }
+
+        return eligibleIndexes[prng.next() % totalEligible];
     }
 
     function selectEligibleOrder(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        bytes32 ineligibilityFilter
     )
         internal
-        pure
+        view
         returns (AdvancedOrder memory eligibleOrder, uint256 orderIndex)
     {
-        LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
-
-        uint256[] memory eligibleOrderIndexes = getEligibleOrderIndexes(
-            context
+        bool[] memory eligibleOrders = getIneligibleOrders(
+            context,
+            MutationEligibilityLib.asIneligibleOrderBasedMutationFilter(
+                ineligibilityFilter
+            )
         );
 
-        if (eligibleOrderIndexes.length == 0) {
-            revert NoEligibleOrderFound();
-        }
-
-        orderIndex = eligibleOrderIndexes[
-            prng.next() % eligibleOrderIndexes.length
-        ];
+        orderIndex = getEligibleIndex(context, eligibleOrders);
         eligibleOrder = context.executionState.orders[orderIndex];
+    }
+
+    function selectEligibleCriteriaResolver(
+        FuzzTestContext memory context,
+        bytes32 ineligibilityFilter
+    )
+        internal
+        view
+        returns (CriteriaResolver memory eligibleCriteriaResolver, uint256 criteriaResolverIndex)
+    {
+        bool[] memory eligibleResolvers = getIneligibleCriteriaResolvers(
+            context,
+            MutationEligibilityLib.asIneligibleCriteriaBasedMutationFilter(
+                ineligibilityFilter
+            )
+        );
+
+        criteriaResolverIndex = getEligibleIndex(context, eligibleResolvers);
+        eligibleCriteriaResolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
     }
 
     function fn(
@@ -490,7 +565,7 @@ library MutationEligibilityLib {
         pure
         returns (
             function(FuzzTestContext memory)
-                internal
+                internal view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -506,7 +581,23 @@ library MutationEligibilityLib {
         pure
         returns (
             function(AdvancedOrder memory, uint256, FuzzTestContext memory)
-                internal
+                internal view
+                returns (bool) ineligibleMutationFilter
+        )
+    {
+        assembly {
+            ineligibleMutationFilter := ptr
+        }
+    }
+
+    function asIneligibleCriteriaBasedMutationFilter(
+        bytes32 ptr
+    )
+        internal
+        pure
+        returns (
+            function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+                internal view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -523,18 +614,19 @@ library MutationContextDeriverLib {
         FuzzTestContext memory context,
         MutationContextDerivation derivationMethod,
         bytes32 ineligibilityFilter // use a function pointer
-    ) internal returns (MutationState memory mutationState) {
+    ) internal view returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
-            context.setIneligibleOrders(
-                MutationEligibilityLib.asIneligibleOrderBasedMutationFilter(
-                    ineligibilityFilter
-                )
-            );
             (AdvancedOrder memory order, uint256 orderIndex) = context
-                .selectEligibleOrder();
+                .selectEligibleOrder(ineligibilityFilter);
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
+        } else if (derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER) {
+            (CriteriaResolver memory resolver, uint256 resolverIndex) = context
+                .selectEligibleCriteriaResolver(ineligibilityFilter);
+
+            mutationState.selectedCriteriaResolver = resolver;
+            mutationState.selectedCriteriaResolverIndex = resolverIndex;
         } else if ((derivationMethod != MutationContextDerivation.GENERIC)) {
             revert("MutationContextDeriverLib: unsupported derivation method");
         }
