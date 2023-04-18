@@ -511,7 +511,7 @@ library AdvancedOrdersSpaceGenerator {
         }
 
         assume(
-            contractOrderFound,
+            !contractOrderFound,
             "no_contract_order_found"
         );
 

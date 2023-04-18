@@ -38,7 +38,7 @@ contract FuzzMainTest is FuzzEngine {
             uint256 orders,
             uint256 maxOfferItemsPerOrder,
             uint256 maxConsiderationItemsPerOrder
-        ) = (17503, 5716, 13966, 3698);
+        ) = (0, 0, 0, 0);
         bytes memory callData = abi.encodeCall(
             this.test_fuzz_validOrders,
             (seed, orders, maxOfferItemsPerOrder, maxConsiderationItemsPerOrder)
