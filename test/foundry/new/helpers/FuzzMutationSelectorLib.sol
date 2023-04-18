@@ -60,8 +60,8 @@ enum Failure {
     InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
     InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
     OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
-    // OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
-    // ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
+    OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
+    ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     // UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
     // UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -176,6 +176,14 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .OrderCriteriaResolverOutOfRange
             .withGeneric(MutationFilters.ineligibleWhenNotAdvanced);
+
+        failuresAndFilters[i++] = Failure
+            .OfferCriteriaResolverOutOfRange
+            .withCriteria(MutationFilters.ineligibleForOfferCriteriaResolverOutOfRange);
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationCriteriaResolverOutOfRange
+            .withCriteria(MutationFilters.ineligibleForConsiderationCriteriaResolverOutOfRange);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -413,7 +421,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = CriteriaResolutionErrors
             .InvalidProof
             .selector
-            .withGeneric(
+            .withCriteria(
                 "InvalidProof_Merkle",
                 FuzzMutations.mutation_invalidMerkleProof.selector
             );
@@ -421,7 +429,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = CriteriaResolutionErrors
             .InvalidProof
             .selector
-            .withGeneric(
+            .withCriteria(
                 "InvalidProof_Wildcard",
                 FuzzMutations.mutation_invalidWildcardProof.selector
             );
@@ -433,6 +441,22 @@ library FailureDetailsLib {
                 "OrderCriteriaResolverOutOfRange",
                 FuzzMutations.mutation_orderCriteriaResolverOutOfRange.selector,
                 details_withZero
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .OfferCriteriaResolverOutOfRange
+            .selector
+            .withCriteria(
+                "OfferCriteriaResolverOutOfRange",
+                FuzzMutations.mutation_offerCriteriaResolverOutOfRange.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .ConsiderationCriteriaResolverOutOfRange
+            .selector
+            .withCriteria(
+                "ConsiderationCriteriaResolverOutOfRange",
+                FuzzMutations.mutation_considerationCriteriaResolverOutOfRange.selector
             );
         ////////////////////////////////////////////////////////////////////////
 

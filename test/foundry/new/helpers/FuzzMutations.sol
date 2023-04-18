@@ -22,6 +22,8 @@ import {
     Execution
 } from "seaport-sol/SeaportStructs.sol";
 
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
 import {
     AdvancedOrderLib,
     OrderParametersLib,
@@ -55,12 +57,19 @@ library MutationFilters {
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
 
+    function ineligibleWhenUnavailable(
+        FuzzTestContext memory context,
+        uint256 orderIndex
+    ) internal pure returns (bool) {
+        return !context.expectations.expectedAvailableOrders[orderIndex];
+    }
+
     function ineligibleForOfferItemMissingApproval(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -100,7 +109,7 @@ library MutationFilters {
             return true;
         }
 
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -182,7 +191,7 @@ library MutationFilters {
 
         bool locatedItem;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) {
+            if (ineligibleWhenUnavailable(context, i)) {
                 continue;
             }
 
@@ -223,8 +232,8 @@ library MutationFilters {
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[criteriaResolver.orderIndex]) {
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
             return true;
         }
 
@@ -239,12 +248,59 @@ library MutationFilters {
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[criteriaResolver.orderIndex]) {
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
             return true;
         }
 
         if (criteriaResolver.criteriaProof.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForOfferCriteriaResolverOutOfRange(
+        CriteriaResolver memory criteriaResolver,
+        uint256 /* criteriaResolverIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+            return true;
+        }
+
+        if (criteriaResolver.side != Side.OFFER) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForConsiderationCriteriaResolverOutOfRange(
+        CriteriaResolver memory criteriaResolver,
+        uint256 /* criteriaResolverIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+            return true;
+        }
+
+        if (criteriaResolver.side != Side.CONSIDERATION) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotAdvancedOrUnavailable(
+        FuzzTestContext memory context,
+        uint256 orderIndex
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvanced(context)) {
+            return true;
+        }
+
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -262,7 +318,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -483,7 +539,7 @@ library MutationFilters {
         // fraction error. We want to exclude cases where the time is wrong or
         // maximum fulfilled has already been met. (So this check is
         // over-excluding potentially eligible orders).
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -586,7 +642,7 @@ library MutationFilters {
             return true;
         }
 
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -607,6 +663,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     using FuzzInscribers for AdvancedOrder;
     using CheckHelpers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
+    using MutationFilters for FuzzTestContext;
 
     function mutation_offerItemMissingApproval(
         FuzzTestContext memory context,
@@ -693,7 +750,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         Side side;
 
         for (; orderIndex < context.executionState.orders.length; ++orderIndex) {
-            if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            if (context.ineligibleWhenUnavailable(orderIndex)) {
                 continue;
             }
 
@@ -1000,6 +1057,32 @@ contract FuzzMutations is Test, FuzzExecutor {
         });
 
         context.executionState.criteriaResolvers = newResolvers;
+
+        exec(context);
+    }
+
+    function mutation_offerCriteriaResolverOutOfRange(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+
+        OrderDetails memory order = context.executionState.orderDetails[resolver.orderIndex];
+        resolver.index = order.offer.length;
+
+        exec(context);
+    }
+
+    function mutation_considerationCriteriaResolverOutOfRange(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+
+        OrderDetails memory order = context.executionState.orderDetails[resolver.orderIndex];
+        resolver.index = order.consideration.length;
 
         exec(context);
     }
