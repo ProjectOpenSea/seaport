@@ -299,7 +299,9 @@ library ExecutionHelper {
         for (uint256 i = 0; i < orderDetails.consideration.length; i++) {
             ReceivedItem memory item = orderDetails.consideration[i];
             implicitExecutions[executionIndex++] = Execution({
-                offerer: fulfiller,
+                offerer: item.itemType == ItemType.NATIVE
+                    ? seaport
+                    : fulfiller,
                 conduitKey: fulfillerConduitKey,
                 item: item
             });
