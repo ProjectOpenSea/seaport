@@ -5,7 +5,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { vm } from "./VmUtils.sol";
+import { assume } from "./VmUtils.sol";
 
 import { Failure } from "./FuzzMutationSelectorLib.sol";
 
@@ -159,10 +159,14 @@ library FailureEligibilityLib {
 
     function selectEligibleFailure(
         FuzzTestContext memory context
-    ) internal pure returns (Failure eligibleFailure) {
+    ) internal returns (Failure eligibleFailure) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
+
+        // TODO: remove this vm.assume as soon as at least one case is found
+        // for any permutation of orders.
+        assume(eligibleFailures.length > 0, "no_eligible_failures");
 
         if (eligibleFailures.length == 0) {
             revert("FailureEligibilityLib: no eligible failure found");
