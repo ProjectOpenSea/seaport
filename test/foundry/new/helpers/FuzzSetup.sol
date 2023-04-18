@@ -310,12 +310,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         OrderType.CONTRACT
                     ) {
                         vm.deal(offerer, offerer.balance + item.amount);
-                        if (!isMatchable) {
-                            vm.deal(
-                                context.executionState.caller,
-                                context.executionState.caller.balance + item.amount
-                            );
-                        }
                     } else if (isMatchable) {
                         vm.deal(
                             context.executionState.caller,
