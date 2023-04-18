@@ -81,8 +81,6 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
-import { assume } from "./VmUtils.sol";
-
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -509,11 +507,6 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
         }
-
-        assume(
-            contractOrderFound,
-            "no_contract_order_found"
-        );
 
         // Set up a random base counter and nonce, which will be used to set the
         // counter and nonce for each offerer in the `_signOrders` function.
