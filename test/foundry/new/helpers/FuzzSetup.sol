@@ -512,6 +512,55 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             }
         }
 
+        // Prep contract order native token transfers to seaport.
+        uint256 nativeTokensFromContractOfferer = 0;
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            OrderType orderType = (
+                context.executionState.orders[i].parameters.orderType
+            );
+            if (orderType != OrderType.CONTRACT) {
+                continue;
+            }
+
+            SpentItem[] memory offer = (
+                context.executionState.orderDetails[i].offer
+            );
+            for (uint256 j = 0; j < offer.length; ++j) {
+                SpentItem memory item = offer[j];
+                if (item.itemType == ItemType.NATIVE) {
+                    nativeTokensFromContractOfferer += item.amount;
+                }
+            }
+        }
+
+        if (nativeTokensFromContractOfferer > 0) {
+            Execution memory execution = Execution({
+                offerer: address(context.generatorContext.contractOfferer),
+                conduitKey: bytes32(0),
+                item: ReceivedItem({
+                    itemType: ItemType.NATIVE,
+                    token: address(0),
+                    identifier: uint256(0),
+                    amount: nativeTokensFromContractOfferer,
+                    recipient: payable(address(context.seaport))
+                })
+            });
+
+            try balanceChecker.addTransfer(execution) {} catch (
+                bytes memory reason
+            ) {
+                context.expectations.allExpectedExecutions = executions;
+                dumpExecutions(context);
+                assembly {
+                    revert(add(reason, 32), mload(reason))
+                }
+            }
+        }
+
         try balanceChecker.addTransfers(executions) {} catch (
             bytes memory reason
         ) {
