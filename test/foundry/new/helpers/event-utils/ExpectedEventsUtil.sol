@@ -109,7 +109,7 @@ library ExpectedEventsUtil {
         require(
             executions.length ==
                 context.expectations.expectedExplicitExecutions.length +
-                    context.expectations.expectedImplicitExecutions.length
+                    context.expectations.expectedImplicitPostExecutions.length
         );
 
         context.expectations.expectedTransferEventHashes = ArrayHelpers

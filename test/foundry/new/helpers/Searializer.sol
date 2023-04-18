@@ -749,8 +749,13 @@ library Searializer {
         );
         tojsonDynArrayExecution(
             obj,
-            "expectedImplicitExecutions",
-            value.expectations.expectedImplicitExecutions
+            "expectedImplicitPreExecutions",
+            value.expectations.expectedImplicitPreExecutions
+        );
+        tojsonDynArrayExecution(
+            obj,
+            "expectedImplicitPostExecutions",
+            value.expectations.expectedImplicitPostExecutions
         );
         tojsonDynArrayExecution(
             obj,

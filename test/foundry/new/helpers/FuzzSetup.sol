@@ -497,101 +497,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        // Prep contract order native token transfers to seaport.
-        uint256 nativeTokensFromContractOfferer = 0;
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) {
-                continue;
-            }
-
-            OrderType orderType = (
-                context.executionState.orders[i].parameters.orderType
-            );
-            if (orderType != OrderType.CONTRACT) {
-                continue;
-            }
-
-            SpentItem[] memory offer = (
-                context.executionState.orderDetails[i].offer
-            );
-            for (uint256 j = 0; j < offer.length; ++j) {
-                SpentItem memory item = offer[j];
-                if (item.itemType == ItemType.NATIVE) {
-                    nativeTokensFromContractOfferer += item.amount;
-                }
-            }
-        }
-
-        if (context.executionState.value > 0) {
-            address caller = context.executionState.caller;
-            if (caller == address(0)) caller = address(this);
-            address seaport = address(context.seaport);
-
-            uint256 extraExecutions = nativeTokensFromContractOfferer > 0 ? 2 : 1;
-            executions = new Execution[](_executions.length + extraExecutions);
-
-            executions[0] = ExecutionLib.empty().withOfferer(caller);
-            executions[0].item.amount = context.executionState.value;
-            executions[0].item.recipient = payable(seaport);
-
-            if (nativeTokensFromContractOfferer > 0) {
-                Execution memory executionFromContractOfferer = Execution({
-                    offerer: address(context.generatorContext.contractOfferer),
-                    conduitKey: bytes32(0),
-                    item: ReceivedItem({
-                        itemType: ItemType.NATIVE,
-                        token: address(0),
-                        identifier: uint256(0),
-                        amount: nativeTokensFromContractOfferer,
-                        recipient: payable(address(context.seaport))
-                    })
-                });
-                executions[1] = executionFromContractOfferer;
-            }
-
-            for (uint256 i; i < _executions.length; i++) {
-                Execution memory execution = _executions[i].copy();
-                executions[i + extraExecutions] = execution;
-                if (execution.item.itemType == ItemType.NATIVE) {
-                    execution.offerer = seaport;
-                }
-            }
-        } else {
-            address seaport = address(context.seaport);
-
-            uint256 extraExecutions = nativeTokensFromContractOfferer > 0 ? 1 : 0;
-            executions = new Execution[](_executions.length + extraExecutions);
-
-            if (nativeTokensFromContractOfferer > 0) {
-                Execution memory executionFromContractOfferer = Execution({
-                    offerer: address(context.generatorContext.contractOfferer),
-                    conduitKey: bytes32(0),
-                    item: ReceivedItem({
-                        itemType: ItemType.NATIVE,
-                        token: address(0),
-                        identifier: uint256(0),
-                        amount: nativeTokensFromContractOfferer,
-                        recipient: payable(address(context.seaport))
-                    })
-                });
-                executions[0] = executionFromContractOfferer;
-            }
-
-            for (uint256 i; i < _executions.length; i++) {
-                Execution memory execution = _executions[i].copy();
-                executions[i + extraExecutions] = execution;
-                if (execution.item.itemType == ItemType.NATIVE) {
-                    execution.offerer = seaport;
-                }
-            }
-        }
-
         for (uint256 i = 0; i < executions.length; ++i) {
-            console.log('index', i);
-            console.log('offerer', executions[i].offerer);
-            console.log('item type', uint256(executions[i].item.itemType));
-            console.log('amount', uint256(executions[i].item.amount));
-            console.log('recipient', executions[i].item.recipient);
+            console.log("index", i);
+            console.log("offerer", executions[i].offerer);
+            console.log("item type", uint256(executions[i].item.itemType));
+            console.log("amount", uint256(executions[i].item.amount));
+            console.log("recipient", executions[i].item.recipient);
         }
 
         try balanceChecker.addTransfers(executions) {} catch (

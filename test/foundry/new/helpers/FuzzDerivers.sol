@@ -23,10 +23,7 @@ import {
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import {
-    ItemType,
-    OrderType
-} from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
@@ -244,14 +241,20 @@ library FuzzDerivers {
             uint256 expectedImpliedNativeExecutions = 0;
             for (uint256 i = 0; i < remainingOfferComponents.length; ++i) {
                 MatchComponent memory component = remainingOfferComponents[i];
-                OfferItem memory item = context.executionState.orders[uint256(component.orderIndex)].parameters.offer[uint256(component.itemIndex)];
+                OfferItem memory item = context
+                    .executionState
+                    .orders[uint256(component.orderIndex)]
+                    .parameters
+                    .offer[uint256(component.itemIndex)];
 
                 if (item.itemType == ItemType.NATIVE) {
                     expectedImpliedNativeExecutions += component.amount;
                 }
             }
 
-            context.expectations.expectedImpliedNativeExecutions = expectedImpliedNativeExecutions;
+            context
+                .expectations
+                .expectedImpliedNativeExecutions = expectedImpliedNativeExecutions;
         }
 
         return context;
@@ -262,8 +265,9 @@ library FuzzDerivers {
     )
         internal
         returns (
-            Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         )
     {
@@ -278,7 +282,7 @@ library FuzzDerivers {
             // (standard) executions. There are no explicit executions here
             // because the caller doesn't pass in fulfillments for these
             // functions.
-            implicitExecutions = getStandardExecutions(context);
+            implicitExecutionsPost = getStandardExecutions(context);
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
             action ==
@@ -288,7 +292,7 @@ library FuzzDerivers {
             // (basic) executions. There are no explicit executions here
             // because the caller doesn't pass in fulfillments for these
             // functions.
-            implicitExecutions = getBasicExecutions(context);
+            implicitExecutionsPost = getBasicExecutions(context);
         } else if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
@@ -297,9 +301,13 @@ library FuzzDerivers {
             // and explicit executions.
             (
                 explicitExecutions,
-                implicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
                 nativeTokensReturned
-            ) = getFulfillAvailableExecutions(context, context.executionState.value);
+            ) = getFulfillAvailableExecutions(
+                context,
+                context.executionState.value
+            );
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -318,9 +326,12 @@ library FuzzDerivers {
         ) {
             // For the match functions, derive the expected implicit and
             // explicit executions.
-            (explicitExecutions, implicitExecutions, nativeTokensReturned) = getMatchExecutions(
-                context
-            );
+            (
+                explicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = getMatchExecutions(context);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -344,13 +355,21 @@ library FuzzDerivers {
         FuzzTestContext memory context
     ) internal returns (FuzzTestContext memory) {
         (
-            Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         ) = getDerivedExecutions(context);
-        context.expectations.expectedImplicitExecutions = implicitExecutions;
+        context
+            .expectations
+            .expectedImplicitPreExecutions = implicitExecutionsPre;
+        context
+            .expectations
+            .expectedImplicitPostExecutions = implicitExecutionsPost;
         context.expectations.expectedExplicitExecutions = explicitExecutions;
-        context.expectations.expectedNativeTokensReturned = nativeTokensReturned;
+        context
+            .expectations
+            .expectedNativeTokensReturned = nativeTokensReturned;
 
         return context;
     }
@@ -432,15 +451,13 @@ library FuzzDerivers {
         view
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         )
     {
-        uint256 totalNativeTokensAvailable = (
-            nativeTokensSupplied + getContractOrderSuppliedNativeTokens(
-                context
-            )
-        );
+        uint256 totalNativeTokensAvailable = (nativeTokensSupplied +
+            getContractOrderSuppliedNativeTokens(context));
 
         return
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
@@ -458,15 +475,13 @@ library FuzzDerivers {
         view
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         )
     {
-        uint256 totalNativeTokensAvailable = (
-            context.executionState.value + getContractOrderSuppliedNativeTokens(
-                context
-            )
-        );
+        uint256 totalNativeTokensAvailable = (context.executionState.value +
+            getContractOrderSuppliedNativeTokens(context));
 
         return
             context.toFulfillmentDetails().getMatchExecutions(

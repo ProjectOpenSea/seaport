@@ -825,12 +825,31 @@ library MutationHelpersLib {
         // If we haven't found one yet, keep looking in implicit executions...
         for (
             uint256 i;
-            i < context.expectations.expectedImplicitExecutions.length;
+            i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
             Execution memory execution = context
                 .expectations
-                .expectedImplicitExecutions[i];
+                .expectedImplicitPreExecutions[i];
+            if (
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitPostExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
                 execution.offerer == offerer &&
                 execution.conduitKey == conduitKey &&
@@ -877,12 +896,31 @@ library MutationHelpersLib {
         // If we haven't found one yet, keep looking in implicit executions...
         for (
             uint256 i;
-            i < context.expectations.expectedImplicitExecutions.length;
+            i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
             Execution memory execution = context
                 .expectations
-                .expectedImplicitExecutions[i];
+                .expectedImplicitPreExecutions[i];
+            if (
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitPostExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
                 execution.offerer == caller &&
                 execution.conduitKey == conduitKey &&
