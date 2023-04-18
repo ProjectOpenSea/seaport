@@ -46,6 +46,8 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import "forge-std/console.sol";
+
 interface TestERC20 {
     function mint(address to, uint256 amount) external;
 
@@ -308,6 +310,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                         OrderType.CONTRACT
                     ) {
                         vm.deal(offerer, offerer.balance + item.amount);
+                        if (!isMatchable) {
+                            vm.deal(
+                                context.executionState.caller,
+                                context.executionState.caller.balance + item.amount
+                            );
+                        }
                     } else if (isMatchable) {
                         vm.deal(
                             context.executionState.caller,
@@ -582,6 +590,14 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     execution.offerer = seaport;
                 }
             }
+        }
+
+        for (uint256 i = 0; i < executions.length; ++i) {
+            console.log('index', i);
+            console.log('offerer', executions[i].offerer);
+            console.log('item type', uint256(executions[i].item.itemType));
+            console.log('amount', uint256(executions[i].item.amount));
+            console.log('recipient', executions[i].item.recipient);
         }
 
         try balanceChecker.addTransfers(executions) {} catch (
