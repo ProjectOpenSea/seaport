@@ -512,7 +512,7 @@ library AdvancedOrdersSpaceGenerator {
 
         assume(
             !contractOrderFound,
-            "no_contract_order_found"
+            "contract_order_found"
         );
 
         // Set up a random base counter and nonce, which will be used to set the
