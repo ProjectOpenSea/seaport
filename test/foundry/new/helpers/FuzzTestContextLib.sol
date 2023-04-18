@@ -247,6 +247,8 @@ struct MutationState {
     AdvancedOrder selectedOrder;
     uint256 selectedOrderIndex;
     Side side;
+    CriteriaResolver selectedCriteriaResolver;
+    uint256 selectedCriteriaResolverIndex;
 }
 
 struct FuzzTestContext {

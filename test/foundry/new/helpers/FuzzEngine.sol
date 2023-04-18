@@ -65,7 +65,7 @@ import { FuzzMutations } from "./FuzzMutations.sol";
 
 import { FuzzMutationSelectorLib } from "./FuzzMutationSelectorLib.sol";
 
-import { OrderEligibilityLib } from "./FuzzMutationHelpers.sol";
+import { MutationEligibilityLib } from "./FuzzMutationHelpers.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -413,12 +413,12 @@ contract FuzzEngine is
         if (
             data.length == 4 &&
             abi.decode(abi.encodePacked(data, uint224(0)), (bytes4)) ==
-            OrderEligibilityLib.NoEligibleOrderFound.selector
+            MutationEligibilityLib.NoEligibleIndexFound.selector
         ) {
             assertTrue(
                 false,
                 string.concat(
-                    "No eligible order found to apply failure '",
+                    "No eligible element index found to apply failure '",
                     name,
                     "'"
                 )

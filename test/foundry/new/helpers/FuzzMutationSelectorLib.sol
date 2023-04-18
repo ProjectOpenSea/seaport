@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    ReceivedItem
+} from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
@@ -11,7 +15,7 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
     FailureEligibilityLib,
-    OrderEligibilityLib,
+    MutationEligibilityLib,
     Failarray,
     FailureDetails,
     FailureDetailsHelperLib,
@@ -33,6 +37,10 @@ import {
 import {
     FulfillmentApplicationErrors
 } from "../../../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+
+import {
+    CriteriaResolutionErrors
+} from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
@@ -63,6 +71,14 @@ enum Failure {
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
+    CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
+    InvalidProof_Merkle, // Bad or missing proof for non-wildcard criteria item
+    InvalidProof_Wildcard, // Non-empty proof supplied for wildcard criteria item
+    OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
+    OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
+    ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
+    UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
+    UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -74,9 +90,9 @@ library FuzzMutationSelectorLib {
     using FuzzEngineLib for FuzzTestContext;
     using FailureDetailsLib for FuzzTestContext;
     using FailureEligibilityLib for FuzzTestContext;
-    using OrderEligibilityLib for FuzzTestContext;
-    using OrderEligibilityLib for Failure;
-    using OrderEligibilityLib for Failure[];
+    using MutationEligibilityLib for FuzzTestContext;
+    using MutationEligibilityLib for Failure;
+    using MutationEligibilityLib for Failure[];
     using FailureEligibilityLib for IneligibilityFilter[];
 
     function declareFilters()
@@ -187,6 +203,37 @@ library FuzzMutationSelectorLib {
             .NativeTokenTransferGenericFailure
             .withGeneric(
                 MutationFilters.ineligibleForNativeTokenTransferGenericFailure
+            );
+
+        failuresAndFilters[i++] = Failure.CriteriaNotEnabledForItem.withGeneric(
+            MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems
+        );
+
+        failuresAndFilters[i++] = Failure.InvalidProof_Merkle.withCriteria(
+            MutationFilters.ineligibleForInvalidProof_Merkle
+        );
+
+        failuresAndFilters[i++] = Failure.InvalidProof_Wildcard.withCriteria(
+            MutationFilters.ineligibleForInvalidProof_Wildcard
+        );
+
+        failuresAndFilters[i++] = Failure
+            .OrderCriteriaResolverOutOfRange
+            .withGeneric(MutationFilters.ineligibleWhenNotAdvanced);
+
+        failuresAndFilters[i++] = Failure
+            .OfferCriteriaResolverOutOfRange
+            .and(Failure.UnresolvedOfferCriteria)
+            .withCriteria(
+                MutationFilters.ineligibleForOfferCriteriaResolverFailure
+            );
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationCriteriaResolverOutOfRange
+            .and(Failure.UnresolvedConsiderationCriteria)
+            .withCriteria(
+                MutationFilters
+                    .ineligibleForConsiderationCriteriaResolverFailure
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -454,6 +501,75 @@ library FailureDetailsLib {
                     .selector,
                 details_NativeTokenTransferGenericFailure
             );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .CriteriaNotEnabledForItem
+            .selector
+            .withGeneric(
+                "CriteriaNotEnabledForItem",
+                FuzzMutations.mutation_criteriaNotEnabledForItem.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .InvalidProof
+            .selector
+            .withCriteria(
+                "InvalidProof_Merkle",
+                FuzzMutations.mutation_invalidMerkleProof.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .InvalidProof
+            .selector
+            .withCriteria(
+                "InvalidProof_Wildcard",
+                FuzzMutations.mutation_invalidWildcardProof.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .OrderCriteriaResolverOutOfRange
+            .selector
+            .withGeneric(
+                "OrderCriteriaResolverOutOfRange",
+                FuzzMutations.mutation_orderCriteriaResolverOutOfRange.selector,
+                details_withZero
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .OfferCriteriaResolverOutOfRange
+            .selector
+            .withCriteria(
+                "OfferCriteriaResolverOutOfRange",
+                FuzzMutations.mutation_offerCriteriaResolverOutOfRange.selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .ConsiderationCriteriaResolverOutOfRange
+            .selector
+            .withCriteria(
+                "ConsiderationCriteriaResolverOutOfRange",
+                FuzzMutations
+                    .mutation_considerationCriteriaResolverOutOfRange
+                    .selector
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .UnresolvedOfferCriteria
+            .selector
+            .withCriteria(
+                "UnresolvedOfferCriteria",
+                FuzzMutations.mutation_unresolvedCriteria.selector,
+                details_unresolvedCriteria
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .UnresolvedConsiderationCriteria
+            .selector
+            .withCriteria(
+                "UnresolvedConsiderationCriteria",
+                FuzzMutations.mutation_unresolvedCriteria.selector,
+                details_unresolvedCriteria
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -575,7 +691,18 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            0
+            uint256(0)
+        );
+    }
+
+    function details_withZero(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            uint256(0)
         );
     }
 
@@ -648,6 +775,20 @@ library FailureDetailsLib {
         );
     }
 
+    function details_unresolvedCriteria(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        CriteriaResolver memory resolver = mutationState
+            .selectedCriteriaResolver;
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            resolver.orderIndex,
+            resolver.index
+        );
+    }
+
     function errorString(
         string memory errorMessage
     )
@@ -678,6 +819,7 @@ library FailureDetailsLib {
         IneligibilityFilter[] memory failuresAndFilters
     )
         internal
+        view
         returns (
             string memory name,
             bytes4 mutationSelector,
