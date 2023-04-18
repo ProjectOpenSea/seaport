@@ -189,7 +189,7 @@ library ExecutionHelper {
         address recipient,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         uint256 excessNativeTokens = nativeTokensSupplied;
 
         implicitExecutions = new Execution[](
@@ -199,9 +199,6 @@ library ExecutionHelper {
         uint256 executionIndex = 0;
 
         for (uint256 i = 0; i < orderDetails.offer.length; i++) {
-            if (orderDetails.offer[i].itemType == ItemType.NATIVE) {
-                excessNativeTokens += orderDetails.offer[i].amount;
-            }
             implicitExecutions[executionIndex] = Execution({
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
@@ -258,7 +255,7 @@ library ExecutionHelper {
         bytes32 fulfillerConduitKey,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (Execution[] memory implicitExecutions) {
+    ) public view returns (Execution[] memory implicitExecutions) {
         if (orderDetails.offer.length != 1) {
             revert("not a basic order");
         }
