@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    ReceivedItem
+} from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
@@ -62,8 +66,8 @@ enum Failure {
     OrderCriteriaResolverOutOfRange, // Criteria resolver refers to OOR order
     OfferCriteriaResolverOutOfRange, // Criteria resolver refers to OOR offer item
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
-    // UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
-    // UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
+    UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
+    UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -179,11 +183,13 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure
             .OfferCriteriaResolverOutOfRange
-            .withCriteria(MutationFilters.ineligibleForOfferCriteriaResolverOutOfRange);
+            .and(Failure.UnresolvedOfferCriteria)
+            .withCriteria(MutationFilters.ineligibleForOfferCriteriaResolverFailure);
 
         failuresAndFilters[i++] = Failure
             .ConsiderationCriteriaResolverOutOfRange
-            .withCriteria(MutationFilters.ineligibleForConsiderationCriteriaResolverOutOfRange);
+            .and(Failure.UnresolvedConsiderationCriteria)
+            .withCriteria(MutationFilters.ineligibleForConsiderationCriteriaResolverFailure);
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -458,6 +464,24 @@ library FailureDetailsLib {
                 "ConsiderationCriteriaResolverOutOfRange",
                 FuzzMutations.mutation_considerationCriteriaResolverOutOfRange.selector
             );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .UnresolvedOfferCriteria
+            .selector
+            .withCriteria(
+                "UnresolvedOfferCriteria",
+                FuzzMutations.mutation_unresolvedCriteria.selector,
+                details_unresolvedCriteria
+            );
+
+        failureDetailsArray[i++] = CriteriaResolutionErrors
+            .UnresolvedConsiderationCriteria
+            .selector
+            .withCriteria(
+                "UnresolvedConsiderationCriteria",
+                FuzzMutations.mutation_unresolvedCriteria.selector,
+                details_unresolvedCriteria
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -627,6 +651,19 @@ library FailureDetailsLib {
             errorSelector,
             context.executionState.recipient == address(0) ? context.executionState.caller : context.executionState.recipient,
             item.amount
+        );
+    }
+
+    function details_unresolvedCriteria(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        CriteriaResolver memory resolver = mutationState.selectedCriteriaResolver;
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            resolver.orderIndex,
+            resolver.index
         );
     }
 

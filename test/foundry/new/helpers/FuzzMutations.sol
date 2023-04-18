@@ -260,7 +260,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForOfferCriteriaResolverOutOfRange(
+    function ineligibleForOfferCriteriaResolverFailure(
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
@@ -276,7 +276,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForConsiderationCriteriaResolverOutOfRange(
+    function ineligibleForConsiderationCriteriaResolverFailure(
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
@@ -1083,6 +1083,27 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         OrderDetails memory order = context.executionState.orderDetails[resolver.orderIndex];
         resolver.index = order.consideration.length;
+
+        exec(context);
+    }
+
+    function mutation_unresolvedCriteria(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+
+        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length - 1);
+        for (uint256 i = 0; i < criteriaResolverIndex; ++i) {
+            newResolvers[i] = oldResolvers[i];
+        }
+
+        for (uint256 i = criteriaResolverIndex + 1; i < oldResolvers.length; ++i) {
+            newResolvers[i - 1] = oldResolvers[i];
+        }
+
+        context.executionState.criteriaResolvers = newResolvers;
 
         exec(context);
     }
