@@ -73,6 +73,7 @@ struct OrderDetails {
     bytes32 conduitKey;
     SpentItem[] offer;
     ReceivedItem[] consideration;
+    bool isContract;
 }
 
 /**

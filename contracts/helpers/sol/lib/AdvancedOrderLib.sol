@@ -776,7 +776,8 @@ library AdvancedOrderLib {
                 offerer: order.parameters.offerer,
                 conduitKey: order.parameters.conduitKey,
                 offer: offer,
-                consideration: consideration
+                consideration: consideration,
+                isContract: order.parameters.orderType == OrderType.CONTRACT
             });
     }
 }
