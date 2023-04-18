@@ -1017,9 +1017,7 @@ library ExecutionHelper {
 
         return
             Execution({
-                offerer: item.itemType == ItemType.NATIVE
-                    ? fulfillmentDetails.seaport
-                    : sourceOrder.offerer,
+                offerer: sourceOrder.offerer,
                 conduitKey: sourceOrder.conduitKey,
                 item: ReceivedItem({
                     itemType: item.itemType,
