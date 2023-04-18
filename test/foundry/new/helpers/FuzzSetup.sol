@@ -495,23 +495,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        if (context.executionState.value > 0) {
-            address caller = context.executionState.caller;
-            if (caller == address(0)) caller = address(this);
-            address seaport = address(context.seaport);
-            executions = new Execution[](_executions.length + 1);
-            executions[0] = ExecutionLib.empty().withOfferer(caller);
-            executions[0].item.amount = context.executionState.value;
-            executions[0].item.recipient = payable(seaport);
-            for (uint256 i; i < _executions.length; i++) {
-                Execution memory execution = _executions[i].copy();
-                executions[i + 1] = execution;
-                if (execution.item.itemType == ItemType.NATIVE) {
-                    execution.offerer = seaport;
-                }
-            }
-        }
-
         // Prep contract order native token transfers to seaport.
         uint256 nativeTokensFromContractOfferer = 0;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
@@ -537,26 +520,66 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             }
         }
 
-        if (nativeTokensFromContractOfferer > 0) {
-            Execution memory execution = Execution({
-                offerer: address(context.generatorContext.contractOfferer),
-                conduitKey: bytes32(0),
-                item: ReceivedItem({
-                    itemType: ItemType.NATIVE,
-                    token: address(0),
-                    identifier: uint256(0),
-                    amount: nativeTokensFromContractOfferer,
-                    recipient: payable(address(context.seaport))
-                })
-            });
+        if (context.executionState.value > 0) {
+            address caller = context.executionState.caller;
+            if (caller == address(0)) caller = address(this);
+            address seaport = address(context.seaport);
 
-            try balanceChecker.addTransfer(execution) {} catch (
-                bytes memory reason
-            ) {
-                context.expectations.allExpectedExecutions = executions;
-                dumpExecutions(context);
-                assembly {
-                    revert(add(reason, 32), mload(reason))
+            uint256 extraExecutions = nativeTokensFromContractOfferer > 0 ? 2 : 1;
+            executions = new Execution[](_executions.length + extraExecutions);
+
+            executions[0] = ExecutionLib.empty().withOfferer(caller);
+            executions[0].item.amount = context.executionState.value;
+            executions[0].item.recipient = payable(seaport);
+
+            if (nativeTokensFromContractOfferer > 0) {
+                Execution memory executionFromContractOfferer = Execution({
+                    offerer: address(context.generatorContext.contractOfferer),
+                    conduitKey: bytes32(0),
+                    item: ReceivedItem({
+                        itemType: ItemType.NATIVE,
+                        token: address(0),
+                        identifier: uint256(0),
+                        amount: nativeTokensFromContractOfferer,
+                        recipient: payable(address(context.seaport))
+                    })
+                });
+                executions[1] = executionFromContractOfferer;
+            }
+
+            for (uint256 i; i < _executions.length; i++) {
+                Execution memory execution = _executions[i].copy();
+                executions[i + extraExecutions] = execution;
+                if (execution.item.itemType == ItemType.NATIVE) {
+                    execution.offerer = seaport;
+                }
+            }
+        } else {
+            address seaport = address(context.seaport);
+
+            uint256 extraExecutions = nativeTokensFromContractOfferer > 0 ? 1 : 0;
+            executions = new Execution[](_executions.length + extraExecutions);
+
+            if (nativeTokensFromContractOfferer > 0) {
+                Execution memory executionFromContractOfferer = Execution({
+                    offerer: address(context.generatorContext.contractOfferer),
+                    conduitKey: bytes32(0),
+                    item: ReceivedItem({
+                        itemType: ItemType.NATIVE,
+                        token: address(0),
+                        identifier: uint256(0),
+                        amount: nativeTokensFromContractOfferer,
+                        recipient: payable(address(context.seaport))
+                    })
+                });
+                executions[0] = executionFromContractOfferer;
+            }
+
+            for (uint256 i; i < _executions.length; i++) {
+                Execution memory execution = _executions[i].copy();
+                executions[i + extraExecutions] = execution;
+                if (execution.item.itemType == ItemType.NATIVE) {
+                    execution.offerer = seaport;
                 }
             }
         }
