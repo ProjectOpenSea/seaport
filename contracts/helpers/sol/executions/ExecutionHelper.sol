@@ -74,6 +74,12 @@ library ExecutionHelper {
             availableOrders
         );
 
+        implicitExecutionsPre = processImplicitPreOrderExecutions(
+            fulfillmentDetails,
+            availableOrders,
+            nativeTokensSupplied
+        );
+
         implicitExecutionsPost = processImplicitPostOrderExecutions(
             fulfillmentDetails,
             availableOrders
@@ -816,6 +822,7 @@ library ExecutionHelper {
                 maxPossible += fulfillmentDetails.orders[i].offer.length;
             }
         }
+        implicitExecutions = new Execution[](maxPossible);
 
         uint256 executionIndex;
         if (nativeTokensSupplied > 0) {
