@@ -626,27 +626,11 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
         }
 
-        if (
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ||
-            action == context.seaport.matchOrders.selector
-        ) {
-            return true;
-        }
-
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.numerator == 1 && order.denominator == 1) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, orderIndex)) {
             return true;
         }
 

@@ -81,6 +81,8 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
+import { assume } from "./VmUtils.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -410,8 +412,14 @@ library AdvancedOrdersSpaceGenerator {
             _ensureDirectSupport(orders, space, context);
         }
 
+        bool contractOrderFound;
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
+
+            if (order.parameters.orderType == OrderType.CONTRACT) {
+                contractOrderFound = true;
+            }
+
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
 
             OrderParameters memory orderParams = order.parameters;
@@ -501,6 +509,11 @@ library AdvancedOrdersSpaceGenerator {
                 }
             }
         }
+
+        assume(
+            contractOrderFound,
+            "no_contract_order_found"
+        );
 
         // Set up a random base counter and nonce, which will be used to set the
         // counter and nonce for each offerer in the `_signOrders` function.
@@ -1371,6 +1384,10 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            order.parameters = orderParams.withOrderType(
+                OrderType.CONTRACT
+            );
         }
 
         return order;

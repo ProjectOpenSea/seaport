@@ -24,6 +24,7 @@ import {
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
+    BroadOrderType,
     OrderStatusEnum,
     SignatureMethod,
     UnavailableReason
@@ -781,7 +782,10 @@ library FuzzTestContextLib {
         );
 
         for (uint256 i = 0; i < context.executionState.orders.length; i++) {
-            if (
+            if (space.orders[i].orderType == BroadOrderType.CONTRACT) {
+                context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
+                    .AVAILABLE;
+            } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
@@ -801,21 +805,7 @@ library FuzzTestContextLib {
                 // TODO: support partial as well (0-2)
                 context.executionState.preExecOrderStatuses[
                     i
-                ] = OrderStatusEnum(
-                    uint8(
-                        bound(
-                            prng.next(),
-                            0,
-                            context
-                                .executionState
-                                .orders[i]
-                                .parameters
-                                .orderType != OrderType.CONTRACT
-                                ? 1
-                                : 0
-                        )
-                    )
-                );
+                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 1)));
             }
         }
 
