@@ -5,7 +5,7 @@ import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { vm } from "./VmUtils.sol";
+import { assume } from "./VmUtils.sol";
 
 import { Failure } from "./FuzzMutationSelectorLib.sol";
 
@@ -159,10 +159,14 @@ library FailureEligibilityLib {
 
     function selectEligibleFailure(
         FuzzTestContext memory context
-    ) internal pure returns (Failure eligibleFailure) {
+    ) internal returns (Failure eligibleFailure) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
+
+        // TODO: remove this vm.assume as soon as at least one case is found
+        // for any permutation of orders.
+        assume(eligibleFailures.length > 0, "no_eligible_failures");
 
         if (eligibleFailures.length == 0) {
             revert("FailureEligibilityLib: no eligible failure found");
@@ -821,12 +825,31 @@ library MutationHelpersLib {
         // If we haven't found one yet, keep looking in implicit executions...
         for (
             uint256 i;
-            i < context.expectations.expectedImplicitExecutions.length;
+            i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
             Execution memory execution = context
                 .expectations
-                .expectedImplicitExecutions[i];
+                .expectedImplicitPreExecutions[i];
+            if (
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitPostExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
                 execution.offerer == offerer &&
                 execution.conduitKey == conduitKey &&
@@ -873,12 +896,31 @@ library MutationHelpersLib {
         // If we haven't found one yet, keep looking in implicit executions...
         for (
             uint256 i;
-            i < context.expectations.expectedImplicitExecutions.length;
+            i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
             Execution memory execution = context
                 .expectations
-                .expectedImplicitExecutions[i];
+                .expectedImplicitPreExecutions[i];
+            if (
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
+            ) {
+                return false;
+            }
+        }
+
+        // If we haven't found one yet, keep looking in implicit executions...
+        for (
+            uint256 i;
+            i < context.expectations.expectedImplicitPostExecutions.length;
+            ++i
+        ) {
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
                 execution.offerer == caller &&
                 execution.conduitKey == conduitKey &&

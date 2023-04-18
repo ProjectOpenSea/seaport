@@ -602,7 +602,7 @@ library FailureDetailsLib {
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         uint256 totalImplicitExecutions = (
-            context.expectations.expectedImplicitExecutions.length
+            context.expectations.expectedImplicitPostExecutions.length
         );
         ReceivedItem memory item;
         if (context.expectations.expectedNativeTokensReturned == 0) {
@@ -612,7 +612,7 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
-                item = context.expectations.expectedImplicitExecutions[i].item;
+                item = context.expectations.expectedImplicitPostExecutions[i].item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;
@@ -633,7 +633,7 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
-                item = context.expectations.expectedImplicitExecutions[i - 1].item;
+                item = context.expectations.expectedImplicitPostExecutions[i - 1].item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;

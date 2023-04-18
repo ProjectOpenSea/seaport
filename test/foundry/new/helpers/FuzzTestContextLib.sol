@@ -24,6 +24,7 @@ import {
 import { OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import {
+    BroadOrderType,
     OrderStatusEnum,
     SignatureMethod,
     UnavailableReason
@@ -147,7 +148,8 @@ struct Expectations {
      * @dev Expected executions.  Implicit means it doesn't correspond directly
      *      with a fulfillment that was passed in.
      */
-    Execution[] expectedImplicitExecutions;
+    Execution[] expectedImplicitPreExecutions;
+    Execution[] expectedImplicitPostExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
     bool[] expectedAvailableOrders;
@@ -354,9 +356,10 @@ library FuzzTestContextLib {
                 expectations: Expectations({
                     expectedZoneCalldataHash: hashes,
                     expectedContractOrderCalldataHashes: new bytes32[2][](0),
-                    expectedImplicitExecutions: executions,
-                    expectedExplicitExecutions: executions,
-                    allExpectedExecutions: executions,
+                    expectedImplicitPreExecutions: new Execution[](0),
+                    expectedImplicitPostExecutions: new Execution[](0),
+                    expectedExplicitExecutions: new Execution[](0),
+                    allExpectedExecutions: new Execution[](0),
                     expectedResults: results,
                     expectedAvailableOrders: new bool[](0),
                     expectedTransferEventHashes: expectedTransferEventHashes,
@@ -781,7 +784,10 @@ library FuzzTestContextLib {
         );
 
         for (uint256 i = 0; i < context.executionState.orders.length; i++) {
-            if (
+            if (space.orders[i].orderType == BroadOrderType.CONTRACT) {
+                context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
+                    .AVAILABLE;
+            } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
@@ -801,21 +807,7 @@ library FuzzTestContextLib {
                 // TODO: support partial as well (0-2)
                 context.executionState.preExecOrderStatuses[
                     i
-                ] = OrderStatusEnum(
-                    uint8(
-                        bound(
-                            prng.next(),
-                            0,
-                            context
-                                .executionState
-                                .orders[i]
-                                .parameters
-                                .orderType != OrderType.CONTRACT
-                                ? 1
-                                : 0
-                        )
-                    )
-                );
+                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 1)));
             }
         }
 

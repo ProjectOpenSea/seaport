@@ -108,8 +108,10 @@ library ExpectedEventsUtil {
             .allExpectedExecutions;
         require(
             executions.length ==
+                context.expectations.expectedImplicitPreExecutions.length +
                 context.expectations.expectedExplicitExecutions.length +
-                    context.expectations.expectedImplicitExecutions.length
+                    context.expectations.expectedImplicitPostExecutions.length,
+            "ExpectedEventsUtil: executions length mismatch"
         );
 
         context.expectations.expectedTransferEventHashes = ArrayHelpers

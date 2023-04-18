@@ -184,7 +184,8 @@ library MutationFilters {
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.fulfillOrder.selector ||
             action == context.seaport.fulfillBasicOrder.selector ||
-            action == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             return true;
         }
@@ -196,7 +197,8 @@ library MutationFilters {
             }
 
             AdvancedOrder memory order = context.executionState.orders[i];
-            uint256 items = order.parameters.offer.length + order.parameters.consideration.length;
+            uint256 items = order.parameters.offer.length +
+                order.parameters.consideration.length;
             if (items != 0) {
                 locatedItem = true;
                 break;
@@ -220,7 +222,8 @@ library MutationFilters {
             action == context.seaport.matchOrders.selector ||
             action == context.seaport.fulfillOrder.selector ||
             action == context.seaport.fulfillBasicOrder.selector ||
-            action == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             return true;
         }
@@ -233,7 +236,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+        if (
+            ineligibleWhenNotAdvancedOrUnavailable(
+                context,
+                criteriaResolver.orderIndex
+            )
+        ) {
             return true;
         }
 
@@ -249,7 +257,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+        if (
+            ineligibleWhenNotAdvancedOrUnavailable(
+                context,
+                criteriaResolver.orderIndex
+            )
+        ) {
             return true;
         }
 
@@ -265,7 +278,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+        if (
+            ineligibleWhenNotAdvancedOrUnavailable(
+                context,
+                criteriaResolver.orderIndex
+            )
+        ) {
             return true;
         }
 
@@ -281,7 +299,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenNotAdvancedOrUnavailable(context, criteriaResolver.orderIndex)) {
+        if (
+            ineligibleWhenNotAdvancedOrUnavailable(
+                context,
+                criteriaResolver.orderIndex
+            )
+        ) {
             return true;
         }
 
@@ -476,8 +499,9 @@ library MutationFilters {
         bytes32 oldConduitKey = order.parameters.conduitKey;
         order.parameters.conduitKey = keccak256("invalid conduit");
         (
-            Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions,
+            ,
+            Execution[] memory implicitExecutionsPost,
 
         ) = context.getDerivedExecutions();
 
@@ -496,11 +520,11 @@ library MutationFilters {
 
         // If we haven't found one yet, keep looking in implicit executions...
         if (!locatedInvalidConduitExecution) {
-            for (uint256 i = 0; i < implicitExecutions.length; ++i) {
+            for (uint256 i = 0; i < implicitExecutionsPost.length; ++i) {
                 if (
-                    implicitExecutions[i].conduitKey ==
+                    implicitExecutionsPost[i].conduitKey ==
                     keccak256("invalid conduit") &&
-                    implicitExecutions[i].item.itemType != ItemType.NATIVE
+                    implicitExecutionsPost[i].item.itemType != ItemType.NATIVE
                 ) {
                     locatedInvalidConduitExecution = true;
                     break;
@@ -600,12 +624,17 @@ library MutationFilters {
     }
 
     function ineligibleForOrderAlreadyFilled(
-        AdvancedOrder memory /* order */,
+        AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
         bytes4 action = context.action();
 
+        // TODO: verify whether match / matchAdvanced are actually ineligible
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
@@ -626,27 +655,11 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
         }
 
-        if (
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ||
-            action == context.seaport.matchOrders.selector
-        ) {
-            return true;
-        }
-
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.numerator == 1 && order.denominator == 1) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -740,8 +753,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
-        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
-        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length + 1);
+        CriteriaResolver[] memory oldResolvers = context
+            .executionState
+            .criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](
+            oldResolvers.length + 1
+        );
         for (uint256 i = 0; i < oldResolvers.length; ++i) {
             newResolvers[i] = oldResolvers[i];
         }
@@ -749,12 +766,18 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex;
         Side side;
 
-        for (; orderIndex < context.executionState.orders.length; ++orderIndex) {
+        for (
+            ;
+            orderIndex < context.executionState.orders.length;
+            ++orderIndex
+        ) {
             if (context.ineligibleWhenUnavailable(orderIndex)) {
                 continue;
             }
 
-            AdvancedOrder memory order = context.executionState.orders[orderIndex];
+            AdvancedOrder memory order = context.executionState.orders[
+                orderIndex
+            ];
             if (order.parameters.offer.length > 0) {
                 side = Side.OFFER;
                 break;
@@ -1016,8 +1039,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
-        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context
+            .executionState
+            .criteriaResolvers[criteriaResolverIndex];
 
         bytes32 firstProofElement = resolver.criteriaProof[0];
         resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
@@ -1029,8 +1055,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
-        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context
+            .executionState
+            .criteriaResolvers[criteriaResolverIndex];
 
         bytes32[] memory criteriaProof = new bytes32[](1);
         resolver.criteriaProof = criteriaProof;
@@ -1042,8 +1071,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
-        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
-        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length + 1);
+        CriteriaResolver[] memory oldResolvers = context
+            .executionState
+            .criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](
+            oldResolvers.length + 1
+        );
         for (uint256 i = 0; i < oldResolvers.length; ++i) {
             newResolvers[i] = oldResolvers[i];
         }
@@ -1065,10 +1098,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
-        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context
+            .executionState
+            .criteriaResolvers[criteriaResolverIndex];
 
-        OrderDetails memory order = context.executionState.orderDetails[resolver.orderIndex];
+        OrderDetails memory order = context.executionState.orderDetails[
+            resolver.orderIndex
+        ];
         resolver.index = order.offer.length;
 
         exec(context);
@@ -1078,10 +1116,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
-        CriteriaResolver memory resolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context
+            .executionState
+            .criteriaResolvers[criteriaResolverIndex];
 
-        OrderDetails memory order = context.executionState.orderDetails[resolver.orderIndex];
+        OrderDetails memory order = context.executionState.orderDetails[
+            resolver.orderIndex
+        ];
         resolver.index = order.consideration.length;
 
         exec(context);
@@ -1091,15 +1134,24 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 criteriaResolverIndex = mutationState.selectedCriteriaResolverIndex;
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
 
-        CriteriaResolver[] memory oldResolvers = context.executionState.criteriaResolvers;
-        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](oldResolvers.length - 1);
+        CriteriaResolver[] memory oldResolvers = context
+            .executionState
+            .criteriaResolvers;
+        CriteriaResolver[] memory newResolvers = new CriteriaResolver[](
+            oldResolvers.length - 1
+        );
         for (uint256 i = 0; i < criteriaResolverIndex; ++i) {
             newResolvers[i] = oldResolvers[i];
         }
 
-        for (uint256 i = criteriaResolverIndex + 1; i < oldResolvers.length; ++i) {
+        for (
+            uint256 i = criteriaResolverIndex + 1;
+            i < oldResolvers.length;
+            ++i
+        ) {
             newResolvers[i - 1] = oldResolvers[i];
         }
 

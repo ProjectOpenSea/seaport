@@ -403,7 +403,8 @@ library FuzzEngineLib {
 
         bool isFulfillAvailable = action(context) ==
             context.seaport.fulfillAvailableOrders.selector ||
-            action(context) == context.seaport.fulfillAvailableAdvancedOrders.selector;
+            action(context) ==
+            context.seaport.fulfillAvailableAdvancedOrders.selector;
 
         uint256 value = 0;
         uint256 valueToCreditBack = 0;
@@ -448,6 +449,14 @@ library FuzzEngineLib {
                     }
                 }
             } else {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+
                 for (uint256 j = 0; j < order.consideration.length; ++j) {
                     ReceivedItem memory item = order.consideration[j];
 
@@ -509,7 +518,6 @@ library FuzzEngineLib {
                 }
             }
 
-
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
                     SpentItem memory item = order.offer[j];
@@ -522,6 +530,14 @@ library FuzzEngineLib {
                     }
                 }
             } else {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+
                 for (uint256 j = 0; j < order.consideration.length; ++j) {
                     ReceivedItem memory item = order.consideration[j];
 
@@ -540,20 +556,6 @@ library FuzzEngineLib {
 
         value = value - valueToCreditBack;
 
-        (
-            ,
-            ,
-            uint256 nativeTokensReturned
-        ) = context.getFulfillAvailableExecutions(value);
-
-        // NOTE: this check would not apply in cases where Seaport gets paid native
-        // tokens by a contract offerer that doesn't actually return a native
-        // offer item (or gets paid mid-flight from some other source.) That's
-        // not currently the case in the contract order tests.
-        if (nativeTokensReturned > value) {
-            revert("FuzzEngineLib: got higher expected tokens returned than value supplied");
-        }
-
-        return value - nativeTokensReturned;
+        return value;
     }
 }

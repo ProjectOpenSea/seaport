@@ -46,7 +46,9 @@ library ExecutionHelper {
      *                                  the fulfillAvailable call
      *
      * @return explicitExecutions the explicit executions
-     * @return implicitExecutions the implicit executions (unspecified offer
+     * @return implicitExecutionsPre the implicit executions (unspecified offer
+     *                            items)
+     * @return implicitExecutionsPost the implicit executions (unspecified offer
      *                            items)
      */
     function getFulfillAvailableExecutions(
@@ -60,10 +62,17 @@ library ExecutionHelper {
         pure
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         )
     {
+        implicitExecutionsPre = processImplicitPreOrderExecutions(
+            fulfillmentDetails,
+            availableOrders,
+            nativeTokensSupplied
+        );
+
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
             fulfillmentDetails,
             offerFulfillments,
@@ -71,7 +80,7 @@ library ExecutionHelper {
             availableOrders
         );
 
-        implicitExecutions = processImplicitOfferExecutions(
+        implicitExecutionsPost = processImplicitPostOrderExecutions(
             fulfillmentDetails,
             availableOrders
         );
@@ -79,8 +88,8 @@ library ExecutionHelper {
         nativeTokensReturned = _handleExcessNativeTokens(
             fulfillmentDetails,
             explicitExecutions,
-            implicitExecutions,
-            nativeTokensSupplied
+            implicitExecutionsPre,
+            implicitExecutionsPost
         );
     }
 
@@ -93,7 +102,8 @@ library ExecutionHelper {
      * @param nativeTokensSupplied the amount of native tokens supplied
      *
      * @return explicitExecutions The explicit executions
-     * @return implicitExecutions The implicit executions
+     * @return implicitExecutionsPre The implicit executions
+     * @return implicitExecutionsPost The implicit executions
      */
     function getMatchExecutions(
         FulfillmentDetails memory fulfillmentDetails,
@@ -104,7 +114,8 @@ library ExecutionHelper {
         pure
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
         )
     {
@@ -145,8 +156,13 @@ library ExecutionHelper {
         for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
             availableOrders[i] = true;
         }
+        implicitExecutionsPre = processImplicitPreOrderExecutions(
+            fulfillmentDetails,
+            availableOrders,
+            nativeTokensSupplied
+        );
 
-        implicitExecutions = processImplicitOfferExecutions(
+        implicitExecutionsPost = processImplicitPostOrderExecutions(
             fulfillmentDetails,
             availableOrders
         );
@@ -154,26 +170,38 @@ library ExecutionHelper {
         nativeTokensReturned = _handleExcessNativeTokens(
             fulfillmentDetails,
             explicitExecutions,
-            implicitExecutions,
-            nativeTokensSupplied
+            implicitExecutionsPre,
+            implicitExecutionsPost
         );
     }
 
     function processExcessNativeTokens(
         Execution[] memory explicitExecutions,
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensSupplied
+        Execution[] memory implicitExecutionsPre,
+        Execution[] memory implicitExecutionsPost
     ) internal pure returns (uint256 excessNativeTokens) {
-        excessNativeTokens = nativeTokensSupplied;
+        for (uint256 i; i < implicitExecutionsPre.length; i++) {
+            excessNativeTokens += implicitExecutionsPre[i].item.amount;
+        }
         for (uint256 i; i < explicitExecutions.length; i++) {
             ReceivedItem memory item = explicitExecutions[i].item;
             if (item.itemType == ItemType.NATIVE) {
+                if (item.amount > excessNativeTokens) {
+                    revert(
+                        "ExecutionsHelper: explicit execution amount exceeds seaport balance"
+                    );
+                }
                 excessNativeTokens -= item.amount;
             }
         }
-        for (uint256 i; i < implicitExecutions.length; i++) {
-            ReceivedItem memory item = implicitExecutions[i].item;
+        for (uint256 i; i < implicitExecutionsPost.length; i++) {
+            ReceivedItem memory item = implicitExecutionsPost[i].item;
             if (item.itemType == ItemType.NATIVE) {
+                if (item.amount > excessNativeTokens) {
+                    revert(
+                        "ExecutionsHelper: post execution amount exceeds seaport balance"
+                    );
+                }
                 excessNativeTokens -= item.amount;
             }
         }
@@ -190,58 +218,121 @@ library ExecutionHelper {
         uint256 nativeTokensSupplied,
         address seaport
     ) public pure returns (Execution[] memory implicitExecutions) {
-        uint256 excessNativeTokens = nativeTokensSupplied;
+        uint256 currentSeaportBalance = 0;
 
+        // implicit executions (use max and resize at end):
+        //  - supplying native tokens (0-1)
+        //  - providing native tokens from contract offerer (0-offer.length)
+        //  - transferring offer items to recipient (offer.length)
+        //  - transferring consideration items to each recipient (consideration.length)
+        //  - returning unspent native tokens (0-1)
         implicitExecutions = new Execution[](
-            orderDetails.offer.length + orderDetails.consideration.length + 1
+            2 *
+                orderDetails.offer.length +
+                orderDetails.consideration.length +
+                2
         );
 
         uint256 executionIndex = 0;
 
+        if (nativeTokensSupplied > 0) {
+            implicitExecutions[executionIndex++] = Execution({
+                offerer: fulfiller,
+                conduitKey: fulfillerConduitKey,
+                item: ReceivedItem({
+                    itemType: ItemType.NATIVE,
+                    token: address(0),
+                    identifier: uint256(0),
+                    amount: nativeTokensSupplied,
+                    recipient: payable(seaport)
+                })
+            });
+            currentSeaportBalance += nativeTokensSupplied;
+        }
+
+        if (orderDetails.isContract) {
+            for (uint256 i = 0; i < orderDetails.offer.length; i++) {
+                SpentItem memory item = orderDetails.offer[i];
+                if (item.itemType == ItemType.NATIVE) {
+                    implicitExecutions[executionIndex++] = Execution({
+                        offerer: orderDetails.offerer,
+                        conduitKey: orderDetails.conduitKey,
+                        item: ReceivedItem({
+                            itemType: ItemType.NATIVE,
+                            token: address(0),
+                            identifier: uint256(0),
+                            amount: orderDetails.offer[i].amount,
+                            recipient: payable(seaport)
+                        })
+                    });
+                    currentSeaportBalance += orderDetails.offer[i].amount;
+                }
+            }
+        }
+
         for (uint256 i = 0; i < orderDetails.offer.length; i++) {
-            implicitExecutions[executionIndex] = Execution({
-                offerer: orderDetails.offerer,
+            SpentItem memory item = orderDetails.offer[i];
+            implicitExecutions[executionIndex++] = Execution({
+                offerer: item.itemType == ItemType.NATIVE
+                    ? seaport
+                    : orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
                 item: ReceivedItem({
-                    itemType: orderDetails.offer[i].itemType,
-                    token: orderDetails.offer[i].token,
-                    identifier: orderDetails.offer[i].identifier,
-                    amount: orderDetails.offer[i].amount,
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifier: item.identifier,
+                    amount: item.amount,
                     recipient: payable(recipient)
                 })
             });
-            executionIndex++;
+            if (item.itemType == ItemType.NATIVE) {
+                if (item.amount > currentSeaportBalance) {
+                    revert(
+                        "ExecutionHelper: offer item amount exceeds seaport balance"
+                    );
+                }
+
+                currentSeaportBalance -= item.amount;
+            }
         }
 
         for (uint256 i = 0; i < orderDetails.consideration.length; i++) {
-            if (orderDetails.consideration[i].itemType == ItemType.NATIVE) {
-                excessNativeTokens -= orderDetails.consideration[i].amount;
-            }
-            implicitExecutions[executionIndex] = Execution({
-                offerer: fulfiller,
+            ReceivedItem memory item = orderDetails.consideration[i];
+            implicitExecutions[executionIndex++] = Execution({
+                offerer: item.itemType == ItemType.NATIVE
+                    ? seaport
+                    : fulfiller,
                 conduitKey: fulfillerConduitKey,
-                item: orderDetails.consideration[i]
+                item: item
             });
-            executionIndex++;
+            if (item.itemType == ItemType.NATIVE) {
+                if (item.amount > currentSeaportBalance) {
+                    revert(
+                        "ExecutionHelper: consideration item amount exceeds seaport balance"
+                    );
+                }
+
+                currentSeaportBalance -= item.amount;
+            }
         }
 
-        if (excessNativeTokens > 0) {
-            implicitExecutions[executionIndex] = Execution({
+        if (currentSeaportBalance > 0) {
+            implicitExecutions[executionIndex++] = Execution({
                 offerer: seaport,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
                     token: address(0),
                     identifier: 0,
-                    amount: excessNativeTokens,
+                    amount: currentSeaportBalance,
                     recipient: payable(fulfiller)
                 })
             });
-        } else {
-            // Reduce length of the implicit executions array by one.
-            assembly {
-                mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
-            }
+        }
+
+        // Set actual length of the implicit executions array.
+        assembly {
+            mstore(implicitExecutions, executionIndex)
         }
     }
 
@@ -297,43 +388,115 @@ library ExecutionHelper {
                 })
             });
         } else {
-            // use existing function but order of executions has to be shifted
-            // so second execution is returned last in cases where no returned native tokens
-            // or second to last in cases where returned native tokens
-            Execution[] memory standardExecutions = getStandardExecutions(
-                orderDetails,
-                fulfiller,
-                fulfillerConduitKey,
-                fulfiller,
-                nativeTokensSupplied,
-                seaport
+            uint256 currentSeaportBalance = 0;
+
+            // implicit executions (use max and resize at end):
+            //  - supplying native tokens (0-1)
+            //  - transferring offer item to recipient (1)
+            //  - transfer additional recipient consideration items (consideration.length - 1)
+            //  - transfer first consideration item to the fulfiller (1)
+            //  - returning unspent native tokens (0-1)
+            implicitExecutions = new Execution[](
+                orderDetails.consideration.length + 3
             );
 
-            require(standardExecutions.length > 1, "too short for basic order");
+            uint256 executionIndex = 0;
 
-            implicitExecutions = new Execution[](standardExecutions.length);
-            implicitExecutions[0] = standardExecutions[0];
+            if (nativeTokensSupplied > 0) {
+                implicitExecutions[executionIndex++] = Execution({
+                    offerer: fulfiller,
+                    conduitKey: fulfillerConduitKey,
+                    item: ReceivedItem({
+                        itemType: ItemType.NATIVE,
+                        token: address(0),
+                        identifier: uint256(0),
+                        amount: nativeTokensSupplied,
+                        recipient: payable(seaport)
+                    })
+                });
+                currentSeaportBalance += nativeTokensSupplied;
+            }
 
-            if (
-                standardExecutions.length >
-                1 + orderDetails.consideration.length
-            ) {
-                for (uint256 i = 2; i < implicitExecutions.length - 1; i++) {
-                    implicitExecutions[i - 1] = standardExecutions[i];
+            {
+                if (orderDetails.offer.length != 1) {
+                    revert("ExecutionHelper: wrong length for basic offer");
                 }
-                implicitExecutions[
-                    implicitExecutions.length - 2
-                ] = standardExecutions[1];
-                implicitExecutions[
-                    implicitExecutions.length - 1
-                ] = standardExecutions[implicitExecutions.length - 1];
-            } else {
-                for (uint256 i = 2; i < implicitExecutions.length; i++) {
-                    implicitExecutions[i - 1] = standardExecutions[i];
+                SpentItem memory offerItem = orderDetails.offer[0];
+                implicitExecutions[executionIndex++] = Execution({
+                    offerer: orderDetails.offerer,
+                    conduitKey: orderDetails.conduitKey,
+                    item: ReceivedItem({
+                        itemType: offerItem.itemType,
+                        token: offerItem.token,
+                        identifier: offerItem.identifier,
+                        amount: offerItem.amount,
+                        recipient: payable(fulfiller)
+                    })
+                });
+            }
+
+            for (uint256 i = 1; i < orderDetails.consideration.length; i++) {
+                ReceivedItem memory item = orderDetails.consideration[i];
+                implicitExecutions[executionIndex++] = Execution({
+                    offerer: item.itemType == ItemType.NATIVE
+                        ? seaport
+                        : fulfiller,
+                    conduitKey: fulfillerConduitKey,
+                    item: item
+                });
+                if (item.itemType == ItemType.NATIVE) {
+                    if (item.amount > currentSeaportBalance) {
+                        revert(
+                            "ExecutionHelper: basic consideration item amount exceeds seaport balance"
+                        );
+                    }
+
+                    currentSeaportBalance -= item.amount;
                 }
-                implicitExecutions[
-                    implicitExecutions.length - 1
-                ] = standardExecutions[1];
+            }
+
+            {
+                if (orderDetails.consideration.length > 1) {
+                    revert(
+                        "ExecutionHelper: wrong length for basic consideration"
+                    );
+                }
+                ReceivedItem memory item = orderDetails.consideration[0];
+                implicitExecutions[executionIndex++] = Execution({
+                    offerer: item.itemType == ItemType.NATIVE
+                        ? seaport
+                        : fulfiller,
+                    conduitKey: fulfillerConduitKey,
+                    item: item
+                });
+                if (item.itemType == ItemType.NATIVE) {
+                    if (item.amount > currentSeaportBalance) {
+                        revert(
+                            "ExecutionHelper: first basic consideration item amount exceeds seaport balance"
+                        );
+                    }
+
+                    currentSeaportBalance -= item.amount;
+                }
+            }
+
+            if (currentSeaportBalance > 0) {
+                implicitExecutions[executionIndex++] = Execution({
+                    offerer: seaport,
+                    conduitKey: bytes32(0),
+                    item: ReceivedItem({
+                        itemType: ItemType.NATIVE,
+                        token: address(0),
+                        identifier: 0,
+                        amount: currentSeaportBalance,
+                        recipient: payable(fulfiller)
+                    })
+                });
+            }
+
+            // Set actual length of the implicit executions array.
+            assembly {
+                mstore(implicitExecutions, executionIndex)
             }
         }
     }
@@ -649,7 +812,77 @@ library ExecutionHelper {
      *
      * @return implicitExecutions The implicit executions
      */
-    function processImplicitOfferExecutions(
+    function processImplicitPreOrderExecutions(
+        FulfillmentDetails memory fulfillmentDetails,
+        bool[] memory availableOrders,
+        uint256 nativeTokensSupplied
+    ) internal pure returns (Execution[] memory implicitExecutions) {
+        // Get the maximum possible number of implicit executions.
+        uint256 maxPossible = 1;
+        for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
+            if (availableOrders[i]) {
+                maxPossible += fulfillmentDetails.orders[i].offer.length;
+            }
+        }
+        implicitExecutions = new Execution[](maxPossible);
+
+        uint256 executionIndex;
+        if (nativeTokensSupplied > 0) {
+            implicitExecutions[executionIndex++] = Execution({
+                offerer: fulfillmentDetails.fulfiller,
+                conduitKey: fulfillmentDetails.fulfillerConduitKey,
+                item: ReceivedItem({
+                    itemType: ItemType.NATIVE,
+                    token: address(0),
+                    identifier: uint256(0),
+                    amount: nativeTokensSupplied,
+                    recipient: payable(fulfillmentDetails.seaport)
+                })
+            });
+        }
+
+        for (uint256 o; o < fulfillmentDetails.orders.length; o++) {
+            OrderDetails memory orderDetails = fulfillmentDetails.orders[o];
+            if (!availableOrders[o]) {
+                continue;
+            }
+
+            if (orderDetails.isContract) {
+                for (uint256 i = 0; i < orderDetails.offer.length; i++) {
+                    SpentItem memory item = orderDetails.offer[i];
+                    if (item.itemType == ItemType.NATIVE) {
+                        implicitExecutions[executionIndex++] = Execution({
+                            offerer: orderDetails.offerer,
+                            conduitKey: orderDetails.conduitKey,
+                            item: ReceivedItem({
+                                itemType: ItemType.NATIVE,
+                                token: address(0),
+                                identifier: uint256(0),
+                                amount: orderDetails.offer[i].amount,
+                                recipient: payable(fulfillmentDetails.seaport)
+                            })
+                        });
+                    }
+                }
+            }
+        }
+
+        // Set the final length of the implicit executions array.
+        // Leave space for possible excess native token return.
+        assembly {
+            mstore(implicitExecutions, executionIndex)
+        }
+    }
+
+    /**
+     * @dev Generate implicit Executions for a set of orders by getting all
+     *      offer items that are not fully spent as part of a fulfillment.
+     *
+     * @param fulfillmentDetails fulfillment details
+     *
+     * @return implicitExecutions The implicit executions
+     */
+    function processImplicitPostOrderExecutions(
         FulfillmentDetails memory fulfillmentDetails,
         bool[] memory availableOrders
     ) internal pure returns (Execution[] memory implicitExecutions) {
@@ -677,7 +910,9 @@ library ExecutionHelper {
                 if (item.amount != 0) {
                     // Insert the item and increment insertion index.
                     implicitExecutions[insertionIndex++] = Execution({
-                        offerer: details.offerer,
+                        offerer: item.itemType == ItemType.NATIVE
+                            ? fulfillmentDetails.seaport
+                            : details.offerer,
                         conduitKey: details.conduitKey,
                         item: ReceivedItem({
                             itemType: item.itemType,
@@ -803,23 +1038,25 @@ library ExecutionHelper {
      *
      * @param fulfillmentDetails fulfillment details
      * @param explicitExecutions explicit executions
-     * @param implicitExecutions implicit executions
-     * @param nativeTokensSupplied native tokens sent
+     * @param implicitExecutionsPre implicit executions
+     * @param implicitExecutionsPost implicit executions
      */
     function _handleExcessNativeTokens(
         FulfillmentDetails memory fulfillmentDetails,
         Execution[] memory explicitExecutions,
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensSupplied
+        Execution[] memory implicitExecutionsPre,
+        Execution[] memory implicitExecutionsPost
     ) internal pure returns (uint256 excessNativeTokens) {
         excessNativeTokens = processExcessNativeTokens(
             explicitExecutions,
-            implicitExecutions,
-            nativeTokensSupplied
+            implicitExecutionsPre,
+            implicitExecutionsPost
         );
 
         if (excessNativeTokens > 0) {
-            implicitExecutions[implicitExecutions.length - 1] = Execution({
+            implicitExecutionsPost[
+                implicitExecutionsPost.length - 1
+            ] = Execution({
                 offerer: fulfillmentDetails.seaport,
                 conduitKey: bytes32(0),
                 item: ReceivedItem({
@@ -833,7 +1070,10 @@ library ExecutionHelper {
         } else {
             // Reduce length of the implicit executions array by one.
             assembly {
-                mstore(implicitExecutions, sub(mload(implicitExecutions), 1))
+                mstore(
+                    implicitExecutionsPost,
+                    sub(mload(implicitExecutionsPost), 1)
+                )
             }
         }
     }

@@ -100,6 +100,8 @@
     "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
+    "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
+    "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
     "prepare": "husky install"
   },
