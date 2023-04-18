@@ -456,8 +456,7 @@ library FuzzDerivers {
             uint256 nativeTokensReturned
         )
     {
-        uint256 totalNativeTokensAvailable = (nativeTokensSupplied +
-            getContractOrderSuppliedNativeTokens(context));
+        uint256 totalNativeTokensAvailable = nativeTokensSupplied;
 
         return
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
@@ -480,8 +479,7 @@ library FuzzDerivers {
             uint256 nativeTokensReturned
         )
     {
-        uint256 totalNativeTokensAvailable = (context.executionState.value +
-            getContractOrderSuppliedNativeTokens(context));
+        uint256 totalNativeTokensAvailable = context.executionState.value;
 
         return
             context.toFulfillmentDetails().getMatchExecutions(
