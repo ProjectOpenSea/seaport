@@ -199,6 +199,9 @@ library ExecutionHelper {
         uint256 executionIndex = 0;
 
         for (uint256 i = 0; i < orderDetails.offer.length; i++) {
+            if (orderDetails.offer[i].itemType == ItemType.NATIVE) {
+                excessNativeTokens += orderDetails.offer[i].amount;
+            }
             implicitExecutions[executionIndex] = Execution({
                 offerer: orderDetails.offerer,
                 conduitKey: orderDetails.conduitKey,
