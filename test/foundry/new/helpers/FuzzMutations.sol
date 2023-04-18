@@ -600,7 +600,7 @@ library MutationFilters {
     }
 
     function ineligibleForOrderAlreadyFilled(
-        AdvancedOrder memory /* order */,
+        AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
