@@ -68,7 +68,7 @@ library ArrayHelpers {
             uint256 array2HeadSize = arrayLength2 * 32;
             uint256 array3HeadSize = arrayLength3 * 32;
 
-            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray = malloc(array1HeadSize + array2HeadSize + array3HeadSize + 32);
             newArray.write(arrayLength1 + arrayLength2 + arrayLength3);
 
             MemoryPointer dst = newArray.next();
