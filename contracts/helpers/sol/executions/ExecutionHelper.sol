@@ -123,6 +123,18 @@ library ExecutionHelper {
 
         uint256 filteredExecutions = 0;
 
+        bool[] memory availableOrders = new bool[](
+            fulfillmentDetails.orders.length
+        );
+        for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
+            availableOrders[i] = true;
+        }
+        implicitExecutionsPre = processImplicitPreOrderExecutions(
+            fulfillmentDetails,
+            availableOrders,
+            nativeTokensSupplied
+        );
+
         for (uint256 i = 0; i < fulfillments.length; i++) {
             Execution memory execution = processExecutionFromFulfillment(
                 fulfillmentDetails,
@@ -149,18 +161,6 @@ library ExecutionHelper {
                 )
             }
         }
-
-        bool[] memory availableOrders = new bool[](
-            fulfillmentDetails.orders.length
-        );
-        for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
-            availableOrders[i] = true;
-        }
-        implicitExecutionsPre = processImplicitPreOrderExecutions(
-            fulfillmentDetails,
-            availableOrders,
-            nativeTokensSupplied
-        );
 
         implicitExecutionsPost = processImplicitPostOrderExecutions(
             fulfillmentDetails,
