@@ -55,6 +55,38 @@ library ArrayHelpers {
         }
     }
 
+    function flattenThree(
+        MemoryPointer array1,
+        MemoryPointer array2,
+        MemoryPointer array3
+    ) internal view returns (MemoryPointer newArray) {
+        unchecked {
+            uint256 arrayLength1 = array1.readUint256();
+            uint256 arrayLength2 = array2.readUint256();
+            uint256 arrayLength3 = array3.readUint256();
+            uint256 array1HeadSize = arrayLength1 * 32;
+            uint256 array2HeadSize = arrayLength2 * 32;
+            uint256 array3HeadSize = arrayLength3 * 32;
+
+            newArray = malloc(array1HeadSize + array2HeadSize + 32);
+            newArray.write(arrayLength1 + arrayLength2 + arrayLength3);
+
+            MemoryPointer dst = newArray.next();
+            if (arrayLength1 > 0) {
+                array1.next().copy(dst, array1HeadSize);
+            }
+            if (arrayLength2 > 0) {
+                array2.next().copy(dst.offset(array1HeadSize), array2HeadSize);
+            }
+            if (arrayLength3 > 0) {
+                array3.next().copy(
+                    dst.offset(array1HeadSize + array2HeadSize),
+                    array3HeadSize
+                );
+            }
+        }
+    }
+
     // =====================================================================//
     //            map with (element) => (newElement) callback               //
     // =====================================================================//
@@ -339,11 +371,14 @@ library ArrayHelpers {
      * @return newArray the new array created with the results from calling
      *         fn with each element
      */
-    function map(
+    function mapWithArg(
         MemoryPointer array,
         /* function (uint256 value, uint256 arg) returns (uint256 newValue) */
-        function(uint256, uint256) internal pure returns (uint256) fn,
-        uint256 arg
+        function(MemoryPointer, MemoryPointer)
+            internal
+            pure
+            returns (MemoryPointer) fn,
+        MemoryPointer arg
     ) internal pure returns (MemoryPointer newArray) {
         unchecked {
             uint256 length = array.readUint256();
@@ -356,7 +391,7 @@ library ArrayHelpers {
             MemoryPointer dstPosition = newArray.next();
 
             while (srcPosition.lt(srcEnd)) {
-                dstPosition.write(fn(srcPosition.readUint256(), arg));
+                dstPosition.write(fn(srcPosition.readMemoryPointer(), arg));
                 srcPosition = srcPosition.next();
                 dstPosition = dstPosition.next();
             }
