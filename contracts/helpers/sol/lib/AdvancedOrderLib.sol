@@ -624,7 +624,10 @@ library AdvancedOrderLib {
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderParameters memory order = orders[i].parameters;
             bytes32 orderHash;
-            if (order.orderType == OrderType.CONTRACT) {
+            if (
+                order.orderType == OrderType.CONTRACT &&
+                _hasValidTime(order.startTime, order.endTime)
+            ) {
                 bool noneYetLocated = false;
                 uint256 j = 0;
                 uint256 currentNonce;
@@ -665,6 +668,10 @@ library AdvancedOrderLib {
         }
 
         return orderHashes;
+    }
+
+    function _hasValidTime(uint256 startTime, uint256 endTime) internal view returns (bool) {
+        return block.timestamp >= startTime && block.timestamp < endTime;
     }
 
     /**
