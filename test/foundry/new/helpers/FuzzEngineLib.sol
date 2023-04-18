@@ -448,6 +448,14 @@ library FuzzEngineLib {
                     }
                 }
             } else {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+
                 for (uint256 j = 0; j < order.consideration.length; ++j) {
                     ReceivedItem memory item = order.consideration[j];
 
@@ -522,6 +530,14 @@ library FuzzEngineLib {
                     }
                 }
             } else {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+
                 for (uint256 j = 0; j < order.consideration.length; ++j) {
                     ReceivedItem memory item = order.consideration[j];
 
