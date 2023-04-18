@@ -67,17 +67,17 @@ library ExecutionHelper {
             uint256 nativeTokensReturned
         )
     {
+        implicitExecutionsPre = processImplicitPreOrderExecutions(
+            fulfillmentDetails,
+            availableOrders,
+            nativeTokensSupplied
+        );
+
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
             fulfillmentDetails,
             offerFulfillments,
             considerationFulfillments,
             availableOrders
-        );
-
-        implicitExecutionsPre = processImplicitPreOrderExecutions(
-            fulfillmentDetails,
-            availableOrders,
-            nativeTokensSupplied
         );
 
         implicitExecutionsPost = processImplicitPostOrderExecutions(
@@ -841,6 +841,9 @@ library ExecutionHelper {
 
         for (uint256 o; o < fulfillmentDetails.orders.length; o++) {
             OrderDetails memory orderDetails = fulfillmentDetails.orders[o];
+            if (!availableOrders[o]) {
+                continue;
+            }
 
             if (orderDetails.isContract) {
                 for (uint256 i = 0; i < orderDetails.offer.length; i++) {
