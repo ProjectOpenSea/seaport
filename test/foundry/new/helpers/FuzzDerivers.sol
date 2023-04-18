@@ -18,8 +18,11 @@ import {
     Execution,
     Fulfillment,
     FulfillmentComponent,
+    OfferItem,
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
@@ -208,6 +211,9 @@ library FuzzDerivers {
             context
                 .executionState
                 .considerationFulfillments = considerationFulfillments;
+
+            // TODO: expectedImpliedNativeExecutions needs to be calculated
+            // in cases where offer items are not included in fulfillments
         }
 
         // For the match functions, derive the fulfillments array.
@@ -228,6 +234,18 @@ library FuzzDerivers {
                 .executionState
                 .remainingOfferComponents = remainingOfferComponents
                 .toFulfillmentComponents();
+
+            uint256 expectedImpliedNativeExecutions = 0;
+            for (uint256 i = 0; i < remainingOfferComponents.length; ++i) {
+                MatchComponent memory component = remainingOfferComponents[i];
+                OfferItem memory item = context.executionState.orders[uint256(component.orderIndex)].parameters.offer[uint256(component.itemIndex)];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    expectedImpliedNativeExecutions += component.amount;
+                }
+            }
+
+            context.expectations.expectedImpliedNativeExecutions = expectedImpliedNativeExecutions;
         }
 
         return context;
@@ -239,7 +257,8 @@ library FuzzDerivers {
         internal
         returns (
             Execution[] memory implicitExecutions,
-            Execution[] memory explicitExecutions
+            Execution[] memory explicitExecutions,
+            uint256 nativeTokensReturned
         )
     {
         // Get the action.
@@ -272,8 +291,9 @@ library FuzzDerivers {
             // and explicit executions.
             (
                 explicitExecutions,
-                implicitExecutions
-            ) = getFulfillAvailableExecutions(context);
+                implicitExecutions,
+                nativeTokensReturned
+            ) = getFulfillAvailableExecutions(context, context.executionState.value);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -292,7 +312,7 @@ library FuzzDerivers {
         ) {
             // For the match functions, derive the expected implicit and
             // explicit executions.
-            (explicitExecutions, implicitExecutions) = getMatchExecutions(
+            (explicitExecutions, implicitExecutions, nativeTokensReturned) = getMatchExecutions(
                 context
             );
 
@@ -319,10 +339,12 @@ library FuzzDerivers {
     ) internal returns (FuzzTestContext memory) {
         (
             Execution[] memory implicitExecutions,
-            Execution[] memory explicitExecutions
+            Execution[] memory explicitExecutions,
+            uint256 nativeTokensReturned
         ) = getDerivedExecutions(context);
         context.expectations.expectedImplicitExecutions = implicitExecutions;
         context.expectations.expectedExplicitExecutions = explicitExecutions;
+        context.expectations.expectedNativeTokensReturned = nativeTokensReturned;
 
         return context;
     }
@@ -372,20 +394,22 @@ library FuzzDerivers {
     }
 
     function getFulfillAvailableExecutions(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        uint256 nativeTokensSupplied
     )
         internal
         view
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
         )
     {
         return
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                context.executionState.value,
+                nativeTokensSupplied,
                 context.expectations.expectedAvailableOrders
             );
     }
@@ -397,7 +421,8 @@ library FuzzDerivers {
         view
         returns (
             Execution[] memory explicitExecutions,
-            Execution[] memory implicitExecutions
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
         )
     {
         return

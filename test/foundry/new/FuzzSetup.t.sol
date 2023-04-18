@@ -192,8 +192,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
     function test_setUpOfferItems_erc721() public {
         assertEq(erc721s[0].balanceOf(charlie.addr), 0);
-        assertEq(erc721s[0].getApproved(1), address(0));
-        assertEq(erc721s[0].getApproved(2), address(0));
+        assertEq(erc721s[1].balanceOf(charlie.addr), 0);
+        assertFalse(
+            erc721s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
+        );
+        assertFalse(
+            erc721s[1].isApprovedForAll(charlie.addr, address(getSeaport()))
+        );
 
         OfferItem[] memory offerItems = new OfferItem[](2);
         offerItems[0] = OfferItemLib
@@ -206,7 +211,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         offerItems[1] = OfferItemLib
             .empty()
             .withItemType(ItemType.ERC721)
-            .withToken(address(erc721s[0]))
+            .withToken(address(erc721s[1]))
             .withIdentifierOrCriteria(2)
             .withAmount(1);
 
@@ -235,9 +240,14 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         setUpOfferItems(context);
 
-        assertEq(erc721s[0].balanceOf(charlie.addr), 2);
-        assertEq(erc721s[0].getApproved(1), address(getSeaport()));
-        assertEq(erc721s[0].getApproved(2), address(getSeaport()));
+        assertEq(erc721s[0].balanceOf(charlie.addr), 1);
+        assertEq(erc721s[1].balanceOf(charlie.addr), 1);
+        assertTrue(
+            erc721s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
+        );
+        assertTrue(
+            erc721s[1].isApprovedForAll(charlie.addr, address(getSeaport()))
+        );
     }
 
     function test_setUpOfferItems_erc1155() public {

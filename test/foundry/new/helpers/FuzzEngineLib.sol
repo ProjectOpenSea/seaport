@@ -12,6 +12,7 @@ import {
 import {
     AdvancedOrder,
     ConsiderationItem,
+    Execution,
     OfferItem,
     Order,
     OrderComponents,
@@ -33,6 +34,8 @@ import {
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
+import { FuzzDerivers } from "./FuzzDerivers.sol";
+
 /**
  * @notice Stateless helpers for FuzzEngine.
  */
@@ -45,6 +48,7 @@ library FuzzEngineLib {
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
+    using FuzzDerivers for FuzzTestContext;
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
@@ -397,7 +401,12 @@ library FuzzEngineLib {
             context.seaport.matchAdvancedOrders.selector ||
             action(context) == context.seaport.matchOrders.selector;
 
+        bool isFulfillAvailable = action(context) ==
+            context.seaport.fulfillAvailableOrders.selector ||
+            action(context) == context.seaport.fulfillAvailableAdvancedOrders.selector;
+
         uint256 value = 0;
+        uint256 valueToCreditBack = 0;
 
         for (
             uint256 i = 0;
@@ -409,6 +418,23 @@ library FuzzEngineLib {
                 .executionState
                 .orders[i]
                 .parameters;
+
+            // TODO: a more comprehensive algorithm for fulfillAvailable
+            // would take into account maximumFulfilled to cap the amount
+            // spent, and would find the most expensive combination of
+            // orders and only consider those.
+            if (!isFulfillAvailable) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType == OrderType.CONTRACT
+                    ) {
+                        valueToCreditBack += item.amount;
+                    }
+                }
+            }
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
@@ -432,6 +458,102 @@ library FuzzEngineLib {
             }
         }
 
-        return value;
+        if (valueToCreditBack >= value) {
+            value = 0;
+        } else {
+            value = value - valueToCreditBack;
+        }
+
+        uint256 minimum = getMinimumNativeTokensToSupply(context);
+
+        if (minimum > value) {
+            revert("FuzzEngineLib: minimum native tokens > selected");
+        } else {
+            return value;
+        }
+    }
+
+    function getMinimumNativeTokensToSupply(
+        FuzzTestContext memory context
+    ) internal view returns (uint256) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
+
+        uint256 value = 0;
+        uint256 valueToCreditBack = 0;
+
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            OrderDetails memory order = context.executionState.orderDetails[i];
+            OrderParameters memory orderParams = context
+                .executionState
+                .orders[i]
+                .parameters;
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
+
+                if (
+                    item.itemType == ItemType.NATIVE &&
+                    orderParams.orderType == OrderType.CONTRACT
+                ) {
+                    valueToCreditBack += item.amount;
+                }
+            }
+
+
+            if (isMatch) {
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    SpentItem memory item = order.offer[j];
+
+                    if (
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
+                    ) {
+                        value += item.amount;
+                    }
+                }
+            } else {
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ReceivedItem memory item = order.consideration[j];
+
+                    if (item.itemType == ItemType.NATIVE) {
+                        value += item.amount;
+                    }
+                }
+            }
+        }
+
+        // Any time more is received back than is paid out, no native tokens
+        // need to be supplied.
+        if (valueToCreditBack >= value) {
+            return 0;
+        }
+
+        value = value - valueToCreditBack;
+
+        (
+            ,
+            ,
+            uint256 nativeTokensReturned
+        ) = context.getFulfillAvailableExecutions(value);
+
+        // NOTE: this check would not apply in cases where Seaport gets paid native
+        // tokens by a contract offerer that doesn't actually return a native
+        // offer item (or gets paid mid-flight from some other source.) That's
+        // not currently the case in the contract order tests.
+        if (nativeTokensReturned > value) {
+            revert("FuzzEngineLib: got higher expected tokens returned than value supplied");
+        }
+
+        return value - nativeTokensReturned;
     }
 }

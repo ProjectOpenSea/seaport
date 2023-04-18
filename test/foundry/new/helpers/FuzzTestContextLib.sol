@@ -163,6 +163,9 @@ struct Expectations {
     bytes32[] expectedSeaportEventHashes;
     bool[] ineligibleOrders;
     bool[] ineligibleFailures;
+
+    uint256 expectedImpliedNativeExecutions;
+    uint256 expectedNativeTokensReturned;
 }
 
 struct ExecutionState {
@@ -244,7 +247,6 @@ struct MutationState {
     AdvancedOrder selectedOrder;
     uint256 selectedOrderIndex;
     Side side;
-    uint256 fulfillmentIndex;
 }
 
 struct FuzzTestContext {
@@ -359,7 +361,9 @@ library FuzzTestContextLib {
                     expectedTransferEventHashes: expectedTransferEventHashes,
                     expectedSeaportEventHashes: expectedSeaportEventHashes,
                     ineligibleOrders: new bool[](orders.length),
-                    ineligibleFailures: new bool[](uint256(Failure.length))
+                    ineligibleFailures: new bool[](uint256(Failure.length)),
+                    expectedImpliedNativeExecutions: 0,
+                    expectedNativeTokensReturned: 0
                 }),
                 executionState: ExecutionState({
                     caller: address(0),

@@ -36,6 +36,12 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
             return false;
         }
 
+        uint256 allowed = allowance[from][msg.sender];
+
+        if (amount > allowed) {
+            revert("NOT_AUTHORIZED");
+        }
+
         super.transferFrom(from, to, amount);
 
         if (noReturnData) {

@@ -155,6 +155,8 @@ library TestStateGenerator {
                 someAvailable = true;
             }
 
+            uint256 bulkSigHeight = context.randRange(1, 24);
+
             components[i] = OrderComponentsSpace({
                 offerer: Offerer(context.choice(Solarray.uint256s(1, 2, 4))),
                 zone: Zone(context.randEnum(0, 1)),
@@ -172,6 +174,8 @@ library TestStateGenerator {
                     context.choice(Solarray.uint256s(0, 1, 4))
                 ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
+                bulkSigHeight: bulkSigHeight,
+                bulkSigIndex: context.randRange(0, 2 ** bulkSigHeight - 1),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
                 unavailableReason: reason,
@@ -1212,6 +1216,8 @@ library AdvancedOrdersSpaceGenerator {
             orders[i] = order.withGeneratedSignature(
                 space.orders[i].signatureMethod,
                 space.orders[i].eoaSignatureType,
+                space.orders[i].bulkSigHeight,
+                space.orders[i].bulkSigIndex,
                 space.orders[i].offerer,
                 order.parameters.offerer,
                 orderHash,
@@ -1573,10 +1579,19 @@ library SignatureGenerator {
 
     using ExtraDataGenerator for FuzzGeneratorContext;
 
+    struct SigInfra {
+        bytes32 digest;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     function withGeneratedSignature(
         AdvancedOrder memory order,
         SignatureMethod method,
         EOASignature eoaSignatureType,
+        uint256 bulkSigHeight,
+        uint256 bulkSigIndex,
         Offerer offerer,
         address offererAddress,
         bytes32 orderHash,
@@ -1588,43 +1603,79 @@ library SignatureGenerator {
 
         bytes memory signature;
 
-        if (method == SignatureMethod.EOA) {
-            bytes32 digest;
-            uint8 v;
-            bytes32 r;
-            bytes32 s;
+        SigInfra memory infra = SigInfra({
+            digest: bytes32(0),
+            v: 0,
+            r: bytes32(0),
+            s: bytes32(0)
+        });
 
+        if (method == SignatureMethod.EOA) {
             uint256 offererKey = offerer.getKey(context);
 
             if (eoaSignatureType == EOASignature.STANDARD) {
-                digest = _getDigest(orderHash, context);
-                (v, r, s) = context.vm.sign(offererKey, digest);
-                signature = abi.encodePacked(r, s, v);
+                infra.digest = _getDigest(orderHash, context);
+                (infra.v, infra.r, infra.s) = context.vm.sign(
+                    offererKey,
+                    infra.digest
+                );
+                signature = abi.encodePacked(infra.r, infra.s, infra.v);
 
-                _checkSig(digest, v, r, s, offerer, context);
+                _checkSig(
+                    infra.digest,
+                    infra.v,
+                    infra.r,
+                    infra.s,
+                    offerer,
+                    context
+                );
                 return order.withSignature(signature);
             } else if (eoaSignatureType == EOASignature.EIP2098) {
-                digest = _getDigest(orderHash, context);
-                (v, r, s) = context.vm.sign(offererKey, digest);
+                infra.digest = _getDigest(orderHash, context);
+                (infra.v, infra.r, infra.s) = context.vm.sign(
+                    offererKey,
+                    infra.digest
+                );
 
                 {
                     uint256 yParity;
-                    if (v == 27) {
+                    if (infra.v == 27) {
                         yParity = 0;
                     } else {
                         yParity = 1;
                     }
-                    uint256 yParityAndS = (yParity << 255) | uint256(s);
-                    signature = abi.encodePacked(r, yParityAndS);
+                    uint256 yParityAndS = (yParity << 255) | uint256(infra.s);
+                    signature = abi.encodePacked(infra.r, yParityAndS);
                 }
 
-                _checkSig(digest, v, r, s, offerer, context);
+                _checkSig(
+                    infra.digest,
+                    infra.v,
+                    infra.r,
+                    infra.s,
+                    offerer,
+                    context
+                );
                 return order.withSignature(signature);
             } else if (eoaSignatureType == EOASignature.BULK) {
-                signature = _getBulkSig(order, offererKey, false, context);
+                signature = _getBulkSig(
+                    order,
+                    bulkSigHeight,
+                    bulkSigIndex,
+                    offererKey,
+                    false,
+                    context
+                );
                 return order.withSignature(signature);
             } else if (eoaSignatureType == EOASignature.BULK2098) {
-                signature = _getBulkSig(order, offererKey, true, context);
+                signature = _getBulkSig(
+                    order,
+                    bulkSigHeight,
+                    bulkSigIndex,
+                    offererKey,
+                    true,
+                    context
+                );
                 return order.withSignature(signature);
             } else {
                 revert("SignatureGenerator: Invalid EOA signature type");
@@ -1636,9 +1687,9 @@ library SignatureGenerator {
             }
 
             if (method == SignatureMethod.EIP1271) {
-                bytes32 digest = _getDigest(orderHash, context);
+                infra.digest = _getDigest(orderHash, context);
                 EIP1271Offerer(payable(offererAddress)).registerSignature(
-                    digest,
+                    infra.digest,
                     signature
                 );
             } else if (
@@ -1668,6 +1719,8 @@ library SignatureGenerator {
 
     function _getBulkSig(
         AdvancedOrder memory order,
+        uint256 height,
+        uint256 index,
         uint256 offererKey,
         bool useEIP2098,
         FuzzGeneratorContext memory context
@@ -1678,8 +1731,6 @@ library SignatureGenerator {
         // components, since we need to neutralize the tip for validation to
         // work.
         bytes32 orderHash = order.getTipNeutralizedOrderHash(context.seaport);
-        uint256 height = bound(context.prng.next(), 1, 24);
-        uint256 index = bound(context.prng.next(), 0, 2 ** height - 1);
 
         signature = merkleTree.signSparseBulkOrder(
             context.seaport,

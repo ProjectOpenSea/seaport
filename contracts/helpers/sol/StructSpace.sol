@@ -59,6 +59,8 @@ struct OrderComponentsSpace {
     ZoneHash zoneHash;
     SignatureMethod signatureMethod;
     EOASignature eoaSignatureType;
+    uint256 bulkSigHeight;
+    uint256 bulkSigIndex;
     ConduitChoice conduit;
     Tips tips;
     UnavailableReason unavailableReason; // ignored unless unavailable
