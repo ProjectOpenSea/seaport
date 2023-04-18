@@ -401,7 +401,7 @@ library FuzzDerivers {
 
     function getContractOrderSuppliedNativeTokens(
         FuzzTestContext memory context
-    ) internal view returns (uint256 nativeTokens) {
+    ) internal pure returns (uint256 nativeTokens) {
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             OrderType orderType = (
                 context.executionState.orders[i].parameters.orderType

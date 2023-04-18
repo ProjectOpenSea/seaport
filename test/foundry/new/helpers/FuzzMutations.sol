@@ -604,8 +604,13 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
         bytes4 action = context.action();
 
+        // TODO: verify whether match / matchAdvanced are actually ineligible
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
