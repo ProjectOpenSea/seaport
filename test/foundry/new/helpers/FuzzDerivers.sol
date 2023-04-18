@@ -19,8 +19,14 @@ import {
     Fulfillment,
     FulfillmentComponent,
     OfferItem,
-    OrderParameters
+    OrderParameters,
+    SpentItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import {
+    ItemType,
+    OrderType
+} from "seaport-sol/SeaportEnums.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
@@ -393,6 +399,31 @@ library FuzzDerivers {
                 );
     }
 
+    function getContractOrderSuppliedNativeTokens(
+        FuzzTestContext memory context
+    ) internal view returns (uint256 nativeTokens) {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderType orderType = (
+                context.executionState.orders[i].parameters.orderType
+            );
+            if (orderType != OrderType.CONTRACT) {
+                continue;
+            }
+
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                continue;
+            }
+
+            OrderDetails memory order = context.executionState.orderDetails[i];
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
+                if (item.itemType == ItemType.NATIVE) {
+                    nativeTokens += item.amount;
+                }
+            }
+        }
+    }
+
     function getFulfillAvailableExecutions(
         FuzzTestContext memory context,
         uint256 nativeTokensSupplied
@@ -405,11 +436,17 @@ library FuzzDerivers {
             uint256 nativeTokensReturned
         )
     {
+        uint256 totalNativeTokensAvailable = (
+            nativeTokensSupplied + getContractOrderSuppliedNativeTokens(
+                context
+            )
+        );
+
         return
             context.toFulfillmentDetails().getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                nativeTokensSupplied,
+                totalNativeTokensAvailable,
                 context.expectations.expectedAvailableOrders
             );
     }
@@ -425,10 +462,16 @@ library FuzzDerivers {
             uint256 nativeTokensReturned
         )
     {
+        uint256 totalNativeTokensAvailable = (
+            context.executionState.value + getContractOrderSuppliedNativeTokens(
+                context
+            )
+        );
+
         return
             context.toFulfillmentDetails().getMatchExecutions(
                 context.executionState.fulfillments,
-                context.executionState.value
+                totalNativeTokensAvailable
             );
     }
 }
