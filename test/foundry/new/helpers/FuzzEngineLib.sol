@@ -420,23 +420,6 @@ library FuzzEngineLib {
                 .orders[i]
                 .parameters;
 
-            // TODO: a more comprehensive algorithm for fulfillAvailable
-            // would take into account maximumFulfilled to cap the amount
-            // spent, and would find the most expensive combination of
-            // orders and only consider those.
-            if (!isFulfillAvailable) {
-                for (uint256 j = 0; j < order.offer.length; ++j) {
-                    SpentItem memory item = order.offer[j];
-
-                    if (
-                        item.itemType == ItemType.NATIVE &&
-                        orderParams.orderType == OrderType.CONTRACT
-                    ) {
-                        valueToCreditBack += item.amount;
-                    }
-                }
-            }
-
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
                     SpentItem memory item = order.offer[j];
@@ -453,6 +436,9 @@ library FuzzEngineLib {
                     SpentItem memory item = order.offer[j];
 
                     if (item.itemType == ItemType.NATIVE) {
+                        if (orderParams.orderType == OrderType.CONTRACT) {
+                            valueToCreditBack += item.amount;
+                        }
                         value += item.amount;
                     }
                 }
@@ -476,7 +462,7 @@ library FuzzEngineLib {
         uint256 minimum = getMinimumNativeTokensToSupply(context);
 
         if (minimum > value) {
-            revert("FuzzEngineLib: minimum native tokens > selected");
+            return minimum;
         } else {
             return value;
         }
