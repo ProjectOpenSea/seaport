@@ -27,7 +27,8 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 import {
     AdvancedOrderLib,
     OrderParametersLib,
-    ItemType
+    ItemType,
+    BasicOrderType
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -41,6 +42,7 @@ import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+import { FuzzHelpers } from "./FuzzHelpers.sol";
 import { CheckHelpers } from "./FuzzSetup.sol";
 
 interface TestERC20 {
@@ -53,6 +55,7 @@ interface TestNFT {
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder;
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
@@ -136,6 +139,23 @@ library MutationFilters {
         }
 
         if (!locatedEligibleOfferItem) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInvalidMsgValue(
+        AdvancedOrder memory order,
+        uint256 /*orderIndex*/,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillBasicOrder.selector &&
+            action !=
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
             return true;
         }
 
@@ -673,6 +693,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
     using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
@@ -735,6 +756,27 @@ contract FuzzMutations is Test, FuzzExecutor {
             TestERC20(item.token).approve(approveTo, 0);
         } else {
             TestNFT(item.token).setApprovalForAll(approveTo, false);
+        }
+
+        exec(context);
+    }
+
+    function mutation_invalidMsgValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        BasicOrderType orderType = order.getBasicOrderType();
+
+        // BasicOrderType 0-7 are payable Native-Token routes
+        if (uint8(orderType) < 8) {
+            context.executionState.value = 0;
+        // BasicOrderType 8 and above are nonpayable Token-Token routes
+        } else {
+            vm.deal(context.executionState.caller, 1);
+            context.executionState.value = 1;
         }
 
         exec(context);
