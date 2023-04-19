@@ -503,7 +503,7 @@ library MutationFilters {
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getDerivedExecutions();
+        ) = context.getDerivedExecutions(context.executionState.value);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -531,6 +531,8 @@ library MutationFilters {
                 }
             }
         }
+
+        // Note: mutation is undone here as referenced above.
         order.parameters.conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
