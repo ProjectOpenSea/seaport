@@ -1310,6 +1310,29 @@ contract FuzzMutations is Test, FuzzExecutor {
             context.executionState.orders[component.orderIndex].parameters.offer[component.itemIndex].token = modifiedToken;
         }
 
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            AdvancedOrder memory order = context.executionState.orders[i];
+
+            // TODO: Remove this if we can, since this modifies bulk signatures.
+            if (order.parameters.offerer.code.length == 0) {
+                context
+                    .advancedOrdersSpace
+                    .orders[i]
+                    .signatureMethod = SignatureMethod.EOA;
+                context
+                    .advancedOrdersSpace
+                    .orders[i]
+                    .eoaSignatureType = EOASignature.STANDARD;
+            }
+            if (context.executionState.caller != order.parameters.offerer) {
+                AdvancedOrdersSpaceGenerator._signOrders(
+                    context.advancedOrdersSpace,
+                    context.executionState.orders,
+                    context.generatorContext
+                );
+            }
+        }
+
         exec(context);
     }
 
