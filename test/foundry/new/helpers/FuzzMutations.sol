@@ -29,7 +29,9 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     AdvancedOrderLib,
-    OrderParametersLib
+    OrderParametersLib,
+    ItemType,
+    BasicOrderType
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -44,6 +46,8 @@ import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+
+import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
 
@@ -65,6 +69,7 @@ interface TestNFT {
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder;
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
@@ -154,14 +159,31 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForInsufficientNativeTokens(
+    function ineligibleForInvalidMsgValue(
+        AdvancedOrder memory order,
+        uint256 /*orderIndex*/,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillBasicOrder.selector &&
+            action !=
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForInsufficientNativeTokens(
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
         if (context.expectations.expectedImpliedNativeExecutions != 0) {
             return true;
         }
 
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
             return true;
@@ -172,12 +194,12 @@ library MutationFilters {
 
     function ineligibleForNativeTokenTransferGenericFailure(
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         if (context.expectations.expectedImpliedNativeExecutions == 0) {
             return true;
         }
 
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
             return true;
@@ -529,10 +551,11 @@ library MutationFilters {
         bytes32 oldConduitKey = order.parameters.conduitKey;
         order.parameters.conduitKey = keccak256("invalid conduit");
         (
-            Execution[] memory implicitExecutions,
             Execution[] memory explicitExecutions,
+            ,
+            Execution[] memory implicitExecutionsPost,
 
-        ) = context.getDerivedExecutions();
+        ) = context.getDerivedExecutions(context.executionState.value);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -549,17 +572,19 @@ library MutationFilters {
 
         // If we haven't found one yet, keep looking in implicit executions...
         if (!locatedInvalidConduitExecution) {
-            for (uint256 i = 0; i < implicitExecutions.length; ++i) {
+            for (uint256 i = 0; i < implicitExecutionsPost.length; ++i) {
                 if (
-                    implicitExecutions[i].conduitKey ==
+                    implicitExecutionsPost[i].conduitKey ==
                     keccak256("invalid conduit") &&
-                    implicitExecutions[i].item.itemType != ItemType.NATIVE
+                    implicitExecutionsPost[i].item.itemType != ItemType.NATIVE
                 ) {
                     locatedInvalidConduitExecution = true;
                     break;
                 }
             }
         }
+
+        // Note: mutation is undone here as referenced above.
         order.parameters.conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
@@ -653,12 +678,17 @@ library MutationFilters {
     }
 
     function ineligibleForOrderAlreadyFilled(
-        AdvancedOrder memory /* order */,
+        AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
         bytes4 action = context.action();
 
+        // TODO: verify whether match / matchAdvanced are actually ineligible
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
@@ -679,27 +709,11 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
         }
 
-        if (
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ||
-            action == context.seaport.matchOrders.selector
-        ) {
-            return true;
-        }
-
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.numerator == 1 && order.denominator == 1) {
+        if (ineligibleWhenNotAdvancedOrUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -861,6 +875,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     using FuzzEngineLib for FuzzTestContext;
     using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
@@ -928,11 +943,32 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidMsgValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        BasicOrderType orderType = order.getBasicOrderType();
+
+        // BasicOrderType 0-7 are payable Native-Token routes
+        if (uint8(orderType) < 8) {
+            context.executionState.value = 0;
+        // BasicOrderType 8 and above are nonpayable Token-Token routes
+        } else {
+            vm.deal(context.executionState.caller, 1);
+            context.executionState.value = 1;
+        }
+
+        exec(context);
+    }
+
     function mutation_insufficientNativeTokensSupplied(
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         context.executionState.value = minimumRequired - 1;
 

@@ -33,10 +33,12 @@ contract FuzzMainTest is FuzzEngine {
     }
 
     function xtest_concrete() public {
-        uint256 seed = 1;
-        uint256 orders = 1;
-        uint256 maxOfferItemsPerOrder = 1;
-        uint256 maxConsiderationItemsPerOrder = 1;
+        (
+            uint256 seed,
+            uint256 orders,
+            uint256 maxOfferItemsPerOrder,
+            uint256 maxConsiderationItemsPerOrder
+        ) = (0, 0, 0, 0);
         bytes memory callData = abi.encodeCall(
             this.test_fuzz_validOrders,
             (seed, orders, maxOfferItemsPerOrder, maxConsiderationItemsPerOrder)

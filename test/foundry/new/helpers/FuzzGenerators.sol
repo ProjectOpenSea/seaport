@@ -410,8 +410,14 @@ library AdvancedOrdersSpaceGenerator {
             _ensureDirectSupport(orders, space, context);
         }
 
+        bool contractOrderFound;
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
+
+            if (order.parameters.orderType == OrderType.CONTRACT) {
+                contractOrderFound = true;
+            }
+
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
 
             OrderParameters memory orderParams = order.parameters;
@@ -1371,6 +1377,10 @@ library BroadOrderTypeGenerator {
                     .withNumerator(numerator)
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
+        } else if (broadOrderType == BroadOrderType.CONTRACT) {
+            order.parameters = orderParams.withOrderType(
+                OrderType.CONTRACT
+            );
         }
 
         return order;

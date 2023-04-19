@@ -495,23 +495,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        if (context.executionState.value > 0) {
-            address caller = context.executionState.caller;
-            if (caller == address(0)) caller = address(this);
-            address seaport = address(context.seaport);
-            executions = new Execution[](_executions.length + 1);
-            executions[0] = ExecutionLib.empty().withOfferer(caller);
-            executions[0].item.amount = context.executionState.value;
-            executions[0].item.recipient = payable(seaport);
-            for (uint256 i; i < _executions.length; i++) {
-                Execution memory execution = _executions[i].copy();
-                executions[i + 1] = execution;
-                if (execution.item.itemType == ItemType.NATIVE) {
-                    execution.offerer = seaport;
-                }
-            }
-        }
-
         try balanceChecker.addTransfers(executions) {} catch (
             bytes memory reason
         ) {

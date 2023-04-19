@@ -69,6 +69,7 @@ enum Failure {
     MismatchedFulfillmentOfferAndConsiderationComponents, // Fulfillment has mismatched offer and consideration components
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    InvalidMsgValue, // Invalid msg.value amount
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
     CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
@@ -193,6 +194,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.withOrder(
             MutationFilters.ineligibleForCallerMissingApproval
+        );
+
+        failuresAndFilters[i++] = Failure.InvalidMsgValue.withOrder(
+            MutationFilters.ineligibleForInvalidMsgValue
         );
 
         failuresAndFilters[i++] = Failure
@@ -484,6 +489,15 @@ library FailureDetailsLib {
         );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InvalidMsgValue
+            .selector
+            .withOrder(
+                "InvalidMsgValue",
+                FuzzMutations.mutation_invalidMsgValue.selector,
+                details_InvalidMsgValue
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InsufficientNativeTokensSupplied
             .selector
             .withGeneric(
@@ -706,13 +720,22 @@ library FailureDetailsLib {
         );
     }
 
+    function details_InvalidMsgValue(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        uint256 value = context.executionState.value == 0 ? 1 : 0;
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, value);
+    }
+
     function details_NativeTokenTransferGenericFailure(
         FuzzTestContext memory context,
         MutationState memory /* mutationState */,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         uint256 totalImplicitExecutions = (
-            context.expectations.expectedImplicitExecutions.length
+            context.expectations.expectedImplicitPostExecutions.length
         );
         ReceivedItem memory item;
         if (context.expectations.expectedNativeTokensReturned == 0) {
@@ -724,7 +747,7 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
-                item = context.expectations.expectedImplicitExecutions[i].item;
+                item = context.expectations.expectedImplicitPostExecutions[i].item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;
@@ -751,8 +774,9 @@ library FailureDetailsLib {
             for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
                 item = context
                     .expectations
-                    .expectedImplicitExecutions[i - 1]
+                    .expectedImplicitPostExecutions[i - 1]
                     .item;
+
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;

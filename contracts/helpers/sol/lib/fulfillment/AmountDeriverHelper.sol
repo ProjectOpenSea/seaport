@@ -10,7 +10,8 @@ import {
     AdvancedOrder,
     SpentItem,
     ReceivedItem,
-    CriteriaResolver
+    CriteriaResolver,
+    OrderType
 } from "../../../../lib/ConsiderationStructs.sol";
 import { Side, ItemType } from "../../../../lib/ConsiderationEnums.sol";
 import { OfferItemLib } from "../OfferItemLib.sol";
@@ -96,7 +97,8 @@ contract AmountDeriverHelper is AmountDeriver {
                 offerer: order.offerer,
                 conduitKey: order.conduitKey,
                 offer: offer,
-                consideration: consideration
+                consideration: consideration,
+                isContract: order.orderType == OrderType.CONTRACT
             });
     }
 
@@ -133,7 +135,8 @@ contract AmountDeriverHelper is AmountDeriver {
                 offerer: order.parameters.offerer,
                 conduitKey: order.parameters.conduitKey,
                 offer: offer,
-                consideration: consideration
+                consideration: consideration,
+                isContract: order.parameters.orderType == OrderType.CONTRACT
             });
     }
 

@@ -103,7 +103,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonUint256(
             "root",
             "callValue",
-            context.getNativeTokensToSupply()
+            context.executionState.value
         );
     }
     if (outputSelection.maximumFulfilled) {
@@ -242,8 +242,15 @@ function dumpContext(
     if (outputSelection.expectedImplicitExecutions) {
         jsonOut = Searializer.tojsonDynArrayExecution(
             "root",
-            "expectedImplicitExecutions",
-            context.expectations.expectedImplicitExecutions.filter(
+            "expectedImplicitPreExecutions",
+            context.expectations.expectedImplicitPreExecutions.filter(
+                outputSelection.executionsFilter
+            )
+        );
+        jsonOut = Searializer.tojsonDynArrayExecution(
+            "root",
+            "expectedImplicitPostExecutions",
+            context.expectations.expectedImplicitPostExecutions.filter(
                 outputSelection.executionsFilter
             )
         );
