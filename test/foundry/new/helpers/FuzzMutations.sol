@@ -51,6 +51,10 @@ import {
     TestERC20 as TestERC20Strange
 } from "../../../../contracts/test/TestERC20.sol";
 
+import { ConduitChoice } from "seaport-sol/StructSpace.sol";
+
+import "forge-std/console.sol";
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -58,10 +62,6 @@ interface TestERC20 {
 interface TestNFT {
     function setApprovalForAll(address operator, bool approved) external;
 }
-
-import { ConduitChoice } from "seaport-sol/StructSpace.sol";
-
-import "forge-std/console.sol";
 
 library MutationFilters {
     using FuzzEngineLib for FuzzTestContext;
@@ -767,8 +767,10 @@ library MutationFilters {
         }
 
         // This is an expensive filter.  Figure out how to improve performance.
+        // Also, think about rewriting this filter and mutation to act on
+        // tokens instead of item types.
 
-        // Get the first fulfillment. That it's possible to always expect the 0
+        // Get the first fulfillment. Then it's possible to always expect the 0
         // index in the error.
         Fulfillment memory selectedFulfillment = context
             .executionState
@@ -777,37 +779,77 @@ library MutationFilters {
         // Get the token to target from the first offer component.
         uint256 orderIndex = selectedFulfillment.offerComponents[0].orderIndex;
         uint256 itemIndex = selectedFulfillment.offerComponents[0].itemIndex;
+
         address targetToken = context
             .executionState
             .orders[orderIndex]
             .parameters
             .offer[itemIndex]
             .token;
+        ItemType targetItemType = context
+            .executionState
+            .orders[orderIndex]
+            .parameters
+            .offer[itemIndex]
+            .itemType;
+
+        uint256 considerationOrderIndex = selectedFulfillment
+            .considerationComponents[0]
+            .orderIndex;
+        uint256 considerationItemIndex = selectedFulfillment
+            .considerationComponents[0]
+            .itemIndex;
+
+        ItemType bookendItemType = context
+            .executionState
+            .orders[considerationOrderIndex]
+            .parameters
+            .consideration[considerationItemIndex]
+            .itemType;
+
+        // Rule out item type combinations that won't work.
+        if (
+            // 1155 and 1155_WITH_CRITERIA don't work because it's not possible to
+            // convert it to a different type without hitting another revert
+            // before hitting intended revert.
+            (targetItemType == ItemType.ERC1155_WITH_CRITERIA ||
+                targetItemType == ItemType.ERC1155 ||
+                targetItemType == ItemType.NATIVE)
+        ) {
+            return true;
+        } else if (
+            targetItemType == ItemType.ERC20 &&
+            bookendItemType == ItemType.ERC1155
+        ) {
+            return true;
+        } else if (
+            targetItemType == ItemType.ERC721 &&
+            bookendItemType == ItemType.ERC1155
+        ) {
+            return true;
+        } else if (
+            targetItemType == ItemType.ERC721_WITH_CRITERIA &&
+            bookendItemType == ItemType.ERC1155_WITH_CRITERIA
+        ) {
+            return true;
+        }
 
         AdvancedOrder memory order = context.executionState.orders[0];
 
-        bool foundTokenToTamperWith = false;
-        address offererAddress = order.parameters.offerer;
-
-        // Iterate over the offer items and check if any of them has the target
-        // token.
-        if (order.parameters.offerer == offererAddress) {
-            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-                OfferItem memory item = order.parameters.offer[i];
-                if (
-                    item.token == targetToken &&
-                    // 1155_WITH_CRITERIA doesn't work because it's not possible to
-                    // convert it to a different type without hitting another revert
-                    // before hitting intended revert.
-                    item.itemType != ItemType.ERC1155_WITH_CRITERIA &&
-                    item.itemType != ItemType.NATIVE
-                ) {
-                    foundTokenToTamperWith = true;
-                }
-            }
+        if (order.parameters.offer.length == 0) {
+            return true;
         }
 
-        if (!foundTokenToTamperWith) {
+        OfferItem memory item = order.parameters.offer[0];
+
+        address offererAddress = order.parameters.offerer;
+
+        // There has to be some offer to tamper with and it has to be the
+        // offerer's order.
+        if (
+            !(item.token == targetToken &&
+                order.parameters.offerer == offererAddress)
+        ) {
             return true;
         }
 
@@ -1285,6 +1327,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         for (uint256 j = 0; j < context.executionState.orders.length; ++j) {
             order = context.executionState.orders[j];
             if (order.parameters.offerer == offererAddress) {
+                // Iterate over the offer items and change their types.
                 for (uint256 i = 0; i < order.parameters.offer.length; i++) {
                     OfferItem memory item = order.parameters.offer[i];
                     if (item.token == targetToken) {
@@ -1292,8 +1335,6 @@ contract FuzzMutations is Test, FuzzExecutor {
                             item.itemType = ItemType.ERC1155;
                         } else if (item.itemType == ItemType.ERC721) {
                             item.itemType = ItemType.ERC1155;
-                        } else if (item.itemType == ItemType.ERC1155) {
-                            item.itemType = ItemType.ERC20;
                         } else if (
                             item.itemType == ItemType.ERC721_WITH_CRITERIA
                         ) {
@@ -1302,6 +1343,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                     }
                 }
 
+                // Signing stuff below.
                 // TODO: Remove this if we can, since this modifies bulk signatures.
                 if (order.parameters.offerer.code.length == 0) {
                     context
