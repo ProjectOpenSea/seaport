@@ -20,7 +20,9 @@ import {
     FulfillmentComponent,
     OfferItem,
     OrderComponents,
-    OrderParameters
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
@@ -56,8 +58,6 @@ import {
 } from "../../../../contracts/test/TestERC20.sol";
 
 import { ConduitChoice } from "seaport-sol/StructSpace.sol";
-
-import "forge-std/console.sol";
 
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
@@ -160,8 +160,6 @@ library MutationFilters {
     }
 
     function ineligibleForInvalidMsgValue(
-        AdvancedOrder memory order,
-        uint256 /*orderIndex*/,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -768,7 +766,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents(
+    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -780,94 +778,50 @@ library MutationFilters {
             return true;
         }
 
-        // This is an expensive filter.  Figure out how to improve performance.
-        // Also, think about rewriting this filter and mutation to act on
-        // tokens instead of item types.
-
-        // Get the first fulfillment. Then it's possible to always expect the 0
-        // index in the error.
-        Fulfillment memory selectedFulfillment = context
-            .executionState
-            .fulfillments[0];
-
-        // Get the token to target from the first offer component.
-        uint256 orderIndex = selectedFulfillment.offerComponents[0].orderIndex;
-        uint256 itemIndex = selectedFulfillment.offerComponents[0].itemIndex;
-
-        address targetToken = context
-            .executionState
-            .orders[orderIndex]
-            .parameters
-            .offer[itemIndex]
-            .token;
-        ItemType targetItemType = context
-            .executionState
-            .orders[orderIndex]
-            .parameters
-            .offer[itemIndex]
-            .itemType;
-
-        uint256 considerationOrderIndex = selectedFulfillment
-            .considerationComponents[0]
-            .orderIndex;
-        uint256 considerationItemIndex = selectedFulfillment
-            .considerationComponents[0]
-            .itemIndex;
-
-        ItemType bookendItemType = context
-            .executionState
-            .orders[considerationOrderIndex]
-            .parameters
-            .consideration[considerationItemIndex]
-            .itemType;
-
-        // Rule out item type combinations that won't work.
-        if (
-            // 1155 and 1155_WITH_CRITERIA don't work because it's not possible to
-            // convert it to a different type without hitting another revert
-            // before hitting intended revert.
-            (targetItemType == ItemType.ERC1155_WITH_CRITERIA ||
-                targetItemType == ItemType.ERC1155 ||
-                targetItemType == ItemType.NATIVE)
-        ) {
-            return true;
-        } else if (
-            targetItemType == ItemType.ERC20 &&
-            bookendItemType == ItemType.ERC1155
-        ) {
-            return true;
-        } else if (
-            targetItemType == ItemType.ERC721 &&
-            bookendItemType == ItemType.ERC1155
-        ) {
-            return true;
-        } else if (
-            targetItemType == ItemType.ERC721_WITH_CRITERIA &&
-            bookendItemType == ItemType.ERC1155_WITH_CRITERIA
-        ) {
-            return true;
-        }
-
-        AdvancedOrder memory order = context.executionState.orders[0];
-
-        if (order.parameters.offer.length == 0) {
-            return true;
-        }
-
-        OfferItem memory item = order.parameters.offer[0];
-
-        address offererAddress = order.parameters.offerer;
-
-        // There has to be some offer to tamper with and it has to be the
-        // offerer's order.
-        if (
-            !(item.token == targetToken &&
-                order.parameters.offerer == offererAddress)
-        ) {
+        if (context.executionState.fulfillments.length < 1) {
             return true;
         }
 
         return false;
+    }
+
+    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action != context.seaport.matchAdvancedOrders.selector &&
+            action != context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (context.executionState.fulfillments.length < 2) {
+            return true;
+        }
+
+        FulfillmentComponent memory firstOfferComponent = (
+            context.executionState.fulfillments[0].offerComponents[0]
+        );
+
+        SpentItem memory item = context.executionState.orderDetails[firstOfferComponent.orderIndex].offer[firstOfferComponent.itemIndex];
+        for (uint256 i = 1; i < context.executionState.fulfillments.length; ++i) {
+            FulfillmentComponent memory considerationComponent = (
+                context.executionState.fulfillments[i].considerationComponents[0]
+            );
+
+            ReceivedItem memory compareItem = context.executionState.orderDetails[considerationComponent.orderIndex].consideration[considerationComponent.itemIndex];
+            if (
+                item.itemType != compareItem.itemType ||
+                item.token != compareItem.token ||
+                item.identifier != compareItem.identifier
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -945,10 +899,9 @@ contract FuzzMutations is Test, FuzzExecutor {
 
     function mutation_invalidMsgValue(
         FuzzTestContext memory context,
-        MutationState memory mutationState
+        MutationState memory /* mutationState */
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = context.executionState.orders[0];
 
         BasicOrderType orderType = order.getBasicOrderType();
 
@@ -1341,73 +1294,66 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
-    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents(
+    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) external {
-        Fulfillment memory selectedFulfillment = context
-            .executionState
-            .fulfillments[0];
+        FulfillmentComponent[] memory firstOfferComponents = (
+            context.executionState.fulfillments[0].offerComponents
+        );
 
-        uint256 orderIndex = selectedFulfillment.offerComponents[0].orderIndex;
-        uint256 itemIndex = selectedFulfillment.offerComponents[0].itemIndex;
-        address targetToken = context
-            .executionState
-            .orders[orderIndex]
-            .parameters
-            .offer[itemIndex]
-            .token;
+        for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
+            FulfillmentComponent memory component = (
+                firstOfferComponents[i]
+            );
+            address token = context.executionState.orders[component.orderIndex].parameters.offer[component.itemIndex].token;
+            address modifiedToken = address(uint160(token) ^ 1);
+            context.executionState.orders[component.orderIndex].parameters.offer[component.itemIndex].token = modifiedToken;
+        }
 
-        AdvancedOrder memory order = context.executionState.orders[0];
-        address offererAddress = order.parameters.offerer;
+        exec(context);
+    }
 
-        for (uint256 j = 0; j < context.executionState.orders.length; ++j) {
-            order = context.executionState.orders[j];
-            if (order.parameters.offerer == offererAddress) {
-                // Iterate over the offer items and change their types.
-                for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-                    OfferItem memory item = order.parameters.offer[i];
-                    if (item.token == targetToken) {
-                        if (item.itemType == ItemType.ERC20) {
-                            item.itemType = ItemType.ERC1155;
-                        } else if (item.itemType == ItemType.ERC721) {
-                            item.itemType = ItemType.ERC1155;
-                        } else if (
-                            item.itemType == ItemType.ERC721_WITH_CRITERIA
-                        ) {
-                            item.itemType = ItemType.ERC1155_WITH_CRITERIA;
-                        }
-                    }
-                }
+    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
+        FuzzTestContext memory context
+    ) external {
+        FulfillmentComponent[] memory firstOfferComponents = (
+            context.executionState.fulfillments[0].offerComponents
+        );
 
-                // Signing stuff below.
-                // TODO: Remove this if we can, since this modifies bulk signatures.
-                if (order.parameters.offerer.code.length == 0) {
-                    context
-                        .advancedOrdersSpace
-                        .orders[j]
-                        .signatureMethod = SignatureMethod.EOA;
-                    context
-                        .advancedOrdersSpace
-                        .orders[j]
-                        .eoaSignatureType = EOASignature.STANDARD;
-                }
+        FulfillmentComponent memory firstOfferComponent = (
+            firstOfferComponents[0]
+        );
 
-                if (
-                    context.advancedOrdersSpace.orders[j].signatureMethod ==
-                    SignatureMethod.VALIDATE
-                ) {
-                    order.inscribeOrderStatusValidated(true, context.seaport);
-                }
-
-                if (context.executionState.caller != order.parameters.offerer) {
-                    AdvancedOrdersSpaceGenerator._signOrders(
-                        context.advancedOrdersSpace,
-                        context.executionState.orders,
-                        context.generatorContext
-                    );
-                }
+        SpentItem memory item = context.executionState.orderDetails[firstOfferComponent.orderIndex].offer[firstOfferComponent.itemIndex];
+        uint256 i = 1;
+        for (; i < context.executionState.fulfillments.length; ++i) {
+            FulfillmentComponent memory considerationComponent = (
+                context.executionState.fulfillments[i].considerationComponents[0]
+            );
+            ReceivedItem memory compareItem = context.executionState.orderDetails[considerationComponent.orderIndex].consideration[considerationComponent.itemIndex];
+            if (
+                item.itemType != compareItem.itemType ||
+                item.token != compareItem.token ||
+                item.identifier != compareItem.identifier
+            ) {
+                break;
             }
         }
+
+        // swap offer components
+        FulfillmentComponent[] memory swappedOfferComponents = (
+            context.executionState.fulfillments[i].offerComponents
+        );
+
+        bytes32 swappedPointer;
+        assembly {
+            swappedPointer := swappedOfferComponents
+            swappedOfferComponents := firstOfferComponents
+            firstOfferComponents := swappedPointer
+        }
+
+        context.executionState.fulfillments[0].offerComponents = firstOfferComponents;
+        context.executionState.fulfillments[i].offerComponents = swappedOfferComponents;
 
         exec(context);
     }

@@ -66,7 +66,8 @@ enum Failure {
     InvalidFulfillmentComponentData, // Fulfillment component data is invalid
     MissingFulfillmentComponentOnAggregation, // Missing component
     OfferAndConsiderationRequiredOnFulfillment, // Fulfillment missing offer or consideration
-    MismatchedFulfillmentOfferAndConsiderationComponents, // Fulfillment has mismatched offer and consideration components
+    MismatchedFulfillmentOfferAndConsiderationComponents_Modified, // Fulfillment has mismatched offer and consideration components
+    MismatchedFulfillmentOfferAndConsiderationComponents_Swapped, // Fulfillment has mismatched offer and consideration components
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InvalidMsgValue, // Invalid msg.value amount
@@ -182,10 +183,17 @@ library FuzzMutationSelectorLib {
             );
 
         failuresAndFilters[i++] = Failure
-            .MismatchedFulfillmentOfferAndConsiderationComponents
+            .MismatchedFulfillmentOfferAndConsiderationComponents_Modified
             .withGeneric(
                 MutationFilters
-                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents
+                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped
             );
 
         failuresAndFilters[i++] = Failure
@@ -196,7 +204,7 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForCallerMissingApproval
         );
 
-        failuresAndFilters[i++] = Failure.InvalidMsgValue.withOrder(
+        failuresAndFilters[i++] = Failure.InvalidMsgValue.withGeneric(
             MutationFilters.ineligibleForInvalidMsgValue
         );
 
@@ -470,12 +478,24 @@ library FailureDetailsLib {
             .MismatchedFulfillmentOfferAndConsiderationComponents
             .selector
             .withGeneric(
-                "MismatchedFulfillmentOfferAndConsiderationComponents",
+                "MismatchedFulfillmentOfferAndConsiderationComponents_Modified",
                 FuzzMutations
-                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents
+                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified
                     .selector,
                 details_MismatchedFulfillmentOfferAndConsiderationComponents
             );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .MismatchedFulfillmentOfferAndConsiderationComponents
+            .selector
+            .withGeneric(
+                "MismatchedFulfillmentOfferAndConsiderationComponents_Swapped",
+                FuzzMutations
+                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+                    .selector,
+                details_MismatchedFulfillmentOfferAndConsiderationComponents
+            );
+
         failureDetailsArray[i++] = ERROR_STRING.withOrder(
             "Error_OfferItemMissingApproval",
             FuzzMutations.mutation_offerItemMissingApproval.selector,
@@ -491,7 +511,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidMsgValue
             .selector
-            .withOrder(
+            .withGeneric(
                 "InvalidMsgValue",
                 FuzzMutations.mutation_invalidMsgValue.selector,
                 details_InvalidMsgValue
