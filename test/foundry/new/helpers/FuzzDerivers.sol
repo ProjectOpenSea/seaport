@@ -20,6 +20,7 @@ import {
     FulfillmentComponent,
     OfferItem,
     OrderParameters,
+    ReceivedItem,
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
@@ -69,8 +70,12 @@ library FuzzDerivers {
 
     function withDerivedCallValue(
         FuzzTestContext memory context
-    ) internal view returns (FuzzTestContext memory) {
-        context.executionState.value = context.getNativeTokensToSupply();
+    ) internal returns (FuzzTestContext memory) {
+        (uint256 value, uint256 minimum) = context.getNativeTokensToSupply();
+
+        context.executionState.value = value;
+        context.expectations.minimumValue = minimum;
+
         return context;
     }
 
@@ -214,9 +219,6 @@ library FuzzDerivers {
             context
                 .executionState
                 .considerationFulfillments = considerationFulfillments;
-
-            // TODO: expectedImpliedNativeExecutions needs to be calculated
-            // in cases where offer items are not included in fulfillments
         }
 
         // For the match functions, derive the fulfillments array.
@@ -237,24 +239,6 @@ library FuzzDerivers {
                 .executionState
                 .remainingOfferComponents = remainingOfferComponents
                 .toFulfillmentComponents();
-
-            uint256 expectedImpliedNativeExecutions = 0;
-            for (uint256 i = 0; i < remainingOfferComponents.length; ++i) {
-                MatchComponent memory component = remainingOfferComponents[i];
-                OfferItem memory item = context
-                    .executionState
-                    .orders[uint256(component.orderIndex)]
-                    .parameters
-                    .offer[uint256(component.itemIndex)];
-
-                if (item.itemType == ItemType.NATIVE) {
-                    expectedImpliedNativeExecutions += component.amount;
-                }
-            }
-
-            context
-                .expectations
-                .expectedImpliedNativeExecutions = expectedImpliedNativeExecutions;
         }
 
         return context;
@@ -389,6 +373,29 @@ library FuzzDerivers {
         context
             .expectations
             .expectedNativeTokensReturned = nativeTokensReturned;
+
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            uint256 expectedImpliedNativeExecutions = 0;
+
+            for (uint256 i = 0; i < implicitExecutionsPost.length; ++i) {
+                ReceivedItem memory item = implicitExecutionsPost[i].item;
+                if (item.itemType == ItemType.NATIVE) {
+                    expectedImpliedNativeExecutions += item.amount;
+                }
+            }
+
+            if (expectedImpliedNativeExecutions < nativeTokensReturned) {
+                revert("FuzzDeriver: invalid expected implied native value");
+            }
+
+            context.expectations.expectedImpliedNativeExecutions = expectedImpliedNativeExecutions - nativeTokensReturned;
+        }
 
         return context;
     }
