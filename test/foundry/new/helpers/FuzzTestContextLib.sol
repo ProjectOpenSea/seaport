@@ -168,6 +168,8 @@ struct Expectations {
 
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
+
+    uint256 minimumValue;
 }
 
 struct ExecutionState {
@@ -367,7 +369,8 @@ library FuzzTestContextLib {
                     ineligibleOrders: new bool[](orders.length),
                     ineligibleFailures: new bool[](uint256(Failure.length)),
                     expectedImpliedNativeExecutions: 0,
-                    expectedNativeTokensReturned: 0
+                    expectedNativeTokensReturned: 0,
+                    minimumValue: 0
                 }),
                 executionState: ExecutionState({
                     caller: address(0),

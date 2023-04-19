@@ -144,12 +144,12 @@ library MutationFilters {
 
     function ineligibleForInsufficientNativeTokens(
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         if (context.expectations.expectedImpliedNativeExecutions != 0) {
             return true;
         }
 
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
             return true;
@@ -160,12 +160,12 @@ library MutationFilters {
 
     function ineligibleForNativeTokenTransferGenericFailure(
         FuzzTestContext memory context
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         if (context.expectations.expectedImpliedNativeExecutions == 0) {
             return true;
         }
 
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
             return true;
@@ -503,7 +503,7 @@ library MutationFilters {
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getDerivedExecutions();
+        ) = context.getDerivedExecutions(context.executionState.value);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -531,6 +531,8 @@ library MutationFilters {
                 }
             }
         }
+
+        // Note: mutation is undone here as referenced above.
         order.parameters.conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
@@ -742,7 +744,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
-        uint256 minimumRequired = context.getMinimumNativeTokensToSupply();
+        uint256 minimumRequired = context.expectations.minimumValue;
 
         context.executionState.value = minimumRequired - 1;
 

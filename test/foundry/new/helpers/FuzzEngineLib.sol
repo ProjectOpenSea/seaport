@@ -396,17 +396,11 @@ library FuzzEngineLib {
 
     function getNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal view returns (uint256) {
+    ) internal returns (uint256 value, uint256 minimum) {
         bool isMatch = action(context) ==
             context.seaport.matchAdvancedOrders.selector ||
             action(context) == context.seaport.matchOrders.selector;
 
-        bool isFulfillAvailable = action(context) ==
-            context.seaport.fulfillAvailableOrders.selector ||
-            action(context) ==
-            context.seaport.fulfillAvailableAdvancedOrders.selector;
-
-        uint256 value = 0;
         uint256 valueToCreditBack = 0;
 
         for (
@@ -419,23 +413,6 @@ library FuzzEngineLib {
                 .executionState
                 .orders[i]
                 .parameters;
-
-            // TODO: a more comprehensive algorithm for fulfillAvailable
-            // would take into account maximumFulfilled to cap the amount
-            // spent, and would find the most expensive combination of
-            // orders and only consider those.
-            if (!isFulfillAvailable) {
-                for (uint256 j = 0; j < order.offer.length; ++j) {
-                    SpentItem memory item = order.offer[j];
-
-                    if (
-                        item.itemType == ItemType.NATIVE &&
-                        orderParams.orderType == OrderType.CONTRACT
-                    ) {
-                        valueToCreditBack += item.amount;
-                    }
-                }
-            }
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
@@ -453,6 +430,9 @@ library FuzzEngineLib {
                     SpentItem memory item = order.offer[j];
 
                     if (item.itemType == ItemType.NATIVE) {
+                        if (orderParams.orderType == OrderType.CONTRACT) {
+                            valueToCreditBack += item.amount;
+                        }
                         value += item.amount;
                     }
                 }
@@ -473,89 +453,43 @@ library FuzzEngineLib {
             value = value - valueToCreditBack;
         }
 
-        uint256 minimum = getMinimumNativeTokensToSupply(context);
+        minimum = getMinimumNativeTokensToSupply(context);
 
         if (minimum > value) {
-            revert("FuzzEngineLib: minimum native tokens > selected");
-        } else {
-            return value;
+            value = minimum;
         }
     }
 
     function getMinimumNativeTokensToSupply(
         FuzzTestContext memory context
-    ) internal view returns (uint256) {
-        bool isMatch = action(context) ==
-            context.seaport.matchAdvancedOrders.selector ||
-            action(context) == context.seaport.matchOrders.selector;
-
-        uint256 value = 0;
-        uint256 valueToCreditBack = 0;
-
-        for (
-            uint256 i = 0;
-            i < context.executionState.orderDetails.length;
-            ++i
+    ) internal returns (uint256) {
+        bytes4 _action = action(context);
+        if (
+            _action == context.seaport.fulfillBasicOrder.selector ||
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
-            if (!context.expectations.expectedAvailableOrders[i]) {
-                continue;
-            }
-
-            OrderDetails memory order = context.executionState.orderDetails[i];
-            OrderParameters memory orderParams = context
-                .executionState
-                .orders[i]
-                .parameters;
-
-            for (uint256 j = 0; j < order.offer.length; ++j) {
-                SpentItem memory item = order.offer[j];
-
-                if (
-                    item.itemType == ItemType.NATIVE &&
-                    orderParams.orderType == OrderType.CONTRACT
-                ) {
-                    valueToCreditBack += item.amount;
-                }
-            }
-
-            if (isMatch) {
-                for (uint256 j = 0; j < order.offer.length; ++j) {
-                    SpentItem memory item = order.offer[j];
-
-                    if (
-                        item.itemType == ItemType.NATIVE &&
-                        orderParams.orderType != OrderType.CONTRACT
-                    ) {
-                        value += item.amount;
-                    }
-                }
-            } else {
-                for (uint256 j = 0; j < order.offer.length; ++j) {
-                    SpentItem memory item = order.offer[j];
-
-                    if (item.itemType == ItemType.NATIVE) {
-                        value += item.amount;
-                    }
-                }
-
-                for (uint256 j = 0; j < order.consideration.length; ++j) {
-                    ReceivedItem memory item = order.consideration[j];
-
-                    if (item.itemType == ItemType.NATIVE) {
-                        value += item.amount;
-                    }
-                }
+            // TODO: handle OOR orders or items just in case
+            if (
+                context.executionState.orderDetails[0].offer[0].itemType == ItemType.ERC20
+            ) {
+                // Basic order bids cannot supply any native tokens
+                return 0;
             }
         }
 
-        // Any time more is received back than is paid out, no native tokens
-        // need to be supplied.
-        if (valueToCreditBack >= value) {
+        uint256 hugeCallValue = uint256(type(uint128).max);
+        (
+            ,
+            ,
+            ,
+            uint256 nativeTokensReturned
+        ) = context.getDerivedExecutions(hugeCallValue);
+
+        if (nativeTokensReturned > hugeCallValue) {
             return 0;
         }
 
-        value = value - valueToCreditBack;
-
-        return value;
+        return hugeCallValue - nativeTokensReturned;
     }
 }
