@@ -401,11 +401,6 @@ library FuzzEngineLib {
             context.seaport.matchAdvancedOrders.selector ||
             action(context) == context.seaport.matchOrders.selector;
 
-        bool isFulfillAvailable = action(context) ==
-            context.seaport.fulfillAvailableOrders.selector ||
-            action(context) ==
-            context.seaport.fulfillAvailableAdvancedOrders.selector;
-
         uint256 value = 0;
         uint256 valueToCreditBack = 0;
 

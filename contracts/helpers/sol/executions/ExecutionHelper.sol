@@ -830,7 +830,7 @@ library ExecutionHelper {
         if (nativeTokensSupplied > 0) {
             implicitExecutions[executionIndex++] = Execution({
                 offerer: fulfillmentDetails.fulfiller,
-                conduitKey: fulfillmentDetails.fulfillerConduitKey,
+                conduitKey: bytes32(0),
                 item: ReceivedItem({
                     itemType: ItemType.NATIVE,
                     token: address(0),
@@ -853,12 +853,12 @@ library ExecutionHelper {
                     if (item.itemType == ItemType.NATIVE) {
                         implicitExecutions[executionIndex++] = Execution({
                             offerer: orderDetails.offerer,
-                            conduitKey: orderDetails.conduitKey,
+                            conduitKey: bytes32(0),
                             item: ReceivedItem({
                                 itemType: ItemType.NATIVE,
                                 token: address(0),
                                 identifier: uint256(0),
-                                amount: orderDetails.offer[i].amount,
+                                amount: item.amount,
                                 recipient: payable(fulfillmentDetails.seaport)
                             })
                         });
