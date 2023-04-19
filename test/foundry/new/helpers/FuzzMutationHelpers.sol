@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+
+import { Side } from "seaport-sol/SeaportEnums.sol";
+
+import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
+
+import { PRNGHelpers } from "./FuzzGenerators.sol";
+
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -403,7 +411,11 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibleCondition
     ) internal returns (bool) {
-        for (uint256 i; i < context.executionState.criteriaResolvers.length; i++) {
+        for (
+            uint256 i;
+            i < context.executionState.criteriaResolvers.length;
+            i++
+        ) {
             // Once an eligible criteria resolver is found, return false.
             if (
                 !ineligibleCondition(
@@ -519,7 +531,10 @@ library MutationEligibilityLib {
     )
         internal
         view
-        returns (CriteriaResolver memory eligibleCriteriaResolver, uint256 criteriaResolverIndex)
+        returns (
+            CriteriaResolver memory eligibleCriteriaResolver,
+            uint256 criteriaResolverIndex
+        )
     {
         bool[] memory eligibleResolvers = getIneligibleCriteriaResolvers(
             context,
@@ -529,7 +544,9 @@ library MutationEligibilityLib {
         );
 
         criteriaResolverIndex = getEligibleIndex(context, eligibleResolvers);
-        eligibleCriteriaResolver = context.executionState.criteriaResolvers[criteriaResolverIndex];
+        eligibleCriteriaResolver = context.executionState.criteriaResolvers[
+            criteriaResolverIndex
+        ];
     }
 
     function fn(
@@ -569,7 +586,8 @@ library MutationEligibilityLib {
         pure
         returns (
             function(FuzzTestContext memory)
-                internal view
+                internal
+                view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -585,7 +603,8 @@ library MutationEligibilityLib {
         pure
         returns (
             function(AdvancedOrder memory, uint256, FuzzTestContext memory)
-                internal view
+                internal
+                view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -601,7 +620,8 @@ library MutationEligibilityLib {
         pure
         returns (
             function(CriteriaResolver memory, uint256, FuzzTestContext memory)
-                internal view
+                internal
+                view
                 returns (bool) ineligibleMutationFilter
         )
     {
@@ -613,6 +633,7 @@ library MutationEligibilityLib {
 
 library MutationContextDeriverLib {
     using MutationEligibilityLib for FuzzTestContext;
+    using PRNGHelpers for FuzzGeneratorContext;
 
     function deriveMutationContext(
         FuzzTestContext memory context,
@@ -625,7 +646,10 @@ library MutationContextDeriverLib {
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
-        } else if (derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER) {
+            mutationState.side = Side(context.generatorContext.randEnum(0, 1));
+        } else if (
+            derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER
+        ) {
             (CriteriaResolver memory resolver, uint256 resolverIndex) = context
                 .selectEligibleCriteriaResolver(ineligibilityFilter);
 

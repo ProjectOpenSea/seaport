@@ -12,15 +12,20 @@ import {
 } from "./FuzzMutationHelpers.sol";
 
 import {
+    Fulfillment,
     AdvancedOrder,
     ConsiderationItem,
     CriteriaResolver,
     Execution,
+    FulfillmentComponent,
     OfferItem,
-    OrderParameters,
     OrderComponents,
-    Execution
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
 } from "seaport-sol/SeaportStructs.sol";
+
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
@@ -41,9 +46,18 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+
 import { FuzzDerivers } from "./FuzzDerivers.sol";
+
 import { FuzzHelpers } from "./FuzzHelpers.sol";
+
 import { CheckHelpers } from "./FuzzSetup.sol";
+
+import {
+    TestERC20 as TestERC20Strange
+} from "../../../../contracts/test/TestERC20.sol";
+
+import { ConduitChoice } from "seaport-sol/StructSpace.sol";
 
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
@@ -146,8 +160,6 @@ library MutationFilters {
     }
 
     function ineligibleForInvalidMsgValue(
-        AdvancedOrder memory order,
-        uint256 /*orderIndex*/,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -394,6 +406,24 @@ library MutationFilters {
         }
 
         if (order.parameters.offerer.code.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForFulfillmentIngestingFunctions(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
             return true;
         }
 
@@ -687,6 +717,124 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForInvalidFulfillmentComponentData(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingFulfillmentComponentOnAggregation(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForOfferAndConsiderationRequiredOnFulfillment(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+            return true;
+        }
+
+        bytes4 action = context.action();
+
+        if (
+            action != context.seaport.matchOrders.selector &&
+            action != context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action != context.seaport.matchAdvancedOrders.selector &&
+            action != context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (context.executionState.fulfillments.length < 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action != context.seaport.matchAdvancedOrders.selector &&
+            action != context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (context.executionState.fulfillments.length < 2) {
+            return true;
+        }
+
+        FulfillmentComponent memory firstOfferComponent = (
+            context.executionState.fulfillments[0].offerComponents[0]
+        );
+
+        SpentItem memory item = context
+            .executionState
+            .orderDetails[firstOfferComponent.orderIndex]
+            .offer[firstOfferComponent.itemIndex];
+        for (
+            uint256 i = 1;
+            i < context.executionState.fulfillments.length;
+            ++i
+        ) {
+            FulfillmentComponent memory considerationComponent = (
+                context.executionState.fulfillments[i].considerationComponents[
+                    0
+                ]
+            );
+
+            ReceivedItem memory compareItem = context
+                .executionState
+                .orderDetails[considerationComponent.orderIndex]
+                .consideration[considerationComponent.itemIndex];
+            if (
+                item.itemType != compareItem.itemType ||
+                item.token != compareItem.token ||
+                item.identifier != compareItem.identifier
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -763,17 +911,16 @@ contract FuzzMutations is Test, FuzzExecutor {
 
     function mutation_invalidMsgValue(
         FuzzTestContext memory context,
-        MutationState memory mutationState
+        MutationState memory /* mutationState */
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = context.executionState.orders[0];
 
         BasicOrderType orderType = order.getBasicOrderType();
 
         // BasicOrderType 0-7 are payable Native-Token routes
         if (uint8(orderType) < 8) {
             context.executionState.value = 0;
-        // BasicOrderType 8 and above are nonpayable Token-Token routes
+            // BasicOrderType 8 and above are nonpayable Token-Token routes
         } else {
             vm.deal(context.executionState.caller, 1);
             context.executionState.value = 1;
@@ -970,18 +1117,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.conduitKey = keccak256("invalid conduit");
-        // TODO: Remove this if we can, since this modifies bulk signatures.
-        if (order.parameters.offerer.code.length == 0) {
-            context
-                .advancedOrdersSpace
-                .orders[orderIndex]
-                .signatureMethod = SignatureMethod.EOA;
-            context
-                .advancedOrdersSpace
-                .orders[orderIndex]
-                .eoaSignatureType = EOASignature.STANDARD;
-        }
-        if (context.executionState.caller != order.parameters.offerer) {
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
             AdvancedOrdersSpaceGenerator._signOrders(
                 context.advancedOrdersSpace,
                 context.executionState.orders,
@@ -1079,6 +1220,59 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidFulfillmentComponentData(
+        FuzzTestContext memory context
+    ) external {
+        if (context.executionState.fulfillments.length != 0) {
+            context
+                .executionState
+                .fulfillments[0]
+                .considerationComponents[0]
+                .orderIndex = context.executionState.orders.length;
+        }
+
+        if (context.executionState.offerFulfillments.length != 0) {
+            context.executionState.offerFulfillments[0][0].orderIndex = context
+                .executionState
+                .orders
+                .length;
+        }
+
+        if (context.executionState.considerationFulfillments.length != 0) {
+            context
+            .executionState
+            .considerationFulfillments[0][0].orderIndex = context
+                .executionState
+                .orders
+                .length;
+        }
+
+        exec(context);
+    }
+
+    function mutation_missingFulfillmentComponentOnAggregation(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        if (mutationState.side == Side.OFFER) {
+            if (context.executionState.offerFulfillments.length == 0) {
+                context
+                    .executionState
+                    .offerFulfillments = new FulfillmentComponent[][](1);
+            } else {
+                context.executionState.offerFulfillments[
+                    0
+                ] = new FulfillmentComponent[](0);
+            }
+        } else if (mutationState.side == Side.CONSIDERATION) {
+            context.executionState.considerationFulfillments[
+                0
+            ] = new FulfillmentComponent[](0);
+        }
+
+        exec(context);
+    }
+
     function mutation_invalidMerkleProof(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -1091,6 +1285,122 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         bytes32 firstProofElement = resolver.criteriaProof[0];
         resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
+
+        exec(context);
+    }
+
+    function mutation_offerAndConsiderationRequiredOnFulfillment(
+        FuzzTestContext memory context
+    ) external {
+        context.executionState.fulfillments[0] = Fulfillment({
+            offerComponents: new FulfillmentComponent[](0),
+            considerationComponents: new FulfillmentComponent[](0)
+        });
+
+        exec(context);
+    }
+
+    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified(
+        FuzzTestContext memory context
+    ) external {
+        FulfillmentComponent[] memory firstOfferComponents = (
+            context.executionState.fulfillments[0].offerComponents
+        );
+
+        for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
+            FulfillmentComponent memory component = (firstOfferComponents[i]);
+            address token = context
+                .executionState
+                .orders[component.orderIndex]
+                .parameters
+                .offer[component.itemIndex]
+                .token;
+            address modifiedToken = address(uint160(token) ^ 1);
+            context
+                .executionState
+                .orders[component.orderIndex]
+                .parameters
+                .offer[component.itemIndex]
+                .token = modifiedToken;
+        }
+
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            AdvancedOrder memory order = context.executionState.orders[i];
+
+            if (
+                context.advancedOrdersSpace.orders[i].signatureMethod ==
+                SignatureMethod.VALIDATE
+            ) {
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (
+                context.executionState.caller != order.parameters.offerer
+            ) {
+                AdvancedOrdersSpaceGenerator._signOrders(
+                    context.advancedOrdersSpace,
+                    context.executionState.orders,
+                    context.generatorContext
+                );
+            }
+        }
+
+        exec(context);
+    }
+
+    function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
+        FuzzTestContext memory context
+    ) external {
+        FulfillmentComponent[] memory firstOfferComponents = (
+            context.executionState.fulfillments[0].offerComponents
+        );
+
+        FulfillmentComponent memory firstOfferComponent = (
+            firstOfferComponents[0]
+        );
+
+        SpentItem memory item = context
+            .executionState
+            .orderDetails[firstOfferComponent.orderIndex]
+            .offer[firstOfferComponent.itemIndex];
+        uint256 i = 1;
+        for (; i < context.executionState.fulfillments.length; ++i) {
+            FulfillmentComponent memory considerationComponent = (
+                context.executionState.fulfillments[i].considerationComponents[
+                    0
+                ]
+            );
+            ReceivedItem memory compareItem = context
+                .executionState
+                .orderDetails[considerationComponent.orderIndex]
+                .consideration[considerationComponent.itemIndex];
+            if (
+                item.itemType != compareItem.itemType ||
+                item.token != compareItem.token ||
+                item.identifier != compareItem.identifier
+            ) {
+                break;
+            }
+        }
+
+        // swap offer components
+        FulfillmentComponent[] memory swappedOfferComponents = (
+            context.executionState.fulfillments[i].offerComponents
+        );
+
+        bytes32 swappedPointer;
+        assembly {
+            swappedPointer := swappedOfferComponents
+            swappedOfferComponents := firstOfferComponents
+            firstOfferComponents := swappedPointer
+        }
+
+        context
+            .executionState
+            .fulfillments[0]
+            .offerComponents = firstOfferComponents;
+        context
+            .executionState
+            .fulfillments[i]
+            .offerComponents = swappedOfferComponents;
 
         exec(context);
     }
