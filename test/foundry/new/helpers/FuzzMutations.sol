@@ -805,13 +805,25 @@ library MutationFilters {
             context.executionState.fulfillments[0].offerComponents[0]
         );
 
-        SpentItem memory item = context.executionState.orderDetails[firstOfferComponent.orderIndex].offer[firstOfferComponent.itemIndex];
-        for (uint256 i = 1; i < context.executionState.fulfillments.length; ++i) {
+        SpentItem memory item = context
+            .executionState
+            .orderDetails[firstOfferComponent.orderIndex]
+            .offer[firstOfferComponent.itemIndex];
+        for (
+            uint256 i = 1;
+            i < context.executionState.fulfillments.length;
+            ++i
+        ) {
             FulfillmentComponent memory considerationComponent = (
-                context.executionState.fulfillments[i].considerationComponents[0]
+                context.executionState.fulfillments[i].considerationComponents[
+                    0
+                ]
             );
 
-            ReceivedItem memory compareItem = context.executionState.orderDetails[considerationComponent.orderIndex].consideration[considerationComponent.itemIndex];
+            ReceivedItem memory compareItem = context
+                .executionState
+                .orderDetails[considerationComponent.orderIndex]
+                .consideration[considerationComponent.itemIndex];
             if (
                 item.itemType != compareItem.itemType ||
                 item.token != compareItem.token ||
@@ -908,7 +920,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         // BasicOrderType 0-7 are payable Native-Token routes
         if (uint8(orderType) < 8) {
             context.executionState.value = 0;
-        // BasicOrderType 8 and above are nonpayable Token-Token routes
+            // BasicOrderType 8 and above are nonpayable Token-Token routes
         } else {
             vm.deal(context.executionState.caller, 1);
             context.executionState.value = 1;
@@ -1105,18 +1117,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.conduitKey = keccak256("invalid conduit");
-        // TODO: Remove this if we can, since this modifies bulk signatures.
-        if (order.parameters.offerer.code.length == 0) {
-            context
-                .advancedOrdersSpace
-                .orders[orderIndex]
-                .signatureMethod = SignatureMethod.EOA;
-            context
-                .advancedOrdersSpace
-                .orders[orderIndex]
-                .eoaSignatureType = EOASignature.STANDARD;
-        }
-        if (context.executionState.caller != order.parameters.offerer) {
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
             AdvancedOrdersSpaceGenerator._signOrders(
                 context.advancedOrdersSpace,
                 context.executionState.orders,
@@ -1302,29 +1308,33 @@ contract FuzzMutations is Test, FuzzExecutor {
         );
 
         for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
-            FulfillmentComponent memory component = (
-                firstOfferComponents[i]
-            );
-            address token = context.executionState.orders[component.orderIndex].parameters.offer[component.itemIndex].token;
+            FulfillmentComponent memory component = (firstOfferComponents[i]);
+            address token = context
+                .executionState
+                .orders[component.orderIndex]
+                .parameters
+                .offer[component.itemIndex]
+                .token;
             address modifiedToken = address(uint160(token) ^ 1);
-            context.executionState.orders[component.orderIndex].parameters.offer[component.itemIndex].token = modifiedToken;
+            context
+                .executionState
+                .orders[component.orderIndex]
+                .parameters
+                .offer[component.itemIndex]
+                .token = modifiedToken;
         }
 
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
-            // TODO: Remove this if we can, since this modifies bulk signatures.
-            if (order.parameters.offerer.code.length == 0) {
-                context
-                    .advancedOrdersSpace
-                    .orders[i]
-                    .signatureMethod = SignatureMethod.EOA;
-                context
-                    .advancedOrdersSpace
-                    .orders[i]
-                    .eoaSignatureType = EOASignature.STANDARD;
-            }
-            if (context.executionState.caller != order.parameters.offerer) {
+            if (
+                context.advancedOrdersSpace.orders[i].signatureMethod ==
+                SignatureMethod.VALIDATE
+            ) {
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (
+                context.executionState.caller != order.parameters.offerer
+            ) {
                 AdvancedOrdersSpaceGenerator._signOrders(
                     context.advancedOrdersSpace,
                     context.executionState.orders,
@@ -1347,13 +1357,21 @@ contract FuzzMutations is Test, FuzzExecutor {
             firstOfferComponents[0]
         );
 
-        SpentItem memory item = context.executionState.orderDetails[firstOfferComponent.orderIndex].offer[firstOfferComponent.itemIndex];
+        SpentItem memory item = context
+            .executionState
+            .orderDetails[firstOfferComponent.orderIndex]
+            .offer[firstOfferComponent.itemIndex];
         uint256 i = 1;
         for (; i < context.executionState.fulfillments.length; ++i) {
             FulfillmentComponent memory considerationComponent = (
-                context.executionState.fulfillments[i].considerationComponents[0]
+                context.executionState.fulfillments[i].considerationComponents[
+                    0
+                ]
             );
-            ReceivedItem memory compareItem = context.executionState.orderDetails[considerationComponent.orderIndex].consideration[considerationComponent.itemIndex];
+            ReceivedItem memory compareItem = context
+                .executionState
+                .orderDetails[considerationComponent.orderIndex]
+                .consideration[considerationComponent.itemIndex];
             if (
                 item.itemType != compareItem.itemType ||
                 item.token != compareItem.token ||
@@ -1375,8 +1393,14 @@ contract FuzzMutations is Test, FuzzExecutor {
             firstOfferComponents := swappedPointer
         }
 
-        context.executionState.fulfillments[0].offerComponents = firstOfferComponents;
-        context.executionState.fulfillments[i].offerComponents = swappedOfferComponents;
+        context
+            .executionState
+            .fulfillments[0]
+            .offerComponents = firstOfferComponents;
+        context
+            .executionState
+            .fulfillments[i]
+            .offerComponents = swappedOfferComponents;
 
         exec(context);
     }
