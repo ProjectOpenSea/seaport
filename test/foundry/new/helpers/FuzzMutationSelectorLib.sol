@@ -58,6 +58,7 @@ enum Failure {
     OrderAlreadyFilled, // Order is already filled
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
+    InvalidMsgValue, // Invalid msg.value amount
     InsufficientNativeTokensSupplied, // Caller does not supply sufficient native tokens
     NativeTokenTransferGenericFailure, // Insufficient native tokens with unspent offer items
     CriteriaNotEnabledForItem, // Criteria resolver applied to non-criteria-based item
@@ -155,6 +156,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.withOrder(
             MutationFilters.ineligibleForCallerMissingApproval
+        );
+
+        failuresAndFilters[i++] = Failure.InvalidMsgValue.withOrder(
+            MutationFilters.ineligibleForInvalidMsgValue
         );
 
         failuresAndFilters[i++] = Failure
@@ -400,6 +405,15 @@ library FailureDetailsLib {
         );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .InvalidMsgValue
+            .selector
+            .withOrder(
+                "InvalidMsgValue",
+                FuzzMutations.mutation_invalidMsgValue.selector,
+                details_InvalidMsgValue
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InsufficientNativeTokensSupplied
             .selector
             .withGeneric(
@@ -594,6 +608,15 @@ library FailureDetailsLib {
             errorSelector,
             uint256(0)
         );
+    }
+
+    function details_InvalidMsgValue(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        uint256 value = context.executionState.value == 0 ? 1 : 0;
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, value);
     }
 
     function details_NativeTokenTransferGenericFailure(
