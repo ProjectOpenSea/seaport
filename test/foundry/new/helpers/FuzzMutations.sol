@@ -773,6 +773,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             context.executionState.value = 0;
         // BasicOrderType 8 and above are nonpayable Token-Token routes
         } else {
+            vm.deal(context.executionState.caller, 1);
             context.executionState.value = 1;
         }
 
