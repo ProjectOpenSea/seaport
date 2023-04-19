@@ -465,8 +465,8 @@ library FuzzEngineLib {
     ) internal returns (uint256) {
         bytes4 _action = action(context);
         if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
+            _action == context.seaport.fulfillBasicOrder.selector ||
+            _action ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             // TODO: handle OOR orders or items just in case
