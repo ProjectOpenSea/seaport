@@ -384,18 +384,17 @@ library FuzzDerivers {
             ? caller
             : context.executionState.recipient;
 
-        return
-            context
-                .executionState
-                .orders[0]
-                .toOrderDetails(0, context.executionState.criteriaResolvers)
-                .getStandardExecutions(
-                    caller,
-                    context.executionState.fulfillerConduitKey,
-                    recipient,
-                    context.executionState.value,
-                    address(context.seaport)
-                );
+        (implicitExecutions, ) = context
+            .executionState
+            .orders[0]
+            .toOrderDetails(0, context.executionState.criteriaResolvers)
+            .getStandardExecutions(
+                caller,
+                context.executionState.fulfillerConduitKey,
+                recipient,
+                context.executionState.value,
+                address(context.seaport)
+            );
     }
 
     function getBasicExecutions(
@@ -405,17 +404,16 @@ library FuzzDerivers {
             ? address(this)
             : context.executionState.caller;
 
-        return
-            context
-                .executionState
-                .orders[0]
-                .toOrderDetails(0, context.executionState.criteriaResolvers)
-                .getBasicExecutions(
-                    caller,
-                    context.executionState.fulfillerConduitKey,
-                    context.executionState.value,
-                    address(context.seaport)
-                );
+        (implicitExecutions, ) = context
+            .executionState
+            .orders[0]
+            .toOrderDetails(0, context.executionState.criteriaResolvers)
+            .getBasicExecutions(
+                caller,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.value,
+                address(context.seaport)
+            );
     }
 
     function getContractOrderSuppliedNativeTokens(

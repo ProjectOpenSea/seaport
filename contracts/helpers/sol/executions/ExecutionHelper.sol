@@ -7,6 +7,10 @@ import {
 
 import { AdvancedOrderLib } from "../lib/AdvancedOrderLib.sol";
 
+import { SpentItemLib } from "../lib/SpentItemLib.sol";
+
+import { ReceivedItemLib } from "../lib/ReceivedItemLib.sol";
+
 import {
     AdvancedOrder,
     CriteriaResolver,
@@ -33,6 +37,8 @@ import {
  */
 library ExecutionHelper {
     using AdvancedOrderLib for AdvancedOrder[];
+    using SpentItemLib for SpentItem[];
+    using ReceivedItemLib for ReceivedItem[];
 
     error InsufficientNativeTokensSupplied();
 
@@ -67,26 +73,28 @@ library ExecutionHelper {
             uint256 nativeTokensReturned
         )
     {
+        FulfillmentDetails memory details = copy(fulfillmentDetails);
+
         implicitExecutionsPre = processImplicitPreOrderExecutions(
-            fulfillmentDetails,
+            details,
             availableOrders,
             nativeTokensSupplied
         );
 
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
-            fulfillmentDetails,
+            details,
             offerFulfillments,
             considerationFulfillments,
             availableOrders
         );
 
         implicitExecutionsPost = processImplicitPostOrderExecutions(
-            fulfillmentDetails,
+            details,
             availableOrders
         );
 
         nativeTokensReturned = _handleExcessNativeTokens(
-            fulfillmentDetails,
+            details,
             explicitExecutions,
             implicitExecutionsPre,
             implicitExecutionsPost
@@ -119,25 +127,29 @@ library ExecutionHelper {
             uint256 nativeTokensReturned
         )
     {
+        FulfillmentDetails memory details = copy(fulfillmentDetails);
+
         explicitExecutions = new Execution[](fulfillments.length);
 
         uint256 filteredExecutions = 0;
 
         bool[] memory availableOrders = new bool[](
-            fulfillmentDetails.orders.length
+            details.orders.length
         );
-        for (uint256 i = 0; i < fulfillmentDetails.orders.length; ++i) {
+
+        for (uint256 i = 0; i < details.orders.length; ++i) {
             availableOrders[i] = true;
         }
+
         implicitExecutionsPre = processImplicitPreOrderExecutions(
-            fulfillmentDetails,
+            details,
             availableOrders,
             nativeTokensSupplied
         );
 
         for (uint256 i = 0; i < fulfillments.length; i++) {
             Execution memory execution = processExecutionFromFulfillment(
-                fulfillmentDetails,
+                details,
                 fulfillments[i]
             );
 
@@ -163,12 +175,12 @@ library ExecutionHelper {
         }
 
         implicitExecutionsPost = processImplicitPostOrderExecutions(
-            fulfillmentDetails,
+            details,
             availableOrders
         );
 
         nativeTokensReturned = _handleExcessNativeTokens(
-            fulfillmentDetails,
+            details,
             explicitExecutions,
             implicitExecutionsPre,
             implicitExecutionsPost
@@ -217,7 +229,10 @@ library ExecutionHelper {
         address recipient,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (Execution[] memory implicitExecutions) {
+    ) public pure returns (
+        Execution[] memory implicitExecutions,
+        uint256 nativeTokensReturned
+    ) {
         uint256 currentSeaportBalance = 0;
 
         // implicit executions (use max and resize at end):
@@ -316,6 +331,8 @@ library ExecutionHelper {
             }
         }
 
+        nativeTokensReturned = currentSeaportBalance;
+
         if (currentSeaportBalance > 0) {
             implicitExecutions[executionIndex++] = Execution({
                 offerer: seaport,
@@ -346,7 +363,10 @@ library ExecutionHelper {
         bytes32 fulfillerConduitKey,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (Execution[] memory implicitExecutions) {
+    ) public pure returns (
+        Execution[] memory implicitExecutions,
+        uint256 nativeTokensReturned
+    ) {
         if (orderDetails.offer.length != 1) {
             revert("not a basic order");
         }
@@ -479,6 +499,8 @@ library ExecutionHelper {
                     currentSeaportBalance -= item.amount;
                 }
             }
+
+            nativeTokensReturned = currentSeaportBalance;
 
             if (currentSeaportBalance > 0) {
                 implicitExecutions[executionIndex++] = Execution({
@@ -1076,5 +1098,30 @@ library ExecutionHelper {
                 )
             }
         }
+    }
+
+    function copy(OrderDetails[] memory orderDetails) internal pure returns (OrderDetails[] memory copiedOrderDetails) {
+        copiedOrderDetails = new OrderDetails[](orderDetails.length);
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            OrderDetails memory order = orderDetails[i];
+
+            copiedOrderDetails[i] = OrderDetails({
+                offerer: order.offerer,
+                conduitKey: order.conduitKey,
+                offer: order.offer.copy(),
+                consideration: order.consideration.copy(),
+                isContract: order.isContract
+            });
+        }
+    }
+
+    function copy(FulfillmentDetails memory fulfillmentDetails) internal pure returns (FulfillmentDetails memory) {
+        return FulfillmentDetails({
+            orders: copy(fulfillmentDetails.orders),
+            recipient: fulfillmentDetails.recipient,
+            fulfiller: fulfillmentDetails.fulfiller,
+            fulfillerConduitKey: fulfillmentDetails.fulfillerConduitKey,
+            seaport: fulfillmentDetails.seaport
+        });
     }
 }
