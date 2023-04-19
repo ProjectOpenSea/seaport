@@ -103,7 +103,7 @@ function dumpContext(
         jsonOut = Searializer.tojsonUint256(
             "root",
             "callValue",
-            context.getNativeTokensToSupply()
+            context.executionState.value
         );
     }
     if (outputSelection.maximumFulfilled) {
