@@ -1365,7 +1365,6 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
         bytes32 orderHash = mutationState.selectedOrderHash;
         FuzzInscribers.inscribeOrderStatusCancelled(
             orderHash,
