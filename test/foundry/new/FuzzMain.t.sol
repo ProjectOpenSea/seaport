@@ -51,17 +51,4 @@ contract FuzzMainTest is FuzzEngine {
             }
         }
     }
-
-    function fail_fuzz_invalidOrders(
-        uint256 seed,
-        uint256 orders,
-        uint256 maxOfferItemsPerOrder,
-        uint256 maxConsiderationItemsPerOrder
-    ) public pure {
-        seed;
-        orders;
-        maxOfferItemsPerOrder;
-        maxConsiderationItemsPerOrder;
-        revert("Assertion failed.");
-    }
 }
