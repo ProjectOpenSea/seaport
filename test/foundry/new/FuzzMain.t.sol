@@ -27,7 +27,8 @@ contract FuzzMainTest is FuzzEngine {
                     maxConsiderationItemsPerOrder,
                     0,
                     10
-                )
+                ),
+                seedInput: abi.encodePacked(seed, orders, maxOfferItemsPerOrder, maxConsiderationItemsPerOrder)
             })
         );
     }

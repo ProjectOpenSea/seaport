@@ -118,6 +118,7 @@ struct FuzzParams {
     uint256 totalOrders;
     uint256 maxOfferItems;
     uint256 maxConsiderationItems;
+    bytes seedInput;
 }
 
 struct ReturnValues {
@@ -345,7 +346,8 @@ library FuzzTestContextLib {
                     seed: 0,
                     totalOrders: 0,
                     maxOfferItems: 0,
-                    maxConsiderationItems: 0
+                    maxConsiderationItems: 0,
+                    seedInput: ""
                 }),
                 checks: new bytes4[](0),
                 returnValues: ReturnValues({
@@ -867,7 +869,8 @@ library FuzzTestContextLib {
                 seed: params.seed,
                 totalOrders: params.totalOrders,
                 maxOfferItems: params.maxOfferItems,
-                maxConsiderationItems: params.maxConsiderationItems
+                maxConsiderationItems: params.maxConsiderationItems,
+                seedInput: bytes.concat(params.seedInput)
             });
     }
 }
