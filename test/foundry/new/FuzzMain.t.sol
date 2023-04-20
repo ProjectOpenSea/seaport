@@ -27,7 +27,8 @@ contract FuzzMainTest is FuzzEngine {
                     maxConsiderationItemsPerOrder,
                     0,
                     10
-                )
+                ),
+                seedInput: abi.encodePacked(seed, orders, maxOfferItemsPerOrder, maxConsiderationItemsPerOrder)
             })
         );
     }
@@ -50,18 +51,5 @@ contract FuzzMainTest is FuzzEngine {
                 revert(add(0x20, result), mload(result))
             }
         }
-    }
-
-    function fail_fuzz_invalidOrders(
-        uint256 seed,
-        uint256 orders,
-        uint256 maxOfferItemsPerOrder,
-        uint256 maxConsiderationItemsPerOrder
-    ) public pure {
-        seed;
-        orders;
-        maxOfferItemsPerOrder;
-        maxConsiderationItemsPerOrder;
-        revert("Assertion failed.");
     }
 }

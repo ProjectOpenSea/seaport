@@ -260,6 +260,7 @@ contract FuzzEngine is
             fuzzParams.totalOrders,
             fuzzParams.maxOfferItems,
             fuzzParams.maxConsiderationItems,
+            fuzzParams.seedInput,
             generatorContext
         );
 

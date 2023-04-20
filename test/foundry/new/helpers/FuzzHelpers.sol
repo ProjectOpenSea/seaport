@@ -506,7 +506,29 @@ library FuzzHelpers {
         AdvancedOrder memory order
     ) internal pure returns (BasicOrderType basicOrderType) {
         // Get the route (ETH ⇒ ERC721, etc.) for the order.
-        BasicOrderRouteType route;
+        BasicOrderRouteType route = getBasicOrderRouteType(order);
+
+        // Get the order type (restricted, etc.) for the order.
+        OrderType orderType = order.parameters.orderType;
+
+        // Multiply the route by 4 and add the order type to get the
+        // BasicOrderType.
+        assembly {
+            basicOrderType := add(orderType, mul(route, 4))
+        }
+    }
+
+    /**
+     * @dev Get the BasicOrderRouteType for a given advanced order.
+     *
+     * @param order The advanced order.
+     *
+     * @return route The BasicOrderRouteType.
+     */
+    function getBasicOrderRouteType(
+        AdvancedOrder memory order
+    ) internal pure returns (BasicOrderRouteType route) {
+        // Get the route (ETH ⇒ ERC721, etc.) for the order.
         ItemType providingItemType = order.parameters.consideration[0].itemType;
         ItemType offeredItemType = order.parameters.offer[0].itemType;
 
@@ -530,15 +552,6 @@ library FuzzHelpers {
             if (offeredItemType == ItemType.ERC20) {
                 route = BasicOrderRouteType.ERC1155_TO_ERC20;
             }
-        }
-
-        // Get the order type (restricted, etc.) for the order.
-        OrderType orderType = order.parameters.orderType;
-
-        // Multiply the route by 4 and add the order type to get the
-        // BasicOrderType.
-        assembly {
-            basicOrderType := add(orderType, mul(route, 4))
         }
     }
 
