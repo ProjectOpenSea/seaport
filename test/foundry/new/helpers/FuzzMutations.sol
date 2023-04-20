@@ -910,6 +910,93 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForMissingItemAmount_OfferItem(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Order must be available
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // Order must have offer items
+        if (order.parameters.offer.length < 1) {
+            return true;
+        }
+
+        // At least one offer item must be native, ERC20, or ERC1155
+        bool hasValidItem;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                hasValidItem = true;
+                break;
+            }
+        }
+        if (!hasValidItem) {
+            return true;
+        }
+
+        // Offerer must not also be consideration recipient for all items
+        bool offererIsNotRecipient;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (item.recipient != order.parameters.offerer) {
+                offererIsNotRecipient = true;
+                break;
+            }
+        }
+
+        if (!offererIsNotRecipient) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingItemAmount_ConsiderationItem(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Order must be available
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // Order must have at least one offer item
+        if (order.parameters.offer.length < 1) {
+            return true;
+        }
+
+        // Order must have at least one consideration item
+        if (order.parameters.consideration.length < 1) {
+            return true;
+        }
+
+        // At least one consideration item must be native, ERC20, or ERC1155
+        bool hasValidItem;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                hasValidItem = true;
+                break;
+            }
+        }
+        if (!hasValidItem) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -1716,6 +1803,88 @@ contract FuzzMutations is Test, FuzzExecutor {
         }
 
         context.executionState.criteriaResolvers = newResolvers;
+
+        exec(context);
+    }
+
+    function mutation_missingItemAmount_OfferItem(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        uint256 firstNon721OfferItem;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                firstNon721OfferItem = i;
+                break;
+            }
+        }
+
+        order.parameters.offer[firstNon721OfferItem].startAmount = 0;
+        order.parameters.offer[firstNon721OfferItem].endAmount = 0;
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
+    function mutation_missingItemAmount_ConsiderationItem(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        uint256 firstNon721ConsiderationItem;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                firstNon721ConsiderationItem = i;
+                break;
+            }
+        }
+
+        order
+            .parameters
+            .consideration[firstNon721ConsiderationItem]
+            .startAmount = 0;
+        order
+            .parameters
+            .consideration[firstNon721ConsiderationItem]
+            .endAmount = 0;
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
 
         exec(context);
     }
