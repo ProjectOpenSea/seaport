@@ -102,7 +102,7 @@ library TestStateGenerator {
         uint256 maxConsiderationItemsPerOrder,
         FuzzGeneratorContext memory context
     ) internal pure returns (AdvancedOrdersSpace memory) {
-        context.prng.state = uint256(keccak256(msg.data));
+        context.prng.state = uint256(keccak256(msg.data[4:]));
 
         {
             uint256 basicToggle = context.randRange(0, 10);
