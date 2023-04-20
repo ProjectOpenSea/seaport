@@ -646,6 +646,7 @@ library MutationContextDeriverLib {
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
+            mutationState.selectedOrderHash = context.executionState.orderHashes[orderIndex];
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
         } else if (
             derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER

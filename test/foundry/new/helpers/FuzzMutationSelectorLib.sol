@@ -472,7 +472,7 @@ library FailureDetailsLib {
             .withOrder(
                 "OrderIsCancelled",
                 FuzzMutations.mutation_orderIsCancelled.selector,
-                details_OrderIsCancelled
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
@@ -657,7 +657,8 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_InsufficientMinimumReceived",
-                FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived.selector
+                FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived.selector,
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
@@ -665,7 +666,8 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_IncorrectMinimumReceived",
-                FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived.selector
+                FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived.selector,
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
@@ -673,7 +675,8 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_ExcessMaximumSpent",
-                FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent.selector
+                FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent.selector,
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
@@ -681,7 +684,8 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_IncorrectMaximumSpent",
-                FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector
+                FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector,
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
@@ -689,7 +693,8 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_InvalidMagicValue",
-                FuzzMutations.mutation_invalidContractOrderInvalidMagicValue.selector
+                FuzzMutations.mutation_invalidContractOrderInvalidMagicValue.selector,
+                details_withOrderHash
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -771,15 +776,15 @@ library FailureDetailsLib {
             conduitAddr
         );
     }
-
-    function details_OrderIsCancelled(
-        FuzzTestContext memory context,
+details_withOrderHash
+    function details_withOrderHash(
+        FuzzTestContext memory /* context */,
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderHashes[mutationState.selectedOrderIndex]
+            mutationState.selectedOrderHash
         );
     }
 
