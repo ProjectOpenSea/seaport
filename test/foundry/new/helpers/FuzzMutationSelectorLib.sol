@@ -46,6 +46,10 @@ import {
     ZoneInteractionErrors
 } from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
 
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
@@ -622,8 +626,8 @@ library FailureDetailsLib {
                 details_unresolvedCriteria
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
+        failureDetailsArray[i++] = HashCalldataContractOfferer
+            .HashCalldataContractOffererRatifyOrderReverts
             .selector
             .withOrder(
                 "InvalidContractOrder_ratifyReverts",
