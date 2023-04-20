@@ -776,7 +776,7 @@ library FailureDetailsLib {
             conduitAddr
         );
     }
-details_withOrderHash
+
     function details_withOrderHash(
         FuzzTestContext memory /* context */,
         MutationState memory mutationState,
