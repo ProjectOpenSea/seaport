@@ -930,10 +930,12 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         ).setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_ratifyReverts
         );
 
@@ -946,10 +948,12 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         ).setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
         );
 
@@ -962,12 +966,14 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         );
 
         offerer.setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_InsufficientMinimumReceived
         );
 
@@ -983,12 +989,14 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         );
 
         offerer.setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
         );
 
@@ -1004,12 +1012,14 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         );
 
         offerer.setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent
         );
 
@@ -1030,12 +1040,14 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
         );
 
         offerer.setFailureReason(
+            orderHash,
             OffererZoneFailureReason.ContractOfferer_IncorrectMaximumSpent
         );
 

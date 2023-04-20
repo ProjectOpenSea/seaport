@@ -56,7 +56,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     DropItemMutation[] public dropItemMutations;
     ExtraItemMutation[] public extraItemMutations;
 
-    OffererZoneFailureReason public failureReason;
+    mapping(bytes32 => OffererZoneFailureReason) public failureReasons;
 
     address private _SEAPORT;
     address internal _expectedOfferRecipient;
@@ -65,9 +65,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     mapping(bytes32 => bytes32) public orderHashToRatifyOrderDataHash;
 
     function setFailureReason(
+        bytes32 orderHash,
         OffererZoneFailureReason newFailureReason
     ) external {
-        failureReason = newFailureReason;
+        failureReasons[orderHash] = newFailureReason;
     }
 
     function addItemAmountMutation(
@@ -221,7 +222,14 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        if (failureReason == OffererZoneFailureReason.ContractOfferer_generateReverts) {
+        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+            .getContractOffererNonce(address(this));
+
+        bytes32 orderHash = bytes32(
+            contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
+        );
+
+        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_generateReverts) {
             revert HashCalldataContractOffererGenerateOrderReverts();
         }
 
@@ -243,13 +251,6 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             }
 
             bytes32 calldataHash = keccak256(data);
-
-            uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
-                .getContractOffererNonce(address(this));
-
-            bytes32 orderHash = bytes32(
-                contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
-            );
 
             // Store the hash of msg.data
             orderHashToGenerateOrderDataHash[orderHash] = calldataHash;
@@ -334,7 +335,11 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             "HashCalldataContractOfferer: ratify caller not seaport"
         );
 
-        if (failureReason == OffererZoneFailureReason.ContractOfferer_ratifyReverts) {
+        bytes32 orderHash = bytes32(
+            contractNonce ^ (uint256(uint160(address(this))) << 96)
+        );
+
+        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_ratifyReverts) {
             revert HashCalldataContractOffererRatifyOrderReverts();
         }
 
@@ -350,17 +355,13 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
             bytes32 calldataHash = keccak256(data);
 
-            bytes32 orderHash = bytes32(
-                contractNonce ^ (uint256(uint160(address(this))) << 96)
-            );
-
             // Store the hash of msg.data
             orderHashToRatifyOrderDataHash[orderHash] = calldataHash;
 
             emit RatifyOrderDataHash(orderHash, calldataHash);
         }
 
-        if (failureReason == OffererZoneFailureReason.ContractOfferer_InvalidMagicValue) {
+        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_InvalidMagicValue) {
             return bytes4(0x12345678);
         } else {
             // Return the selector of ratifyOrder as the magic value.
