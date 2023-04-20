@@ -59,6 +59,14 @@ import {
 
 import { ConduitChoice } from "seaport-sol/StructSpace.sol";
 
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+import {
+    OffererZoneFailureReason
+} from "../../../../contracts/test/OffererZoneFailureReason.sol";
+
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -368,16 +376,48 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleWhenContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType == OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotAvailableOrContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType != OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotAvailableOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context)) {
             return true;
         }
 
@@ -615,15 +655,7 @@ library MutationFilters {
         // fraction error. We want to exclude cases where the time is wrong or
         // maximum fulfilled has already been met. (So this check is
         // over-excluding potentially eligible orders).
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.parameters.orderType == OrderType.CONTRACT) {
-            return true;
-        }
-
-        return false;
+        return ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context);
     }
 
     function ineligibleForBadFraction_noFill(
@@ -848,6 +880,22 @@ contract FuzzMutations is Test, FuzzExecutor {
     using CheckHelpers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
     using MutationFilters for FuzzTestContext;
+
+    function mutation_invalidContractOrderRatifyReverts(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_ratifyReverts
+        );
+
+        exec(context);
+    }
 
     function mutation_offerItemMissingApproval(
         FuzzTestContext memory context,

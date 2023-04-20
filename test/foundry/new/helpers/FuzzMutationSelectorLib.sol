@@ -42,6 +42,10 @@ import {
     CriteriaResolutionErrors
 } from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
+import {
+    ZoneInteractionErrors
+} from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
@@ -81,15 +85,15 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
-    ContractOfferer_generateReverts, // Offerer generateOrder reverts
-    ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
-    ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
-    ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
-    ContractOfferer_ExcessMaximumSpent, // too many maximum spent items
-    ContractOfferer_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
-    ContractOfferer_InvalidMagicValue, // Offerer did not return correct magic value
-    Zone_reverts, // Zone validateOrder call reverts
-    Zone_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
+    //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
+    InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
+    //InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
+    //InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
+    //InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
+    //InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
+    //InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
+    //InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
+    //InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -257,6 +261,10 @@ library FuzzMutationSelectorLib {
                 MutationFilters
                     .ineligibleForConsiderationCriteriaResolverFailure
             );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts.withOrder(
+            MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -612,6 +620,14 @@ library FailureDetailsLib {
                 "UnresolvedConsiderationCriteria",
                 FuzzMutations.mutation_unresolvedCriteria.selector,
                 details_unresolvedCriteria
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_ratifyReverts",
+                FuzzMutations.mutation_invalidContractOrderRatifyReverts.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
