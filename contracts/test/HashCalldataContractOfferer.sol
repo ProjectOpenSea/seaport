@@ -36,10 +36,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     event GenerateOrderDataHash(bytes32 orderHash, bytes32 dataHash);
     event RatifyOrderDataHash(bytes32 orderHash, bytes32 dataHash);
 
-    struct ItemAmountMutation {
+    struct ItemMutation {
         Side side;
         uint256 index;
-        uint256 newAmount;
+        ReceivedItem newItem;
     }
 
     struct DropItemMutation {
@@ -52,7 +52,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         ReceivedItem item;
     }
 
-    ItemAmountMutation[] public itemAmountMutations;
+    ItemMutation[] public itemMutations;
     DropItemMutation[] public dropItemMutations;
     ExtraItemMutation[] public extraItemMutations;
 
@@ -70,16 +70,16 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         failureReason = newFailureReason;
     }
 
-    function addItemAmountMutation(
+    function addItemMutation(
         Side side,
         uint256 index,
-        uint256 newAmount
+        ReceivedItem memory item
     ) external {
         // TODO: add safety checks to ensure that item is in range
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set
 
-        itemAmountMutations.push(ItemAmountMutation(side, index, newAmount));
+        itemMutations.push(ItemMutation(side, index, item));
     }
 
     function addDropItemMutation(Side side, uint256 index) external {
@@ -87,6 +87,14 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set; also should consider
         // modifying existing indices in other mutations
+        if (side == Side.OFFER) {
+            require(
+                failureReason ==
+                    OffererZoneFailureReason
+                        .ContractOfferer_InsufficientMinimumReceived,
+                "Tried to drop minimumReceived item but failure reason was not ContractOfferer_InsufficientMinimumReceived"
+            );
+        }
 
         dropItemMutations.push(DropItemMutation(side, index));
     }
@@ -97,19 +105,26 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     ) external {
         // TODO: add safety checks to ensure that a failure-inducing
         // mutation has the correct failure reason appropriately set
+        if (side == Side.CONSIDERATION) {
+            require(
+                failureReason ==
+                    OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent,
+                "Tried to add extra maximumSpent item but failure reason was not ContractOfferer_ExcessMaximumSpent"
+            );
+        }
 
         extraItemMutations.push(ExtraItemMutation(side, item));
     }
 
-    function applyItemAmountMutation(
+    function applyItemMutation(
         SpentItem[] memory offer,
         ReceivedItem[] memory consideration,
-        ItemAmountMutation memory mutation
+        ItemMutation memory mutation
     ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
         if (mutation.side == Side.OFFER) {
-            offer[mutation.index].amount = mutation.newAmount;
+            offer[mutation.index] = _cast(mutation.newItem);
         } else {
-            consideration[mutation.index].amount = mutation.newAmount;
+            consideration[mutation.index] = mutation.newItem;
         }
         return (offer, consideration);
     }
@@ -149,6 +164,14 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
                 newItems[newIndex] = items[i];
                 newIndex++;
             }
+        }
+    }
+
+    function _cast(
+        ReceivedItem memory item
+    ) internal pure returns (SpentItem memory _item) {
+        assembly {
+            _item := item
         }
     }
 
@@ -221,7 +244,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        if (failureReason == OffererZoneFailureReason.ContractOfferer_generateReverts) {
+        if (
+            failureReason ==
+            OffererZoneFailureReason.ContractOfferer_generateReverts
+        ) {
             revert HashCalldataContractOffererGenerateOrderReverts();
         }
 
@@ -284,11 +310,11 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
         (offer, consideration) = (a, _convertSpentToReceived(b));
 
-        for (uint256 i; i < itemAmountMutations.length; i++) {
-            (offer, consideration) = applyItemAmountMutation(
+        for (uint256 i; i < itemMutations.length; i++) {
+            (offer, consideration) = applyItemMutation(
                 offer,
                 consideration,
-                itemAmountMutations[i]
+                itemMutations[i]
             );
         }
         for (uint256 i; i < extraItemMutations.length; i++) {
@@ -334,7 +360,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             "HashCalldataContractOfferer: ratify caller not seaport"
         );
 
-        if (failureReason == OffererZoneFailureReason.ContractOfferer_ratifyReverts) {
+        if (
+            failureReason ==
+            OffererZoneFailureReason.ContractOfferer_ratifyReverts
+        ) {
             revert HashCalldataContractOffererRatifyOrderReverts();
         }
 
