@@ -50,7 +50,9 @@ import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
-import { Vm } from "forge-std/Vm.sol";
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
@@ -703,13 +705,12 @@ library FailureDetailsLib {
                 details_withOrderHash
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidRestrictedOrder
+        failureDetailsArray[i++] = HashValidationZoneOfferer
+            .HashValidationZoneOffererValidateOrderReverts
             .selector
             .withOrder(
                 "InvalidRestrictedOrder_reverts",
-                FuzzMutations.mutation_invalidRestrictedOrderReverts.selector,
-                details_withOrderHash
+                FuzzMutations.mutation_invalidRestrictedOrderReverts.selector
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
