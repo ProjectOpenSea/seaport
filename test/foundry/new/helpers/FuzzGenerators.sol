@@ -100,9 +100,10 @@ library TestStateGenerator {
         uint256 totalOrders,
         uint256 maxOfferItemsPerOrder,
         uint256 maxConsiderationItemsPerOrder,
+        bytes memory seedInput,
         FuzzGeneratorContext memory context
     ) internal pure returns (AdvancedOrdersSpace memory) {
-        context.prng.state = uint256(keccak256(msg.data[4:]));
+        context.prng.state = uint256(keccak256(seedInput));
 
         {
             uint256 basicToggle = context.randRange(0, 10);
@@ -1884,7 +1885,7 @@ library AmountGenerator {
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
 
-        if (amount == Amount.FIXED) {
+        if (amount == Amount.FIXED || context.basicOrderCategory != BasicOrderCategory.NONE) {
             return item.withStartAmount(high).withEndAmount(high);
         }
         if (amount == Amount.ASCENDING) {
@@ -1915,7 +1916,7 @@ library AmountGenerator {
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
 
-        if (amount == Amount.FIXED) {
+        if (amount == Amount.FIXED || context.basicOrderCategory != BasicOrderCategory.NONE) {
             return item.withStartAmount(high).withEndAmount(high);
         }
         if (amount == Amount.ASCENDING) {
