@@ -412,6 +412,49 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
+    function ineligibleWhenNotActiveTimeOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory /* context */
+    ) internal view returns (bool) {
+        if (
+            order.parameters.startTime < block.timestamp ||
+            order.parameters.endTime >= block.timestamp
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotContractOrder(order);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (
+            order.parameters.offer.length == 0
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (
+            order.parameters.consideration.length == 0
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+    }
+
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -893,6 +936,95 @@ contract FuzzMutations is Test, FuzzExecutor {
         ).setFailureReason(
             OffererZoneFailureReason.ContractOfferer_ratifyReverts
         );
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderInsufficientMinimumReceived(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_InsufficientMinimumReceived
+        );
+
+        // TODO: operate on a fuzzed item (this is always the first item)
+        offerer.addItemAmountMutation(Side.OFFER, 0, order.parameters.offer[0].startAmount - 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderIncorrectMinimumReceived(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
+        );
+
+        // TODO: operate on a fuzzed item (this always operates on the last item)
+        offerer.addDropItemMutation(Side.OFFER, order.parameters.offer.length - 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderExcessMaximumSpent(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent
+        );
+
+        offerer.addExtraItemMutation(Side.CONSIDERATION, ReceivedItem({
+            itemType: ItemType.NATIVE,
+            token: address(0),
+            identifier: 0,
+            amount: 1,
+            recipient: payable(order.parameters.offerer)
+        }));
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderIncorrectMaximumSpent(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_IncorrectMaximumSpent
+        );
+
+        // TODO: operate on a fuzzed item (this is always the first item)
+        offerer.addItemAmountMutation(Side.CONSIDERATION, 0, order.parameters.consideration[0].startAmount + 1);
 
         exec(context);
     }

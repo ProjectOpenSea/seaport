@@ -91,10 +91,10 @@ enum Failure {
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
     //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
     InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
-    //InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
-    //InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
-    //InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
-    //InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
+    InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
+    InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
+    InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
+    InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
     //InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
     //InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     //InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
@@ -269,6 +269,22 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts.withOrder(
             MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
         );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_InsufficientMinimumReceived
+            .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ExcessMaximumSpent
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrder
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_IncorrectMaximumSpent
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -632,6 +648,38 @@ library FailureDetailsLib {
             .withOrder(
                 "InvalidContractOrder_ratifyReverts",
                 FuzzMutations.mutation_invalidContractOrderRatifyReverts.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_InsufficientMinimumReceived",
+                FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_IncorrectMinimumReceived",
+                FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_ExcessMaximumSpent",
+                FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_IncorrectMaximumSpent",
+                FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
