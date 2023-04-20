@@ -9,95 +9,95 @@ import { FuzzParams } from "./helpers/FuzzTestContextLib.sol";
 contract FuzzCoverageTestSuite is FuzzEngine {
     using LibPRNG for LibPRNG.PRNG;
 
-    function xtest_fuzzCoverage_1() public {
+    function test_fuzzCoverage_1() public {
         _run(LibPRNG.PRNG({ state: 1 }));
     }
 
-    function xtest_fuzzCoverage_2() public {
+    function test_fuzzCoverage_2() public {
         _run(LibPRNG.PRNG({ state: 2 }));
     }
 
-    function xtest_fuzzCoverage_3() public {
+    function test_fuzzCoverage_3() public {
         _run(LibPRNG.PRNG({ state: 3 }));
     }
 
-    function xtest_fuzzCoverage_4() public {
+    function test_fuzzCoverage_4() public {
         _run(LibPRNG.PRNG({ state: 4 }));
     }
 
-    function xtest_fuzzCoverage_5() public {
+    function test_fuzzCoverage_5() public {
         _run(LibPRNG.PRNG({ state: 5 }));
     }
 
-    function xtest_fuzzCoverage_6() public {
+    function test_fuzzCoverage_6() public {
         _run(LibPRNG.PRNG({ state: 6 }));
     }
 
-    function xtest_fuzzCoverage_7() public {
+    function test_fuzzCoverage_7() public {
         _run(LibPRNG.PRNG({ state: 7 }));
     }
 
-    function xtest_fuzzCoverage_8() public {
+    function test_fuzzCoverage_8() public {
         _run(LibPRNG.PRNG({ state: 8 }));
     }
 
-    function xtest_fuzzCoverage_9() public {
+    function test_fuzzCoverage_9() public {
         _run(LibPRNG.PRNG({ state: 9 }));
     }
 
-    function xtest_fuzzCoverage_10() public {
+    function test_fuzzCoverage_10() public {
         _run(LibPRNG.PRNG({ state: 10 }));
     }
 
-    function xtest_fuzzCoverage_11() public {
+    function test_fuzzCoverage_11() public {
         _run(LibPRNG.PRNG({ state: 11 }));
     }
 
-    function xtest_fuzzCoverage_12() public {
+    function test_fuzzCoverage_12() public {
         _run(LibPRNG.PRNG({ state: 12 }));
     }
 
-    function xtest_fuzzCoverage_13() public {
+    function test_fuzzCoverage_13() public {
         _run(LibPRNG.PRNG({ state: 13 }));
     }
 
-    function xtest_fuzzCoverage_14() public {
+    function test_fuzzCoverage_14() public {
         _run(LibPRNG.PRNG({ state: 14 }));
     }
 
-    function xtest_fuzzCoverage_15() public {
+    function test_fuzzCoverage_15() public {
         _run(LibPRNG.PRNG({ state: 15 }));
     }
 
-    function xtest_fuzzCoverage_16() public {
+    function test_fuzzCoverage_16() public {
         _run(LibPRNG.PRNG({ state: 16 }));
     }
 
-    function xtest_fuzzCoverage_17() public {
+    function test_fuzzCoverage_17() public {
         _run(LibPRNG.PRNG({ state: 17 }));
     }
 
-    function xtest_fuzzCoverage_18() public {
+    function test_fuzzCoverage_18() public {
         _run(LibPRNG.PRNG({ state: 18 }));
     }
 
-    function xtest_fuzzCoverage_19() public {
+    function test_fuzzCoverage_19() public {
         _run(LibPRNG.PRNG({ state: 19 }));
     }
 
-    function xtest_fuzzCoverage_20() public {
+    function test_fuzzCoverage_20() public {
         _run(LibPRNG.PRNG({ state: 20 }));
     }
 
-    function xtest_fuzzCoverage_basic() public {
-        _runConcrete(76844, 1371, 26280166978556068170591998414085765852193916502969966072599542085467311544375, 77611178969118171921290535202042465157553249771100500343718217148017568496390);
+    function test_fuzzCoverage_basic() public {
+        _runConcrete(178895369802638298688828708120387745534448546035048, 115792089237316195423570985008687907156371697211558590866466387987651832578046, 115788555543186638654911818413686243610276741452856728755638018087518900060159, 115792089237316195423570985008687907853269984665640564039457584007913129639932);
     }
 
     function test_fuzzCoverage_basic_efficient() public {
-        _runConcrete(3, 3, 3, 0);
+        _runConcrete(29020300685662428657477431862397337925543050288008209731004895218611534368269, 108946692864437767897643210059681608215252615900153618314970988617099153539653, 95441492369375518072067636467673011372784319594465398859125961731879856573220, 73755163147900218691916901);
     }
 
-    function xtest_fuzzCoverage_x() public {
+    function test_fuzzCoverage_x() public {
         _runConcrete(0, 0, 0, 0);
     }
 
