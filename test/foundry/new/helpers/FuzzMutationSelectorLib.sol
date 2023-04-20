@@ -81,7 +81,7 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
-    ContractOrder_generateReverts, // Offerer generateOrder reverts
+    ContractOfferer_generateReverts, // Offerer generateOrder reverts
     ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
     ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
     ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items

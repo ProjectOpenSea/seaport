@@ -25,8 +25,12 @@ import {
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
+import { OffererZoneFailureReason } from "./OffererZoneFailureReason.sol";
 
 contract HashCalldataContractOfferer is ContractOffererInterface {
+    error HashCalldataContractOffererValidateOrderReverts();
+    error HashCalldataContractOffererRatifyOrderReverts();
+
     error NativeTokenTransferFailed();
 
     event GenerateOrderDataHash(bytes32 orderHash, bytes32 dataHash);
@@ -37,6 +41,11 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
     mapping(bytes32 => bytes32) public orderHashToGenerateOrderDataHash;
     mapping(bytes32 => bytes32) public orderHashToRatifyOrderDataHash;
+
+    uint256 expectedMaxSpentAmount;
+    OffererZoneFailureReason failureReason;
+    SpentItem[] returnedOffer;
+    ReceivedItem[] returnedConsideration;
 
     receive() external payable {}
 

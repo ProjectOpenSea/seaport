@@ -19,23 +19,16 @@ import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
 
-    uint256 expectedMaxSpentAmount;
-    FailureReason failureReason;
-    SpentItem[] returnedOffer;
-    ReceivedItem[] returnedConsideration;
+    /**
+     * HashCalldataContractOfferer
+HashValidationZoneOfferer
 
-    enum FailureReason {
-        None,
-        ContractOfferer_generateReverts, // Offerer generateOrder reverts
-        ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
-        ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
-        ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
-        ContractOfferer_ExcessMaximumSpent, // too many maximum spent items
-        ContractOfferer_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
-        ContractOfferer_InvalidMagicValue, // Offerer did not return correct magic value
-        Zone_reverts, // Zone validateOrder call reverts
-        Zone_InvalidMagicValue // Zone validateOrder call returns invalid magic value
-    }
+should be able to poke it and say "go to this [offer]item and increase the amount
+or insert this item as an extra item
+or go to consideratino item and reduce a mount
+remove consideration
+or insert this item as an extra item
+     */
 
     constructor(uint256 expectedMax) {
         expectedMaxSpentAmount = expectedMax;
@@ -215,19 +208,5 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         schemas = new Schema[](1);
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);
-    }
-
-    function setReturnedOffer(SpentItem[] calldata offer) external {
-        returnedOffer = offer;
-    }
-
-    function setReturnedConsideration(
-        ReceivedItem[] calldata consideration
-    ) external {
-        returnedConsideration = consideration;
-    }
-
-    function setFailureReason(FailureReason reason) external {
-        failureReason = reason;
     }
 }
