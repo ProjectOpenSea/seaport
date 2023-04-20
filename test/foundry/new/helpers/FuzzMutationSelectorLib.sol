@@ -20,6 +20,7 @@ import {
     FailureDetails,
     FailureDetailsHelperLib,
     IneligibilityFilter,
+    MutationContextDerivation,
     MutationContextDeriverLib
 } from "./FuzzMutationHelpers.sol";
 
@@ -34,8 +35,14 @@ import {
 } from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
+    FulfillmentApplicationErrors
+} from "../../../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+
+import {
     CriteriaResolutionErrors
 } from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
+
+import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {
@@ -56,6 +63,11 @@ enum Failure {
     CannotCancelOrder, // Caller cannot cancel order
     OrderIsCancelled, // Order is cancelled
     OrderAlreadyFilled, // Order is already filled
+    InvalidFulfillmentComponentData, // Fulfillment component data is invalid
+    MissingFulfillmentComponentOnAggregation, // Missing component
+    OfferAndConsiderationRequiredOnFulfillment, // Fulfillment missing offer or consideration
+    MismatchedFulfillmentOfferAndConsiderationComponents_Modified, // Fulfillment has mismatched offer and consideration components
+    MismatchedFulfillmentOfferAndConsiderationComponents_Swapped, // Fulfillment has mismatched offer and consideration components
     Error_OfferItemMissingApproval, // Order has an offer item without sufficient approval
     Error_CallerMissingApproval, // Order has a consideration item where caller is not approved
     InvalidMsgValue, // Invalid msg.value amount
@@ -151,6 +163,40 @@ library FuzzMutationSelectorLib {
             .withOrder(MutationFilters.ineligibleForBadContractSignature);
 
         failuresAndFilters[i++] = Failure
+            .InvalidFulfillmentComponentData
+            .withGeneric(
+                MutationFilters.ineligibleForInvalidFulfillmentComponentData
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MissingFulfillmentComponentOnAggregation
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForMissingFulfillmentComponentOnAggregation
+            );
+
+        failuresAndFilters[i++] = Failure
+            .OfferAndConsiderationRequiredOnFulfillment
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForOfferAndConsiderationRequiredOnFulfillment
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MismatchedFulfillmentOfferAndConsiderationComponents_Modified
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+            );
+
+        failuresAndFilters[i++] = Failure
             .Error_OfferItemMissingApproval
             .withOrder(MutationFilters.ineligibleForOfferItemMissingApproval);
 
@@ -158,7 +204,7 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForCallerMissingApproval
         );
 
-        failuresAndFilters[i++] = Failure.InvalidMsgValue.withOrder(
+        failuresAndFilters[i++] = Failure.InvalidMsgValue.withGeneric(
             MutationFilters.ineligibleForInvalidMsgValue
         );
 
@@ -168,19 +214,21 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure
             .NativeTokenTransferGenericFailure
-            .withGeneric(MutationFilters.ineligibleForNativeTokenTransferGenericFailure);
+            .withGeneric(
+                MutationFilters.ineligibleForNativeTokenTransferGenericFailure
+            );
 
-        failuresAndFilters[i++] = Failure
-            .CriteriaNotEnabledForItem
-            .withGeneric(MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems);
+        failuresAndFilters[i++] = Failure.CriteriaNotEnabledForItem.withGeneric(
+            MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems
+        );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidProof_Merkle
-            .withCriteria(MutationFilters.ineligibleForInvalidProof_Merkle);
+        failuresAndFilters[i++] = Failure.InvalidProof_Merkle.withCriteria(
+            MutationFilters.ineligibleForInvalidProof_Merkle
+        );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidProof_Wildcard
-            .withCriteria(MutationFilters.ineligibleForInvalidProof_Wildcard);
+        failuresAndFilters[i++] = Failure.InvalidProof_Wildcard.withCriteria(
+            MutationFilters.ineligibleForInvalidProof_Wildcard
+        );
 
         failuresAndFilters[i++] = Failure
             .OrderCriteriaResolverOutOfRange
@@ -189,12 +237,17 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .OfferCriteriaResolverOutOfRange
             .and(Failure.UnresolvedOfferCriteria)
-            .withCriteria(MutationFilters.ineligibleForOfferCriteriaResolverFailure);
+            .withCriteria(
+                MutationFilters.ineligibleForOfferCriteriaResolverFailure
+            );
 
         failuresAndFilters[i++] = Failure
             .ConsiderationCriteriaResolverOutOfRange
             .and(Failure.UnresolvedConsiderationCriteria)
-            .withCriteria(MutationFilters.ineligibleForConsiderationCriteriaResolverFailure);
+            .withCriteria(
+                MutationFilters
+                    .ineligibleForConsiderationCriteriaResolverFailure
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -392,6 +445,57 @@ library FailureDetailsLib {
                 details_OrderAlreadyFilled
             );
 
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .InvalidFulfillmentComponentData
+            .selector
+            .withGeneric(
+                "InvalidFulfillmentComponentData",
+                FuzzMutations.mutation_invalidFulfillmentComponentData.selector
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .MissingFulfillmentComponentOnAggregation
+            .selector
+            .withGeneric(
+                "MissingFulfillmentComponentOnAggregation",
+                FuzzMutations
+                    .mutation_missingFulfillmentComponentOnAggregation
+                    .selector,
+                details_MissingFulfillmentComponentOnAggregation
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .OfferAndConsiderationRequiredOnFulfillment
+            .selector
+            .withGeneric(
+                "OfferAndConsiderationRequiredOnFulfillment",
+                FuzzMutations
+                    .mutation_offerAndConsiderationRequiredOnFulfillment
+                    .selector
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .MismatchedFulfillmentOfferAndConsiderationComponents
+            .selector
+            .withGeneric(
+                "MismatchedFulfillmentOfferAndConsiderationComponents_Modified",
+                FuzzMutations
+                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified
+                    .selector,
+                details_MismatchedFulfillmentOfferAndConsiderationComponents
+            );
+
+        failureDetailsArray[i++] = FulfillmentApplicationErrors
+            .MismatchedFulfillmentOfferAndConsiderationComponents
+            .selector
+            .withGeneric(
+                "MismatchedFulfillmentOfferAndConsiderationComponents_Swapped",
+                FuzzMutations
+                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+                    .selector,
+                details_MismatchedFulfillmentOfferAndConsiderationComponents
+            );
+
         failureDetailsArray[i++] = ERROR_STRING.withOrder(
             "Error_OfferItemMissingApproval",
             FuzzMutations.mutation_offerItemMissingApproval.selector,
@@ -407,7 +511,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .InvalidMsgValue
             .selector
-            .withOrder(
+            .withGeneric(
                 "InvalidMsgValue",
                 FuzzMutations.mutation_invalidMsgValue.selector,
                 details_InvalidMsgValue
@@ -426,7 +530,9 @@ library FailureDetailsLib {
             .selector
             .withGeneric(
                 "NativeTokenTransferGenericFailure",
-                FuzzMutations.mutation_insufficientNativeTokensSupplied.selector,
+                FuzzMutations
+                    .mutation_insufficientNativeTokensSupplied
+                    .selector,
                 details_NativeTokenTransferGenericFailure
             );
 
@@ -476,7 +582,9 @@ library FailureDetailsLib {
             .selector
             .withCriteria(
                 "ConsiderationCriteriaResolverOutOfRange",
-                FuzzMutations.mutation_considerationCriteriaResolverOutOfRange.selector
+                FuzzMutations
+                    .mutation_considerationCriteriaResolverOutOfRange
+                    .selector
             );
 
         failureDetailsArray[i++] = CriteriaResolutionErrors
@@ -599,6 +707,28 @@ library FailureDetailsLib {
         );
     }
 
+    function details_MissingFulfillmentComponentOnAggregation(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            uint8(mutationState.side)
+        );
+    }
+
+    function details_MismatchedFulfillmentOfferAndConsiderationComponents(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            uint256(0)
+        );
+    }
+
     function details_withZero(
         FuzzTestContext memory /* context */,
         MutationState memory /* mutationState */,
@@ -630,7 +760,9 @@ library FailureDetailsLib {
         ReceivedItem memory item;
         if (context.expectations.expectedNativeTokensReturned == 0) {
             if (totalImplicitExecutions == 0) {
-                revert("FailureDetailsLib: not enough implicit executions for unspent item return");
+                revert(
+                    "FailureDetailsLib: not enough implicit executions for unspent item return"
+                );
             }
 
             bool foundNative;
@@ -647,16 +779,24 @@ library FailureDetailsLib {
             }
 
             if (!foundNative) {
-                revert("FailureDetailsLib: no unspent native token item located with no returned native tokens");
+                revert(
+                    "FailureDetailsLib: no unspent native token item located with no returned native tokens"
+                );
             }
         } else {
             if (totalImplicitExecutions > 2) {
-                revert("FailureDetailsLib: not enough implicit executions for native token + unspent return");
+                revert(
+                    "FailureDetailsLib: not enough implicit executions for native token + unspent return"
+                );
             }
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
-                item = context.expectations.expectedImplicitPostExecutions[i - 1].item;
+                item = context
+                    .expectations
+                    .expectedImplicitPostExecutions[i - 1]
+                    .item;
+
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;
@@ -664,15 +804,17 @@ library FailureDetailsLib {
             }
 
             if (!foundNative) {
-                revert("FailureDetailsLib: no unspent native token item located");
+                revert(
+                    "FailureDetailsLib: no unspent native token item located"
+                );
             }
         }
 
-
-
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.recipient == address(0) ? context.executionState.caller : context.executionState.recipient,
+            context.executionState.recipient == address(0)
+                ? context.executionState.caller
+                : context.executionState.recipient,
             item.amount
         );
     }
@@ -682,7 +824,8 @@ library FailureDetailsLib {
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        CriteriaResolver memory resolver = mutationState.selectedCriteriaResolver;
+        CriteriaResolver memory resolver = mutationState
+            .selectedCriteriaResolver;
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
             resolver.orderIndex,
