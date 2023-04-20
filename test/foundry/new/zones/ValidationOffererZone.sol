@@ -19,16 +19,7 @@ import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
 
-    /**
-     * HashCalldataContractOfferer
-HashValidationZoneOfferer
-
-should be able to poke it and say "go to this [offer]item and increase the amount
-or insert this item as an extra item
-or go to consideratino item and reduce a mount
-remove consideration
-or insert this item as an extra item
-     */
+    uint256 expectedMaxSpentAmount;
 
     constructor(uint256 expectedMax) {
         expectedMaxSpentAmount = expectedMax;
@@ -48,11 +39,6 @@ or insert this item as an extra item
         ZoneParameters calldata zoneParameters
     ) external view override returns (bytes4 validOrderMagicValue) {
         validate(zoneParameters.fulfiller, zoneParameters.offer);
-        if (failureReason == FailureReason.Zone_reverts) {
-            revert("Zone reverts");
-        } else if (failureReason == FailureReason.Zone_InvalidMagicValue) {
-            return bytes4(0x12345678);
-        }
 
         // Return the selector of validateOrder as the magic value.
         validOrderMagicValue = this.validateOrder.selector;
@@ -72,53 +58,7 @@ or insert this item as an extra item
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        (offer, consideration) = previewOrder(
-            address(this),
-            address(this),
-            a,
-            b,
-            c
-        );
-        FailureReason reason = failureReason;
-        if (reason == FailureReason.ContractOfferer_generateReverts) {
-            revert("generateOrder reverts");
-        } else if (
-            reason == FailureReason.ContractOfferer_InsufficientMinimumReceived
-        ) {
-            require(
-                offer.length > 0,
-                "Insufficient minimum received items to truncate for failure case"
-            );
-            assembly {
-                // truncate offer length by 1
-                mstore(offer, sub(mload(offer), 1))
-            }
-            return (offer, consideration);
-        } else if (
-            reason == FailureReason.ContractOfferer_IncorrectMinimumReceived
-        ) {
-            return (returnedOffer, consideration);
-        } else if (reason == FailureReason.ContractOfferer_ExcessMaximumSpent) {
-            ReceivedItem[] memory newConsideration = new ReceivedItem[](
-                consideration.length + 1
-            );
-            for (uint256 i = 0; i < consideration.length; i++) {
-                newConsideration[i] = consideration[i];
-            }
-            newConsideration[consideration.length] = ReceivedItem({
-                token: address(0),
-                amount: 1,
-                itemType: ItemType.ERC20,
-                identifier: 0,
-                recipient: payable(address(this))
-            });
-            return (offer, newConsideration);
-        } else if (
-            reason == FailureReason.ContractOfferer_IncorrectMaximumSpent
-        ) {
-            return (offer, returnedConsideration);
-        }
-        return (offer, consideration);
+        return previewOrder(address(this), address(this), a, b, c);
     }
 
     /**
@@ -174,13 +114,6 @@ or insert this item as an extra item
         uint256 /* contractNonce */
     ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
         validate(address(0), spentItems);
-        if (failureReason == FailureReason.ContractOfferer_ratifyReverts) {
-            revert("ContractOfferer ratifyOrder reverts");
-        } else if (
-            failureReason == FailureReason.ContractOfferer_InvalidMagicValue
-        ) {
-            return bytes4(0x12345678);
-        }
         return ValidationOffererZone.ratifyOrder.selector;
     }
 
