@@ -940,6 +940,22 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidContractOrderInvalidMagicValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).setFailureReason(
+            OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
+        );
+
+        exec(context);
+    }
+
     function mutation_invalidContractOrderInsufficientMinimumReceived(
         FuzzTestContext memory context,
         MutationState memory mutationState

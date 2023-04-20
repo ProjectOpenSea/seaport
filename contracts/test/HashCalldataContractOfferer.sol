@@ -360,7 +360,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             emit RatifyOrderDataHash(orderHash, calldataHash);
         }
 
-        if (failureReason == OffererZoneFailureReason.Zone_InvalidMagicValue) {
+        if (failureReason == OffererZoneFailureReason.ContractOfferer_InvalidMagicValue) {
             return bytes4(0x12345678);
         } else {
             // Return the selector of ratifyOrder as the magic value.

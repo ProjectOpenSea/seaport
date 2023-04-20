@@ -95,7 +95,7 @@ enum Failure {
     InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
     InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
     InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
-    //InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
+    InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
     //InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     //InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -266,9 +266,11 @@ library FuzzMutationSelectorLib {
                     .ineligibleForConsiderationCriteriaResolverFailure
             );
 
-        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts.withOrder(
-            MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
-        );
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts
+            .and(Failure.InvalidContractOrder_InvalidMagicValue)
+            .withOrder(
+                MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
+            );
 
         failuresAndFilters[i++] = Failure.InvalidContractOrder_InsufficientMinimumReceived
             .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
@@ -680,6 +682,14 @@ library FailureDetailsLib {
             .withOrder(
                 "InvalidContractOrder_IncorrectMaximumSpent",
                 FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_InvalidMagicValue",
+                FuzzMutations.mutation_invalidContractOrderInvalidMagicValue.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
