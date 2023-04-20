@@ -59,6 +59,14 @@ import {
 
 import { ConduitChoice } from "seaport-sol/StructSpace.sol";
 
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+import {
+    OffererZoneFailureReason
+} from "../../../../contracts/test/OffererZoneFailureReason.sol";
+
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -368,16 +376,91 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleWhenContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType == OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotAvailableOrContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType != OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotAvailableOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory /* context */
+    ) internal view returns (bool) {
+        if (
+            order.parameters.startTime < block.timestamp ||
+            order.parameters.endTime >= block.timestamp
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotContractOrder(order);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (
+            order.parameters.offer.length == 0
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (
+            order.parameters.consideration.length == 0
+        ) {
+            return true;
+        }
+
+        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+    }
+
     function ineligibleForAnySignatureFailure(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context)) {
             return true;
         }
 
@@ -615,15 +698,7 @@ library MutationFilters {
         // fraction error. We want to exclude cases where the time is wrong or
         // maximum fulfilled has already been met. (So this check is
         // over-excluding potentially eligible orders).
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        if (order.parameters.orderType == OrderType.CONTRACT) {
-            return true;
-        }
-
-        return false;
+        return ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context);
     }
 
     function ineligibleForBadFraction_noFill(
@@ -848,6 +923,139 @@ contract FuzzMutations is Test, FuzzExecutor {
     using CheckHelpers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
     using MutationFilters for FuzzTestContext;
+
+    function mutation_invalidContractOrderRatifyReverts(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_ratifyReverts
+        );
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderInvalidMagicValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
+        );
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderInsufficientMinimumReceived(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_InsufficientMinimumReceived
+        );
+
+        // TODO: operate on a fuzzed item (this is always the first item)
+        offerer.addItemAmountMutation(Side.OFFER, 0, order.parameters.offer[0].startAmount - 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderIncorrectMinimumReceived(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
+        );
+
+        // TODO: operate on a fuzzed item (this always operates on the last item)
+        offerer.addDropItemMutation(Side.OFFER, order.parameters.offer.length - 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderExcessMaximumSpent(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent
+        );
+
+        offerer.addExtraItemMutation(Side.CONSIDERATION, ReceivedItem({
+            itemType: ItemType.NATIVE,
+            token: address(0),
+            identifier: 0,
+            amount: 1,
+            recipient: payable(order.parameters.offerer)
+        }));
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderIncorrectMaximumSpent(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        );
+
+        offerer.setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.ContractOfferer_IncorrectMaximumSpent
+        );
+
+        // TODO: operate on a fuzzed item (this is always the first item)
+        offerer.addItemAmountMutation(Side.CONSIDERATION, 0, order.parameters.consideration[0].startAmount + 1);
+
+        exec(context);
+    }
 
     function mutation_offerItemMissingApproval(
         FuzzTestContext memory context,
@@ -1169,9 +1377,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-
-        bytes32 orderHash = context.executionState.orderHashes[orderIndex];
+        bytes32 orderHash = mutationState.selectedOrderHash;
         FuzzInscribers.inscribeOrderStatusCancelled(
             orderHash,
             true,

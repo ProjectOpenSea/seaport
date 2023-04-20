@@ -42,6 +42,14 @@ import {
     CriteriaResolutionErrors
 } from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
+import {
+    ZoneInteractionErrors
+} from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
+
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+
 import { Vm } from "forge-std/Vm.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
@@ -81,6 +89,15 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
+    //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
+    InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
+    InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
+    InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
+    InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
+    InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
+    InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
+    //InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
+    //InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -247,6 +264,28 @@ library FuzzMutationSelectorLib {
             .withCriteria(
                 MutationFilters
                     .ineligibleForConsiderationCriteriaResolverFailure
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts
+            .and(Failure.InvalidContractOrder_InvalidMagicValue)
+            .withOrder(
+                MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_InsufficientMinimumReceived
+            .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ExcessMaximumSpent
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrder
+            );
+
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_IncorrectMaximumSpent
+            .withOrder(
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -433,7 +472,7 @@ library FailureDetailsLib {
             .withOrder(
                 "OrderIsCancelled",
                 FuzzMutations.mutation_orderIsCancelled.selector,
-                details_OrderIsCancelled
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
@@ -604,6 +643,59 @@ library FailureDetailsLib {
                 FuzzMutations.mutation_unresolvedCriteria.selector,
                 details_unresolvedCriteria
             );
+
+        failureDetailsArray[i++] = HashCalldataContractOfferer
+            .HashCalldataContractOffererRatifyOrderReverts
+            .selector
+            .withOrder(
+                "InvalidContractOrder_ratifyReverts",
+                FuzzMutations.mutation_invalidContractOrderRatifyReverts.selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_InsufficientMinimumReceived",
+                FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived.selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_IncorrectMinimumReceived",
+                FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived.selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_ExcessMaximumSpent",
+                FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent.selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_IncorrectMaximumSpent",
+                FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_InvalidMagicValue",
+                FuzzMutations.mutation_invalidContractOrderInvalidMagicValue.selector,
+                details_withOrderHash
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -685,14 +777,14 @@ library FailureDetailsLib {
         );
     }
 
-    function details_OrderIsCancelled(
-        FuzzTestContext memory context,
+    function details_withOrderHash(
+        FuzzTestContext memory /* context */,
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderHashes[mutationState.selectedOrderIndex]
+            mutationState.selectedOrderHash
         );
     }
 
@@ -767,7 +859,10 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
-                item = context.expectations.expectedImplicitPostExecutions[i].item;
+                item = context
+                    .expectations
+                    .expectedImplicitPostExecutions[i]
+                    .item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;
