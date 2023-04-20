@@ -251,6 +251,7 @@ struct ExecutionState {
 struct MutationState {
     AdvancedOrder selectedOrder;
     uint256 selectedOrderIndex;
+    bytes32 selectedOrderHash;
     Side side;
     CriteriaResolver selectedCriteriaResolver;
     uint256 selectedCriteriaResolverIndex;
