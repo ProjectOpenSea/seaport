@@ -36,6 +36,7 @@ import {
     BroadOrderType,
     Caller,
     ConduitChoice,
+    ContractOrderRebate,
     Criteria,
     EOASignature,
     ExtraData,
@@ -180,7 +181,8 @@ library TestStateGenerator {
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 tips: Tips(context.randEnum(0, 1)),
                 unavailableReason: reason,
-                extraData: ExtraData(context.randEnum(0, 1))
+                extraData: ExtraData(context.randEnum(0, 1)),
+                rebate: ContractOrderRebate(context.randEnum(0, 0))
             });
 
             // Set up order components specific to contract order

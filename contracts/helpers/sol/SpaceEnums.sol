@@ -372,6 +372,14 @@ enum ExtraData {
     RANDOM
 }
 
+enum ContractOrderRebate {
+    NONE,
+    MORE_OFFER_ITEMS,
+    MORE_OFFER_ITEM_AMOUNTS,
+    LESS_CONSIDERATION_ITEMS,
+    LESS_CONSIDERATION_ITEM_AMOUNTS
+}
+
 // TODO: maybe just validate everything in a passing case, avoid bloating state space?
 
 // // Zone.PASS/FAIL <- ZoneParams
