@@ -182,7 +182,7 @@ library TestStateGenerator {
                 tips: Tips(context.randEnum(0, 1)),
                 unavailableReason: reason,
                 extraData: ExtraData(context.randEnum(0, 1)),
-                rebate: ContractOrderRebate(context.randEnum(0, 0))
+                rebate: ContractOrderRebate(context.randEnum(0, 4))
             });
 
             // Set up order components specific to contract order
@@ -222,6 +222,43 @@ library TestStateGenerator {
                     // TODO: support wildcard resolution (note that the
                     // contract offerer needs to resolve these itself)
                     components[i].consideration[j].criteria = Criteria.MERKLE;
+                }
+
+                if (
+                    components[i].consideration.length == 0 &&
+                    (
+                        components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEMS ||
+                        components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS
+                    )
+                ) {
+                    components[i].rebate = ContractOrderRebate(context.randEnum(0, 2));
+                }
+
+                if (components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS) {
+                    bool canReduceAmounts;
+                    for (uint256 j = 0; j < components[i].consideration.length; ++j) {
+                        ItemType itemType = components[i].consideration[j].itemType;
+                        if (
+                            itemType != ItemType.ERC721 &&
+                            itemType != ItemType.ERC721_WITH_CRITERIA
+                        ) {
+                            // NOTE: theoretically there could still be items with amount 1
+                            // that would not be eligible for reducing consideration amounts.
+                            canReduceAmounts = true;
+                            break;
+                        }
+                    }
+
+                    if (!canReduceAmounts) {
+                        components[i].rebate = ContractOrderRebate(context.randEnum(0, 3));
+                    }
+                }
+
+                if (
+                    components[i].offer.length == 0 &&
+                    components[i].rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS
+                ) {
+                    components[i].rebate = ContractOrderRebate(components[i].consideration.length == 0 ? context.randEnum(0, 1) : context.choice(Solarray.uint256s(0, 1, 2, 4)));
                 }
             } else if (components[i].offerer == Offerer.EIP1271) {
                 components[i].signatureMethod = SignatureMethod.EIP1271;
