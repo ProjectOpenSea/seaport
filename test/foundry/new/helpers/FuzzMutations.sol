@@ -1920,7 +1920,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .orders[fulfillmentComponent.orderIndex]
                     .parameters
                     .offer[fulfillmentComponent.itemIndex]
-                    .startAmount = 0;
+                    .endAmount = 0;
             }
         }
 
