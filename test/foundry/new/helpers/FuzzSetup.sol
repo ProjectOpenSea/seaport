@@ -234,7 +234,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .executionState
             .orders
             .getExpectedContractOffererCalldataHashes(
-                address(context.seaport),
                 context.executionState.caller,
                 context.executionState.orderHashes
             );

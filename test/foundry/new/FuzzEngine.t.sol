@@ -1775,7 +1775,6 @@ contract FuzzEngineTest is FuzzEngine {
             bytes32[2][] memory expectedContractOrderCalldataHashes;
             expectedContractOrderCalldataHashes = advancedOrders
                 .getExpectedContractOffererCalldataHashes(
-                    address(getSeaport()),
                     address(this),
                     context.executionState.orderHashes
                 );
