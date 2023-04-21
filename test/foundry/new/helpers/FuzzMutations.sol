@@ -1040,6 +1040,18 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidContractOrderOfferAmountMismatch(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.parameters.offer[0].startAmount = order.parameters.offer[0].endAmount + 1;
+
+        exec(context);
+    }
+
     function mutation_invalidContractOrderIncorrectMinimumReceived(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -1058,6 +1070,18 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         // TODO: operate on a fuzzed item (this always operates on the last item)
         offerer.addDropItemMutation(Side.OFFER, order.parameters.offer.length - 1);
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderConsiderationAmountMismatch(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.parameters.consideration[0].startAmount = order.parameters.consideration[0].endAmount + 1;
 
         exec(context);
     }
