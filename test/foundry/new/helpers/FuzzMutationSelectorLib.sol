@@ -111,6 +111,7 @@ enum Failure {
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
+    PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -341,6 +342,12 @@ library FuzzMutationSelectorLib {
             .UnusedItemParameters_Identifier
             .withOrder(
                 MutationFilters.ineligibleForUnusedItemParameters_Identifier
+            );
+
+        failuresAndFilters[i++] = Failure
+            .PartialFillsNotEnabledForOrder
+            .withOrder(
+                MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -847,6 +854,14 @@ library FailureDetailsLib {
             .withOrder(
                 "UnusedItemParameters_Identifier",
                 FuzzMutations.mutation_unusedItemParameters_Identifier.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .PartialFillsNotEnabledForOrder
+            .selector
+            .withOrder(
+                "PartialFillsNotEnabledForOrder",
+                FuzzMutations.mutation_partialFillsNotEnabledForOrder.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
