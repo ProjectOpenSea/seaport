@@ -105,11 +105,6 @@ interface TestHelpers {
             MatchComponent[] memory remainingConsiderationComponents
         );
 
-    function toOrderDetails(
-        AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory resolvers
-    ) external returns (OrderDetails[] memory);
-
     function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
