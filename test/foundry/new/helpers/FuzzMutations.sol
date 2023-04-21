@@ -683,7 +683,7 @@ library MutationFilters {
 
     function ineligibleForInvalidConduit(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal returns (bool) {
         bytes4 action = context.action();
@@ -701,7 +701,7 @@ library MutationFilters {
         // Note: We're speculatively applying the mutation here and slightly
         // breaking the rules. Make sure to undo this mutation.
         bytes32 oldConduitKey = order.parameters.conduitKey;
-        order.parameters.conduitKey = keccak256("invalid conduit");
+        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = keccak256("invalid conduit");
         (
             Execution[] memory explicitExecutions,
             ,
@@ -737,7 +737,7 @@ library MutationFilters {
         }
 
         // Note: mutation is undone here as referenced above.
-        order.parameters.conduitKey = oldConduitKey;
+        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
             return true;
