@@ -14,13 +14,14 @@ import {
     ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "../lib/ConsiderationEnums.sol";
 
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { OffererZoneFailureReason } from "./OffererZoneFailureReason.sol";
 
 /**
  * @dev This contract is used to validate hashes.  Use the
@@ -56,7 +57,147 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         uint256 expectedBalance,
         uint256 actualBalance
     );
+    error HashValidationZoneOffererValidateOrderReverts();
+    error HashValidationZoneOffererRatifyOrderReverts();
     event ValidateOrderDataHash(bytes32 dataHash);
+
+    struct ItemAmountMutation {
+        Side side;
+        uint256 index;
+        uint256 newAmount;
+    }
+
+    struct DropItemMutation {
+        Side side;
+        uint256 index;
+    }
+
+    struct ExtraItemMutation {
+        Side side;
+        ReceivedItem item;
+    }
+
+    ItemAmountMutation[] public itemAmountMutations;
+    DropItemMutation[] public dropItemMutations;
+    ExtraItemMutation[] public extraItemMutations;
+
+    function addItemAmountMutation(
+        Side side,
+        uint256 index,
+        uint256 newAmount
+    ) external {
+        itemAmountMutations.push(ItemAmountMutation(side, index, newAmount));
+    }
+
+    function addDropItemMutation(Side side, uint256 index) external {
+        dropItemMutations.push(DropItemMutation(side, index));
+    }
+
+    function addExtraItemMutation(
+        Side side,
+        ReceivedItem calldata item
+    ) external {
+        extraItemMutations.push(ExtraItemMutation(side, item));
+    }
+
+    function applyItemAmountMutation(
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        ItemAmountMutation memory mutation
+    ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
+        if (mutation.side == Side.OFFER) {
+            offer[mutation.index].amount = mutation.newAmount;
+        } else {
+            consideration[mutation.index].amount = mutation.newAmount;
+        }
+        return (offer, consideration);
+    }
+
+    function applyDropItemMutation(
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        DropItemMutation memory mutation
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory _offer,
+            ReceivedItem[] memory _consideration
+        )
+    {
+        if (mutation.side == Side.OFFER) {
+            _offer = dropIndex(offer, mutation.index);
+            _consideration = consideration;
+        } else {
+            _offer = offer;
+            _consideration = _cast(
+                dropIndex(_cast(consideration), mutation.index)
+            );
+        }
+    }
+
+    function dropIndex(
+        SpentItem[] memory items,
+        uint256 index
+    ) internal pure returns (SpentItem[] memory newItems) {
+        newItems = new SpentItem[](items.length - 1);
+        uint256 newIndex = 0;
+        uint256 originalLength = items.length;
+        for (uint256 i = 0; i < originalLength; i++) {
+            if (i != index) {
+                newItems[newIndex] = items[i];
+                newIndex++;
+            }
+        }
+    }
+
+    function _cast(
+        ReceivedItem[] memory items
+    ) internal pure returns (SpentItem[] memory _items) {
+        assembly {
+            _items := items
+        }
+    }
+
+    function _cast(
+        SpentItem[] memory items
+    ) internal pure returns (ReceivedItem[] memory _items) {
+        assembly {
+            _items := items
+        }
+    }
+
+    function applyExtraItemMutation(
+        SpentItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        ExtraItemMutation memory mutation
+    )
+        internal
+        pure
+        returns (
+            SpentItem[] memory _offer,
+            ReceivedItem[] memory _consideration
+        )
+    {
+        if (mutation.side == Side.OFFER) {
+            _offer = _cast(appendItem(_cast(offer), mutation.item));
+            _consideration = consideration;
+        } else {
+            _offer = offer;
+            _consideration = appendItem(consideration, mutation.item);
+        }
+    }
+
+    function appendItem(
+        ReceivedItem[] memory items,
+        ReceivedItem memory item
+    ) internal pure returns (ReceivedItem[] memory newItems) {
+        newItems = new ReceivedItem[](items.length + 1);
+        for (uint256 i = 0; i < items.length; i++) {
+            newItems[i] = items[i];
+        }
+        newItems[items.length] = item;
+    }
 
     receive() external payable {}
 
@@ -72,6 +213,15 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     bool public called = false;
     uint public callCount = 0;
 
+    mapping(bytes32 => OffererZoneFailureReason) public failureReasons;
+
+    function setFailureReason(
+        bytes32 orderHash,
+        OffererZoneFailureReason newFailureReason
+    ) external {
+        failureReasons[orderHash] = newFailureReason;
+    }
+
     /**
      * @dev Validates that the parties have received the correct items.
      *
@@ -83,6 +233,12 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external override returns (bytes4 validOrderMagicValue) {
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_reverts) {
+            revert HashValidationZoneOffererValidateOrderReverts();
+        }
         // Validate the order.
 
         // Currently assumes that the balances of all tokens of addresses are
@@ -106,9 +262,6 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         // Get the hash of msg.data
         bytes32 calldataHash = keccak256(data);
 
-        // Get the orderHash from zoneParameters
-        bytes32 orderHash = zoneParameters.orderHash;
-
         // Store callDataHash in orderHashToValidateOrderDataHash
         orderHashToValidateOrderDataHash[orderHash] = calldataHash;
 
@@ -127,8 +280,12 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         called = true;
         callCount++;
 
-        // Return the selector of validateOrder as the magic value.
-        validOrderMagicValue = this.validateOrder.selector;
+        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_InvalidMagicValue) {
+            validOrderMagicValue = bytes4(0x12345678);
+        } else {
+            // Return the selector of validateOrder as the magic value.
+            validOrderMagicValue = this.validateOrder.selector;
+        }
     }
 
     /**
@@ -146,7 +303,37 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        return previewOrder(address(this), address(this), a, b, c);
+        (offer, consideration) = previewOrder(
+            address(this),
+            address(this),
+            a,
+            b,
+            c
+        );
+
+        for (uint256 i; i < itemAmountMutations.length; i++) {
+            (offer, consideration) = applyItemAmountMutation(
+                offer,
+                consideration,
+                itemAmountMutations[i]
+            );
+        }
+        for (uint256 i; i < extraItemMutations.length; i++) {
+            (offer, consideration) = applyExtraItemMutation(
+                offer,
+                consideration,
+                extraItemMutations[i]
+            );
+        }
+        for (uint256 i; i < dropItemMutations.length; i++) {
+            (offer, consideration) = applyDropItemMutation(
+                offer,
+                consideration,
+                dropItemMutations[i]
+            );
+        }
+
+        return (offer, consideration);
     }
 
     /**
