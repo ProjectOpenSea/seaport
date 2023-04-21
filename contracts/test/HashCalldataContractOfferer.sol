@@ -118,9 +118,9 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         ReceivedItem[] memory consideration,
         ItemAmountMutation memory mutation
     ) internal pure returns (SpentItem[] memory, ReceivedItem[] memory) {
-        if (mutation.side == Side.OFFER) {
+        if (mutation.side == Side.OFFER && offer.length <= mutation.index) {
             offer[mutation.index].amount = mutation.newAmount;
-        } else {
+        } else if (consideration.length <= mutation.index) {
             consideration[mutation.index].amount = mutation.newAmount;
         }
         return (offer, consideration);
