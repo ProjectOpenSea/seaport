@@ -105,6 +105,8 @@ enum Failure {
     InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
     InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
     InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
+    InvalidContractOrder_OfferAmountMismatch, // startAmount != endAmount on contract order offer item
+    InvalidContractOrder_ConsiderationAmountMismatch, // startAmount != endAmount on contract order consideration item
     InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -302,6 +304,7 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .InvalidContractOrder_InsufficientMinimumReceived
             .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
+            .and(Failure.InvalidContractOrder_OfferAmountMismatch)
             .withOrder(
                 MutationFilters
                     .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
@@ -315,6 +318,7 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure
             .InvalidContractOrder_IncorrectMaximumSpent
+            .and(Failure.InvalidContractOrder_ConsiderationAmountMismatch)
             .withOrder(
                 MutationFilters
                     .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
@@ -772,6 +776,24 @@ library FailureDetailsLib {
                 FuzzMutations
                     .mutation_invalidContractOrderInvalidMagicValue
                     .selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_OfferAmountMismatch",
+                FuzzMutations.mutation_invalidContractOrderOfferAmountMismatch.selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_ConsiderationAmountMismatch",
+                FuzzMutations.mutation_invalidContractOrderConsiderationAmountMismatch.selector,
                 details_withOrderHash
             );
 
