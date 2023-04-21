@@ -1173,6 +1173,76 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForUnusedItemParameters_Token(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (item.itemType == ItemType.NATIVE) {
+                return false;
+            }
+        }
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (item.itemType == ItemType.NATIVE) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function ineligibleForUnusedItemParameters_Identifier(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC20 ||
+                item.itemType == ItemType.NATIVE
+            ) {
+                return false;
+            }
+        }
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType == ItemType.ERC20 ||
+                item.itemType == ItemType.NATIVE
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2206,27 +2276,27 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        for (uint256 j; j < context.executionState.orders.length; j++) {
-            AdvancedOrder memory order = context.executionState.orders[j];
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            AdvancedOrder memory order = context.executionState.orders[i];
 
-            for (uint256 i; i < order.parameters.consideration.length; i++) {
+            for (uint256 j; j < order.parameters.consideration.length; j++) {
                 ConsiderationItem memory item = order.parameters.consideration[
-                    i
+                    j
                 ];
                 if (item.token == targetContract) {
                     item.token = mutationState.selectedArbitraryAddress;
                 }
             }
 
-            for (uint256 i; i < order.parameters.offer.length; i++) {
-                OfferItem memory item = order.parameters.offer[i];
+            for (uint256 j; j < order.parameters.offer.length; j++) {
+                OfferItem memory item = order.parameters.offer[j];
                 if (item.token == targetContract) {
                     item.token = mutationState.selectedArbitraryAddress;
                 }
             }
 
             if (
-                context.advancedOrdersSpace.orders[j].signatureMethod ==
+                context.advancedOrdersSpace.orders[i].signatureMethod ==
                 SignatureMethod.VALIDATE
             ) {
                 order.inscribeOrderStatusValidated(true, context.seaport);
@@ -2239,6 +2309,109 @@ contract FuzzMutations is Test, FuzzExecutor {
                     context.generatorContext
                 );
             }
+        }
+
+        exec(context);
+    }
+
+    function mutation_unusedItemParameters_Token(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // Add nonzero token address to first native item
+        bool nativeItemFound;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (item.itemType == ItemType.NATIVE) {
+                item.token = address(1);
+                nativeItemFound = true;
+                break;
+            }
+        }
+
+        if (!nativeItemFound) {
+            for (uint256 i; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    item.token = address(1);
+                    nativeItemFound = true;
+                    break;
+                }
+            }
+        }
+
+        // Re-sign order
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
+    function mutation_unusedItemParameters_Identifier(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // Add nonzero identifierOrCriteria to first valid item
+        bool validItemFound;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC20 ||
+                item.itemType == ItemType.NATIVE
+            ) {
+                item.identifierOrCriteria = 1;
+                validItemFound = true;
+                break;
+            }
+        }
+
+        if (!validItemFound) {
+            for (uint256 i; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+                if (
+                    item.itemType == ItemType.ERC20 ||
+                    item.itemType == ItemType.NATIVE
+                ) {
+                    item.identifierOrCriteria = 1;
+                    validItemFound = true;
+                    break;
+                }
+            }
+        }
+
+        // Re-sign order
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
         }
 
         exec(context);

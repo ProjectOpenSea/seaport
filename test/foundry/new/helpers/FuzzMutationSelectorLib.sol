@@ -110,6 +110,8 @@ enum Failure {
     InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     NoContract, // Trying to transfer a token at an address that has no contract
+    UnusedItemParameters_Token, // Native item with non-zero token
+    UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -335,6 +337,15 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.NoContract.withGeneric(
             MutationFilters.ineligibleForNoContract
         );
+        failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
+            MutationFilters.ineligibleForUnusedItemParameters_Token
+        );
+
+        failuresAndFilters[i++] = Failure
+            .UnusedItemParameters_Identifier
+            .withOrder(
+                MutationFilters.ineligibleForUnusedItemParameters_Identifier
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -832,6 +843,22 @@ library FailureDetailsLib {
                 "NoContract",
                 FuzzMutations.mutation_noContract.selector,
                 details_NoContract
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .UnusedItemParameters
+            .selector
+            .withOrder(
+                "UnusedItemParameters_Token",
+                FuzzMutations.mutation_unusedItemParameters_Token.selector
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .UnusedItemParameters
+            .selector
+            .withOrder(
+                "UnusedItemParameters_Identifier",
+                FuzzMutations.mutation_unusedItemParameters_Identifier.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
