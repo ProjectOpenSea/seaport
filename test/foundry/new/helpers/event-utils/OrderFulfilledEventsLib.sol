@@ -83,7 +83,7 @@ library OrderFulfilledEventsLib {
     function getOrderFulfilledEventHash(
         FuzzTestContext memory context,
         uint256 orderIndex
-    ) internal view returns (bytes32 eventHash) {
+    ) internal pure returns (bytes32 eventHash) {
         OrderParameters memory orderParams = context
             .executionState
             .orders[orderIndex]
