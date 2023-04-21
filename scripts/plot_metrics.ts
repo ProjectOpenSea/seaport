@@ -16,10 +16,12 @@ function plotMetrics() {
     counter.set(call, (counter.get(call) ?? 0) + 1);
   }
 
-  const data = Array.from(counter.entries()).map(([key, value]) => ({
-    key,
-    value,
-  }));
+  const data = Array.from(counter.entries())
+    .map(([key, value]) => ({
+      key,
+      value,
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key));
   const totalRuns = data.reduce((acc, item) => acc + item.value, 0);
 
   type Item = { key: string; value: number };
