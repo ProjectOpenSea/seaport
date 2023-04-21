@@ -932,7 +932,44 @@ library MutationFilters {
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
+            action != context.seaport.fulfillAvailableOrders.selector
+        ) {
+            return true;
+        }
+
+        if (order.parameters.offer.length == 0) {
+            return true;
+        }
+
+        for (
+            uint256 i;
+            i < context.executionState.offerFulfillments.length;
+            i++
+        ) {
+            FulfillmentComponent memory fulfillmentComponent = context
+                .executionState
+                .offerFulfillments[i][0];
+            if (
+                context
+                    .executionState
+                    .orderDetails[fulfillmentComponent.orderIndex]
+                    .offer[fulfillmentComponent.itemIndex]
+                    .itemType != ItemType.ERC721
+            ) {
+                if (
+                    context.expectations.expectedAvailableOrders[
+                        fulfillmentComponent.orderIndex
+                    ]
+                ) {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -956,6 +993,10 @@ library MutationFilters {
             action == context.seaport.matchAdvancedOrders.selector ||
             action == context.seaport.matchOrders.selector
         ) {
+            return true;
+        }
+
+        if (order.parameters.offer.length == 0) {
             return true;
         }
 
@@ -1846,6 +1887,59 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_missingItemAmount_OfferItem_FulfillAvailable(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        for (
+            uint256 i;
+            i < context.executionState.offerFulfillments.length;
+            i++
+        ) {
+            FulfillmentComponent memory fulfillmentComponent = context
+                .executionState
+                .offerFulfillments[i][0];
+            if (
+                context
+                    .executionState
+                    .orderDetails[fulfillmentComponent.orderIndex]
+                    .offer[fulfillmentComponent.itemIndex]
+                    .itemType != ItemType.ERC721
+            ) {
+                context
+                    .executionState
+                    .orders[fulfillmentComponent.orderIndex]
+                    .parameters
+                    .offer[fulfillmentComponent.itemIndex]
+                    .startAmount = 0;
+                context
+                    .executionState
+                    .orders[fulfillmentComponent.orderIndex]
+                    .parameters
+                    .offer[fulfillmentComponent.itemIndex]
+                    .startAmount = 0;
+            }
+        }
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
     function mutation_missingItemAmount_OfferItem(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -1881,7 +1975,6 @@ contract FuzzMutations is Test, FuzzExecutor {
             );
         }
 
-        dumpExecutions(context);
         exec(context);
     }
 

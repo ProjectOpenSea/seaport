@@ -93,7 +93,8 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
-    MissingItemAmount_OfferItem, // Zero amount for offer item
+    MissingItemAmount_OfferItem_FulfillAvailable, // Zero amount for offer item in fulfillAvailable
+    MissingItemAmount_OfferItem, // Zero amount for offer item in all other methods
     MissingItemAmount_ConsiderationItem, // Zero amount for consideration item
     //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
     InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
@@ -270,6 +271,13 @@ library FuzzMutationSelectorLib {
             .withCriteria(
                 MutationFilters
                     .ineligibleForConsiderationCriteriaResolverFailure
+            );
+
+        failuresAndFilters[i++] = Failure
+            .MissingItemAmount_OfferItem_FulfillAvailable
+            .withOrder(
+                MutationFilters
+                    .ineligibleForMissingItemAmount_OfferItem_FulfillAvailable
             );
 
         failuresAndFilters[i++] = Failure.MissingItemAmount_OfferItem.withOrder(
@@ -664,6 +672,16 @@ library FailureDetailsLib {
                 "UnresolvedConsiderationCriteria",
                 FuzzMutations.mutation_unresolvedCriteria.selector,
                 details_unresolvedCriteria
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .MissingItemAmount
+            .selector
+            .withOrder(
+                "MissingItemAmount_OfferItem_FulfillAvailable",
+                FuzzMutations
+                    .mutation_missingItemAmount_OfferItem_FulfillAvailable
+                    .selector
             );
 
         failureDetailsArray[i++] = TokenTransferrerErrors
