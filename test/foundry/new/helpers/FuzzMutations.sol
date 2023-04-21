@@ -63,6 +63,11 @@ import { ConduitChoice } from "seaport-sol/StructSpace.sol";
 import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
+
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
+
 import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
@@ -400,12 +405,33 @@ library MutationFilters {
         return order.parameters.orderType != OrderType.CONTRACT;
     }
 
+    function ineligibleWhenNotRestrictedOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return (
+            order.parameters.orderType != OrderType.FULL_RESTRICTED &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
+        );
+    }
+
     function ineligibleWhenNotAvailableOrNotContractOrder(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
         if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotAvailableOrNotRestrictedOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenNotRestrictedOrder(order)) {
             return true;
         }
 
@@ -1075,8 +1101,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer(payable(order.parameters.offerer))
@@ -1092,8 +1117,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer(payable(order.parameters.offerer))
@@ -1105,12 +1129,45 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidRestrictedOrderReverts(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashValidationZoneOfferer(
+            payable(order.parameters.zone)
+        ).setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.Zone_reverts
+        );
+
+        exec(context);
+    }
+
+    function mutation_invalidRestrictedOrderInvalidMagicValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashValidationZoneOfferer(
+            payable(order.parameters.zone)
+        ).setFailureReason(
+            orderHash,
+            OffererZoneFailureReason.Zone_InvalidMagicValue
+        );
+
+        exec(context);
+    }
+
     function mutation_invalidContractOrderInsufficientMinimumReceived(
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
@@ -1136,8 +1193,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
@@ -1162,8 +1218,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
@@ -1193,8 +1248,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         HashCalldataContractOfferer offerer = HashCalldataContractOfferer(
@@ -1220,8 +1274,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
 
         // TODO: pick a random item (this always picks the first one)
         OfferItem memory item;
@@ -1253,8 +1306,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
 
         // TODO: pick a random item (this always picks the first one)
         ConsiderationItem memory item;
@@ -1526,6 +1578,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // TODO: fuzz on a range of potential overfill amounts
         order.numerator = 2;
         order.denominator = 1;
 
@@ -1550,8 +1603,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
 
         order.inscribeOrderStatusNumeratorAndDenominator(1, 1, context.seaport);
 
@@ -1562,8 +1614,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        AdvancedOrder memory order = mutationState.selectedOrder;
 
         context.executionState.caller = address(
             uint160(order.parameters.offerer) - 1

@@ -213,12 +213,13 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     bool public called = false;
     uint public callCount = 0;
 
-    OffererZoneFailureReason public failureReason;
+    mapping(bytes32 => OffererZoneFailureReason) public failureReasons;
 
     function setFailureReason(
+        bytes32 orderHash,
         OffererZoneFailureReason newFailureReason
     ) external {
-        failureReason = newFailureReason;
+        failureReasons[orderHash] = newFailureReason;
     }
 
     /**
@@ -232,7 +233,10 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external override returns (bytes4 validOrderMagicValue) {
-        if (failureReason == OffererZoneFailureReason.Zone_reverts) {
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_reverts) {
             revert HashValidationZoneOffererValidateOrderReverts();
         }
         // Validate the order.
@@ -258,9 +262,6 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         // Get the hash of msg.data
         bytes32 calldataHash = keccak256(data);
 
-        // Get the orderHash from zoneParameters
-        bytes32 orderHash = zoneParameters.orderHash;
-
         // Store callDataHash in orderHashToValidateOrderDataHash
         orderHashToValidateOrderDataHash[orderHash] = calldataHash;
 
@@ -279,7 +280,7 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         called = true;
         callCount++;
 
-        if (failureReason == OffererZoneFailureReason.Zone_InvalidMagicValue) {
+        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_InvalidMagicValue) {
             validOrderMagicValue = bytes4(0x12345678);
         } else {
             // Return the selector of validateOrder as the magic value.
@@ -375,9 +376,6 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
     ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
-        if (failureReason == OffererZoneFailureReason.Zone_reverts) {
-            revert HashValidationZoneOffererRatifyOrderReverts();
-        }
         // Ratify the order.
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
@@ -405,12 +403,8 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         // Set the global called flag to true.
         called = true;
         callCount++;
-        if (failureReason == OffererZoneFailureReason.Zone_InvalidMagicValue) {
-            return bytes4(0x12345678);
-        } else {
-            // Return the selector of ratifyOrder as the magic value.
-            return this.ratifyOrder.selector;
-        }
+
+        return this.ratifyOrder.selector;
     }
 
     function getSeaportMetadata()
