@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
@@ -70,7 +71,6 @@ import {
 import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
-
 
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
@@ -458,13 +458,16 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (
-            order.parameters.offer.length == 0
-        ) {
+        if (order.parameters.offer.length == 0) {
             return true;
         }
 
-        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+        return
+            ineligibleWhenNotActiveTimeOrNotContractOrder(
+                order,
+                orderIndex,
+                context
+            );
     }
 
     function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration(
@@ -472,13 +475,16 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (
-            order.parameters.consideration.length == 0
-        ) {
+        if (order.parameters.consideration.length == 0) {
             return true;
         }
 
-        return ineligibleWhenNotActiveTimeOrNotContractOrder(order, orderIndex, context);
+        return
+            ineligibleWhenNotActiveTimeOrNotContractOrder(
+                order,
+                orderIndex,
+                context
+            );
     }
 
     function ineligibleForAnySignatureFailure(
@@ -486,7 +492,13 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context)) {
+        if (
+            ineligibleWhenNotAvailableOrContractOrder(
+                order,
+                orderIndex,
+                context
+            )
+        ) {
             return true;
         }
 
@@ -724,7 +736,12 @@ library MutationFilters {
         // fraction error. We want to exclude cases where the time is wrong or
         // maximum fulfilled has already been met. (So this check is
         // over-excluding potentially eligible orders).
-        return ineligibleWhenNotAvailableOrContractOrder(order, orderIndex, context);
+        return
+            ineligibleWhenNotAvailableOrContractOrder(
+                order,
+                orderIndex,
+                context
+            );
     }
 
     function ineligibleForBadFraction_noFill(
@@ -936,6 +953,136 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForMissingItemAmount_OfferItem_FulfillAvailable(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
+            action != context.seaport.fulfillAvailableOrders.selector
+        ) {
+            return true;
+        }
+
+        for (
+            uint256 i;
+            i < context.executionState.offerFulfillments.length;
+            i++
+        ) {
+            FulfillmentComponent memory fulfillmentComponent = context
+                .executionState
+                .offerFulfillments[i][0];
+            if (
+                context
+                    .executionState
+                    .orderDetails[fulfillmentComponent.orderIndex]
+                    .offer[fulfillmentComponent.itemIndex]
+                    .itemType != ItemType.ERC721
+            ) {
+                if (
+                    context.expectations.expectedAvailableOrders[
+                        fulfillmentComponent.orderIndex
+                    ]
+                ) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    function ineligibleForMissingItemAmount_OfferItem_Match(
+        FuzzTestContext memory /* context */
+    ) internal pure returns (bool) {
+        return true;
+    }
+
+    function ineligibleForMissingItemAmount_OfferItem(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (order.parameters.offer.length == 0) {
+            return true;
+        }
+
+        // At least one offer item must be native, ERC20, or ERC1155
+        bool hasValidItem;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                hasValidItem = true;
+                break;
+            }
+        }
+        if (!hasValidItem) {
+            return true;
+        }
+
+        // Offerer must not also be consideration recipient for all items
+        bool offererIsNotRecipient;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (item.recipient != order.parameters.offerer) {
+                offererIsNotRecipient = true;
+                break;
+            }
+        }
+        if (!offererIsNotRecipient) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingItemAmount_ConsiderationItem(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        // Order must be available
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        // Order must have at least one offer item
+        if (order.parameters.offer.length < 1) {
+            return true;
+        }
+
+        // At least one consideration item must be native, ERC20, or ERC1155
+        bool hasValidItem;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                hasValidItem = true;
+                break;
+            }
+        }
+        if (!hasValidItem) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -957,12 +1104,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
-        HashCalldataContractOfferer(
-            payable(order.parameters.offerer)
-        ).setFailureReason(
-            orderHash,
-            OffererZoneFailureReason.ContractOfferer_ratifyReverts
-        );
+        HashCalldataContractOfferer(payable(order.parameters.offerer))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason.ContractOfferer_ratifyReverts
+            );
 
         exec(context);
     }
@@ -974,12 +1120,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
-        HashCalldataContractOfferer(
-            payable(order.parameters.offerer)
-        ).setFailureReason(
-            orderHash,
-            OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
-        );
+        HashCalldataContractOfferer(payable(order.parameters.offerer))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
+            );
 
         exec(context);
     }
@@ -1035,7 +1180,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         );
 
         // TODO: operate on a fuzzed item (this is always the first item)
-        offerer.addItemAmountMutation(Side.OFFER, 0, order.parameters.offer[0].startAmount - 1);
+        offerer.addItemAmountMutation(
+            Side.OFFER,
+            0,
+            order.parameters.offer[0].startAmount - 1
+        );
 
         exec(context);
     }
@@ -1069,7 +1218,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         );
 
         // TODO: operate on a fuzzed item (this always operates on the last item)
-        offerer.addDropItemMutation(Side.OFFER, order.parameters.offer.length - 1);
+        offerer.addDropItemMutation(
+            Side.OFFER,
+            order.parameters.offer.length - 1
+        );
 
         exec(context);
     }
@@ -1102,13 +1254,16 @@ contract FuzzMutations is Test, FuzzExecutor {
             OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent
         );
 
-        offerer.addExtraItemMutation(Side.CONSIDERATION, ReceivedItem({
-            itemType: ItemType.NATIVE,
-            token: address(0),
-            identifier: 0,
-            amount: 1,
-            recipient: payable(order.parameters.offerer)
-        }));
+        offerer.addExtraItemMutation(
+            Side.CONSIDERATION,
+            ReceivedItem({
+                itemType: ItemType.NATIVE,
+                token: address(0),
+                identifier: 0,
+                amount: 1,
+                recipient: payable(order.parameters.offerer)
+            })
+        );
 
         exec(context);
     }
@@ -1130,7 +1285,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         );
 
         // TODO: operate on a fuzzed item (this is always the first item)
-        offerer.addItemAmountMutation(Side.CONSIDERATION, 0, order.parameters.consideration[0].startAmount + 1);
+        offerer.addItemAmountMutation(
+            Side.CONSIDERATION,
+            0,
+            order.parameters.consideration[0].startAmount + 1
+        );
 
         exec(context);
     }
@@ -1791,6 +1950,142 @@ contract FuzzMutations is Test, FuzzExecutor {
         }
 
         context.executionState.criteriaResolvers = newResolvers;
+
+        exec(context);
+    }
+
+    function mutation_missingItemAmount_OfferItem_FulfillAvailable(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        for (
+            uint256 i;
+            i < context.executionState.offerFulfillments.length;
+            i++
+        ) {
+            FulfillmentComponent memory fulfillmentComponent = context
+                .executionState
+                .offerFulfillments[i][0];
+
+            AdvancedOrder memory order = context
+                .executionState
+                .orders[fulfillmentComponent.orderIndex];
+
+            if (
+                context
+                    .executionState
+                    .orderDetails[fulfillmentComponent.orderIndex]
+                    .offer[fulfillmentComponent.itemIndex]
+                    .itemType != ItemType.ERC721
+            ) {
+                order
+                    .parameters
+                    .offer[fulfillmentComponent.itemIndex]
+                    .startAmount = 0;
+                order
+                    .parameters
+                    .offer[fulfillmentComponent.itemIndex]
+                    .endAmount = 0;
+
+                if (
+                    context.advancedOrdersSpace.orders[
+                        fulfillmentComponent.orderIndex
+                    ].signatureMethod == SignatureMethod.VALIDATE
+                ) {
+                    order.inscribeOrderStatusValidated(true, context.seaport);
+                } else {
+                    AdvancedOrdersSpaceGenerator._signOrders(
+                        context.advancedOrdersSpace,
+                        context.executionState.orders,
+                        context.generatorContext
+                    );
+                }
+
+                break;
+            }
+        }
+
+        exec(context);
+    }
+
+    function mutation_missingItemAmount_OfferItem(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        uint256 firstNon721OfferItem;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                firstNon721OfferItem = i;
+                break;
+            }
+        }
+
+        order.parameters.offer[firstNon721OfferItem].startAmount = 0;
+        order.parameters.offer[firstNon721OfferItem].endAmount = 0;
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
+    function mutation_missingItemAmount_ConsiderationItem(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        uint256 firstNon721ConsiderationItem;
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType != ItemType.ERC721 &&
+                item.itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                firstNon721ConsiderationItem = i;
+                break;
+            }
+        }
+
+        order
+            .parameters
+            .consideration[firstNon721ConsiderationItem]
+            .startAmount = 0;
+        order
+            .parameters
+            .consideration[firstNon721ConsiderationItem]
+            .endAmount = 0;
+
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
 
         exec(context);
     }

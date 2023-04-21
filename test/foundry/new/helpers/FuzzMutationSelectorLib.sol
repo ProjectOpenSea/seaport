@@ -43,6 +43,10 @@ import {
 } from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
 
 import {
+    TokenTransferrerErrors
+} from "../../../../contracts/interfaces/TokenTransferrerErrors.sol";
+
+import {
     ZoneInteractionErrors
 } from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
 
@@ -91,6 +95,9 @@ enum Failure {
     ConsiderationCriteriaResolverOutOfRange, // Criteria resolver refers to OOR consideration item
     UnresolvedOfferCriteria, // Missing criteria resolution for an offer item
     UnresolvedConsiderationCriteria, // Missing criteria resolution for a consideration item
+    MissingItemAmount_OfferItem_FulfillAvailable, // Zero amount for offer item in fulfillAvailable
+    MissingItemAmount_OfferItem, // Zero amount for offer item in all other methods
+    MissingItemAmount_ConsiderationItem, // Zero amount for consideration item
     //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
     InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
     InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
@@ -270,28 +277,51 @@ library FuzzMutationSelectorLib {
                     .ineligibleForConsiderationCriteriaResolverFailure
             );
 
-        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts
+        failuresAndFilters[i++] = Failure
+            .MissingItemAmount_OfferItem_FulfillAvailable
+            .withGeneric(
+                MutationFilters
+                    .ineligibleForMissingItemAmount_OfferItem_FulfillAvailable
+            );
+
+        failuresAndFilters[i++] = Failure.MissingItemAmount_OfferItem.withOrder(
+            MutationFilters.ineligibleForMissingItemAmount_OfferItem
+        );
+
+        failuresAndFilters[i++] = Failure
+            .MissingItemAmount_ConsiderationItem
+            .withOrder(
+                MutationFilters.ineligibleForMissingItemAmount_ConsiderationItem
+            );
+
+        failuresAndFilters[i++] = Failure
+            .InvalidContractOrder_ratifyReverts
             .and(Failure.InvalidContractOrder_InvalidMagicValue)
             .withOrder(
                 MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
             );
 
-        failuresAndFilters[i++] = Failure.InvalidContractOrder_InsufficientMinimumReceived
+        failuresAndFilters[i++] = Failure
+            .InvalidContractOrder_InsufficientMinimumReceived
             .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
             .and(Failure.InvalidContractOrder_OfferAmountMismatch)
             .withOrder(
-                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
+                MutationFilters
+                    .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
             );
 
-        failuresAndFilters[i++] = Failure.InvalidContractOrder_ExcessMaximumSpent
+        failuresAndFilters[i++] = Failure
+            .InvalidContractOrder_ExcessMaximumSpent
             .withOrder(
                 MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrder
             );
 
-        failuresAndFilters[i++] = Failure.InvalidContractOrder_IncorrectMaximumSpent
+        failuresAndFilters[i++] = Failure
+            .InvalidContractOrder_IncorrectMaximumSpent
             .and(Failure.InvalidContractOrder_ConsiderationAmountMismatch)
             .withOrder(
-                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
+                MutationFilters
+                    .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
             );
 
         failuresAndFilters[i++] = Failure.InvalidRestrictedOrder_reverts
@@ -656,12 +686,42 @@ library FailureDetailsLib {
                 details_unresolvedCriteria
             );
 
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .MissingItemAmount
+            .selector
+            .withGeneric(
+                "MissingItemAmount_OfferItem_FulfillAvailable",
+                FuzzMutations
+                    .mutation_missingItemAmount_OfferItem_FulfillAvailable
+                    .selector
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .MissingItemAmount
+            .selector
+            .withOrder(
+                "MissingItemAmount_OfferItem",
+                FuzzMutations.mutation_missingItemAmount_OfferItem.selector
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .MissingItemAmount
+            .selector
+            .withOrder(
+                "MissingItemAmount_ConsiderationItem",
+                FuzzMutations
+                    .mutation_missingItemAmount_ConsiderationItem
+                    .selector
+            );
+
         failureDetailsArray[i++] = HashCalldataContractOfferer
             .HashCalldataContractOffererRatifyOrderReverts
             .selector
             .withOrder(
                 "InvalidContractOrder_ratifyReverts",
-                FuzzMutations.mutation_invalidContractOrderRatifyReverts.selector
+                FuzzMutations
+                    .mutation_invalidContractOrderRatifyReverts
+                    .selector
             );
 
         failureDetailsArray[i++] = ZoneInteractionErrors
@@ -669,7 +729,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_InsufficientMinimumReceived",
-                FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderInsufficientMinimumReceived
+                    .selector,
                 details_withOrderHash
             );
 
@@ -678,7 +740,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_IncorrectMinimumReceived",
-                FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderIncorrectMinimumReceived
+                    .selector,
                 details_withOrderHash
             );
 
@@ -687,7 +751,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_ExcessMaximumSpent",
-                FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderExcessMaximumSpent
+                    .selector,
                 details_withOrderHash
             );
 
@@ -696,7 +762,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_IncorrectMaximumSpent",
-                FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderIncorrectMaximumSpent
+                    .selector,
                 details_withOrderHash
             );
 
@@ -705,7 +773,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_InvalidMagicValue",
-                FuzzMutations.mutation_invalidContractOrderInvalidMagicValue.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderInvalidMagicValue
+                    .selector,
                 details_withOrderHash
             );
 
