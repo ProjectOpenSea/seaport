@@ -333,8 +333,8 @@ contract FuzzEngine is
         context = context
             .withDerivedAvailableOrders()
             .withDerivedCriteriaResolvers()
-            .withDetectedRemainders()
             .withDerivedOrderDetails()
+            .withDetectedRemainders()
             .withDerivedFulfillments()
             .withDerivedCallValue()
             .withDerivedExecutions()

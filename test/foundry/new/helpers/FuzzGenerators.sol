@@ -275,6 +275,20 @@ library TestStateGenerator {
                         );
                     }
                 }
+
+                // TODO: figure out how to support removing criteria items
+                // (just need to filter removed items out of resolvers)
+                if (components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEMS) {
+                    ItemType itemType = components[i].consideration[
+                        components[i].consideration.length - 1
+                    ].itemType;
+                    if (
+                        itemType == ItemType.ERC721_WITH_CRITERIA ||
+                        itemType == ItemType.ERC1155_WITH_CRITERIA
+                    ) {
+                        components[i].rebate = ContractOrderRebate(context.randEnum(0, 1));
+                    }
+                }
             } else if (components[i].offerer == Offerer.EIP1271) {
                 components[i].signatureMethod = SignatureMethod.EIP1271;
             }

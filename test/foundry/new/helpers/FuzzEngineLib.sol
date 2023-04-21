@@ -92,8 +92,7 @@ library FuzzEngineLib {
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
             .getMatchedFulfillments(
-                context.executionState.orders,
-                context.executionState.criteriaResolvers
+                context.executionState.orderDetails
             );
 
         context.executionState.hasRemainders = remainders.length != 0;
