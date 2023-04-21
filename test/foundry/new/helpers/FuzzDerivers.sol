@@ -231,8 +231,7 @@ library FuzzDerivers {
                 MatchComponent[] memory remainingOfferComponents,
 
             ) = context.testHelpers.getMatchedFulfillments(
-                    context.executionState.orders,
-                    context.executionState.criteriaResolvers
+                    context.executionState.orderDetails
                 );
             context.executionState.fulfillments = fulfillments;
             context
@@ -407,8 +406,7 @@ library FuzzDerivers {
 
         (implicitExecutions, nativeTokensReturned) = context
             .executionState
-            .orders[0]
-            .toOrderDetails(0, context.executionState.criteriaResolvers)
+            .orderDetails[0]
             .getStandardExecutions(
                 caller,
                 context.executionState.fulfillerConduitKey,
@@ -435,8 +433,7 @@ library FuzzDerivers {
 
         (implicitExecutions, nativeTokensReturned) = context
             .executionState
-            .orders[0]
-            .toOrderDetails(0, context.executionState.criteriaResolvers)
+            .orderDetails[0]
             .getBasicExecutions(
                 caller,
                 context.executionState.fulfillerConduitKey,

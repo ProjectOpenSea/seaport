@@ -412,7 +412,7 @@ library FuzzEngineLib {
             OrderDetails memory order = context.executionState.orderDetails[i];
             OrderParameters memory orderParams = context
                 .executionState
-                .orders[i]
+                .previewedOrders[i]
                 .parameters;
 
             if (isMatch) {

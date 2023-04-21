@@ -90,10 +90,8 @@ library OrderFulfilledEventsLib {
             .parameters;
 
         OrderDetails memory details = (
-            context.executionState.orders.getOrderDetails(
-                context.executionState.criteriaResolvers
-            )
-        )[orderIndex];
+            context.executionState.orderDetails[orderIndex]
+        );
 
         return
             getEventHashWithTopics(
