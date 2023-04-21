@@ -2164,6 +2164,17 @@ contract FuzzMutations is Test, FuzzExecutor {
             .consideration[firstNon721ConsiderationItem]
             .endAmount = 0;
 
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            HashCalldataContractOfferer(
+                payable(order.parameters.offerer)
+            ).addItemAmountMutation(
+                Side.CONSIDERATION,
+                firstNon721ConsiderationItem,
+                0,
+                mutationState.selectedOrderHash
+            );
+        }
+
         if (
             context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
             SignatureMethod.VALIDATE
