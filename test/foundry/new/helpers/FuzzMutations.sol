@@ -438,15 +438,48 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
+    function ineligibleWhenNotActiveTime(
+        AdvancedOrder memory order
+    ) internal view returns (bool) {
+        return (
+            order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime <= block.timestamp
+        );
+    }
+
+    function ineligibleWhenPastMaxFulfilled(
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        uint256 remainingFulfillable = context.executionState.maximumFulfilled;
+
+        if (remainingFulfillable == 0) {
+            return true;
+        }
+
+        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
+                remainingFulfillable -= 1;
+            }
+
+            if (remainingFulfillable == 0) {
+                return orderIndex > i;
+            }
+        }
+
+        return false;
+    }
+
     function ineligibleWhenNotActiveTimeOrNotContractOrder(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
-        FuzzTestContext memory /* context */
+        uint256 orderIndex,
+        FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (
-            order.parameters.startTime < block.timestamp ||
-            order.parameters.endTime >= block.timestamp
-        ) {
+        if (ineligibleWhenNotActiveTime(order)) {
+            return true;
+        }
+
+        if (ineligibleWhenPastMaxFulfilled(orderIndex, context)) {
             return true;
         }
 
@@ -1183,7 +1216,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         offerer.addItemAmountMutation(
             Side.OFFER,
             0,
-            order.parameters.offer[0].startAmount - 1
+            order.parameters.offer[0].startAmount - 1,
+            orderHash
         );
 
         exec(context);
@@ -1196,7 +1230,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
-        order.parameters.offer[0].startAmount = order.parameters.offer[0].endAmount + 1;
+        order.parameters.offer[0].startAmount = 1;
+        order.parameters.offer[0].endAmount = 2;
 
         exec(context);
     }
@@ -1220,7 +1255,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         // TODO: operate on a fuzzed item (this always operates on the last item)
         offerer.addDropItemMutation(
             Side.OFFER,
-            order.parameters.offer.length - 1
+            order.parameters.offer.length - 1,
+            orderHash
         );
 
         exec(context);
@@ -1262,7 +1298,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                 identifier: 0,
                 amount: 1,
                 recipient: payable(order.parameters.offerer)
-            })
+            }),
+            orderHash
         );
 
         exec(context);
@@ -1288,7 +1325,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         offerer.addItemAmountMutation(
             Side.CONSIDERATION,
             0,
-            order.parameters.consideration[0].startAmount + 1
+            order.parameters.consideration[0].startAmount + 1,
+            orderHash
         );
 
         exec(context);

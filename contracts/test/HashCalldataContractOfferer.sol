@@ -40,16 +40,19 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         Side side;
         uint256 index;
         uint256 newAmount;
+        bytes32 orderHash;
     }
 
     struct DropItemMutation {
         Side side;
         uint256 index;
+        bytes32 orderHash;
     }
 
     struct ExtraItemMutation {
         Side side;
         ReceivedItem item;
+        bytes32 orderHash;
     }
 
     ItemAmountMutation[] public itemAmountMutations;
@@ -74,32 +77,38 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     function addItemAmountMutation(
         Side side,
         uint256 index,
-        uint256 newAmount
+        uint256 newAmount,
+        bytes32 orderHash
     ) external {
         // TODO: add safety checks to ensure that item is in range
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set
 
-        itemAmountMutations.push(ItemAmountMutation(side, index, newAmount));
+        itemAmountMutations.push(ItemAmountMutation(side, index, newAmount, orderHash));
     }
 
-    function addDropItemMutation(Side side, uint256 index) external {
+    function addDropItemMutation(
+        Side side,
+        uint256 index,
+        bytes32 orderHash
+    ) external {
         // TODO: add safety checks to ensure that item is in range
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set; also should consider
         // modifying existing indices in other mutations
 
-        dropItemMutations.push(DropItemMutation(side, index));
+        dropItemMutations.push(DropItemMutation(side, index, orderHash));
     }
 
     function addExtraItemMutation(
         Side side,
-        ReceivedItem calldata item
+        ReceivedItem calldata item,
+        bytes32 orderHash
     ) external {
         // TODO: add safety checks to ensure that a failure-inducing
         // mutation has the correct failure reason appropriately set
 
-        extraItemMutations.push(ExtraItemMutation(side, item));
+        extraItemMutations.push(ExtraItemMutation(side, item, orderHash));
     }
 
     function applyItemAmountMutation(
@@ -283,28 +292,41 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             "HashCalldataContractOfferer: caller not seaport"
         );
 
+        uint256 contractOffererNonce = ConsiderationInterface(_SEAPORT)
+            .getContractOffererNonce(address(this));
+
+        bytes32 orderHash = bytes32(
+            contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
+        );
+
         (offer, consideration) = (a, _convertSpentToReceived(b));
 
         for (uint256 i; i < itemAmountMutations.length; i++) {
-            (offer, consideration) = applyItemAmountMutation(
-                offer,
-                consideration,
-                itemAmountMutations[i]
-            );
+            if (itemAmountMutations[i].orderHash == orderHash) {
+                (offer, consideration) = applyItemAmountMutation(
+                    offer,
+                    consideration,
+                    itemAmountMutations[i]
+                );
+            }
         }
         for (uint256 i; i < extraItemMutations.length; i++) {
-            (offer, consideration) = applyExtraItemMutation(
-                offer,
-                consideration,
-                extraItemMutations[i]
-            );
+            if (extraItemMutations[i].orderHash == orderHash) {
+                (offer, consideration) = applyExtraItemMutation(
+                    offer,
+                    consideration,
+                    extraItemMutations[i]
+                );
+            }
         }
         for (uint256 i; i < dropItemMutations.length; i++) {
-            (offer, consideration) = applyDropItemMutation(
-                offer,
-                consideration,
-                dropItemMutations[i]
-            );
+            if (dropItemMutations[i].orderHash == orderHash) {
+                (offer, consideration) = applyDropItemMutation(
+                    offer,
+                    consideration,
+                    dropItemMutations[i]
+                );
+            }
         }
 
         return (offer, consideration);
