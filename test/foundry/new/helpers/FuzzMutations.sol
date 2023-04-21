@@ -633,6 +633,26 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForMissingOriginalConsiderationItems(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.parameters.consideration.length == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     // Determine if an order is unavailable, has been validated, has an offerer
     // with code, has an offerer equal to the caller, or is a contract order.
     function ineligibleForInvalidSignature(
@@ -1692,6 +1712,19 @@ contract FuzzMutations is Test, FuzzExecutor {
     }
 
     function mutation_considerationLengthNotEqualToTotalOriginal_MissingItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length +
+            1;
+
+        exec(context);
+    }
+
+    function mutation_missingOriginalConsiderationItems(
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {

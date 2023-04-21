@@ -69,6 +69,7 @@ enum Failure {
     BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
     ConsiderationLengthNotEqualToTotalOriginal_ExtraItems, // Tips on contract order or validate
     ConsiderationLengthNotEqualToTotalOriginal_MissingItems, // Tips on contract order or validate
+    MissingOriginalConsiderationItems, // Consideration array shorter than totalOriginalConsiderationItems
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
     InvalidConduit, // Order with invalid conduit
@@ -192,6 +193,12 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .withOrder(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure
+            .MissingOriginalConsiderationItems
+            .withOrder(
+                MutationFilters.ineligibleForMissingOriginalConsiderationItems
+            );
 
         failuresAndFilters[i++] = Failure
             .ConsiderationLengthNotEqualToTotalOriginal_ExtraItems
@@ -494,6 +501,16 @@ library FailureDetailsLib {
                 "ConsiderationLengthNotEqualToTotalOriginal_MissingItens",
                 FuzzMutations
                     .mutation_considerationLengthNotEqualToTotalOriginal_MissingItems
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .MissingOriginalConsiderationItems
+            .selector
+            .withOrder(
+                "MissingOriginalConsiderationItems",
+                FuzzMutations
+                    .mutation_missingOriginalConsiderationItems
                     .selector
             );
 
