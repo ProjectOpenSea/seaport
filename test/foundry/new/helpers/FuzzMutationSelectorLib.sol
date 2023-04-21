@@ -275,7 +275,7 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure
             .MissingItemAmount_OfferItem_FulfillAvailable
-            .withOrder(
+            .withGeneric(
                 MutationFilters
                     .ineligibleForMissingItemAmount_OfferItem_FulfillAvailable
             );
@@ -677,7 +677,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = TokenTransferrerErrors
             .MissingItemAmount
             .selector
-            .withOrder(
+            .withGeneric(
                 "MissingItemAmount_OfferItem_FulfillAvailable",
                 FuzzMutations
                     .mutation_missingItemAmount_OfferItem_FulfillAvailable

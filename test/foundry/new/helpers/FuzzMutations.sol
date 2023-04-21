@@ -929,8 +929,6 @@ library MutationFilters {
     }
 
     function ineligibleForMissingItemAmount_OfferItem_FulfillAvailable(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -938,10 +936,6 @@ library MutationFilters {
             action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
             action != context.seaport.fulfillAvailableOrders.selector
         ) {
-            return true;
-        }
-
-        if (order.parameters.offer.length == 0) {
             return true;
         }
 
@@ -974,16 +968,14 @@ library MutationFilters {
     }
 
     function ineligibleForMissingItemAmount_OfferItem_Match(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
+        FuzzTestContext memory /* context */
     ) internal pure returns (bool) {
         return true;
     }
 
     function ineligibleForMissingItemAmount_OfferItem(
         AdvancedOrder memory order,
-        uint256 orderIndex,
+        uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -1889,11 +1881,8 @@ contract FuzzMutations is Test, FuzzExecutor {
 
     function mutation_missingItemAmount_OfferItem_FulfillAvailable(
         FuzzTestContext memory context,
-        MutationState memory mutationState
+        MutationState memory /* mutationState */
     ) external {
-        uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
-
         for (
             uint256 i;
             i < context.executionState.offerFulfillments.length;
@@ -1902,6 +1891,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             FulfillmentComponent memory fulfillmentComponent = context
                 .executionState
                 .offerFulfillments[i][0];
+
+            AdvancedOrder memory order = context
+                .executionState
+                .orders[fulfillmentComponent.orderIndex];
+
             if (
                 context
                     .executionState
@@ -1909,32 +1903,31 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .offer[fulfillmentComponent.itemIndex]
                     .itemType != ItemType.ERC721
             ) {
-                context
-                    .executionState
-                    .orders[fulfillmentComponent.orderIndex]
+                order
                     .parameters
                     .offer[fulfillmentComponent.itemIndex]
                     .startAmount = 0;
-                context
-                    .executionState
-                    .orders[fulfillmentComponent.orderIndex]
+                order
                     .parameters
                     .offer[fulfillmentComponent.itemIndex]
                     .endAmount = 0;
-            }
-        }
 
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
+                if (
+                    context.advancedOrdersSpace.orders[
+                        fulfillmentComponent.orderIndex
+                    ].signatureMethod == SignatureMethod.VALIDATE
+                ) {
+                    order.inscribeOrderStatusValidated(true, context.seaport);
+                } else {
+                    AdvancedOrdersSpaceGenerator._signOrders(
+                        context.advancedOrdersSpace,
+                        context.executionState.orders,
+                        context.generatorContext
+                    );
+                }
+
+                break;
+            }
         }
 
         exec(context);
