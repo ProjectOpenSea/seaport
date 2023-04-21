@@ -1216,7 +1216,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         offerer.addItemAmountMutation(
             Side.OFFER,
             0,
-            order.parameters.offer[0].startAmount - 1
+            order.parameters.offer[0].startAmount - 1,
+            orderHash
         );
 
         exec(context);
@@ -1229,7 +1230,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
-        order.parameters.offer[0].startAmount = order.parameters.offer[0].endAmount + 1;
+        order.parameters.offer[0].startAmount = 1;
+        order.parameters.offer[0].endAmount = 2;
 
         exec(context);
     }
@@ -1253,7 +1255,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         // TODO: operate on a fuzzed item (this always operates on the last item)
         offerer.addDropItemMutation(
             Side.OFFER,
-            order.parameters.offer.length - 1
+            order.parameters.offer.length - 1,
+            orderHash
         );
 
         exec(context);
@@ -1295,7 +1298,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                 identifier: 0,
                 amount: 1,
                 recipient: payable(order.parameters.offerer)
-            })
+            }),
+            orderHash
         );
 
         exec(context);
@@ -1321,7 +1325,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         offerer.addItemAmountMutation(
             Side.CONSIDERATION,
             0,
-            order.parameters.consideration[0].startAmount + 1
+            order.parameters.consideration[0].startAmount + 1,
+            orderHash
         );
 
         exec(context);
