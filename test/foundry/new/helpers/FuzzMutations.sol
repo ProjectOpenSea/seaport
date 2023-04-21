@@ -447,12 +447,39 @@ library MutationFilters {
         );
     }
 
+    function ineligibleWhenPastMaxFulfilled(
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        uint256 remainingFulfillable = context.executionState.maximumFulfilled;
+
+        if (remainingFulfillable == 0) {
+            return true;
+        }
+
+        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+            if (context.expectations.expectedAvailableOrders[i]) {
+                remainingFulfillable -= 1;
+            }
+
+            if (remainingFulfillable == 0) {
+                return orderIndex > i;
+            }
+        }
+
+        return false;
+    }
+
     function ineligibleWhenNotActiveTimeOrNotContractOrder(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
-        FuzzTestContext memory /* context */
+        uint256 orderIndex,
+        FuzzTestContext memory context
     ) internal view returns (bool) {
         if (ineligibleWhenNotActiveTime(order)) {
+            return true;
+        }
+
+        if (ineligibleWhenPastMaxFulfilled(orderIndex, context)) {
             return true;
         }
 
