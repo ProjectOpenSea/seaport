@@ -438,15 +438,21 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
+    function ineligibleWhenNotActiveTime(
+        AdvancedOrder memory order
+    ) internal view returns (bool) {
+        return (
+            order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime <= block.timestamp
+        );
+    }
+
     function ineligibleWhenNotActiveTimeOrNotContractOrder(
         AdvancedOrder memory order,
         uint256 /* orderIndex */,
         FuzzTestContext memory /* context */
     ) internal view returns (bool) {
-        if (
-            order.parameters.startTime < block.timestamp ||
-            order.parameters.endTime >= block.timestamp
-        ) {
+        if (ineligibleWhenNotActiveTime(order)) {
             return true;
         }
 
