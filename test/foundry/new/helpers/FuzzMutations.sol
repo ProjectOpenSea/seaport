@@ -408,10 +408,8 @@ library MutationFilters {
     function ineligibleWhenNotRestrictedOrder(
         AdvancedOrder memory order
     ) internal pure returns (bool) {
-        return (
-            order.parameters.orderType != OrderType.FULL_RESTRICTED &&
-            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
-        );
+        return (order.parameters.orderType != OrderType.FULL_RESTRICTED &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED);
     }
 
     function ineligibleWhenNotAvailableOrNotContractOrder(
@@ -441,10 +439,8 @@ library MutationFilters {
     function ineligibleWhenNotActiveTime(
         AdvancedOrder memory order
     ) internal view returns (bool) {
-        return (
-            order.parameters.startTime > block.timestamp ||
-            order.parameters.endTime <= block.timestamp
-        );
+        return (order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime <= block.timestamp);
     }
 
     function ineligibleWhenPastMaxFulfilled(
@@ -457,7 +453,11 @@ library MutationFilters {
             return true;
         }
 
-        for (uint256 i = 0; i < context.expectations.expectedAvailableOrders.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < context.expectations.expectedAvailableOrders.length;
+            ++i
+        ) {
             if (context.expectations.expectedAvailableOrders[i]) {
                 remainingFulfillable -= 1;
             }
@@ -1047,6 +1047,33 @@ library MutationFilters {
             return true;
         }
 
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            if (
+                order.parameters.consideration[0].itemType == ItemType.ERC721 ||
+                order.parameters.consideration[0].itemType == ItemType.ERC1155
+            ) {
+                uint256 totalConsiderationAmount;
+                for (
+                    uint256 i = 1;
+                    i < order.parameters.consideration.length;
+                    ++i
+                ) {
+                    totalConsiderationAmount += order
+                        .parameters
+                        .consideration[i]
+                        .startAmount;
+                }
+
+                if (totalConsiderationAmount > 0) {
+                    return true;
+                }
+            }
+        }
+
         if (order.parameters.offer.length == 0) {
             return true;
         }
@@ -1169,12 +1196,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
-        HashValidationZoneOfferer(
-            payable(order.parameters.zone)
-        ).setFailureReason(
-            orderHash,
-            OffererZoneFailureReason.Zone_reverts
-        );
+        HashValidationZoneOfferer(payable(order.parameters.zone))
+            .setFailureReason(orderHash, OffererZoneFailureReason.Zone_reverts);
 
         exec(context);
     }
@@ -1186,12 +1209,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
-        HashValidationZoneOfferer(
-            payable(order.parameters.zone)
-        ).setFailureReason(
-            orderHash,
-            OffererZoneFailureReason.Zone_InvalidMagicValue
-        );
+        HashValidationZoneOfferer(payable(order.parameters.zone))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason.Zone_InvalidMagicValue
+            );
 
         exec(context);
     }
@@ -1269,7 +1291,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
-        order.parameters.consideration[0].startAmount = order.parameters.consideration[0].endAmount + 1;
+        order.parameters.consideration[0].startAmount =
+            order.parameters.consideration[0].endAmount +
+            1;
 
         exec(context);
     }
@@ -2005,9 +2029,9 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .executionState
                 .offerFulfillments[i][0];
 
-            AdvancedOrder memory order = context
-                .executionState
-                .orders[fulfillmentComponent.orderIndex];
+            AdvancedOrder memory order = context.executionState.orders[
+                fulfillmentComponent.orderIndex
+            ];
 
             if (
                 context
@@ -2026,9 +2050,10 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .endAmount = 0;
 
                 if (
-                    context.advancedOrdersSpace.orders[
-                        fulfillmentComponent.orderIndex
-                    ].signatureMethod == SignatureMethod.VALIDATE
+                    context
+                        .advancedOrdersSpace
+                        .orders[fulfillmentComponent.orderIndex]
+                        .signatureMethod == SignatureMethod.VALIDATE
                 ) {
                     order.inscribeOrderStatusValidated(true, context.seaport);
                 } else {

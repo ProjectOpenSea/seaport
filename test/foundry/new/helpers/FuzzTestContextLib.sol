@@ -259,6 +259,7 @@ struct MutationState {
 
 struct FuzzTestContext {
     bytes4 _action;
+    bool actionSelected;
     /**
      * @dev A Seaport interface, either the reference or optimized version.
      */
@@ -342,6 +343,7 @@ library FuzzTestContextLib {
         return
             FuzzTestContext({
                 _action: bytes4(0),
+                actionSelected: false,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 fuzzParams: FuzzParams({

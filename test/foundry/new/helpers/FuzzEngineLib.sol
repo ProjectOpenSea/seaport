@@ -62,8 +62,9 @@ library FuzzEngineLib {
     function action(
         FuzzTestContext memory context
     ) internal view returns (bytes4) {
-        if (context._action != bytes4(0)) return context._action;
+        if (context.actionSelected) return context._action;
         bytes4[] memory _actions = actions(context);
+        context.actionSelected = true;
         return (context._action = _actions[
             context.fuzzParams.seed % _actions.length
         ]);
@@ -471,7 +472,8 @@ library FuzzEngineLib {
         ) {
             // TODO: handle OOR orders or items just in case
             if (
-                context.executionState.orderDetails[0].offer[0].itemType == ItemType.ERC20
+                context.executionState.orderDetails[0].offer[0].itemType ==
+                ItemType.ERC20
             ) {
                 // Basic order bids cannot supply any native tokens
                 return 0;
@@ -479,12 +481,9 @@ library FuzzEngineLib {
         }
 
         uint256 hugeCallValue = uint256(type(uint128).max);
-        (
-            ,
-            ,
-            ,
-            uint256 nativeTokensReturned
-        ) = context.getDerivedExecutions(hugeCallValue);
+        (, , , uint256 nativeTokensReturned) = context.getDerivedExecutions(
+            hugeCallValue
+        );
 
         if (nativeTokensReturned > hugeCallValue) {
             return 0;
