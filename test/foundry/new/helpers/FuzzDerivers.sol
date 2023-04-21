@@ -175,7 +175,7 @@ library FuzzDerivers {
     ) internal view returns (FuzzTestContext memory) {
         OrderDetails[] memory orderDetails = context
             .executionState
-            .orders
+            .previewedOrders
             .getOrderDetails(context.executionState.criteriaResolvers);
 
         context.executionState.orderDetails = orderDetails;
@@ -270,10 +270,7 @@ library FuzzDerivers {
             (
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = getStandardExecutions(
-                context,
-                nativeTokensSupplied
-            );
+            ) = getStandardExecutions(context, nativeTokensSupplied);
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
             action ==
@@ -283,10 +280,7 @@ library FuzzDerivers {
             // (basic) executions. There are no explicit executions here
             // because the caller doesn't pass in fulfillments for these
             // functions.
-            (
-                implicitExecutionsPost,
-                nativeTokensReturned
-            ) = getBasicExecutions(
+            (implicitExecutionsPost, nativeTokensReturned) = getBasicExecutions(
                 context,
                 nativeTokensSupplied
             );
@@ -301,10 +295,7 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = getFulfillAvailableExecutions(
-                context,
-                nativeTokensSupplied
-            );
+            ) = getFulfillAvailableExecutions(context, nativeTokensSupplied);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -328,10 +319,7 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = getMatchExecutions(
-                context,
-                nativeTokensSupplied
-            );
+            ) = getMatchExecutions(context, nativeTokensSupplied);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -359,10 +347,7 @@ library FuzzDerivers {
             Execution[] memory implicitExecutionsPre,
             Execution[] memory implicitExecutionsPost,
             uint256 nativeTokensReturned
-        ) = getDerivedExecutions(
-            context,
-            context.executionState.value
-        );
+        ) = getDerivedExecutions(context, context.executionState.value);
         context
             .expectations
             .expectedImplicitPreExecutions = implicitExecutionsPre;
@@ -394,7 +379,9 @@ library FuzzDerivers {
                 revert("FuzzDeriver: invalid expected implied native value");
             }
 
-            context.expectations.expectedImpliedNativeExecutions = expectedImpliedNativeExecutions - nativeTokensReturned;
+            context.expectations.expectedImpliedNativeExecutions =
+                expectedImpliedNativeExecutions -
+                nativeTokensReturned;
         }
 
         return context;
@@ -403,10 +390,14 @@ library FuzzDerivers {
     function getStandardExecutions(
         FuzzTestContext memory context,
         uint256 nativeTokensSupplied
-    ) internal view returns (
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensReturned
-    ) {
+    )
+        internal
+        view
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
         address caller = context.executionState.caller == address(0)
             ? address(this)
             : context.executionState.caller;
@@ -430,10 +421,14 @@ library FuzzDerivers {
     function getBasicExecutions(
         FuzzTestContext memory context,
         uint256 nativeTokensSupplied
-    ) internal view returns (
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensReturned
-    ) {
+    )
+        internal
+        view
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
         address caller = context.executionState.caller == address(0)
             ? address(this)
             : context.executionState.caller;

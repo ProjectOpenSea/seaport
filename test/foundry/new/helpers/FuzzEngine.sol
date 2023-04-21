@@ -376,6 +376,7 @@ contract FuzzEngine is
         // generation phase.
         setCounter(context);
         setContractOffererNonce(context);
+        prepareRebates(context);
     }
 
     /**
