@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "forge-std/console.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
@@ -1213,6 +1214,45 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForInvalidERC721TransferAmount(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.fulfillAdvancedOrder.selector
+        ) {
+            return true;
+        }
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2302,6 +2342,63 @@ contract FuzzMutations is Test, FuzzExecutor {
                     item.itemType == ItemType.NATIVE
                 ) {
                     item.identifierOrCriteria = 1;
+                    validItemFound = true;
+                    break;
+                }
+            }
+        }
+
+        // Re-sign order
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
+    function mutation_invalidERC721TransferAmount(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        console.log(context.actionName());
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // Add invalid amount to first valid item
+        bool validItemFound;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                item.startAmount = 2;
+                item.endAmount = 2;
+                validItemFound = true;
+                break;
+            }
+        }
+
+        if (!validItemFound) {
+            for (uint256 i; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    item.startAmount = 2;
+                    item.endAmount = 2;
                     validItemFound = true;
                     break;
                 }

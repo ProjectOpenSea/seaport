@@ -111,6 +111,7 @@ enum Failure {
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
+    InvalidERC721TransferAmount, // ERC721 transfer amount is not 1
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -342,6 +343,10 @@ library FuzzMutationSelectorLib {
             .withOrder(
                 MutationFilters.ineligibleForUnusedItemParameters_Identifier
             );
+
+        failuresAndFilters[i++] = Failure.InvalidERC721TransferAmount.withOrder(
+            MutationFilters.ineligibleForInvalidERC721TransferAmount
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -848,6 +853,15 @@ library FailureDetailsLib {
                 "UnusedItemParameters_Identifier",
                 FuzzMutations.mutation_unusedItemParameters_Identifier.selector
             );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .InvalidERC721TransferAmount
+            .selector
+            .withOrder(
+                "InvalidERC721TransferAmount",
+                FuzzMutations.mutation_invalidERC721TransferAmount.selector,
+                details_InvalidERC721TransferAmount
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -1078,6 +1092,14 @@ library FailureDetailsLib {
             resolver.orderIndex,
             resolver.index
         );
+    }
+
+    function details_InvalidERC721TransferAmount(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, 2);
     }
 
     function errorString(
