@@ -109,6 +109,8 @@ enum Failure {
     InvalidContractOrder_ConsiderationAmountMismatch, // startAmount != endAmount on contract order consideration item
     InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
+    UnusedItemParameters_Token, // Native item with non-zero token
+    UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -324,10 +326,21 @@ library FuzzMutationSelectorLib {
                     .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
             );
 
-        failuresAndFilters[i++] = Failure.InvalidRestrictedOrder_reverts
+        failuresAndFilters[i++] = Failure
+            .InvalidRestrictedOrder_reverts
             .and(Failure.InvalidRestrictedOrder_InvalidMagicValue)
             .withOrder(
                 MutationFilters.ineligibleWhenNotAvailableOrNotRestrictedOrder
+            );
+
+        failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
+            MutationFilters.ineligibleForUnusedItemParameters_Token
+        );
+
+        failuresAndFilters[i++] = Failure
+            .UnusedItemParameters_Identifier
+            .withOrder(
+                MutationFilters.ineligibleForUnusedItemParameters_Identifier
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -784,7 +797,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_OfferAmountMismatch",
-                FuzzMutations.mutation_invalidContractOrderOfferAmountMismatch.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderOfferAmountMismatch
+                    .selector,
                 details_withOrderHash
             );
 
@@ -793,7 +808,9 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidContractOrder_ConsiderationAmountMismatch",
-                FuzzMutations.mutation_invalidContractOrderConsiderationAmountMismatch.selector,
+                FuzzMutations
+                    .mutation_invalidContractOrderConsiderationAmountMismatch
+                    .selector,
                 details_withOrderHash
             );
 
@@ -810,8 +827,26 @@ library FailureDetailsLib {
             .selector
             .withOrder(
                 "InvalidRestrictedOrder_InvalidMagicValue",
-                FuzzMutations.mutation_invalidRestrictedOrderInvalidMagicValue.selector,
+                FuzzMutations
+                    .mutation_invalidRestrictedOrderInvalidMagicValue
+                    .selector,
                 details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .UnusedItemParameters
+            .selector
+            .withOrder(
+                "UnusedItemParameters_Token",
+                FuzzMutations.mutation_unusedItemParameters_Token.selector
+            );
+
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .UnusedItemParameters
+            .selector
+            .withOrder(
+                "UnusedItemParameters_Identifier",
+                FuzzMutations.mutation_unusedItemParameters_Identifier.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
