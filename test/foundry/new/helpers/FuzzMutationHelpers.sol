@@ -646,8 +646,15 @@ library MutationContextDeriverLib {
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
-            mutationState.selectedOrderHash = context.executionState.orderHashes[orderIndex];
+            mutationState.selectedOrderHash = context
+                .executionState
+                .orderHashes[orderIndex];
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
+            mutationState.selectedArbitraryAddress = address(
+                uint160(
+                    context.generatorContext.randRange(3, type(uint160).max)
+                )
+            );
         } else if (
             derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER
         ) {

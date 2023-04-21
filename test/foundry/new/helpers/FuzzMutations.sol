@@ -1143,6 +1143,36 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForNoContract(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        // Can't be one of the fulfillAvailable actions.
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        // One non-native execution is necessary.
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            i++
+        ) {
+            if (
+                context.expectations.expectedExplicitExecutions[i].item.token !=
+                address(0)
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2148,6 +2178,67 @@ contract FuzzMutations is Test, FuzzExecutor {
                 context.executionState.orders,
                 context.generatorContext
             );
+        }
+
+        exec(context);
+    }
+
+    function mutation_noContract(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        address targetContract;
+
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            i++
+        ) {
+            address candidate = context
+                .expectations
+                .expectedExplicitExecutions[i]
+                .item
+                .token;
+
+            if (candidate != address(0)) {
+                targetContract = candidate;
+                break;
+            }
+        }
+
+        for (uint256 j; j < context.executionState.orders.length; j++) {
+            AdvancedOrder memory order = context.executionState.orders[j];
+
+            for (uint256 i; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+                if (item.token == targetContract) {
+                    item.token = mutationState.selectedArbitraryAddress;
+                }
+            }
+
+            for (uint256 i; i < order.parameters.offer.length; i++) {
+                OfferItem memory item = order.parameters.offer[i];
+                if (item.token == targetContract) {
+                    item.token = mutationState.selectedArbitraryAddress;
+                }
+            }
+
+            if (
+                context.advancedOrdersSpace.orders[j].signatureMethod ==
+                SignatureMethod.VALIDATE
+            ) {
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (
+                context.executionState.caller != order.parameters.offerer
+            ) {
+                AdvancedOrdersSpaceGenerator._signOrders(
+                    context.advancedOrdersSpace,
+                    context.executionState.orders,
+                    context.generatorContext
+                );
+            }
         }
 
         exec(context);
