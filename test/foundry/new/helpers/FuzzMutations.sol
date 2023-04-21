@@ -1012,6 +1012,17 @@ library MutationFilters {
             FulfillmentComponent memory fulfillmentComponent = context
                 .executionState
                 .offerFulfillments[i][0];
+
+            if (
+                context
+                    .executionState
+                    .orders[fulfillmentComponent.orderIndex]
+                    .parameters
+                    .offer.length <= fulfillmentComponent.itemIndex
+            ) {
+                continue;
+            }
+
             if (
                 context
                     .executionState
@@ -2038,6 +2049,16 @@ contract FuzzMutations is Test, FuzzExecutor {
             AdvancedOrder memory order = context.executionState.orders[
                 fulfillmentComponent.orderIndex
             ];
+
+            if (
+                context
+                    .executionState
+                    .orders[fulfillmentComponent.orderIndex]
+                    .parameters
+                    .offer.length <= fulfillmentComponent.itemIndex
+            ) {
+                continue;
+            }
 
             if (
                 context
