@@ -84,7 +84,9 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set
 
-        itemAmountMutations.push(ItemAmountMutation(side, index, newAmount, orderHash));
+        itemAmountMutations.push(
+            ItemAmountMutation(side, index, newAmount, orderHash)
+        );
     }
 
     function addDropItemMutation(
@@ -238,19 +240,14 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             contractOffererNonce ^ (uint256(uint160(address(this))) << 96)
         );
 
-        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_generateReverts) {
+        if (
+            failureReasons[orderHash] ==
+            OffererZoneFailureReason.ContractOfferer_generateReverts
+        ) {
             revert HashCalldataContractOffererGenerateOrderReverts();
         }
 
         {
-            (bool success, ) = payable(_SEAPORT).call{
-                value: _getOfferedNativeTokens(a)
-            }("");
-
-            if (!success) {
-                revert NativeTokenTransferFailed();
-            }
-
             // Create a variable to store msg.data in memory
             bytes memory data = new bytes(msg.data.length);
 
@@ -267,7 +264,15 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             emit GenerateOrderDataHash(orderHash, calldataHash);
         }
 
-        return previewOrder(msg.sender, fulfiller, a, b, c);
+        (offer, consideration) = previewOrder(msg.sender, fulfiller, a, b, c);
+
+        (bool success, ) = payable(_SEAPORT).call{
+            value: _getOfferedNativeTokens(offer)
+        }("");
+
+        if (!success) {
+            revert NativeTokenTransferFailed();
+        }
     }
 
     /**
@@ -361,7 +366,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             contractNonce ^ (uint256(uint160(address(this))) << 96)
         );
 
-        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_ratifyReverts) {
+        if (
+            failureReasons[orderHash] ==
+            OffererZoneFailureReason.ContractOfferer_ratifyReverts
+        ) {
             revert HashCalldataContractOffererRatifyOrderReverts();
         }
 
@@ -383,7 +391,10 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             emit RatifyOrderDataHash(orderHash, calldataHash);
         }
 
-        if (failureReasons[orderHash] == OffererZoneFailureReason.ContractOfferer_InvalidMagicValue) {
+        if (
+            failureReasons[orderHash] ==
+            OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
+        ) {
             return bytes4(0x12345678);
         } else {
             // Return the selector of ratifyOrder as the magic value.
@@ -439,7 +450,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     }
 
     function _getOfferedNativeTokens(
-        SpentItem[] calldata offer
+        SpentItem[] memory offer
     ) internal pure returns (uint256 amount) {
         for (uint256 i = 0; i < offer.length; ++i) {
             SpentItem memory item = offer[i];
