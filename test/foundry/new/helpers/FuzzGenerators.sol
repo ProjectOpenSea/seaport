@@ -254,11 +254,26 @@ library TestStateGenerator {
                     }
                 }
 
-                if (
-                    components[i].offer.length == 0 &&
-                    components[i].rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS
-                ) {
-                    components[i].rebate = ContractOrderRebate(components[i].consideration.length == 0 ? context.randEnum(0, 1) : context.choice(Solarray.uint256s(0, 1, 2, 4)));
+                if (components[i].rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS) {
+                    bool canIncreaseAmounts;
+                    for (uint256 j = 0; j < components[i].offer.length; ++j) {
+                        ItemType itemType = components[i].offer[j].itemType;
+                        if (
+                            itemType != ItemType.ERC721 &&
+                            itemType != ItemType.ERC721_WITH_CRITERIA
+                        ) {
+                            canIncreaseAmounts = true;
+                            break;
+                        }
+                    }
+
+                    if (!canIncreaseAmounts) {
+                        components[i].rebate = ContractOrderRebate(
+                            components[i].consideration.length == 0
+                                ? context.randEnum(0, 1)
+                                : context.choice(Solarray.uint256s(0, 1, 3))
+                        );
+                    }
                 }
             } else if (components[i].offerer == Offerer.EIP1271) {
                 components[i].signatureMethod = SignatureMethod.EIP1271;
