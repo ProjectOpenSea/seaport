@@ -26,8 +26,6 @@ import {
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
-
 import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
@@ -40,6 +38,8 @@ import {
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
 import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+
+import { ContractOrderRebate } from "seaport-sol/SpaceEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -475,6 +475,12 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // TODO: get more precise about when this is allowed or not
+        if (context.advancedOrdersSpace.orders[orderIndex].rebate != ContractOrderRebate.NONE) {
+            return true;
+        }
+
+
         if (ineligibleWhenNotActiveTime(order)) {
             return true;
         }
