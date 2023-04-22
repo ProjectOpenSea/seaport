@@ -51,6 +51,10 @@ import {
 } from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
 
 import {
+    AmountDerivationErrors
+} from "../../../../contracts/interfaces/AmountDerivationErrors.sol";
+
+import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
@@ -117,6 +121,10 @@ enum Failure {
     InvalidERC721TransferAmount, // ERC721 transfer amount is not 1
     ConsiderationNotMet,
     PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
+    InexactFraction,
+    Panic_PartialFillOverflow,
+    NoSpecifiedOrdersAvailable_match,
+    NoSpecifiedOrdersAvailable_available,
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -386,6 +394,24 @@ library FuzzMutationSelectorLib {
             .withOrder(
                 MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
             );
+
+        failuresAndFilters[i++] = Failure
+            .InexactFraction
+            .withOrder(
+                MutationFilters.ineligibleForInexactFraction
+            );
+
+        failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow.withOrder(
+            MutationFilters.ineligibleForPanic_PartialFillOverflow
+        );
+
+        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable_match.withGeneric(
+            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable_match
+        );
+
+        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable_available.withGeneric(
+            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable_available
+        );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -956,6 +982,37 @@ library FailureDetailsLib {
                 "PartialFillsNotEnabledForOrder",
                 FuzzMutations.mutation_partialFillsNotEnabledForOrder.selector
             );
+
+        failureDetailsArray[i++] = AmountDerivationErrors
+            .InexactFraction
+            .selector
+            .withOrder(
+                "InexactFraction",
+                FuzzMutations.mutation_inexactFraction.selector
+            );
+
+        failureDetailsArray[i++] = PANIC
+            .withOrder(
+                "Panic_PartialFillOverflow",
+                FuzzMutations.mutation_partialFillOverflow.selector,
+                details_PanicOverflow
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .NoSpecifiedOrdersAvailable
+            .selector
+            .withGeneric(
+                "NoSpecifiedOrdersAvailable_match",
+                FuzzMutations.mutation_noSpecifiedOrdersAvailableViaMatch.selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .NoSpecifiedOrdersAvailable
+            .selector
+            .withGeneric(
+                "NoSpecifiedOrdersAvailable_available",
+                FuzzMutations.mutation_noSpecifiedOrdersAvailableViaAvailable.selector
+            );
         ////////////////////////////////////////////////////////////////////////
 
         if (i != uint256(Failure.length)) {
@@ -980,7 +1037,7 @@ library FailureDetailsLib {
         );
     }
 
-    function details_PanicUnderflow(
+    function details_PanicOverflow(
         FuzzTestContext memory /* context */,
         MutationState memory /* mutationState */,
         bytes4 errorSelector

@@ -1456,6 +1456,63 @@ library MutationFilters {
 
         return false;
     }
+
+    function ineligibleForPanic_PartialFillOverflow(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
+            action != context.seaport.matchAdvancedOrders.selector &&
+            action != context.seaport.fulfillAdvancedOrder.selector
+        ) {
+            return true;
+        }
+
+        // TODO: this overfits a bit, instead use time + max fulfilled
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        return (
+            order.parameters.orderType != OrderType.PARTIAL_OPEN &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
+        );
+    }
+
+    function ineligibleForInexactFraction(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForPanic_PartialFillOverflow(order, orderIndex, context)) {
+            return true;
+        }
+
+        return (order.parameters.offer.length + order.parameters.consideration.length == 0);
+    }
+
+    function ineligibleForNoSpecifiedOrdersAvailable_match(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        return (
+            action != context.seaport.matchAdvancedOrders.selector &&
+            action != context.seaport.matchOrders.selector
+        );
+    }
+
+    function ineligibleForNoSpecifiedOrdersAvailable_available(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        return (
+            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
+            action != context.seaport.fulfillAvailableOrders.selector
+        );
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2768,7 +2825,75 @@ contract FuzzMutations is Test, FuzzExecutor {
             .withItemType(ItemType.NATIVE)
             .withAmount(100);
         order.parameters.consideration = newConsideration;
-        
+
+        exec(context);
+    }
+
+    function mutation_inexactFraction(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        uint256 itemAmount = order.parameters.offer.length == 0
+            ? order.parameters.consideration[0].startAmount
+            : order.parameters.offer[0].startAmount;
+
+        if (itemAmount == 0) {
+            itemAmount = order.parameters.offer.length == 0
+                ? order.parameters.consideration[0].endAmount
+                : order.parameters.offer[0].endAmount;
+        }
+
+        // This isn't perfect, but odds of hitting it are slim to none
+        if (itemAmount > type(uint120).max - 1) {
+            itemAmount = 664613997892457936451903530140172393;
+        }
+
+        order.numerator = 1;
+        order.denominator = uint120(itemAmount) + 1;
+
+        exec(context);
+    }
+
+    function mutation_partialFillOverflow(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.numerator = 1;
+        order.denominator = 664613997892457936451903530140172393;
+
+        order.inscribeOrderStatusNumeratorAndDenominator(
+            1,
+            664613997892457936451903530140172297,
+            context.seaport
+        );
+
+        exec(context);
+    }
+
+    function mutation_noSpecifiedOrdersAvailableViaMatch(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        // TODO: get smarter about only removing unfiltered components
+        context.executionState.fulfillments = new Fulfillment[](0);
+
+        exec(context);
+    }
+
+    function mutation_noSpecifiedOrdersAvailableViaAvailable(
+        FuzzTestContext memory context,
+        MutationState memory /* mutationState */
+    ) external {
+        // TODO: get smarter about only removing unfiltered components
+        context.executionState.offerFulfillments = new FulfillmentComponent[][](0);
+        context.executionState.considerationFulfillments = new FulfillmentComponent[][](0);
+
         exec(context);
     }
 
