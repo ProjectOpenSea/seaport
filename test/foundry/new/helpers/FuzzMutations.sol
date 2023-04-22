@@ -939,6 +939,23 @@ library MutationFilters {
             return true;
         }
 
+        FulfillmentComponent[] memory firstOfferComponents = (
+            context.executionState.fulfillments[0].offerComponents
+        );
+
+        for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
+            FulfillmentComponent memory component = (firstOfferComponents[i]);
+            if (
+                context
+                    .executionState
+                    .orders[component.orderIndex]
+                    .parameters
+                    .offer.length <= component.itemIndex
+            ) {
+                return true;
+            }
+        }
+
         return false;
     }
 
