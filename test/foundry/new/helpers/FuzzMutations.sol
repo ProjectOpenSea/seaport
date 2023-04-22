@@ -1274,7 +1274,12 @@ library MutationFilters {
         ) {
             return true;
         }
+
         if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
 
