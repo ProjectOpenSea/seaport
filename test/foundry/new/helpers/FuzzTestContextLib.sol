@@ -255,6 +255,7 @@ struct MutationState {
     Side side;
     CriteriaResolver selectedCriteriaResolver;
     uint256 selectedCriteriaResolverIndex;
+    bytes callData;
 }
 
 struct FuzzTestContext {
