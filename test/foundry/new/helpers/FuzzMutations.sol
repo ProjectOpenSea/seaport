@@ -1251,7 +1251,7 @@ library MutationFilters {
 
     function ineligibleForUnusedItemParameters_Token(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
